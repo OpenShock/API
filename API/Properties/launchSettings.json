@@ -1,0 +1,14 @@
+﻿{
+  "profiles": {
+    "UnShocked": {
+      "commandName": "Project",
+      "dotnetRunMessages": true,
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Development",
+        "DB": "Host=docker-node;Port=1337;Database=root;Username=root;Password=root;Search Path=ShockLink",
+        "REDIS_HOST":"docker-node",
+        "REDIS_PASSWORD": ""
+      }
+    }
+  }
+}
