@@ -77,6 +77,8 @@ public class Startup
 
     public void Configure(IApplicationBuilder app, IWebHostEnvironment env, ILoggerFactory loggerFactory)
     {
+        Console.WriteLine("still here");
+        
         foreach (var proxy in CloudflareProxies)
         {
             var split = proxy.Split('/');
