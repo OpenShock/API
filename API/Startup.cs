@@ -112,8 +112,7 @@ public class Startup
         {
             KeepAliveInterval = TimeSpan.FromMinutes(1)
         };
-
-        if (!env.IsDevelopment()) app.UseHttpsRedirection();
+        
         app.UseWebSockets(webSocketOptions);
         app.UseRouting();
         app.UseAuthentication();
