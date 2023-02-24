@@ -26,6 +26,7 @@ public class Startup
 
     public void ConfigureServices(IServiceCollection services)
     {
+        Console.WriteLine("still hereaaaaa");
         services.AddDbContextPool<ShockLinkContext>(builder =>
         {
             builder.UseNpgsql(ApiConfig.Db);
