@@ -32,10 +32,11 @@ public class Startup
             builder.UseNpgsql(ApiConfig.Db);
             builder.EnableSensitiveDataLogging();
         });
+        Console.WriteLine("stillbbbbbb");
 
         var redis = new RedisConnectionProvider($"redis://:{ApiConfig.RedisPassword}@{ApiConfig.RedisHost}:6379");
         services.AddSingleton<IRedisConnectionProvider>(redis);
-
+        Console.WriteLine("stillccccc");
         var redisConf = new RedisConfiguration
         {
             AbortOnConnectFail = true,
@@ -52,6 +53,7 @@ public class Startup
         };
         services.AddStackExchangeRedisExtensions<NewtonsoftSerializer>(redisConf);
 
+        Console.WriteLine("stillddd");
         services.AddMemoryCache();
         services.AddHttpContextAccessor();
 
