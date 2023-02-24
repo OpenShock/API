@@ -65,6 +65,7 @@ public class Startup
         services.AddCors();
         services.AddApiVersioning();
         
+        Console.WriteLine("stillsaaas");
         //services.AddHealthChecks().AddCheck<DatabaseHealthCheck>("database");
     }
 
