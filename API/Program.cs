@@ -40,4 +40,11 @@ builder.UseContentRoot(Directory.GetCurrentDirectory())
         webBuilder.UseStartup<Startup>();
     });
 Console.WriteLine("still cock");
-await builder.Build().RunAsync();
+try
+{
+    await builder.Build().RunAsync();
+}
+catch (Exception e)
+{
+    Console.WriteLine(e);
+}
