@@ -1,6 +1,8 @@
 using Serilog;
 using ShockLink.API;
 
+Console.WriteLine("yesss");
+
 HostBuilder builder = new();
 builder.UseContentRoot(Directory.GetCurrentDirectory())
     .ConfigureHostConfiguration(config =>

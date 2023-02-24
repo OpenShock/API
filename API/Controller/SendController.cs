@@ -7,35 +7,56 @@ namespace ShockLink.API.Controller;
 [Route("send")]
 public class SendController
 {
-    [HttpPost]
-    public async Task<bool> Send(Data data)
+    [HttpGet]
+    public async Task<bool> Send([FromQuery] ControlType controlType, [FromQuery] byte intensity,
+        [FromQuery] uint duration, [FromQuery] int device)
     {
+        duration = Math.Min(duration, 30000);
+        var lel = new List<ControlResponse>();
+
+        switch (device)
+        {
+            case 1:
+                lel.Add(new()
+                {
+                    Id = 3068,
+                    Type = controlType,
+                    Intensity = intensity,
+                    Duration = duration
+                });
+                break;
+            case 2: 
+                lel.Add(new()
+                {
+                    Id = 3045,
+                    Type = controlType,
+                    Intensity = intensity,
+                    Duration = duration
+                });
+                break;
+            case 0:
+                lel.Add(new()
+                {
+                    Id = 3045,
+                    Type = controlType,
+                    Intensity = intensity,
+                    Duration = duration
+                });
+                lel.Add(new()
+                {
+                    Id = 3068,
+                    Type = controlType,
+                    Intensity = intensity,
+                    Duration = duration
+                });
+                break;
+        }
+
         await WebSocketController.Instance.QueueMessage(new BaseResponse
         {
             ResponseType = ResponseType.Control,
-            Data = new List<ControlResponse>
-            {
-                new()
-                {
-                    Id = 3068,
-                    Type = ControlType.Vibrate,
-                    Intensity = 25,
-                    Duration = 5000
-                },
-                new()
-                {
-                    Id = 3045,
-                    Type = ControlType.Vibrate,
-                    Intensity = 50,
-                    Duration = 2500
-                }
-            }
+            Data = lel
         });
         return true;
-    }
-    
-    public class Data
-    {
-        public required string Text { get; set; }
     }
 }
