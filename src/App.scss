@@ -1,0 +1,264 @@
+@font-face {
+  font-family: Poppins-Regular;
+  src: url("~@fontsource/poppins/files/poppins-all-400-normal.woff");
+}
+
+@font-face {
+  font-family: Poppins-Medium;
+  src: url('~@fontsource/poppins/files/poppins-all-500-normal.woff');
+}
+
+@font-face {
+  font-family: Poppins-Bold;
+  src: url('~@fontsource/poppins/files/poppins-all-700-normal.woff');
+}
+
+@font-face {
+  font-family: Poppins-SemiBold;
+  src: url('~@fontsource/poppins/files/poppins-all-600-normal.woff');
+}
+
+
+html {
+  min-height: 100%;
+  width: 100%;
+
+  scrollbar-width: thin;
+  scrollbar-color: auto;
+
+  &::-webkit-scrollbar {
+    width: 6px;
+    background: #d0d0d0;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: #b6b6b6;
+  }
+}
+
+[data-color-scheme="white"] {
+  --main-color: #502FFF;
+  --main-darken-color: #050434;
+  --main-lighten-color: #32EAFF;
+  --nav-bar-color: #050434;
+  --main-background-color: #f9f9fc;
+  --secondary-background-color: #f0f0f0;
+  --third-background-color: #f4f4f4;
+  --fourth-background-color: #d9d9d9;
+  --main-text-color: #000;
+  --main-text-hover-color: #282828;
+  --main-seperator-color: #373b3e;
+  color: #000;
+
+  --hover-darken-color: #e0e0e0;
+  --secondary-color: #666666;
+  --third-color: #333333;
+
+  --secondary-seperator-color: #7f7f7f;
+
+  .table {
+    --bs-table-striped-color: #212529;
+    --bs-table-striped-bg: rgba(0, 0, 0, 0.05);
+    --bs-table-active-color: #212529;
+    --bs-table-active-bg: rgba(0, 0, 0, 0.1);
+    --bs-table-hover-color: #212529;
+    --bs-table-hover-bg: rgba(0, 0, 0, 0.075);
+    color: #212529;
+    border-color: #dee2e6;
+  }
+
+  --swal-error-line: #f27474;
+}
+
+[data-color-scheme="dark"] {
+  --main-color: #502FFF;
+  --main-darken-color: #050434;
+  --main-lighten-color: #32EAFF;
+  --nav-bar-color: #050434;
+  --main-background-color: #1b1d1e;
+  --secondary-background-color: #202325;
+  --third-background-color: #373b3e;
+  --fourth-background-color: #454a4d;
+  --main-text-color: #fff;
+  --main-text-hover-color: #c8c8c8;
+  --main-seperator-color: #373b3e;
+  color: #fff;
+
+  --hover-darken-color: #373b3e;
+  --secondary-color: #c7c7c7;
+  --third-color: #e0e0e0;
+
+  --secondary-seperator-color: #7f7f7f;
+
+  // Specific use cases
+  --main-color-white: #fff;
+
+  .table {
+    --bs-table-striped-bg: #2c3034;
+    --bs-table-striped-color: #fff;
+    --bs-table-active-bg: #373b3e;
+    --bs-table-active-color: #fff;
+    --bs-table-hover-bg: #323539;
+    --bs-table-hover-color: #fff;
+    color: #fff;
+    border-color: #373b3e;
+  }
+
+  input {
+    color: #fff !important;
+  }
+
+  --swal-error-line: #fc3a3a;
+}
+
+
+html, body {
+  font-family: Poppins-Regular, sans-serif;
+  background-color: var(--main-background-color);
+}
+
+html, body, .app-height-100 {
+  height: 100%;
+}
+
+.toast-top-center {
+  top: 20px;
+}
+
+.btn-nano {
+  color: #fff;
+  background-color: var(--main-color);
+  border-color: var(--main-color);
+  margin-top: 10px;
+
+  &:hover {
+    color: #fff;
+    background-color: var(--main-darken-color);
+    border-color: var(--main-darken-color);
+  }
+
+  &:focus {
+    box-shadow: 0 0 0 0.25rem rgb(80, 47, 255)
+  }
+
+  &.scuff {
+    height: 39px;
+    margin-right: 15px;
+    margin-top: 24px;
+  }
+}
+
+.table {
+  tbody {
+    tr {
+      &:hover {
+        background-color: var(--bs-table-hover-bg);
+      }
+    }
+  }
+}
+
+.form-control {
+  border: 1px solid var(--main-seperator-color);
+  background-color: var(--main-background-color) !important;
+  color: var(--main-text-color);
+
+  &:focus {
+    border-color: var(--main-color);
+    box-shadow: 0 0 0 0.25rem rgb(80, 47, 255);
+    color: var(--main-text-color);
+  }
+
+  &[readonly] {
+    background-color: var(--main-background-color);
+  }
+}
+
+.form-check-input, .form-select {
+  border: 1px solid var(--main-seperator-color);
+  background-color: var(--main-background-color);
+  color: var(--main-text-color);
+
+  &:checked {
+    background-color: var(--main-color);
+    border-color: var(--main-color);
+  }
+
+  &:focus {
+    border-color: var(--main-color);
+    box-shadow: 0 0 0 0.25rem rgb(80, 47, 255);
+  }
+}
+
+hr {
+  color: var(--main-seperator-color);
+  background-color: var(--main-seperator-color);
+}
+
+.form-control-plaintext:focus-visible {
+  outline: none;
+}
+
+.component-fade-enter-active, .component-fade-leave-active {
+  transition: opacity .2s ease;
+}
+
+.component-fade-enter-from, .component-fade-leave-to {
+  opacity: 0;
+}
+
+// TODO: Move to navigation css?
+.pagination .page-item {
+
+  .page-link {
+    height: 38px;
+    background-color: var(--secondary-background-color);
+    border-color: var(--third-background-color);
+    color: var(--main-text-color);
+    width: 38px;
+
+    &:hover {
+      color: var(--main-text-hover-color);
+      background-color: var(--third-background-color);
+    }
+
+    &:focus {
+      box-shadow: none;
+    }
+  }
+
+  &.active .page-link {
+    color: var(--main-color);
+  }
+}
+
+.form-check-input[readonly][type="checkbox"] {
+  pointer-events: none;
+
+  + label {
+    pointer-events: none;
+  }
+}
+
+// Sweetalert overrides
+.swal2-popup {
+  background-color: var(--main-background-color);
+  color: var(--main-text-color);
+  .swal2-icon.swal2-error {
+    color: var(--swal-error-line);
+    border-color: var(--swal-error-line);
+    [class^="swal2-x-mark-line"] {
+      background-color: var(--swal-error-line);
+    }
+  }
+
+  .swal2-actions {
+    .swal2-confirm {
+      background-color: var(--main-color);
+
+      &:focus {
+        box-shadow: 0 0 0 3px rgba(var(--main-lighten-color), 0.25)
+      }
+    }
+  }
+}
