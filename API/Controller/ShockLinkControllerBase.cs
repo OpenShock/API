@@ -5,7 +5,7 @@ using ShockLink.API.Serialization;
 
 namespace ShockLink.API.Controller;
 
-public class LucControllerBase : Microsoft.AspNetCore.Mvc.Controller
+public class ShockLinkControllerBase : Microsoft.AspNetCore.Mvc.Controller
 {
 
     [NonAction]

@@ -6,7 +6,7 @@ using ShockLink.Common.Models.WebSocket;
 
 namespace ShockLink.API.Controller;
 
-public abstract class WebsocketControllerBase<T> : LucControllerBase, IWebsocketController<T> where T : Enum
+public abstract class WebsocketControllerBase<T> : ShockLinkControllerBase, IWebsocketController<T> where T : Enum
 {
     protected readonly ILogger<WebsocketControllerBase<T>> Logger;
     protected readonly CancellationTokenSource Close = new();

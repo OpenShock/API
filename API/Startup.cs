@@ -6,8 +6,10 @@ using Microsoft.Extensions.DependencyInjection.Extensions;
 using Redis.OM;
 using Redis.OM.Contracts;
 using Serilog;
+using ShockLink.API.Authentication;
 using ShockLink.API.ExceptionHandle;
 using ShockLink.API.Utils;
+using ShockLink.Common.Redis;
 using ShockLink.Common.ShockLinkDb;
 using StackExchange.Redis;
 using StackExchange.Redis.Extensions.Core.Configuration;
@@ -26,17 +28,15 @@ public class Startup
 
     public void ConfigureServices(IServiceCollection services)
     {
-        Console.WriteLine("still hereaaaaa");
         services.AddDbContextPool<ShockLinkContext>(builder =>
         {
             builder.UseNpgsql(ApiConfig.Db);
             builder.EnableSensitiveDataLogging();
         });
-        Console.WriteLine("stillbbbbbb");
 
         var redis = new RedisConnectionProvider($"redis://:{ApiConfig.RedisPassword}@{ApiConfig.RedisHost}:6379");
+        redis.Connection.CreateIndex(typeof(LoginSession));
         services.AddSingleton<IRedisConnectionProvider>(redis);
-        Console.WriteLine("stillccccc");
         var redisConf = new RedisConfiguration
         {
             AbortOnConnectFail = true,
@@ -53,21 +53,23 @@ public class Startup
         };
         services.AddStackExchangeRedisExtensions<NewtonsoftSerializer>(redisConf);
 
-        Console.WriteLine("stillddd");
         services.AddMemoryCache();
         services.AddHttpContextAccessor();
 
+        services.AddScoped<IClientAuthService<LinkUser>, ClientAuthService<LinkUser>>();
 
-        
         services.AddWebEncoders();
         services.TryAddSingleton<ISystemClock, SystemClock>();
+        new AuthenticationBuilder(services)
+            .AddScheme<LoginSessionAuthenticationSchemeOptions, LoginSessionAuthentication>(
+                ShockLinkAuthSchemas.SessionTokenCombo, _ => { });
+        services.AddAuthenticationCore();
 
         services.AddControllers();
 
         services.AddCors();
         services.AddApiVersioning();
-        
-        Console.WriteLine("stillsaaas");
+
         //services.AddHealthChecks().AddCheck<DatabaseHealthCheck>("database");
     }
 
@@ -82,7 +84,7 @@ public class Startup
     public void Configure(IApplicationBuilder app, IWebHostEnvironment env, ILoggerFactory loggerFactory)
     {
         Console.WriteLine("still here");
-        
+
         foreach (var proxy in CloudflareProxies)
         {
             var split = proxy.Split('/');
@@ -113,12 +115,12 @@ public class Startup
         };
 
         // PubSubManager.Initialize(ConnectionMultiplexer.Connect(redisConfiguration), app.ApplicationServices);
-        
+
         var webSocketOptions = new WebSocketOptions
         {
             KeepAliveInterval = TimeSpan.FromMinutes(1)
         };
-        
+
         app.UseWebSockets(webSocketOptions);
         app.UseRouting();
         app.UseAuthentication();
