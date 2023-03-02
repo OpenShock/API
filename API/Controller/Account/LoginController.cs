@@ -64,13 +64,13 @@ public class LoginController : ShockLinkControllerBase
             Message = "Successfully signed in",
             Data = new LoginResponse
             {
-                AbiSession = randomSessionId
+                ShockLinkSession = randomSessionId
             }
         };
     }
     
     public class LoginResponse
     {
-        public required string AbiSession { get; set; }
+        public required string ShockLinkSession { get; set; }
     }
 }

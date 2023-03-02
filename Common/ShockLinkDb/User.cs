@@ -17,7 +17,7 @@ public partial class User
 
     public bool EmailActived { get; set; }
 
-    public virtual ICollection<DeviceShare> DeviceShares { get; } = new List<DeviceShare>();
+    public virtual ICollection<ShockerShare> ShockerShares { get; } = new List<ShockerShare>();
 
-    public virtual ICollection<Device> Devices { get; } = new List<Device>();
+    public virtual ICollection<Shocker> Shockers { get; } = new List<Shocker>();
 }

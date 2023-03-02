@@ -1,8 +1,6 @@
 using Serilog;
 using ShockLink.API;
 
-Console.WriteLine("yesss");
-
 HostBuilder builder = new();
 builder.UseContentRoot(Directory.GetCurrentDirectory())
     .ConfigureHostConfiguration(config =>
@@ -39,7 +37,6 @@ builder.UseContentRoot(Directory.GetCurrentDirectory())
         });
         webBuilder.UseStartup<Startup>();
     });
-Console.WriteLine("still cock");
 try
 {
     await builder.Build().RunAsync();

@@ -3,7 +3,7 @@ using System.Collections.Generic;
 
 namespace ShockLink.Common.ShockLinkDb;
 
-public partial class Device
+public partial class Shocker
 {
     public Guid Id { get; set; }
 
@@ -13,7 +13,7 @@ public partial class Device
 
     public string Name { get; set; } = null!;
 
-    public virtual ICollection<DeviceShare> DeviceShares { get; } = new List<DeviceShare>();
-
     public virtual User OwnerNavigation { get; set; } = null!;
+
+    public virtual ICollection<ShockerShare> ShockerShares { get; } = new List<ShockerShare>();
 }

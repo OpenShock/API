@@ -15,19 +15,23 @@ public partial class ShockLinkContext : DbContext
     {
     }
 
-    public virtual DbSet<Device> Devices { get; set; }
+    public virtual DbSet<Shocker> Shockers { get; set; }
 
-    public virtual DbSet<DeviceShare> DeviceShares { get; set; }
+    public virtual DbSet<ShockerShare> ShockerShares { get; set; }
 
     public virtual DbSet<User> Users { get; set; }
-    
+
+    protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
+#warning To protect potentially sensitive information in your connection string, you should move it out of source code. You can avoid scaffolding the connection string by using the Name= syntax to read it from configuration - see https://go.microsoft.com/fwlink/?linkid=2131148. For more guidance on storing connection strings, see http://go.microsoft.com/fwlink/?LinkId=723263.
+        => optionsBuilder.UseNpgsql("Host=docker-node;Port=1337;Database=root;Username=root;Password=root;Search Path=ShockLink");
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
-        modelBuilder.Entity<Device>(entity =>
+        modelBuilder.Entity<Shocker>(entity =>
         {
-            entity.HasKey(e => e.Id).HasName("devices_pkey");
+            entity.HasKey(e => e.Id).HasName("shockers_pkey");
 
-            entity.ToTable("devices", "ShockLink");
+            entity.ToTable("shockers", "ShockLink");
 
             entity.Property(e => e.Id)
                 .ValueGeneratedNever()
@@ -39,32 +43,32 @@ public partial class ShockLinkContext : DbContext
             entity.Property(e => e.Owner).HasColumnName("owner");
             entity.Property(e => e.RfId).HasColumnName("rf_id");
 
-            entity.HasOne(d => d.OwnerNavigation).WithMany(p => p.Devices)
+            entity.HasOne(d => d.OwnerNavigation).WithMany(p => p.Shockers)
                 .HasForeignKey(d => d.Owner)
                 .HasConstraintName("owner_user_id");
         });
 
-        modelBuilder.Entity<DeviceShare>(entity =>
+        modelBuilder.Entity<ShockerShare>(entity =>
         {
-            entity.HasKey(e => new { e.DeviceId, e.SharedWith }).HasName("device_shares_pkey");
+            entity.HasKey(e => new { e.ShockerId, e.SharedWith }).HasName("shocker_shares_pkey");
 
-            entity.ToTable("device_shares", "ShockLink");
+            entity.ToTable("shocker_shares", "ShockLink");
 
-            entity.Property(e => e.DeviceId).HasColumnName("device_id");
+            entity.Property(e => e.ShockerId).HasColumnName("shocker_id");
             entity.Property(e => e.SharedWith).HasColumnName("shared_with");
             entity.Property(e => e.CreatedOn)
                 .HasDefaultValueSql("CURRENT_TIMESTAMP")
                 .HasColumnType("timestamp without time zone")
                 .HasColumnName("created_on");
 
-            entity.HasOne(d => d.Device).WithMany(p => p.DeviceShares)
-                .HasForeignKey(d => d.DeviceId)
-                .HasConstraintName("ref_device_id");
-
-            entity.HasOne(d => d.SharedWithNavigation).WithMany(p => p.DeviceShares)
+            entity.HasOne(d => d.SharedWithNavigation).WithMany(p => p.ShockerShares)
                 .HasForeignKey(d => d.SharedWith)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("shared_with_user_id");
+
+            entity.HasOne(d => d.Shocker).WithMany(p => p.ShockerShares)
+                .HasForeignKey(d => d.ShockerId)
+                .HasConstraintName("ref_shocker_id");
         });
 
         modelBuilder.Entity<User>(entity =>
@@ -95,5 +99,9 @@ public partial class ShockLinkContext : DbContext
                 .HasColumnType("character varying")
                 .HasColumnName("password");
         });
+
+        OnModelCreatingPartial(modelBuilder);
     }
+
+    partial void OnModelCreatingPartial(ModelBuilder modelBuilder);
 }

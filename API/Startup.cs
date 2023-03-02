@@ -65,10 +65,9 @@ public class Startup
                 ShockLinkAuthSchemas.SessionTokenCombo, _ => { });
         services.AddAuthenticationCore();
 
-        services.AddControllers();
-
         services.AddCors();
         services.AddApiVersioning();
+        services.AddControllers();
 
         //services.AddHealthChecks().AddCheck<DatabaseHealthCheck>("database");
     }
@@ -83,8 +82,6 @@ public class Startup
 
     public void Configure(IApplicationBuilder app, IWebHostEnvironment env, ILoggerFactory loggerFactory)
     {
-        Console.WriteLine("still here");
-
         foreach (var proxy in CloudflareProxies)
         {
             var split = proxy.Split('/');
@@ -121,6 +118,7 @@ public class Startup
             KeepAliveInterval = TimeSpan.FromMinutes(1)
         };
 
+        app.UseHttpsRedirection();
         app.UseWebSockets(webSocketOptions);
         app.UseRouting();
         app.UseAuthentication();

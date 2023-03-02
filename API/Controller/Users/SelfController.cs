@@ -9,8 +9,23 @@ namespace ShockLink.API.Controller.Users;
 public class SelfController : AuthenticatedSessionControllerBase
 {
     [HttpGet]
-    public async Task<BaseResponse<object>> GetSelf()
+    public async Task<BaseResponse<SelfResponse>> GetSelf()
     {
-        return new BaseResponse<object>();
+        return new BaseResponse<SelfResponse>
+        {
+            Data = new SelfResponse
+            {
+                Id = CurrentUser.DbUser.Id,
+                Name = CurrentUser.DbUser.Name,
+                Image = new Uri("https://sea.zlucplayz.com/f/e18b174d56db47759384/?raw=1")
+            }
+        };
+    }
+    
+    public class SelfResponse
+    {
+        public required Guid Id { get; set; }
+        public required string Name { get; set; }
+        public required Uri Image { get; set; }
     }
 }
