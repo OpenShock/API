@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using ShockLink.Common.Models;
 using ShockLink.Common.Models.WebSocket;
 
 namespace ShockLink.API.Controller;
@@ -52,7 +53,7 @@ public class SendController
                 break;
         }
 
-        await WebSocketController.Instance.QueueMessage(new BaseResponse
+        await DeviceWebSocketController.Instance.QueueMessage(new BaseResponse
         {
             ResponseType = ResponseType.Control,
             Data = lel

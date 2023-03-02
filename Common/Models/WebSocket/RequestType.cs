@@ -2,5 +2,5 @@
 
 public enum RequestType
 {
-    Command = 0
+    KeepAlive = 0
 }

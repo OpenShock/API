@@ -15,6 +15,8 @@ public partial class ShockLinkContext : DbContext
     {
     }
 
+    public virtual DbSet<Device> Devices { get; set; }
+
     public virtual DbSet<Shocker> Shockers { get; set; }
 
     public virtual DbSet<ShockerShare> ShockerShares { get; set; }
@@ -23,6 +25,33 @@ public partial class ShockLinkContext : DbContext
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
+        modelBuilder.Entity<Device>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("devices_pkey");
+
+            entity.ToTable("devices", "ShockLink");
+
+            entity.Property(e => e.Id)
+                .ValueGeneratedNever()
+                .HasColumnName("id");
+            entity.Property(e => e.CreatedOn)
+                .HasDefaultValueSql("CURRENT_TIMESTAMP")
+                .HasColumnType("timestamp without time zone")
+                .HasColumnName("created_on");
+            entity.Property(e => e.Name)
+                .HasColumnType("character varying")
+                .HasColumnName("name");
+            entity.Property(e => e.Owner).HasColumnName("owner");
+            entity.Property(e => e.Token)
+                .HasMaxLength(256)
+                .HasColumnName("token");
+
+            entity.HasOne(d => d.OwnerNavigation).WithMany(p => p.Devices)
+                .HasForeignKey(d => d.Owner)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("owner_user_id");
+        });
+
         modelBuilder.Entity<Shocker>(entity =>
         {
             entity.HasKey(e => e.Id).HasName("shockers_pkey");
@@ -32,16 +61,20 @@ public partial class ShockLinkContext : DbContext
             entity.Property(e => e.Id)
                 .ValueGeneratedNever()
                 .HasColumnName("id");
+            entity.Property(e => e.CreatedOn)
+                .HasDefaultValueSql("CURRENT_TIMESTAMP")
+                .HasColumnType("timestamp without time zone")
+                .HasColumnName("created_on");
+            entity.Property(e => e.Device).HasColumnName("device");
             entity.Property(e => e.Name)
                 .HasMaxLength(64)
-                .IsFixedLength()
                 .HasColumnName("name");
-            entity.Property(e => e.Owner).HasColumnName("owner");
             entity.Property(e => e.RfId).HasColumnName("rf_id");
 
-            entity.HasOne(d => d.OwnerNavigation).WithMany(p => p.Shockers)
-                .HasForeignKey(d => d.Owner)
-                .HasConstraintName("owner_user_id");
+            entity.HasOne(d => d.DeviceNavigation).WithMany(p => p.Shockers)
+                .HasForeignKey(d => d.Device)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("device_id");
         });
 
         modelBuilder.Entity<ShockerShare>(entity =>

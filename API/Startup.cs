@@ -36,6 +36,7 @@ public class Startup
 
         var redis = new RedisConnectionProvider($"redis://:{ApiConfig.RedisPassword}@{ApiConfig.RedisHost}:6379");
         redis.Connection.CreateIndex(typeof(LoginSession));
+        redis.Connection.CreateIndex(typeof(DeviceOnline));
         services.AddSingleton<IRedisConnectionProvider>(redis);
         var redisConf = new RedisConfiguration
         {
@@ -57,12 +58,15 @@ public class Startup
         services.AddHttpContextAccessor();
 
         services.AddScoped<IClientAuthService<LinkUser>, ClientAuthService<LinkUser>>();
+        services.AddScoped<IClientAuthService<Device>, ClientAuthService<Device>>();
 
         services.AddWebEncoders();
         services.TryAddSingleton<ISystemClock, SystemClock>();
         new AuthenticationBuilder(services)
             .AddScheme<LoginSessionAuthenticationSchemeOptions, LoginSessionAuthentication>(
-                ShockLinkAuthSchemas.SessionTokenCombo, _ => { });
+                ShockLinkAuthSchemas.SessionTokenCombo, _ => { })
+            .AddScheme<DeviceAuthenticationSchemeOptions, DeviceAuthentication>(
+                ShockLinkAuthSchemas.DeviceToken, _ => { });
         services.AddAuthenticationCore();
 
         services.AddCors();

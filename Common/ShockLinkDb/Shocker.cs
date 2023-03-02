@@ -7,13 +7,15 @@ public partial class Shocker
 {
     public Guid Id { get; set; }
 
-    public int RfId { get; set; }
-
-    public Guid Owner { get; set; }
+    public ushort RfId { get; set; }
 
     public string Name { get; set; } = null!;
 
-    public virtual User OwnerNavigation { get; set; } = null!;
+    public Guid Device { get; set; }
+
+    public DateTime CreatedOn { get; set; }
+
+    public virtual Device DeviceNavigation { get; set; } = null!;
 
     public virtual ICollection<ShockerShare> ShockerShares { get; } = new List<ShockerShare>();
 }

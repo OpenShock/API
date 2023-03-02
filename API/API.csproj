@@ -35,8 +35,4 @@
         <None Include="devcert.pfx" CopyToPublishDirectory="Always" />
     </ItemGroup>
 
-    <ItemGroup>
-      <Folder Include="Models\Response" />
-    </ItemGroup>
-
 </Project>

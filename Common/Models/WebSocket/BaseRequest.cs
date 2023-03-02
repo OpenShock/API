@@ -1,7 +1,6 @@
 ﻿using Newtonsoft.Json.Linq;
-using ShockLink.Common.Models.WebSocket;
 
-namespace ShockLink.API.Models.WebSocket;
+namespace ShockLink.Common.Models.WebSocket;
 
 public class BaseRequest
 {

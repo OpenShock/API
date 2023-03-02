@@ -1,23 +1,43 @@
 ﻿using System.Net.WebSockets;
 using System.Text;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Filters;
 using Newtonsoft.Json;
+using Redis.OM.Contracts;
+using Redis.OM.Searching;
+using ShockLink.API.Authentication;
 using ShockLink.API.Models.WebSocket;
 using ShockLink.API.Utils;
 using ShockLink.Common.Models.WebSocket;
+using ShockLink.Common.Redis;
+using ShockLink.Common.ShockLinkDb;
 
 namespace ShockLink.API.Controller;
 
 [ApiController]
+[Authorize(AuthenticationSchemes = ShockLinkAuthSchemas.DeviceToken)]
 [Route("/{version:apiVersion}/ws/device")]
-public class WebSocketController : WebsocketControllerBase<ResponseType>
+public class DeviceWebSocketController : WebsocketControllerBase<ResponseType>
 {
-    public static WebSocketController Instance;
+    public static DeviceWebSocketController Instance;
+    private readonly IRedisCollection<DeviceOnline> _devicesOnline;
+    private readonly IRedisConnectionProvider _redis;
 
+    private Device _currentDevice = null!;
+
+    public override void OnActionExecuting(ActionExecutingContext context)
+    {
+        _currentDevice = ControllerContext.HttpContext.RequestServices.GetRequiredService<IClientAuthService<Device>>().CurrentClient;
+        base.OnActionExecuting(context);
+    }
+    
     public override string Id => "test";
     
-    public WebSocketController(ILogger<WebSocketController> logger, IHostApplicationLifetime lifetime) : base(logger, lifetime)
+    public DeviceWebSocketController(ILogger<DeviceWebSocketController> logger, IHostApplicationLifetime lifetime, IRedisConnectionProvider redisConnectionProvider) : base(logger, lifetime)
     {
+        _redis = redisConnectionProvider;
+        _devicesOnline = redisConnectionProvider.RedisCollection<DeviceOnline>(false);
     }
 
     protected override async Task Logic()
@@ -75,15 +95,31 @@ public class WebSocketController : WebsocketControllerBase<ResponseType>
         Close.Cancel();
     }
     
-        private async Task ProcessResult(BaseRequest json)
+    private async Task ProcessResult(BaseRequest json)
     {
         switch (json.RequestType)
         {
-            case RequestType.Command:
-                //var globalMsg = json.Data?.ToObject<>();
-                //if (globalMsg != null) await PubSubManager.GlobalMessage(globalMsg);
+            case RequestType.KeepAlive:
+                await SelfOnline();
                 break;
         }
+    }
+
+    private async Task SelfOnline()
+    {
+        var online = await _devicesOnline.FindByIdAsync(_currentDevice.Id.ToString());
+        if (online == null)
+        {
+            await _devicesOnline.InsertAsync(new DeviceOnline
+            {
+                Id = _currentDevice.Id,
+                Owner = _currentDevice.Owner
+            }, TimeSpan.FromSeconds(65));
+            return;
+        }
+        
+        await _redis.Connection.ExecuteAsync("EXPIRE",
+                $"ShockLink.Common.Redis.DeviceOnline:{_currentDevice.Id}", "65");
     }
 
 }
