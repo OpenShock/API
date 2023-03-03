@@ -20,7 +20,7 @@ public abstract class WebsocketControllerBase<T> : ShockLinkControllerBase, IWeb
         Linked = CancellationTokenSource.CreateLinkedTokenSource(Close.Token, lifetime.ApplicationStopping);
     }
 
-    public abstract string Id { get; }
+    public abstract Guid Id { get; }
     public ValueTask QueueMessage(IBaseResponse<T> data) => _channel.Writer.WriteAsync(data);
 
     protected override void Dispose(bool disposing)

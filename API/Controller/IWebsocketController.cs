@@ -4,7 +4,7 @@ namespace ShockLink.API.Controller;
 
 public interface IWebsocketController<T> where T : Enum
 {
-    public string Id { get; }
+    public Guid Id { get; }
     public ValueTask QueueMessage(IBaseResponse<T> data);
     
 }

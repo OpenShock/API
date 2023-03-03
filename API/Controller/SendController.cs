@@ -1,6 +1,8 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using ShockLink.API.RedisPubSub;
 using ShockLink.Common.Models;
 using ShockLink.Common.Models.WebSocket;
+using ShockLink.Common.Redis.PubSub;
 
 namespace ShockLink.API.Controller;
 
@@ -53,10 +55,27 @@ public class SendController
                 break;
         }
 
-        await DeviceWebSocketController.Instance.QueueMessage(new BaseResponse
+        await PubSubManager.SendControlMessage(new ControlMessage
         {
-            ResponseType = ResponseType.Control,
-            Data = lel
+            Shocker = Guid.NewGuid(),
+            ControlMessages = new List<ControlMessage.DeviceControlInfo>
+            {
+                new()
+                {
+                    DeviceId = Guid.Parse("adc73b37-716a-4f3b-ab38-70e2aef774c0"),
+                    Shocks = new List<ControlMessage.DeviceControlInfo.ShockerControlInfo>()
+                    {
+                        new()
+                        {
+                            Id = Guid.Parse("41e4aecd-62f8-4c58-8035-34e651d720fb"),
+                            Intensity = 50,
+                            Duration = 2000,
+                            Type = ControlType.Vibrate,
+                            RfId = 3045
+                        }
+                    }
+                }
+            }
         });
         return true;
     }

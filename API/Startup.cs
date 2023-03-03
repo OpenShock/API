@@ -8,6 +8,7 @@ using Redis.OM.Contracts;
 using Serilog;
 using ShockLink.API.Authentication;
 using ShockLink.API.ExceptionHandle;
+using ShockLink.API.RedisPubSub;
 using ShockLink.API.Utils;
 using ShockLink.Common.Redis;
 using ShockLink.Common.ShockLinkDb;
@@ -115,7 +116,7 @@ public class Startup
             ClientName = "abi-api"
         };
 
-        // PubSubManager.Initialize(ConnectionMultiplexer.Connect(redisConfiguration), app.ApplicationServices);
+        PubSubManager.Initialize(ConnectionMultiplexer.Connect(redisConfiguration), app.ApplicationServices);
 
         var webSocketOptions = new WebSocketOptions
         {

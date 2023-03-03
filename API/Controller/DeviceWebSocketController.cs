@@ -8,6 +8,7 @@ using Redis.OM.Contracts;
 using Redis.OM.Searching;
 using ShockLink.API.Authentication;
 using ShockLink.API.Models.WebSocket;
+using ShockLink.API.Realtime;
 using ShockLink.API.Utils;
 using ShockLink.Common.Models.WebSocket;
 using ShockLink.Common.Redis;
@@ -20,7 +21,6 @@ namespace ShockLink.API.Controller;
 [Route("/{version:apiVersion}/ws/device")]
 public class DeviceWebSocketController : WebsocketControllerBase<ResponseType>
 {
-    public static DeviceWebSocketController Instance;
     private readonly IRedisCollection<DeviceOnline> _devicesOnline;
     private readonly IRedisConnectionProvider _redis;
 
@@ -32,17 +32,26 @@ public class DeviceWebSocketController : WebsocketControllerBase<ResponseType>
         base.OnActionExecuting(context);
     }
     
-    public override string Id => "test";
+    public override Guid Id => _currentDevice.Id;
     
     public DeviceWebSocketController(ILogger<DeviceWebSocketController> logger, IHostApplicationLifetime lifetime, IRedisConnectionProvider redisConnectionProvider) : base(logger, lifetime)
     {
         _redis = redisConnectionProvider;
         _devicesOnline = redisConnectionProvider.RedisCollection<DeviceOnline>(false);
     }
+    
+    protected override void RegisterConnection()
+    {
+        WebsocketManager.DeviceWebSockets.RegisterConnection(this);
+    }
+
+    protected override void UnregisterConnection()
+    {
+        WebsocketManager.DeviceWebSockets.UnregisterConnection(this);
+    }
 
     protected override async Task Logic()
     {
-        Instance = this;
         WebSocketReceiveResult? result = null;
         do
         {
