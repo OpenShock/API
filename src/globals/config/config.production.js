@@ -1,5 +1,5 @@
 const config = {
-	apiUrl: "https://localhost/"
+	apiUrl: "https://api.shocklink.net/"
 }
 
 global.config = config;

@@ -13,7 +13,7 @@ class ApiCall {
 				url: config.apiUrl + path,
 				data: data,
 				headers: {
-					'Auth-Key': state.getAuthKey()
+					'ShockLinkSession': state.getAuthKey()
 				}
 			});
 		} catch (err) {

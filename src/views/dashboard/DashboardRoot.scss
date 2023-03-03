@@ -1,0 +1,35 @@
+.manager-root {
+    display: flex;
+    flex-flow: column;
+
+    .base-wrap {
+        padding: 25px 35px;
+        flex: 1 1 auto;
+        height: 100%;
+
+        .base-widget {
+            & > div:first-child {
+                background-color: var(--secondary-background-color);
+                border-radius: 7px;
+                padding: 8px 12px;
+
+                &.row {
+                    padding: 7px 0;
+                }
+            }
+        }
+    }
+
+    h4 {
+        border-bottom: 1px solid var(--main-seperator-color);
+        margin-bottom: 1rem;
+    }
+}
+
+.manager-root-loading {
+    width: 100%;
+}
+
+html body {
+    transition: background-color 0.5s;
+}

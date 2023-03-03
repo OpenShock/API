@@ -1,5 +1,5 @@
 const config = {
-	apiUrl: "https://api.shock.link/"
+	apiUrl: "https://localhost/",
 }
 
 global.config = config;

@@ -12,58 +12,73 @@ const routes = [
 		component: lazyLoad('Root'),
 	},
 	{
-		path: '/manager',
-		component: lazyLoad('manager/ManagerRoot'),
-		redirect: '/manager/dashboard',
+		path: '/dashboard',
+		component: lazyLoad('dashboard/DashboardRoot'),
+		redirect: '/dashboard/home',
 		children: [
 			{
-				path: 'dashboard',
-				component: lazyLoad('manager/dashboard/DashboardRoot')
+				path: 'home',
+				component: lazyLoad('dashboard/dashboard/DashboardRoot')
+			},
+			{
+				path: 'shockers',
+				component: lazyLoad('dashboard/shockers/ShockersRoot'),
+				redirect: '/dashboard/shockers/own',
+				children: [
+					{
+						path: 'own',
+						component: lazyLoad('dashboard/shockers/own/Own')
+					},
+					{
+						path: 'shared',
+						component: lazyLoad('dashboard/shockers/shared/Shared')
+					},
+				]
 			},
 			{
 				path: 'admin',
-				component: lazyLoad('manager/admin/AdminRoot'),
-				redirect: '/manager/admin/users',
+				component: lazyLoad('dashboard/admin/AdminRoot'),
+				redirect: '/dashboard/admin/users',
 				children: [
 					{
 						path: 'users',
-						component: lazyLoad('manager/admin/users/Users')
+						component: lazyLoad('dashboard/admin/users/Users')
 					},
 					{
 						path: 'redeemables',
-						component: lazyLoad('manager/admin/redeemables/Redeemables')
+						component: lazyLoad('dashboard/admin/redeemables/Redeemables')
 					},
 					{
 						path: 'sdk-versions',
-						component: lazyLoad('manager/admin/sdk-versions/SdkVersions')
+						component: lazyLoad('dashboard/admin/sdk-versions/SdkVersions')
 					}
 				]
 			},
 			{
 				path: 'profile',
-				component: lazyLoad('manager/profile/ProfileRoot'),
-				redirect: '/manager/profile/account',
+				component: lazyLoad('dashboard/profile/ProfileRoot'),
+				redirect: '/dashboard/profile/account',
 				children: [
 					{
 						path: 'account',
-						component: lazyLoad('manager/profile/Account')
+						component: lazyLoad('dashboard/profile/Account')
 					},
 					{
 						path: 'settings',
-						component: lazyLoad('manager/profile/Settings')
+						component: lazyLoad('dashboard/profile/Settings')
 					},
 					{
 						path: 'license',
-						component: lazyLoad('manager/profile/License')
+						component: lazyLoad('dashboard/profile/License')
 					},
 					{
 						path: "connections",
-						component: lazyLoad('manager/profile/connections/ConnectionsRoot'),
-						redirect: '/manager/profile/settings',
+						component: lazyLoad('dashboard/profile/connections/ConnectionsRoot'),
+						redirect: '/dashboard/profile/settings',
 						children: [
 							{
 								path: "patreon",
-								component: lazyLoad('manager/profile/connections/Patreon')
+								component: lazyLoad('dashboard/profile/connections/Patreon')
 							}
 						]
 					}

@@ -1,0 +1,393 @@
+$material-design-icons-font-directory-path: '~material-design-icons-iconfont/dist/fonts/';
+@import "~material-design-icons-iconfont/src/material-design-icons";
+
+.container-login100 {
+
+  height: 100%;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  padding: 15px;
+  margin: auto;
+
+  a {
+    font-family: Poppins-Regular, serif;
+    font-size: 14px;
+    line-height: 1.7;
+    color: var(--secondary-color);
+    margin: 0;
+    transition: all 0.4s;
+    -webkit-transition: all 0.4s;
+    -o-transition: all 0.4s;
+    -moz-transition: all 0.4s;
+  }
+
+  * {
+    box-sizing: border-box;
+  }
+
+  a:focus {
+    outline: none !important;
+  }
+
+  /*---------------------------------------------*/
+  h1, h2, h3, h4, h5, h6 {
+    margin: 0;
+  }
+
+  p {
+    font-family: Poppins-Regular, serif;
+    font-size: 14px;
+    line-height: 1.7;
+    color: #fff;
+    margin: 0;
+  }
+
+  ul, li {
+    margin: 0;
+    list-style-type: none;
+  }
+
+
+  /*---------------------------------------------*/
+  input {
+    outline: none;
+    border: none;
+  }
+
+  textarea {
+    outline: none;
+    border: none;
+  }
+
+  textarea:focus, input:focus {
+    border-color: transparent !important;
+  }
+
+  /*---------------------------------------------*/
+  button {
+    outline: none !important;
+    border: none;
+    background: transparent;
+  }
+
+  button:hover {
+    cursor: pointer;
+  }
+
+  /*//////////////////////////////////////////////////////////////////
+  [ Utility ]*/
+  .txt1 {
+    font-family: Poppins-Regular, serif;
+    font-size: 14px;
+    line-height: 1.5;
+    color: var(--secondary-color);
+  }
+
+  .txt2 {
+    font-family: Poppins-Bold, serif;
+    font-size: 1rem;
+    line-height: 1.5;
+    color: #fff;
+    text-decoration: none;
+    cursor: pointer;
+
+    transition: all 0.4s;
+
+    &:hover {
+      color: var(--main-color);
+    }
+  }
+
+  /*//////////////////////////////////////////////////////////////////
+  [ login ]*/
+  .limiter {
+    width: 100%;
+    margin: 0 auto;
+  }
+
+  .con-h-100 {
+    height: 100%;
+  }
+
+  .wrap-login100 {
+    width: 500px;
+    background: transparent;
+    backdrop-filter: blur(15px);
+    border: 2px solid rgba(255,255,255,0.5);
+    border-radius: 20px;
+    overflow: hidden;
+    padding: 65px 55px 54px;
+    height: 800px;
+  }
+
+  .sep-or {
+    position: absolute;
+    bottom: 0;
+    width: 100%;
+
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+
+    span {
+      padding-bottom: 5px;
+    }
+  }
+
+  .forgot-pw {
+    text-align: right;
+    padding: 8px 0 31px;
+    a {
+      font-family: Poppins-Bold, serif;
+      font-size: 14px;
+      line-height: 1.5;
+      color: #fff;
+      text-decoration: none;
+      transition: all 0.4s;
+
+      &:hover {
+        color: var(--main-color);
+      }
+    }
+  }
+
+  /*------------------------------------------------------------------
+  [ Form ]*/
+
+  .login100-form {
+    width: 100%;
+    height: 100%;
+    position: relative;
+  }
+
+  .login100-form-title {
+    display: block;
+    font-family: Poppins-Bold, serif;
+    font-size: 39px;
+    color: #fff;
+    line-height: 1.2;
+    text-align: center;
+    padding-bottom: 49px;
+  }
+
+
+  /*------------------------------------------------------------------
+  [ Input ]*/
+
+  .m-b-23 {
+    margin-bottom: 23px;
+  }
+
+  .wrap-input100 {
+    width: 100%;
+    position: relative;
+    border-bottom: 2px solid #858585;
+  }
+
+  .label-input100 {
+    font-family: Poppins-Regular, serif;
+    font-size: 1.05rem;
+    color: #fff;
+    line-height: 1.5;
+    padding-left: 7px;
+  }
+
+  .input100 {
+    font-family: Poppins-Medium, serif;
+    font-size: 16px;
+    color: #fff;
+    line-height: 1.2;
+
+    display: block;
+    width: 100%;
+    height: 55px;
+    background: transparent;
+    padding: 0 7px 0 43px;
+  }
+
+
+  /*---------------------------------------------*/
+
+  .focus-input100 {
+    position: absolute;
+    display: block;
+    width: 100%;
+    height: 100%;
+    top: 0;
+    left: 0;
+    pointer-events: none;
+
+    &::after {
+      font-family: "Material Icons", serif;
+      color: #fff;
+      font-size: 22px;
+
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: absolute;
+      height: calc(100% - 20px);
+      bottom: 0;
+      left: 0;
+      padding-left: 9px;
+    }
+
+    &.username::after {
+      content: material-icons-content('person_outline');
+    }
+
+    &.password::after {
+      content: material-icons-content('lock');
+    }
+
+    &.email::after {
+      content: material-icons-content('mail');
+    }
+
+    &::before {
+      content: "";
+      display: block;
+      position: absolute;
+      bottom: -2px;
+      left: 0;
+      width: 0;
+      height: 2px;
+      background: #fff;
+      transition: all 0.4s;
+    }
+  }
+
+  .input100:focus + .focus-input100::before {
+    width: 100%;
+  }
+
+  .input100:not(:placeholder-shown) + .focus-input100::before {
+    width: 100%;
+  }
+
+  .input100:focus + .focus-input100::after {
+    color: var(--main-color);
+  }
+
+  .input100:not(:placeholder-shown) + .focus-input100::after {
+    color: var(--main-color);
+  }
+
+
+  /*------------------------------------------------------------------
+  [ Button ]*/
+  .container-login100-form-btn {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  .wrap-login100-form-btn {
+    width: 100%;
+    display: block;
+    position: relative;
+    z-index: 1;
+    border-radius: 25px;
+    overflow: hidden;
+    margin: 0 auto;
+
+    box-shadow: 0 5px 30px 0 rgba(3, 216, 222, 0.2);
+  }
+
+  .login100-form-bgbtn {
+    position: absolute;
+    z-index: -1;
+    width: 300%;
+    height: 100%;
+    background: var(--main-color);
+    background: linear-gradient(to left, #121d31, #782747, #121d31, #782747);
+    top: 0;
+    left: -100%;
+
+    transition: all 0.4s;
+  }
+
+  .login100-form-btn {
+    font-family: Poppins-Medium, serif;
+    font-size: 16px;
+    color: #fff;
+    line-height: 1.2;
+    text-transform: uppercase;
+
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 0 20px;
+    width: 100%;
+    height: 50px;
+  }
+
+  .wrap-login100-form-btn:hover .login100-form-bgbtn {
+    left: 0;
+  }
+
+
+  /*------------------------------------------------------------------
+  [ Alert validate ]*/
+
+  .alert-validate::before {
+    content: attr(data-validate);
+    position: absolute;
+    max-width: 70%;
+    background-color: #1b1d1e;
+    border: 1px solid var(--main-color);
+    border-radius: 2px;
+    padding: 4px 25px 4px 10px;
+    bottom: calc((100% - 20px) / 2);
+    transform: translateY(50%);
+    right: 2px;
+    pointer-events: none;
+
+    font-family: Poppins-Regular, serif;
+    color: var(--main-color);
+    font-size: 13px;
+    line-height: 1.4;
+    text-align: left;
+
+    visibility: hidden;
+    opacity: 0;
+
+    transition: opacity 0.4s;
+  }
+
+  .alert-validate::after {
+    font-family: "Material Icons", serif;
+    content: material-icons-content('info_outline');
+    display: block;
+    position: absolute;
+    color: var(--main-color);
+    font-size: 16px;
+    bottom: calc((100% - 20px) / 2);
+    transform: translateY(50%);
+    right: 8px;
+  }
+
+  .alert-validate:hover:before {
+    visibility: visible;
+    opacity: 1;
+  }
+
+  @media (max-width: 992px) {
+    .alert-validate::before {
+      visibility: visible;
+      opacity: 1;
+    }
+  }
+
+  /*//////////////////////////////////////////////////////////////////
+  [ Responsive ]*/
+
+  @media (max-width: 576px) {
+    .wrap-login100 {
+      padding-left: 15px;
+      padding-right: 15px;
+    }
+  }
+}
