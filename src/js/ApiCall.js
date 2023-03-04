@@ -12,9 +12,7 @@ class ApiCall {
 				method: method,
 				url: config.apiUrl + path,
 				data: data,
-				headers: {
-					'ShockLinkSession': state.getAuthKey()
-				}
+				withCredentials: true
 			});
 		} catch (err) {
 			toastr.error(err);

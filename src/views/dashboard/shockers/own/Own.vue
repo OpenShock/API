@@ -1,9 +1,41 @@
 <template>
-    
+    <div>
+        <device v-for="item in ownShockers" :device="item" :key="item.id"></device>
+    </div>
 </template>
 
 <script>
-    export default {
+    import Device from './Device'
 
+    export default {
+        components: {Device},
+        data() {
+            return {
+                ownShockers: []
+            }
+        },
+        async beforeMount() {
+            const res = await apiCall.makeCall('GET', '1/shockers/own');
+			if (res === undefined || res.status !== 200) {
+				toastr.error("Error while retrieving own shockers");
+				return;
+			}
+
+            this.ownShockers = res.data.data;
+            this.ownShockers.forEach(device => {
+                device.state = {
+                    online: false
+                };
+
+                device.shockers.forEach(shocker => {
+                    shocker.state = {
+                        intensity: 25,
+                        duration: 1000,
+                        type: 2
+                    }
+                });
+            });
+            console.log(res.data);
+        }
     }
 </script>

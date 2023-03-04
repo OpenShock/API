@@ -1,5 +1,6 @@
 require("@/globals/config/config." + process.env.NODE_ENV + ".js");
 require("@/js/utils.js");
+require("@/js/SlWs.js");
 import "bootstrap/scss/bootstrap.scss";
 import ApiCall from '/src/js/ApiCall';
 import toastr from 'toastr';
