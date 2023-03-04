@@ -2,9 +2,9 @@
 
 namespace ShockLink.Common.Models.WebSocket;
 
-public class BaseResponse : IBaseResponse<ResponseType>
+public class BaseResponse<T> : IBaseResponse<T> where T : Enum
 {
-    public required ResponseType ResponseType { get; set; }
+    public required T ResponseType { get; set; }
     public object? Data { get; set; }
     
 }

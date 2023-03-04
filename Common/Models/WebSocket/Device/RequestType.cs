@@ -1,4 +1,4 @@
-﻿namespace ShockLink.Common.Models.WebSocket;
+﻿namespace ShockLink.Common.Models.WebSocket.Device;
 
 public enum RequestType
 {

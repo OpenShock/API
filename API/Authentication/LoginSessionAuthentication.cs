@@ -45,7 +45,7 @@ public class LoginSessionAuthentication : AuthenticationHandler<LoginSessionAuth
         {
             sessionKey = sessionKeyHeader!;
         }
-        else if (Context.Request.Cookies.TryGetValue("ShockLinkSession", out var accessKeyCookie) &&
+        else if (Context.Request.Cookies.TryGetValue("shockLinkSession", out var accessKeyCookie) &&
                  !string.IsNullOrEmpty(accessKeyCookie))
         {
             sessionKey = accessKeyCookie;

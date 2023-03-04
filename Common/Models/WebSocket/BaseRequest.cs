@@ -1,9 +1,9 @@
-﻿using Newtonsoft.Json.Linq;
+﻿using System.Text.Json;
 
 namespace ShockLink.Common.Models.WebSocket;
 
-public class BaseRequest
+public class BaseRequest<T>
 {
-    public required RequestType RequestType { get; set; }
-    public JToken? Data { get; set; }
+    public required T RequestType { get; set; }
+    public JsonDocument? Data { get; set; }
 }

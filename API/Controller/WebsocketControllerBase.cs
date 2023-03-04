@@ -21,8 +21,10 @@ public abstract class WebsocketControllerBase<T> : ShockLinkControllerBase, IWeb
     }
 
     public abstract Guid Id { get; }
+    [NonAction]
     public ValueTask QueueMessage(IBaseResponse<T> data) => _channel.Writer.WriteAsync(data);
 
+    [NonAction]
     protected override void Dispose(bool disposing)
     {
         UnregisterConnection();
@@ -67,6 +69,7 @@ public abstract class WebsocketControllerBase<T> : ShockLinkControllerBase, IWeb
 
     #region Send Loop
 
+    [NonAction]
     public async Task MessageLoop()
     {
         await foreach (var msg in _channel.Reader.ReadAllAsync(Linked.Token))

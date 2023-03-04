@@ -11,6 +11,7 @@ using ShockLink.API.Models.WebSocket;
 using ShockLink.API.Realtime;
 using ShockLink.API.Utils;
 using ShockLink.Common.Models.WebSocket;
+using ShockLink.Common.Models.WebSocket.Device;
 using ShockLink.Common.Redis;
 using ShockLink.Common.ShockLinkDb;
 
@@ -80,7 +81,7 @@ public class DeviceWebSocketController : WebsocketControllerBase<ResponseType>
                 }
 
                 var msg = Encoding.UTF8.GetString(message.Item2.ToArray());
-                var json = JsonConvert.DeserializeObject<BaseRequest>(msg);
+                var json = JsonConvert.DeserializeObject<BaseRequest<RequestType>>(msg);
                 if (json == null) continue;
                 await ProcessResult(json);
             }
@@ -104,7 +105,7 @@ public class DeviceWebSocketController : WebsocketControllerBase<ResponseType>
         Close.Cancel();
     }
     
-    private async Task ProcessResult(BaseRequest json)
+    private async Task ProcessResult(BaseRequest<RequestType> json)
     {
         switch (json.RequestType)
         {

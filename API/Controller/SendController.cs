@@ -55,7 +55,7 @@ public class SendController
                 break;
         }
 
-        await PubSubManager.SendControlMessage(new ControlMessage
+        /*await PubSubManager.SendControlMessage(new ControlMessage
         {
             Shocker = Guid.NewGuid(),
             ControlMessages = new List<ControlMessage.DeviceControlInfo>
@@ -76,7 +76,7 @@ public class SendController
                     }
                 }
             }
-        });
+        });*/
         return true;
     }
 }

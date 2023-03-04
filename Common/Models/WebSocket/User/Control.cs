@@ -1,11 +1,10 @@
 ﻿using System.ComponentModel.DataAnnotations;
-using ShockLink.Common.Models;
 
-namespace ShockLink.API.Models.Requests;
+namespace ShockLink.Common.Models.WebSocket.User;
 
 public class Control
 {
-    public required IEnumerable<Guid> Shockers { get; set; }
+    public required Guid Id { get; set; }
     public required ControlType Type { get; set; }
     [Range(1, 100)]
     public required byte Intensity { get; set; }

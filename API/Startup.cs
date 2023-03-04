@@ -70,9 +70,22 @@ public class Startup
                 ShockLinkAuthSchemas.DeviceToken, _ => { });
         services.AddAuthenticationCore();
 
-        services.AddCors();
+        services.AddCors(options =>
+        {
+            options.AddDefaultPolicy(builder =>
+            {
+                builder.SetIsOriginAllowed(s => true);
+                builder.AllowAnyHeader();
+                builder.AllowCredentials();
+                builder.AllowAnyMethod();
+                builder.SetPreflightMaxAge(TimeSpan.FromHours(24));
+            });
+        });
         services.AddApiVersioning();
-        services.AddControllers();
+        services.AddControllers().AddJsonOptions(x =>
+        {
+            x.JsonSerializerOptions.PropertyNameCaseInsensitive = true;
+        });
 
         //services.AddHealthChecks().AddCheck<DatabaseHealthCheck>("database");
     }
@@ -102,11 +115,7 @@ public class Startup
         app.ConfigureExceptionHandler();
 
         // global cors policy
-        app.UseCors(x => x
-            .AllowAnyMethod()
-            .AllowAnyHeader()
-            .AllowAnyOrigin()
-            .SetPreflightMaxAge(TimeSpan.FromHours(24)));
+        app.UseCors();
 
         var redisConfiguration = new ConfigurationOptions
         {
@@ -123,7 +132,7 @@ public class Startup
             KeepAliveInterval = TimeSpan.FromMinutes(1)
         };
 
-        app.UseHttpsRedirection();
+        //app.UseHttpsRedirection();
         app.UseWebSockets(webSocketOptions);
         app.UseRouting();
         app.UseAuthentication();

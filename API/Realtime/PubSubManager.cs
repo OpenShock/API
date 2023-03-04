@@ -3,6 +3,7 @@ using Redis.OM.Contracts;
 using ShockLink.API.Realtime;
 using ShockLink.API.Utils;
 using ShockLink.Common.Models.WebSocket;
+using ShockLink.Common.Models.WebSocket.Device;
 using ShockLink.Common.Redis.PubSub;
 using ShockLink.Common.ShockLinkDb;
 using StackExchange.Redis;
@@ -63,10 +64,10 @@ public static class PubSubManager
 
         foreach (var controlMessage in data.ControlMessages)
         {
-            var shockies = controlMessage.Shocks.Select(shock => new ControlResponse
+            var shockies = controlMessage.Value.Select(shock => new ControlResponse
                 { Id = shock.RfId, Duration = shock.Duration, Intensity = shock.Intensity, Type = shock.Type });
 
-            await WebsocketManager.DeviceWebSockets.SendMessageTo(controlMessage.DeviceId, new BaseResponse
+            await WebsocketManager.DeviceWebSockets.SendMessageTo(controlMessage.Key, new BaseResponse<ResponseType>
             {
                 ResponseType = ResponseType.Control,
                 Data = shockies
