@@ -105,8 +105,8 @@ export default {
         });
         this.successful = true;
       } catch (err) {
-        if(err.response !== undefined && err.response.data.Message !== undefined && err.response.data.Message !== "") {
-          this.errorMessage = '<p><b>Something went wrong.</b></p><p>' + err.response.data.Message + '</p>';
+        if(err.response !== undefined && err.response.data.message !== undefined && err.response.data.message !== "") {
+          this.errorMessage = '<p><b>Something went wrong.</b></p><p>' + err.response.data.message + '</p>';
         } else {
           toastr.error(err);
         }
