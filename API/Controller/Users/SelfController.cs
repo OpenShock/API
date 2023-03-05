@@ -17,6 +17,7 @@ public class SelfController : AuthenticatedSessionControllerBase
             {
                 Id = CurrentUser.DbUser.Id,
                 Name = CurrentUser.DbUser.Name,
+                Email = CurrentUser.DbUser.Email,
                 Image = new Uri("https://sea.zlucplayz.com/f/e18b174d56db47759384/?raw=1")
             }
         };
@@ -26,6 +27,7 @@ public class SelfController : AuthenticatedSessionControllerBase
     {
         public required Guid Id { get; set; }
         public required string Name { get; set; }
+        public required string Email { get; set; }
         public required Uri Image { get; set; }
     }
 }
