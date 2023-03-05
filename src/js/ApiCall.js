@@ -2,6 +2,7 @@ import axios from 'axios';
 import storeF from '@/store'
 import router from '@/router'
 
+axios.defaults.withCredentials = true
 const state = storeF.getters;
 
 class ApiCall {
@@ -11,8 +12,7 @@ class ApiCall {
 			return await axios({
 				method: method,
 				url: config.apiUrl + path,
-				data: data,
-				withCredentials: true
+				data: data
 			});
 		} catch (err) {
 			toastr.error(err);
