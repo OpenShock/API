@@ -17,10 +17,6 @@ export default {
         html: '<i class="fas fa-user"></i>Account'
       },
       {
-        routerLink: '/profile/license',
-        html: '<i class="fas fa-key"></i>License'
-      },
-      {
         routerLink: '/profile/settings',
         html: '<i class="fas fa-cog"></i>Settings'
       }
