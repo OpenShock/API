@@ -1,7 +1,11 @@
 <template>
-    <div>
-        <device v-for="item in ownShockers" :device="item" :key="item.id"></device>
-    </div>
+    <b-container>
+        <b-row>
+            <b-col v-for="item in ownShockers" :key="item.id">
+                <device :device="item"></device>
+            </b-col>
+        </b-row>
+    </b-container>
 </template>
 
 <script>
