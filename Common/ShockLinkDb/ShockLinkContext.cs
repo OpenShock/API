@@ -48,7 +48,6 @@ public partial class ShockLinkContext : DbContext
 
             entity.HasOne(d => d.OwnerNavigation).WithMany(p => p.Devices)
                 .HasForeignKey(d => d.Owner)
-                .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("owner_user_id");
         });
 
@@ -73,7 +72,6 @@ public partial class ShockLinkContext : DbContext
 
             entity.HasOne(d => d.DeviceNavigation).WithMany(p => p.Shockers)
                 .HasForeignKey(d => d.Device)
-                .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("device_id");
         });
 
@@ -89,10 +87,21 @@ public partial class ShockLinkContext : DbContext
                 .HasDefaultValueSql("CURRENT_TIMESTAMP")
                 .HasColumnType("timestamp without time zone")
                 .HasColumnName("created_on");
+            entity.Property(e => e.PermShock)
+                .IsRequired()
+                .HasDefaultValueSql("true")
+                .HasColumnName("perm_shock");
+            entity.Property(e => e.PermSound)
+                .IsRequired()
+                .HasDefaultValueSql("true")
+                .HasColumnName("perm_sound");
+            entity.Property(e => e.PermVibrate)
+                .IsRequired()
+                .HasDefaultValueSql("true")
+                .HasColumnName("perm_vibrate");
 
             entity.HasOne(d => d.SharedWithNavigation).WithMany(p => p.ShockerShares)
                 .HasForeignKey(d => d.SharedWith)
-                .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("shared_with_user_id");
 
             entity.HasOne(d => d.Shocker).WithMany(p => p.ShockerShares)
