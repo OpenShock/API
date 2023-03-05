@@ -80,10 +80,14 @@ export default {
   },
   methods: {
     async signup() {
+      console.log("cock");
       this.first.username = true;
       this.first.password = true;
       this.first.email = true;
-      if (this.usernameChecks.length > 0 || this.emailChecks.length > 0 || this.passwordChecks.length > 0) return;
+      if (this.usernameChecks.length > 0 || this.emailChecks.length > 0 || this.passwordChecks.length > 0) {
+        toastr.error("Please make sure to fullfill all requirements, (!) in the corresponding field");
+        return;
+      }
 
       this.fadeout = true;
       setTimeout(() => {
