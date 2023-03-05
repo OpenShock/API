@@ -48,7 +48,8 @@ public class LoginController : ShockLinkControllerBase
         {
             Expires = new DateTimeOffset(DateTime.UtcNow.AddDays(7)),
             Secure = true,
-            HttpOnly = true
+            HttpOnly = true,
+            SameSite = SameSiteMode.None
         });
         
         await _loginSessions.InsertAsync(new LoginSession

@@ -139,6 +139,13 @@ public class UserWebSocketController : WebsocketControllerBase<ResponseType>
                 x.Device
             }).ToListAsync();
 
+        var sharedShockers = await db.ShockerShares.Where(x => x.SharedWith == _currentUser.DbUser.Id).Select(x => new
+        {
+            x.Shocker.Id,
+            x.Shocker.RfId,
+            x.Shocker.Device
+        }).ToListAsync();
+
         foreach (var shock in shocks.DistinctBy(x => x.Id))
         {
             var shockerInfo = ownShockers.FirstOrDefault(x => x.Id == shock.Id);
