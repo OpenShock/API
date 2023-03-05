@@ -20,6 +20,7 @@
 </template>
 
 <script>
+require("@/js/SlWs.js");
 import NavRoot from "./Navigation/NavRoot";
 import LoadingView from "../utils/LoadingView";
 

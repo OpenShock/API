@@ -47,7 +47,9 @@
       <loading-view :loading="!requestDone" :error="!successful"
                     :successText="'<p><b>We have sent an account activation mail to your inbox.</b></p><p>Please click the provided button/link in the mail inorder to activate your account.</p>'"
                     :errorText="errorMessage"/>
-      <button @click.prevent="resetAll">Go back</button>
+     <div class="sep-or">
+        <button @click.prevent="resetAll">Go back</button>
+    </div>
     </div>
   </form>
 </template>
