@@ -14,14 +14,7 @@
         <h4>Connections</h4>
         <loading v-if="!connectionInfo.requestDone"/>
         <div v-else>
-          <loading-button v-if="!connectionInfo.data.PatreonConnected" text="Link To Patreon" icon="fab fa-patreon"
-                          @click="patreon"/>
-          <span v-else class="row justify-content-between m-0">
-                <loading-button class="col-5" :loading="loading.patreonUnlink" text="Unlink Patreon" icon="fab fa-patreon"
-                                @click="unlinkPatreon"/>
-                <loading-button class="col-6" :loading="loading.patreonUpdate" text="Update Patreon Status"
-                                icon="fab fa-patreon" @click="updatePatreon"/>
-          </span>
+          
         </div>
       </div>
     </div>
@@ -45,7 +38,7 @@ export default {
   data() {
     return {
       connectionInfo: {
-        requestDone: false,
+        requestDone: true,
         data: undefined
       },
       loading: {
@@ -55,27 +48,12 @@ export default {
     }
   },
   beforeMount() {
-    this.getConnectionInfo();
+    //this.getConnectionInfo();
   },
   methods: {
     logout() {
       this.$router.push('/account/login');
       utils.setLogin("");
-    },
-    patreon() {
-      window.location.href = `https://www.patreon.com/oauth2/authorize?response_type=code&client_id=${config.patreon.clientId}&redirect_uri=${config.patreon.redirectUri}&scope=identity`;
-    },
-    async updatePatreon() {
-      this.loading.patreonUpdate = true;
-      await apiCall.makeCall("PATCH", "user/connections/patreon");
-      await this.$store.dispatch('getSelf');
-      this.loading.patreonUpdate = false;
-    },
-    async unlinkPatreon() {
-      this.loading.patreonUnlink = true;
-      await apiCall.makeCall("DELETE", "user/connections/patreon");
-      await this.getConnectionInfo();
-      this.loading.patreonUnlink = false;
     },
     async getConnectionInfo() {
       this.connectionInfo.requestDone = false;
