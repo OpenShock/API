@@ -71,11 +71,11 @@ export default {
   },
   beforeMount() {
 
-      this.allElements.push({
+      /*this.allElements.push({
         routerLink: '/admin',
         html: '<i class="fas fa-user-shield"></i>Admin',
         active: false
-      });
+      });*/
     
   },
   mounted() {
