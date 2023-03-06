@@ -1,9 +1,7 @@
 <template>
     <b-container>
         <b-row v-for="item in ownShockers" :key="item.id">
-           
-                <device :device="item"></device>
-            
+            <device :device="item"></device>
         </b-row>
     </b-container>
 </template>

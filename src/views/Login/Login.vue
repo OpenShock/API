@@ -89,7 +89,7 @@ export default {
           }
         });
         this.successful = true;
-        utils.setLogin(res.data.data.shockLinkSession);
+        utils.setLogin();
         setTimeout(() => {
           this.$router.push('/dashboard/');
         }, 2500)

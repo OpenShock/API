@@ -13,15 +13,12 @@ let utils = {
 		}
 		return "";
 	},
-	setLogin(authkey) {
-		this.setCookie("shockLinkSession", authkey, 30);
+	setLogin() {
+		this.setCookie("loggedIn", "true", 7);
 	},
 	authExists() {
-		let user = this.getCookie("shockLinkSession");
-		return user !== "";
-	},
-	getAuthKey() {
-		return this.getCookie("shockLinkSession");
+		let user = this.getCookie("loggedIn");
+		return user === "true";
 	},
 	isDarkMode() {
 		const cook = this.getCookie("settings_dark");

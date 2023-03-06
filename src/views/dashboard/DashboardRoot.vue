@@ -27,7 +27,6 @@ import LoadingView from "../utils/LoadingView";
 export default {
   components: {NavRoot, LoadingView},
   mounted() {
-    this.$store.commit('setAuthKey', utils.getAuthKey());
     this.getSelf();
   },
   data() {

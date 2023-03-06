@@ -7,7 +7,16 @@
       <b-container>
       <b-table hover striped :items="devices" :fields="fields" class="devices-table">
         <template #cell(actions)="row">
-          <b-button size="sm" @click="deleteDevice(row.item)" class="mr-2">
+
+          <b-button size="sm" @click="regenerateToken(row.item)" class="mr" variant="primary">
+            <i class="fa-solid fa-rotate"></i> Regenerate Token
+          </b-button>
+
+          <b-button size="sm" @click="editDevice(row.item)" class="mr" variant="info">
+            <i class="fa-solid fa-pen-to-square"></i> Edit
+          </b-button>
+
+          <b-button size="sm" @click="deleteDevice(row.item)" class="mr" variant="danger">
             <i class="fa-solid fa-trash"></i> Delete
           </b-button>
         </template>
@@ -15,32 +24,32 @@
     </b-container>
 
       <b-modal v-model="modal.edit" title="Edit Device">
-        <p class="my-4">Hello from modal!</p>
-      </b-modal>
-
-      <b-modal v-model="modal.delete" title="Delete Device?" cancel-variant="success" ok-title="Delete" ok-variant="danger" @ok="confirmedDeleteDevice">
-        <p>You are about to delete device <b>{{ lastDeleteItem.name }}</b> with id ({{ lastDeleteItem.id }}).</p>
-
-        <p>This will also delete <b>all shocker configurations and shares associated with that shocker.
-        </b><br><br><b>This is permanent and cannot be undone.</b> Are you sure?</p>
-
+        <loading v-if="modal.editLoading"></loading>
+        <div v-else>
+          <b-input></b-input>
+        </div>
       </b-modal>
   </div>
 </template>
 
 <script>
+import Loading from '../../utils/Loading.vue';
+
   export default {
+  components: { Loading },
     data() {
       return {
         fields: ['name', 'actions'],
         devices: [],
-        lastDeleteItem: {
-          name: "",
-          id: ""
-        },
         modal: {
-          delete: false,
-          edit: false
+          edit: false,
+          editLoading: false
+        },
+        editItem: {
+          id: "",
+          name: "",
+          token: "",
+          createdOn: ""
         }
       }
     },
@@ -51,18 +60,65 @@
         await this.loadDevices();
     },
     methods: {
-      deleteDevice(item) {
-        this.lastDeleteItem = item;
-        this.modal.delete = true;
+      regenerateToken(item) {
+        this.$swal({
+          title: 'Regenerate token?',
+          html: "Your device token will be regenerated, this means the <b>previous one</b> is going to <b>invalid</b> from that point on. <br><br>Are you sure?",
+          icon: 'warning',
+          showCancelButton: true,
+          confirmButtonColor: '#3085d6',
+          cancelButtonColor: 'var(--secondary-seperator-color)',
+          showLoaderOnConfirm: true,
+          confirmButtonText: 'Regenerate Token',
+          allowOutsideClick: () => !this.$swal.isLoading(),
+          preConfirm: async () => {
+            try {
+              const res = await apiCall.makeCall('PUT', `1/devices/${item.id}`);
+              if (res.status !== 200) {
+                throw new Error(res.statusText);
+              }
+
+            } catch (err) {
+              this.$swal.showValidationMessage(`Request failed: ${err}`)
+            }
+          },
+        }).then((result) => {
+          if (result.isConfirmed) {
+            this.$swal('Success!', 'Successfully regenerated device token', 'success');
+          }
+        });
       },
-      async confirmedDeleteDevice() {
-        const res = await apiCall.makeCall('DELETE', '1/devices/' + this.lastDeleteItem.id);
-        if (res === undefined || res.status !== 200) {
-          toastr.error("Error while deleting device");
-          return;
-        }
-        toastr.success("Successfully deleted device (" + this.lastDeleteItem.name + ")[" + this.lastDeleteItem.id + "]")
-        await this.loadDevices();
+      deleteDevice(item) {
+        
+        this.$swal({
+          title: 'Delete?',
+          html: `You are about to delete device <b>${item.name}</b> with id (${item.id}).<br>This will also delete <b>all shocker configurations and shares associated with that shocker.</b>
+          <br><br><b><u>This is permanent and cannot be undone.</u></b><br>Are you sure?`,
+          icon: 'warning',
+          showCancelButton: true,
+          confirmButtonColor: '#d33',
+          cancelButtonColor: 'var(--secondary-seperator-color)',
+          showLoaderOnConfirm: true,
+          confirmButtonText: 'Delete device',
+          allowOutsideClick: () => !this.$swal.isLoading(),
+          preConfirm: async () => {
+            try {
+              const res = await apiCall.makeCall('DELETE', `1/devices/${item.id}`);
+              if (res.status !== 200) {
+                throw new Error(res.statusText);
+              }
+
+            } catch (err) {
+              this.$swal.showValidationMessage(`Request failed: ${err}`)
+            }
+          },
+        }).then((result) => {
+          if (result.isConfirmed) {
+            this.$swal('Success!', 'Successfully deleted device', 'success');
+          }
+        });
+
+
       },
       async createNewDevice() {
         const res = await apiCall.makeCall('POST', '1/devices');
@@ -82,6 +138,19 @@
         }
 
         this.devices = res.data.data;
+      },
+      async editDevice(item) {
+        this.modal.editLoading = true;
+        this.modal.edit = true;
+        
+        const res = await apiCall.makeCall('GET', '1/devices/' + item.id);
+        if (res === undefined || res.status !== 200) {
+          toastr.error("Error while retrieving device details");
+          return;
+        }
+
+        this.editItem = res.data.data;
+        this.modal.editLoading = false;
       }
     }
   }
@@ -118,6 +187,12 @@
 }
 
 .devices-table {
-  
+  .mr {
+    margin-right: 10px;
+
+    --bs-btn-color: #fff;
+    --bs-btn-hover-color: #fff;
+    --bs-btn-active-color: #fff;
+  }
 }
 </style>
