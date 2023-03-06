@@ -36,20 +36,33 @@ public class CreateController : AuthenticatedSessionControllerBase
     }
 
     [HttpGet("{id:guid}")]
-    public async Task<BaseResponse<Models.Response.Device>> Get(Guid id)
+    public async Task<BaseResponse<Models.Response.DeviceWithToken>> Get(Guid id)
     {
         var device = await _db.Devices.Where(x => x.Owner == CurrentUser.DbUser.Id && x.Id == id)
-            .Select(x => new Models.Response.Device
+            .Select(x => new Models.Response.DeviceWithToken
             {
                 Id = x.Id,
                 Name = x.Name,
-                CreatedOn = x.CreatedOn
+                CreatedOn = x.CreatedOn,
+                Token = x.Token
             }).SingleOrDefaultAsync();
         if (device == null)
-            return EBaseResponse<Models.Response.Device>("Device does not exist", HttpStatusCode.NotFound);
-        return new BaseResponse<Models.Response.Device>
+            return EBaseResponse<Models.Response.DeviceWithToken>("Device does not exist", HttpStatusCode.NotFound);
+        return new BaseResponse<Models.Response.DeviceWithToken>
         {
             Data = device
+        };
+    }
+    
+    [HttpDelete("{id:guid}")]
+    public async Task<BaseResponse<object>> Delete(Guid id)
+    {
+        var affected = await _db.Devices.Where(x => x.Owner == CurrentUser.DbUser.Id && x.Id == id).ExecuteDeleteAsync();
+        if (affected <= 0)
+            return EBaseResponse<object>("Device does not exist", HttpStatusCode.NotFound);
+        return new BaseResponse<object>
+        {
+            Message = "Successfully deleted device"
         };
     }
 
