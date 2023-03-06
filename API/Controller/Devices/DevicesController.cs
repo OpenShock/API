@@ -63,13 +63,11 @@ public class CreateController : AuthenticatedSessionControllerBase
             return EBaseResponse<object>("Device does not exist", HttpStatusCode.NotFound);
 
         device.Name = data.Name;
+        await _db.SaveChangesAsync();
 
-        var affected = await _db.SaveChangesAsync();
-        if (affected <= 0) return EBaseResponse<object>("Failed to save data", HttpStatusCode.InternalServerError);
-        
         return new BaseResponse<object>
         {
-            Data = device
+            Message = "Successfully updated device"
         };
     }
         

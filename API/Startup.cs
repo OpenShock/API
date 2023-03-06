@@ -33,6 +33,7 @@ public class Startup
         {
             builder.UseNpgsql(ApiConfig.Db);
             builder.EnableSensitiveDataLogging();
+            builder.EnableDetailedErrors();
         });
 
         var redis = new RedisConnectionProvider($"redis://:{ApiConfig.RedisPassword}@{ApiConfig.RedisHost}:6379");
