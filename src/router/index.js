@@ -83,6 +83,10 @@ const routes = [
 						]
 					}
 				]
+			},
+			{
+				path: 'devices',
+				component: lazyLoad('dashboard/devices/DevicesRoot')
 			}
 		]
 	},

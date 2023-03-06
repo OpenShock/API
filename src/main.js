@@ -15,7 +15,7 @@ global.$ = jQuery;
 import {createApp} from 'vue';
 
 import 'bootstrap/dist/css/bootstrap.css'
-import 'bootstrap-vue-3/dist/bootstrap-vue-3.css'
+import 'bootstrap-vue-next/dist/bootstrap-vue-next.css'
 import 'normalize.css';
 import 'toastr/build/toastr.css';
 import "@fontsource/poppins";
@@ -26,7 +26,7 @@ import App from '@/App';
 import router from '@/router';
 import store from '@/store';
 import mitt from 'mitt';
-import BootstrapVue3 from 'bootstrap-vue-3'
+import BootstrapVueNext from 'bootstrap-vue-next'
 import VueSweetalert2 from 'vue-sweetalert2';
 
 import { library, dom } from '@fortawesome/fontawesome-svg-core';
@@ -41,7 +41,7 @@ const emitter = mitt();
 const app = createApp(App)
 	.use(router)
 	.use(store)
-	.use(BootstrapVue3)
+	.use(BootstrapVueNext)
 	.use(VueSweetalert2);
 
 app.config.globalProperties.emitter = emitter;

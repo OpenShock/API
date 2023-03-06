@@ -33,12 +33,17 @@ export default {
       allElements: [
         {
           routerLink: '/home',
-          html: '<i class="fas fa-tachometer-alt"></i>Home',
+          html: '<i class="fa-solid fa-house"></i>Home',
           active: false
         },
         {
           routerLink: '/shockers',
           html: '<i class="fa-solid fa-bolt"></i></i>Shockers',
+          active: false
+        },
+        {
+          routerLink: '/devices',
+          html: '<i class="fa-solid fa-microchip"></i>Devices',
           active: false
         },
         {

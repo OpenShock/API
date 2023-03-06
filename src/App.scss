@@ -262,3 +262,17 @@ hr {
     }
   }
 }
+
+.modal-dialog {
+  .modal-content {
+    background-color: var(--secondary-background-color);
+
+    .modal-header {
+      border-color: var(--main-seperator-color);
+    }
+
+    .modal-footer {
+      border-color: var(--main-seperator-color);
+    }
+  }
+}
