@@ -43,7 +43,6 @@ export default {
       this.self.loading = true;
      try {
        await this.$store.dispatch('getSelf');
-       console.log("here");
        this.self.success = true;
      } catch (_) {}
      this.self.loading = false;

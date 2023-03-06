@@ -23,10 +23,26 @@
       </b-table>
     </b-container>
 
-      <b-modal v-model="modal.edit" title="Edit Device">
+      <b-modal v-model="modal.edit" title="Edit Device" ok-title="Save" @ok="applyEdits">
         <loading v-if="modal.editLoading"></loading>
         <div v-else>
-          <b-input></b-input>
+          <b-container style="padding: 0;">
+            <b-form-group label="ID (readonly)" label-for="item-id" label-class="mb-1">
+              <b-form-input id="item-id" v-model="editItem.id" readonly/>
+            </b-form-group>
+
+            <b-form-group label="Name (editable)" label-for="item-name" label-class="mb-1">
+              <b-form-input id="item-name" v-model="editItem.name"/>
+            </b-form-group>
+
+            <b-form-group label="Token (regeneratable)" label-for="item-token" label-class="mb-1">
+              <b-form-input id="item-token" v-model="editItem.token" readonly/>
+            </b-form-group>
+
+            <b-form-group label="Created on (readonly)" label-for="item-created" label-class="mb-1">
+              <b-form-input id="item-created" v-model="editItem.createdOn" readonly/>
+            </b-form-group>
+          </b-container>
         </div>
       </b-modal>
   </div>
@@ -54,7 +70,7 @@ import Loading from '../../utils/Loading.vue';
       }
     },
     mounted() {
-
+      this.$store.dispatch('setNewNav', []);
     },
     async beforeMount() {
         await this.loadDevices();
@@ -112,9 +128,10 @@ import Loading from '../../utils/Loading.vue';
               this.$swal.showValidationMessage(`Request failed: ${err}`)
             }
           },
-        }).then((result) => {
+        }).then(async (result) => {
           if (result.isConfirmed) {
             this.$swal('Success!', 'Successfully deleted device', 'success');
+            this.loadDevices();
           }
         });
 
@@ -127,7 +144,7 @@ import Loading from '../../utils/Loading.vue';
           return;
         }
         
-        toastr.success("Successfully created new device");
+        this.$swal('Success!', 'Successfully created new device', 'success');
         await this.loadDevices();
       },
       async loadDevices() {
@@ -151,6 +168,19 @@ import Loading from '../../utils/Loading.vue';
 
         this.editItem = res.data.data;
         this.modal.editLoading = false;
+      },
+      async applyEdits() {
+        const res = await apiCall.makeCall('PATCH', '1/devices/' + this.editItem.id, {
+          name: this.editItem.name
+        });
+
+        if (res === undefined || res.status !== 200) {
+          toastr.error("Error while updating device");
+          return;
+        }
+
+        this.$swal('Success!', `Successfully updated device [${this.editItem.id}]`, 'success');
+        await this.loadDevices();
       }
     }
   }
