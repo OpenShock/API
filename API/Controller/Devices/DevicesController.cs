@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using ShockLink.API.Authentication;
 using ShockLink.API.Models;
+using ShockLink.API.Models.Requests;
 using ShockLink.API.Utils;
 using ShockLink.Common.ShockLinkDb;
 
@@ -51,6 +52,42 @@ public class CreateController : AuthenticatedSessionControllerBase
         return new BaseResponse<Models.Response.DeviceWithToken>
         {
             Data = device
+        };
+    }
+    
+    [HttpPatch("{id:guid}")]
+    public async Task<BaseResponse<object>> Edit(Guid id, DeviceEdit data)
+    {
+        var device = await _db.Devices.Where(x => x.Owner == CurrentUser.DbUser.Id && x.Id == id).SingleOrDefaultAsync();
+        if (device == null)
+            return EBaseResponse<object>("Device does not exist", HttpStatusCode.NotFound);
+
+        device.Name = data.Name;
+
+        var affected = await _db.SaveChangesAsync();
+        if (affected <= 0) return EBaseResponse<object>("Failed to save data", HttpStatusCode.InternalServerError);
+        
+        return new BaseResponse<object>
+        {
+            Data = device
+        };
+    }
+        
+    [HttpPut("{id:guid}")]
+    public async Task<BaseResponse<object>> RegenToken(Guid id)
+    {
+        var device = await _db.Devices.Where(x => x.Owner == CurrentUser.DbUser.Id && x.Id == id).SingleOrDefaultAsync();
+        if (device == null)
+            return EBaseResponse<object>("Device does not exist", HttpStatusCode.NotFound);
+
+        device.Token = CryptoUtils.RandomString(256);
+
+        var affected = await _db.SaveChangesAsync();
+        if (affected <= 0) return EBaseResponse<object>("Failed to save regenerated token", HttpStatusCode.InternalServerError);
+        
+        return new BaseResponse<object>
+        {
+            Message = "Successfully regenerated device token"
         };
     }
     
