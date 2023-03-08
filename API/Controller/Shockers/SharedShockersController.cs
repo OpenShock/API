@@ -19,20 +19,45 @@ public class SharedShockersController : AuthenticatedSessionControllerBase
     }
 
     [HttpGet]
-    public async Task<BaseResponse<IEnumerable<ShockerResponse>>> GetSharedShockers()
+    public async Task<BaseResponse<IEnumerable<OwnerShockerResponse>>> GetSharedShockers()
     {
-        /*var sharedShocker = await _db.ShockerShares.Where(x => x.SharedWith == CurrentUser.DbUser.Id).Select(x =>
-            new ShockerResponse
+        var sharedShockersRaw = await _db.ShockerShares.Where(x => x.SharedWith == CurrentUser.DbUser.Id).Select(x =>
+            new
             {
-                Id = x.Shocker.Id,
-                Owner = x.Shocker.Owner,
-                Name = x.Shocker.Name,
-                RfId = x.Shocker.RfId
-            }).ToListAsync();*/
+                OwnerId = x.Shocker.DeviceNavigation.OwnerNavigation.Id,
+                OwnerName = x.Shocker.DeviceNavigation.OwnerNavigation.Name,
+                x.Shocker.Id,
+                x.Shocker.Name,
+                x.PermVibrate,
+                x.PermSound,
+                x.PermShock
+            }).ToListAsync();
 
-        return new BaseResponse<IEnumerable<ShockerResponse>>
+        var shared = new Dictionary<Guid, OwnerShockerResponse>();
+        foreach (var shocker in sharedShockersRaw)
         {
-            Data = null
+            if (shared.ContainsKey(shocker.OwnerId))
+            {
+                shared[shocker.OwnerId] = new OwnerShockerResponse
+                {
+                    Id = shocker.OwnerId,
+                    Name = shocker.OwnerName
+                };
+            }
+            
+            shared[shocker.OwnerId].Shockers.Add(new OwnerShockerResponse.SharedShocker()
+            {
+                Id = shocker.Id,
+                Name = shocker.Name,
+                PermShock = shocker.PermShock,
+                PermSound = shocker.PermVibrate,
+                PermVibrate = shocker.PermVibrate
+            });
+        }
+
+        return new BaseResponse<IEnumerable<OwnerShockerResponse>>
+        {
+            Data = shared.Values
         };
     }
 }
