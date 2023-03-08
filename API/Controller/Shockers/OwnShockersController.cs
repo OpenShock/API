@@ -21,12 +21,12 @@ public class OwnShockersController : AuthenticatedSessionControllerBase
     [HttpGet]
     public async Task<BaseResponse<IEnumerable<DeviceWithShockers>>> GetOwnShockers()
     {
-        var shockers = await _db.Devices.Where(x => x.Owner == CurrentUser.DbUser.Id).Select(x => new DeviceWithShockers
+        var shockers = await _db.Devices.Where(x => x.Owner == CurrentUser.DbUser.Id).OrderBy(x => x.CreatedOn).Select(x => new DeviceWithShockers
         {
             Id = x.Id,
             Name = x.Name,
             CreatedOn = x.CreatedOn,
-            Shockers = x.Shockers.Select(y => new ShockerResponse
+            Shockers = x.Shockers.OrderBy(y => y.CreatedOn).Select(y => new ShockerResponse
             {
                 Id = y.Id,
                 Name = y.Name,

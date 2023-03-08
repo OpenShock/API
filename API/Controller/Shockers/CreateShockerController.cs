@@ -13,7 +13,6 @@ namespace ShockLink.API.Controller.Shockers;
 public class CreateShockersController : AuthenticatedSessionControllerBase
 {
     private readonly ShockLinkContext _db;
-    private readonly Random _rnd = new();
     
     public CreateShockersController(ShockLinkContext db)
     {
@@ -24,13 +23,13 @@ public class CreateShockersController : AuthenticatedSessionControllerBase
     public async Task<BaseResponse<Guid>> CreateShocker(NewShocker data)
     {
         var device = await _db.Devices.AnyAsync(x => x.Owner == CurrentUser.DbUser.Id && x.Id == data.Device);
-        if(!device) return EBaseResponse<Guid>("Device does not exists or you do not have access to it.", HttpStatusCode.NotFound);
+        if(!device) return EBaseResponse<Guid>("Device does not exist", HttpStatusCode.NotFound);
         
         var shocker = new Shocker
         {
             Id = Guid.NewGuid(),
             Name = data.Name,
-            RfId = (ushort)_rnd.Next(ushort.MinValue, ushort.MaxValue + 1),
+            RfId = data.RfId,
             Device = data.Device
         };
         _db.Shockers.Add(shocker);
