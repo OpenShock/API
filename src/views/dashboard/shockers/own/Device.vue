@@ -26,5 +26,7 @@ import OwnShocker from './OwnShocker.vue'
     .shocker-col {
         min-width: 300px;
     }
+
 }
+
 </style>

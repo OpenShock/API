@@ -1,7 +1,12 @@
 <template>
     <b-container class="shocker">
-        <b-row>
-            <p>{{ shocker.name }}</p>
+        <b-row class="head">
+            <b-col cols="10" class="shocker-name-col">
+                <p class="shocker-name">{{ shocker.name }}</p>
+            </b-col>
+            <b-col cols="auto" class="elli" @click="ellipsis">
+                <i class="fa-solid fa-ellipsis-vertical"></i>
+            </b-col>
         </b-row>
         <b-row>
             <label for="intensity">Intensity: {{ shocker.state.intensity }}</label>
@@ -24,9 +29,13 @@
 </template>
 
 <script>
+import Loading from '../../../utils/Loading.vue';
 import LoadingButton from '../../../utils/LoadingButton.vue';
-    export default {
-  components: { LoadingButton },
+
+
+
+export default {
+  components: { LoadingButton, Loading },
 
         props: ["shocker"],
         data() {
@@ -34,7 +43,70 @@ import LoadingButton from '../../../utils/LoadingButton.vue';
                 inProgress: false
             }
         },
+        beforeMount() {
+
+        },
         methods: {
+            ellipsis(e) {
+                this.$contextmenu({
+                    theme: utils.isDarkMode() ? 'default dark' : 'default',
+                    x: e.x,
+                    y: e.y,
+                    items: [
+                        { 
+                            label: "Shares",
+                            icon: 'fa-solid fa-share-nodes',
+                            onClick: () => {
+
+                            }
+                        },
+                        { 
+                            label: "Edit",
+                            icon: 'fa-solid fa-pen-to-square',
+                            onClick: () => {
+                                this.emitter.emit('editShocker', this.shocker.id);
+                            }
+                        },
+                        { 
+                            label: "Remove",
+                            icon: 'fa-solid fa-trash',
+                            onClick: () => {
+                                this.delete();
+                            }
+                        }
+                    ]
+                }); 
+            },
+            delete() {
+                this.$swal({
+                    title: 'Delete?',
+                    html: `You are about to delete the shocker <b>${this.shocker.name}</b> with id (${this.shocker.id}).<br>This will also delete <b>all shares associated with that shocker.</b>
+                    <br><br><b><u>This is permanent and cannot be undone.</u></b><br>Are you sure?`,
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonColor: '#d33',
+                    cancelButtonColor: 'var(--secondary-seperator-color)',
+                    showLoaderOnConfirm: true,
+                    confirmButtonText: 'Delete shocker',
+                    allowOutsideClick: () => !this.$swal.isLoading(),
+                    preConfirm: async () => {
+                        try {
+                        const res = await apiCall.makeCall('DELETE', `1/shockers/${this.shocker.id}`);
+                        if (res.status !== 200) {
+                            throw new Error(res.statusText);
+                        }
+
+                        } catch (err) {
+                        this.$swal.showValidationMessage(`Request failed: ${err}`)
+                        }
+                    },
+                    }).then(async (result) => {
+                        if (result.isConfirmed) {
+                            this.$swal('Success!', 'Successfully deleted shocker', 'success');
+                            this.emitter.emit('refreshShockers');
+                        }
+                });
+            },
             control(type) {
                 const obj = {
                     "RequestType": 0,
@@ -59,16 +131,43 @@ import LoadingButton from '../../../utils/LoadingButton.vue';
 
 <style scoped lang="scss">
 .shocker {
+    background-color: var(--secondary-background-color);
     border: solid var(--main-seperator-color) 1px;
     border-radius: 10px;
     margin: 10px 0;
     padding: 10px;
+
+    .head {
+        border-bottom: solid 2px var(--main-background-color);
+        padding-bottom: 10px !important;
+
+        .shocker-name-col {
+            margin-right: auto;
+            width: calc(100% - 24px);
+
+            .shocker-name {
+                white-space: nowrap;
+                text-overflow: ellipsis;
+                overflow: hidden;
+                margin-bottom: 0;
+            }
+        }   
+    }
+
 
     .row {
         padding: 0 12px;
 
         .form-range {
             padding: 0 12px;
+        }
+    }
+
+    .elli {
+        cursor: pointer;
+
+        .fa-ellipsis-vertical {
+            height: 100%;
         }
     }
 }

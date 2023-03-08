@@ -29,6 +29,9 @@ import mitt from 'mitt';
 import BootstrapVueNext from 'bootstrap-vue-next'
 import VueSweetalert2 from 'vue-sweetalert2';
 
+import '@imengyu/vue3-context-menu/lib/vue3-context-menu.css'
+import ContextMenu from '@imengyu/vue3-context-menu'
+
 import { library, dom } from '@fortawesome/fontawesome-svg-core';
 import { fas } from '@fortawesome/free-solid-svg-icons';
 import { far } from '@fortawesome/free-regular-svg-icons';
@@ -42,7 +45,8 @@ const app = createApp(App)
 	.use(router)
 	.use(store)
 	.use(BootstrapVueNext)
-	.use(VueSweetalert2);
+	.use(VueSweetalert2)
+	.use(ContextMenu);
 
 app.config.globalProperties.emitter = emitter;
 global.emitter = emitter;

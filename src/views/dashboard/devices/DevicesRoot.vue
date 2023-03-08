@@ -55,7 +55,15 @@ import Loading from '../../utils/Loading.vue';
   components: { Loading },
     data() {
       return {
-        fields: ['name', 'actions'],
+        fields: [
+          {
+          key: "name"
+          },
+          {
+            key: 'actions',
+            thClass: "actions-header"
+          }
+        ],
         devices: [],
         modal: {
           edit: false,
@@ -223,6 +231,10 @@ import Loading from '../../utils/Loading.vue';
     --bs-btn-color: #fff;
     --bs-btn-hover-color: #fff;
     --bs-btn-active-color: #fff;
+  }
+
+  :deep(.actions-header) {
+      width: 350px;
   }
 }
 </style>
