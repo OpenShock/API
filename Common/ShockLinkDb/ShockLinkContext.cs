@@ -21,6 +21,8 @@ public partial class ShockLinkContext : DbContext
 
     public virtual DbSet<ShockerShare> ShockerShares { get; set; }
 
+    public virtual DbSet<ShockerShareCode> ShockerShareCodes { get; set; }
+
     public virtual DbSet<User> Users { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -87,6 +89,8 @@ public partial class ShockLinkContext : DbContext
                 .HasDefaultValueSql("CURRENT_TIMESTAMP")
                 .HasColumnType("timestamp without time zone")
                 .HasColumnName("created_on");
+            entity.Property(e => e.LimitDuration).HasColumnName("limit_duration");
+            entity.Property(e => e.LimitIntensity).HasColumnName("limit_intensity");
             entity.Property(e => e.PermShock)
                 .IsRequired()
                 .HasDefaultValueSql("true")
@@ -107,6 +111,36 @@ public partial class ShockLinkContext : DbContext
             entity.HasOne(d => d.Shocker).WithMany(p => p.ShockerShares)
                 .HasForeignKey(d => d.ShockerId)
                 .HasConstraintName("ref_shocker_id");
+        });
+
+        modelBuilder.Entity<ShockerShareCode>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("shocker_share_codes_pkey");
+
+            entity.ToTable("shocker_share_codes", "ShockLink");
+
+            entity.Property(e => e.Id)
+                .ValueGeneratedNever()
+                .HasColumnName("id");
+            entity.Property(e => e.CreatedOn)
+                .HasDefaultValueSql("CURRENT_TIMESTAMP")
+                .HasColumnType("timestamp without time zone")
+                .HasColumnName("created_on");
+            entity.Property(e => e.LimitDuration).HasColumnName("limit_duration");
+            entity.Property(e => e.LimitIntensity).HasColumnName("limit_intensity");
+            entity.Property(e => e.PermShock)
+                .IsRequired()
+                .HasDefaultValueSql("true")
+                .HasColumnName("perm_shock");
+            entity.Property(e => e.PermSound)
+                .IsRequired()
+                .HasDefaultValueSql("true")
+                .HasColumnName("perm_sound");
+            entity.Property(e => e.PermVibrate)
+                .IsRequired()
+                .HasDefaultValueSql("true")
+                .HasColumnName("perm_vibrate");
+            entity.Property(e => e.ShockerId).HasColumnName("shocker_id");
         });
 
         modelBuilder.Entity<User>(entity =>

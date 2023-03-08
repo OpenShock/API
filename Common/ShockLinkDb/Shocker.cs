@@ -7,7 +7,7 @@ public partial class Shocker
 {
     public Guid Id { get; set; }
 
-    public ushort RfId { get; set; }
+    public int RfId { get; set; }
 
     public string Name { get; set; } = null!;
 
