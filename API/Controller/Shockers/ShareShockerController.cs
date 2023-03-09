@@ -23,6 +23,9 @@ public class ShareShockerController : AuthenticatedSessionControllerBase
     [HttpGet("{id:guid}/shares")]
     public async Task<BaseResponse<IEnumerable<ShareInfo>>> GetShares(Guid id)
     {
+        var owns = await _db.Shockers.AnyAsync(x => x.DeviceNavigation.Owner == CurrentUser.DbUser.Id && x.Id == id);
+        if(!owns) return EBaseResponse<IEnumerable<ShareInfo>>("Device/Shocker does not exists or device does not belong to you",
+            HttpStatusCode.NotFound);
         var shares = await _db.ShockerShares
             .Where(x => x.ShockerId == id && x.Shocker.DeviceNavigation.Owner == CurrentUser.DbUser.Id).Select(x =>
                 new ShareInfo
@@ -31,7 +34,7 @@ public class ShareShockerController : AuthenticatedSessionControllerBase
                     {
                         Name = x.SharedWithNavigation.Name,
                         Id = x.SharedWith,
-                        Image = new Uri("")
+                        Image = new Uri("https://example.org")
                     },
                     CreatedOn = x.CreatedOn,
                     Permissions = new ShareInfo.PermissionsObj
@@ -66,13 +69,14 @@ public class ShareShockerController : AuthenticatedSessionControllerBase
         {
             Id = Guid.NewGuid(),
             ShockerId = id,
-            PermVibrate = data.PermVibrate,
-            PermSound = data.PermSound,
-            PermShock = data.PermShock,
-            LimitIntensity = data.LimitIntensity,
-            LimitDuration = data.LimitDuration
+            PermVibrate = data.Permissions.Vibrate,
+            PermSound = data.Permissions.Sound,
+            PermShock = data.Permissions.Shock,
+            LimitIntensity = data.Limits.Intensity,
+            LimitDuration = data.Limits.Duration
         };
         _db.ShockerShareCodes.Add(newCode);
+        await _db.SaveChangesAsync();
         return new BaseResponse<Guid>
         {
             Data = newCode.Id

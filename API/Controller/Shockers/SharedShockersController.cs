@@ -36,15 +36,14 @@ public class SharedShockersController : AuthenticatedSessionControllerBase
         var shared = new Dictionary<Guid, OwnerShockerResponse>();
         foreach (var shocker in sharedShockersRaw)
         {
-            if (shared.ContainsKey(shocker.OwnerId))
-            {
+            if (!shared.ContainsKey(shocker.OwnerId))
                 shared[shocker.OwnerId] = new OwnerShockerResponse
                 {
                     Id = shocker.OwnerId,
                     Name = shocker.OwnerName
                 };
-            }
-            
+
+
             shared[shocker.OwnerId].Shockers.Add(new OwnerShockerResponse.SharedShocker()
             {
                 Id = shocker.Id,
