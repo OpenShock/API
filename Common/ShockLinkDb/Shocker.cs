@@ -17,5 +17,7 @@ public partial class Shocker
 
     public virtual Device DeviceNavigation { get; set; } = null!;
 
+    public virtual ICollection<ShockerShareCode> ShockerShareCodes { get; } = new List<ShockerShareCode>();
+
     public virtual ICollection<ShockerShare> ShockerShares { get; } = new List<ShockerShare>();
 }

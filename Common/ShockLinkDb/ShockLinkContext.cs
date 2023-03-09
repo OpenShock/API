@@ -141,6 +141,10 @@ public partial class ShockLinkContext : DbContext
                 .HasDefaultValueSql("true")
                 .HasColumnName("perm_vibrate");
             entity.Property(e => e.ShockerId).HasColumnName("shocker_id");
+
+            entity.HasOne(d => d.Shocker).WithMany(p => p.ShockerShareCodes)
+                .HasForeignKey(d => d.ShockerId)
+                .HasConstraintName("fk_shocker_id");
         });
 
         modelBuilder.Entity<User>(entity =>

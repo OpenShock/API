@@ -20,4 +20,6 @@ public partial class ShockerShareCode
     public uint? LimitDuration { get; set; }
 
     public byte? LimitIntensity { get; set; }
+
+    public virtual Shocker Shocker { get; set; } = null!;
 }
