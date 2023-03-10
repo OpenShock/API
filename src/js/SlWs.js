@@ -11,7 +11,7 @@ function newConnection() {
         console.log('Message from server ', event.data);
     };
     
-    ws.onclose = function(e) {
+    socket.onclose = function(e) {
         console.log('Socket is closed. Reconnect will be attempted in 1 second.', e.reason);
         setTimeout(function() {
             newConnection();
