@@ -1,6 +1,6 @@
 <template>
     <div>
-        <div class="add-circle" @click="createNewDevice">
+        <div class="add-circle" @click="createNewCode">
             <i class="fa-solid fa-plus"></i>
         </div>
 
@@ -39,6 +39,16 @@
 
                     <b-button size="sm" @click="removeShare(row.item)" class="mr" variant="danger">
                         <i class="fa-solid fa-trash"></i> Unshare
+                    </b-button>
+                </template>
+            </b-table>
+        </b-container>
+
+        <b-container>
+            <b-table hover striped :items="codes" :fields="fieldsCodes" class="share-codes-table">
+                <template #cell(actions)="row">
+                    <b-button size="sm" @click="removeCode(row.item)" class="mr" variant="danger">
+                        <i class="fa-solid fa-trash"></i> Remove
                     </b-button>
                 </template>
             </b-table>
@@ -83,6 +93,21 @@ export default {
                     thClass: "actions-header"
                 }
             ],
+            fieldsCodes: [
+                {
+                    key: "id",
+                    label: "Code / Id"
+                },
+                {
+                    key: "created",
+                    label: "Created On"
+                },
+                {
+                    key: 'actions',
+                    thClass: "actions-header"
+                }
+            ],
+            codes: [],
             shares: [],
             editModal: false,
             editing: {
@@ -94,10 +119,50 @@ export default {
             }
         }
     },
-    async beforeMount() {
-        await this.loadShares();
+    beforeMount() {
+        this.loadShares();
+        this.loadCodes();
     },
     methods: {
+        async loadCodes() {
+            const res = await apiCall.makeCall('GET', `1/shockers/${this.$route.params.id}/shareCodes`);
+            if (res === undefined || res.status !== 200) {
+                toastr.error("Error while retrieving shocker share codes");
+                return;
+            }
+
+            this.codes = res.data.data;
+        },
+        removeCode(code) {
+            this.$swal({
+                title: 'Remove share code?',
+                html: `Remove share code <b>${code.id}?</b>
+                    <br><br>Are you sure?`,
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonColor: '#d33',
+                cancelButtonColor: 'var(--secondary-seperator-color)',
+                showLoaderOnConfirm: true,
+                confirmButtonText: 'Remove share code',
+                allowOutsideClick: () => !this.$swal.isLoading(),
+                preConfirm: async () => {
+                    try {
+                        const res = await apiCall.makeCall('DELETE', `1/shares/code/${code.id}`);
+                        if (res.status !== 200) {
+                            throw new Error(res);
+                        }
+
+                    } catch (err) {
+                        this.$swal.showValidationMessage(`Request failed: ${utils.getError(err)}`)
+                    }
+                },
+            }).then(async (result) => {
+                if (result.isConfirmed) {
+                    this.$swal('Success!', 'Successfully remove share code', 'success');
+                    this.loadCodes();
+                }
+            });
+        },
         async loadShares() {
             const res = await apiCall.makeCall('GET', `1/shockers/${this.$route.params.id}/shares`);
             if (res === undefined || res.status !== 200) {
@@ -143,6 +208,26 @@ export default {
         },
         applyEdits() {
 
+        },
+        async createNewCode() {
+            const res = await apiCall.makeCall('POST', `1/shockers/${this.$route.params.id}/shares`, {
+                permissions: {
+                    vibrate: true,
+                    shock: true,
+                    sound: true
+                },
+                limits: {
+                    duration: null,
+                    intensity: null
+                }
+            });
+            if (res === undefined || res.status !== 200) {
+                toastr.error("Error while creating share code");
+                return;
+            }
+
+            this.loadCodes();
+            this.$swal('Successfully created share code!', `Code: ${res.data.data}`, 'success');
         }
     }
 }
