@@ -57,7 +57,7 @@ export default {
                             label: "Shares",
                             icon: 'fa-solid fa-share-nodes',
                             onClick: () => {
-
+                                this.$router.push(`/dashboard/shockers/${this.shocker.id}/shares`);
                             }
                         },
                         { 

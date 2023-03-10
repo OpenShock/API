@@ -34,8 +34,6 @@ export default {
                 return;
             }
 
-
-            this.shared = res.data.data;
             this.shared = res.data.data;
             this.shared.forEach(it => {
                 it.state = {

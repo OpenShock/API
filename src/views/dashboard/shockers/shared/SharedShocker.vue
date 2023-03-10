@@ -63,15 +63,15 @@ export default {
             },
             delete() {
                 this.$swal({
-                    title: 'Remove?',
-                    html: `You are remove the link for shocker <b>${this.shocker.name}</b> with id (${this.shocker.id}).<br>You wont be able to control the shocker after removing it.</b>
+                    title: 'Unlink share?',
+                    html: `You are remove the share link for shocker <b>${this.shocker.name}</b> with id (${this.shocker.id}).<br>You wont be able to control the shocker after unlinking it.</b>
                     <br><br>Are you sure?`,
                     icon: 'warning',
                     showCancelButton: true,
                     confirmButtonColor: '#d33',
                     cancelButtonColor: 'var(--secondary-seperator-color)',
                     showLoaderOnConfirm: true,
-                    confirmButtonText: 'Remove shocker link',
+                    confirmButtonText: 'Unlink shared shocker',
                     allowOutsideClick: () => !this.$swal.isLoading(),
                     preConfirm: async () => {
                         try {
@@ -86,7 +86,7 @@ export default {
                     },
                     }).then(async (result) => {
                         if (result.isConfirmed) {
-                            this.$swal('Success!', 'Successfully removed linked shocker', 'success');
+                            this.$swal('Success!', 'Successfully unlinked shared shocker', 'success');
                             this.emitter.emit('refreshShockers');
                         }
                 });

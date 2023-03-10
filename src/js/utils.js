@@ -37,11 +37,11 @@ let utils = {
 		document.cookie = cname + "=" + cvalue + ";" + expires + ";path=/";
 	},
 	getError(err) {
-		if(err !== undefined) {
-			if(err.response !== undefined && err.response.data !== undefined && err.response.data.message !== undefined) {
-				return `${err.response.status} ${err.response.data.message}`;
-			}
-			return err;
+		if(err !== undefined && err.response !== undefined) {
+			if(err.response.data !== undefined && err.response.data.message !== undefined)
+				return `${err.response.status} with ${err.response.data.message}`;
+
+			return `${err.response.status} ${err.response.statusText}`;
 		}
 		return "Something went terribly wrong, no further info."
 	}
