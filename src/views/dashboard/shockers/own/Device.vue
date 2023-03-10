@@ -11,10 +11,10 @@
 
 <script>
 import OwnShocker from './OwnShocker.vue'
-    export default {
-  components: { OwnShocker },
-        props: ["device"]
-    }
+export default {
+    components: { OwnShocker },
+    props: ["device"]
+}
 </script>
 
 <style scoped lang="scss">

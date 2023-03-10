@@ -15,7 +15,7 @@ class ApiCall {
 				data: data
 			});
 		} catch (err) {
-			toastr.error(err.response.status + " " + err.response.statusText, "API interaction failed");
+			toastr.error(utils.getError(err), "API interaction failed");
 			if(err.response !== undefined && err.response.status === 401) {
 				router.push('/account/login');
 				utils.setLogin("");

@@ -35,6 +35,15 @@ let utils = {
 		d.setTime(d.getTime() + (exdays * 24 * 60 * 60 * 1000));
 		let expires = "expires="+d.toUTCString();
 		document.cookie = cname + "=" + cvalue + ";" + expires + ";path=/";
+	},
+	getError(err) {
+		if(err !== undefined) {
+			if(err.response !== undefined && err.response.data !== undefined && err.response.data.message !== undefined) {
+				return `${err.response.status} ${err.response.data.message}`;
+			}
+			return err;
+		}
+		return "Something went terribly wrong, no further info."
 	}
 }
 
