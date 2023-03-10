@@ -162,8 +162,7 @@ export default {
                 device.shockers.forEach(shocker => {
                     shocker.state = {
                         intensity: 25,
-                        duration: 1000,
-                        type: 2
+                        duration: 1000
                     }
                 });
             });
