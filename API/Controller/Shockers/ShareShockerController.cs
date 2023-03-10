@@ -34,7 +34,7 @@ public class ShareShockerController : AuthenticatedSessionControllerBase
                     {
                         Name = x.SharedWithNavigation.Name,
                         Id = x.SharedWith,
-                        Image = new Uri("https://example.org")
+                        Image = new Uri("https://sea.zlucplayz.com/f/e18b174d56db47759384/?raw=1")
                     },
                     CreatedOn = x.CreatedOn,
                     Permissions = new ShareInfo.PermissionsObj

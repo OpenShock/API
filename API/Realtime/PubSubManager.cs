@@ -1,9 +1,13 @@
 ﻿using System.Text.Json;
+using Microsoft.EntityFrameworkCore;
 using Redis.OM.Contracts;
+using Redis.OM.Searching;
+using ShockLink.API.Models.WebSocket;
 using ShockLink.API.Realtime;
 using ShockLink.API.Utils;
 using ShockLink.Common.Models.WebSocket;
 using ShockLink.Common.Models.WebSocket.Device;
+using ShockLink.Common.Redis;
 using ShockLink.Common.Redis.PubSub;
 using ShockLink.Common.ShockLinkDb;
 using StackExchange.Redis;
@@ -20,12 +24,14 @@ public static class PubSubManager
     private static ConnectionMultiplexer _con;
     private static IServiceProvider _serviceProvider;
     private static ISubscriber _subscriber;
+    private static IRedisCollection<DeviceOnline> _devicesOnline;
 
     public static void Initialize(ConnectionMultiplexer con, IServiceProvider serviceProvider)
     {
         _con = con;
         _serviceProvider = serviceProvider;
         var provider = _serviceProvider.GetRequiredService<IRedisConnectionProvider>();
+        _devicesOnline = provider.RedisCollection<DeviceOnline>();
         _subscriber = _con.GetSubscriber();
         _subscriber.Subscribe(
             new RedisChannel("__keyevent@0__:expired", RedisChannel.PatternMode.Literal),
@@ -82,9 +88,31 @@ public static class PubSubManager
         if (msg.Length < 2) return;
         await using var scope = _serviceProvider.CreateAsyncScope();
         await using var db = scope.ServiceProvider.GetRequiredService<ShockLinkContext>();
-        var id = msg[1];
+        if(Guid.TryParse(msg[1], out var id)) return;
         switch (msg[0])
         {
+            case "ShockLink.Common.Redis.DeviceOnline":
+                var data = await db.Devices.Where(x => x.Id == id).Select(x => new
+                {
+                    x.Owner,
+                    SharedWith = x.Shockers.SelectMany(y => y.ShockerShares)
+                }).SingleOrDefaultAsync();
+                if(data == null) return;
+
+                await WebsocketManager.UserWebSockets.SendMessageTo(data.Owner,
+                    new BaseResponse<Common.Models.WebSocket.User.ResponseType>
+                    {
+                        ResponseType = Common.Models.WebSocket.User.ResponseType.DeviceOnlineState,
+                        Data = new DeviceOnlineState()
+                        {
+                            Device = id,
+                            Online = set
+                        }
+                    });
+                
+                
+                
+                break;
         }
     }
 }
