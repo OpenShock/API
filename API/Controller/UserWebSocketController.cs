@@ -145,11 +145,17 @@ public class UserWebSocketController : WebsocketControllerBase<ResponseType>
             x.Shocker.RfId,
             x.Shocker.Device
         }).ToListAsync();
+        
+        ownShockers.AddRange(sharedShockers);
 
         foreach (var shock in shocks.DistinctBy(x => x.Id))
         {
             var shockerInfo = ownShockers.FirstOrDefault(x => x.Id == shock.Id);
-            if (shockerInfo == null) continue;
+            if (shockerInfo == null)
+            {
+                Logger.LogWarning("Shocker control was denied");
+                continue;
+            }
 
             if (!finalMessages.ContainsKey(shockerInfo.Device))
                 finalMessages[shockerInfo.Device] = new List<ControlMessage.ShockerControlInfo>();

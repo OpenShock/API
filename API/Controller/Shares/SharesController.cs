@@ -19,14 +19,14 @@ public class SharesController : AuthenticatedSessionControllerBase
         _db = db;
     }
     
-    [HttpDelete("code/{id:guid}")]
+    [HttpDelete("{id:guid}")]
     public async Task<BaseResponse<object>> DeleteShare(Guid id)
     {
         
         var affected = await _db.ShockerShares.Where(x =>
-            x.ShockerId == id && x.SharedWith == CurrentUser.DbUser.Id).ExecuteDeleteAsync();
+            x.ShockerId == id && x.SharedWith == CurrentUser.DbUser.Id && x.Shocker.DeviceNavigation.Owner == CurrentUser.DbUser.Id).ExecuteDeleteAsync();
         if (affected <= 0)
-            return EBaseResponse<object>("Share does not exists or device/shocker does not belong to you",
+            return EBaseResponse<object>("Share does not exists or device/shocker does not belong to you nor is shared with you",
                 HttpStatusCode.NotFound);
 
         return new BaseResponse<object>("Successfully deleted share");
