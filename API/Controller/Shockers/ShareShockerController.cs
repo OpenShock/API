@@ -57,6 +57,34 @@ public class ShareShockerController : AuthenticatedSessionControllerBase
         };
     }
     
+    [HttpGet("{id:guid}/shareCodes")]
+    public async Task<BaseResponse<IEnumerable<ShareCodeInfo>>> GetShareCodes(Guid id)
+    {
+        var owns = await _db.Shockers.AnyAsync(x => x.DeviceNavigation.Owner == CurrentUser.DbUser.Id && x.Id == id);
+        if(!owns) return EBaseResponse<IEnumerable<ShareCodeInfo>>("Device/Shocker does not exists or device does not belong to you",
+            HttpStatusCode.NotFound);
+        var shares = await _db.ShockerShareCodes
+            .Where(x => x.ShockerId == id && x.Shocker.DeviceNavigation.Owner == CurrentUser.DbUser.Id).Select(x =>
+                new ShareCodeInfo
+                {
+                    CreatedOn = x.CreatedOn,
+                    Id = x.Id
+                }
+            ).ToListAsync();
+
+        return new BaseResponse<IEnumerable<ShareCodeInfo>>
+        {
+            Data = shares
+        };
+    }
+    
+    public class ShareCodeInfo
+    {
+        public required Guid Id { get; set; }
+        public required DateTime CreatedOn { get; set; }
+    }
+
+
     [HttpPost("{id:guid}/shares")]
     public async Task<BaseResponse<Guid>> CreateShare(Guid id, CreateShareCode data)
     {

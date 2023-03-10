@@ -35,6 +35,8 @@ public class SharesController : AuthenticatedSessionControllerBase
     [HttpDelete("code/{id:guid}")]
     public async Task<BaseResponse<object>> DeleteCode(Guid id)
     {
+        var yes = await _db.ShockerShareCodes
+            .Where(x => x.Id == id && x.Shocker.DeviceNavigation.Owner == CurrentUser.DbUser.Id).SingleOrDefaultAsync();
         var affected = await _db.ShockerShareCodes.Where(x =>
             x.Id == id && x.Shocker.DeviceNavigation.Owner == CurrentUser.DbUser.Id).ExecuteDeleteAsync();
         if (affected <= 0)
