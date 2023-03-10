@@ -119,7 +119,6 @@ export default {
                         }
                     ]
                 };
-                console.log(this);
                 ws.send(JSON.stringify(obj));
                 this.inProgress = true;
 

@@ -20,3 +20,5 @@ function newConnection() {
 
     global.ws = socket;
 }
+
+newConnection();
