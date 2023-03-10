@@ -1,13 +1,22 @@
-const socket = new WebSocket(config.wsUrl);
+function newConnection() {
+    const socket = new WebSocket(config.wsUrl);
 
-// Connection opened
-socket.addEventListener('open', (event) => {
-    console.log("Connected to websocket")
-});
+    // Connection opened
+    socket.onopen = (event) => {
+        console.log("Connected to websocket")
+    };
+    
+    // Listen for messages
+    socket.onmessage = (event) => {
+        console.log('Message from server ', event.data);
+    };
+    
+    ws.onclose = function(e) {
+        console.log('Socket is closed. Reconnect will be attempted in 1 second.', e.reason);
+        setTimeout(function() {
+            newConnection();
+        }, 1000);
+    };
 
-// Listen for messages
-socket.addEventListener('message', (event) => {
-    console.log('Message from server ', event.data);
-});
-
-global.ws = socket;
+    global.ws = socket;
+}
