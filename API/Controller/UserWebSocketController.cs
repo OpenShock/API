@@ -1,10 +1,10 @@
 ﻿using System.Net.WebSockets;
 using System.Text;
-using System.Text.Json;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
 using Microsoft.EntityFrameworkCore;
+using Redis.OM;
 using Redis.OM.Contracts;
 using Redis.OM.Searching;
 using ShockLink.API.Authentication;
@@ -180,11 +180,13 @@ public class UserWebSocketController : WebsocketControllerBase<ResponseType>
 
     protected override async Task SendInitialData()
     {
-        var devicesOnline = (await _devicesOnline.Where(x => x.Owner == _currentUser.DbUser.Id.ToString()).ToListAsync()).Select(x => new DeviceOnlineState
+        var kek = await _devicesOnline.ToListAsync();
+        
+        var devicesOnline = await _devicesOnline.Where(x => x.Owner == _currentUser.DbUser.Id).Select(x => new DeviceOnlineState
         {
             Device = x.Id,
             Online = true
-        });
+        }).ToListAsync();
         await QueueMessage(new BaseResponse<ResponseType>
         {
             ResponseType = ResponseType.DeviceOnlineState,

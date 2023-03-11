@@ -123,7 +123,7 @@ public class DeviceWebSocketController : WebsocketControllerBase<ResponseType>
             await _devicesOnline.InsertAsync(new DeviceOnline
             {
                 Id = _currentDevice.Id,
-                Owner = _currentDevice.Owner.ToString()
+                Owner = _currentDevice.Owner
             }, TimeSpan.FromSeconds(65));
             return;
         }
