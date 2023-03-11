@@ -1,6 +1,6 @@
 <template>
     <b-container class="device">
-        <b-row><b-col cols="auto"><p>{{ device.name }}</p></b-col><b-col > <i class="fa-solid fa-circle"></i></b-col></b-row>
+        <b-row><b-col cols="auto"><p>{{ device.name }}</p></b-col><b-col> <i class="fa-solid fa-circle" :class="onlineState"></i></b-col></b-row>
         <b-row> 
             <b-col v-for="item in device.shockers" :key="item.id" class="shocker-col">
                 <own-shocker :shocker="item"></own-shocker>
@@ -13,7 +13,13 @@
 import OwnShocker from './OwnShocker.vue'
 export default {
     components: { OwnShocker },
-    props: ["device"]
+    props: ["device"],
+    computed: {
+        onlineState() {
+            if(onlineStates[this.device.id] === undefined) return 'offline'
+            return onlineStates[this.device.id] ? 'online' : 'offline';
+        }
+    }
 }
 </script>
 
@@ -25,6 +31,14 @@ export default {
 
     .shocker-col {
         min-width: 300px;
+    }
+
+    .online {
+        color: greenyellow;
+    }
+
+    .offline {
+        color: red;
     }
 
 }
