@@ -1,6 +1,5 @@
 ﻿using System.Net.WebSockets;
 using System.Text;
-using Newtonsoft.Json;
 
 namespace ShockLink.API.Utils;
 
@@ -17,13 +16,13 @@ public static class WebSocketUtils
         {
             response = await socket.ReceiveAsync(new ArraySegment<byte>(buffer), cancelToken);
             message.AddRange(new ArraySegment<byte>(buffer, 0, response.Count));
-        } while (!response.EndOfMessage && !response.CloseStatus.HasValue);
+        } while (response is { EndOfMessage: false, CloseStatus: null });
 
         return (response, message);
     }
 
     public static Task SendFullMessage<T>(T obj, WebSocket socket, CancellationToken cancelToken) =>
-        SendFullMessage(JsonConvert.SerializeObject(obj), socket, cancelToken);
+        SendFullMessage(System.Text.Json.JsonSerializer.Serialize(obj), socket, cancelToken);
 
     public static Task SendFullMessage(string json, WebSocket socket, CancellationToken cancelToken) =>
         SendFullMessageBytes(Encoding.UTF8.GetBytes(json), socket, cancelToken);
