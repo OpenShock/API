@@ -2,6 +2,7 @@
 
 public enum ResponseType
 {
-    DeviceOnlineState = 0,
-    SharedUserOnlineState = 1
+    Notice = 0,
+    DeviceOnlineState = 10,
+    SharedUserOnlineState = 11
 }

@@ -88,7 +88,7 @@ public static class PubSubManager
         if (msg.Length < 2) return;
         await using var scope = _serviceProvider.CreateAsyncScope();
         await using var db = scope.ServiceProvider.GetRequiredService<ShockLinkContext>();
-        if(Guid.TryParse(msg[1], out var id)) return;
+        if(!Guid.TryParse(msg[1], out var id)) return;
         switch (msg[0])
         {
             case "ShockLink.Common.Redis.DeviceOnline":
