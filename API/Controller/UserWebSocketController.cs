@@ -180,9 +180,10 @@ public class UserWebSocketController : WebsocketControllerBase<ResponseType>
 
     protected override async Task SendInitialData()
     {
-        var kek = await _devicesOnline.ToListAsync();
+        var stringId = _currentUser.DbUser.Id.ToString();
+        var kek = await _devicesOnline.Where(x => x.Owner == stringId).ToListAsync();
         
-        var devicesOnline = await _devicesOnline.Where(x => x.Owner == _currentUser.DbUser.Id).Select(x => new DeviceOnlineState
+        var devicesOnline = await _devicesOnline.Where(x => x.Owner == stringId).Select(x => new DeviceOnlineState
         {
             Device = x.Id,
             Online = true
