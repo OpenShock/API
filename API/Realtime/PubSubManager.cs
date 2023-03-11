@@ -103,10 +103,13 @@ public static class PubSubManager
                     new BaseResponse<Common.Models.WebSocket.User.ResponseType>
                     {
                         ResponseType = Common.Models.WebSocket.User.ResponseType.DeviceOnlineState,
-                        Data = new DeviceOnlineState()
+                        Data = new List<DeviceOnlineState>
                         {
-                            Device = id,
-                            Online = set
+                            new()
+                            {
+                                Device = id,
+                                Online = set
+                            }
                         }
                     });
                 

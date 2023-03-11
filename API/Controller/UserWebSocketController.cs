@@ -8,6 +8,7 @@ using Microsoft.EntityFrameworkCore;
 using Redis.OM.Contracts;
 using Redis.OM.Searching;
 using ShockLink.API.Authentication;
+using ShockLink.API.Models.WebSocket;
 using ShockLink.API.Realtime;
 using ShockLink.API.RedisPubSub;
 using ShockLink.API.Serialization;
@@ -174,6 +175,20 @@ public class UserWebSocketController : WebsocketControllerBase<ResponseType>
         {
             Shocker = _currentUser.DbUser.Id,
             ControlMessages = finalMessages
+        });
+    }
+
+    protected override async Task SendInitialData()
+    {
+        var devicesOnline = await _devicesOnline.Where(x => x.Owner == _currentUser.DbUser.Id).Select(x => new DeviceOnlineState
+        {
+            Device = x.Id,
+            Online = true
+        }).ToListAsync();
+        await QueueMessage(new BaseResponse<ResponseType>
+        {
+            ResponseType = ResponseType.DeviceOnlineState,
+            Data = devicesOnline
         });
     }
 }
