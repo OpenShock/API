@@ -1,6 +1,6 @@
 <template>
     <b-container class="device">
-        <b-row><p>{{ device.name }}</p></b-row>
+        <b-row><b-col cols="auto"><p>{{ device.name }}</p></b-col><b-col > <i class="fa-solid fa-circle"></i></b-col></b-row>
         <b-row> 
             <b-col v-for="item in device.shockers" :key="item.id" class="shocker-col">
                 <own-shocker :shocker="item"></own-shocker>
