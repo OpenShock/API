@@ -13,11 +13,11 @@ function newConnection() {
         console.log('Message from server ', event.data);
 
         const json = JSON.parse(event.data);
-        switch(json.responseType) {
+        switch(json.ResponseType) {
             case 10:
-                json.data.forEach(it => {
+                json.Data.forEach(it => {
                     console.log(it);
-                    onlineStates[it.device] = it.online;
+                    onlineStates[it.Device] = it.Online;
                 });
                 break;
         }
