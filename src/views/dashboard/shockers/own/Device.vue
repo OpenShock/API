@@ -14,9 +14,13 @@ import OwnShocker from './OwnShocker.vue'
 export default {
     components: { OwnShocker },
     props: ["device"],
+    beforeMount() {
+        this.emitter.on('deviceStateUpdate', () => {
+            this.$forceUpdate();
+        });
+    },
     computed: {
         onlineState() {
-            this.$store.state.devicesUpdatedCounter;
             if(this.$store.state.deviceStates[this.device.id] === undefined) return 'offline'
             return this.$store.state.deviceStates[this.device.id] ? 'online' : 'offline';
         }

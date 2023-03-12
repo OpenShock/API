@@ -1,6 +1,5 @@
 import { createStore } from 'vuex';
 
-
 const store = createStore({
 	state () {
 		return {
@@ -13,7 +12,6 @@ const store = createStore({
 			settings: {
 				dark: true
 			},
-			devicesUpdatedCounter: 0,
 			deviceStates: []
 		}
 	},
@@ -34,9 +32,8 @@ const store = createStore({
 			state.settings.dark = dark;
 		},
 		setDeviceState(state, {id, online}) {
-			state.devicesUpdatedCounter++;
 			state.deviceStates[id] = online;
-			state.deviceStates = state.deviceStates;
+			emmiter.emit('deviceStateUpdate');
 		}
 	},
 	actions: {
