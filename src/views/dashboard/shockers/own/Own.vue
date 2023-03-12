@@ -155,10 +155,6 @@ export default {
 
             this.ownShockers = res.data.data;
             this.ownShockers.forEach(device => {
-                device.state = {
-                    online: false
-                };
-
                 device.shockers.forEach(shocker => {
                     shocker.state = {
                         intensity: 25,

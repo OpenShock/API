@@ -1,7 +1,9 @@
 <template>
     <b-container class="device">
-        <b-row><b-col cols="auto"><p>{{ device.name }}</p></b-col><b-col> <i class="fa-solid fa-circle" :class="onlineState"></i></b-col></b-row>
-        <b-row> 
+        <b-row><b-col cols="auto">
+                <p>{{ device.name }}</p>
+            </b-col><b-col> <i class="fa-solid fa-circle" :class="onlineStateComp"></i></b-col></b-row>
+        <b-row>
             <b-col v-for="item in device.shockers" :key="item.id" class="shocker-col">
                 <own-shocker :shocker="item"></own-shocker>
             </b-col>
@@ -14,16 +16,27 @@ import OwnShocker from './OwnShocker.vue'
 export default {
     components: { OwnShocker },
     props: ["device"],
+    data() {
+        return {
+            onlineState: false
+        }
+    },
     beforeMount() {
+        this.onlineState = this.getOnlineState();
         this.emitter.on('deviceStateUpdate', () => {
             console.log("update received");
-            this.$forceUpdate();
+            this.onlineState = this.getOnlineState();
         });
     },
+    methods: {
+        getOnlineState() {
+            if (this.$store.state.deviceStates[this.device.id] === undefined) return false;
+            return this.$store.state.deviceStates[this.device.id];
+        }
+    },
     computed: {
-        onlineState() {
-            if(this.$store.state.deviceStates[this.device.id] === undefined) return 'offline'
-            return this.$store.state.deviceStates[this.device.id] ? 'online' : 'offline';
+        onlineStateComp() {
+            return this.onlineState ? 'online' : 'offline';
         }
     }
 }
@@ -48,5 +61,4 @@ export default {
     }
 
 }
-
 </style>
