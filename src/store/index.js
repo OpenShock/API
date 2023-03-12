@@ -36,6 +36,7 @@ const store = createStore({
 		setDeviceState(state, {id, online}) {
 			state.devicesUpdatedCounter++;
 			state.deviceStates[id] = online;
+			state.deviceStates = state.deviceStates;
 		}
 	},
 	actions: {
