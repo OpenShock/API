@@ -16,6 +16,7 @@ export default {
     props: ["device"],
     beforeMount() {
         this.emitter.on('deviceStateUpdate', () => {
+            console.log("update received");
             this.$forceUpdate();
         });
     },
