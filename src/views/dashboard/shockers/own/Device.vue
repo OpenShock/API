@@ -2,7 +2,7 @@
     <b-container class="device">
         <b-row><b-col cols="auto">
                 <p>{{ device.name }}</p>
-            </b-col><b-col> <i class="fa-solid fa-circle" :class="onlineStateComp"></i></b-col></b-row>
+            </b-col><b-col :class="onlineStateComp"> <i class="fa-solid fa-circle"></i></b-col></b-row>
         <b-row>
             <b-col v-for="item in device.shockers" :key="item.id" class="shocker-col">
                 <own-shocker :shocker="item"></own-shocker>
@@ -24,7 +24,6 @@ export default {
     beforeMount() {
         this.onlineState = this.getOnlineState();
         this.emitter.on('deviceStateUpdate', () => {
-            console.log("update received");
             this.onlineState = this.getOnlineState();
         });
     },
