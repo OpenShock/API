@@ -16,6 +16,7 @@ export default {
     props: ["device"],
     computed: {
         onlineState() {
+            this.$store.state.devicesUpdatedCounter;
             if(this.$store.state.deviceStates[this.device.id] === undefined) return 'offline'
             return this.$store.state.deviceStates[this.device.id] ? 'online' : 'offline';
         }

@@ -13,6 +13,7 @@ const store = createStore({
 			settings: {
 				dark: true
 			},
+			devicesUpdatedCounter: 0,
 			deviceStates: []
 		}
 	},
@@ -33,6 +34,7 @@ const store = createStore({
 			state.settings.dark = dark;
 		},
 		setDeviceState(state, {id, online}) {
+			state.devicesUpdatedCounter++;
 			state.deviceStates[id] = online;
 		}
 	},
