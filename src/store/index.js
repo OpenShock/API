@@ -33,7 +33,7 @@ const store = createStore({
 		},
 		setDeviceState(state, {id, online}) {
 			state.deviceStates[id] = online;
-			emmiter.emit('deviceStateUpdate');
+			emitter.emit('deviceStateUpdate');
 		}
 	},
 	actions: {
