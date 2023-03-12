@@ -11,8 +11,9 @@ const store = createStore({
 			},
 			secondLevelNav: [],
 			settings: {
-				dark: false
-			}
+				dark: true
+			},
+			deviceStates: []
 		}
 	},
 	getters: {
@@ -30,6 +31,9 @@ const store = createStore({
 		},
 		setDarkMode(state, dark) {
 			state.settings.dark = dark;
+		},
+		setDeviceState(state, {id, online}) {
+			state.deviceStates[id] = online;
 		}
 	},
 	actions: {
@@ -47,6 +51,9 @@ const store = createStore({
 		setDarkMode({commit}, dark) {
 			commit('setDarkMode', dark);
 			utils.setDarkMode(dark);
+		},
+		setDeviceState({commit}, {id, online}) {
+			commit('setDeviceState', {id, online});
 		},
 		async getSelf({commit}) {
 			const res = await apiCall.makeCall('GET', '1/users/self');

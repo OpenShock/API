@@ -1,4 +1,4 @@
-global.onlineStates = {};
+import storeF from '@/store'
 
 function newConnection() {
     const socket = new WebSocket(config.wsUrl);
@@ -10,14 +10,14 @@ function newConnection() {
     
     // Listen for messages
     socket.onmessage = (event) => {
-        console.log('Message from server ', event.data);
-
         const json = JSON.parse(event.data);
         switch(json.ResponseType) {
             case 10:
                 json.Data.forEach(it => {
-                    console.log(it);
-                    onlineStates[it.Device] = it.Online;
+                    storeF.dispatch('setDeviceState', {
+                        id: it.Device,
+                        online: it.Online
+                    })
                 });
                 break;
         }

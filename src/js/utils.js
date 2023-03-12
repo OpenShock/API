@@ -25,7 +25,7 @@ let utils = {
 		if(cook !== "") {
 			return cook === "true";
 		}
-		return false;
+		return true;
 	},
 	setDarkMode(dark) {
 		this.setCookie("settings_dark", dark, 3652);
