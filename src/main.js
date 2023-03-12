@@ -13,7 +13,6 @@ import jQuery from 'jquery';
 global.jQuery = jQuery;
 global.$ = jQuery;
 import {createApp} from 'vue';
-Vue.config.devtools = true
 
 import 'bootstrap/dist/css/bootstrap.css'
 import 'bootstrap-vue-next/dist/bootstrap-vue-next.css'
@@ -50,6 +49,7 @@ const app = createApp(App)
 	.use(ContextMenu);
 
 app.config.globalProperties.emitter = emitter;
+app.config.devtools = true;
 global.emitter = emitter;
 
 app.mount('#app');
