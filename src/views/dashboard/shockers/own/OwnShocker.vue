@@ -62,7 +62,7 @@ export default {
                         },
                         { 
                             label: "Logs",
-                            icon: 'fa-solid fa-share-nodes',
+                            icon: 'fa-solid fa-list',
                             onClick: () => {
                                 this.$router.push(`/dashboard/shockers/${this.shocker.id}/logs`);
                             }
