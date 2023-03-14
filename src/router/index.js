@@ -37,6 +37,10 @@ const routes = [
 						path: ':id/shares',
 						component: lazyLoad('dashboard/shockers/own/shares/ShockerSharesRoot')
 					},
+					{
+						path: ':id/logs',
+						component: lazyLoad('dashboard/shockers/own/ShockerLogs')
+					},
 				]
 			},
 			{

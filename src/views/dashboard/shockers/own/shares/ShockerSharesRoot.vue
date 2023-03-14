@@ -14,7 +14,7 @@
                                 <img class="user-image" :src="row.item.sharedWith.image" />
                             </b-col>
                             <b-col>
-                                <p class="user-name">{{ row.item.sharedWith.name }}</p>
+                                <p class="mb-0">{{ row.item.sharedWith.name }}</p>
                             </b-col>
                         </b-row>
                     </b-container>
@@ -238,18 +238,6 @@ export default {
     color: #9e9e9e;
     font-size: 14px;
 }
-
-.user-image {
-    height: 42px;
-    width: 42px;
-    padding: 0;
-    border-radius: 50%;
-}
-
-.user-name {
-    margin-bottom: 0;
-}
-
 
 .shares-table {
     .mr {

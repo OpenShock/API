@@ -61,6 +61,13 @@ export default {
                             }
                         },
                         { 
+                            label: "Logs",
+                            icon: 'fa-solid fa-share-nodes',
+                            onClick: () => {
+                                this.$router.push(`/dashboard/shockers/${this.shocker.id}/logs`);
+                            }
+                        },
+                        { 
                             label: "Edit",
                             icon: 'fa-solid fa-pen-to-square',
                             onClick: () => {
