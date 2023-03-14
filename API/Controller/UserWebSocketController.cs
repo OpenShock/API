@@ -149,6 +149,7 @@ public class UserWebSocketController : WebsocketControllerBase<ResponseType>
         
         ownShockers.AddRange(sharedShockers);
 
+        var curTime = DateTime.UtcNow;
         foreach (var shock in shocks.DistinctBy(x => x.Id))
         {
             var shockerInfo = ownShockers.FirstOrDefault(x => x.Id == shock.Id);
@@ -161,21 +162,36 @@ public class UserWebSocketController : WebsocketControllerBase<ResponseType>
             if (!finalMessages.ContainsKey(shockerInfo.Device))
                 finalMessages[shockerInfo.Device] = new List<ControlMessage.ShockerControlInfo>();
             var deviceGroup = finalMessages[shockerInfo.Device];
-            deviceGroup.Add(new ControlMessage.ShockerControlInfo
+
+            var deviceEntry = new ControlMessage.ShockerControlInfo
             {
                 Id = shockerInfo.Id,
                 RfId = shockerInfo.RfId,
                 Duration = Math.Clamp(shock.Duration, 300, 30000),
                 Intensity = Math.Clamp(shock.Intensity, (byte)1, (byte)100),
                 Type = shock.Type
+            };
+            deviceGroup.Add(deviceEntry);
+
+            db.ShockerControlLogs.Add(new ShockerControlLog
+            {
+                Id = Guid.NewGuid(),
+                ShockerId = shockerInfo.Id,
+                ControlledBy = _currentUser.DbUser.Id,
+                CreatedOn = curTime,
+                Intensity = deviceEntry.Intensity,
+                Duration = deviceEntry.Duration,
+                Type = deviceEntry.Type
             });
         }
 
-        await PubSubManager.SendControlMessage(new ControlMessage
+        var redisTask = PubSubManager.SendControlMessage(new ControlMessage
         {
             Shocker = _currentUser.DbUser.Id,
             ControlMessages = finalMessages
         });
+
+        await Task.WhenAll(redisTask, db.SaveChangesAsync());
     }
 
     protected override async Task SendInitialData()

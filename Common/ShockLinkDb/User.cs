@@ -19,5 +19,7 @@ public partial class User
 
     public virtual ICollection<Device> Devices { get; } = new List<Device>();
 
+    public virtual ICollection<ShockerControlLog> ShockerControlLogs { get; } = new List<ShockerControlLog>();
+
     public virtual ICollection<ShockerShare> ShockerShares { get; } = new List<ShockerShare>();
 }

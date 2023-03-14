@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Npgsql;
 using Redis.OM;
 using Redis.OM.Contracts;
 using Serilog;
@@ -10,6 +11,7 @@ using ShockLink.API.Authentication;
 using ShockLink.API.ExceptionHandle;
 using ShockLink.API.RedisPubSub;
 using ShockLink.API.Utils;
+using ShockLink.Common.Models;
 using ShockLink.Common.Redis;
 using ShockLink.Common.ShockLinkDb;
 using StackExchange.Redis;
@@ -29,6 +31,7 @@ public class Startup
 
     public void ConfigureServices(IServiceCollection services)
     {
+        NpgsqlConnection.GlobalTypeMapper.MapEnum<ControlType>();
         services.AddDbContextPool<ShockLinkContext>(builder =>
         {
             builder.UseNpgsql(ApiConfig.Db);

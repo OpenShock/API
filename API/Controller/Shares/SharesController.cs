@@ -1,7 +1,6 @@
 ﻿using System.Net;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using Npgsql;
 using ShockLink.API.Authentication;
 using ShockLink.API.Models;
 using ShockLink.Common.ShockLinkDb;

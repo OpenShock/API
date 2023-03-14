@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
 using Microsoft.EntityFrameworkCore;
+using Npgsql;
+using ShockLink.Common.Models;
 
 namespace ShockLink.Common.ShockLinkDb;
 
@@ -19,6 +21,8 @@ public partial class ShockLinkContext : DbContext
 
     public virtual DbSet<Shocker> Shockers { get; set; }
 
+    public virtual DbSet<ShockerControlLog> ShockerControlLogs { get; set; }
+
     public virtual DbSet<ShockerShare> ShockerShares { get; set; }
 
     public virtual DbSet<ShockerShareCode> ShockerShareCodes { get; set; }
@@ -27,6 +31,8 @@ public partial class ShockLinkContext : DbContext
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
+        modelBuilder.HasPostgresEnum("ShockLink", "control_type", new[] { "Sound", "Vibrate", "Shock" });
+
         modelBuilder.Entity<Device>(entity =>
         {
             entity.HasKey(e => e.Id).HasName("devices_pkey");
@@ -75,6 +81,34 @@ public partial class ShockLinkContext : DbContext
             entity.HasOne(d => d.DeviceNavigation).WithMany(p => p.Shockers)
                 .HasForeignKey(d => d.Device)
                 .HasConstraintName("device_id");
+        });
+
+        modelBuilder.Entity<ShockerControlLog>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("shocker_control_logs_pkey");
+
+            entity.ToTable("shocker_control_logs", "ShockLink");
+
+            entity.Property(e => e.Id)
+                .ValueGeneratedNever()
+                .HasColumnName("id");
+            entity.Property(e => e.ControlledBy).HasColumnName("controlled_by");
+            entity.Property(e => e.CreatedOn)
+                .HasDefaultValueSql("CURRENT_TIMESTAMP")
+                .HasColumnType("timestamp with time zone")
+                .HasColumnName("created_on");
+            entity.Property(e => e.Duration).HasColumnName("duration");
+            entity.Property(e => e.Intensity).HasColumnName("intensity");
+            entity.Property(e => e.ShockerId).HasColumnName("shocker_id");
+            entity.Property(e => e.Type).HasColumnType("control_type").HasColumnName("type");
+
+            entity.HasOne(d => d.ControlledByNavigation).WithMany(p => p.ShockerControlLogs)
+                .HasForeignKey(d => d.ControlledBy)
+                .HasConstraintName("fk_controlled_by");
+
+            entity.HasOne(d => d.Shocker).WithMany(p => p.ShockerControlLogs)
+                .HasForeignKey(d => d.ShockerId)
+                .HasConstraintName("fk_shocker_id");
         });
 
         modelBuilder.Entity<ShockerShare>(entity =>
