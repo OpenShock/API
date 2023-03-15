@@ -17,7 +17,11 @@ public partial class User
 
     public bool EmailActived { get; set; }
 
+    public Guid Image { get; set; }
+
     public virtual ICollection<Device> Devices { get; } = new List<Device>();
+
+    public virtual CfImage ImageNavigation { get; set; } = null!;
 
     public virtual ICollection<ShockerControlLog> ShockerControlLogs { get; } = new List<ShockerControlLog>();
 

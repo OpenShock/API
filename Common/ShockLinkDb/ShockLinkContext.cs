@@ -1,8 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using Microsoft.EntityFrameworkCore;
-using Npgsql;
-using ShockLink.Common.Models;
 
 namespace ShockLink.Common.ShockLinkDb;
 
@@ -16,6 +14,8 @@ public partial class ShockLinkContext : DbContext
         : base(options)
     {
     }
+
+    public virtual DbSet<CfImage> CfImages { get; set; }
 
     public virtual DbSet<Device> Devices { get; set; }
 
@@ -31,7 +31,26 @@ public partial class ShockLinkContext : DbContext
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
-        modelBuilder.HasPostgresEnum("ShockLink", "control_type", new[] { "Sound", "Vibrate", "Shock" });
+        modelBuilder
+            .HasPostgresEnum("ShockLink", "cf_images_type", new[] { "avatar" })
+            .HasPostgresEnum("ShockLink", "control_type", new[] { "sound", "vibrate", "shock" });
+
+        modelBuilder.Entity<CfImage>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("cf_images_pkey");
+
+            entity.ToTable("cf_images", "ShockLink");
+
+            entity.Property(e => e.Id)
+                .ValueGeneratedNever()
+                .HasColumnName("id");
+            entity.Property(e => e.CreatedBy).HasColumnName("created_by");
+            entity.Property(e => e.CreatedOn)
+                .HasDefaultValueSql("CURRENT_TIMESTAMP")
+                .HasColumnName("created_on");
+            
+            entity.Property(e => e.Type).HasColumnType("cf_images_type").HasColumnName("type");
+        });
 
         modelBuilder.Entity<Device>(entity =>
         {
@@ -44,7 +63,6 @@ public partial class ShockLinkContext : DbContext
                 .HasColumnName("id");
             entity.Property(e => e.CreatedOn)
                 .HasDefaultValueSql("CURRENT_TIMESTAMP")
-                .HasColumnType("timestamp without time zone")
                 .HasColumnName("created_on");
             entity.Property(e => e.Name)
                 .HasColumnType("character varying")
@@ -70,7 +88,6 @@ public partial class ShockLinkContext : DbContext
                 .HasColumnName("id");
             entity.Property(e => e.CreatedOn)
                 .HasDefaultValueSql("CURRENT_TIMESTAMP")
-                .HasColumnType("timestamp without time zone")
                 .HasColumnName("created_on");
             entity.Property(e => e.Device).HasColumnName("device");
             entity.Property(e => e.Name)
@@ -95,7 +112,6 @@ public partial class ShockLinkContext : DbContext
             entity.Property(e => e.ControlledBy).HasColumnName("controlled_by");
             entity.Property(e => e.CreatedOn)
                 .HasDefaultValueSql("CURRENT_TIMESTAMP")
-                .HasColumnType("timestamp with time zone")
                 .HasColumnName("created_on");
             entity.Property(e => e.Duration).HasColumnName("duration");
             entity.Property(e => e.Intensity).HasColumnName("intensity");
@@ -121,7 +137,6 @@ public partial class ShockLinkContext : DbContext
             entity.Property(e => e.SharedWith).HasColumnName("shared_with");
             entity.Property(e => e.CreatedOn)
                 .HasDefaultValueSql("CURRENT_TIMESTAMP")
-                .HasColumnType("timestamp without time zone")
                 .HasColumnName("created_on");
             entity.Property(e => e.LimitDuration).HasColumnName("limit_duration");
             entity.Property(e => e.LimitIntensity).HasColumnName("limit_intensity");
@@ -158,7 +173,6 @@ public partial class ShockLinkContext : DbContext
                 .HasColumnName("id");
             entity.Property(e => e.CreatedOn)
                 .HasDefaultValueSql("CURRENT_TIMESTAMP")
-                .HasColumnType("timestamp without time zone")
                 .HasColumnName("created_on");
             entity.Property(e => e.LimitDuration).HasColumnName("limit_duration");
             entity.Property(e => e.LimitIntensity).HasColumnName("limit_intensity");
@@ -196,18 +210,25 @@ public partial class ShockLinkContext : DbContext
                 .HasColumnName("id");
             entity.Property(e => e.CreatedAt)
                 .HasDefaultValueSql("CURRENT_TIMESTAMP")
-                .HasColumnType("timestamp without time zone")
                 .HasColumnName("created_at");
             entity.Property(e => e.Email)
                 .HasColumnType("character varying")
                 .HasColumnName("email");
             entity.Property(e => e.EmailActived).HasColumnName("email_actived");
+            entity.Property(e => e.Image)
+                .HasDefaultValueSql("'7d7302ba-be81-47bb-671d-33f9efd20900'::uuid")
+                .HasColumnName("image");
             entity.Property(e => e.Name)
                 .HasColumnType("character varying")
                 .HasColumnName("name");
             entity.Property(e => e.Password)
                 .HasColumnType("character varying")
                 .HasColumnName("password");
+
+            entity.HasOne(d => d.ImageNavigation).WithMany(p => p.Users)
+                .HasForeignKey(d => d.Image)
+                .OnDelete(DeleteBehavior.Restrict)
+                .HasConstraintName("fk_pfp");
         });
     }
 }
