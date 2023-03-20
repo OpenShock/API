@@ -11,7 +11,7 @@
                     <b-container>
                         <b-row align-h="start" align-v="center">
                             <b-col md="auto">
-                                <img class="user-image" :src="row.item.sharedWith.image" />
+                                <img class="user-image" :src="row.item.sharedWith.image + 'x128'" />
                             </b-col>
                             <b-col>
                                 <p class="mb-0">{{ row.item.sharedWith.name }}</p>
