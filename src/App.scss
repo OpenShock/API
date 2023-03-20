@@ -287,3 +287,11 @@ hr {
 .row-spacer .row + .row {
   margin-top: 1rem;
 }
+
+.elli {
+  cursor: pointer;
+
+  .fa-ellipsis-vertical {
+      height: 100%;
+  }
+}

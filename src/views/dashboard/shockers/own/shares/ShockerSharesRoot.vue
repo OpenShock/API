@@ -33,13 +33,9 @@
                 </template>
 
                 <template #cell(actions)="row">
-                    <b-button size="sm" @click="editShare(row.item)" class="mr" variant="info">
-                        <i class="fa-solid fa-pen-to-square"></i> Edit
-                    </b-button>
-
-                    <b-button size="sm" @click="removeShare(row.item)" class="mr" variant="danger">
-                        <i class="fa-solid fa-trash"></i> Unshare
-                    </b-button>
+                    <div cols="auto" class="elli" @click="ellipsis($event, row.item)">
+                        <i class="fa-solid fa-ellipsis-vertical"></i>
+                    </div>
                 </template>
             </b-table>
         </b-container>
@@ -59,7 +55,7 @@
             <b-container style="padding: 0;">
                 <b-row align-h="start" align-v="center">
                     <b-col md="auto">
-                        <img class="user-image" :src="editing.sharedWith.image" />
+                        <img class="user-image" :src="editing.sharedWith.image + 'x128'" />
                     </b-col>
                     <b-col>
                         <p class="user-name">{{ editing.sharedWith.name }}</p>
@@ -90,6 +86,7 @@ export default {
                 },
                 {
                     key: 'actions',
+                    label: '',
                     thClass: "actions-header"
                 }
             ],
@@ -124,6 +121,29 @@ export default {
         this.loadCodes();
     },
     methods: {
+        ellipsis(e, item) {
+            this.$contextmenu({
+                theme: utils.isDarkMode() ? 'default dark' : 'default',
+                x: e.x,
+                y: e.y,
+                items: [
+                    { 
+                        label: "Edit",
+                        icon: 'fa-solid fa-pen-to-square',
+                        onClick: () => {
+                            this.editShare(item);
+                        }
+                    },
+                    { 
+                        label: "Unshare",
+                        icon: 'fa-solid fa-trash',
+                        onClick: () => {
+                            this.removeShare(item);
+                        }
+                    }
+                ]
+            }); 
+        },
         async loadCodes() {
             const res = await apiCall.makeCall('GET', `1/shockers/${this.$route.params.id}/shareCodes`);
             if (res === undefined || res.status !== 200) {
@@ -249,7 +269,8 @@ export default {
     }
 
     :deep(.actions-header) {
-        width: 350px;
+        width: 0px;
+        padding-right: 24px;
     }
 
     :deep(td) {
@@ -268,6 +289,13 @@ export default {
             color: red;
         }
     }
+
+    .elli {
+
+  .fa-ellipsis-vertical {
+      height: 24px;
+  }
+}
 }
 
 .add-circle {
