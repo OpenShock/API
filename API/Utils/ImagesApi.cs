@@ -88,6 +88,7 @@ public static class ImagesApi
     }
 
     public static Uri GetImage(Guid id, ImageVariant variant) => new($"{ApiConfig.CloudflareImagesUrl}{id}/{variant}");
+    public static Uri GetImageRoot(Guid id) => new($"{ApiConfig.CloudflareImagesUrl}{id}/");
     
     internal class IncorrectImageFormatException : Exception
     {
