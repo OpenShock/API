@@ -26,6 +26,8 @@ public class SharedShockersController : AuthenticatedSessionControllerBase
             {
                 OwnerId = x.Shocker.DeviceNavigation.OwnerNavigation.Id,
                 OwnerName = x.Shocker.DeviceNavigation.OwnerNavigation.Name,
+                DeviceId = x.Shocker.DeviceNavigation.Id,
+                DeviceName = x.Shocker.DeviceNavigation.Name,
                 x.Shocker.Id,
                 x.Shocker.Name,
                 x.PermVibrate,
@@ -43,8 +45,17 @@ public class SharedShockersController : AuthenticatedSessionControllerBase
                     Name = shocker.OwnerName
                 };
 
+            var sharedUser = shared[shocker.OwnerId];
 
-            shared[shocker.OwnerId].Shockers.Add(new OwnerShockerResponse.SharedShocker()
+            if (sharedUser.Devices.All(x => x.Id != shocker.DeviceId))
+                sharedUser.Devices.Add(new OwnerShockerResponse.SharedDevice
+                {
+                    Id = shocker.DeviceId,
+                    Name = shocker.DeviceName
+                });
+            
+            var sharedDevice = sharedUser.Devices.Single(x => x.Id == shocker.DeviceId);
+            sharedDevice.Shockers.Add(new OwnerShockerResponse.SharedDevice.SharedShocker
             {
                 Id = shocker.Id,
                 Name = shocker.Name,
