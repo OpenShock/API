@@ -5,6 +5,8 @@ using ShockLink.API.Authentication;
 using ShockLink.API.Models;
 using ShockLink.API.Models.Requests;
 using ShockLink.API.Models.Response;
+using ShockLink.API.Utils;
+using ShockLink.Common.Models;
 using ShockLink.Common.ShockLinkDb;
 
 namespace ShockLink.API.Controller.Shockers;
@@ -34,7 +36,7 @@ public class ShareShockerController : AuthenticatedSessionControllerBase
                     {
                         Name = x.SharedWithNavigation.Name,
                         Id = x.SharedWith,
-                        Image = new Uri("https://sea.zlucplayz.com/f/e18b174d56db47759384/?raw=1")
+                        Image = ImagesApi.GetImage(x.SharedWithNavigation.Image, ImageVariant.x256)
                     },
                     CreatedOn = x.CreatedOn,
                     Permissions = new ShareInfo.PermissionsObj

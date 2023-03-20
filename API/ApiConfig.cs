@@ -7,6 +7,7 @@ public static class ApiConfig
     public static readonly string RedisPassword = GetVarOrDefault("REDIS_PASSWORD", "");
     public static readonly string CloudflareAccountId = GetVarOrDefault("CF_ACC_ID");
     public static readonly string CloudflareImagesKey = GetVarOrDefault("CF_IMG_KEY");
+    public static readonly string CloudflareImagesUrl = GetVarOrDefault("CF_IMG_URL");
 
     private static string GetVarOrDefault(string variableName, string? defaultValue = null)
     {

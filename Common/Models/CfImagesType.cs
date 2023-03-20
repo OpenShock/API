@@ -1,6 +1,6 @@
 ﻿namespace ShockLink.Common.Models;
 
-public enum CfImageType
+public enum CfImagesType
 {
     Avatar
 }

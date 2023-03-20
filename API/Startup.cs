@@ -32,6 +32,7 @@ public class Startup
     public void ConfigureServices(IServiceCollection services)
     {
         NpgsqlConnection.GlobalTypeMapper.MapEnum<ControlType>();
+        NpgsqlConnection.GlobalTypeMapper.MapEnum<CfImagesType>();
         services.AddDbContextPool<ShockLinkContext>(builder =>
         {
             builder.UseNpgsql(ApiConfig.Db);

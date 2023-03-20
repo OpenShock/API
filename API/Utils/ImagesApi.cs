@@ -3,6 +3,7 @@ using System.Net.Http.Headers;
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using ShockLink.API.Models;
+using ShockLink.API.Serialization;
 using ShockLink.Common.Models;
 using ShockLink.Common.ShockLinkDb;
 using ILogger = Microsoft.Extensions.Logging.ILogger;
@@ -48,8 +49,8 @@ public static class ImagesApi
                 res.StatusCode, await res.Content.ReadAsStringAsync());
             return false;
         }
-        
-        var json = JsonSerializer.Deserialize<CloudflareImagePost>(await res.Content.ReadAsStringAsync());
+
+        var json = SlSerializer.Deserialize<CloudflareImagePost>(await res.Content.ReadAsStringAsync());
         if (json == null) throw new JsonException("Json deserialization failed");
         
         Logger.LogTrace("Making new db entry and setting as active avatar");
@@ -57,7 +58,7 @@ public static class ImagesApi
         {
             Id = json.Result.Id,
             CreatedBy = userId,
-            Type = CfImageType.Avatar
+            Type = CfImagesType.Avatar
         });
 
         var user = await db.Users.SingleAsync(x => x.Id == userId);
@@ -68,7 +69,7 @@ public static class ImagesApi
         return true;
     }
 
-    public static async Task<bool> DeleteImage(Guid id, ShockLinkContext db)
+    public static async Task DeleteImage(Guid id)
     {
         Logger.LogTrace("Deleting image from cloudflare");
         var msg = new HttpRequestMessage(HttpMethod.Delete, $"images/v1/{id}");
@@ -83,13 +84,11 @@ public static class ImagesApi
             Logger.LogCritical(
                 "Cloudflare API error during image deletion. Status Code: {StatusCode}, Response: {Response}",
                 res.StatusCode, await res.Content.ReadAsStringAsync());
-            return false;
         }
-        Logger.LogTrace("Deleting image from db");
-        await db.CfImages.Where(x => x.Id == id).ExecuteDeleteAsync();
-        return true;
     }
 
+    public static Uri GetImage(Guid id, ImageVariant variant) => new($"{ApiConfig.CloudflareImagesUrl}{id}/{variant}");
+    
     internal class IncorrectImageFormatException : Exception
     {
         public IncorrectImageFormatException(string message) : base(message)

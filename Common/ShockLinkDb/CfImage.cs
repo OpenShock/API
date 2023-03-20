@@ -12,7 +12,7 @@ public partial class CfImage
 
     public DateTime CreatedOn { get; set; }
     
-    public CfImageType Type { get; set; }
+    public CfImagesType Type { get; set; }
 
     public virtual ICollection<User> Users { get; } = new List<User>();
 }

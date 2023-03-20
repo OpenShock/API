@@ -5,6 +5,7 @@ using Microsoft.EntityFrameworkCore;
 using ShockLink.API.Authentication;
 using ShockLink.API.Models;
 using ShockLink.API.Models.Response;
+using ShockLink.API.Utils;
 using ShockLink.Common.Models;
 using ShockLink.Common.ShockLinkDb;
 
@@ -40,7 +41,7 @@ public class ControlLogController : AuthenticatedSessionControllerBase
                 {
                     Id = x.ControlledByNavigation.Id,
                     Name = x.ControlledByNavigation.Name,
-                    Image = new Uri("https://sea.zlucplayz.com/f/6e4385fb22464ca38d29/?raw=1")
+                    Image = ImagesApi.GetImage(x.ControlledByNavigation.Image, ImageVariant.x256)
                 }
             }).ToListAsync();
 
