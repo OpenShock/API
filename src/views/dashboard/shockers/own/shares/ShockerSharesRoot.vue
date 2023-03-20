@@ -47,6 +47,10 @@
                         <i class="fa-solid fa-trash"></i> Remove
                     </b-button>
                 </template>
+
+                <template #cell(createdOn)="row">
+                    <span>{{ new Date(row.item.createdOn).toLocaleString() }} </span>
+                </template>
             </b-table>
         </b-container>
 
@@ -96,7 +100,7 @@ export default {
                     label: "Code / Id"
                 },
                 {
-                    key: "created",
+                    key: "createdOn",
                     label: "Created On"
                 },
                 {

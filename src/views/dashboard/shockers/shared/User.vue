@@ -2,17 +2,17 @@
     <b-container class="user">
         <b-row><p>{{ user.name }}</p></b-row>
         <b-row> 
-            <b-col v-for="item in user.shockers" :key="item.id" class="shocker-col">
-                <shared-shocker :shocker="item"></shared-shocker>
+            <b-col v-for="item in user.devices" :key="item.id" class="shocker-col">
+                <shared-device :device="item"></shared-device>
             </b-col>
         </b-row>
     </b-container>
 </template>
 
 <script>
-import SharedShocker from './SharedShocker.vue'
+import SharedDevice from './SharedDevice.vue'
 export default {
-    components: {SharedShocker},
+    components: { SharedDevice },
     props: ["user"]
 }
 

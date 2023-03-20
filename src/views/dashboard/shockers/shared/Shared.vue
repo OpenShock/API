@@ -35,18 +35,6 @@ export default {
             }
 
             this.shared = res.data.data;
-            this.shared.forEach(it => {
-                it.state = {
-                    online: false
-                };
-
-                it.shockers.forEach(shocker => {
-                    shocker.state = {
-                        intensity: 25,
-                        duration: 1000
-                    }
-                });
-            });
         },
         newLink() {
             this.$swal({
