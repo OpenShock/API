@@ -283,3 +283,7 @@ hr {
   padding: 0;
   border-radius: 50%;
 }
+
+.row-spacer .row + .row {
+  margin-top: 1rem;
+}

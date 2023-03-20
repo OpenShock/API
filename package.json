@@ -24,8 +24,9 @@
     "normalize.css": "^8.0.1",
     "toastr": "^2.1.4",
     "vue": "^3.2.33",
+    "vue-cropperjs": "^5.0.0",
     "vue-router": "^4.0.12",
-    "vue-sweetalert2": "^5.0.2",
+    "vue-sweetalert2": "^5.0.5",
     "vuex": "^4.0.2"
   },
   "devDependencies": {

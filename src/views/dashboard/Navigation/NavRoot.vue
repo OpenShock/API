@@ -48,7 +48,6 @@ export default {
         },
         {
           routerLink: '/profile',
-          html: '<img src="' + this.$store.state.user.image + '"/>',
           active: false,
           profile: true
         }
