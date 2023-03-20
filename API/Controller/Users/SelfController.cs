@@ -12,7 +12,7 @@ namespace ShockLink.API.Controller.Users;
 [Route("/{version:apiVersion}/users/self")]
 public sealed class SelfController : AuthenticatedSessionControllerBase
 {
-    private static Guid DefaultAvatar = Guid.Parse("6570729c-7621-49e5-e41e-ce9e25560400");
+    private static Guid DefaultAvatar = Guid.Parse("7d7302ba-be81-47bb-671d-33f9efd20900");
     private readonly ShockLinkContext _db;
     private readonly ILogger<SelfController> _logger;
 
