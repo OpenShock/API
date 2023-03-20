@@ -41,7 +41,7 @@ public class ControlLogController : AuthenticatedSessionControllerBase
                 {
                     Id = x.ControlledByNavigation.Id,
                     Name = x.ControlledByNavigation.Name,
-                    Image = ImagesApi.GetImage(x.ControlledByNavigation.Image, ImageVariant.x256)
+                    Image = ImagesApi.GetImageRoot(x.ControlledByNavigation.Image)
                 }
             }).ToListAsync();
 
