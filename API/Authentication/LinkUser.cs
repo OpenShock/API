@@ -7,5 +7,5 @@ public class LinkUser
 {
     public User DbUser { get; set; }
 
-    public Uri GetImageLink() => ImagesApi.GetImageRoot(DbUser.Id);
+    public Uri GetImageLink() => ImagesApi.GetImageRoot(DbUser.Image);
 }
