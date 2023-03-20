@@ -22,6 +22,7 @@ namespace ShockLink.API;
 
 public class Startup
 {
+    public static string EnvString;
     private readonly ForwardedHeadersOptions _forwardedSettings = new()
     {
         ForwardedHeaders = ForwardedHeaders.All,
@@ -105,6 +106,7 @@ public class Startup
 
     public void Configure(IApplicationBuilder app, IWebHostEnvironment env, ILoggerFactory loggerFactory)
     {
+        EnvString = env.EnvironmentName; 
         foreach (var proxy in CloudflareProxies)
         {
             var split = proxy.Split('/');

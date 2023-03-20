@@ -32,7 +32,7 @@ public static class ImagesApi
         
         msg.Content = new MultipartFormDataContent
         {
-            { new StreamContent(stream), "\"file\"", $"\"dev-user_{userId}\"" }
+            { new StreamContent(stream), "\"file\"", $"\"{Startup.EnvString}-user_{userId}\"" }
         };
 
         var res = await HttpClient.SendAsync(msg);
