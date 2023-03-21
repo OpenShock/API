@@ -214,10 +214,10 @@ public class UserWebSocketController : WebsocketControllerBase<ResponseType>
                 Device = x.Id,
                 Online = true
             }));
-        final.AddRange(shared.Result.Values.Select(x =>
+        final.AddRange(shared.Result.Values.Where(x => x != null).Select(x =>
             new DeviceOnlineState
             {
-                Device = x.Id,
+                Device = x!.Id,
                 Online = true
             }));
         await QueueMessage(new BaseResponse<ResponseType>
