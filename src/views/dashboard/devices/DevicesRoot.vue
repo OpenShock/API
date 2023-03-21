@@ -7,18 +7,9 @@
     <b-container>
       <b-table hover striped :items="devices" :fields="fields" class="devices-table">
         <template #cell(actions)="row">
-
-          <b-button size="sm" @click="regenerateToken(row.item)" class="mr" variant="primary">
-            <i class="fa-solid fa-rotate"></i> Regenerate Token
-          </b-button>
-
-          <b-button size="sm" @click="editDevice(row.item)" class="mr" variant="info">
-            <i class="fa-solid fa-pen-to-square"></i> Edit
-          </b-button>
-
-          <b-button size="sm" @click="deleteDevice(row.item)" class="mr" variant="danger">
-            <i class="fa-solid fa-trash"></i> Delete
-          </b-button>
+          <div cols="auto" class="elli" @click="ellipsis($event, row.item)">
+            <i class="fa-solid fa-ellipsis-vertical"></i>
+          </div>
         </template>
       </b-table>
     </b-container>
@@ -61,7 +52,8 @@ export default {
         },
         {
           key: 'actions',
-          thClass: "actions-header"
+          thClass: "actions-header",
+          label: ""
         }
       ],
       devices: [],
@@ -189,7 +181,37 @@ export default {
 
       this.$swal('Success!', `Successfully updated device [${this.editItem.id}]`, 'success');
       await this.loadDevices();
-    }
+    },
+    ellipsis(e, item) {
+      this.$contextmenu({
+        theme: utils.isDarkMode() ? 'default dark' : 'default',
+        x: e.x,
+        y: e.y,
+        items: [
+          {
+            label: "Edit",
+            icon: 'fa-solid fa-pen-to-square',
+            onClick: () => {
+              this.editDevice(item);
+            }
+          },
+          {
+            label: "Regenerate Token",
+            icon: 'fa-solid fa-rotate',
+            onClick: () => {
+              this.regenerateToken(item);
+            }
+          },
+          {
+            label: "Delete",
+            icon: 'fa-solid fa-trash',
+            onClick: () => {
+              this.deleteDevice(item);
+            }
+          }
+        ]
+      });
+    },
   }
 }
 </script>
@@ -225,6 +247,19 @@ export default {
   }
 }
 
+.elli {
+  width: 24px;
+  .fa-ellipsis-vertical {
+    height: 24px;
+    margin: auto;
+    display: block;
+  }
+}
+
+:deep(.actions-header) {
+  width: 0px;
+}
+
 .devices-table {
   .mr {
     margin-right: 10px;
@@ -232,10 +267,6 @@ export default {
     --bs-btn-color: #fff;
     --bs-btn-hover-color: #fff;
     --bs-btn-active-color: #fff;
-  }
-
-  :deep(.actions-header) {
-    width: 350px;
   }
 }
 </style>

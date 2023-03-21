@@ -43,9 +43,9 @@
         <b-container>
             <b-table hover striped :items="codes" :fields="fieldsCodes" class="share-codes-table">
                 <template #cell(actions)="row">
-                    <b-button size="sm" @click="removeCode(row.item)" class="mr" variant="danger">
-                        <i class="fa-solid fa-trash"></i> Remove
-                    </b-button>
+                    <div cols="auto" class="elli" @click="ellipsisCode($event, row.item)">
+                        <i class="fa-solid fa-ellipsis-vertical"></i>
+                    </div>
                 </template>
 
                 <template #cell(createdOn)="row">
@@ -105,6 +105,7 @@ export default {
                 },
                 {
                     key: 'actions',
+                    label: '',
                     thClass: "actions-header"
                 }
             ],
@@ -125,20 +126,36 @@ export default {
         this.loadCodes();
     },
     methods: {
+        ellipsisCode(e, item) {
+            this.$contextmenu({
+                theme: utils.isDarkMode() ? 'default dark' : 'default',
+                x: e.x,
+                y: e.y,
+                items: [
+                    {
+                        label: "Remove",
+                        icon: 'fa-solid fa-trash',
+                        onClick: () => {
+                            this.removeCode(item);
+                        }
+                    }
+                ]
+            });
+        },
         ellipsis(e, item) {
             this.$contextmenu({
                 theme: utils.isDarkMode() ? 'default dark' : 'default',
                 x: e.x,
                 y: e.y,
                 items: [
-                    { 
+                    {
                         label: "Edit",
                         icon: 'fa-solid fa-pen-to-square',
                         onClick: () => {
                             this.editShare(item);
                         }
                     },
-                    { 
+                    {
                         label: "Unshare",
                         icon: 'fa-solid fa-trash',
                         onClick: () => {
@@ -146,7 +163,7 @@ export default {
                         }
                     }
                 ]
-            }); 
+            });
         },
         async loadCodes() {
             const res = await apiCall.makeCall('GET', `1/shockers/${this.$route.params.id}/shareCodes`);
@@ -263,6 +280,10 @@ export default {
     font-size: 14px;
 }
 
+:deep(.actions-header) {
+    width: 0px;
+}
+
 .shares-table {
     .mr {
         margin-right: 10px;
@@ -270,11 +291,6 @@ export default {
         --bs-btn-color: #fff;
         --bs-btn-hover-color: #fff;
         --bs-btn-active-color: #fff;
-    }
-
-    :deep(.actions-header) {
-        width: 0px;
-        padding-right: 24px;
     }
 
     :deep(td) {
@@ -293,13 +309,15 @@ export default {
             color: red;
         }
     }
-
-    .elli {
-
-  .fa-ellipsis-vertical {
-      height: 24px;
-  }
 }
+
+.elli {
+    width: 24px;
+    .fa-ellipsis-vertical {
+        height: 24px;
+        margin: auto;
+        display: block;
+    }
 }
 
 .add-circle {
