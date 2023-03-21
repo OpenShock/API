@@ -1,4 +1,5 @@
-﻿using System.Net.WebSockets;
+﻿using System.Linq.Expressions;
+using System.Net.WebSockets;
 using System.Text;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -146,7 +147,7 @@ public class UserWebSocketController : WebsocketControllerBase<ResponseType>
             x.Shocker.RfId,
             x.Shocker.Device
         }).ToListAsync();
-        
+
         ownShockers.AddRange(sharedShockers);
 
         var curTime = DateTime.UtcNow;
@@ -195,21 +196,34 @@ public class UserWebSocketController : WebsocketControllerBase<ResponseType>
     }
 
     protected override async Task SendInitialData()
-    {   
+    {
         await using var scope = _serviceProvider.CreateAsyncScope();
         var db = scope.ServiceProvider.GetRequiredService<ShockLinkContext>();
-        var sharedWith = await db.Users.Where(x => x.ShockerShares.Any(y => y.SharedWith == _currentUser.DbUser.Id))
-            .Select(x => x.Id).ToArrayAsync();
-        var devicesOnline = (await _devicesOnline.Where(x => x.Owner == _currentUser.DbUser.Id || sharedWith.Contains(x.Owner)).ToListAsync()).Select(x =>
+        var sharedDevices = await db.Devices
+            .Where(x => x.Shockers.Any(y => y.ShockerShares.Any(z => z.SharedWith == _currentUser.DbUser.Id)))
+            .Select(x => x.Id.ToString()).ToListAsync();
+
+        var own = _devicesOnline.Where(x => x.Owner == _currentUser.DbUser.Id).ToListAsync();
+        var shared = _devicesOnline.FindByIdsAsync(sharedDevices);
+        await Task.WhenAll(own, shared);
+
+        var final = new List<DeviceOnlineState>();
+        final.AddRange(own.Result.Select(x =>
             new DeviceOnlineState
             {
                 Device = x.Id,
                 Online = true
-            });
+            }));
+        final.AddRange(shared.Result.Values.Select(x =>
+            new DeviceOnlineState
+            {
+                Device = x.Id,
+                Online = true
+            }));
         await QueueMessage(new BaseResponse<ResponseType>
         {
             ResponseType = ResponseType.DeviceOnlineState,
-            Data = devicesOnline
+            Data = final
         });
     }
 }
