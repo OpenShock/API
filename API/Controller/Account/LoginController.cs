@@ -24,7 +24,7 @@ public class LoginController : ShockLinkControllerBase
     public LoginController(ShockLinkContext db, ILogger<LoginController> logger, IRedisConnectionProvider provider)
     {
         _logger = logger;
-        _loginSessions = provider.RedisCollection<LoginSession>();
+        _loginSessions = provider.RedisCollection<LoginSession>(false);
         _db = db;
     }
     

@@ -31,7 +31,7 @@ public static class PubSubManager
         _con = con;
         _serviceProvider = serviceProvider;
         var provider = _serviceProvider.GetRequiredService<IRedisConnectionProvider>();
-        _devicesOnline = provider.RedisCollection<DeviceOnline>();
+        _devicesOnline = provider.RedisCollection<DeviceOnline>(false);
         _subscriber = _con.GetSubscriber();
         _subscriber.Subscribe(
             new RedisChannel("__keyevent@0__:expired", RedisChannel.PatternMode.Literal),
@@ -88,7 +88,7 @@ public static class PubSubManager
         if (msg.Length < 2) return;
         await using var scope = _serviceProvider.CreateAsyncScope();
         await using var db = scope.ServiceProvider.GetRequiredService<ShockLinkContext>();
-        if(!Guid.TryParse(msg[1], out var id)) return;
+        if (!Guid.TryParse(msg[1], out var id)) return;
         switch (msg[0])
         {
             case "ShockLink.Common.Redis.DeviceOnline":
@@ -97,24 +97,26 @@ public static class PubSubManager
                     x.Owner,
                     SharedWith = x.Shockers.SelectMany(y => y.ShockerShares)
                 }).SingleOrDefaultAsync();
-                if(data == null) return;
+                if (data == null) return;
 
-                await WebsocketManager.UserWebSockets.SendMessageTo(data.Owner,
-                    new BaseResponse<Common.Models.WebSocket.User.ResponseType>
+
+                var wsData = new BaseResponse<Common.Models.WebSocket.User.ResponseType>
+                {
+                    ResponseType = Common.Models.WebSocket.User.ResponseType.DeviceOnlineState,
+                    Data = new List<DeviceOnlineState>
                     {
-                        ResponseType = Common.Models.WebSocket.User.ResponseType.DeviceOnlineState,
-                        Data = new List<DeviceOnlineState>
+                        new()
                         {
-                            new()
-                            {
-                                Device = id,
-                                Online = set
-                            }
+                            Device = id,
+                            Online = set
                         }
-                    });
+                    }
+                };
+                await WebsocketManager.UserWebSockets.SendMessageTo(data.Owner, wsData);
                 
-                
-                
+                var sharedWith = await db.Users.Where(x => x.ShockerShares.Any(y => y.Shocker.Device == id))
+                    .Select(x => x.Id).ToArrayAsync();
+                await WebsocketManager.UserWebSockets.SendMessageTo(sharedWith, wsData);
                 break;
         }
     }

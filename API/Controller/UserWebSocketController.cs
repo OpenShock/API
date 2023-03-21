@@ -195,8 +195,12 @@ public class UserWebSocketController : WebsocketControllerBase<ResponseType>
     }
 
     protected override async Task SendInitialData()
-    {
-        var devicesOnline = (await _devicesOnline.Where(x => x.Owner == _currentUser.DbUser.Id).ToListAsync()).Select(x =>
+    {   
+        await using var scope = _serviceProvider.CreateAsyncScope();
+        var db = scope.ServiceProvider.GetRequiredService<ShockLinkContext>();
+        var sharedWith = await db.Users.Where(x => x.ShockerShares.Any(y => y.SharedWith == _currentUser.DbUser.Id))
+            .Select(x => x.Id).ToArrayAsync();
+        var devicesOnline = (await _devicesOnline.Where(x => x.Owner == _currentUser.DbUser.Id || sharedWith.Contains(x.Owner)).ToListAsync()).Select(x =>
             new DeviceOnlineState
             {
                 Device = x.Id,
