@@ -56,7 +56,7 @@ public sealed class SelfController : AuthenticatedSessionControllerBase
             return EBaseResponse<object>("Image format must be PNG or JPG");
         }
 
-        if (CurrentUser.DbUser.Image != DefaultAvatar)
+        if (oldImageId != DefaultAvatar)
         {
             // Delete old avatar from cloudflare and db
             _logger.LogDebug("Deleting old avatar from cloudflare and db");
