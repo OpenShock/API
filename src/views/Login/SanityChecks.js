@@ -24,7 +24,7 @@ class SanityChecks {
 	checkPassword(password) {
 		let arr = [];
 
-		if (password.length <= 8) arr.push("Minimum length of 8 characters");
+		if (password.length <= 12) arr.push("Minimum length of 12 characters");
 		if (password.length >= 256) arr.push("Maximum length of 256 characters");
 		if(!this.hasLowerCase(password)) arr.push("One lowercase character");
 		if(!this.hasUpperCase(password)) arr.push("One uppercase character");

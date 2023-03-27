@@ -95,6 +95,10 @@ const routes = [
 			{
 				path: 'devices',
 				component: lazyLoad('dashboard/devices/DevicesRoot')
+			},
+			{
+				path: 'devices/:id/setup',
+				component: lazyLoad('dashboard/devices/Setup/Setup')
 			}
 		]
 	},
@@ -135,7 +139,6 @@ const routes = [
 		]
 	}
 ]
-
 const router = createRouter({
 	history: createWebHashHistory(),
 	routes

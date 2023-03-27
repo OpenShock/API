@@ -145,13 +145,5 @@ export default {
             padding: 0 12px;
         }
     }
-
-    .elli {
-        cursor: pointer;
-
-        .fa-ellipsis-vertical {
-            height: 100%;
-        }
-    }
 }
 </style>
