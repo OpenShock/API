@@ -86,7 +86,7 @@ export default {
         async espSetWifi() {
             const res = await axios({
                 method: "SEND",
-                url: "http://10.10.10.10/networks",
+                url: "https://10.10.10.10/networks",
                 data: "Luc-H,LucNetworkPw12"
             });
             console.log(res);
