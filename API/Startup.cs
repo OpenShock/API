@@ -22,7 +22,7 @@ namespace ShockLink.API;
 
 public class Startup
 {
-    public static string EnvString;
+    public static string EnvString { get; private set; }
     private readonly ForwardedHeadersOptions _forwardedSettings = new()
     {
         ForwardedHeaders = ForwardedHeaders.All,
@@ -34,6 +34,7 @@ public class Startup
     {
         NpgsqlConnection.GlobalTypeMapper.MapEnum<ControlType>();
         NpgsqlConnection.GlobalTypeMapper.MapEnum<CfImagesType>();
+        NpgsqlConnection.GlobalTypeMapper.MapEnum<PermissionType>();
         services.AddDbContextPool<ShockLinkContext>(builder =>
         {
             builder.UseNpgsql(ApiConfig.Db);

@@ -15,6 +15,8 @@ public partial class ShockLinkContext : DbContext
     {
     }
 
+    public virtual DbSet<ApiToken> ApiTokens { get; set; }
+
     public virtual DbSet<CfImage> CfImages { get; set; }
 
     public virtual DbSet<Device> Devices { get; set; }
@@ -33,7 +35,35 @@ public partial class ShockLinkContext : DbContext
     {
         modelBuilder
             .HasPostgresEnum("ShockLink", "cf_images_type", new[] { "avatar" })
-            .HasPostgresEnum("ShockLink", "control_type", new[] { "sound", "vibrate", "shock" });
+            .HasPostgresEnum("ShockLink", "control_type", new[] { "sound", "vibrate", "shock" })
+            .HasPostgresEnum("ShockLink", "permission_type", new[] { "shockers.use" });
+
+        modelBuilder.Entity<ApiToken>(entity =>
+        {
+            entity.HasKey(e => e.Token).HasName("api_tokens_pkey");
+
+            entity.ToTable("api_tokens", "ShockLink");
+
+            entity.Property(e => e.Token)
+                .HasMaxLength(256)
+                .HasColumnName("token");
+            entity.Property(e => e.CreatedByIp)
+                .HasColumnType("character varying")
+                .HasColumnName("created_by_ip");
+            entity.Property(e => e.CreatedOn)
+                .HasDefaultValueSql("CURRENT_TIMESTAMP")
+                .HasColumnName("created_on");
+            entity.Property(e => e.UserId).HasColumnName("user_id");
+            entity.Property(e => e.ValidUntil)
+                .HasColumnType("timestamp without time zone")
+                .HasColumnName("valid_until");
+                        
+            entity.Property(e => e.Permissions).HasColumnType("permission_type[]").HasColumnName("type");
+
+            entity.HasOne(d => d.User).WithMany(p => p.ApiTokens)
+                .HasForeignKey(d => d.UserId)
+                .HasConstraintName("fk_user_id");
+        });
 
         modelBuilder.Entity<CfImage>(entity =>
         {

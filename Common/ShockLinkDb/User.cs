@@ -19,6 +19,8 @@ public partial class User
 
     public Guid Image { get; set; }
 
+    public virtual ICollection<ApiToken> ApiTokens { get; } = new List<ApiToken>();
+
     public virtual ICollection<Device> Devices { get; } = new List<Device>();
 
     public virtual CfImage ImageNavigation { get; set; } = null!;
