@@ -1,10 +1,13 @@
 ﻿using System.Net;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Redis.OM.Contracts;
+using Redis.OM.Searching;
 using ShockLink.API.Authentication;
 using ShockLink.API.Models;
 using ShockLink.API.Models.Requests;
 using ShockLink.API.Utils;
+using ShockLink.Common.Redis;
 using ShockLink.Common.ShockLinkDb;
 
 namespace ShockLink.API.Controller.Devices;
@@ -14,10 +17,12 @@ namespace ShockLink.API.Controller.Devices;
 public class CreateController : AuthenticatedSessionControllerBase
 {
     private readonly ShockLinkContext _db;
-    
-    public CreateController(ShockLinkContext db)
+    private readonly IRedisCollection<DevicePair> _devicePairs;
+
+    public CreateController(ShockLinkContext db, IRedisConnectionProvider provider)
     {
         _db = db;
+        _devicePairs = provider.RedisCollection<DevicePair>();
     }
 
     [HttpGet]
@@ -119,6 +124,26 @@ public class CreateController : AuthenticatedSessionControllerBase
         {
             Message = "Successfully created device",
             Data = device.Id
+        };
+    }
+
+    [HttpGet("{id:guid}/pair")]
+    public async Task<BaseResponse<string>> GetPairCode(Guid id)
+    {
+        // replace with unlink?
+        var existing = await _devicePairs.FindByIdAsync(id.ToString());
+        if (existing != null) await _devicePairs.DeleteAsync(existing);
+        
+        var pairCode = new DevicePair
+        {
+            Id = id,
+            PairCode = CryptoUtils.RandomString(6)
+        };
+        await _devicePairs.InsertAsync(pairCode, TimeSpan.FromMinutes(10));
+
+        return new BaseResponse<string>
+        {
+            Data = pairCode.PairCode
         };
     }
 }

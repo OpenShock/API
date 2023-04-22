@@ -4,7 +4,7 @@ using ShockLink.API.Controller;
 
 namespace ShockLink.API.Authentication;
 
-[Authorize(AuthenticationSchemes = ShockLinkAuthSchemas.SessionTokenCombo)]
+[Authorize(AuthenticationSchemes = ShockLinkAuthSchemas.SessionTokenCombo, Roles = "shockers.use")]
 public class AuthenticatedSessionControllerBase : ShockLinkControllerBase
 {
     public LinkUser CurrentUser = null!;

@@ -45,6 +45,7 @@ public class Startup
         var redis = new RedisConnectionProvider($"redis://:{ApiConfig.RedisPassword}@{ApiConfig.RedisHost}:6379");
         redis.Connection.CreateIndex(typeof(LoginSession));
         redis.Connection.CreateIndex(typeof(DeviceOnline));
+        redis.Connection.CreateIndex(typeof(DevicePair));
         services.AddSingleton<IRedisConnectionProvider>(redis);
         var redisConf = new RedisConfiguration
         {
@@ -76,6 +77,7 @@ public class Startup
             .AddScheme<DeviceAuthenticationSchemeOptions, DeviceAuthentication>(
                 ShockLinkAuthSchemas.DeviceToken, _ => { });
         services.AddAuthenticationCore();
+        services.AddAuthorization();
 
         services.AddCors(options =>
         {

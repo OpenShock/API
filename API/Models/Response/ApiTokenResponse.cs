@@ -1,18 +1,14 @@
-﻿using System;
-using System.Collections.Generic;
-using ShockLink.Common.Models;
+﻿using ShockLink.Common.Models;
 
-namespace ShockLink.Common.ShockLinkDb;
+namespace ShockLink.API.Models.Response;
 
-public partial class ApiToken
+public class ApiTokenResponse
 {
     public Guid Id { get; set; }
 
     public string Name { get; set; } = null!;
 
     public string Token { get; set; } = null!;
-
-    public Guid UserId { get; set; }
 
     public DateTime CreatedOn { get; set; }
 
@@ -21,6 +17,4 @@ public partial class ApiToken
     public DateTime? ValidUntil { get; set; }
     
     public List<PermissionType> Permissions { get; set; }
-
-    public virtual User User { get; set; } = null!;
 }

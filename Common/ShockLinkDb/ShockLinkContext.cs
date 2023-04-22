@@ -40,25 +40,31 @@ public partial class ShockLinkContext : DbContext
 
         modelBuilder.Entity<ApiToken>(entity =>
         {
-            entity.HasKey(e => e.Token).HasName("api_tokens_pkey");
+            entity.HasKey(e => e.Id).HasName("api_tokens_pkey");
 
             entity.ToTable("api_tokens", "ShockLink");
 
-            entity.Property(e => e.Token)
-                .HasMaxLength(256)
-                .HasColumnName("token");
+            entity.Property(e => e.Id)
+                .ValueGeneratedNever()
+                .HasColumnName("id");
             entity.Property(e => e.CreatedByIp)
                 .HasColumnType("character varying")
                 .HasColumnName("created_by_ip");
             entity.Property(e => e.CreatedOn)
                 .HasDefaultValueSql("CURRENT_TIMESTAMP")
                 .HasColumnName("created_on");
+            entity.Property(e => e.Name)
+                .HasMaxLength(64)
+                .HasColumnName("name");
+            entity.Property(e => e.Token)
+                .HasMaxLength(256)
+                .HasColumnName("token");
             entity.Property(e => e.UserId).HasColumnName("user_id");
             entity.Property(e => e.ValidUntil)
                 .HasColumnType("timestamp without time zone")
                 .HasColumnName("valid_until");
                         
-            entity.Property(e => e.Permissions).HasColumnType("permission_type[]").HasColumnName("type");
+            entity.Property(e => e.Permissions).HasColumnType("permission_type[]").HasColumnName("permissions");
 
             entity.HasOne(d => d.User).WithMany(p => p.ApiTokens)
                 .HasForeignKey(d => d.UserId)
