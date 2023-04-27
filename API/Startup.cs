@@ -96,6 +96,7 @@ public class Startup
             x.JsonSerializerOptions.PropertyNameCaseInsensitive = true;
         });
 
+        services.AddSwaggerGen();  
         //services.AddHealthChecks().AddCheck<DatabaseHealthCheck>("database");
     }
 
@@ -141,6 +142,16 @@ public class Startup
         {
             KeepAliveInterval = TimeSpan.FromMinutes(1)
         };
+
+        if (env.IsDevelopment())
+        {
+            app.UseSwagger();  
+            app.UseSwaggerUI(c =>  
+            {  
+                c.SwaggerEndpoint("/swagger/v1/swagger.json", "ShockLink API");  
+            });  
+
+        }
 
         //app.UseHttpsRedirection();
         app.UseWebSockets(webSocketOptions);

@@ -130,6 +130,9 @@ public class CreateController : AuthenticatedSessionControllerBase
     [HttpGet("{id:guid}/pair")]
     public async Task<BaseResponse<string>> GetPairCode(Guid id)
     {
+        var deviceExists = await _db.Devices.AnyAsync(x => x.Id == id && x.Owner == CurrentUser.DbUser.Id);
+        if (!deviceExists)
+            return EBaseResponse<string>("Device does not exists or does not belong to you", HttpStatusCode.NotFound);
         // replace with unlink?
         var existing = await _devicePairs.FindByIdAsync(id.ToString());
         if (existing != null) await _devicePairs.DeleteAsync(existing);
