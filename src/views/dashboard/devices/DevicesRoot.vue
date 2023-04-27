@@ -76,6 +76,54 @@ export default {
     await this.loadDevices();
   },
   methods: {
+    async generatePairCode(item) {
+      this.$swal({
+        title: 'Generate Pair Code?',
+        html: "Generate a pair code for this device.<br>Its vaild for <b>15 minutes</b> since its creation.<br>There is only one active pair code per device, newly generated ones will override the older active ones.",
+        icon: 'info',
+        showCancelButton: true,
+        confirmButtonColor: '#3085d6',
+        cancelButtonColor: 'var(--secondary-seperator-color)',
+        showLoaderOnConfirm: true,
+        reverseButtons: true,
+        confirmButtonText: 'Get Pair Code',
+        allowOutsideClick: () => !this.$swal.isLoading(),
+        preConfirm: async () => {
+          try {
+            const res = await apiCall.makeCall('GET', `1/devices/${item.id}/pair`);
+            if (res.status !== 200) {
+              throw new Error(res.statusText);
+            }
+
+            return res.data;
+          } catch (err) {
+            this.$swal.showValidationMessage(`Request failed: ${err}`)
+          }
+        },
+      }).then((result) => {
+        console.log(result);
+        if (result.isConfirmed) {
+          let timerInterval
+          this.$swal({
+            title: 'Pair Code',
+            html: 'Your pair code is<br><b style="font-size: 3rem">' + result.value.data + '</b><br>Expires in <expire></expire> milliseconds.',
+            timer: 1000*60*15,
+            timerProgressBar: true,
+            didOpen: () => {
+              const b = this.$swal.getHtmlContainer().querySelector('expire');
+              timerInterval = setInterval(() => {
+                const left = this.$swal.getTimerLeft();
+                const minutes = Math.floor(left / 1000 / 60);
+                b.textContent = `${minutes}:${Math.floor(left / 1000 - minutes * 60)}`;
+              }, 1000)
+            },
+            willClose: () => {
+              clearInterval(timerInterval);
+            }
+          });
+        }
+      });
+    },
     regenerateToken(item) {
       this.$swal({
         title: 'Regenerate token?',
@@ -203,6 +251,13 @@ export default {
             }
           },
           {
+            label: "Pair",
+            icon: 'fa-solid fa-link',
+            onClick: () => {
+              this.generatePairCode(item);
+            }
+          },
+          {
             label: "Delete",
             icon: 'fa-solid fa-trash',
             onClick: () => {
@@ -249,6 +304,7 @@ export default {
 
 .elli {
   width: 24px;
+
   .fa-ellipsis-vertical {
     height: 24px;
     margin: auto;
