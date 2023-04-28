@@ -112,4 +112,16 @@ public class ShareShockerController : AuthenticatedSessionControllerBase
             Data = newCode.Id
         };
     }
+    
+    [HttpDelete("{id:guid}/shares/{sharedWith:guid}")]
+    public async Task<BaseResponse<object>> DeleteShare(Guid id, Guid sharedWith)
+    {
+        var affected = await _db.ShockerShares.Where(x =>
+            x.ShockerId == id && x.SharedWith == sharedWith && (x.Shocker.DeviceNavigation.Owner == CurrentUser.DbUser.Id || x.SharedWith == CurrentUser.DbUser.Id)).ExecuteDeleteAsync();
+        if (affected <= 0)
+            return EBaseResponse<object>("Share does not exists or device/shocker does not belong to you nor is shared with you",
+                HttpStatusCode.NotFound);
+
+        return new BaseResponse<object>("Successfully deleted share");
+    }
 }
