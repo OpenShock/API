@@ -26,7 +26,6 @@ public class TokenController : AuthenticatedSessionControllerBase
     {
         var apiTokens = await _db.ApiTokens.Where(x => x.UserId == CurrentUser.DbUser.Id).Select(x => new ApiTokenResponse
         {
-            Token = x.Token,
             CreatedByIp = x.CreatedByIp,
             CreatedOn = x.CreatedOn,
             ValidUntil = x.ValidUntil,
@@ -46,7 +45,6 @@ public class TokenController : AuthenticatedSessionControllerBase
     {
         var apiToken = await _db.ApiTokens.Where(x => x.UserId == CurrentUser.DbUser.Id && x.Id == id).Select(x => new ApiTokenResponse
         {
-            Token = x.Token,
             CreatedByIp = x.CreatedByIp,
             CreatedOn = x.CreatedOn,
             ValidUntil = x.ValidUntil,
@@ -76,7 +74,7 @@ public class TokenController : AuthenticatedSessionControllerBase
     }
 
     [HttpPost]
-    public async Task<BaseResponse<ApiTokenResponse>> CreateToken(CreateTokenRequest data)
+    public async Task<BaseResponse<string>> CreateToken(CreateTokenRequest data)
     {
         var token = new ApiToken
         {
@@ -94,18 +92,9 @@ public class TokenController : AuthenticatedSessionControllerBase
         _db.ApiTokens.Add(token);
         await _db.SaveChangesAsync();
         
-        return new BaseResponse<ApiTokenResponse>
+        return new BaseResponse<string>
         {
-            Data = new ApiTokenResponse
-            {
-                Token = token.Token,
-                CreatedByIp = token.CreatedByIp,
-                CreatedOn = token.CreatedOn,
-                ValidUntil = token.ValidUntil,
-                Permissions = token.Permissions,
-                Name = token.Name,
-                Id = token.Id
-            }
+            Data = token.Token
         };
     }
     

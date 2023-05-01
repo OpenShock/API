@@ -8,8 +8,6 @@ public class ApiTokenResponse
 
     public string Name { get; set; } = null!;
 
-    public string Token { get; set; } = null!;
-
     public DateTime CreatedOn { get; set; }
 
     public string CreatedByIp { get; set; } = null!;
