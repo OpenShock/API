@@ -99,7 +99,11 @@ const routes = [
 			{
 				path: 'devices/:id/setup',
 				component: lazyLoad('dashboard/devices/Setup/Setup')
-			}
+			},
+			{
+				path: 'tokens',
+				component: lazyLoad('dashboard/ApiTokens/ApiTokenRoot')
+			},
 		]
 	},
 	{

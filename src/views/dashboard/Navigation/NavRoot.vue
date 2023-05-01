@@ -47,6 +47,11 @@ export default {
           active: false
         },
         {
+          routerLink: '/tokens',
+          html: '<i class="fa-solid fa-code"></i>API Tokens',
+          active: false
+        },
+        {
           routerLink: '/profile',
           active: false,
           profile: true
