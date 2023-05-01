@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using System.Net;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using ShockLink.API.Authentication;
 using ShockLink.API.Models;
@@ -41,9 +42,37 @@ public class TokenController : AuthenticatedSessionControllerBase
     }
 
     [HttpGet("{id:guid}")]
-    public async Task<BaseResponse<ApiTokenResponse>> GetToken()
+    public async Task<BaseResponse<ApiTokenResponse>> GetToken(Guid id)
     {
-        return new BaseResponse<ApiTokenResponse>();
+        var apiToken = await _db.ApiTokens.Where(x => x.UserId == CurrentUser.DbUser.Id && x.Id == id).Select(x => new ApiTokenResponse
+        {
+            Token = x.Token,
+            CreatedByIp = x.CreatedByIp,
+            CreatedOn = x.CreatedOn,
+            ValidUntil = x.ValidUntil,
+            Permissions = x.Permissions,
+            Name = x.Name,
+            Id = x.Id
+        }).FirstOrDefaultAsync();
+        if (apiToken == null)
+            return EBaseResponse<ApiTokenResponse>("Api Token could not be found", HttpStatusCode.NotFound);
+        return new BaseResponse<ApiTokenResponse>
+        {
+            Data = apiToken
+        };
+    }
+    
+    
+    [HttpDelete("{id:guid}")]
+    public async Task<BaseResponse<ApiTokenResponse>> DeleteToken(Guid id)
+    {
+        var apiToken = await _db.ApiTokens.Where(x => x.UserId == CurrentUser.DbUser.Id && x.Id == id)
+            .ExecuteDeleteAsync();
+        if (apiToken <= 0) return EBaseResponse<ApiTokenResponse>("Api Token could not be found", HttpStatusCode.NotFound);
+        return new BaseResponse<ApiTokenResponse>
+        {
+            Message = "Successfully deleted api token"
+        };
     }
 
     [HttpPost]
