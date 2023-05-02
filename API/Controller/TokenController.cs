@@ -24,7 +24,7 @@ public class TokenController : AuthenticatedSessionControllerBase
     [HttpGet]
     public async Task<BaseResponse<IEnumerable<ApiTokenResponse>>> GetTokens()
     {
-        var apiTokens = await _db.ApiTokens.Where(x => x.UserId == CurrentUser.DbUser.Id).Select(x => new ApiTokenResponse
+        var apiTokens = await _db.ApiTokens.Where(x => x.UserId == CurrentUser.DbUser.Id).OrderBy(x => x.CreatedOn).Select(x => new ApiTokenResponse
         {
             CreatedByIp = x.CreatedByIp,
             CreatedOn = x.CreatedOn,

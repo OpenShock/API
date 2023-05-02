@@ -50,6 +50,9 @@ public static class PubSubManager
                 case "msg-device-control":
                     LucTask.Run(() => DeviceControl(value));
                     break;
+                case "msg-device-control-captive":
+                    LucTask.Run(() => DeviceControlCaptive(value));
+                    break;
             }
         });
     }
@@ -59,9 +62,25 @@ public static class PubSubManager
 
     public static Task SendControlMessage(ControlMessage data) =>
         _subscriber.PublishAsync("msg-device-control", JsonSerializer.Serialize(data));
+    
+    public static Task SendCaptiveControlMessage(CaptiveMessage data) =>
+        _subscriber.PublishAsync("msg-device-control-captive", JsonSerializer.Serialize(data));
 
     #endregion
 
+    private static async Task DeviceControlCaptive(RedisValue value)
+    {
+        if(!value.HasValue) return;
+        var data = JsonSerializer.Deserialize<CaptiveMessage>(value.ToString());
+        if (data == null) return;
+
+        await WebsocketManager.DeviceWebSockets.SendMessageTo(data.DeviceId, new BaseResponse<ResponseType>
+        {
+            ResponseType = ResponseType.CaptiveControl,
+            Data = data.Enabled
+        });
+    }
+    
     private static async Task DeviceControl(RedisValue value)
     {
         if (!value.HasValue) return;

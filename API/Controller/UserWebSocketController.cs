@@ -124,7 +124,27 @@ public class UserWebSocketController : WebsocketControllerBase<ResponseType>
                 if (control == null) return;
                 await Control(control);
                 break;
+            case RequestType.CaptiveControl:
+                var captive = json.Data?.SlDeserialize<CaptiveControl>();
+                if (captive == null) return;
+                await CaptiveControl(captive);
+                break;
         }
+    }
+
+    private async Task CaptiveControl(CaptiveControl captiveEnable)
+    {
+        await using var scope = _serviceProvider.CreateAsyncScope();
+        var db = scope.ServiceProvider.GetRequiredService<ShockLinkContext>();
+        var devices = await db.Devices.Where(x => x.Owner == _currentUser.DbUser.Id)
+            .AnyAsync(x => x.Id == captiveEnable.DeviceId);
+        if (!devices) return;
+
+        await PubSubManager.SendCaptiveControlMessage(new CaptiveMessage()
+        {
+            DeviceId = captiveEnable.DeviceId,
+            Enabled = captiveEnable.Enabled
+        });
     }
 
     private async Task Control(IEnumerable<Control> shocks)
