@@ -9,7 +9,7 @@
   },
   "keywords": [],
   "author": "",
-  "license": "ISC",
+  "license": "AGPL",
   "dependencies": {
     "@fontsource/poppins": "^4.5.0",
     "@imengyu/vue3-context-menu": "^1.2.3",

@@ -106,8 +106,8 @@ export default {
           let timerInterval
           this.$swal({
             title: 'Pair Code',
-            html: 'Your pair code is<br><b style="font-size: 3rem">' + result.value.data + '</b><br>Expires in <expire></expire> milliseconds.',
-            timer: 1000*60*15,
+            html: 'Your pair code is<br><b style="font-size: 3rem">' + result.value.data + '</b><br>Expires in <expire></expire>',
+            timer: 1000 * 60 * 15,
             timerProgressBar: true,
             didOpen: () => {
               const b = this.$swal.getHtmlContainer().querySelector('expire');
@@ -230,6 +230,18 @@ export default {
       this.$swal('Success!', `Successfully updated device [${this.editItem.id}]`, 'success');
       await this.loadDevices();
     },
+    sendCaptiveMessage(deviceId, enabled) {
+      const obj = {
+        "RequestType": 1,
+        "data": [
+          {
+            "DeviceId": deviceId,
+            "enabled": enabled
+          }
+        ]
+      };
+      ws.send(JSON.stringify(obj));
+    },
     ellipsis(e, item) {
       this.$contextmenu({
         theme: utils.isDarkMode() ? 'default dark' : 'default',
@@ -256,6 +268,31 @@ export default {
             onClick: () => {
               this.generatePairCode(item);
             }
+          },
+          {
+            label: "Remote Debug",
+            children: [
+              {
+                label: "Captive Portal",
+                icon: "fa-solid fa-pager",
+                children: [
+                  {
+                    label: "On",
+                    icon: "fa-solid fa-toggle-on",
+                    onClick: () => {
+                      this.sendCaptiveMessage(item.id, true);
+                    }
+                  },
+                  {
+                    label: "Off",
+                    icon: "fa-solid fa-toggle-off",
+                    onClick: () => {
+                      this.sendCaptiveMessage(item.id, false);
+                    }
+                  }
+                ]
+              }
+            ]
           },
           {
             label: "Delete",

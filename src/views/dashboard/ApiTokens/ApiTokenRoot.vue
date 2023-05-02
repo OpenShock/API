@@ -1,6 +1,6 @@
 <template>
     <div class="base-wrap">
-        <div class="add-circle" @click="createNewCode">
+        <div class="add-circle" @click="newTokenModal = true">
             <i class="fa-solid fa-plus"></i>
         </div>
 
@@ -19,10 +19,29 @@
             </b-table>
         </b-container>
 
+        <b-modal v-model="newTokenModal" title="New Token" ok-title="Create" @ok.prevent="createNewCode">
+
+            <b-container style="padding: 0;">
+                <b-form-group label="Name" label-for="item-id" label-class="mb-1">
+                    <b-form-input id="item-id" v-model="newToken.name" readonly />
+                </b-form-group>
+                <b-form-timepicker v-model="value" locale="en"></b-form-timepicker>
+                <div class='input-group date' id='datetimepicker1'>
+                    <input type='text' class="form-control" />
+                    <span class="input-group-addon">
+                        <span class="glyphicon glyphicon-calendar"></span>
+                    </span>
+                </div>
+            </b-container>
+
+        </b-modal>
+
         <b-modal v-model="editModal" title="Edit Token" ok-title="Save" @ok.prevent="applyEdits">
 
             <b-container style="padding: 0;">
-
+                <b-form-group label="ID (readonly)" label-for="item-id" label-class="mb-1">
+                    <b-form-input id="item-id" v-model="editing.token.id" readonly />
+                </b-form-group>
             </b-container>
 
         </b-modal>
@@ -52,11 +71,18 @@ export default {
             ],
             tokens: [],
             editModal: false,
+            newTokenModal: false,
             editing: {
                 token: {
-                    id: "",
-                    name: ""
+                    name: "",
+                    permissions: []
                 }
+            },
+            newToken: {
+                name: "New API Token",
+                permissions: [],
+                validUntil: Date.UTC(),
+                context: null
             }
         }
     },
@@ -64,6 +90,9 @@ export default {
         this.load();
     },
     methods: {
+        onContext(ctx) {
+            this.newToken.context = ctx;
+        },
         ellipsis(e, item) {
             this.$contextmenu({
                 theme: utils.isDarkMode() ? 'default dark' : 'default',
@@ -130,8 +159,18 @@ export default {
             this.editing = share;
             this.editModal = true;
         },
-        applyEdits() {
+        async applyEdits(item) {
+            const res = await apiCall.makeCall('PATCH', `1/tokens/${item.id}`, {
+                name: this.editing.token.name,
+                
+            });
+            if (res === undefined || res.status !== 200) {
+                toastr.error("Error while updating token");
+                return;
+            }
 
+            this.load();
+            this.$swal('Successfully updating API token.', 'success');
         },
         async createNewCode() {
             const res = await apiCall.makeCall('POST', `1/tokens`, {
