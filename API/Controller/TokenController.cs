@@ -59,8 +59,7 @@ public class TokenController : AuthenticatedSessionControllerBase
             Data = apiToken
         };
     }
-    
-    
+
     [HttpDelete("{id:guid}")]
     public async Task<BaseResponse<ApiTokenResponse>> DeleteToken(Guid id)
     {
@@ -81,10 +80,7 @@ public class TokenController : AuthenticatedSessionControllerBase
             UserId = CurrentUser.DbUser.Id,
             Token = CryptoUtils.RandomString(64),
             CreatedByIp = HttpContext.Connection.RemoteIpAddress?.ToString() ?? "error",
-            Permissions = new List<PermissionType>
-            {
-                PermissionType.ShockersUse
-            },
+            Permissions = data.Permissions,
             Id = Guid.NewGuid(),
             Name = data.Name,
             ValidUntil = data.ValidUntil
@@ -98,9 +94,29 @@ public class TokenController : AuthenticatedSessionControllerBase
         };
     }
     
+    [HttpPatch("{id:guid}")]
+    public async Task<BaseResponse<object>> EditToken(Guid id, EditTokenRequest data)
+    {
+        var token = await _db.ApiTokens.FirstOrDefaultAsync(x => x.UserId == CurrentUser.DbUser.Id && x.Id == id);
+        if (token == null) return EBaseResponse<object>("API token does not exist", HttpStatusCode.NotFound); 
+        
+        token.Name = data.Name;
+        token.Permissions = data.Permissions;
+        await _db.SaveChangesAsync();
+        
+        return new BaseResponse<object>("Successfully updated api token");
+    }
+    
+    public class EditTokenRequest
+    {
+        public required string Name { get; set; }
+        public List<PermissionType> Permissions { get; set; } = PermissionTypeBindings.AllPermissionTypes;
+    }
+    
     public class CreateTokenRequest
     {
         public required string Name { get; set; }
+        public List<PermissionType> Permissions { get; set; } = PermissionTypeBindings.AllPermissionTypes;
         public DateTime? ValidUntil { get; set; }
     }
 }

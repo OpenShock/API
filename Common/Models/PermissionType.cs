@@ -12,6 +12,7 @@ public static class PermissionTypeBindings
 {
     public static readonly IReadOnlyCollection<string> DatabaseNames = InitDatabaseNames();
     public static readonly IReadOnlyCollection<Claim> RoleClaimNames = ConvertToRoleClaims(DatabaseNames).ToArray();
+    public static readonly List<PermissionType> AllPermissionTypes = new(Enum.GetValues<PermissionType>());
 
     public static readonly IReadOnlyDictionary<PermissionType, Claim> TypeToName =
         new Dictionary<PermissionType, Claim>
