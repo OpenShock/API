@@ -11,7 +11,7 @@
         <b-row>
             <b-container align-items="center" style="margin-top: 15px">
                 <b-row align-h="center">
-                    <b-col md="auto">
+                    <b-col md="auto" style="width: unset">
                         <round-slider
                             v-model="shocker.state.intensity"
                             pathColor="#1b1d1e"
@@ -25,7 +25,7 @@
 
                         <p style="text-align: center;">Intensity</p>
                     </b-col>
-                    <b-col md="auto">
+                    <b-col md="auto"  style="width: unset">
                         <round-slider
                             v-model="shocker.state.duration"
                             pathColor="#1b1d1e"

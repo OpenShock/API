@@ -53,7 +53,10 @@ export default {
     padding: 20px;
 
     .shocker-col {
-        min-width: 300px;
+        @media screen and (min-width: 465px) {
+            min-width: 375px;
+        }
+        
     }
 
     .online {
