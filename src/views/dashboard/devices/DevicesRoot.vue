@@ -233,12 +233,10 @@ export default {
     sendCaptiveMessage(deviceId, enabled) {
       const obj = {
         "RequestType": 1,
-        "data": [
-          {
-            "DeviceId": deviceId,
-            "enabled": enabled
-          }
-        ]
+        "data": {
+          "deviceId": deviceId,
+          "enabled": enabled
+        }
       };
       ws.send(JSON.stringify(obj));
     },
