@@ -137,10 +137,11 @@ public class CreateController : AuthenticatedSessionControllerBase
         var existing = await _devicePairs.FindByIdAsync(id.ToString());
         if (existing != null) await _devicePairs.DeleteAsync(existing);
         
+        var r = new Random();
         var pairCode = new DevicePair
         {
             Id = id,
-            PairCode = CryptoUtils.RandomString(6)
+            PairCode = r.Next(0, 1000000).ToString("000000")
         };
         await _devicePairs.InsertAsync(pairCode, TimeSpan.FromMinutes(10));
 

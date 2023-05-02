@@ -34,7 +34,7 @@ public class TokenController : AuthenticatedSessionControllerBase
             Id = x.Id
         }).ToListAsync();
 
-        return new BaseResponse<IEnumerable<ApiTokenResponse>>()
+        return new BaseResponse<IEnumerable<ApiTokenResponse>>
         {
             Data = apiTokens
         };
