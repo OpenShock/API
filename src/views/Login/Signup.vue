@@ -82,7 +82,6 @@ export default {
   },
   methods: {
     async signup() {
-      console.log("cock");
       this.first.username = true;
       this.first.password = true;
       this.first.email = true;
