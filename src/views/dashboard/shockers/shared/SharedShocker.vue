@@ -9,10 +9,41 @@
             </b-col>
         </b-row>
         <b-row>
-            <label for="intensity">Intensity: {{ shocker.state.intensity }}</label>
-            <b-form-input id="intensity" type="range" min="1" max="100" v-model="shocker.state.intensity"></b-form-input>
-            <label for="duration">Duration: {{ shocker.state.duration / 1000 }}</label>
-            <b-form-input step="100" id="duration" type="range" min="300" max="30000" v-model="shocker.state.duration"></b-form-input>
+            <b-container align-items="center" style="margin-top: 15px">
+                <b-row align-h="center">
+                    <b-col md="auto" style="width: unset">
+                        <round-slider
+                            v-model="shocker.state.intensity"
+                            pathColor="#1b1d1e"
+                            rangeColor="#8577ef"
+                            start-angle="315"
+                            end-angle="+270"
+                            width="30"
+                            line-cap="round"
+                            radius="75"
+                            />
+
+                        <p style="text-align: center;">Intensity</p>
+                    </b-col>
+                    <b-col md="auto"  style="width: unset">
+                        <round-slider
+                            v-model="shocker.state.duration"
+                            pathColor="#1b1d1e"
+                            rangeColor="#8577ef"
+                            start-angle="315"
+                            end-angle="+270"
+                            line-cap="round"
+                            radius="75"
+                            width="30"
+                            min="0.3"
+                            max="30"
+                            step="0.1"
+                            />
+
+                        <p style="text-align: center;">Duration</p>
+                    </b-col>
+                </b-row>
+            </b-container>
         </b-row>
         <b-row align-h="center">
             <b-col cols="auto" md="auto">
@@ -31,9 +62,10 @@
 <script>
 import Loading from '../../../utils/Loading.vue';
 import LoadingButton from '../../../utils/LoadingButton.vue';
+import RoundSlider from 'vue-three-round-slider';
 
 export default {
-  components: { LoadingButton, Loading },
+  components: { LoadingButton, Loading, RoundSlider },
 
         props: ["shocker"],
         data() {
