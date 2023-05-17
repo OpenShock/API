@@ -130,7 +130,7 @@ export default {
                         {
                             "Id": this.shocker.id,
                             "Type": type,
-                            "Duration": parseInt(this.shocker.state.duration),
+                            "Duration": parseInt(this.shocker.state.duration) * 1000,
                             "Intensity": parseInt(this.shocker.state.intensity)
                         }
                     ]
