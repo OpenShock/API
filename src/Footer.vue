@@ -1,6 +1,6 @@
 <template>
-    <p class="version">ShockLink UI 1.0.0 <span>{{ commitHash }}</span></p>
-    <p class="cred">Made by LucHeart</p>
+    <p class="version">ShockLink UI 1.0.0 <a :href="'https://github.com/Shock-Link/WebUI/commit/' + commitHash">{{ commitHash }}</a></p>
+    <p class="cred" href="https://github.com/Shock-Link">Made by ShockLink Team</p>
     <p class="commit"></p>
 </template>
 <script>
