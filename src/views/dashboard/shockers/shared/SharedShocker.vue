@@ -47,13 +47,13 @@
         </b-row>
         <b-row align-h="center">
             <b-col cols="auto" md="auto">
-                <loading-button text="Sound" icon="fa-solid fa-volume-high" :disabled="inProgress" loadingIcon="fa-solid fa-spinner fa-spin" :loading="inProgress" @click="control(3)"/>
+                <loading-button style="width: 46px" text="" icon="fa-solid fa-volume-high" :disabled="inProgress" loadingIcon="fa-solid fa-spinner fa-spin" :loading="inProgress" @click="control(3)"/>
             </b-col>
             <b-col cols="auto" md="auto">
-                <loading-button text="Vibrate" icon="fa-solid fa-water" :disabled="inProgress" loadingIcon="fa-solid fa-spinner fa-spin" :loading="inProgress" @click="control(2)"/>
+                <loading-button style="width: 46px" text="" icon="fa-solid fa-water" :disabled="inProgress" loadingIcon="fa-solid fa-spinner fa-spin" :loading="inProgress" @click="control(2)"/>
             </b-col>
             <b-col cols="auto" md="auto">
-                <loading-button style="left: 0;" text="Shock" icon="fa-solid fa-bolt" :disabled="inProgress" loadingIcon="fa-solid fa-spinner fa-spin" :loading="inProgress" @click="control(1)"/>
+                <loading-button style="left: 0; width: 46px" text="" icon="fa-solid fa-bolt" :disabled="inProgress" loadingIcon="fa-solid fa-spinner fa-spin" :loading="inProgress" @click="control(1)"/>
             </b-col>
         </b-row>
     </b-container>
