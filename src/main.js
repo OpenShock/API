@@ -8,6 +8,7 @@ toastr.options = {
 }
 global.toastr = toastr;
 global.apiCall = ApiCall;
+global.COMMIT_HASH = process.env.COMMIT_HASH;
 
 import jQuery from 'jquery';
 global.jQuery = jQuery;
@@ -23,6 +24,7 @@ import "./App.scss";
 import 'sweetalert2/dist/sweetalert2.min.css';
 
 import App from '@/App';
+import Footer from '@/Footer';
 import router from '@/router';
 import store from '@/store';
 import mitt from 'mitt';
@@ -53,3 +55,6 @@ app.config.devtools = true;
 global.emitter = emitter;
 
 app.mount('#app');
+
+const footerApp = createApp(Footer);
+footerApp.mount('#footerApp');

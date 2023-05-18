@@ -4,6 +4,8 @@ const {CleanWebpackPlugin} = require("clean-webpack-plugin");
 const path = require("path");
 const HtmlWebpackPlugin = require('html-webpack-plugin');
 const webpack = require("webpack");
+const enc = new TextDecoder("utf-8");
+const commitHash = enc.decode(require('child_process').execSync('git rev-parse HEAD')).replace('\n', '');
 
 module.exports = {
 	entry: {
@@ -71,6 +73,9 @@ module.exports = {
 			template: path.resolve(__dirname, "public", "index.html"),
 			favicon: "./public/favicon.ico",
 			inject: true
+		}),
+		new webpack.DefinePlugin({
+			'process.env.COMMIT_HASH': JSON.stringify(commitHash),
 		})
 	],
 	resolve: {

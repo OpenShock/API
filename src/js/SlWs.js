@@ -24,10 +24,10 @@ function newConnection() {
     };
     
     socket.onclose = function(e) {
-        console.log('Socket is closed. Reconnect will be attempted in 1 second.', e.reason);
+        console.log('Socket is closed. Reconnect will be attempted in 5 seconds.', e.reason);
         setTimeout(function() {
             newConnection();
-        }, 1000);
+        }, 5000);
     };
 
     global.ws = socket;
