@@ -1,6 +1,6 @@
 <template>
     <p class="version">ShockLink UI 1.0.0 <a :href="'https://github.com/Shock-Link/WebUI/commit/' + commitHash">{{ commitHash }}</a></p>
-    <p class="cred" href="https://github.com/Shock-Link">Made by ShockLink Team</p>
+    <p class="cred"><a href="https://github.com/Shock-Link">Made by ShockLink Team</a></p>
     <p class="commit"></p>
 </template>
 <script>
@@ -31,15 +31,21 @@ footer {
   p {
     margin-bottom: 0;
     width: 33.3%
-
   }
 
-  .version span {
+  a {
+    text-decoration: none;
+  }
+
+  .version a {
     color: var(--fourth-background-color);
   }
 
   .cred {
     text-align: center;
+    a {
+      color: var(--secondary-color);
+    }
   }
 
   .commit {
