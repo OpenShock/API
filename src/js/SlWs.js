@@ -2,7 +2,7 @@ import storeF from '@/store'
 import * as signalR from '@microsoft/signalr'
 
 const connection = new signalR.HubConnectionBuilder()
-    .withUrl("https://localhost/1/hubs/user")
+    .withUrl(config.apiUrl + "1/hubs/user")
     .configureLogging(signalR.LogLevel.Information)
     .withAutomaticReconnect()
     .build();
