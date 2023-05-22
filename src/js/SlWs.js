@@ -1,5 +1,5 @@
 import storeF from '@/store'
-import * as signalR from '@microsoft/signalR'
+import * as signalR from '@microsoft/signalr'
 
 const connection = new signalR.HubConnectionBuilder()
     .withUrl("https://localhost/1/hubs/user")
