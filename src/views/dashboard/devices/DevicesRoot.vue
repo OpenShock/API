@@ -231,14 +231,7 @@ export default {
       await this.loadDevices();
     },
     sendCaptiveMessage(deviceId, enabled) {
-      const obj = {
-        "RequestType": 1,
-        "data": {
-          "deviceId": deviceId,
-          "enabled": enabled
-        }
-      };
-      ws.send(JSON.stringify(obj));
+      ws.captive(deviceId, enabled);
     },
     ellipsis(e, item) {
       this.$contextmenu({

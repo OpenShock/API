@@ -1,36 +1,32 @@
 import storeF from '@/store'
+import * as signalR from '@microsoft/signalR'
 
-function newConnection() {
-    const socket = new WebSocket(config.wsUrl);
+const connection = new signalR.HubConnectionBuilder()
+    .withUrl("https://localhost/1/hubs/user")
+    .configureLogging(signalR.LogLevel.Information)
+    .withAutomaticReconnect()
+    .build();
 
-    // Connection opened
-    socket.onopen = (event) => {
-        console.log("Connected to websocket")
-    };
-    
-    // Listen for messages
-    socket.onmessage = (event) => {
-        const json = JSON.parse(event.data);
-        switch(json.ResponseType) {
-            case 10:
-                json.Data.forEach(it => {
-                    storeF.dispatch('setDeviceState', {
-                        id: it.Device,
-                        online: it.Online
-                    })
-                });
-                break;
-        }
-    };
-    
-    socket.onclose = function(e) {
-        console.log('Socket is closed. Reconnect will be attempted in 5 seconds.', e.reason);
-        setTimeout(function() {
-            newConnection();
-        }, 5000);
-    };
+connection.on("DeviceStatus", (states) => {
+    console.log(states);
+    states.forEach(state => {
+        storeF.dispatch('setDeviceState', {
+            id: state.device,
+            online: state.online
+        })
+    });
+});
 
-    global.ws = socket;
+const ws = {
+    async control(controlArr) {
+        const res = await connection.invoke("Control", controlArr);
+        console.log(res);
+    },
+    async captive(deviceId, enabled) {
+        await connection.invoke("CaptivePortal", deviceId, enabled);
+    }
 }
 
-newConnection();
+connection.start().catch((err) => toastr.error(err, "Server connection"));
+
+global.ws = ws;

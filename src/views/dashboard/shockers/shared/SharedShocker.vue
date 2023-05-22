@@ -124,18 +124,15 @@ export default {
                 });
             },
             control(type) {
-                const obj = {
-                    "RequestType": 0,
-                    "data": [
-                        {
-                            "Id": this.shocker.id,
-                            "Type": type,
-                            "Duration": parseInt(this.shocker.state.duration) * 1000,
-                            "Intensity": parseInt(this.shocker.state.intensity)
-                        }
-                    ]
-                };
-                ws.send(JSON.stringify(obj));
+                ws.control([
+                    {
+                        "Id": this.shocker.id,
+                        "Type": type,
+                        "Duration": parseInt(this.shocker.state.duration) * 1000,
+                        "Intensity": parseInt(this.shocker.state.intensity)
+                    }
+                ]);
+
                 this.inProgress = true;
 
                 setTimeout(() => this.inProgress = false, this.shocker.state.duration);
