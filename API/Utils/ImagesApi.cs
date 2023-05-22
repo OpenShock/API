@@ -50,7 +50,7 @@ public static class ImagesApi
             return false;
         }
 
-        var json = SlSerializer.Deserialize<CloudflareImagePost>(await res.Content.ReadAsStringAsync());
+        var json = (await res.Content.ReadAsStringAsync()).Deserialize<CloudflareImagePost>();
         if (json == null) throw new JsonException("Json deserialization failed");
         
         Logger.LogTrace("Making new db entry and setting as active avatar");

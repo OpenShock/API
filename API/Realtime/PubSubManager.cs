@@ -1,9 +1,10 @@
 ﻿using System.Text.Json;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using Redis.OM.Contracts;
 using Redis.OM.Searching;
+using ShockLink.API.Hubs;
 using ShockLink.API.Models.WebSocket;
-using ShockLink.API.Realtime;
 using ShockLink.API.Utils;
 using ShockLink.Common.Models.WebSocket;
 using ShockLink.Common.Models.WebSocket.Device;
@@ -14,7 +15,7 @@ using StackExchange.Redis;
 
 #pragma warning disable CS8618
 
-namespace ShockLink.API.RedisPubSub;
+namespace ShockLink.API.Realtime;
 
 public static class PubSubManager
 {
@@ -106,7 +107,8 @@ public static class PubSubManager
         var msg = message.ToString().Split(':');
         if (msg.Length < 2) return;
         await using var scope = _serviceProvider.CreateAsyncScope();
-        await using var db = scope.ServiceProvider.GetRequiredService<ShockLinkContext>();
+        var db = scope.ServiceProvider.GetRequiredService<ShockLinkContext>();
+        var userHub = scope.ServiceProvider.GetRequiredService<IHubContext<UserHub, IUserHub>>();
         if (!Guid.TryParse(msg[1], out var id)) return;
         switch (msg[0])
         {
@@ -118,24 +120,23 @@ public static class PubSubManager
                 }).SingleOrDefaultAsync();
                 if (data == null) return;
 
-
-                var wsData = new BaseResponse<Common.Models.WebSocket.User.ResponseType>
-                {
-                    ResponseType = Common.Models.WebSocket.User.ResponseType.DeviceOnlineState,
-                    Data = new List<DeviceOnlineState>
-                    {
-                        new()
-                        {
-                            Device = id,
-                            Online = set
-                        }
-                    }
-                };
-                await WebsocketManager.UserWebSockets.SendMessageTo(data.Owner, wsData);
-                
                 var sharedWith = await db.Users.Where(x => x.ShockerShares.Any(y => y.Shocker.Device == id))
                     .Select(x => x.Id).ToArrayAsync();
-                await WebsocketManager.UserWebSockets.SendMessageTo(sharedWith, wsData);
+                var userIds = new List<string>
+                {
+                    data.Owner.ToString()
+                };
+                userIds.AddRange(sharedWith.Select(x => x.ToString()));
+                var arr = new[]
+                {
+                    new DeviceOnlineState()
+                    {
+                        Device = id,
+                        Online = set
+                    }
+                };
+                await userHub.Clients.Users(userIds).DeviceStatus(arr);
+                
                 break;
         }
     }

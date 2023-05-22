@@ -2,6 +2,5 @@
 
 public enum RequestType
 {
-    Control = 0,
-    CaptiveControl = 1
+    Control = 0
 }

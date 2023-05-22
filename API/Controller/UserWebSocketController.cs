@@ -1,22 +1,15 @@
-﻿using System.Linq.Expressions;
-using System.Net.WebSockets;
+﻿using System.Net.WebSockets;
 using System.Text;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
 using Microsoft.EntityFrameworkCore;
-using Redis.OM;
-using Redis.OM.Contracts;
-using Redis.OM.Searching;
 using ShockLink.API.Authentication;
-using ShockLink.API.Models.WebSocket;
 using ShockLink.API.Realtime;
-using ShockLink.API.RedisPubSub;
 using ShockLink.API.Serialization;
 using ShockLink.API.Utils;
 using ShockLink.Common.Models.WebSocket;
 using ShockLink.Common.Models.WebSocket.User;
-using ShockLink.Common.Redis;
 using ShockLink.Common.Redis.PubSub;
 using ShockLink.Common.ShockLinkDb;
 
@@ -27,8 +20,6 @@ namespace ShockLink.API.Controller;
 [Route("/{version:apiVersion}/ws/user")]
 public class UserWebSocketController : WebsocketControllerBase<ResponseType>
 {
-    private readonly IRedisCollection<DeviceOnline> _devicesOnline;
-    private readonly IRedisConnectionProvider _redis;
     private readonly IServiceProvider _serviceProvider;
 
     private LinkUser _currentUser = null!;
@@ -42,24 +33,10 @@ public class UserWebSocketController : WebsocketControllerBase<ResponseType>
 
     public override Guid Id => _currentUser.DbUser.Id;
 
-    public UserWebSocketController(ILogger<UserWebSocketController> logger, IHostApplicationLifetime lifetime,
-        IRedisConnectionProvider redisConnectionProvider, IServiceProvider serviceProvider) : base(logger, lifetime)
+    public UserWebSocketController(ILogger<UserWebSocketController> logger, IHostApplicationLifetime lifetime, IServiceProvider serviceProvider) : base(logger, lifetime)
     {
-        _redis = redisConnectionProvider;
         _serviceProvider = serviceProvider;
-        _devicesOnline = redisConnectionProvider.RedisCollection<DeviceOnline>(false);
     }
-
-    protected override void RegisterConnection()
-    {
-        WebsocketManager.UserWebSockets.RegisterConnection(this);
-    }
-
-    protected override void UnregisterConnection()
-    {
-        WebsocketManager.UserWebSockets.UnregisterConnection(this);
-    }
-
 
     protected override async Task Logic()
     {
@@ -74,7 +51,6 @@ public class UserWebSocketController : WebsocketControllerBase<ResponseType>
 
                 if (result.MessageType == WebSocketMessageType.Close || result.CloseStatus.HasValue)
                 {
-                    //await SelfOffline();
                     try
                     {
                         await WebSocket.CloseAsync(WebSocketCloseStatus.NormalClosure,
@@ -120,34 +96,14 @@ public class UserWebSocketController : WebsocketControllerBase<ResponseType>
         switch (json.RequestType)
         {
             case RequestType.Control:
-                var control = json.Data?.SlDeserialize<IEnumerable<Control>>();
+                var control = json.Data?.SlDeserialize<IEnumerable<Common.Models.WebSocket.User.Control>>();
                 if (control == null) return;
                 await Control(control);
-                break;
-            case RequestType.CaptiveControl:
-                var captive = json.Data?.SlDeserialize<CaptiveControl>();
-                if (captive == null) return;
-                await CaptiveControl(captive);
                 break;
         }
     }
 
-    private async Task CaptiveControl(CaptiveControl captiveEnable)
-    {
-        await using var scope = _serviceProvider.CreateAsyncScope();
-        var db = scope.ServiceProvider.GetRequiredService<ShockLinkContext>();
-        var devices = await db.Devices.Where(x => x.Owner == _currentUser.DbUser.Id)
-            .AnyAsync(x => x.Id == captiveEnable.DeviceId);
-        if (!devices) return;
-
-        await PubSubManager.SendCaptiveControlMessage(new CaptiveMessage()
-        {
-            DeviceId = captiveEnable.DeviceId,
-            Enabled = captiveEnable.Enabled
-        });
-    }
-
-    private async Task Control(IEnumerable<Control> shocks)
+    private async Task Control(IEnumerable<Common.Models.WebSocket.User.Control> shocks)
     {
         var finalMessages = new Dictionary<Guid, IList<ControlMessage.ShockerControlInfo>>();
 
@@ -213,37 +169,5 @@ public class UserWebSocketController : WebsocketControllerBase<ResponseType>
         });
 
         await Task.WhenAll(redisTask, db.SaveChangesAsync());
-    }
-
-    protected override async Task SendInitialData()
-    {
-        await using var scope = _serviceProvider.CreateAsyncScope();
-        var db = scope.ServiceProvider.GetRequiredService<ShockLinkContext>();
-        var sharedDevices = await db.Devices
-            .Where(x => x.Shockers.Any(y => y.ShockerShares.Any(z => z.SharedWith == _currentUser.DbUser.Id)))
-            .Select(x => x.Id.ToString()).ToListAsync();
-
-        var own = _devicesOnline.Where(x => x.Owner == _currentUser.DbUser.Id).ToListAsync();
-        var shared = _devicesOnline.FindByIdsAsync(sharedDevices);
-        await Task.WhenAll(own, shared);
-
-        var final = new List<DeviceOnlineState>();
-        final.AddRange(own.Result.Select(x =>
-            new DeviceOnlineState
-            {
-                Device = x.Id,
-                Online = true
-            }));
-        final.AddRange(shared.Result.Values.Where(x => x != null).Select(x =>
-            new DeviceOnlineState
-            {
-                Device = x!.Id,
-                Online = true
-            }));
-        await QueueMessage(new BaseResponse<ResponseType>
-        {
-            ResponseType = ResponseType.DeviceOnlineState,
-            Data = final
-        });
     }
 }

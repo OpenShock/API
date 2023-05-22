@@ -7,7 +7,6 @@ using Newtonsoft.Json;
 using Redis.OM.Contracts;
 using Redis.OM.Searching;
 using ShockLink.API.Authentication;
-using ShockLink.API.Models.WebSocket;
 using ShockLink.API.Realtime;
 using ShockLink.API.Utils;
 using ShockLink.Common.Models.WebSocket;

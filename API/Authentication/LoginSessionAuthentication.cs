@@ -60,10 +60,7 @@ public class LoginSessionAuthentication : AuthenticationHandler<LoginSessionAuth
             return await TokenAuth(tokenHeader!);
         }
         
-
         return Fail("ShockLinkSession/ShockLinkToken header/cookie was not found");
-
-
     }
 
     private async Task<AuthenticateResult> TokenAuth(string token)
@@ -80,7 +77,7 @@ public class LoginSessionAuthentication : AuthenticationHandler<LoginSessionAuth
 
         var claims = new List<Claim>
         {
-            new("id", _authService.CurrentClient.DbUser.Id.ToString())
+            new(ClaimTypes.NameIdentifier, _authService.CurrentClient.DbUser.Id.ToString())
         };
         claims.AddRange(tokenDto.Permissions.Select(tokenDtoPermission => PermissionTypeBindings.TypeToName[tokenDtoPermission]));
         
@@ -106,7 +103,7 @@ public class LoginSessionAuthentication : AuthenticationHandler<LoginSessionAuth
 
         var claims = new List<Claim>
         {
-            new("id", _authService.CurrentClient.DbUser.Id.ToString())
+            new(ClaimTypes.NameIdentifier, _authService.CurrentClient.DbUser.Id.ToString())
         };
         claims.AddRange(PermissionTypeBindings.RoleClaimNames);
 

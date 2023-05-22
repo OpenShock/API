@@ -31,7 +31,7 @@ public abstract class WebsocketControllerBase<T> : ShockLinkControllerBase, IWeb
 
         _channel.Writer.Complete();
         Close.Cancel();
-        WebSocket.Dispose();
+        WebSocket?.Dispose();
     }
 
     [HttpGet]

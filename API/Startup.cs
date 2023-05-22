@@ -9,7 +9,8 @@ using Redis.OM.Contracts;
 using Serilog;
 using ShockLink.API.Authentication;
 using ShockLink.API.ExceptionHandle;
-using ShockLink.API.RedisPubSub;
+using ShockLink.API.Hubs;
+using ShockLink.API.Realtime;
 using ShockLink.API.Utils;
 using ShockLink.Common.Models;
 using ShockLink.Common.Redis;
@@ -41,7 +42,7 @@ public class Startup
             builder.EnableSensitiveDataLogging();
             builder.EnableDetailedErrors();
         });
-
+        
         var redis = new RedisConnectionProvider($"redis://:{ApiConfig.RedisPassword}@{ApiConfig.RedisHost}:6379");
         redis.Connection.CreateIndex(typeof(LoginSession));
         redis.Connection.CreateIndex(typeof(DeviceOnline));
@@ -61,6 +62,7 @@ public class Startup
             Database = 0,
             Password = ApiConfig.RedisPassword
         };
+        
         services.AddStackExchangeRedisExtensions<NewtonsoftSerializer>(redisConf);
 
         services.AddMemoryCache();
@@ -78,6 +80,7 @@ public class Startup
                 ShockLinkAuthSchemas.DeviceToken, _ => { });
         services.AddAuthenticationCore();
         services.AddAuthorization();
+        services.AddSignalR().AddStackExchangeRedis($"{ApiConfig.RedisHost}:6379");
 
         services.AddCors(options =>
         {
@@ -166,6 +169,7 @@ public class Startup
                     ResponseWriter = UiResponseWriter.WriteHealthCheckUiResponse
                 });*/
             endpoints.MapControllers();
+            endpoints.MapHub<UserHub>("/1/hubs/user");
         });
     }
 }

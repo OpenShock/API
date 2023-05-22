@@ -1,5 +1,4 @@
-﻿using ShockLink.Common.Models;
-// ReSharper disable UnusedAutoPropertyAccessor.Global
+﻿// ReSharper disable UnusedAutoPropertyAccessor.Global
 
 namespace ShockLink.Common.Redis.PubSub;
 
