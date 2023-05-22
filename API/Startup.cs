@@ -1,5 +1,6 @@
 ﻿using System.Net;
 using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Http.Connections;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection.Extensions;
@@ -18,6 +19,7 @@ using ShockLink.Common.ShockLinkDb;
 using StackExchange.Redis;
 using StackExchange.Redis.Extensions.Core.Configuration;
 using StackExchange.Redis.Extensions.Newtonsoft;
+using WebSocketOptions = Microsoft.AspNetCore.Builder.WebSocketOptions;
 
 namespace ShockLink.API;
 
@@ -169,7 +171,10 @@ public class Startup
                     ResponseWriter = UiResponseWriter.WriteHealthCheckUiResponse
                 });*/
             endpoints.MapControllers();
-            endpoints.MapHub<UserHub>("/1/hubs/user");
+            endpoints.MapHub<UserHub>("/1/hubs/user", options =>
+            {
+                options.Transports = HttpTransportType.WebSockets;
+            });
         });
     }
 }
