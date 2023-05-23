@@ -9,6 +9,7 @@ using ShockLink.API.Realtime;
 using ShockLink.Common.Redis;
 using ShockLink.Common.Redis.PubSub;
 using ShockLink.Common.ShockLinkDb;
+using Redis.OM;
 
 namespace ShockLink.API.Hubs;
 

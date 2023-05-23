@@ -82,7 +82,6 @@ public class Startup
                 ShockLinkAuthSchemas.DeviceToken, _ => { });
         services.AddAuthenticationCore();
         services.AddAuthorization();
-        services.AddSignalR().AddStackExchangeRedis($"{ApiConfig.RedisHost}:6379");
 
         services.AddCors(options =>
         {
@@ -95,6 +94,8 @@ public class Startup
                 builder.SetPreflightMaxAge(TimeSpan.FromHours(24));
             });
         });
+        services.AddSignalR().AddStackExchangeRedis($"{ApiConfig.RedisHost}:6379");
+        
         services.AddApiVersioning();
         services.AddControllers().AddJsonOptions(x =>
         {
