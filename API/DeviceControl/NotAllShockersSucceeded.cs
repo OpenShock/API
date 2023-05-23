@@ -1,4 +1,4 @@
-﻿namespace ShockLink.API.Control;
+﻿namespace ShockLink.API.DeviceControl;
 
 public struct NotAllShockersSucceeded
 {

@@ -25,7 +25,8 @@ namespace ShockLink.API;
 
 public class Startup
 {
-    public static string EnvString { get; private set; }
+    public static string EnvString { get; private set; } = null!;
+
     private readonly ForwardedHeadersOptions _forwardedSettings = new()
     {
         ForwardedHeaders = ForwardedHeaders.All,
@@ -44,7 +45,7 @@ public class Startup
             builder.EnableSensitiveDataLogging();
             builder.EnableDetailedErrors();
         });
-        
+
         var redis = new RedisConnectionProvider($"redis://:{ApiConfig.RedisPassword}@{ApiConfig.RedisHost}:6379");
         redis.Connection.CreateIndex(typeof(LoginSession));
         redis.Connection.CreateIndex(typeof(DeviceOnline));
@@ -64,7 +65,7 @@ public class Startup
             Database = 0,
             Password = ApiConfig.RedisPassword
         };
-        
+
         services.AddStackExchangeRedisExtensions<NewtonsoftSerializer>(redisConf);
 
         services.AddMemoryCache();
@@ -95,14 +96,11 @@ public class Startup
             });
         });
         services.AddSignalR().AddStackExchangeRedis($"{ApiConfig.RedisHost}:6379");
-        
-        services.AddApiVersioning();
-        services.AddControllers().AddJsonOptions(x =>
-        {
-            x.JsonSerializerOptions.PropertyNameCaseInsensitive = true;
-        });
 
-        services.AddSwaggerGen();  
+        services.AddApiVersioning();
+        services.AddControllers().AddJsonOptions(x => { x.JsonSerializerOptions.PropertyNameCaseInsensitive = true; });
+
+        services.AddSwaggerGen();
         //services.AddHealthChecks().AddCheck<DatabaseHealthCheck>("database");
     }
 
@@ -116,13 +114,11 @@ public class Startup
 
     public void Configure(IApplicationBuilder app, IWebHostEnvironment env, ILoggerFactory loggerFactory)
     {
-        EnvString = env.EnvironmentName; 
+        EnvString = env.EnvironmentName;
         foreach (var proxy in CloudflareProxies)
         {
             var split = proxy.Split('/');
-            var ip = split[0];
-            var mask = int.Parse(split[1]);
-            _forwardedSettings.KnownNetworks.Add(new IPNetwork(IPAddress.Parse(ip), mask));
+            _forwardedSettings.KnownNetworks.Add(new IPNetwork(IPAddress.Parse(split[0]), int.Parse(split[1])));
         }
 
         app.UseForwardedHeaders(_forwardedSettings);
@@ -139,7 +135,7 @@ public class Startup
             EndPoints = { { ApiConfig.RedisHost, 6379 } },
             Password = ApiConfig.RedisPassword,
             DefaultDatabase = 0,
-            ClientName = "abi-api"
+            ClientName = "shocklink-api"
         };
 
         PubSubManager.Initialize(ConnectionMultiplexer.Connect(redisConfiguration), app.ApplicationServices);
@@ -151,12 +147,8 @@ public class Startup
 
         if (env.IsDevelopment())
         {
-            app.UseSwagger();  
-            app.UseSwaggerUI(c =>  
-            {  
-                c.SwaggerEndpoint("/swagger/v1/swagger.json", "ShockLink API");  
-            });  
-
+            app.UseSwagger();
+            app.UseSwaggerUI(c => { c.SwaggerEndpoint("/swagger/v1/swagger.json", "ShockLink API"); });
         }
 
         //app.UseHttpsRedirection();
@@ -172,10 +164,8 @@ public class Startup
                     ResponseWriter = UiResponseWriter.WriteHealthCheckUiResponse
                 });*/
             endpoints.MapControllers();
-            endpoints.MapHub<UserHub>("/1/hubs/user", options =>
-            {
-                options.Transports = HttpTransportType.WebSockets;
-            });
+            endpoints.MapHub<UserHub>("/1/hubs/user",
+                options => { options.Transports = HttpTransportType.WebSockets; });
         });
     }
 }

@@ -2,6 +2,7 @@
 
 namespace ShockLink.Common.Models.WebSocket.User;
 
+// ReSharper disable once ClassNeverInstantiated.Global
 public class Control
 {
     public required Guid Id { get; set; }

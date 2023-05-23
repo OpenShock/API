@@ -3,13 +3,13 @@ using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using Redis.OM.Contracts;
 using ShockLink.API.Authentication;
-using ShockLink.API.Control;
 using ShockLink.API.Models.WebSocket;
 using ShockLink.API.Realtime;
 using ShockLink.Common.Redis;
 using ShockLink.Common.Redis.PubSub;
 using ShockLink.Common.ShockLinkDb;
 using Redis.OM;
+using ShockLink.API.DeviceControl;
 
 namespace ShockLink.API.Hubs;
 

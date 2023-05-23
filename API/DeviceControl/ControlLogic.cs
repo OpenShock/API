@@ -6,7 +6,7 @@ using ShockLink.API.Realtime;
 using ShockLink.Common.Redis.PubSub;
 using ShockLink.Common.ShockLinkDb;
 
-namespace ShockLink.API.Control;
+namespace ShockLink.API.DeviceControl;
 
 public static class ControlLogic
 {
