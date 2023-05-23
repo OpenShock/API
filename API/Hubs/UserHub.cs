@@ -54,9 +54,9 @@ public class UserHub : Hub<IUserHub>
         await Clients.Caller.DeviceStatus(final);
     }
 
-    public Task Control(IEnumerable<Common.Models.WebSocket.User.Control> shocks) =>
-        ControlLogic.Control(shocks, _db, UserId);
-
+    public Task Control(IEnumerable<Common.Models.WebSocket.User.Control> shocks)
+        => ControlLogic.Control(shocks, _db, UserId, this);
+    
     public async Task CaptivePortal(Guid deviceId, bool enabled)
     {
         var devices = await _db.Devices.Where(x => x.Owner == UserId)

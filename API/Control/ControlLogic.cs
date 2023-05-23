@@ -1,6 +1,7 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using OneOf;
 using OneOf.Types;
+using ShockLink.API.Hubs;
 using ShockLink.API.Realtime;
 using ShockLink.Common.Redis.PubSub;
 using ShockLink.Common.ShockLinkDb;
@@ -9,7 +10,7 @@ namespace ShockLink.API.Control;
 
 public static class ControlLogic
 {
-    public static async Task<OneOf<Success>> Control(IEnumerable<Common.Models.WebSocket.User.Control> shocks, ShockLinkContext db, Guid userId)
+    public static async Task<OneOf<Success>> Control(IEnumerable<Common.Models.WebSocket.User.Control> shocks, ShockLinkContext db, Guid userId, UserHub userHub)
     {
         var finalMessages = new Dictionary<Guid, IList<ControlMessage.ShockerControlInfo>>();
         
@@ -18,20 +19,25 @@ public static class ControlLogic
             {
                 x.Id,
                 x.RfId,
-                x.Device
+                x.Device,
+                x.DeviceNavigation.Owner
             }).ToListAsync();
 
         var sharedShockers = await db.ShockerShares.Where(x => x.SharedWith == userId).Select(x => new
         {
             x.Shocker.Id,
             x.Shocker.RfId,
-            x.Shocker.Device
+            x.Shocker.Device,
+            x.Shocker.DeviceNavigation.Owner
         }).ToListAsync();
 
         ownShockers.AddRange(sharedShockers);
 
         var curTime = DateTime.UtcNow;
-        foreach (var shock in shocks.DistinctBy(x => x.Id))
+        var distinctShocks = shocks.DistinctBy(x => x.Id).ToArray();
+        var logs = new Dictionary<Guid, List<Common.Models.WebSocket.User.Control>>();
+        
+        foreach (var shock in distinctShocks)
         {
             var shockerInfo = ownShockers.FirstOrDefault(x => x.Id == shock.Id);
             if (shockerInfo == null)
@@ -64,6 +70,11 @@ public static class ControlLogic
                 Duration = deviceEntry.Duration,
                 Type = deviceEntry.Type
             });
+
+            if (!logs.ContainsKey(shockerInfo.Owner)) logs[shockerInfo.Owner] = new List<Common.Models.WebSocket.User.Control>();
+            
+            logs[shockerInfo.Owner].Add(shock);
+            
         }
 
         var redisTask = PubSubManager.SendControlMessage(new ControlMessage
@@ -73,6 +84,9 @@ public static class ControlLogic
         });
 
         await Task.WhenAll(redisTask, db.SaveChangesAsync());
+
+        var logSends = logs.Select(x => userHub.Clients.User(x.Key.ToString()).Log(x.Value));
+        await Task.WhenAll(logSends);
 
         return new OneOf<Success>();
     }
