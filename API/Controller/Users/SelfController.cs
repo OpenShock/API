@@ -72,11 +72,6 @@ public sealed class SelfController : AuthenticatedSessionControllerBase
         };
     }
 
-    public class AvatarRequest
-    {
-        public required string Image { get; set; }
-    }
-    
     public class SelfResponse
     {
         public required Guid Id { get; set; }

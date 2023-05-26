@@ -1,4 +1,6 @@
-﻿namespace ShockLink.API.Models.Response;
+﻿using ShockLink.Common.Models;
+
+namespace ShockLink.API.Models.Response;
 
 public class ShareInfo
 {

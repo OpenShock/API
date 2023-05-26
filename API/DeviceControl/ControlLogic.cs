@@ -3,6 +3,9 @@ using OneOf;
 using OneOf.Types;
 using ShockLink.API.Hubs;
 using ShockLink.API.Realtime;
+using ShockLink.API.Utils;
+using ShockLink.Common.Models;
+using ShockLink.Common.Models.WebSocket.User;
 using ShockLink.Common.Redis.PubSub;
 using ShockLink.Common.ShockLinkDb;
 
@@ -18,6 +21,7 @@ public static class ControlLogic
             new
             {
                 x.Id,
+                x.Name,
                 x.RfId,
                 x.Device,
                 x.DeviceNavigation.Owner
@@ -26,6 +30,7 @@ public static class ControlLogic
         var sharedShockers = await db.ShockerShares.Where(x => x.SharedWith == userId).Select(x => new
         {
             x.Shocker.Id,
+            x.Shocker.Name,
             x.Shocker.RfId,
             x.Shocker.Device,
             x.Shocker.DeviceNavigation.Owner
@@ -35,7 +40,7 @@ public static class ControlLogic
 
         var curTime = DateTime.UtcNow;
         var distinctShocks = shocks.DistinctBy(x => x.Id).ToArray();
-        var logs = new Dictionary<Guid, List<Common.Models.WebSocket.User.Control>>();
+        var logs = new Dictionary<Guid, List<ControlLogWrap.ControlLog>>();
         
         foreach (var shock in distinctShocks)
         {
@@ -71,9 +76,19 @@ public static class ControlLogic
                 Type = deviceEntry.Type
             });
 
-            if (!logs.ContainsKey(shockerInfo.Owner)) logs[shockerInfo.Owner] = new List<Common.Models.WebSocket.User.Control>();
+            if (!logs.ContainsKey(shockerInfo.Owner)) logs[shockerInfo.Owner] = new List<ControlLogWrap.ControlLog>();
             
-            logs[shockerInfo.Owner].Add(shock);
+            logs[shockerInfo.Owner].Add(new ControlLogWrap.ControlLog
+            {
+                Shocker = new ControlLogWrap.GenericIn
+                {
+                    Id = shockerInfo.Id,
+                    Name = shockerInfo.Name
+                },
+                Type = deviceEntry.Type,
+                Duration = deviceEntry.Duration,
+                Intensity = deviceEntry.Intensity
+            });
             
         }
 
@@ -85,7 +100,18 @@ public static class ControlLogic
 
         await Task.WhenAll(redisTask, db.SaveChangesAsync());
 
-        var logSends = logs.Select(x => userHub.Clients.User(x.Key.ToString()).Log(x.Value));
+        var sender = await db.Users.Where(x => x.Id == userId).Select(x => new GenericIni
+        {
+            Id = x.Id,
+            Name = x.Name,
+            Image = ImagesApi.GetImageRoot(x.Image)
+        }).SingleAsync();
+        
+        var logSends = logs.Select(x => userHub.Clients.User(x.Key.ToString()).Log(new ControlLogWrap
+        {
+            Sender = sender,
+            Logs = x.Value
+        }));
         await Task.WhenAll(logSends);
 
         return new OneOf<Success>();
