@@ -40,7 +40,7 @@ public static class ControlLogic
 
         var curTime = DateTime.UtcNow;
         var distinctShocks = shocks.DistinctBy(x => x.Id).ToArray();
-        var logs = new Dictionary<Guid, List<ControlLogWrap.ControlLog>>();
+        var logs = new Dictionary<Guid, List<ControlLog>>();
         
         foreach (var shock in distinctShocks)
         {
@@ -76,11 +76,11 @@ public static class ControlLogic
                 Type = deviceEntry.Type
             });
 
-            if (!logs.ContainsKey(shockerInfo.Owner)) logs[shockerInfo.Owner] = new List<ControlLogWrap.ControlLog>();
+            if (!logs.ContainsKey(shockerInfo.Owner)) logs[shockerInfo.Owner] = new List<ControlLog>();
             
-            logs[shockerInfo.Owner].Add(new ControlLogWrap.ControlLog
+            logs[shockerInfo.Owner].Add(new ControlLog
             {
-                Shocker = new ControlLogWrap.GenericIn
+                Shocker = new GenericIn
                 {
                     Id = shockerInfo.Id,
                     Name = shockerInfo.Name
@@ -107,11 +107,7 @@ public static class ControlLogic
             Image = ImagesApi.GetImageRoot(x.Image)
         }).SingleAsync();
         
-        var logSends = logs.Select(x => userHub.Clients.User(x.Key.ToString()).Log(new ControlLogWrap
-        {
-            Sender = sender,
-            Logs = x.Value
-        }));
+        var logSends = logs.Select(x => userHub.Clients.User(x.Key.ToString()).Log(sender, x.Value));
         await Task.WhenAll(logSends);
 
         return new OneOf<Success>();
