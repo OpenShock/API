@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using ShockLink.API.Authentication;
 using ShockLink.API.Models;
 using ShockLink.API.Models.Requests;
+using ShockLink.Common.Models;
 using ShockLink.Common.ShockLinkDb;
 
 namespace ShockLink.API.Controller.Shockers;
@@ -30,7 +31,8 @@ public class CreateShockersController : AuthenticatedSessionControllerBase
             Id = Guid.NewGuid(),
             Name = data.Name,
             RfId = data.RfId,
-            Device = data.Device
+            Device = data.Device,
+            Model = ShockerModel.Small
         };
         _db.Shockers.Add(shocker);
         await _db.SaveChangesAsync();
