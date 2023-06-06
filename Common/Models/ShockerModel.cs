@@ -1,7 +1,9 @@
-﻿namespace ShockLink.Common.Models;
+﻿using NpgsqlTypes;
+
+namespace ShockLink.Common.Models;
 
 public enum ShockerModel
 {
     Small = 0,
-    PetTrainer = 1
+    [PgName("petTrainer")] PetTrainer = 1
 }
