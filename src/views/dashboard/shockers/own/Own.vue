@@ -15,7 +15,7 @@
         <div v-else>
           <b-container style="padding: 0;">
             <b-form-group label="Shocker's device" label-for="device">
-                <b-form-select :state="validationDevice" id="device" v-model="selectedDevice" :options="deviceList" required></b-form-select>
+                <b-form-select :state="validationDevice" id="device" v-model="selectedDevice" :options="deviceList" required/>
                 <b-form-invalid-feedback :state="validationDevice">
                     Select a device
                 </b-form-invalid-feedback>
@@ -34,6 +34,13 @@
                     Must be a number between 0 - 65535
                 </b-form-invalid-feedback>
             </b-form-group>
+
+            <b-form-group label="Model" label-for="item-model" label-class="mb-1">
+              <b-form-select id="item-model" :state="validationModel" v-model="newModel" :options="modelOptions"/>
+              <b-form-invalid-feedback :state="validationModel">
+                    Select a model type
+                </b-form-invalid-feedback>
+            </b-form-group>
           </b-container>
         </div>
       </b-modal>
@@ -47,7 +54,7 @@
             </b-form-group>
 
             <b-form-group label="Device (editable)" label-for="item-device" label-class="mb-1">
-              <b-form-input id="item-device" :state="validationEditDevice" v-model="retrievedShocker.device"/>
+              <b-form-select id="item-device" :state="validationEditDevice" v-model="retrievedShocker.device" :options="deviceList" required/>
               <b-form-invalid-feedback :state="validationEditDevice">
                     Select a device
                 </b-form-invalid-feedback>
@@ -64,6 +71,13 @@
               <b-form-input id="item-rfid" :state="validationEditRfId" v-model="retrievedShocker.rfId"/>
               <b-form-invalid-feedback :state="validationEditRfId">
                     Must be a number between 0 - 65535
+                </b-form-invalid-feedback>
+            </b-form-group>
+
+            <b-form-group label="Model (editable)" label-for="item-model" label-class="mb-1">
+              <b-form-select id="item-model" :state="validationEditModel" v-model="retrievedShocker.model" :options="modelOptions"/>
+              <b-form-invalid-feedback :state="validationEditModel">
+                    Select a model type
                 </b-form-invalid-feedback>
             </b-form-group>
 
@@ -86,9 +100,20 @@ export default {
         return {
             ownShockers: [],
             devices: [],
+            modelOptions: [
+                {
+                    text: "Small",
+                    value: 0
+                },
+                {
+                    text: "PetTrainer",
+                    value: 1
+                }
+            ],
             selectedDevice: "",
             newName: "",
             newRfId: 0,
+            newModel: 0,
             devicesLoading: false,
             modal: {
                 new: false,
@@ -99,7 +124,8 @@ export default {
                 id: "",
                 rfId: 0,
                 name: "",
-                createdOn: ""
+                createdOn: "",
+                model: 0
             }
         }
     },
@@ -111,6 +137,7 @@ export default {
 
         this.emitter.on('editShocker', async shockerId => {
             this.modal.edit = true;
+            await this.loadDevices();
             await this.getShocker(shockerId);
         });
     },
@@ -134,6 +161,13 @@ export default {
         validationRfId() {
             return this.newRfId >= 0 && this.newRfId <= 65535;
         },
+        validationModel() {
+            var valid = false;
+            this.modelOptions.forEach((text, value) => {
+                if(value === this.newModel) valid = true;
+            });
+            return valid;
+        },
 
         validationEditDevice() {
             return this.retrievedShocker.device !== "";
@@ -143,6 +177,13 @@ export default {
         },
         validationEditRfId() {
             return this.retrievedShocker.rfId >= 0 && this.retrievedShocker.rfId <= 65535;
+        },
+        validationEditModel() {
+            var valid = false;
+            this.modelOptions.forEach((text, value) => {
+                if(value === this.retrievedShocker.model) valid = true;
+            });
+            return valid;
         }
     },
     methods: {
@@ -167,8 +208,8 @@ export default {
             this.devicesLoading = true;
             const res = await apiCall.makeCall('GET', '1/devices');
             if (res === undefined || res.status !== 200) {
-            toastr.error("Error while retrieving devices");
-            return;
+                toastr.error("Error while retrieving devices");
+                return;
             }
 
             this.devices = res.data.data;
@@ -177,7 +218,7 @@ export default {
         async openNewShockerModal() {
             this.selectedDevice = "";
             this.newName = "New Shocker " + new Date().toISOString();
-            this.rfId = 
+            this.newRfId = Math.floor(Math.random() * 65536);
             this.modal.new = true;
             await this.loadDevices();
         },
@@ -187,11 +228,12 @@ export default {
             const res = await apiCall.makeCall('POST', '1/shockers', {
                 device: this.selectedDevice,
                 name: this.newName,
-                rfId: this.newRfId
+                rfId: this.newRfId,
+                model: this.newModel
             });
             if (res === undefined || res.status !== 201) {
-            toastr.error("Error while creating new shocker");
-            return;
+                toastr.error("Error while creating new shocker");
+                return;
             }
             
             this.modal.new = false;
@@ -215,7 +257,8 @@ export default {
             const res = await apiCall.makeCall('PATCH', '1/shockers/' + this.retrievedShocker.id, {
                 name: this.retrievedShocker.name,
                 device: this.retrievedShocker.device,
-                rfId: this.retrievedShocker.rfId
+                rfId: this.retrievedShocker.rfId,
+                model: this.retrievedShocker.model
             });
 
             if (res === undefined || res.status !== 200) {
