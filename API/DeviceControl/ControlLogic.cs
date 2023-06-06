@@ -64,7 +64,7 @@ public static class ControlLogic
                 Duration = Math.Clamp(shock.Duration, 300, 30000),
                 Intensity = Math.Clamp(shock.Intensity, (byte)1, (byte)100),
                 Type = shock.Type,
-                ModelType = shockerInfo.Model
+                Model = shockerInfo.Model
             };
             deviceGroup.Add(deviceEntry);
 
