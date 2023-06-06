@@ -1,8 +1,8 @@
 <template>
   <router-view v-slot="{ Component }">
     <transition name="component-fade" mode="out-in">
-      <div v-if="self.transitionFinished" :key="'0'" id="app-root"
-           class="app-height-100 manager-root">
+      <div v-if="self.transitionFinished && self.success" :key="'0'" id="app-root"
+           class="manager-root">
         <nav-root></nav-root>
 
         <transition name="component-fade" mode="out-in">
@@ -10,10 +10,11 @@
         </transition>
 
       </div>
-      <div v-else :key="'1'" class="app-height-100 manager-root-loading row align-items-center justify-content-center">
+      <div v-else :key="'1'" class="manager-root-loading row align-items-center justify-content-center">
         <loading-view class="col-1" style="width: fit-content" :loading="self.loading" :error="!self.success"
-                      :loading-text="'<p>Authenticating user.<br>Please wait...</p>'"
-                      :success-text="'<p>Successfully authenticated.<br>Now loading <b><u>Dashboard</u></b></p>'"/>
+                      loading-text="<p>Authenticating user.<br>Please wait...</p>"
+                      success-text="<p>Successfully authenticated.<br>Now loading <b><u>Dashboard</u></b></p>"
+                      errorText="<p>Failed to load dashboard</p>"/>
       </div>
     </transition>
   </router-view>
