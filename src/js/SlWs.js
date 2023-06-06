@@ -8,7 +8,6 @@ const connection = new signalR.HubConnectionBuilder()
     .build();
 
 connection.on("DeviceStatus", (states) => {
-    console.log(states);
     states.forEach(state => {
         storeF.dispatch('setDeviceState', {
             id: state.device,
