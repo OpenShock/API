@@ -1,4 +1,5 @@
-﻿using ShockLink.Common.Models;
+﻿using System.Text.Json.Serialization;
+using ShockLink.Common.Models;
 
 namespace ShockLink.API.Models.Response;
 
@@ -8,5 +9,6 @@ public class ShockerResponse
     public required ushort RfId { get; set; }
     public required string Name { get; set; }
     public required DateTime CreatedOn { get; set; }
+    [JsonConverter(typeof(JsonStringEnumConverter))]
     public required ShockerModelType Model { get; set; }
 }
