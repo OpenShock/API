@@ -96,14 +96,14 @@ public class UserWebSocketController : WebsocketControllerBase<ResponseType>
         switch (json.RequestType)
         {
             case RequestType.Control:
-                var control = json.Data?.SlDeserialize<IEnumerable<Common.Models.WebSocket.User.Control>>();
+                var control = json.Data?.SlDeserialize<IEnumerable<Control>>();
                 if (control == null) return;
                 await Control(control);
                 break;
         }
     }
 
-    private async Task Control(IEnumerable<Common.Models.WebSocket.User.Control> shocks)
+    private async Task Control(IEnumerable<Control> shocks)
     {
         var finalMessages = new Dictionary<Guid, IList<ControlMessage.ShockerControlInfo>>();
 
@@ -114,14 +114,16 @@ public class UserWebSocketController : WebsocketControllerBase<ResponseType>
             {
                 x.Id,
                 x.RfId,
-                x.Device
+                x.Device,
+                x.Model
             }).ToListAsync();
 
         var sharedShockers = await db.ShockerShares.Where(x => x.SharedWith == _currentUser.DbUser.Id).Select(x => new
         {
             x.Shocker.Id,
             x.Shocker.RfId,
-            x.Shocker.Device
+            x.Shocker.Device,
+            x.Shocker.Model
         }).ToListAsync();
 
         ownShockers.AddRange(sharedShockers);
@@ -146,7 +148,8 @@ public class UserWebSocketController : WebsocketControllerBase<ResponseType>
                 RfId = shockerInfo.RfId,
                 Duration = Math.Clamp(shock.Duration, 300, 30000),
                 Intensity = Math.Clamp(shock.Intensity, (byte)1, (byte)100),
-                Type = shock.Type
+                Type = shock.Type,
+                Model = shockerInfo.Model
             };
             deviceGroup.Add(deviceEntry);
 

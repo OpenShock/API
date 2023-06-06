@@ -36,7 +36,8 @@ public partial class ShockLinkContext : DbContext
         modelBuilder
             .HasPostgresEnum("ShockLink", "cf_images_type", new[] { "avatar" })
             .HasPostgresEnum("ShockLink", "control_type", new[] { "sound", "vibrate", "shock" })
-            .HasPostgresEnum("ShockLink", "permission_type", new[] { "shockers.use" });
+            .HasPostgresEnum("ShockLink", "permission_type", new[] { "shockers.use" })
+            .HasPostgresEnum("ShockLink", "shocker_model_type", new[] { "small", "petTrainer" });
 
         modelBuilder.Entity<ApiToken>(entity =>
         {
@@ -129,6 +130,8 @@ public partial class ShockLinkContext : DbContext
             entity.Property(e => e.Name)
                 .HasMaxLength(64)
                 .HasColumnName("name");
+            entity.Property(e => e.Paused).HasColumnName("paused");
+            entity.Property(e => e.Model).HasColumnType("shocker_model_type").HasColumnName("model");
             entity.Property(e => e.RfId).HasColumnName("rf_id");
 
             entity.HasOne(d => d.DeviceNavigation).WithMany(p => p.Shockers)

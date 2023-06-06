@@ -39,6 +39,7 @@ public class Startup
         NpgsqlConnection.GlobalTypeMapper.MapEnum<ControlType>();
         NpgsqlConnection.GlobalTypeMapper.MapEnum<CfImagesType>();
         NpgsqlConnection.GlobalTypeMapper.MapEnum<PermissionType>();
+        NpgsqlConnection.GlobalTypeMapper.MapEnum<ShockerModel>();
         services.AddDbContextPool<ShockLinkContext>(builder =>
         {
             builder.UseNpgsql(ApiConfig.Db);

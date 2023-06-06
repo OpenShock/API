@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using ShockLink.Common.Models;
 
 namespace ShockLink.Common.ShockLinkDb;
 
@@ -14,6 +15,10 @@ public partial class Shocker
     public Guid Device { get; set; }
 
     public DateTime CreatedOn { get; set; }
+
+    public bool Paused { get; set; }
+    
+    public ShockerModel Model { get; set; }
 
     public virtual Device DeviceNavigation { get; set; } = null!;
 
