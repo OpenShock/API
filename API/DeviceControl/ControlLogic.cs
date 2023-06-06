@@ -61,7 +61,8 @@ public static class ControlLogic
                 RfId = shockerInfo.RfId,
                 Duration = Math.Clamp(shock.Duration, 300, 30000),
                 Intensity = Math.Clamp(shock.Intensity, (byte)1, (byte)100),
-                Type = shock.Type
+                Type = shock.Type,
+                Model = ShockerModel.Small
             };
             deviceGroup.Add(deviceEntry);
 

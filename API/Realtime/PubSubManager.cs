@@ -91,7 +91,7 @@ public static class PubSubManager
         foreach (var controlMessage in data.ControlMessages)
         {
             var shockies = controlMessage.Value.Select(shock => new ControlResponse
-                { Id = shock.RfId, Duration = shock.Duration, Intensity = shock.Intensity, Type = shock.Type });
+                { Id = shock.RfId, Duration = shock.Duration, Intensity = shock.Intensity, Type = shock.Type, Model = shock.Model});
 
             await WebsocketManager.DeviceWebSockets.SendMessageTo(controlMessage.Key, new BaseResponse<ResponseType>
             {
