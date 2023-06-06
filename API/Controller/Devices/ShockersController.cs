@@ -29,7 +29,8 @@ public class ShockersController : AuthenticatedSessionControllerBase
             Id = x.Id,
             Name = x.Name,
             RfId = x.RfId,
-            CreatedOn = x.CreatedOn
+            CreatedOn = x.CreatedOn,
+            Model = x.Model
         }).ToListAsync();
         return new BaseResponse<IEnumerable<ShockerResponse>>
         {
