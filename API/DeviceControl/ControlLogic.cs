@@ -25,7 +25,7 @@ public static class ControlLogic
                 x.RfId,
                 x.Device,
                 x.DeviceNavigation.Owner,
-                Model = x.ModelType
+                Model = x.Model
             }).ToListAsync();
 
         var sharedShockers = await db.ShockerShares.Where(x => x.SharedWith == userId).Select(x => new
@@ -35,7 +35,7 @@ public static class ControlLogic
             x.Shocker.RfId,
             x.Shocker.Device,
             x.Shocker.DeviceNavigation.Owner,
-            Model = x.Shocker.ModelType
+            Model = x.Shocker.Model
         }).ToListAsync();
 
         ownShockers.AddRange(sharedShockers);

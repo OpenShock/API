@@ -28,7 +28,8 @@ public class GetShockerController : AuthenticatedSessionControllerBase
             Name = x.Name,
             RfId = x.RfId,
             CreatedOn = x.CreatedOn,
-            Device = x.Device
+            Device = x.Device,
+            Model = x.Model
         }).SingleOrDefaultAsync();
 
         if (shocker == null)

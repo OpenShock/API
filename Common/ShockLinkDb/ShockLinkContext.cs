@@ -131,7 +131,7 @@ public partial class ShockLinkContext : DbContext
                 .HasMaxLength(64)
                 .HasColumnName("name");
             entity.Property(e => e.Paused).HasColumnName("paused");
-            entity.Property(e => e.ModelType).HasColumnType("shocker_model_type").HasColumnName("model");
+            entity.Property(e => e.Model).HasColumnType("shocker_model_type").HasColumnName("model");
             entity.Property(e => e.RfId).HasColumnName("rf_id");
 
             entity.HasOne(d => d.DeviceNavigation).WithMany(p => p.Shockers)

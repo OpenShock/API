@@ -30,6 +30,7 @@ public class PatchShockerController : AuthenticatedSessionControllerBase
         shocker.Device = data.Device;
         shocker.Name = data.Name;
         shocker.RfId = data.RfId;
+        shocker.Model = data.Model;
 
         await _db.SaveChangesAsync();
         

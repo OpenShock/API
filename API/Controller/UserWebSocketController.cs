@@ -115,7 +115,7 @@ public class UserWebSocketController : WebsocketControllerBase<ResponseType>
                 x.Id,
                 x.RfId,
                 x.Device,
-                Model = x.ModelType
+                Model = x.Model
             }).ToListAsync();
 
         var sharedShockers = await db.ShockerShares.Where(x => x.SharedWith == _currentUser.DbUser.Id).Select(x => new
@@ -123,7 +123,7 @@ public class UserWebSocketController : WebsocketControllerBase<ResponseType>
             x.Shocker.Id,
             x.Shocker.RfId,
             x.Shocker.Device,
-            Model = x.Shocker.ModelType
+            Model = x.Shocker.Model
         }).ToListAsync();
 
         ownShockers.AddRange(sharedShockers);
