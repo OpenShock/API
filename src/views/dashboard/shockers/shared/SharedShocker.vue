@@ -135,7 +135,7 @@ export default {
 
                 this.inProgress = true;
 
-                setTimeout(() => this.inProgress = false, this.shocker.state.duration);
+                setTimeout(() => this.inProgress = false, this.shocker.state.duration * 1000);
             }
         }
     }
