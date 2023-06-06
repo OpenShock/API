@@ -15,6 +15,6 @@ public class ControlMessage
         public required byte Intensity { get; set; }
         public required uint Duration { get; set; }
         public required ControlType Type { get; set; }
-        public required ShockerModel Model { get; set; }
+        public required ShockerModelType ModelType { get; set; }
     }
 }

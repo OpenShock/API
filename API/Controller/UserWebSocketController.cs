@@ -115,7 +115,7 @@ public class UserWebSocketController : WebsocketControllerBase<ResponseType>
                 x.Id,
                 x.RfId,
                 x.Device,
-                x.Model
+                Model = x.ModelType
             }).ToListAsync();
 
         var sharedShockers = await db.ShockerShares.Where(x => x.SharedWith == _currentUser.DbUser.Id).Select(x => new
@@ -123,7 +123,7 @@ public class UserWebSocketController : WebsocketControllerBase<ResponseType>
             x.Shocker.Id,
             x.Shocker.RfId,
             x.Shocker.Device,
-            x.Shocker.Model
+            Model = x.Shocker.ModelType
         }).ToListAsync();
 
         ownShockers.AddRange(sharedShockers);
@@ -149,7 +149,7 @@ public class UserWebSocketController : WebsocketControllerBase<ResponseType>
                 Duration = Math.Clamp(shock.Duration, 300, 30000),
                 Intensity = Math.Clamp(shock.Intensity, (byte)1, (byte)100),
                 Type = shock.Type,
-                Model = shockerInfo.Model
+                ModelType = shockerInfo.Model
             };
             deviceGroup.Add(deviceEntry);
 

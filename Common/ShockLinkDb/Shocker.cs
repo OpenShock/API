@@ -18,7 +18,7 @@ public partial class Shocker
 
     public bool Paused { get; set; }
     
-    public ShockerModel Model { get; set; }
+    public ShockerModelType ModelType { get; set; }
 
     public virtual Device DeviceNavigation { get; set; } = null!;
 

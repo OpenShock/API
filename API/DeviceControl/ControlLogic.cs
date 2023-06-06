@@ -25,7 +25,7 @@ public static class ControlLogic
                 x.RfId,
                 x.Device,
                 x.DeviceNavigation.Owner,
-                x.Model
+                Model = x.ModelType
             }).ToListAsync();
 
         var sharedShockers = await db.ShockerShares.Where(x => x.SharedWith == userId).Select(x => new
@@ -35,7 +35,7 @@ public static class ControlLogic
             x.Shocker.RfId,
             x.Shocker.Device,
             x.Shocker.DeviceNavigation.Owner,
-            x.Shocker.Model
+            Model = x.Shocker.ModelType
         }).ToListAsync();
 
         ownShockers.AddRange(sharedShockers);
@@ -64,7 +64,7 @@ public static class ControlLogic
                 Duration = Math.Clamp(shock.Duration, 300, 30000),
                 Intensity = Math.Clamp(shock.Intensity, (byte)1, (byte)100),
                 Type = shock.Type,
-                Model = shockerInfo.Model
+                ModelType = shockerInfo.Model
             };
             deviceGroup.Add(deviceEntry);
 

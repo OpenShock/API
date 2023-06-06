@@ -32,7 +32,7 @@ public class CreateShockersController : AuthenticatedSessionControllerBase
             Name = data.Name,
             RfId = data.RfId,
             Device = data.Device,
-            Model = ShockerModel.Small
+            ModelType = ShockerModelType.Small
         };
         _db.Shockers.Add(shocker);
         await _db.SaveChangesAsync();
