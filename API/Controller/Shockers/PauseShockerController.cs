@@ -18,7 +18,7 @@ public class PauseShockersController : AuthenticatedSessionControllerBase
         _db = db;
     }
 
-    [HttpPost("{id:guid}")]
+    [HttpPost("{id:guid}/pause")]
     public async Task<BaseResponse<object>> Pause(Guid id, bool pause)
     {
         var shocker = await _db.Shockers.Where(x => x.Id == id && x.DeviceNavigation.Owner == CurrentUser.DbUser.Id)
