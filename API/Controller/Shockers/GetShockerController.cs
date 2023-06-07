@@ -29,7 +29,8 @@ public class GetShockerController : AuthenticatedSessionControllerBase
             RfId = x.RfId,
             CreatedOn = x.CreatedOn,
             Device = x.Device,
-            Model = x.Model
+            Model = x.Model,
+            IsPaused = x.Paused
         }).SingleOrDefaultAsync();
 
         if (shocker == null)

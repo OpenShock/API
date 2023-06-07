@@ -30,6 +30,7 @@ public class SharedShockersController : AuthenticatedSessionControllerBase
                 DeviceName = x.Shocker.DeviceNavigation.Name,
                 x.Shocker.Id,
                 x.Shocker.Name,
+                x.Shocker.Paused,
                 x.PermVibrate,
                 x.PermSound,
                 x.PermShock
@@ -38,6 +39,8 @@ public class SharedShockersController : AuthenticatedSessionControllerBase
         var shared = new Dictionary<Guid, OwnerShockerResponse>();
         foreach (var shocker in sharedShockersRaw)
         {
+            // No I dont want unnecessary alloc
+            // ReSharper disable once CanSimplifyDictionaryLookupWithTryAdd
             if (!shared.ContainsKey(shocker.OwnerId))
                 shared[shocker.OwnerId] = new OwnerShockerResponse
                 {
@@ -59,6 +62,7 @@ public class SharedShockersController : AuthenticatedSessionControllerBase
             {
                 Id = shocker.Id,
                 Name = shocker.Name,
+                IsPaused = shocker.Paused,
                 PermShock = shocker.PermShock,
                 PermSound = shocker.PermVibrate,
                 PermVibrate = shocker.PermVibrate

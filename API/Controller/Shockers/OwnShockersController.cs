@@ -32,7 +32,8 @@ public class OwnShockersController : AuthenticatedSessionControllerBase
                 Name = y.Name,
                 RfId = y.RfId,
                 CreatedOn = y.CreatedOn,
-                Model = y.Model
+                Model = y.Model,
+                IsPaused = y.Paused
             })
         }).ToListAsync();
         
