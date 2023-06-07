@@ -30,7 +30,8 @@ public class ShockersController : AuthenticatedSessionControllerBase
             Name = x.Name,
             RfId = x.RfId,
             CreatedOn = x.CreatedOn,
-            Model = x.Model
+            Model = x.Model,
+            IsPaused = x.Paused
         }).ToListAsync();
         return new BaseResponse<IEnumerable<ShockerResponse>>
         {
