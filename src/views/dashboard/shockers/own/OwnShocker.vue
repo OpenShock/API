@@ -1,6 +1,15 @@
 <template>
     <b-container class="shocker">
         <b-row class="head">
+            <b-col cols="auto" class="pause-col" @click="togglePause">
+                <span v-if="shocker.isPaused" class="paused">
+                    <i class="fa-solid fa-play"></i>
+                </span>
+
+                <span v-else>
+                    <i class="fa-solid fa-pause"></i>
+                </span>
+            </b-col>
             <b-col cols="10" class="shocker-name-col">
                 <p class="shocker-name">{{ shocker.name }}</p>
             </b-col>
@@ -8,39 +17,55 @@
                 <i class="fa-solid fa-ellipsis-vertical"></i>
             </b-col>
         </b-row>
-        <b-row>
-            <b-container align-items="center" style="margin-top: 15px">
+        <div class="content-container">
+            <div v-if="shocker.isPaused" class="paused-text width100">
+                <b-container class="width100">
+                    <b-row align-h="center">
+                        <b-col cols="auto">
+                            <h2>Paused</h2>
+                        </b-col>
+                        <b-col cols="auto" @click="togglePause" style="cursor: pointer;">
+                            <i style="font-size: 38px;" class="fa-solid fa-play"></i>
+                        </b-col>
+                    </b-row>
+                </b-container>
+            </div>
+            <div class="content-child" :class="shocker.isPaused ? 'paused' : ''">
+                <b-row>
+                    <b-container align-items="center" style="margin-top: 15px">
+                        <b-row align-h="center">
+                            <b-col md="auto" style="width: unset">
+                                <round-slider v-model="shocker.state.intensity" pathColor="#1b1d1e" rangeColor="#8577ef"
+                                    start-angle="315" end-angle="+270" width="30" line-cap="round" radius="75" />
+
+                                <p style="text-align: center;">Intensity</p>
+                            </b-col>
+                            <b-col md="auto" style="width: unset">
+                                <round-slider v-model="shocker.state.duration" pathColor="#1b1d1e" rangeColor="#8577ef"
+                                    start-angle="315" end-angle="+270" line-cap="round" radius="75" width="30" min="0.3"
+                                    max="30" step="0.1" />
+
+                                <p style="text-align: center;">Duration</p>
+                            </b-col>
+                        </b-row>
+                    </b-container>
+                </b-row>
                 <b-row align-h="center">
-                    <b-col md="auto" style="width: unset">
-                        <round-slider v-model="shocker.state.intensity" pathColor="#1b1d1e" rangeColor="#8577ef"
-                            start-angle="315" end-angle="+270" width="30" line-cap="round" radius="75" />
-
-                        <p style="text-align: center;">Intensity</p>
+                    <b-col cols="auto" md="auto">
+                        <loading-button style="width: 46px" text="" icon="fa-solid fa-volume-high" :disabled="inProgress"
+                            loadingIcon="fa-solid fa-spinner fa-spin" :loading="inProgress" @click="control(3)" />
                     </b-col>
-                    <b-col md="auto" style="width: unset">
-                        <round-slider v-model="shocker.state.duration" pathColor="#1b1d1e" rangeColor="#8577ef"
-                            start-angle="315" end-angle="+270" line-cap="round" radius="75" width="30" min="0.3" max="30"
-                            step="0.1" />
-
-                        <p style="text-align: center;">Duration</p>
+                    <b-col cols="auto" md="auto">
+                        <loading-button style="width: 46px" text="" icon="fa-solid fa-water" :disabled="inProgress"
+                            loadingIcon="fa-solid fa-spinner fa-spin" :loading="inProgress" @click="control(2)" />
+                    </b-col>
+                    <b-col cols="auto" md="auto">
+                        <loading-button style="left: 0; width: 46px" text="" icon="fa-solid fa-bolt" :disabled="inProgress"
+                            loadingIcon="fa-solid fa-spinner fa-spin" :loading="inProgress" @click="control(1)" />
                     </b-col>
                 </b-row>
-            </b-container>
-        </b-row>
-        <b-row align-h="center">
-            <b-col cols="auto" md="auto">
-                <loading-button style="width: 46px" text="" icon="fa-solid fa-volume-high" :disabled="inProgress"
-                    loadingIcon="fa-solid fa-spinner fa-spin" :loading="inProgress" @click="control(3)" />
-            </b-col>
-            <b-col cols="auto" md="auto">
-                <loading-button style="width: 46px" text="" icon="fa-solid fa-water" :disabled="inProgress"
-                    loadingIcon="fa-solid fa-spinner fa-spin" :loading="inProgress" @click="control(2)" />
-            </b-col>
-            <b-col cols="auto" md="auto">
-                <loading-button style="left: 0; width: 46px" text="" icon="fa-solid fa-bolt" :disabled="inProgress"
-                    loadingIcon="fa-solid fa-spinner fa-spin" :loading="inProgress" @click="control(1)" />
-            </b-col>
-        </b-row>
+            </div>
+        </div>
     </b-container>
 </template>
 
@@ -143,6 +168,14 @@ export default {
             this.inProgress = true;
 
             setTimeout(() => this.inProgress = false, this.shocker.state.duration * 1000);
+        },
+        async togglePause() {
+            const toSet = !this.shocker.isPaused;
+            await apiCall.makeCall("POST", `1/shockers/${this.shocker.id}/pause`, {
+                pause: toSet
+            });
+
+            this.shocker.isPaused = toSet;
         }
     }
 }
@@ -156,13 +189,49 @@ export default {
     margin: 10px 0;
     padding: 10px;
 
+    .content-container {
+        position: relative;
+
+        transition: 1s filter linear, 1s -webkit-filter linear;
+
+        .paused-text {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 100;
+        }
+
+        .content-child {
+            transition: filter 0.3s ease-in-out;
+            filter: blur(0px);
+        }
+
+        .paused {
+            pointer-events: none;
+            filter: blur(5px);
+        }
+    }
+
     .head {
         border-bottom: solid 2px var(--main-background-color);
         padding-bottom: 10px !important;
 
+        .pause-col {
+            cursor: pointer;
+            padding-left: 4px;
+            padding-right: 4px;
+            width: 20px;
+
+            .paused {
+                color: rgb(255, 86, 86);
+            }
+        }
+
         .shocker-name-col {
             margin-right: auto;
-            width: calc(100% - 24px);
+            width: calc(100% - 50px);
+            padding-left: 8px;
 
             .shocker-name {
                 white-space: nowrap;
