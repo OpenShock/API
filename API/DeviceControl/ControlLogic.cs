@@ -25,7 +25,8 @@ public static class ControlLogic
                 x.RfId,
                 x.Device,
                 x.DeviceNavigation.Owner,
-                Model = x.Model
+                x.Model,
+                x.Paused
             }).ToListAsync();
 
         var sharedShockers = await db.ShockerShares.Where(x => x.SharedWith == userId).Select(x => new
@@ -35,7 +36,8 @@ public static class ControlLogic
             x.Shocker.RfId,
             x.Shocker.Device,
             x.Shocker.DeviceNavigation.Owner,
-            Model = x.Shocker.Model
+            x.Shocker.Model,
+            x.Shocker.Paused
         }).ToListAsync();
 
         ownShockers.AddRange(sharedShockers);
@@ -50,6 +52,11 @@ public static class ControlLogic
             if (shockerInfo == null)
             {
                 // TODO: Return denied
+                continue;
+            }
+
+            if (shockerInfo.Paused)
+            {
                 continue;
             }
 
