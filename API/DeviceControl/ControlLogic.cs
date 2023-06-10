@@ -1,4 +1,5 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.AspNetCore.SignalR;
+using Microsoft.EntityFrameworkCore;
 using OneOf;
 using OneOf.Types;
 using ShockLink.API.Hubs;
@@ -13,7 +14,7 @@ namespace ShockLink.API.DeviceControl;
 
 public static class ControlLogic
 {
-    public static async Task<OneOf<Success>> Control(IEnumerable<Common.Models.WebSocket.User.Control> shocks, ShockLinkContext db, Guid userId, UserHub userHub)
+    public static async Task<OneOf<Success>> Control(IEnumerable<Common.Models.WebSocket.User.Control> shocks, ShockLinkContext db, Guid userId, IHubClients<IUserHub> hubClients)
     {
         var finalMessages = new Dictionary<Guid, IList<ControlMessage.ShockerControlInfo>>();
         
@@ -117,7 +118,7 @@ public static class ControlLogic
             Image = ImagesApi.GetImageRoot(x.Image)
         }).SingleAsync();
         
-        var logSends = logs.Select(x => userHub.Clients.User(x.Key.ToString()).Log(sender, x.Value));
+        var logSends = logs.Select(x => hubClients.User(x.Key.ToString()).Log(sender, x.Value));
         await Task.WhenAll(logSends);
 
         return new OneOf<Success>();

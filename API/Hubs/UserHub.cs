@@ -25,6 +25,7 @@ public class UserHub : Hub<IUserHub>
         _logger = logger;
         _db = db;
         _provider = provider;
+        
     }
 
     public override async Task OnConnectedAsync()
@@ -55,7 +56,7 @@ public class UserHub : Hub<IUserHub>
     }
 
     public Task Control(IEnumerable<Common.Models.WebSocket.User.Control> shocks)
-        => ControlLogic.Control(shocks, _db, UserId, this);
+        => ControlLogic.Control(shocks, _db, UserId, Clients);
     
     public async Task CaptivePortal(Guid deviceId, bool enabled)
     {
