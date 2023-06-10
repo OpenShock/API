@@ -1,12 +1,9 @@
-﻿using System.Net;
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.SignalR;
-using Microsoft.EntityFrameworkCore;
 using ShockLink.API.Authentication;
 using ShockLink.API.DeviceControl;
 using ShockLink.API.Hubs;
 using ShockLink.API.Models;
-using ShockLink.API.Models.Requests;
 using ShockLink.Common.ShockLinkDb;
 
 namespace ShockLink.API.Controller.Shockers;
@@ -25,7 +22,7 @@ public class ControlShockerController : AuthenticatedSessionControllerBase
     }
     
     [HttpPost("control")]
-    public async Task<BaseResponse<object>> EditShocker(IEnumerable<Common.Models.WebSocket.User.Control> data)
+    public async Task<BaseResponse<object>> ControlShocker(IEnumerable<Common.Models.WebSocket.User.Control> data)
     {
         await ControlLogic.Control(data, _db, CurrentUser.DbUser.Id, _userHub.Clients);
         

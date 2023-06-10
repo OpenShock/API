@@ -40,8 +40,6 @@ public class LoginSessionAuthentication : AuthenticationHandler<LoginSessionAuth
 
     protected override async Task<AuthenticateResult> HandleAuthenticateAsync()
     {
-           
-        
         if (Context.Request.Headers.TryGetValue("ShockLinkSession", out var sessionKeyHeader) &&
             !string.IsNullOrEmpty(sessionKeyHeader))
         {
