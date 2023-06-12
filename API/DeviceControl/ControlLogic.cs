@@ -145,6 +145,7 @@ public static class ControlLogic
             ControlType.Shock => perms.Shock,
             ControlType.Vibrate => perms.Vibrate,
             ControlType.Sound => perms.Sound,
+            ControlType.Stop => perms.Shock || perms.Vibrate || perms.Sound,
             _ => false
         };
     }
