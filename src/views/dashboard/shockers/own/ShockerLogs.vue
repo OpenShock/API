@@ -83,6 +83,7 @@ export default {
         },
         getTypeForLog(type) {
             switch(type) {
+                case 0: return "fa-stop";
                 case 1: return "fa-bolt";
                 case 2: return "fa-water";
                 case 3: return "fa-volume-high";

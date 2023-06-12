@@ -52,15 +52,15 @@
                 </b-row>
                 <b-row align-h="center">
                     <b-col cols="auto" md="auto">
-                        <loading-button style="width: 46px" text="" icon="fa-solid fa-volume-high" :disabled="inProgress"
+                        <control-button style="width: 46px" text="" icon="fa-solid fa-volume-high"
                             loadingIcon="fa-solid fa-spinner fa-spin" :loading="inProgress" @click="control(3)" />
                     </b-col>
                     <b-col cols="auto" md="auto">
-                        <loading-button style="width: 46px" text="" icon="fa-solid fa-water" :disabled="inProgress"
+                        <control-button style="width: 46px" text="" icon="fa-solid fa-water"
                             loadingIcon="fa-solid fa-spinner fa-spin" :loading="inProgress" @click="control(2)" />
                     </b-col>
                     <b-col cols="auto" md="auto">
-                        <loading-button style="left: 0; width: 46px" text="" icon="fa-solid fa-bolt" :disabled="inProgress"
+                        <control-button style="left: 0; width: 46px" text="" icon="fa-solid fa-bolt"
                             loadingIcon="fa-solid fa-spinner fa-spin" :loading="inProgress" @click="control(1)" />
                     </b-col>
                 </b-row>
@@ -71,11 +71,11 @@
 
 <script>
 import Loading from '../../../utils/Loading.vue';
-import LoadingButton from '../../../utils/LoadingButton.vue';
 import RoundSlider from 'vue-three-round-slider';
+import ControlButton from '../../../utils/ControlButton.vue';
 
 export default {
-    components: { LoadingButton, Loading, RoundSlider },
+    components: { Loading, RoundSlider, ControlButton },
 
     props: ["shocker"],
     data() {
@@ -159,12 +159,16 @@ export default {
             ws.control([
                 {
                     "Id": this.shocker.id,
-                    "Type": type,
+                    "Type": this.inProgress ? 0 : type,
                     "Duration": parseFloat(this.shocker.state.duration) * 1000,
                     "Intensity": parseInt(this.shocker.state.intensity)
                 }
             ]);
 
+            if(this.inProgress) {
+                this.inProgress = false;
+                return;
+            }
             this.inProgress = true;
 
             setTimeout(() => this.inProgress = false, this.shocker.state.duration * 1000);
@@ -241,7 +245,6 @@ export default {
             }
         }
     }
-
 
     .row {
         padding: 0 12px;
