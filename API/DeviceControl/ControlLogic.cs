@@ -19,27 +19,38 @@ public static class ControlLogic
         var finalMessages = new Dictionary<Guid, IList<ControlMessage.ShockerControlInfo>>();
         
         var ownShockers = await db.Shockers.Where(x => x.DeviceNavigation.Owner == userId).Select(x =>
-            new
+            new ControlShockerObj
             {
-                x.Id,
-                x.Name,
-                x.RfId,
-                x.Device,
-                x.DeviceNavigation.Owner,
-                x.Model,
-                x.Paused
+                Id = x.Id,
+                Name = x.Name,
+                RfId = x.RfId,
+                Device = x.Device,
+                Model = x.Model,
+                Owner = x.DeviceNavigation.Owner,
+                Paused = x.Paused,
+                PermsAndLimits = null
             }).ToListAsync();
 
-        var sharedShockers = await db.ShockerShares.Where(x => x.SharedWith == userId).Select(x => new
-        {
-            x.Shocker.Id,
-            x.Shocker.Name,
-            x.Shocker.RfId,
-            x.Shocker.Device,
-            x.Shocker.DeviceNavigation.Owner,
-            x.Shocker.Model,
-            x.Shocker.Paused
-        }).ToListAsync();
+        
+        var sharedShockers = await db.ShockerShares.Where(x => x.SharedWith == userId).Select(x =>
+            new ControlShockerObj
+            {
+                Id = x.Shocker.Id,
+                Name = x.Shocker.Name,
+                RfId = x.Shocker.RfId,
+                Device = x.Shocker.Device,
+                Model = x.Shocker.Model,
+                Owner = x.Shocker.DeviceNavigation.Owner,
+                Paused = x.Shocker.Paused,
+                PermsAndLimits = new ControlShockerObj.SharePermsAndLimits()
+                {
+                    Shock = x.PermShock,
+                    Vibrate = x.PermVibrate,
+                    Sound = x.PermSound,
+                    Duration = x.LimitDuration,
+                    Intensity = x.LimitIntensity
+                }
+            }).ToListAsync();
 
         ownShockers.AddRange(sharedShockers);
 
@@ -56,10 +67,11 @@ public static class ControlLogic
                 continue;
             }
 
-            if (shockerInfo.Paused)
-            {
-                continue;
-            }
+            if (shockerInfo.Paused) continue;
+            
+            if(!IsAllowed(shock.Type, shockerInfo.PermsAndLimits)) continue;
+            var durationMax = shockerInfo.PermsAndLimits?.Duration ?? 30000;
+            var intensityMax = shockerInfo.PermsAndLimits?.Intensity ?? 100;
 
             if (!finalMessages.ContainsKey(shockerInfo.Device))
                 finalMessages[shockerInfo.Device] = new List<ControlMessage.ShockerControlInfo>();
@@ -69,8 +81,8 @@ public static class ControlLogic
             {
                 Id = shockerInfo.Id,
                 RfId = shockerInfo.RfId,
-                Duration = Math.Clamp(shock.Duration, 300, 30000),
-                Intensity = Math.Clamp(shock.Intensity, (byte)1, (byte)100),
+                Duration = Math.Clamp(shock.Duration, 300, durationMax),
+                Intensity = Math.Clamp(shock.Intensity, (byte)1, intensityMax),
                 Type = shock.Type,
                 Model = shockerInfo.Model
             };
@@ -98,7 +110,8 @@ public static class ControlLogic
                 },
                 Type = deviceEntry.Type,
                 Duration = deviceEntry.Duration,
-                Intensity = deviceEntry.Intensity
+                Intensity = deviceEntry.Intensity,
+                ExecutedAt = curTime
             });
             
         }
@@ -122,5 +135,17 @@ public static class ControlLogic
         await Task.WhenAll(logSends);
 
         return new OneOf<Success>();
+    }
+
+    private static bool IsAllowed(ControlType type, ControlShockerObj.SharePermsAndLimits? perms)
+    {
+        if (perms == null) return true;
+        return type switch
+        {
+            ControlType.Shock => perms.Shock,
+            ControlType.Vibrate => perms.Vibrate,
+            ControlType.Sound => perms.Sound,
+            _ => false
+        };
     }
 }

@@ -9,6 +9,7 @@ public class ControlLog
     public required ControlType Type { get; set; }
     [Range(1, 100)] public required byte Intensity { get; set; }
     [Range(300, 30000)] public required uint Duration { get; set; }
+    public required DateTimeOffset ExecutedAt { get; set; }
 }
 
 public class GenericIn
