@@ -14,12 +14,12 @@ namespace ShockLink.API.Controller.Devices;
 
 [ApiController]
 [Route("/{version:apiVersion}/devices")]
-public class CreateController : AuthenticatedSessionControllerBase
+public class DeviceController : AuthenticatedSessionControllerBase
 {
     private readonly ShockLinkContext _db;
     private readonly IRedisCollection<DevicePair> _devicePairs;
 
-    public CreateController(ShockLinkContext db, IRedisConnectionProvider provider)
+    public DeviceController(ShockLinkContext db, IRedisConnectionProvider provider)
     {
         _db = db;
         _devicePairs = provider.RedisCollection<DevicePair>();
