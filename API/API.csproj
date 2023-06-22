@@ -8,10 +8,12 @@
         <RootNamespace>ShockLink.API</RootNamespace>
         <AssemblyVersion>1.2.0.0</AssemblyVersion>
         <FileVersion>1.2.0.0</FileVersion>
+        <GenerateDocumentationFile>true</GenerateDocumentationFile>
     </PropertyGroup>
 
     <ItemGroup>
-        <PackageReference Include="Asp.Versioning.Mvc" Version="7.0.0" />
+        <PackageReference Include="Asp.Versioning.Mvc.ApiExplorer" Version="7.0.0" />
+        <PackageReference Include="Microsoft.AspNet.WebApi.Versioning.ApiExplorer" Version="5.1.0" />
         <PackageReference Include="Microsoft.AspNetCore.SignalR.StackExchangeRedis" Version="7.0.5" />
         <PackageReference Include="Microsoft.EntityFrameworkCore" Version="7.0.5" />
         <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="7.0.5">
@@ -34,6 +36,8 @@
         <PackageReference Include="StackExchange.Redis" Version="2.6.111" />
         <PackageReference Include="StackExchange.Redis.Extensions.AspNetCore" Version="9.1.0" />
         <PackageReference Include="StackExchange.Redis.Extensions.Newtonsoft" Version="9.1.0" />
+        <PackageReference Include="Swashbuckle.AspNetCore" Version="6.5.0" />
+        <PackageReference Include="Swashbuckle.AspNetCore.Newtonsoft" Version="6.5.0" />
         <PackageReference Include="Swashbuckle.AspNetCore.Swagger" Version="6.5.0" />
         <PackageReference Include="Swashbuckle.AspNetCore.SwaggerGen" Version="6.5.0" />
         <PackageReference Include="Swashbuckle.AspNetCore.SwaggerUI" Version="6.5.0" />

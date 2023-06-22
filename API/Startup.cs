@@ -1,9 +1,12 @@
 ﻿using System.Net;
+using Asp.Versioning;
+using Asp.Versioning.ApiExplorer;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Http.Connections;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.OpenApi.Models;
 using Npgsql;
 using Redis.OM;
 using Redis.OM.Contracts;
@@ -98,10 +101,52 @@ public class Startup
         });
         services.AddSignalR().AddStackExchangeRedis($"{ApiConfig.RedisHost}:6379");
 
-        services.AddApiVersioning();
+        var apiVersioningBuilder = services.AddApiVersioning(options =>
+        {
+            options.DefaultApiVersion = new ApiVersion(1, 0);
+            options.AssumeDefaultVersionWhenUnspecified = true;
+        });
         services.AddControllers().AddJsonOptions(x => { x.JsonSerializerOptions.PropertyNameCaseInsensitive = true; });
-
-        services.AddSwaggerGen();
+        
+        
+        apiVersioningBuilder.AddApiExplorer(setup =>
+        {
+            setup.GroupNameFormat = "VVV";
+            setup.SubstituteApiVersionInUrl = true;
+        });
+        
+        services.AddSwaggerGen(options =>
+            {
+                options.IncludeXmlComments(Path.Combine(AppContext.BaseDirectory, "ShockLink.API.xml"));
+                options.AddSecurityDefinition("ShockLinkToken", new OpenApiSecurityScheme
+                {
+                    Name = "ShockLinkToken",
+                    Type = SecuritySchemeType.ApiKey,
+                    Scheme = "ApiKeyAuth",
+                    In = ParameterLocation.Header,
+                    Description = "API Token Authorization header."
+                });
+                options.AddSecurityRequirement(new OpenApiSecurityRequirement
+                {
+                    {
+                        new OpenApiSecurityScheme
+                        {
+                            Reference = new OpenApiReference
+                            {
+                                Type = ReferenceType.SecurityScheme,
+                                Id = "ShockLinkToken"
+                            }
+                        },
+                        Array.Empty<string>()
+                    }
+                });
+                options.AddServer(new OpenApiServer { Url = "https://api.shocklink.net" });
+                options.AddServer(new OpenApiServer { Url = "https://localhost" });
+            }
+        );
+        
+        services.ConfigureOptions<ConfigureSwaggerOptions>();
+        services.AddSwaggerGenNewtonsoftSupport();
         //services.AddHealthChecks().AddCheck<DatabaseHealthCheck>("database");
     }
 
@@ -145,14 +190,17 @@ public class Startup
         {
             KeepAliveInterval = TimeSpan.FromMinutes(1)
         };
-
-        if (env.IsDevelopment())
+        
+        app.UseSwagger();
+        var provider = app.ApplicationServices.GetRequiredService<IApiVersionDescriptionProvider>();
+        app.UseSwaggerUI(c =>
         {
-            app.UseSwagger();
-            app.UseSwaggerUI(c => { c.SwaggerEndpoint("/swagger/v1/swagger.json", "ShockLink API"); });
-        }
+            foreach (var description in provider.ApiVersionDescriptions)
+                c.SwaggerEndpoint($"/swagger/{description.GroupName}/swagger.json",
+                    description.GroupName.ToUpperInvariant());
+        });
 
-        //app.UseHttpsRedirection();
+
         app.UseWebSockets(webSocketOptions);
         app.UseRouting();
         app.UseAuthentication();
