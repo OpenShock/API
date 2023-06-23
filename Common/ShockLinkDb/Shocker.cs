@@ -28,5 +28,5 @@ public partial class Shocker
 
     public virtual ICollection<ShockerShare> ShockerShares { get; set; } = new List<ShockerShare>();
 
-    public virtual ICollection<ShockerSharesLink> ShockerSharesLinks { get; set; } = new List<ShockerSharesLink>();
+    public virtual ICollection<ShockerSharesLinksShocker> ShockerSharesLinksShockers { get; set; } = new List<ShockerSharesLinksShocker>();
 }

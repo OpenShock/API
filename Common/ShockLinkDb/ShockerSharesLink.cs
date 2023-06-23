@@ -7,23 +7,13 @@ public partial class ShockerSharesLink
 {
     public Guid Id { get; set; }
 
-    public Guid ShockerId { get; set; }
-
     public DateTime CreatedOn { get; set; }
 
     public DateTime ExpiresOn { get; set; }
 
-    public bool? PermSound { get; set; }
+    public Guid OwnerId { get; set; }
 
-    public bool? PermVibrate { get; set; }
+    public virtual User Owner { get; set; } = null!;
 
-    public bool? PermShock { get; set; }
-
-    public int? LimitDuration { get; set; }
-
-    public short? LimitIntensity { get; set; }
-
-    public int? Cooldown { get; set; }
-
-    public virtual Shocker Shocker { get; set; } = null!;
+    public virtual ICollection<ShockerSharesLinksShocker> ShockerSharesLinksShockers { get; set; } = new List<ShockerSharesLinksShocker>();
 }

@@ -30,4 +30,6 @@ public partial class User
     public virtual ICollection<ShockerControlLog> ShockerControlLogs { get; set; } = new List<ShockerControlLog>();
 
     public virtual ICollection<ShockerShare> ShockerShares { get; set; } = new List<ShockerShare>();
+
+    public virtual ICollection<ShockerSharesLink> ShockerSharesLinks { get; set; } = new List<ShockerSharesLink>();
 }
