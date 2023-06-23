@@ -21,6 +21,8 @@ public partial class ShockLinkContext : DbContext
 
     public virtual DbSet<Device> Devices { get; set; }
 
+    public virtual DbSet<PasswordReset> PasswordResets { get; set; }
+
     public virtual DbSet<Shocker> Shockers { get; set; }
 
     public virtual DbSet<ShockerControlLog> ShockerControlLogs { get; set; }
@@ -29,13 +31,15 @@ public partial class ShockLinkContext : DbContext
 
     public virtual DbSet<ShockerShareCode> ShockerShareCodes { get; set; }
 
+    public virtual DbSet<ShockerSharesLink> ShockerSharesLinks { get; set; }
+
     public virtual DbSet<User> Users { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder
             .HasPostgresEnum("ShockLink", "cf_images_type", new[] { "avatar" })
-            .HasPostgresEnum("ShockLink", "control_type", new[] { "sound", "vibrate", "shock" })
+            .HasPostgresEnum("ShockLink", "control_type", new[] { "sound", "vibrate", "shock", "stop" })
             .HasPostgresEnum("ShockLink", "permission_type", new[] { "shockers.use" })
             .HasPostgresEnum("ShockLink", "shocker_model_type", new[] { "small", "petTrainer" });
 
@@ -112,6 +116,31 @@ public partial class ShockLinkContext : DbContext
             entity.HasOne(d => d.OwnerNavigation).WithMany(p => p.Devices)
                 .HasForeignKey(d => d.Owner)
                 .HasConstraintName("owner_user_id");
+        });
+
+        modelBuilder.Entity<PasswordReset>(entity =>
+        {
+            entity.HasKey(e => e.Token).HasName("password_resets_pkey");
+
+            entity.ToTable("password_resets", "ShockLink");
+
+            entity.Property(e => e.Token)
+                .ValueGeneratedNever()
+                .HasColumnName("token");
+            entity.Property(e => e.CreatedOn)
+                .HasDefaultValueSql("CURRENT_TIMESTAMP")
+                .HasColumnName("created_on");
+            entity.Property(e => e.ExpiresOn)
+                .HasDefaultValueSql("(CURRENT_TIMESTAMP + '24:00:00'::interval)")
+                .HasColumnName("expires_on");
+            entity.Property(e => e.UsedOn)
+                .HasColumnType("time with time zone")
+                .HasColumnName("used_on");
+            entity.Property(e => e.UserId).HasColumnName("user_id");
+
+            entity.HasOne(d => d.User).WithMany(p => p.PasswordResets)
+                .HasForeignKey(d => d.UserId)
+                .HasConstraintName("user_id");
         });
 
         modelBuilder.Entity<Shocker>(entity =>
@@ -232,6 +261,41 @@ public partial class ShockLinkContext : DbContext
             entity.HasOne(d => d.Shocker).WithMany(p => p.ShockerShareCodes)
                 .HasForeignKey(d => d.ShockerId)
                 .HasConstraintName("fk_shocker_id");
+        });
+
+        modelBuilder.Entity<ShockerSharesLink>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("shocker_shares_links_pkey");
+
+            entity.ToTable("shocker_shares_links", "ShockLink");
+
+            entity.Property(e => e.Id)
+                .ValueGeneratedNever()
+                .HasColumnName("id");
+            entity.Property(e => e.Cooldown).HasColumnName("cooldown");
+            entity.Property(e => e.CreatedOn)
+                .HasDefaultValueSql("CURRENT_TIMESTAMP")
+                .HasColumnName("created_on");
+            entity.Property(e => e.ExpiresOn).HasColumnName("expires_on");
+            entity.Property(e => e.LimitDuration).HasColumnName("limit_duration");
+            entity.Property(e => e.LimitIntensity).HasColumnName("limit_intensity");
+            entity.Property(e => e.PermShock)
+                .IsRequired()
+                .HasDefaultValueSql("true")
+                .HasColumnName("perm_shock");
+            entity.Property(e => e.PermSound)
+                .IsRequired()
+                .HasDefaultValueSql("true")
+                .HasColumnName("perm_sound");
+            entity.Property(e => e.PermVibrate)
+                .IsRequired()
+                .HasDefaultValueSql("true")
+                .HasColumnName("perm_vibrate");
+            entity.Property(e => e.ShockerId).HasColumnName("shocker_id");
+
+            entity.HasOne(d => d.Shocker).WithMany(p => p.ShockerSharesLinks)
+                .HasForeignKey(d => d.ShockerId)
+                .HasConstraintName("shocker_id");
         });
 
         modelBuilder.Entity<User>(entity =>

@@ -17,5 +17,5 @@ public partial class Device
 
     public virtual User OwnerNavigation { get; set; } = null!;
 
-    public virtual ICollection<Shocker> Shockers { get; } = new List<Shocker>();
+    public virtual ICollection<Shocker> Shockers { get; set; } = new List<Shocker>();
 }

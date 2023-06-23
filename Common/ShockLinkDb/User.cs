@@ -19,13 +19,15 @@ public partial class User
 
     public Guid Image { get; set; }
 
-    public virtual ICollection<ApiToken> ApiTokens { get; } = new List<ApiToken>();
+    public virtual ICollection<ApiToken> ApiTokens { get; set; } = new List<ApiToken>();
 
-    public virtual ICollection<Device> Devices { get; } = new List<Device>();
+    public virtual ICollection<Device> Devices { get; set; } = new List<Device>();
 
     public virtual CfImage ImageNavigation { get; set; } = null!;
 
-    public virtual ICollection<ShockerControlLog> ShockerControlLogs { get; } = new List<ShockerControlLog>();
+    public virtual ICollection<PasswordReset> PasswordResets { get; set; } = new List<PasswordReset>();
 
-    public virtual ICollection<ShockerShare> ShockerShares { get; } = new List<ShockerShare>();
+    public virtual ICollection<ShockerControlLog> ShockerControlLogs { get; set; } = new List<ShockerControlLog>();
+
+    public virtual ICollection<ShockerShare> ShockerShares { get; set; } = new List<ShockerShare>();
 }

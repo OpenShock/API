@@ -14,5 +14,5 @@ public partial class CfImage
     
     public CfImagesType Type { get; set; }
 
-    public virtual ICollection<User> Users { get; } = new List<User>();
+    public virtual ICollection<User> Users { get; set; } = new List<User>();
 }
