@@ -25,7 +25,7 @@ public class RecoverController : ShockLinkControllerBase
         _mailjetClient = mailjetClient;
     }
 
-    [HttpGet]
+    [HttpHead]
     public async Task<BaseResponse<object>> CheckForReset(Guid id, string secret)
     {
         var reset = await _db.PasswordResets.SingleOrDefaultAsync(x =>
@@ -34,16 +34,13 @@ public class RecoverController : ShockLinkControllerBase
         if (reset == null || !SecurePasswordHasher.Verify(secret, reset.Secret, customName: "PWRESET"))
             return EBaseResponse<object>("Password reset process not found", HttpStatusCode.NotFound);
         
-        return new BaseResponse<object>
-        {
-            Message = "Password reset process found"
-        };
+        return new BaseResponse<object>();
     }
 
     [HttpPost]
     public async Task<BaseResponse<object>> UseRecover(Guid id, string secret, PasswordResetProcessData data)
     {
-        var reset = await _db.PasswordResets.SingleOrDefaultAsync(x =>
+        var reset = await _db.PasswordResets.Include(x => x.User).SingleOrDefaultAsync(x =>
             x.Id == id && x.UsedOn == null && x.CreatedOn.AddDays(7) > DateTime.UtcNow);
 
         if (reset == null || !SecurePasswordHasher.Verify(secret, reset.Secret, customName: "PWRESET"))
