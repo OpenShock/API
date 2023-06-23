@@ -11,7 +11,7 @@ namespace ShockLink.API.Controller.Account;
 
 [ApiController]
 [AllowAnonymous]
-[Route("/{version:apiVersion}/account/login")]
+[Route("/{version:apiVersion}/account/reset")]
 public class ResetController : ShockLinkControllerBase
 {
     private readonly ShockLinkContext _db;
