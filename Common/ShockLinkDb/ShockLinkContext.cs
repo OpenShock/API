@@ -120,19 +120,22 @@ public partial class ShockLinkContext : DbContext
 
         modelBuilder.Entity<PasswordReset>(entity =>
         {
-            entity.HasKey(e => e.Token).HasName("password_resets_pkey");
+            entity.HasKey(e => e.Id).HasName("password_resets_pkey");
 
             entity.ToTable("password_resets", "ShockLink");
 
-            entity.Property(e => e.Token)
+            entity.Property(e => e.Id)
                 .ValueGeneratedNever()
-                .HasColumnName("token");
+                .HasColumnName("id");
             entity.Property(e => e.CreatedOn)
                 .HasDefaultValueSql("CURRENT_TIMESTAMP")
                 .HasColumnName("created_on");
             entity.Property(e => e.ExpiresOn)
                 .HasDefaultValueSql("(CURRENT_TIMESTAMP + '24:00:00'::interval)")
                 .HasColumnName("expires_on");
+            entity.Property(e => e.Secret)
+                .HasColumnType("character varying")
+                .HasColumnName("secret");
             entity.Property(e => e.UsedOn)
                 .HasColumnType("time with time zone")
                 .HasColumnName("used_on");

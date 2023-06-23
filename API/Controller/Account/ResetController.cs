@@ -1,0 +1,78 @@
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using ShockLink.API.Mailjet;
+using ShockLink.API.Mailjet.Mail;
+using ShockLink.API.Models;
+using ShockLink.API.Utils;
+using ShockLink.Common.ShockLinkDb;
+
+namespace ShockLink.API.Controller.Account;
+
+[ApiController]
+[AllowAnonymous]
+[Route("/{version:apiVersion}/account/login")]
+public class ResetController : ShockLinkControllerBase
+{
+    private readonly ShockLinkContext _db;
+    private readonly ILogger<ResetController> _logger;
+    private readonly IMailjetClient _mailjetClient;
+
+    public ResetController(ILogger<ResetController> logger, ShockLinkContext db, IMailjetClient mailjetClient)
+    {
+        _logger = logger;
+        _db = db;
+        _mailjetClient = mailjetClient;
+    }
+
+    [HttpPost]
+    public async Task<BaseResponse<object>> ResetAction(ResetRequest data)
+    {
+        var user = await _db.Users.Where(x => x.Email == data.Email).Select(x => new
+        {
+            User = x,
+            PasswordResetCount = x.PasswordResets.Count(y => y.UsedOn == null && y.ExpiresOn > DateTime.UtcNow)
+        }).FirstOrDefaultAsync();
+        if (user == null || user.PasswordResetCount >= 3) return SendResponse();
+
+        var secret = CryptoUtils.RandomString(32);
+        var hash = SecurePasswordHasher.Hash(secret, customName: "PWRESET");
+        var passwordReset = new PasswordReset
+        {
+            Id = Guid.NewGuid(),
+            Secret = hash,
+            User = user.User
+        };
+        _db.PasswordResets.Add(passwordReset);
+        await _db.SaveChangesAsync();
+        
+        await _mailjetClient.SendMail(new TemplateMail
+        {
+            From = Contact.AccountManagement,
+            Subject = "Password reset request",
+            To = new []
+            {
+                new Contact
+                {
+                    Email = user.User.Email,
+                    Name = user.User.Name
+                }
+            },
+            TemplateId = 4903722,
+            Variables = new Dictionary<string, string>
+            {
+                {"link", new Uri(new Uri(ApiConfig.FrontendBaseUrl), $"/#/account/password/recover/{passwordReset.Id}/{secret}").ToString() },
+            }
+            
+        });
+        
+        return SendResponse();
+    }
+    
+    private static BaseResponse<object> SendResponse() => new("Password reset has been sent via email if the email is associated to an registered account");
+
+    public class ResetRequest
+    {
+        public required string Email { get; set; }
+    }
+}

@@ -1,4 +1,6 @@
 ﻿using System.Net;
+using System.Net.Http.Headers;
+using System.Text;
 using Asp.Versioning;
 using Asp.Versioning.ApiExplorer;
 using Microsoft.AspNetCore.Authentication;
@@ -14,6 +16,7 @@ using Serilog;
 using ShockLink.API.Authentication;
 using ShockLink.API.ExceptionHandle;
 using ShockLink.API.Hubs;
+using ShockLink.API.Mailjet;
 using ShockLink.API.Realtime;
 using ShockLink.API.Utils;
 using ShockLink.Common.Models;
@@ -77,6 +80,14 @@ public class Startup
 
         services.AddScoped<IClientAuthService<LinkUser>, ClientAuthService<LinkUser>>();
         services.AddScoped<IClientAuthService<Device>, ClientAuthService<Device>>();
+        
+        services.AddSingleton<IMailjetClient, MailjetClient>();
+        services.AddHttpClient<IMailjetClient, MailjetClient>(client =>
+        {
+            client.BaseAddress = new Uri("https://api.mailjet.com/v3.1/");
+            client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Basic",
+                Convert.ToBase64String(Encoding.UTF8.GetBytes($"{ApiConfig.Mailjet.Key}:{ApiConfig.Mailjet.Secret}")));
+        });
 
         services.AddWebEncoders();
         services.TryAddSingleton<ISystemClock, SystemClock>();
