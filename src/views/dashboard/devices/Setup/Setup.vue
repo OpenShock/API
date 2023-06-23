@@ -1,74 +1,43 @@
 <template>
     <div class="base-wrap">
         <b-container>
-            <div v-if="page === 0">
-                <h>Setup assistant</h>
-                <p>Prepare your esp, install the firmware, and make have a device to connect to its wifi ready.</p>
-                <button @click="page++">Next</button>
-            </div>
-            <div v-if="page === 1">
-                <h>Connect to esp's wifi</h>
-                <button @click="page++">Next</button>
-            </div>
-            <div v-if="page === 2">
-                <h>Enter wifi credentials</h>
-                <b-table hover striped :items="networks" :fields="fields" class="network-table">
-                    <template #cell(ssid)="row">
-                        <b-form-input v-model="row.item.ssid"></b-form-input>
-                    </template>
-
-                    <template #cell(password)="row">
-                        <b-form-input v-model="row.item.password"></b-form-input>
-                    </template>
-
-                    <template #cell(actions)="row">
-                        <div cols="auto" class="elli" @click="removeNetworks(row.item)">
-                            <i class="fa-solid fa-trash"></i>
-                        </div>
-                    </template>
-                </b-table>
-
-                <b-button @click="espSetWifi">Save & Try to connect</b-button>
-
-            </div>
+            <b-row align-h="center">
+                <b-col md="auto">
+                    <h3>ESP-32 setup assistant</h3>
+                </b-col>
+            </b-row>
+            <serial-flash></serial-flash>
         </b-container>
     </div>
 </template>
   
 <script>
 import Loading from '../../../utils/Loading.vue';
-import axios from 'axios';
+import { connect } from './Lib/Ada.js'
+import Page1 from './Page1';
+import Page2 from './Page2';
+import SerialFlash from './SerialFlash.vue';
 
 export default {
-    components: { Loading },
+    components: { Loading, Page1, Page2, SerialFlash },
     data() {
         return {
-            page: 0,
-            fields: [
-                {
-                    key: "ssid"
-                },
-                {
-                    key: "password"
-                },
-                {
-                    key: 'actions',
-                    thClass: "actions-header",
-                    label: "",
-                    tdClass: "action-header-td"
-                }
-            ],
+            page: 1,
             device: undefined,
             networks: [
                 {
                     ssid: "yes",
                     password: "aaa"
                 }
-            ]
+            ],
+            espStub: undefined
         }
     },
     mounted() {
         this.$store.dispatch('setNewNav', []);
+        this.emitter.on("setup-serialConnect", () => {
+            this.serialConnect();
+        });
     },
     async beforeMount() {
         await this.loadDevice();
@@ -83,19 +52,70 @@ export default {
 
             this.device = res.data.data;
         },
-        async espSetWifi() {
-            const res = await axios({
-                method: "SEND",
-                url: "https://10.10.10.10/networks",
-                data: "Luc-H,LucNetworkPw12"
-            });
-            console.log(res);
+
+        logMsg(text) {
+            console.log(text);
         },
-        removeNetworks(item) {
-            var index = this.networks.indexOf(item);
-            if (index !== -1) {
-                this.networks.splice(index, 1);
+        async serialConnect() {
+            if (this.espStub !== undefined) {
+                await this.espStub.disconnect();
+                await this.espStub.port.close();
+                this.espStub = undefined;
             }
+            const esploader = await connect({
+                log: (...args) => this.logMsg(...args),
+                debug: (...args) => this.logMsg(...args),
+                error: (...args) => this.logMsg(...args),
+            })
+
+            await esploader.initialize();
+
+            this.logMsg("Connected to " + esploader.chipName);
+            this.logMsg("MAC Address: " + this.formatMacAddr(esploader.macAddr()));
+
+            this.espStub = await esploader.runStub();
+        },
+        async changeBaudRate() {
+            if (this.espStub !== undefined) {
+                await this.espStub.setBaudrate(921600);
+            }
+        },
+        async erase() {
+            if (this.espStub !== undefined) {
+                this.logMsg("Erasing flash memory. Please wait...");
+                let stamp = Date.now();
+                await this.espStub.eraseFlash();
+                this.logMsg("Finished. Took " + (Date.now() - stamp) + "ms to erase.");
+            }
+        },
+        async flashData() {
+            this.logMsg("Downloading...");
+            fetch('https://cdn.shocklink.net/firmware/shocklink_firmware_0.5.2.0.bin').then(res => res.arrayBuffer()).then(async buff => {
+                this.logMsg("Flashing memory. Please wait...");
+                let stamp = Date.now();
+                await this.espStub.flashData(
+                    buff,
+                    (bytesWritten, totalBytes) => {
+
+                    },
+                    0,
+                    true
+                );
+                this.logMsg("Finished. Took " + (Date.now() - stamp) + "ms to flash.");
+            });
+
+        },
+        async hardReset() {
+            await this.espStub.hardReset();
+        },
+
+        formatMacAddr(macAddr) {
+            return macAddr.map((value) => value.toString(16).toUpperCase().padStart(2, "0")).join(":");
+        }
+    },
+    computed: {
+        supported() {
+            return ('serial' in navigator)
         }
     }
 }

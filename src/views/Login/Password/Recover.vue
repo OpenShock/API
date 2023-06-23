@@ -79,7 +79,7 @@ export default {
     async checkForRecovery() {
       try {
         await axios({
-          method: 'GET',
+          method: 'HEAD',
           url: this.recoveryUrl
         });
         this.ticket.found = true;
@@ -100,7 +100,7 @@ export default {
           method: 'POST',
           url: this.recoveryUrl,
           data: {
-            newPassword: this.password
+            Password: this.password
           }
         });
         this.ticket.postSuccessful = true;
@@ -116,7 +116,7 @@ export default {
       return SanityChecks.checkPassword(this.password);
     },
     recoveryUrl() {
-      return config.apiUrl + 'user/password/recover/' + this.uuid + "/" + this.secret;
+      return config.apiUrl + '1/account/recover/' + this.uuid + "/" + this.secret;
     }
   }
 }

@@ -286,6 +286,13 @@ export default {
             ]
           },
           {
+            label: "Setup",
+            icon: 'fa-solid fa-layer-group',
+            onClick: () => {
+              this.$router.push(`/dashboard/devices/${item.id}/setup`);
+            }
+          },
+          {
             label: "Delete",
             icon: 'fa-solid fa-trash',
             onClick: () => {
