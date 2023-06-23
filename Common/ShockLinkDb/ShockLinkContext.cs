@@ -130,9 +130,6 @@ public partial class ShockLinkContext : DbContext
             entity.Property(e => e.CreatedOn)
                 .HasDefaultValueSql("CURRENT_TIMESTAMP")
                 .HasColumnName("created_on");
-            entity.Property(e => e.ExpiresOn)
-                .HasDefaultValueSql("(CURRENT_TIMESTAMP + '24:00:00'::interval)")
-                .HasColumnName("expires_on");
             entity.Property(e => e.Secret)
                 .HasColumnType("character varying")
                 .HasColumnName("secret");

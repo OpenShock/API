@@ -11,8 +11,6 @@ public partial class PasswordReset
 
     public DateTime CreatedOn { get; set; }
 
-    public DateTime ExpiresOn { get; set; }
-
     public DateTimeOffset? UsedOn { get; set; }
 
     public string Secret { get; set; } = null!;

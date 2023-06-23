@@ -31,7 +31,7 @@ public class ResetController : ShockLinkControllerBase
         var user = await _db.Users.Where(x => x.Email == data.Email).Select(x => new
         {
             User = x,
-            PasswordResetCount = x.PasswordResets.Count(y => y.UsedOn == null && y.ExpiresOn > DateTime.UtcNow)
+            PasswordResetCount = x.PasswordResets.Count(y => y.UsedOn == null && y.CreatedOn.AddDays(7) > DateTime.UtcNow)
         }).FirstOrDefaultAsync();
         if (user == null || user.PasswordResetCount >= 3) return SendResponse();
 
