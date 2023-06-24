@@ -35,6 +35,14 @@ export default {
             }
 
             this.shared = res.data.data;
+            this.shared.forEach(device => {
+                device.shockers.forEach(shocker => {
+                    shocker.state = {
+                        intensity: 25,
+                        duration: 1
+                    }
+                });
+            });
         },
         newLink() {
             this.$swal({
