@@ -61,7 +61,7 @@ public class UserHub : Hub<IUserHub>
     {
         var additionalItems = new Dictionary<string, object>();
         var apiTokenId =  Context.User?.FindFirst(ControlLogAdditionalItem.ApiTokenId);
-        if(apiTokenId != null) additionalItems[ControlLogAdditionalItem.ApiTokenId] = apiTokenId;
+        if(apiTokenId != null) additionalItems[ControlLogAdditionalItem.ApiTokenId] = apiTokenId.Value;
 
         var sender = await _db.Users.Where(x => x.Id == UserId).Select(x => new ControlLogSender
         {
