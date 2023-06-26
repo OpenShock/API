@@ -6,7 +6,8 @@ namespace ShockLink.API.Hubs;
 
 public interface IUserHub
 {
+    Task Welcome(string connectionId);
     Task DeviceStatus(IEnumerable<DeviceOnlineState> deviceOnlineStates);
 
-    Task Log(GenericIni sender, IEnumerable<ControlLog> logs);
+    Task Log(ControlLogSender sender, IEnumerable<ControlLog> logs);
 }

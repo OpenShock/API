@@ -10,6 +10,8 @@ using ShockLink.Common.Redis.PubSub;
 using ShockLink.Common.ShockLinkDb;
 using Redis.OM;
 using ShockLink.API.DeviceControl;
+using ShockLink.API.Utils;
+using ShockLink.Common.Models;
 
 namespace ShockLink.API.Hubs;
 
@@ -25,11 +27,11 @@ public class UserHub : Hub<IUserHub>
         _logger = logger;
         _db = db;
         _provider = provider;
-        
     }
 
     public override async Task OnConnectedAsync()
     {
+        await Clients.Caller.Welcome(Context.ConnectionId);
         var devicesOnline = _provider.RedisCollection<DeviceOnline>(false);
         var sharedDevices = await _db.Devices
             .Where(x => x.Shockers.Any(y => y.ShockerShares.Any(z => z.SharedWith == UserId)))
@@ -55,9 +57,24 @@ public class UserHub : Hub<IUserHub>
         await Clients.Caller.DeviceStatus(final);
     }
 
-    public Task Control(IEnumerable<Common.Models.WebSocket.User.Control> shocks)
-        => ControlLogic.Control(shocks, _db, UserId, Clients);
-    
+    public async Task Control(IEnumerable<Common.Models.WebSocket.User.Control> shocks)
+    {
+        var additionalItems = new Dictionary<string, object>();
+        var apiTokenId =  Context.User?.FindFirst(ControlLogAdditionalItem.ApiTokenId);
+        if(apiTokenId != null) additionalItems[ControlLogAdditionalItem.ApiTokenId] = apiTokenId;
+
+        var sender = await _db.Users.Where(x => x.Id == UserId).Select(x => new ControlLogSender
+        {
+            Id = x.Id,
+            Name = x.Name,
+            Image = ImagesApi.GetImageRoot(x.Image),
+            ConnectionId = Context.ConnectionId,
+            AdditionalItems = additionalItems
+        }).SingleAsync();
+        
+        await ControlLogic.Control(shocks, _db, sender, Clients);
+    }
+
     public async Task CaptivePortal(Guid deviceId, bool enabled)
     {
         var devices = await _db.Devices.Where(x => x.Owner == UserId)

@@ -14,11 +14,12 @@ namespace ShockLink.API.DeviceControl;
 
 public static class ControlLogic
 {
-    public static async Task<OneOf<Success>> Control(IEnumerable<Common.Models.WebSocket.User.Control> shocks, ShockLinkContext db, Guid userId, IHubClients<IUserHub> hubClients)
+    public static async Task<OneOf<Success>> Control(IEnumerable<Control> shocks, ShockLinkContext db, ControlLogSender sender,
+        IHubClients<IUserHub> hubClients)
     {
         var finalMessages = new Dictionary<Guid, IList<ControlMessage.ShockerControlInfo>>();
         
-        var ownShockers = await db.Shockers.Where(x => x.DeviceNavigation.Owner == userId).Select(x =>
+        var ownShockers = await db.Shockers.Where(x => x.DeviceNavigation.Owner == sender.Id).Select(x =>
             new ControlShockerObj
             {
                 Id = x.Id,
@@ -30,9 +31,8 @@ public static class ControlLogic
                 Paused = x.Paused,
                 PermsAndLimits = null
             }).ToListAsync();
-
         
-        var sharedShockers = await db.ShockerShares.Where(x => x.SharedWith == userId).Select(x =>
+        var sharedShockers = await db.ShockerShares.Where(x => x.SharedWith == sender.Id).Select(x =>
             new ControlShockerObj
             {
                 Id = x.Shocker.Id,
@@ -92,7 +92,7 @@ public static class ControlLogic
             {
                 Id = Guid.NewGuid(),
                 ShockerId = shockerInfo.Id,
-                ControlledBy = userId,
+                ControlledBy = sender.Id,
                 CreatedOn = curTime,
                 Intensity = deviceEntry.Intensity,
                 Duration = deviceEntry.Duration,
@@ -118,19 +118,12 @@ public static class ControlLogic
 
         var redisTask = PubSubManager.SendControlMessage(new ControlMessage
         {
-            Shocker = userId,
+            Shocker = sender.Id,
             ControlMessages = finalMessages
         });
 
         await Task.WhenAll(redisTask, db.SaveChangesAsync());
 
-        var sender = await db.Users.Where(x => x.Id == userId).Select(x => new GenericIni
-        {
-            Id = x.Id,
-            Name = x.Name,
-            Image = ImagesApi.GetImageRoot(x.Image)
-        }).SingleAsync();
-        
         var logSends = logs.Select(x => hubClients.User(x.Key.ToString()).Log(sender, x.Value));
         await Task.WhenAll(logSends);
 

@@ -75,7 +75,8 @@ public class LoginSessionAuthentication : AuthenticationHandler<LoginSessionAuth
 
         var claims = new List<Claim>
         {
-            new(ClaimTypes.NameIdentifier, _authService.CurrentClient.DbUser.Id.ToString())
+            new(ClaimTypes.NameIdentifier, _authService.CurrentClient.DbUser.Id.ToString()),
+            new (ControlLogAdditionalItem.ApiTokenId, tokenDto.Id.ToString())
         };
         claims.AddRange(tokenDto.Permissions.Select(tokenDtoPermission => PermissionTypeBindings.TypeToName[tokenDtoPermission]));
         
