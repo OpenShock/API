@@ -13,7 +13,7 @@ public partial class ShockerSharesLinksShocker
 
     public bool PermVibrate { get; set; }
 
-    public bool PermShocker { get; set; }
+    public bool PermShock { get; set; }
 
     public int? LimitDuration { get; set; }
 

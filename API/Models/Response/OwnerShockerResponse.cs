@@ -11,7 +11,7 @@ public class OwnerShockerResponse
     {
         public required Guid Id { get; set; }
         public required string Name { get; set; }
-
+        // ReSharper disable once CollectionNeverQueried.Global
         public IList<SharedShocker> Shockers { get; set; } = new List<SharedShocker>();
 
         public class SharedShocker

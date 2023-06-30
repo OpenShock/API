@@ -28,12 +28,15 @@ public class SharedShockersController : AuthenticatedSessionControllerBase
                 OwnerName = x.Shocker.DeviceNavigation.OwnerNavigation.Name,
                 DeviceId = x.Shocker.DeviceNavigation.Id,
                 DeviceName = x.Shocker.DeviceNavigation.Name,
-                x.Shocker.Id,
-                x.Shocker.Name,
-                x.Shocker.Paused,
-                x.PermVibrate,
-                x.PermSound,
-                x.PermShock
+                Shocker = new OwnerShockerResponse.SharedDevice.SharedShocker
+                {
+                    Id = x.Shocker.Id,
+                    Name = x.Shocker.Name,
+                    IsPaused = x.Shocker.Paused,
+                    PermShock = x.PermShock!.Value,
+                    PermSound = x.PermVibrate!.Value,
+                    PermVibrate = x.PermVibrate!.Value
+                }
             }).ToListAsync();
 
         var shared = new Dictionary<Guid, OwnerShockerResponse>();
@@ -57,16 +60,7 @@ public class SharedShockersController : AuthenticatedSessionControllerBase
                     Name = shocker.DeviceName
                 });
             
-            var sharedDevice = sharedUser.Devices.Single(x => x.Id == shocker.DeviceId);
-            sharedDevice.Shockers.Add(new OwnerShockerResponse.SharedDevice.SharedShocker
-            {
-                Id = shocker.Id,
-                Name = shocker.Name,
-                IsPaused = shocker.Paused,
-                PermShock = shocker.PermShock!.Value,
-                PermSound = shocker.PermVibrate!.Value,
-                PermVibrate = shocker.PermVibrate!.Value
-            });
+            sharedUser.Devices.Single(x => x.Id == shocker.DeviceId).Shockers.Add(shocker.Shocker);
         }
 
         return new BaseResponse<IEnumerable<OwnerShockerResponse>>

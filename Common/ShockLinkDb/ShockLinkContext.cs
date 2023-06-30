@@ -299,7 +299,7 @@ public partial class ShockLinkContext : DbContext
             entity.Property(e => e.Cooldown).HasColumnName("cooldown");
             entity.Property(e => e.LimitDuration).HasColumnName("limit_duration");
             entity.Property(e => e.LimitIntensity).HasColumnName("limit_intensity");
-            entity.Property(e => e.PermShocker).HasColumnName("perm_shocker");
+            entity.Property(e => e.PermShock).HasColumnName("perm_shock");
             entity.Property(e => e.PermSound).HasColumnName("perm_sound");
             entity.Property(e => e.PermVibrate).HasColumnName("perm_vibrate");
 

@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using ShockLink.API.Models;
 using ShockLink.Common.Models;
 
@@ -6,6 +7,7 @@ namespace ShockLink.API.Controller.Public;
 
 [ApiController]
 [Route("/{version:apiVersion}/public/firmware/version")]
+[AllowAnonymous]
 public class FirmwareVersionController : ShockLinkControllerBase
 {
     [HttpGet]
