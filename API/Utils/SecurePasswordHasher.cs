@@ -21,6 +21,7 @@ public static class SecurePasswordHasher
     /// </summary>
     /// <param name="password">The password.</param>
     /// <param name="iterations">Number of iterations.</param>
+    /// <param name="version">Version of the hash</param>
     /// <param name="customName">Custom hash prefix</param>
     /// <returns>The hash.</returns>
     public static string Hash(string password, int iterations = 10000, uint version = 1,
@@ -50,6 +51,7 @@ public static class SecurePasswordHasher
     /// </summary>
     /// <param name="hashString">The hash.</param>
     /// <param name="customName">Custom hash prefix</param>
+    ///     /// <param name="version">Version of the hash</param>
     /// <returns>Is supported?</returns>
     private static bool IsHashSupported(string hashString, uint version = 1, string customName = DefaultName) =>
         hashString.Contains($"{customName}${version}$");
@@ -61,6 +63,7 @@ public static class SecurePasswordHasher
     /// <param name="password">The password.</param>
     /// <param name="hashedPassword">The hash.</param>
     /// <param name="customName">Custom hash prefix</param>
+    /// <param name="version">Version of the hash</param>
     /// <returns>Could be verified?</returns>
     public static bool Verify(string password, string hashedPassword, uint version = 1, string customName = DefaultName)
     {

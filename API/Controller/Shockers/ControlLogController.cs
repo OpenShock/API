@@ -53,16 +53,16 @@ public class ControlLogController : AuthenticatedSessionControllerBase
 
     public class LogEntry
     {
-        public Guid Id { get; set; }
+        public required Guid Id { get; set; }
 
-        public DateTime CreatedOn { get; set; }
+        public required DateTime CreatedOn { get; set; }
 
-        public ControlType Type { get; set; }
+        public required ControlType Type { get; set; }
 
-        public GenericIni ControlledBy { get; set; }
+        public required GenericIni ControlledBy { get; set; }
 
-        public byte Intensity { get; set; }
+        public required byte Intensity { get; set; }
 
-        public uint Duration { get; set; }
+        public required uint Duration { get; set; }
     }
 }

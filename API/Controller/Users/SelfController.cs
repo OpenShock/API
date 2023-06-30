@@ -23,19 +23,16 @@ public sealed class SelfController : AuthenticatedSessionControllerBase
     }
 
     [HttpGet]
-    public async Task<BaseResponse<SelfResponse>> GetSelf()
+    public BaseResponse<SelfResponse> GetSelf() => new()
     {
-        return new BaseResponse<SelfResponse>
+        Data = new SelfResponse
         {
-            Data = new SelfResponse
-            {
-                Id = CurrentUser.DbUser.Id,
-                Name = CurrentUser.DbUser.Name,
-                Email = CurrentUser.DbUser.Email,
-                Image = CurrentUser.GetImageLink()
-            }
-        };
-    }
+            Id = CurrentUser.DbUser.Id,
+            Name = CurrentUser.DbUser.Name,
+            Email = CurrentUser.DbUser.Email,
+            Image = CurrentUser.GetImageLink()
+        }
+    };
 
     [HttpPost("avatar")]
     public async Task<BaseResponse<object>> UpdateAvatar(IFormFile avatar)
@@ -43,7 +40,7 @@ public sealed class SelfController : AuthenticatedSessionControllerBase
         if (avatar == null) return EBaseResponse<object>("No 'avatar' file has been attached");
 
         var oldImageId = CurrentUser.DbUser.Image;
-        
+
         try
         {
             _logger.LogDebug("Uploading new avatar to cloudflare and making db entry");
@@ -60,8 +57,9 @@ public sealed class SelfController : AuthenticatedSessionControllerBase
         {
             // Delete old avatar from cloudflare and db
             _logger.LogDebug("Deleting old avatar from cloudflare and db");
-            if(await _db.CfImages.Where(x => x.Id == oldImageId).ExecuteDeleteAsync() < 1)
-                _logger.LogWarning("Trying to delete old avatar file out of db, but it couldn't be found. {Image}", oldImageId);
+            if (await _db.CfImages.Where(x => x.Id == oldImageId).ExecuteDeleteAsync() < 1)
+                _logger.LogWarning("Trying to delete old avatar file out of db, but it couldn't be found. {Image}",
+                    oldImageId);
 
             await ImagesApi.DeleteImage(oldImageId);
         }

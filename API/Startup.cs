@@ -42,10 +42,13 @@ public class Startup
 
     public void ConfigureServices(IServiceCollection services)
     {
+        // How do I do this now with EFCore?!
+#pragma warning disable CS0618
         NpgsqlConnection.GlobalTypeMapper.MapEnum<ControlType>();
         NpgsqlConnection.GlobalTypeMapper.MapEnum<CfImagesType>();
         NpgsqlConnection.GlobalTypeMapper.MapEnum<PermissionType>();
         NpgsqlConnection.GlobalTypeMapper.MapEnum<ShockerModelType>();
+#pragma warning restore CS0618
         services.AddDbContextPool<ShockLinkContext>(builder =>
         {
             builder.UseNpgsql(ApiConfig.Db);
