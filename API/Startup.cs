@@ -224,8 +224,8 @@ public class Startup
                     ResponseWriter = UiResponseWriter.WriteHealthCheckUiResponse
                 });*/
             endpoints.MapControllers();
-            endpoints.MapHub<UserHub>("/1/hubs/user",
-                options => { options.Transports = HttpTransportType.WebSockets; });
+            endpoints.MapHub<UserHub>("/1/hubs/user", options => { options.Transports = HttpTransportType.WebSockets; });
+            endpoints.MapHub<UserHub>("/1/hubs/share/link/{id}", options => { options.Transports = HttpTransportType.WebSockets; });
         });
     }
 }

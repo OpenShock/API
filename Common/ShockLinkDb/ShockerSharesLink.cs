@@ -9,9 +9,11 @@ public partial class ShockerSharesLink
 
     public DateTime CreatedOn { get; set; }
 
-    public DateTime ExpiresOn { get; set; }
+    public DateTime? ExpiresOn { get; set; }
 
     public Guid OwnerId { get; set; }
+
+    public string Name { get; set; } = null!;
 
     public virtual User Owner { get; set; } = null!;
 

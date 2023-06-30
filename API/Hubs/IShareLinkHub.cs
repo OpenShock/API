@@ -1,6 +1,6 @@
 ﻿namespace ShockLink.API.Hubs;
 
-public class IShareLinkHub
+public interface IShareLinkHub
 {
     
 }

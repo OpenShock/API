@@ -278,6 +278,9 @@ public partial class ShockLinkContext : DbContext
                 .HasDefaultValueSql("CURRENT_TIMESTAMP")
                 .HasColumnName("created_on");
             entity.Property(e => e.ExpiresOn).HasColumnName("expires_on");
+            entity.Property(e => e.Name)
+                .HasColumnType("character varying")
+                .HasColumnName("name");
             entity.Property(e => e.OwnerId).HasColumnName("owner_id");
 
             entity.HasOne(d => d.Owner).WithMany(p => p.ShockerSharesLinks)
