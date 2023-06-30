@@ -82,13 +82,47 @@ public class ShareLinksController : AuthenticatedSessionControllerBase
         var ownShocker =
             await _db.Shockers.AnyAsync(x => x.Id == shockerId && x.DeviceNavigation.Owner == CurrentUser.DbUser.Id);
         if (!ownShocker) return EBaseResponse<ShareLinkResponse>("Shocker does not exist", HttpStatusCode.NotFound);
+
+        if (await _db.ShockerSharesLinksShockers.AnyAsync(x => x.ShareLinkId == id && x.ShockerId == shockerId))
+            return EBaseResponse<ShareLinkResponse>("Shocker already exists in share link", HttpStatusCode.Conflict);
         
-        _db.ShockerSharesLinksShockers.Add(new ShockerSharesLinksShocker()
+        _db.ShockerSharesLinksShockers.Add(new ShockerSharesLinksShocker
         {
             ShockerId = shockerId,
             ShareLinkId = id
-        })
-        
+        });
+
+        await _db.SaveChangesAsync();
+        return new BaseResponse<ShareLinkResponse>
+        {
+            Message = "Successfully added shocker"
+        };
+    }
+    
+    [HttpPatch("{id:guid}/{shockerId:guid}")]
+    public async Task<BaseResponse<ShareLinkResponse>> EditShocker(Guid id, Guid shockerId, ShareLinkEditShocker data)
+    {
+        var exists = await _db.ShockerSharesLinks.AnyAsync(x => x.OwnerId == CurrentUser.DbUser.Id && x.Id == id);
+        if (!exists)
+            return EBaseResponse<ShareLinkResponse>("Share link could not be found", HttpStatusCode.NotFound);
+
+        var shocker =
+            await _db.ShockerSharesLinksShockers.FirstOrDefaultAsync(x => x.ShareLinkId == id && x.ShockerId == shockerId);
+        if (shocker == null)
+            return EBaseResponse<ShareLinkResponse>("Shocker does not exist in share link, consider adding a new one");
+
+        shocker.PermSound = data.PermSound;
+        shocker.PermVibrate = data.PermVibrate;
+        shocker.PermShocker = data.PermShocker;
+        shocker.LimitDuration = data.LimitDuration;
+        shocker.LimitIntensity = data.LimitIntensity;
+        shocker.Cooldown = data.Cooldown;
+
+        await _db.SaveChangesAsync();
+        return new BaseResponse<ShareLinkResponse>
+        {
+            Message = "Successfully added shocker"
+        };
     }
 
 }

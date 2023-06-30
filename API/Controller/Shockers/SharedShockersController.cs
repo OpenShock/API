@@ -63,9 +63,9 @@ public class SharedShockersController : AuthenticatedSessionControllerBase
                 Id = shocker.Id,
                 Name = shocker.Name,
                 IsPaused = shocker.Paused,
-                PermShock = shocker.PermShock,
-                PermSound = shocker.PermVibrate,
-                PermVibrate = shocker.PermVibrate
+                PermShock = shocker.PermShock!.Value,
+                PermSound = shocker.PermVibrate!.Value,
+                PermVibrate = shocker.PermVibrate!.Value
             });
         }
 

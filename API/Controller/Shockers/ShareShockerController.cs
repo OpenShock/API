@@ -41,9 +41,9 @@ public class ShareShockerController : AuthenticatedSessionControllerBase
                     CreatedOn = x.CreatedOn,
                     Permissions = new ShareInfo.PermissionsObj
                     {
-                        Sound = x.PermSound,
-                        Shock = x.PermShock,
-                        Vibrate = x.PermVibrate
+                        Sound = x.PermSound!.Value,
+                        Shock = x.PermShock!.Value,
+                        Vibrate = x.PermVibrate!.Value
                     },
                     Limits = new ShareInfo.LimitObj
                     {

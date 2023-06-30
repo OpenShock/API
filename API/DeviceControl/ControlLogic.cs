@@ -44,9 +44,9 @@ public static class ControlLogic
                 Paused = x.Shocker.Paused,
                 PermsAndLimits = new ControlShockerObj.SharePermsAndLimits()
                 {
-                    Shock = x.PermShock,
-                    Vibrate = x.PermVibrate,
-                    Sound = x.PermSound,
+                    Shock = x.PermShock!.Value,
+                    Vibrate = x.PermVibrate!.Value,
+                    Sound = x.PermSound!.Value,
                     Duration = x.LimitDuration,
                     Intensity = x.LimitIntensity
                 }
