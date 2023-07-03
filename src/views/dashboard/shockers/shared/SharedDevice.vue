@@ -31,13 +31,6 @@ export default {
             online: false
         };
 
-        this.device.shockers.forEach(shocker => {
-            shocker.state = {
-                intensity: 25,
-                duration: 1
-            }
-        });
-
         this.onlineState = this.getOnlineState();
         this.emitter.on('deviceStateUpdate', () => {
             this.onlineState = this.getOnlineState();

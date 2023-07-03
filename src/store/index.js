@@ -12,7 +12,8 @@ const store = createStore({
 			settings: {
 				dark: true
 			},
-			deviceStates: []
+			deviceStates: [],
+			userHubState: "Initializing"
 		}
 	},
 	getters: {
@@ -34,6 +35,9 @@ const store = createStore({
 		setDeviceState(state, {id, online}) {
 			state.deviceStates[id] = online;
 			emitter.emit('deviceStateUpdate');
+		},
+		setUserHubState(state, newState) {
+			state.userHubState = newState;
 		}
 	},
 	actions: {

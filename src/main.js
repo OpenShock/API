@@ -56,5 +56,9 @@ global.emitter = emitter;
 
 app.mount('#app');
 
-const footerApp = createApp(Footer);
+const footerApp = createApp(Footer)
+.use(store);
+footerApp.config.globalProperties.emitter = emitter;
+footerApp.config.devtools = true;
+
 footerApp.mount('#footerApp');
