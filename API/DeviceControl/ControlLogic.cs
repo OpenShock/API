@@ -14,6 +14,7 @@ namespace ShockLink.API.DeviceControl;
 
 public static class ControlLogic
 {
+
     public static async Task<OneOf<Success>> Control(IEnumerable<Control> shocks, ShockLinkContext db, ControlLogSender sender,
         IHubClients<IUserHub> hubClients)
     {

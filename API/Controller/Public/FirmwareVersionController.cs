@@ -11,7 +11,7 @@ namespace ShockLink.API.Controller.Public;
 public class FirmwareVersionController : ShockLinkControllerBase
 {
     [HttpGet]
-    public async Task<BaseResponse<FirmwareVersion>> Get()
+    public BaseResponse<FirmwareVersion> Get()
     {
         return new BaseResponse<FirmwareVersion>
         {

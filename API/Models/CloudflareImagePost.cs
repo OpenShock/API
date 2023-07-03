@@ -4,18 +4,18 @@ namespace ShockLink.API.Models;
 
 public class CloudflareImagePost
 {
-    public IEnumerable<string> Messages { get; set; }
-    public IEnumerable<string> Errors { get; set; }
-    public bool Success { get; set; }
-    [JsonProperty("result_info")] public string ResultInfo { get; set; }
-    public ResultPost Result { get; set; }
+    public required IEnumerable<string> Messages { get; set; }
+    public required IEnumerable<string> Errors { get; set; }
+    public required bool Success { get; set; }
+    [JsonProperty("result_info")] public string? ResultInfo { get; set; }
+    public required ResultPost Result { get; set; }
 
     public class ResultPost
     {
-        public Guid Id { get; set; }
-        public string Filename { get; set; }
-        public DateTime Uploaded { get; set; }
-        public bool RequireSignedUrls { get; set; }
-        public IEnumerable<string> Variants { get; set; }
+        public required Guid Id { get; set; }
+        public required string Filename { get; set; }
+        public required DateTime Uploaded { get; set; }
+        public required bool RequireSignedUrls { get; set; }
+        public required IEnumerable<string> Variants { get; set; }
     }
 }

@@ -62,10 +62,10 @@ public static class PubSubManager
     #region Exposing methods
 
     public static Task SendControlMessage(ControlMessage data) =>
-        _subscriber.PublishAsync("msg-device-control", JsonSerializer.Serialize(data));
+        _subscriber.PublishAsync(new RedisChannel("msg-device-control", RedisChannel.PatternMode.Literal), JsonSerializer.Serialize(data));
     
     public static Task SendCaptiveControlMessage(CaptiveMessage data) =>
-        _subscriber.PublishAsync("msg-device-control-captive", JsonSerializer.Serialize(data));
+        _subscriber.PublishAsync(new RedisChannel("msg-device-control-captive", RedisChannel.PatternMode.Literal), JsonSerializer.Serialize(data));
 
     #endregion
 

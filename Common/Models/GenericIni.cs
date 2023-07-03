@@ -1,8 +1,8 @@
-﻿namespace ShockLink.Common.Models;
+﻿using ShockLink.Common.Models.WebSocket.User;
 
-public class GenericIni
+namespace ShockLink.Common.Models;
+
+public class GenericIni : GenericIn
 {
-    public required Guid Id { get; set; }
-    public required string Name { get; set; }
     public required Uri Image { get; set; }
 }

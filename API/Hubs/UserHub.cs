@@ -57,11 +57,16 @@ public class UserHub : Hub<IUserHub>
         await Clients.Caller.DeviceStatus(final);
     }
 
-    public async Task Control(IEnumerable<Common.Models.WebSocket.User.Control> shocks)
+    public Task Control(IEnumerable<Common.Models.WebSocket.User.Control> shocks)
+    {
+        return ControlV2(shocks, null);
+    }
+
+    public async Task ControlV2(IEnumerable<Common.Models.WebSocket.User.Control> shocks, string? customName)
     {
         var additionalItems = new Dictionary<string, object>();
-        var apiTokenId =  Context.User?.FindFirst(ControlLogAdditionalItem.ApiTokenId);
-        if(apiTokenId != null) additionalItems[ControlLogAdditionalItem.ApiTokenId] = apiTokenId.Value;
+        var apiTokenId = Context.User?.FindFirst(ControlLogAdditionalItem.ApiTokenId);
+        if (apiTokenId != null) additionalItems[ControlLogAdditionalItem.ApiTokenId] = apiTokenId.Value;
 
         var sender = await _db.Users.Where(x => x.Id == UserId).Select(x => new ControlLogSender
         {
@@ -69,9 +74,10 @@ public class UserHub : Hub<IUserHub>
             Name = x.Name,
             Image = ImagesApi.GetImageRoot(x.Image),
             ConnectionId = Context.ConnectionId,
-            AdditionalItems = additionalItems
+            AdditionalItems = additionalItems,
+            CustomName = customName
         }).SingleAsync();
-        
+
         await ControlLogic.Control(shocks, _db, sender, Clients);
     }
 

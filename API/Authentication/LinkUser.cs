@@ -5,7 +5,7 @@ namespace ShockLink.API.Authentication;
 
 public class LinkUser
 {
-    public User DbUser { get; set; }
+    public required User DbUser { get; set; }
 
     public Uri GetImageLink() => ImagesApi.GetImageRoot(DbUser.Image);
 }
