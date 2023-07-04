@@ -16,7 +16,7 @@ public class RootController : ShockLinkControllerBase
 
     public BaseResponse<RootResponse> Get() => new()
     {
-        Message = "ReImagined",
+        Message = "ShockLink",
         Data = new RootResponse
         {
             Version = ShockLinkBackendVersion,
