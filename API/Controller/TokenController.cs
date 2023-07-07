@@ -117,6 +117,6 @@ public class TokenController : AuthenticatedSessionControllerBase
     {
         public required string Name { get; set; }
         public List<PermissionType> Permissions { get; set; } = PermissionTypeBindings.AllPermissionTypes;
-        public DateTime? ValidUntil { get; set; }
+        public DateOnly? ValidUntil { get; set; }
     }
 }

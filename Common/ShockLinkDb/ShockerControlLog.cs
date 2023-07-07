@@ -20,6 +20,8 @@ public partial class ShockerControlLog
     
     public ControlType Type { get; set; }
 
+    public string? CustomName { get; set; }
+
     public virtual User ControlledByNavigation { get; set; } = null!;
 
     public virtual Shocker Shocker { get; set; } = null!;

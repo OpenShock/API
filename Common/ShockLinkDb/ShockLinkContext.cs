@@ -67,10 +67,8 @@ public partial class ShockLinkContext : DbContext
                 .HasMaxLength(256)
                 .HasColumnName("token");
             entity.Property(e => e.UserId).HasColumnName("user_id");
-            entity.Property(e => e.ValidUntil)
-                .HasColumnType("timestamp without time zone")
-                .HasColumnName("valid_until");
-                        
+            entity.Property(e => e.ValidUntil).HasColumnName("valid_until");
+            
             entity.Property(e => e.Permissions).HasColumnType("permission_type[]").HasColumnName("permissions");
 
             entity.HasOne(d => d.User).WithMany(p => p.ApiTokens)
@@ -183,6 +181,9 @@ public partial class ShockLinkContext : DbContext
             entity.Property(e => e.CreatedOn)
                 .HasDefaultValueSql("CURRENT_TIMESTAMP")
                 .HasColumnName("created_on");
+            entity.Property(e => e.CustomName)
+                .HasColumnType("character varying")
+                .HasColumnName("custom_name");
             entity.Property(e => e.Duration).HasColumnName("duration");
             entity.Property(e => e.Intensity).HasColumnName("intensity");
             entity.Property(e => e.ShockerId).HasColumnName("shocker_id");
@@ -319,6 +320,10 @@ public partial class ShockLinkContext : DbContext
             entity.ToTable("users", "ShockLink");
 
             entity.HasIndex(e => e.Email, "email").IsUnique();
+
+            entity.HasIndex(e => e.Email, "idx_email");
+
+            entity.HasIndex(e => e.Name, "idx_name");
 
             entity.HasIndex(e => e.Name, "username").IsUnique();
 

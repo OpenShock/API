@@ -18,7 +18,7 @@ public partial class ApiToken
 
     public string CreatedByIp { get; set; } = null!;
 
-    public DateTime? ValidUntil { get; set; }
+    public DateOnly? ValidUntil { get; set; }
     
     public List<PermissionType> Permissions { get; set; }
 

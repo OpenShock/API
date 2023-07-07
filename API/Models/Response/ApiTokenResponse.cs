@@ -12,7 +12,7 @@ public class ApiTokenResponse
 
     public required string CreatedByIp { get; set; } = null!;
 
-    public required DateTime? ValidUntil { get; set; }
+    public required DateOnly? ValidUntil { get; set; }
     
     public required List<PermissionType> Permissions { get; set; }
 }
