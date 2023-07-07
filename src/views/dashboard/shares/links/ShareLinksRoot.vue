@@ -14,7 +14,7 @@
                         </b-row>
                     </b-row>
                 </b-col>
-                <b-col class="basic-card sharelink-card add-new">
+                <b-col class="basic-card sharelink-card add-new" @click="addNewShareLink">
                     <b-row>
                         <h3 style="margin-bottom: 40px;">Add new share link!</h3>
                         <i class="fa-solid fa-plus"></i>
@@ -49,6 +49,19 @@ export default {
             }
 
             this.shareLinks = res.data.data;
+        },
+        async addNewShareLink() {
+            this.shareLinks = [];
+            const res = await apiCall.makeCall("POST", "1/shares/links", {
+                name: "NewShareLink"
+            });
+
+            if (res === undefined || res.status !== 200) {
+                toastr.error("Error while retrieving shocker share codes");
+                return;
+            }
+
+            await this.loadShareLinks();
         }
     }
 }
