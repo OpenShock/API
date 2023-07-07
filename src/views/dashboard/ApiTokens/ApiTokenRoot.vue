@@ -1,6 +1,6 @@
 <template>
     <div class="base-wrap">
-        <div class="add-circle" @click="newTokenModal = true">
+        <div class="add-circle" @click="openNewModal">
             <i class="fa-solid fa-plus"></i>
         </div>
 
@@ -16,6 +16,14 @@
                         <i class="fa-solid fa-ellipsis-vertical"></i>
                     </div>
                 </template>
+
+                <template #cell(time)="row">
+                    <span>{{ new Date(row.item.createdOn).toLocaleString() }} </span>
+                </template>
+
+                <template #cell(validUntil)="row">
+                    <span>{{ row.item.validUntil === null ? '' : new Date(row.item.validUntil).toLocaleDateString() }} </span>
+                </template>
             </b-table>
         </b-container>
 
@@ -23,15 +31,16 @@
 
             <b-container style="padding: 0;">
                 <b-form-group label="Name" label-for="item-id" label-class="mb-1">
-                    <b-form-input id="item-id" v-model="newToken.name" readonly />
+                    <b-form-input id="item-id" v-model="newToken.name" />
                 </b-form-group>
-                <b-form-timepicker v-model="value" locale="en"></b-form-timepicker>
-                <div class='input-group date' id='datetimepicker1'>
-                    <input type='text' class="form-control" />
-                    <span class="input-group-addon">
-                        <span class="glyphicon glyphicon-calendar"></span>
-                    </span>
-                </div>
+
+
+                <BFormCheckbox v-model="newToken.indef" switch>No expiry</BFormCheckbox>
+                <b-row v-if="!newToken.indef">
+                    <b-form-group label="Valid until" label-for="valid-id" label-class="mb-1">
+                        <b-form-input type="date" id="valid-id" v-model="newToken.validUntil" />
+                    </b-form-group>
+                </b-row>
             </b-container>
 
         </b-modal>
@@ -54,14 +63,18 @@ export default {
         return {
             fields: [
                 {
-                    key: "id",
-                    label: "Token Id"
-                },
-                {
                     key: "name"
                 },
                 {
                     key: "permissions"
+                },
+                {
+                    key: "time",
+                    label: "Created On"
+                },
+                {
+                    key: "validUntil",
+                    label: "Valid Until"
                 },
                 {
                     key: 'actions',
@@ -82,7 +95,7 @@ export default {
                 name: "New API Token",
                 permissions: [],
                 validUntil: Date.UTC(),
-                context: null
+                indef: true
             }
         }
     },
@@ -90,6 +103,16 @@ export default {
         this.load();
     },
     methods: {
+        openNewModal() {
+            this.newTokenModal = true;
+
+            this.newToken = {
+                name: "New API Token",
+                permissions: [],
+                validUntil: Date.UTC(),
+                indef: true
+            };
+        },
         onContext(ctx) {
             this.newToken.context = ctx;
         },
@@ -128,7 +151,7 @@ export default {
         remove(item) {
             this.$swal({
                 title: 'Delete?',
-                html: `Delete API token <b>${item.id}</b>
+                html: `Delete API token <b>${item.name}<br>[${item.id}]</b>
                     <br><br>Are you sure?`,
                 icon: 'warning',
                 showCancelButton: true,
@@ -162,7 +185,7 @@ export default {
         async applyEdits(item) {
             const res = await apiCall.makeCall('PATCH', `1/tokens/${item.id}`, {
                 name: this.editing.token.name,
-                
+
             });
             if (res === undefined || res.status !== 200) {
                 toastr.error("Error while updating token");
@@ -174,8 +197,8 @@ export default {
         },
         async createNewCode() {
             const res = await apiCall.makeCall('POST', `1/tokens`, {
-                name: "",
-                validUntil: undefined
+                name: this.newToken.name,
+                validUntil: this.newToken.indef ? null : this.newToken.validUntil
             });
             if (res === undefined || res.status !== 200) {
                 toastr.error("Error while creating token");
@@ -228,6 +251,7 @@ export default {
 
 .elli {
     width: 24px;
+
     .fa-ellipsis-vertical {
         height: 24px;
         margin: auto;
