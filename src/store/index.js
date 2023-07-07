@@ -13,7 +13,8 @@ const store = createStore({
 				dark: true
 			},
 			deviceStates: [],
-			userHubState: "Initializing"
+			userHubState: "Initializing",
+			returnUrl: undefined
 		}
 	},
 	getters: {
@@ -38,6 +39,9 @@ const store = createStore({
 		},
 		setUserHubState(state, newState) {
 			state.userHubState = newState;
+		},
+		setReturnUrl(state, url) {
+			state.returnUrl = url;
 		}
 	},
 	actions: {
@@ -72,6 +76,9 @@ const store = createStore({
 				name: data.name,
 				image: data.image
 			});
+		},
+		setReturnUrl({commit}, url) {
+			commit('setReturnUrl', url);
 		}
 	},
 	modules: {

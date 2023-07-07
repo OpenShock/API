@@ -33,7 +33,7 @@
                 </template>
             </b-table>
 
-            <loading-with-text :loading="!requestDone" text="Loading shocker logs..."></loading-with-text>
+            <loading-with-text :loading="!requestDone">Loading shocker logs...</loading-with-text>
         </b-container>
     </div>
 </template>

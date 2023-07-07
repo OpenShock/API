@@ -91,6 +91,12 @@ export default {
         this.successful = true;
         utils.setLogin();
         setTimeout(() => {
+          const returnUrl = this.$store.state.returnUrl;
+          if(returnUrl !== undefined) {
+            this.$store.dispatch('setReturnUrl', undefined);
+            this.$router.push(returnUrl);
+            return;
+          }
           this.$router.push('/dashboard/');
         }, 2500)
       } catch (err) {
@@ -104,7 +110,7 @@ export default {
               break;
             default:
               if(err.response.data.Message !== undefined && err.response.data.message !== "") {
-                this.errorMessage = '<p><b>Something went wrong.</b></p><p>' + err.response.data.message + '</p>'
+                this.errorMessage = '<p><b>Something went wrong.</b></p><p>' + err.response.data.message + '</p>';
               } else {
                 toastr.error(err);
               }

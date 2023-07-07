@@ -12,6 +12,10 @@ const routes = [
 		component: lazyLoad('Root'),
 	},
 	{
+		path: '/proxy/shares/links/:id',
+		component: lazyLoad('proxy/ShareLinksProxy')
+	},
+	{
 		path: '/dashboard',
 		component: lazyLoad('dashboard/DashboardRoot'),
 		redirect: '/dashboard/home',
@@ -41,6 +45,17 @@ const routes = [
 						path: ':id/logs',
 						component: lazyLoad('dashboard/shockers/own/ShockerLogs')
 					},
+				]
+			},
+			{
+				path: 'shares',
+				component: lazyLoad('dashboard/shares/SharesRoot'),
+				redirect: '/dashboard/shares/links/',
+				children: [
+					{
+						path: 'links',
+						component: lazyLoad('dashboard/shares/links/ShareLinksRoot')
+					}
 				]
 			},
 			{

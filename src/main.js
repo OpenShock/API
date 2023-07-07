@@ -26,7 +26,7 @@ import 'sweetalert2/dist/sweetalert2.min.css';
 import App from '@/App';
 import Footer from '@/Footer';
 import router from '@/router';
-import store from '@/store';
+import storeA from '@/store';
 import mitt from 'mitt';
 import BootstrapVueNext from 'bootstrap-vue-next'
 import VueSweetalert2 from 'vue-sweetalert2';
@@ -45,7 +45,7 @@ const emitter = mitt();
 
 const app = createApp(App)
 	.use(router)
-	.use(store)
+	.use(storeA)
 	.use(BootstrapVueNext)
 	.use(VueSweetalert2)
 	.use(ContextMenu);
@@ -57,7 +57,7 @@ global.emitter = emitter;
 app.mount('#app');
 
 const footerApp = createApp(Footer)
-.use(store);
+.use(storeA);
 footerApp.config.globalProperties.emitter = emitter;
 footerApp.config.devtools = true;
 

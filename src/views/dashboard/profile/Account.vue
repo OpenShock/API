@@ -52,7 +52,7 @@
           </vue-cropper>
         </b-row>
         <b-row v-else style="text-align: center;">
-          <loading-with-text :loading="true" :text="'Uploading image...<br> Progress: ' + modal.image.progress"></loading-with-text>
+          <loading-with-text>Uploading image...<br> Progress: {{ modal.image.progress }}</loading-with-text>
           <b-progress class="progress-img" :value="modal.image.progress" :max="100" show-progress animated></b-progress>
           <p v-if="modal.image.progress > 99">Server processing...</p>
           <p v-else>Uploading data...</p>

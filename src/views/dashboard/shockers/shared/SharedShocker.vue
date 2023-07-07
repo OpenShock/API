@@ -124,16 +124,14 @@ export default {
                     this.emitter.emit('refreshShockers');
                 }
             });
-        },
-        control(type) {
-            ws.control([
-                {
-                    "Id": this.shocker.id,
-                    "Type": this.inProgress ? 0 : type,
-                    "Duration": parseFloat(this.shocker.state.duration) * 1000,
-                    "Intensity": parseInt(this.shocker.state.intensity)
-                }
-            ]);
+        }, 
+        async control(type) {
+            await ws.control(
+                this.shocker.id,
+                parseInt(this.shocker.state.intensity),
+                parseFloat(this.shocker.state.duration) * 1000,
+                this.inProgress ? 0 : type
+            );
 
             if(this.inProgress) {
                 this.inProgress = false;

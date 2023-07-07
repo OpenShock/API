@@ -17,7 +17,7 @@
 
 import User from './User.vue';
 export default {
-  components: { User },
+    components: { User },
     data() {
         return {
             shared: []
@@ -35,36 +35,39 @@ export default {
             }
 
             this.shared = res.data.data;
-            this.shared.forEach(device => {
-                device.shockers.forEach(shocker => {
-                    shocker.state = {
-                        intensity: 25,
-                        duration: 1
-                    }
+            this.shared.forEach(user => {
+                user.devices.forEach(device => {
+                    device.shockers.forEach(shocker => {
+                        shocker.state = {
+                            intensity: 25,
+                            duration: 1
+                        }
+                    });
                 });
             });
+
         },
         newLink() {
             this.$swal({
-            title: 'Enter shocker share code',
-            input: 'text',
-            inputAttributes: {
-                autocapitalize: 'off'
-            },
-            showCancelButton: true,
-            confirmButtonText: 'Link',
-            showLoaderOnConfirm: true,
-            preConfirm: async (id) => {
-                try {
-                    const res = await apiCall.makeCall('POST', `1/shares/code/${id}`);
-                    if (res.status !== 200) {
-                        throw new Error(res.statusText);
+                title: 'Enter shocker share code',
+                input: 'text',
+                inputAttributes: {
+                    autocapitalize: 'off'
+                },
+                showCancelButton: true,
+                confirmButtonText: 'Link',
+                showLoaderOnConfirm: true,
+                preConfirm: async (id) => {
+                    try {
+                        const res = await apiCall.makeCall('POST', `1/shares/code/${id}`);
+                        if (res.status !== 200) {
+                            throw new Error(res.statusText);
+                        }
+                    } catch (err) {
+                        this.$swal.showValidationMessage(`Request failed: ${utils.getError(err)}`)
                     }
-                } catch (err) {
-                    this.$swal.showValidationMessage(`Request failed: ${utils.getError(err)}`)
-                }
-            },
-            allowOutsideClick: () => !this.$swal.isLoading()
+                },
+                allowOutsideClick: () => !this.$swal.isLoading()
             }).then((result) => {
                 if (result.isConfirmed) {
                     this.$swal('Success!', 'Successfully linked shocker', 'success');
