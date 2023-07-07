@@ -63,7 +63,8 @@ public class LoginSessionAuthentication : AuthenticationHandler<LoginSessionAuth
 
     private async Task<AuthenticateResult> TokenAuth(string token)
     {
-        var tokenDto = await _db.ApiTokens.Include(x => x.User).SingleOrDefaultAsync(x => x.Token == token && x.ValidUntil >= DateOnly.FromDateTime(DateTime.UtcNow));
+        var tokenDto = await _db.ApiTokens.Include(x => x.User).SingleOrDefaultAsync(x => x.Token == token &&
+            (x.ValidUntil == null || x.ValidUntil >= DateOnly.FromDateTime(DateTime.UtcNow)));
         if (tokenDto == null) return Fail("Token is not valid");
         
         _authService.CurrentClient = new LinkUser
