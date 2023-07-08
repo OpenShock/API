@@ -22,8 +22,8 @@ const ws = {
             {
                 Id: id,
                 Type: type,
-                Duration: parseFloat(duration) * 1000,
-                Intensity: parseInt(intensity)
+                Duration: duration,
+                Intensity: intensity
             },
         ];
 
