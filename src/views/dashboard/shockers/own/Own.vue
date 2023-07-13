@@ -118,7 +118,7 @@ export default {
             modal: {
                 new: false,
                 edit: false,
-                editLoading: false
+                editLoading: true
             },
             retrievedShocker: {
                 id: "",
@@ -136,6 +136,7 @@ export default {
         });
 
         this.emitter.on('editShocker', async shockerId => {
+            this.modal.editLoading = true;
             this.modal.edit = true;
             await this.loadDevices();
             await this.getShocker(shockerId);
@@ -241,7 +242,6 @@ export default {
             await this.loadShockers();
         },
         async getShocker(id) {
-                this.modal.editLoading = true;
                 const res = await apiCall.makeCall('GET', '1/shockers/' + id);
                 if (res === undefined || res.status !== 200) {
                     toastr.error("Error while retrieving shocker details");
