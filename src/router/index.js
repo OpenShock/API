@@ -13,7 +13,8 @@ const routes = [
 	},
 	{
 		path: '/proxy/shares/links/:id',
-		component: lazyLoad('proxy/ShareLinksProxy')
+		component: lazyLoad('proxy/ShareLinksProxy'),
+		props: true
 	},
 	{
 		path: '/dashboard',
@@ -47,17 +48,22 @@ const routes = [
 					},
 				]
 			},
-			{
+			/*{
 				path: 'shares',
 				component: lazyLoad('dashboard/shares/SharesRoot'),
-				redirect: '/dashboard/shares/links/',
+				redirect: '/dashboard/shares/links',
 				children: [
 					{
 						path: 'links',
 						component: lazyLoad('dashboard/shares/links/ShareLinksRoot')
+					},
+					{
+						path: 'links/:id',
+						component: lazyLoad('dashboard/shares/links/ViewShareLink'),
+						props: true
 					}
 				]
-			},
+			},*/
 			{
 				path: 'admin',
 				component: lazyLoad('dashboard/admin/AdminRoot'),

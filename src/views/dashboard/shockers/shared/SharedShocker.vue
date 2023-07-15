@@ -153,6 +153,7 @@ export default {
     border-radius: 10px;
     margin: 10px 0;
     padding: 10px;
+    box-shadow: rgba(0, 0, 0, 0.24) 0px 3px 8px;
 
     .content-container {
         position: relative;

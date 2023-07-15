@@ -77,7 +77,7 @@ import ControlButton from '../../../utils/ControlButton.vue';
 export default {
     components: { Loading, RoundSlider, ControlButton },
 
-    props: ["shocker"],
+    props: ["shocker", "editMode"],
     data() {
         return {
             inProgress: false,
@@ -95,28 +95,7 @@ export default {
                 y: e.y,
                 items: [
                     {
-                        label: "Shares",
-                        icon: 'fa-solid fa-share-nodes',
-                        onClick: () => {
-                            this.$router.push(`/dashboard/shockers/${this.shocker.id}/shares`);
-                        }
-                    },
-                    {
-                        label: "Logs",
-                        icon: 'fa-solid fa-list',
-                        onClick: () => {
-                            this.$router.push(`/dashboard/shockers/${this.shocker.id}/logs`);
-                        }
-                    },
-                    {
-                        label: "Edit",
-                        icon: 'fa-solid fa-pen-to-square',
-                        onClick: () => {
-                            this.emitter.emit('editShocker', this.shocker.id);
-                        }
-                    },
-                    {
-                        label: "Remove",
+                        label: "Remove from Share Link",
                         icon: 'fa-solid fa-trash',
                         onClick: () => {
                             this.delete();
@@ -127,19 +106,18 @@ export default {
         },
         delete() {
             this.$swal({
-                title: 'Delete?',
-                html: `You are about to delete the shocker <b>${this.shocker.name}</b> with id (${this.shocker.id}).<br>This will also delete <b>all shares associated with that shocker.</b>
-                    <br><br><b><u>This is permanent and cannot be undone.</u></b><br>Are you sure?`,
-                icon: 'warning',
+                title: 'Remove from ShareLink?',
+                html: `You are about to remove the Shocker <b>${this.shocker.name}</b> [${this.shocker.id}] from this Share Link.<br>`,
+                icon: 'question',
                 showCancelButton: true,
                 confirmButtonColor: '#d33',
                 cancelButtonColor: 'var(--secondary-seperator-color)',
                 showLoaderOnConfirm: true,
-                confirmButtonText: 'Delete shocker',
+                confirmButtonText: 'Remove',
                 allowOutsideClick: () => !this.$swal.isLoading(),
                 preConfirm: async () => {
                     try {
-                        const res = await apiCall.makeCall('DELETE', `1/shockers/${this.shocker.id}`);
+                        const res = await apiCall.makeCall('DELETE', `1/shares/links/${this.$route.params.id}/${this.shocker.id}`);
                         if (res.status !== 200) {
                             throw new Error(res.statusText);
                         }
@@ -150,8 +128,8 @@ export default {
                 },
             }).then(async (result) => {
                 if (result.isConfirmed) {
-                    this.$swal('Success!', 'Successfully deleted shocker', 'success');
-                    this.emitter.emit('refreshShockers');
+                    this.$swal('Success!', 'Successfully removed Shocker from Share Link', 'success');
+                    this.emitter.emit('refreshShareLink');
                 }
             });
         },

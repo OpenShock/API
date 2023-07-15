@@ -20,6 +20,7 @@ import LoadingWithText from '../utils/LoadingWithText.vue';
 
 export default {
     components: { LoadingWithText },
+    props: ['id'],
     data() {
         return {
             loading: true,
@@ -46,13 +47,8 @@ export default {
 
         },
         login() {
-            this.$store.dispatch('setReturnUrl', "/dashboard/shares/links/" + this.linkId);
+            this.$store.dispatch('setReturnUrl', "/dashboard/shares/links/" + this.id);
             this.$router.push("/account/login");
-        }
-    },
-    computed: {
-        linkId() {
-            return this.$route.params.id;
         }
     }
 }

@@ -188,7 +188,7 @@ export default {
 
             });
             if (res === undefined || res.status !== 200) {
-                toastr.error("Error while updating token");
+                this.$swal('Error', 'Error while updating new token', 'error');
                 return;
             }
 
@@ -201,12 +201,13 @@ export default {
                 validUntil: this.newToken.indef ? null : this.newToken.validUntil
             });
             if (res === undefined || res.status !== 200) {
-                toastr.error("Error while creating token");
+                this.$swal('Error', 'Error while adding new token', 'error');
                 return;
             }
 
             this.load();
-            this.$swal('Successfully created API token!<br>Make sure to save it somewhere secure, as it will not be showen to you again.', `Code: ${res.data.data}`, 'success');
+            this.newTokenModal = false;
+            this.$swal('Successfully created API token!', `Make sure to save it somewhere secure, as it will not be showen to you again.<br><br>Code: ${res.data.data}`, 'success');
         }
     }
 }

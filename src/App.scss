@@ -294,9 +294,20 @@ hr {
 
 .elli {
   cursor: pointer;
+  transition: ease-in-out 0.2s background-color;
+  aspect-ratio: 1/1;
+  border-radius: 50px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
 
-  .fa-ellipsis-vertical {
-    height: 100%;
+  svg {
+    margin-left: 1px;
+    height: 75%;
+  }
+
+  &:hover {
+    background-color: var(--main-seperator-color);
   }
 }
 
@@ -312,4 +323,16 @@ hr {
   background-color: var(--secondary-background-color);
   border: solid var(--main-seperator-color) 1px;
   border-radius: 10px;
+
+  box-shadow: rgba(0, 0, 0, 0.24) 0px 3px 8px;
+
+  &.selectable {
+
+    cursor: pointer;
+    transition: ease-in-out 0.2s background-color;
+
+    &:hover {
+      background-color: var(--main-seperator-color);
+    }
+  }
 }

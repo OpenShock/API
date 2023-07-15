@@ -3,7 +3,11 @@
     flex-flow: column;
 
     .base-wrap {
-        padding: 25px 35px;
+        padding: 25px 0px;
+        @media screen and (min-width: 500px) {
+            padding: 25px 35px;
+        }
+        
         flex: 1 1 auto;
         height: 100%;
 
