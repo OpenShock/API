@@ -1,4 +1,6 @@
-﻿namespace ShockLink.API.Models.Response;
+﻿using ShockLink.Common.ShockLinkDb;
+
+namespace ShockLink.API.Models.Response;
 
 public class OwnerShockerResponse
 {
@@ -22,6 +24,8 @@ public class OwnerShockerResponse
             public required bool PermSound { get; set; }
             public required bool PermVibrate { get; set; }
             public required bool PermShock { get; set; }
+            public required uint? LimitDuration { get; set; }
+            public required byte? LimitIntensity { get; set; }
         }
     }
 }

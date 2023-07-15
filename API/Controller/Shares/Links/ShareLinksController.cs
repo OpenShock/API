@@ -63,32 +63,51 @@ public class ShareLinksController : AuthenticatedSessionControllerBase
     }
 
     [HttpGet("{id:guid}")]
-    public async Task<BaseResponse<ShareLinkResponse>> Get(Guid id)
+    public async Task<BaseResponse<ShareLinkWithShockersResponse>> Get(Guid id)
     {
+
         var ownShareLinks = await _db.ShockerSharesLinks.Where(x => x.OwnerId == CurrentUser.DbUser.Id && x.Id == id)
-            .Select(x => ShareLinkResponse.GetFromEf(x)).SingleOrDefaultAsync();
+            .Select(x => new ShareLinkWithShockersResponse()
+            {
+                Id = x.Id,
+                Name = x.Name,
+                CreatedOn = x.CreatedOn,
+                ExpiresOn = x.ExpiresOn,
+                Shockers = x.ShockerSharesLinksShockers.Select(y => new OwnerShockerResponse.SharedDevice.SharedShocker()
+                {
+                    Id = y.Shocker.Id,
+                    Name = y.Shocker.Name,
+                    IsPaused = y.Shocker.Paused,
+                    PermShock = y.PermShock,
+                    PermVibrate = y.PermVibrate,
+                    PermSound = y.PermSound,
+                    LimitDuration = y.LimitDuration,
+                    LimitIntensity = y.LimitIntensity
+                })
+            })
+            .SingleOrDefaultAsync();
 
         if (ownShareLinks == null)
-            return EBaseResponse<ShareLinkResponse>("Share link could not be found", HttpStatusCode.NotFound);
-        return new BaseResponse<ShareLinkResponse>
+            return EBaseResponse<ShareLinkWithShockersResponse>("Share link could not be found", HttpStatusCode.NotFound);
+        return new BaseResponse<ShareLinkWithShockersResponse>
         {
             Data = ownShareLinks
         };
     }
 
     [HttpPost("{id:guid}/{shockerId:guid}")]
-    public async Task<BaseResponse<ShareLinkResponse>> AddShocker(Guid id, Guid shockerId)
+    public async Task<BaseResponse<object>> AddShocker(Guid id, Guid shockerId)
     {
         var exists = await _db.ShockerSharesLinks.AnyAsync(x => x.OwnerId == CurrentUser.DbUser.Id && x.Id == id);
         if (!exists)
-            return EBaseResponse<ShareLinkResponse>("Share link could not be found", HttpStatusCode.NotFound);
+            return EBaseResponse<object>("Share link could not be found", HttpStatusCode.NotFound);
 
         var ownShocker =
             await _db.Shockers.AnyAsync(x => x.Id == shockerId && x.DeviceNavigation.Owner == CurrentUser.DbUser.Id);
-        if (!ownShocker) return EBaseResponse<ShareLinkResponse>("Shocker does not exist", HttpStatusCode.NotFound);
+        if (!ownShocker) return EBaseResponse<object>("Shocker does not exist", HttpStatusCode.NotFound);
 
         if (await _db.ShockerSharesLinksShockers.AnyAsync(x => x.ShareLinkId == id && x.ShockerId == shockerId))
-            return EBaseResponse<ShareLinkResponse>("Shocker already exists in share link", HttpStatusCode.Conflict);
+            return EBaseResponse<object>("Shocker already exists in share link", HttpStatusCode.Conflict);
 
         _db.ShockerSharesLinksShockers.Add(new ShockerSharesLinksShocker
         {
@@ -97,7 +116,7 @@ public class ShareLinksController : AuthenticatedSessionControllerBase
         });
 
         await _db.SaveChangesAsync();
-        return new BaseResponse<ShareLinkResponse>
+        return new BaseResponse<object>
         {
             Message = "Successfully added shocker"
         };
@@ -126,7 +145,7 @@ public class ShareLinksController : AuthenticatedSessionControllerBase
         await _db.SaveChangesAsync();
         return new BaseResponse<ShareLinkResponse>
         {
-            Message = "Successfully added shocker"
+            Message = "Successfully updated shocker"
         };
     }
 

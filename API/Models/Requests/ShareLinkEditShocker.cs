@@ -1,16 +1,21 @@
-﻿namespace ShockLink.API.Models.Requests;
+﻿using System.ComponentModel.DataAnnotations;
+
+namespace ShockLink.API.Models.Requests;
 
 public class ShareLinkEditShocker
 {
-    public bool PermSound { get; set; }
+    public required bool PermSound { get; set; }
 
-    public bool PermVibrate { get; set; }
+    public required bool PermVibrate { get; set; }
 
-    public bool PermShocker { get; set; }
+    public required bool PermShocker { get; set; }
+    
+    [Range(300, 30000)]
+    public required uint? LimitDuration { get; set; }
+    [Range(1, 100)]
 
-    public int? LimitDuration { get; set; }
+    public required byte? LimitIntensity { get; set; }
 
-    public short? LimitIntensity { get; set; }
-
+    [Range(300, 30000)]
     public int? Cooldown { get; set; }
 }

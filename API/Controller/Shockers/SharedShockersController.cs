@@ -35,7 +35,9 @@ public class SharedShockersController : AuthenticatedSessionControllerBase
                     IsPaused = x.Shocker.Paused,
                     PermShock = x.PermShock!.Value,
                     PermSound = x.PermVibrate!.Value,
-                    PermVibrate = x.PermVibrate!.Value
+                    PermVibrate = x.PermVibrate!.Value,
+                    LimitDuration = x.LimitDuration,
+                    LimitIntensity = x.LimitIntensity
                 }
             }).ToListAsync();
 

@@ -45,7 +45,9 @@ public class PublicShareLinkController : ShockLinkControllerBase
                     IsPaused = y.Shocker.Paused,
                     PermVibrate = y.PermVibrate,
                     PermSound = y.PermSound,
-                    PermShock = y.PermShock
+                    PermShock = y.PermShock,
+                    LimitDuration = y.LimitDuration,
+                    LimitIntensity = y.LimitIntensity
                 }
             })
         }).SingleOrDefaultAsync();
