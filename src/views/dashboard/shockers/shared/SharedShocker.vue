@@ -185,7 +185,7 @@ export default {
 
         .shocker-name-col {
             margin-right: auto;
-            width: calc(100% - 24px);
+            width: calc(100% - 25px);
 
             .shocker-name {
                 white-space: nowrap;

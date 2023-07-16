@@ -48,7 +48,7 @@ const routes = [
 					},
 				]
 			},
-			/*{
+			{
 				path: 'shares',
 				component: lazyLoad('dashboard/shares/SharesRoot'),
 				redirect: '/dashboard/shares/links',
@@ -63,7 +63,7 @@ const routes = [
 						props: true
 					}
 				]
-			},*/
+			},
 			{
 				path: 'admin',
 				component: lazyLoad('dashboard/admin/AdminRoot'),
