@@ -112,7 +112,10 @@ public class ShareLinksController : AuthenticatedSessionControllerBase
         _db.ShockerSharesLinksShockers.Add(new ShockerSharesLinksShocker
         {
             ShockerId = shockerId,
-            ShareLinkId = id
+            ShareLinkId = id,
+            PermSound = true,
+            PermVibrate = true,
+            PermShock = true
         });
 
         await _db.SaveChangesAsync();
