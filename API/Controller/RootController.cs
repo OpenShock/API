@@ -14,6 +14,7 @@ public class RootController : ShockLinkControllerBase
     private static readonly string ShockLinkBackendVersion =
         Assembly.GetEntryAssembly()?.GetName().Version?.ToString() ?? "error";
 
+    [HttpGet]
     public BaseResponse<RootResponse> Get() => new()
     {
         Message = "ShockLink",
