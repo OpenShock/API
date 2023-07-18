@@ -17,8 +17,8 @@ public class FirmwareVersionController : ShockLinkControllerBase
         {
             Data = new FirmwareVersion
             {
-                Version = new Version(0, 7, 0, 1),
-                DownloadUri = new Uri("https://cdn.shocklink.net/firmware/shocklink_firmware_0.7.0.1.bin")
+                Version = new Version(0, 7, 1, 0),
+                DownloadUri = new Uri("https://cdn.shocklink.net/firmware/shocklink_firmware_0.7.1.0.bin")
             }
         };
     }
