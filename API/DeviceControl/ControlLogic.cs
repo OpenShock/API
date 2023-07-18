@@ -15,11 +15,9 @@ namespace ShockLink.API.DeviceControl;
 public static class ControlLogic
 {
 
-    public static async Task<OneOf<Success>> Control(IEnumerable<Control> shocks, ShockLinkContext db, ControlLogSender sender,
+    public static async Task<OneOf<Success>> ControlByUser(IEnumerable<Control> shocks, ShockLinkContext db, ControlLogSender sender,
         IHubClients<IUserHub> hubClients)
     {
-        var finalMessages = new Dictionary<Guid, IList<ControlMessage.ShockerControlInfo>>();
-        
         var ownShockers = await db.Shockers.Where(x => x.DeviceNavigation.Owner == sender.Id).Select(x =>
             new ControlShockerObj
             {
@@ -55,13 +53,46 @@ public static class ControlLogic
 
         ownShockers.AddRange(sharedShockers);
 
+        return await ControlInternal(shocks, db, sender, hubClients, ownShockers);
+    }
+
+    public static async Task<OneOf<Success>> ControlShareLink(IEnumerable<Control> shocks, ShockLinkContext db,
+        ControlLogSender sender,
+        IHubClients<IUserHub> hubClients, Guid shareLinkId)
+    {
+        var shareLinkShockers = await db.ShockerSharesLinksShockers.Where(x => x.ShareLinkId == shareLinkId)
+            .Select(x => new ControlShockerObj
+        {
+            Id = x.Shocker.Id,
+            Name = x.Shocker.Name,
+            RfId = x.Shocker.RfId,
+            Device = x.Shocker.Device,
+            Model = x.Shocker.Model,
+            Owner = x.Shocker.DeviceNavigation.Owner,
+            Paused = x.Shocker.Paused,
+            PermsAndLimits = new ControlShockerObj.SharePermsAndLimits()
+            {
+                Shock = x.PermShock,
+                Vibrate = x.PermVibrate,
+                Sound = x.PermSound,
+                Duration = x.LimitDuration,
+                Intensity = x.LimitIntensity
+            }
+        }).ToListAsync();
+        return await ControlInternal(shocks, db, sender, hubClients, shareLinkShockers);
+    }
+    
+    private static async Task<OneOf<Success>> ControlInternal(IEnumerable<Control> shocks, ShockLinkContext db, ControlLogSender sender,
+        IHubClients<IUserHub> hubClients, IReadOnlyCollection<ControlShockerObj> allowedShockers)
+    {
+        var finalMessages = new Dictionary<Guid, IList<ControlMessage.ShockerControlInfo>>();
         var curTime = DateTime.UtcNow;
-        var distinctShocks = shocks.DistinctBy(x => x.Id).ToArray();
+        var distinctShocks = shocks.DistinctBy(x => x.Id);
         var logs = new Dictionary<Guid, List<ControlLog>>();
-        
+
         foreach (var shock in distinctShocks)
         {
-            var shockerInfo = ownShockers.FirstOrDefault(x => x.Id == shock.Id);
+            var shockerInfo = allowedShockers.FirstOrDefault(x => x.Id == shock.Id);
             if (shockerInfo == null)
             {
                 // TODO: Return denied
@@ -69,8 +100,8 @@ public static class ControlLogic
             }
 
             if (shockerInfo.Paused) continue;
-            
-            if(!IsAllowed(shock.Type, shockerInfo.PermsAndLimits)) continue;
+
+            if (!IsAllowed(shock.Type, shockerInfo.PermsAndLimits)) continue;
             var durationMax = shockerInfo.PermsAndLimits?.Duration ?? 30000;
             var intensityMax = shockerInfo.PermsAndLimits?.Intensity ?? 100;
 
@@ -101,7 +132,7 @@ public static class ControlLogic
             });
 
             if (!logs.ContainsKey(shockerInfo.Owner)) logs[shockerInfo.Owner] = new List<ControlLog>();
-            
+
             logs[shockerInfo.Owner].Add(new ControlLog
             {
                 Shocker = new GenericIn
@@ -114,7 +145,6 @@ public static class ControlLogic
                 Intensity = deviceEntry.Intensity,
                 ExecutedAt = curTime
             });
-            
         }
 
         var redisTask = PubSubManager.SendControlMessage(new ControlMessage
@@ -122,11 +152,16 @@ public static class ControlLogic
             Shocker = sender.Id,
             ControlMessages = finalMessages
         });
-
-        await Task.WhenAll(redisTask, db.SaveChangesAsync());
-
         var logSends = logs.Select(x => hubClients.User(x.Key.ToString()).Log(sender, x.Value));
-        await Task.WhenAll(logSends);
+
+        var listOfTasks = new List<Task>
+        {
+            redisTask,
+            db.SaveChangesAsync()
+        };
+        listOfTasks.AddRange(logSends);
+
+        await Task.WhenAll(listOfTasks);
 
         return new OneOf<Success>();
     }

@@ -140,7 +140,7 @@ public class ShareLinksController : AuthenticatedSessionControllerBase
 
         shocker.PermSound = data.PermSound;
         shocker.PermVibrate = data.PermVibrate;
-        shocker.PermShock = data.PermShocker;
+        shocker.PermShock = data.PermShock;
         shocker.LimitDuration = data.LimitDuration;
         shocker.LimitIntensity = data.LimitIntensity;
         shocker.Cooldown = data.Cooldown;

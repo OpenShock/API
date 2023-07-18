@@ -78,7 +78,7 @@ public class UserHub : Hub<IUserHub>
             CustomName = customName
         }).SingleAsync();
 
-        await ControlLogic.Control(shocks, _db, sender, Clients);
+        await ControlLogic.ControlByUser(shocks, _db, sender, Clients);
     }
 
     public async Task CaptivePortal(Guid deviceId, bool enabled)

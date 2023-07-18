@@ -8,7 +8,7 @@ public class ShareLinkEditShocker
 
     public required bool PermVibrate { get; set; }
 
-    public required bool PermShocker { get; set; }
+    public required bool PermShock { get; set; }
     
     [Range(300, 30000)]
     public required uint? LimitDuration { get; set; }

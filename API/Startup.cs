@@ -228,7 +228,7 @@ public class Startup
                 });*/
             endpoints.MapControllers();
             endpoints.MapHub<UserHub>("/1/hubs/user", options => { options.Transports = HttpTransportType.WebSockets; });
-            endpoints.MapHub<UserHub>("/1/hubs/share/link/{id}", options => { options.Transports = HttpTransportType.WebSockets; });
+            endpoints.MapHub<ShareLinkHub>("/1/hubs/share/link/{id}", options => { options.Transports = HttpTransportType.WebSockets; });
         });
     }
 }

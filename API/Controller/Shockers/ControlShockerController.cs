@@ -41,7 +41,7 @@ public class ControlShockerController : AuthenticatedSessionControllerBase
             CustomName = data.CustomName
         };
 
-        await ControlLogic.Control(data.Shocks, _db, sender, _userHub.Clients);
+        await ControlLogic.ControlByUser(data.Shocks, _db, sender, _userHub.Clients);
 
         return new BaseResponse<object>
         {

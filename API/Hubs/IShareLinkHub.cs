@@ -2,5 +2,5 @@
 
 public interface IShareLinkHub
 {
-    
+    Task Updated();
 }
