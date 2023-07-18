@@ -42,6 +42,15 @@ public abstract class WebsocketControllerBase<T> : ShockLinkControllerBase, IWeb
             HttpContext.Response.StatusCode = StatusCodes.Status400BadRequest;
             return;
         }
+        
+        if (HttpContext.Request.Headers.TryGetValue("FirmwareVersion", out var header))
+        {
+            Logger.LogInformation("FirmwareVersion: " + header);
+        }
+        else
+        {
+            Logger.LogInformation("No version");
+        }
 
         Logger.LogInformation("Opening websocket connection");
         WebSocket = await HttpContext.WebSockets.AcceptWebSocketAsync();
