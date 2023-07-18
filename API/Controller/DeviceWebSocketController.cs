@@ -38,14 +38,6 @@ public class DeviceWebSocketController : WebsocketControllerBase<ResponseType>
     {
         _redis = redisConnectionProvider;
         _devicesOnline = redisConnectionProvider.RedisCollection<DeviceOnline>(false);
-        if (HttpContext.Request.Headers.TryGetValue("FirmwareVersion", out var header))
-        {
-            Console.WriteLine("FirmwareVersion: " + header);
-        }
-        else
-        {
-            Console.WriteLine("No version");
-        }
     }
     
     protected override void RegisterConnection()
