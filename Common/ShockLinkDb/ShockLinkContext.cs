@@ -21,6 +21,8 @@ public partial class ShockLinkContext : DbContext
 
     public virtual DbSet<Device> Devices { get; set; }
 
+    public virtual DbSet<EspFirmware> EspFirmwares { get; set; }
+
     public virtual DbSet<PasswordReset> PasswordResets { get; set; }
 
     public virtual DbSet<Shocker> Shockers { get; set; }
@@ -40,16 +42,17 @@ public partial class ShockLinkContext : DbContext
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder
-            .HasPostgresEnum("ShockLink", "cf_images_type", new[] { "avatar" })
-            .HasPostgresEnum("ShockLink", "control_type", new[] { "sound", "vibrate", "shock", "stop" })
-            .HasPostgresEnum("ShockLink", "permission_type", new[] { "shockers.use" })
-            .HasPostgresEnum("ShockLink", "shocker_model_type", new[] { "small", "petTrainer" });
+            .HasPostgresEnum("shocklink", "branch_type", new[] { "Release", "Beta", "Dev" })
+            .HasPostgresEnum("shocklink", "cf_images_type", new[] { "avatar" })
+            .HasPostgresEnum("shocklink", "control_type", new[] { "sound", "vibrate", "shock", "stop" })
+            .HasPostgresEnum("shocklink", "permission_type", new[] { "shockers.use" })
+            .HasPostgresEnum("shocklink", "shocker_model_type", new[] { "small", "petTrainer" });
 
         modelBuilder.Entity<ApiToken>(entity =>
         {
             entity.HasKey(e => e.Id).HasName("api_tokens_pkey");
 
-            entity.ToTable("api_tokens", "ShockLink");
+            entity.ToTable("api_tokens", "shocklink");
 
             entity.Property(e => e.Id)
                 .ValueGeneratedNever()
@@ -80,7 +83,7 @@ public partial class ShockLinkContext : DbContext
         {
             entity.HasKey(e => e.Id).HasName("cf_images_pkey");
 
-            entity.ToTable("cf_images", "ShockLink");
+            entity.ToTable("cf_images", "shocklink");
 
             entity.Property(e => e.Id)
                 .ValueGeneratedNever()
@@ -97,7 +100,7 @@ public partial class ShockLinkContext : DbContext
         {
             entity.HasKey(e => e.Id).HasName("devices_pkey");
 
-            entity.ToTable("devices", "ShockLink");
+            entity.ToTable("devices", "shocklink");
 
             entity.Property(e => e.Id)
                 .ValueGeneratedNever()
@@ -118,11 +121,25 @@ public partial class ShockLinkContext : DbContext
                 .HasConstraintName("owner_user_id");
         });
 
+        modelBuilder.Entity<EspFirmware>(entity =>
+        {
+            entity.HasKey(e => new { e.Version, e.Branch });
+            entity.ToTable("esp_firmware", "shocklink");
+
+            entity.Property(e => e.Changelog).HasColumnName("changelog");
+            entity.Property(e => e.Commit)
+                .HasColumnType("character varying")
+                .HasColumnName("commit");
+            entity.Property(e => e.CreatedOn)
+                .HasDefaultValueSql("CURRENT_TIMESTAMP")
+                .HasColumnName("created_on");
+        });
+
         modelBuilder.Entity<PasswordReset>(entity =>
         {
             entity.HasKey(e => e.Id).HasName("password_resets_pkey");
 
-            entity.ToTable("password_resets", "ShockLink");
+            entity.ToTable("password_resets", "shocklink");
 
             entity.Property(e => e.Id)
                 .ValueGeneratedNever()
@@ -147,7 +164,7 @@ public partial class ShockLinkContext : DbContext
         {
             entity.HasKey(e => e.Id).HasName("shockers_pkey");
 
-            entity.ToTable("shockers", "ShockLink");
+            entity.ToTable("shockers", "shocklink");
 
             entity.Property(e => e.Id)
                 .ValueGeneratedNever()
@@ -172,7 +189,7 @@ public partial class ShockLinkContext : DbContext
         {
             entity.HasKey(e => e.Id).HasName("shocker_control_logs_pkey");
 
-            entity.ToTable("shocker_control_logs", "ShockLink");
+            entity.ToTable("shocker_control_logs", "shocklink");
 
             entity.Property(e => e.Id)
                 .ValueGeneratedNever()
@@ -202,7 +219,7 @@ public partial class ShockLinkContext : DbContext
         {
             entity.HasKey(e => new { e.ShockerId, e.SharedWith }).HasName("shocker_shares_pkey");
 
-            entity.ToTable("shocker_shares", "ShockLink");
+            entity.ToTable("shocker_shares", "shocklink");
 
             entity.Property(e => e.ShockerId).HasColumnName("shocker_id");
             entity.Property(e => e.SharedWith).HasColumnName("shared_with");
@@ -237,7 +254,7 @@ public partial class ShockLinkContext : DbContext
         {
             entity.HasKey(e => e.Id).HasName("shocker_share_codes_pkey");
 
-            entity.ToTable("shocker_share_codes", "ShockLink");
+            entity.ToTable("shocker_share_codes", "shocklink");
 
             entity.Property(e => e.Id)
                 .ValueGeneratedNever()
@@ -270,7 +287,7 @@ public partial class ShockLinkContext : DbContext
         {
             entity.HasKey(e => e.Id).HasName("shocker_shares_links_pkey");
 
-            entity.ToTable("shocker_shares_links", "ShockLink");
+            entity.ToTable("shocker_shares_links", "shocklink");
 
             entity.Property(e => e.Id)
                 .ValueGeneratedNever()
@@ -293,7 +310,7 @@ public partial class ShockLinkContext : DbContext
         {
             entity.HasKey(e => new { e.ShareLinkId, e.ShockerId }).HasName("shocker_shares_links_shockers_pkey");
 
-            entity.ToTable("shocker_shares_links_shockers", "ShockLink");
+            entity.ToTable("shocker_shares_links_shockers", "shocklink");
 
             entity.Property(e => e.ShareLinkId).HasColumnName("share_link_id");
             entity.Property(e => e.ShockerId).HasColumnName("shocker_id");
@@ -317,7 +334,7 @@ public partial class ShockLinkContext : DbContext
         {
             entity.HasKey(e => e.Id).HasName("users_pkey");
 
-            entity.ToTable("users", "ShockLink");
+            entity.ToTable("users", "shocklink");
 
             entity.HasIndex(e => e.Email, "email").IsUnique();
 

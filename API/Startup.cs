@@ -48,6 +48,7 @@ public class Startup
         NpgsqlConnection.GlobalTypeMapper.MapEnum<CfImagesType>();
         NpgsqlConnection.GlobalTypeMapper.MapEnum<PermissionType>();
         NpgsqlConnection.GlobalTypeMapper.MapEnum<ShockerModelType>();
+        NpgsqlConnection.GlobalTypeMapper.MapEnum<BranchType>();
 #pragma warning restore CS0618
         services.AddDbContextPool<ShockLinkContext>(builder =>
         {
