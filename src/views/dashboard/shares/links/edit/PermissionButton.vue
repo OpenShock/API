@@ -1,5 +1,5 @@
 <template>
-  <b-button variant="nano">
+  <b-button variant="limit" :style="state ? '' : 'background-color: unset'">
     <span>
       <i :class="icon"></i>
       <span v-if="state"><i  class="fa-solid fa-toggle-on"></i></span>

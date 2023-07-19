@@ -36,6 +36,8 @@ html {
   }
 }
 
+$shocker-limit-color: #f16051;
+
 [data-color-scheme="white"] {
   --main-color: #8577ef;
   --main-darken-color: #050434;
@@ -136,8 +138,23 @@ body {
     border-color: var(--main-darken-color);
   }
 
-  &:focus {
-    box-shadow: 0 0 0 0.25rem rgb(80, 47, 255)
+  &.scuff {
+    height: 39px;
+    margin-right: 15px;
+    margin-top: 24px;
+  }
+}
+
+.btn-limit {
+  color: #fff;
+  background-color: $shocker-limit-color;
+  border-color: $shocker-limit-color;
+  margin-top: 10px;
+
+  &:hover {
+    color: #fff;
+    background-color: darken($shocker-limit-color, 20%);
+    border-color: darken($shocker-limit-color, 20%);
   }
 
   &.scuff {
@@ -146,6 +163,7 @@ body {
     margin-top: 24px;
   }
 }
+
 
 .table {
   tbody {

@@ -51,15 +51,15 @@
                     </b-container>
                 </b-row>
                 <b-row align-h="center">
-                    <b-col cols="auto" md="auto">
+                    <b-col v-if="shocker.permSound" cols="auto" md="auto">
                         <control-button style="width: 46px" text="" icon="fa-solid fa-volume-high"
                             loadingIcon="fa-solid fa-spinner fa-spin" :loading="inProgress" @click="control(3)" />
                     </b-col>
-                    <b-col cols="auto" md="auto">
+                    <b-col v-if="shocker.permVibrate" cols="auto" md="auto">
                         <control-button style="width: 46px" text="" icon="fa-solid fa-water"
                             loadingIcon="fa-solid fa-spinner fa-spin" :loading="inProgress" @click="control(2)" />
                     </b-col>
-                    <b-col cols="auto" md="auto">
+                    <b-col v-if="shocker.permShock" cols="auto" md="auto">
                         <control-button style="left: 0; width: 46px" text="" icon="fa-solid fa-bolt"
                             loadingIcon="fa-solid fa-spinner fa-spin" :loading="inProgress" @click="control(1)" />
                     </b-col>
@@ -174,6 +174,7 @@ export default {
         position: relative;
 
         transition: 1s filter linear, 1s -webkit-filter linear;
+        min-height: 255px;
 
         .paused-text {
             position: absolute;

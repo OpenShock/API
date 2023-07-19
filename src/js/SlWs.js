@@ -31,7 +31,6 @@ const ws = {
     },
     async controlMultiple(shocks, customName) {
         const res = await connection.invoke("ControlV2", shocks, customName);
-        console.log(res);
     },
     async captive(deviceId, enabled) {
         await connection.invoke("CaptivePortal", deviceId, enabled);
@@ -45,7 +44,7 @@ setInterval(() => {
     }
 }, 200);
 
-connection.start().catch((err) => toastr.error(err, "Server connection"));
+connection.start().catch((err) => toastr.error(err, "User Hub"));
 
 global.ws = ws;
 global.userHubConnection = connection;

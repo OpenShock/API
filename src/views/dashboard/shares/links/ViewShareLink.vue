@@ -13,12 +13,6 @@
                 <b-col v-for="item in shareLink.shockers" :key="item.id" class="shocker-col">
                     <share-link-shocker-edit :shocker="item"></share-link-shocker-edit>
                 </b-col>
-                <b-col class="basic-card selectable sharelink-card add-new" @click="openAddShockerModal">
-                    <b-row>
-                        <h3 style="margin-bottom: 65px;">Add shocker</h3>
-                        <i class="fa-solid fa-plus"></i>
-                    </b-row>
-                </b-col>
             </b-row>
             <b-row v-else>
                 <b-col v-for="item in shareLink.shockers" :key="item.id" class="shocker-col">
@@ -47,9 +41,11 @@
 <script>
 import ShareLinkShocker from "./ShareLinkShocker.vue"
 import ShareLinkShockerEdit from './edit/ShareLinkShockerEdit.vue';
+import Loading from '../../../utils/Loading.vue';
+import ShareLinkHub from '@/js/ShareLinkHub.js';
 
 export default {
-    components: { ShareLinkShocker, ShareLinkShockerEdit },
+    components: { ShareLinkShocker, ShareLinkShockerEdit, Loading },
     props: ['id'],
     data() {
         return {
@@ -61,14 +57,21 @@ export default {
                 ownShockersLoading: true,
                 ownShockers: [],
                 selectedShocker: undefined
-            }
+            },
+            userHubInstance: new ShareLinkHub(this.id)
         }
     },
     async beforeMount() {
+        console.log("Starting Share Link Hub connection");
+        this.userHubInstance.start();
         await this.loadShareLink();
         this.emitter.on('refreshShareLink', async () => {
             await this.loadShareLink();
         });
+    },
+    unmounted() {
+        console.log("Shutting down Share Link Hub connection");
+        this.userHubInstance.stop();
     },
     methods: {
         async loadShareLink() {
@@ -98,6 +101,8 @@ export default {
         },
         async openAddShockerModal() {
             this.loadAllOwnShockers();
+            this.selectedShocker = undefined;
+            this.addShocker.loading = true;
             this.addShocker.modal = true;
         },
         async addShockerAction() {
@@ -150,6 +155,13 @@ export default {
                 y: e.y,
                 items: [
                     {
+                        label: "Add Shocker",
+                        icon: 'fa-solid fa-plus',
+                        onClick: () => {
+                            this.openAddShockerModal();
+                        }
+                    },
+                    {
                         label: "Edit Mode",
                         icon: this.editMode ? 'fa-solid fa-toggle-on' : 'fa-solid fa-toggle-off',
                         onClick: () => {
@@ -171,14 +183,22 @@ export default {
         validateAddShocker() {
             return this.addShocker.selectedShocker !== undefined && this.addShocker.selectedShocker !== "";
         },
+        existingShockerIds() {
+            var arr = [];
+            this.shareLink.shockers.forEach(it => {
+                arr.push(it.id);
+            });
+            return arr;
+        },
         addShockerList() {
             var arr = [];
             this.addShocker.ownShockers.forEach(it => {
-                it.shockers.forEach(it2 => {
-                    arr.push({
-                        text: it2.name,
-                        value: it2.id
+                it.shockers.forEach(shocker => {
+                    if (!this.existingShockerIds.includes(shocker.id)) arr.push({
+                        text: shocker.name,
+                        value: shocker.id
                     });
+
                 });
             });
             return arr;
@@ -191,59 +211,6 @@ export default {
 .shocker-col {
     @media screen and (min-width: 440px) {
         min-width: 440px;
-    }
-    
-}
-
-.elli {
-    //margin-right: 25px;
-}
-
-.sharelink-card {
-    max-width: 224px;
-    min-width: 224px;
-    height: 300px;
-    text-align: center;
-    padding: 10px;
-    padding-top: 20px;
-    margin: 20px;
-    overflow-wrap: anywhere;
-
-    .copy-clip {
-        font-size: 30px;
-        padding: 0;
-        margin: 0;
-        border-radius: 15px;
-
-        .backdrop {
-
-            margin: auto;
-            width: 70px;
-            height: 70px;
-            padding: 15px;
-            border-radius: 15px;
-            transition: ease-in-out 0.2s background-color;
-
-            &:hover {
-                background-color: var(--main-background-color);
-            }
-
-
-            svg {
-                margin: auto;
-                width: 40px;
-                height: 40px;
-            }
-        }
-    }
-
-    &.add-new {
-        background-color: var(--main-blackground-dark);
-
-        svg {
-            padding: 0;
-            font-size: 50px;
-        }
     }
 }
 </style>
