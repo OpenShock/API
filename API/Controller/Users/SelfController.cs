@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using ShockLink.API.Authentication;
 using ShockLink.API.Models;
 using ShockLink.API.Utils;
+using ShockLink.Common;
 using ShockLink.Common.ShockLinkDb;
 
 namespace ShockLink.API.Controller.Users;
@@ -12,7 +13,6 @@ namespace ShockLink.API.Controller.Users;
 [Route("/{version:apiVersion}/users/self")]
 public sealed class SelfController : AuthenticatedSessionControllerBase
 {
-    private static Guid DefaultAvatar = Guid.Parse("7d7302ba-be81-47bb-671d-33f9efd20900");
     private readonly ShockLinkContext _db;
     private readonly ILogger<SelfController> _logger;
 
@@ -53,7 +53,7 @@ public sealed class SelfController : AuthenticatedSessionControllerBase
             return EBaseResponse<object>("Image format must be PNG or JPG");
         }
 
-        if (oldImageId != DefaultAvatar)
+        if (oldImageId != Constants.DefaultAvatar)
         {
             // Delete old avatar from cloudflare and db
             _logger.LogDebug("Deleting old avatar from cloudflare and db");

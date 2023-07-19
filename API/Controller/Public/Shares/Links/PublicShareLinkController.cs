@@ -34,6 +34,8 @@ public class PublicShareLinkController : ShockLinkControllerBase
             },
             x.Id,
             x.Name,
+            x.ExpiresOn,
+            x.CreatedOn,
             Shockers = x.ShockerSharesLinksShockers.Select(y => new
             {
                 DeviceId = y.Shocker.DeviceNavigation.Id,
@@ -59,7 +61,9 @@ public class PublicShareLinkController : ShockLinkControllerBase
         {
             Id = shareLink.Id,
             Name = shareLink.Name,
-            Author = shareLink.Author
+            Author = shareLink.Author,
+            CreatedOn = shareLink.CreatedOn,
+            ExpiresOn = shareLink.ExpiresOn
         };
         foreach (var shocker in shareLink.Shockers)
         {
@@ -73,7 +77,7 @@ public class PublicShareLinkController : ShockLinkControllerBase
             final.Devices.Single(x => x.Id == shocker.DeviceId).Shockers.Add(shocker.Shocker);
         }
 
-        return new BaseResponse<PublicShareLinkResponse>()
+        return new BaseResponse<PublicShareLinkResponse>
         {
             Data = final
         };

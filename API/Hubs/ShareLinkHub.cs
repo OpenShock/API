@@ -1,5 +1,7 @@
 ﻿using Microsoft.AspNetCore.SignalR;
 using ShockLink.API.DeviceControl;
+using ShockLink.API.Utils;
+using ShockLink.Common;
 using ShockLink.Common.Models;
 using ShockLink.Common.ShockLinkDb;
 
@@ -38,19 +40,17 @@ public sealed class ShareLinkHub : Hub<IShareLinkHub>
 
     public async Task Control(IEnumerable<Common.Models.WebSocket.User.Control> shocks)
     {
-        var additionalItems = new Dictionary<string, object>();
-        var apiTokenId = Context.User?.FindFirst(ControlLogAdditionalItem.ShareLinkId);
-        if (apiTokenId != null) additionalItems[ControlLogAdditionalItem.ShareLinkId] = apiTokenId.Value;
-
-
         await ControlLogic.ControlShareLink(shocks, _db, new ControlLogSender
         {
             Id = Guid.Empty,
             Name = "Guest",
-            Image = new Uri(""),
+            Image = ImagesApi.GetImageRoot(Constants.DefaultAvatar),
             ConnectionId = Context.ConnectionId,
             CustomName = CustomData.CustomName,
-            AdditionalItems = additionalItems
+            AdditionalItems = new Dictionary<string, object>
+            {
+                [ControlLogAdditionalItem.ShareLinkId] = CustomData.ShareLinkId
+            }
         }, _userHub.Clients, CustomData.ShareLinkId);
     }
 

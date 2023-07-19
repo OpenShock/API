@@ -62,39 +62,6 @@ public class ShareLinksController : AuthenticatedSessionControllerBase
         };
     }
 
-    [HttpGet("{id:guid}")]
-    public async Task<BaseResponse<ShareLinkWithShockersResponse>> Get(Guid id)
-    {
-
-        var ownShareLinks = await _db.ShockerSharesLinks.Where(x => x.OwnerId == CurrentUser.DbUser.Id && x.Id == id)
-            .Select(x => new ShareLinkWithShockersResponse()
-            {
-                Id = x.Id,
-                Name = x.Name,
-                CreatedOn = x.CreatedOn,
-                ExpiresOn = x.ExpiresOn,
-                Shockers = x.ShockerSharesLinksShockers.Select(y => new OwnerShockerResponse.SharedDevice.SharedShocker()
-                {
-                    Id = y.Shocker.Id,
-                    Name = y.Shocker.Name,
-                    IsPaused = y.Shocker.Paused,
-                    PermShock = y.PermShock,
-                    PermVibrate = y.PermVibrate,
-                    PermSound = y.PermSound,
-                    LimitDuration = y.LimitDuration,
-                    LimitIntensity = y.LimitIntensity
-                })
-            })
-            .SingleOrDefaultAsync();
-
-        if (ownShareLinks == null)
-            return EBaseResponse<ShareLinkWithShockersResponse>("Share link could not be found", HttpStatusCode.NotFound);
-        return new BaseResponse<ShareLinkWithShockersResponse>
-        {
-            Data = ownShareLinks
-        };
-    }
-
     [HttpPost("{id:guid}/{shockerId:guid}")]
     public async Task<BaseResponse<object>> AddShocker(Guid id, Guid shockerId)
     {

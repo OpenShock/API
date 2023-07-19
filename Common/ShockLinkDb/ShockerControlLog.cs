@@ -12,7 +12,7 @@ public partial class ShockerControlLog
 
     public DateTime CreatedOn { get; set; }
 
-    public Guid ControlledBy { get; set; }
+    public Guid? ControlledBy { get; set; }
 
     public byte Intensity { get; set; }
 

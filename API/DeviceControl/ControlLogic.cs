@@ -124,7 +124,7 @@ public static class ControlLogic
             {
                 Id = Guid.NewGuid(),
                 ShockerId = shockerInfo.Id,
-                ControlledBy = sender.Id,
+                ControlledBy = sender.Id == Guid.Empty ? null : sender.Id,
                 CreatedOn = curTime,
                 Intensity = deviceEntry.Intensity,
                 Duration = deviceEntry.Duration,

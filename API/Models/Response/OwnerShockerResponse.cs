@@ -1,12 +1,9 @@
-﻿using ShockLink.Common.ShockLinkDb;
-
-namespace ShockLink.API.Models.Response;
+﻿namespace ShockLink.API.Models.Response;
 
 public class OwnerShockerResponse
 {
     public required Guid Id { get; set; }
     public required string Name { get; set; }
-
     public IList<SharedDevice> Devices { get; set; } = new List<SharedDevice>();
 
     public class SharedDevice
