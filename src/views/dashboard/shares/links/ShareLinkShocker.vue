@@ -134,12 +134,12 @@ export default {
             });
         },
         async control(type) {
-            await ws.control(
-                this.shocker.id,
-                parseInt(this.shocker.state.intensity),
-                parseFloat(this.shocker.state.duration) * 1000,
-                this.inProgress ? 0 : type
-            );
+            this.$emit('control', {
+                id: this.shocker.id,
+                intensity: parseInt(this.shocker.state.intensity),
+                duration: parseFloat(this.shocker.state.duration) * 1000,
+                type: this.inProgress ? 0 : type
+            });
 
             if (this.inProgress) {
                 this.inProgress = false;

@@ -5,20 +5,27 @@
                 <b-col>
                     <h3>{{ this.shareLink.name }}</h3>
                 </b-col>
+                <b-col>
+                    <p>{{ this.shareLink.author.name }}</p>
+                </b-col>
                 <b-col cols="auto" class="elli" @click="ellipsis">
                     <i class="fa-solid fa-ellipsis-vertical"></i>
                 </b-col>
             </b-row>
-            <b-row v-if="editMode">
-                <b-col v-for="item in shareLink.shockers" :key="item.id" class="shocker-col">
-                    <share-link-shocker-edit :shocker="item"></share-link-shocker-edit>
-                </b-col>
-            </b-row>
-            <b-row v-else>
-                <b-col v-for="item in shareLink.shockers" :key="item.id" class="shocker-col">
-                    <share-link-shocker :shocker="item"></share-link-shocker>
-                </b-col>
-            </b-row>
+            <div v-if="editMode">
+                <b-row v-for="device in shareLink.devices" :key="device.id">
+                    <b-col v-for="item in device.shockers" :key="item.id" class="shocker-col">
+                        <share-link-shocker-edit :shocker="item"></share-link-shocker-edit>
+                    </b-col>
+                </b-row>
+            </div>
+            <div v-else>
+                <b-row v-for="device in shareLink.devices" :key="device.id">
+                    <b-col v-for="item in device.shockers" :key="item.id" class="shocker-col">
+                        <share-link-shocker :shocker="item" @control="controlShocker"></share-link-shocker>
+                    </b-col>
+                </b-row>
+            </div>
         </b-container>
     </div>
 
@@ -50,7 +57,7 @@ export default {
     data() {
         return {
             shareLink: undefined,
-            editMode: true,
+            editMode: false,
             ownShockers: [],
             addShocker: {
                 modal: false,
@@ -75,18 +82,24 @@ export default {
     },
     methods: {
         async loadShareLink() {
-            const res = await apiCall.makeCall("GET", "1/shares/links/" + this.id);
+            const res = await apiCall.makeCall("GET", "1/public/shares/links/" + this.id);
             if (res === undefined || res.status !== 200) {
                 toastr.error("Error while loading Share Link");
                 return;
             }
-            this.shareLink = res.data.data;
-            this.shareLink.shockers.forEach(shocker => {
-                shocker.state = {
-                    intensity: 25,
-                    duration: 1
-                }
+            var temp = res.data.data;
+
+            temp.devices.forEach(device => {
+                device.shockers.forEach(shocker => {
+                    shocker.state = {
+                        intensity: 25,
+                        duration: 1
+                    }
+                });
             });
+
+            this.shareLink = temp;
+
         },
         async loadAllOwnShockers() {
             this.addShocker.ownShockersLoading = true;
@@ -178,6 +191,9 @@ export default {
                 ]
             });
         },
+        controlShocker(controlData) {
+            this.userHubInstance.control(controlData.id, controlData.intensity, controlData.duration, controlData.type);
+        }
     },
     computed: {
         validateAddShocker() {
