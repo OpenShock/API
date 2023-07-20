@@ -63,8 +63,8 @@ export default {
     },
     methods: {
         copyUrl(id) {
-            navigator.clipboard.writeText(config.webUiUrl + 'proxy/shares/links/' + id);
-            toastr.success('Share url copied to clipboard');
+            navigator.clipboard.writeText(config.shortUrl + id);
+            toastr.success('Share Link copied to clipboard');
         },
         async loadShareLinks() {
             const res = await apiCall.makeCall('GET', `1/shares/links`);

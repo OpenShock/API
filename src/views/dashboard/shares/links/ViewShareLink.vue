@@ -7,7 +7,8 @@
                     <span class="owner">{{ this.shareLink.author.name }}</span>
                 </b-col>
                 <b-col class="link">
-                    <b-form-input readonly v-model="shareLinkUrl"></b-form-input>
+                    <b-form-input readonly @click="copyUrl" v-model="shareLinkUrl"></b-form-input>
+                    <b-button @click="copyUrl"><i class="fa-solid fa-share-from-square"></i></b-button>
                 </b-col>
                 <b-col>
                     <div v-if="isOwn" class="elli" @click="ellipsis">
@@ -202,7 +203,11 @@ export default {
         },
         controlShocker(controlData) {
             this.userHubInstance.control(controlData.id, controlData.intensity, controlData.duration, controlData.type);
-        }
+        },
+        copyUrl() {
+            navigator.clipboard.writeText(this.shareLinkUrl);
+            toastr.success('Share Link copied to clipboard');
+        },
     },
     computed: {
         validateAddShocker() {
@@ -264,9 +269,15 @@ export default {
     }
 
     .link {
+        display: flex;
         @media screen and (max-width: 800px) {
             display: none;
         }
+
+        input {
+            margin-right: 10px;
+        }
+
     }
 
     .owner {
