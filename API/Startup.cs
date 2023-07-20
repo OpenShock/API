@@ -19,6 +19,7 @@ using ShockLink.API.Hubs;
 using ShockLink.API.Mailjet;
 using ShockLink.API.Realtime;
 using ShockLink.API.Utils;
+using ShockLink.Common;
 using ShockLink.Common.Models;
 using ShockLink.Common.Redis;
 using ShockLink.Common.ShockLinkDb;

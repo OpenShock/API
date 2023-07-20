@@ -1,4 +1,5 @@
 ﻿using System.Runtime.CompilerServices;
+using ShockLink.Common;
 
 namespace ShockLink.API.Utils;
 

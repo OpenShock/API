@@ -1,4 +1,6 @@
-﻿namespace ShockLink.API.Utils;
+﻿using Microsoft.Extensions.Logging;
+
+namespace ShockLink.Common;
 
 public static class ApplicationLogging
 {

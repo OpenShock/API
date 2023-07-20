@@ -6,6 +6,7 @@ using Redis.OM.Searching;
 using ShockLink.API.Hubs;
 using ShockLink.API.Models.WebSocket;
 using ShockLink.API.Utils;
+using ShockLink.Common;
 using ShockLink.Common.Models.WebSocket;
 using ShockLink.Common.Models.WebSocket.Device;
 using ShockLink.Common.Redis;

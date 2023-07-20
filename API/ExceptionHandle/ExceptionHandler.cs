@@ -1,6 +1,7 @@
 ﻿using System.Net;
 using Microsoft.AspNetCore.Diagnostics;
 using ShockLink.API.Utils;
+using ShockLink.Common;
 
 namespace ShockLink.API.ExceptionHandle;
 

@@ -4,8 +4,8 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using ShockLink.API.Authentication;
 using ShockLink.API.Models;
-using ShockLink.API.Models.Response;
 using ShockLink.API.Utils;
+using ShockLink.Common;
 using ShockLink.Common.Models;
 using ShockLink.Common.ShockLinkDb;
 
@@ -16,6 +16,13 @@ namespace ShockLink.API.Controller.Shockers;
 public class ControlLogController : AuthenticatedSessionControllerBase
 {
     private readonly ShockLinkContext _db;
+
+    private static readonly GenericIni Guest = new()
+    {
+        Id = Guid.Empty,
+        Name = "Guest",
+        Image = ImagesApi.GetImageRoot(Constants.DefaultAvatar)
+    };
 
     public ControlLogController(ShockLinkContext db)
     {
@@ -37,12 +44,14 @@ public class ControlLogController : AuthenticatedSessionControllerBase
                 Intensity = x.Intensity,
                 Type = x.Type,
                 CreatedOn = x.CreatedOn,
-                ControlledBy = new GenericIni
-                {
-                    Id = x.ControlledByNavigation.Id,
-                    Name = x.ControlledByNavigation.Name,
-                    Image = ImagesApi.GetImageRoot(x.ControlledByNavigation.Image)
-                }
+                ControlledBy = x.ControlledByNavigation == null
+                    ? Guest
+                    : new GenericIni
+                    {
+                        Id = x.ControlledByNavigation.Id,
+                        Name = x.ControlledByNavigation.Name,
+                        Image = ImagesApi.GetImageRoot(x.ControlledByNavigation.Image)
+                    }
             }).ToListAsync();
 
         return new BaseResponse<IEnumerable<LogEntry>>

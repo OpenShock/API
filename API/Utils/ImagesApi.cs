@@ -4,6 +4,7 @@ using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using ShockLink.API.Models;
 using ShockLink.API.Serialization;
+using ShockLink.Common;
 using ShockLink.Common.Models;
 using ShockLink.Common.ShockLinkDb;
 using ILogger = Microsoft.Extensions.Logging.ILogger;
