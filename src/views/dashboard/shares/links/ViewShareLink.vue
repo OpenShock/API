@@ -7,7 +7,7 @@
                     <span class="owner">{{ this.shareLink.author.name }}</span>
                 </b-col>
                 <b-col class="link">
-                    <b-form-input readonly v-model="shareLink"></b-form-input>
+                    <b-form-input readonly v-model="shareLinkUrl"></b-form-input>
                 </b-col>
                 <b-col>
                     <div v-if="isOwn" class="elli" @click="ellipsis">
@@ -215,7 +215,7 @@ export default {
         proxyPath() {
             return '/proxy/shares/links/' + this.id;
         },
-        shareLink() {
+        shareLinkUrl() {
             return config.shortUrl + this.id;
         },
         existingShockerIds() {
