@@ -14,7 +14,10 @@ const store = createStore({
 			},
 			deviceStates: [],
 			userHubState: "Initializing",
-			returnUrl: undefined
+			returnUrl: undefined,
+			proxy: {
+				customName: undefined
+			}
 		}
 	},
 	getters: {

@@ -1,15 +1,18 @@
 <template>
-    <div v-if="shareLink != null">
+    <div v-if="shareLink !== undefined">
         <b-container>
-            <b-row>
+            <b-row class="head-row">
                 <b-col>
-                    <h3>{{ this.shareLink.name }}</h3>
+                    <span class="title">{{ this.shareLink.name }}</span>
+                    <span class="owner">{{ this.shareLink.author.name }}</span>
+                </b-col>
+                <b-col class="link">
+                    <b-form-input readonly v-model="shareLink"></b-form-input>
                 </b-col>
                 <b-col>
-                    <p>{{ this.shareLink.author.name }}</p>
-                </b-col>
-                <b-col cols="auto" class="elli" @click="ellipsis">
-                    <i class="fa-solid fa-ellipsis-vertical"></i>
+                    <div v-if="isOwn" class="elli" @click="ellipsis">
+                        <i class="fa-solid fa-ellipsis-vertical"></i>
+                    </div>
                 </b-col>
             </b-row>
             <div v-if="editMode">
@@ -53,7 +56,7 @@ import ShareLinkHub from '@/js/ShareLinkHub.js';
 
 export default {
     components: { ShareLinkShocker, ShareLinkShockerEdit, Loading },
-    props: ['id'],
+    props: ['id', 'publicMode'],
     data() {
         return {
             shareLink: undefined,
@@ -69,6 +72,12 @@ export default {
         }
     },
     async beforeMount() {
+        if ((this.publicMode && this.$store.state.proxy.customName == undefined) ||
+            (!this.publicMode && !await utils.checkIfLoggedIn())) {
+            this.$router.push(this.proxyPath);
+            return;
+        }
+
         console.log("Starting Share Link Hub connection");
         this.userHubInstance.start();
         await this.loadShareLink();
@@ -199,11 +208,25 @@ export default {
         validateAddShocker() {
             return this.addShocker.selectedShocker !== undefined && this.addShocker.selectedShocker !== "";
         },
+        isOwn() {
+            if(this.shareLink === undefined) return false;
+            return this.shareLink.author.id === this.$store.state.user.id;
+        },
+        proxyPath() {
+            return '/proxy/shares/links/' + this.id;
+        },
+        shareLink() {
+            return config.shortUrl + this.id;
+        },
         existingShockerIds() {
             var arr = [];
-            this.shareLink.shockers.forEach(it => {
-                arr.push(it.id);
-            });
+            if(this.shareLink === undefined) return arr;
+            this.shareLink.devices.forEach(device => {
+                device.shockers.forEach(it => {
+                    arr.push(it.id);
+                });
+            })
+
             return arr;
         },
         addShockerList() {
@@ -227,6 +250,28 @@ export default {
 .shocker-col {
     @media screen and (min-width: 440px) {
         min-width: 440px;
+    }
+}
+
+.head-row {
+    .title {
+        font-size: 1.5rem;
+    }
+
+    .elli {
+        height: 37.8px;
+        float: right;
+    }
+
+    .link {
+        @media screen and (max-width: 800px) {
+            display: none;
+        }
+    }
+
+    .owner {
+        color: var(--secondary-seperator-color);
+        margin-left: 10px;
     }
 }
 </style>

@@ -85,7 +85,7 @@ export default {
         }
     },
     beforeMount() {
-
+        
     },
     methods: {
         ellipsis(e) {

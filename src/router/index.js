@@ -60,7 +60,7 @@ const routes = [
 					{
 						path: 'links/:id',
 						component: lazyLoad('dashboard/shares/links/ViewShareLink'),
-						props: true
+						props: route => ({id: route.params.id, publicMode: false })
 					}
 				]
 			},
@@ -162,6 +162,11 @@ const routes = [
 				props: true
 			}
 		]
+	},
+	{
+		path: '/p/shares/links/:id',
+		component: lazyLoad('dashboard/shares/links/ViewShareLink'),
+		props: route => ({id: route.params.id, publicMode: false })
 	}
 ]
 const router = createRouter({

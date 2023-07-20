@@ -1,3 +1,5 @@
+import axios from "axios";
+
 let utils = {
 	getCookie(cname) {
 		let name = cname + "=";
@@ -49,6 +51,19 @@ let utils = {
 		return Array.from(byteArray, function(byte) {
 		  return ('0' + (byte & 0xFF).toString(16)).slice(-2);
 		}).join('')
+	},
+	async checkIfLoggedIn() {
+		try {
+			const res = await axios({
+				method: "GET",
+				url: config.apiUrl + "1/users/self"
+			});
+
+			return res.status === 200;
+		} catch (e) {}
+		
+
+		return false;
 	}
 }
 
