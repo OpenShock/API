@@ -33,6 +33,7 @@ public class ControlLogController : AuthenticatedSessionControllerBase
     public async Task<BaseResponse<IEnumerable<LogEntry>>> GetShocker(Guid id, [FromQuery] uint offset = 0,
         [FromQuery] [Range(1, 500)] uint limit = 100)
     {
+        var guestIni = Guest;
         var exists = await _db.Shockers.AnyAsync(x => x.DeviceNavigation.Owner == CurrentUser.DbUser.Id && x.Id == id);
         if (!exists) return EBaseResponse<IEnumerable<LogEntry>>("Shocker does not exist", HttpStatusCode.NotFound);
 
@@ -45,7 +46,7 @@ public class ControlLogController : AuthenticatedSessionControllerBase
                 Type = x.Type,
                 CreatedOn = x.CreatedOn,
                 ControlledBy = x.ControlledByNavigation == null
-                    ? Guest
+                    ? guestIni
                     : new GenericIni
                     {
                         Id = x.ControlledByNavigation.Id,
