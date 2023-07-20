@@ -2,7 +2,7 @@
     <div class="proxy-container">
         <transition mode="out-in" name="component-fade">
             <loading-with-text v-if="loading">Checking login status...</loading-with-text>
-            <b-container v-else-if="!loggedIn && !entering" class="inner-card basic-card">
+            <b-container v-else-if="!loggedIn" class="inner-card basic-card">
                 <b-form-group class="form-group" v-if="chooseCustomName" id="fieldset-1" label="Choose a name" label-for="input-1"
                     :state="customNameState" invalid-feedback="Please enter a name for yourself">
                     <b-form-input id="input-1" @keyup.enter="enterAsGuest" :state="customNameState" v-model="customName" trim></b-form-input>
@@ -35,7 +35,6 @@ export default {
             loading: true,
             loggedIn: false,
             chooseCustomName: false,
-            entering: true,
             customName: ""
         }
     },
@@ -55,7 +54,8 @@ export default {
         },
         enterAsGuest() {
             if(!this.customNameState) return;
-            this.$router.push("/p/shares/links/" + this.id);
+            this.$store.commit('setCustomName', this.customName);
+            this.$router.push("/public/shares/links/" + this.id);
         },
         login() {
             this.$store.dispatch('setReturnUrl', "/dashboard/shares/links/" + this.id);

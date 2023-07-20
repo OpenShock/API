@@ -73,6 +73,7 @@ export default {
         }
     },
     async beforeMount() {
+        console.log(this.publicMode)
         if ((this.publicMode && this.$store.state.proxy.customName == undefined) ||
             (!this.publicMode && !await utils.checkIfLoggedIn())) {
             this.$router.push(this.proxyPath);

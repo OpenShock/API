@@ -164,9 +164,9 @@ const routes = [
 		]
 	},
 	{
-		path: '/p/shares/links/:id',
+		path: '/public/shares/links/:id',
 		component: lazyLoad('dashboard/shares/links/ViewShareLink'),
-		props: route => ({id: route.params.id, publicMode: false })
+		props: route => ({id: route.params.id, publicMode: true })
 	}
 ]
 const router = createRouter({

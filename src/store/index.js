@@ -45,7 +45,10 @@ const store = createStore({
 		},
 		setReturnUrl(state, url) {
 			state.returnUrl = url;
-		}
+		},
+		setCustomName(state, name) {
+			state.proxy.customName = name;
+		},
 	},
 	actions: {
 		setNewNav({commit, state}, nav) {
