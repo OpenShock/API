@@ -33,7 +33,7 @@ public sealed class ShareLinkHub : Hub<IShareLinkHub>
         Context.Items[ShareLinkCustomData] = new CustomDataHolder
         {
             ShareLinkId = id,
-            CustomName = httpContext?.Request.Headers["Name"].ToString() ?? "Not name set"
+            CustomName = httpContext.Request.Headers["Name"].FirstOrDefault() ?? "No name set"
         };
         await Groups.AddToGroupAsync(Context.ConnectionId, $"share-link-{param}");
     }
