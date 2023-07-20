@@ -79,7 +79,7 @@ public sealed class ShareLinkHub : Hub<IShareLinkHub>
                     Name = "Guest",
                     Image = ImagesApi.GetImageRoot(Constants.DefaultAvatar),
                     ConnectionId = Context.ConnectionId,
-                    CustomName = CustomData.CustomName,
+                    CustomName = customName,
                     AdditionalItems = additionalItems
                 }
                 : new ControlLogSender
