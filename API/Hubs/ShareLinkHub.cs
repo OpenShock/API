@@ -64,7 +64,7 @@ public sealed class ShareLinkHub : Hub<IShareLinkHub>
 
         var additionalItems = new Dictionary<string, object>
         {
-            [ControlLogAdditionalItem.ShareLinkId] = CustomData.ShareLinkId
+            [ControlLogAdditionalItem.ShareLinkId] = id
         };
 
         Context.Items[ShareLinkCustomData] = new CustomDataHolder
