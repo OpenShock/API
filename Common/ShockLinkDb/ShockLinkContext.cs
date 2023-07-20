@@ -208,6 +208,7 @@ public partial class ShockLinkContext : DbContext
 
             entity.HasOne(d => d.ControlledByNavigation).WithMany(p => p.ShockerControlLogs)
                 .HasForeignKey(d => d.ControlledBy)
+                .OnDelete(DeleteBehavior.Cascade)
                 .HasConstraintName("fk_controlled_by");
 
             entity.HasOne(d => d.Shocker).WithMany(p => p.ShockerControlLogs)
