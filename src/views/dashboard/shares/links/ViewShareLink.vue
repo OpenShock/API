@@ -71,15 +71,16 @@ export default {
             },
             userHubInstance: new ShareLinkHub({
                 id: this.id,
-                welcome: this.welcome
+                welcome: this.welcome,
+                update: this.update
             })
         }
     },
     async beforeMount() {
 
         if ((this.publicMode && this.$store.state.proxy.customName == undefined) ||
-            (!this.publicMode && !await utils.checkIfLoggedIn())) {
-            this.$router.push(this.proxyPath);
+            (!this.publicMode && this.$store.state.user.id === "")) {
+                this.$router.push(this.proxyPath);
             return;
         }
 
@@ -108,6 +109,9 @@ export default {
                     }
                     break;
             }
+        },
+        async update() {
+            await this.loadShareLink();
         },
         async loadShareLink() {
             const res = await apiCall.makeCall("GET", "1/public/shares/links/" + this.id);
