@@ -19,7 +19,7 @@ export default class ws {
         const res = await this.connection.invoke("Control", shocks);
     }
 
-    constructor(id) {
+    constructor({id, welcome, updated}) {
 
         this.connection = new signalR.HubConnectionBuilder()
         .withUrl(`${config.apiUrl}1/hubs/share/link/${id}?name=${storeF.state.proxy.customName}`)
@@ -28,7 +28,11 @@ export default class ws {
         .build();
 
         this.connection.on("Updated", () => {
-        
+            updated();
+        });
+
+        this.connection.on("Welcome", (authType) => {
+            welcome(authType);
         });
     }
 

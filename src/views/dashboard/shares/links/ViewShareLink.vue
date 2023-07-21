@@ -69,11 +69,14 @@ export default {
                 ownShockers: [],
                 selectedShocker: undefined
             },
-            userHubInstance: new ShareLinkHub(this.id)
+            userHubInstance: new ShareLinkHub({
+                id: this.id,
+                welcome: this.welcome
+            })
         }
     },
     async beforeMount() {
-        console.log(this.publicMode)
+
         if ((this.publicMode && this.$store.state.proxy.customName == undefined) ||
             (!this.publicMode && !await utils.checkIfLoggedIn())) {
             this.$router.push(this.proxyPath);
@@ -92,6 +95,20 @@ export default {
         this.userHubInstance.stop();
     },
     methods: {
+        welcome(authType) {
+            switch (authType) {
+                case 0:
+                    if (this.publicMode) {
+                        this.$router.push(this.proxyPath);
+                    }
+                    break;
+                case 1:
+                    if(!this.publicMode) {
+                        this.$router.push(this.proxyPath);
+                    }
+                    break;
+            }
+        },
         async loadShareLink() {
             const res = await apiCall.makeCall("GET", "1/public/shares/links/" + this.id);
             if (res === undefined || res.status !== 200) {
@@ -215,7 +232,7 @@ export default {
             return this.addShocker.selectedShocker !== undefined && this.addShocker.selectedShocker !== "";
         },
         isOwn() {
-            if(this.shareLink === undefined) return false;
+            if (this.shareLink === undefined) return false;
             return this.shareLink.author.id === this.$store.state.user.id;
         },
         proxyPath() {
@@ -226,7 +243,7 @@ export default {
         },
         existingShockerIds() {
             var arr = [];
-            if(this.shareLink === undefined) return arr;
+            if (this.shareLink === undefined) return arr;
             this.shareLink.devices.forEach(device => {
                 device.shockers.forEach(it => {
                     arr.push(it.id);
@@ -271,6 +288,7 @@ export default {
 
     .link {
         display: flex;
+
         @media screen and (max-width: 800px) {
             display: none;
         }
