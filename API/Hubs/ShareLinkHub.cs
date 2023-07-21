@@ -93,6 +93,7 @@ public sealed class ShareLinkHub : Hub<IShareLinkHub>
                 }
         };
         await Groups.AddToGroupAsync(Context.ConnectionId, $"share-link-{param}");
+        await Clients.Caller.Welcome(user != null ? AuthType.Authenticated : AuthType.Guest);
     }
 
     public Task Control(IEnumerable<Common.Models.WebSocket.User.Control> shocks)
@@ -122,5 +123,11 @@ public sealed class ShareLinkHub : Hub<IShareLinkHub>
         public required GenericIni? User { get; set; }
         public required string? CustomName { get; init; }
         public required ControlLogSender CachedControlLogSender { get; set; }
+    }
+    
+    public enum AuthType
+    {
+        Authenticated,
+        Guest
     }
 }
