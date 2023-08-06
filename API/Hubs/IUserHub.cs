@@ -8,6 +8,5 @@ public interface IUserHub
 {
     Task Welcome(string connectionId);
     Task DeviceStatus(IEnumerable<DeviceOnlineState> deviceOnlineStates);
-
     Task Log(ControlLogSender sender, IEnumerable<ControlLog> logs);
 }

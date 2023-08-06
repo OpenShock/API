@@ -88,7 +88,7 @@ public class ShareShockerController : AuthenticatedSessionControllerBase
 
 
     [HttpPost("{id:guid}/shares")]
-    public async Task<BaseResponse<Guid>> CreateShare(Guid id, CreateShareCode data)
+    public async Task<BaseResponse<Guid>> CreateShareCode(Guid id, CreateShareCode data)
     {
         var device = await _db.Shockers.Where(x => x.DeviceNavigation.Owner == CurrentUser.DbUser.Id && x.Id == id).AnyAsync();
         if (!device)
@@ -123,5 +123,25 @@ public class ShareShockerController : AuthenticatedSessionControllerBase
                 HttpStatusCode.NotFound);
 
         return new BaseResponse<object>("Successfully deleted share");
+    }
+    
+    [HttpPatch("{id:guid}/shares/{sharedWith:guid}")]
+    public async Task<BaseResponse<object>> UpdateShare(Guid id, Guid sharedWith, CreateShareCode data)
+    {
+        var affected = await _db.ShockerShares.Where(x =>
+            x.ShockerId == id && x.SharedWith == sharedWith && x.Shocker.DeviceNavigation.Owner == CurrentUser.DbUser.Id).SingleOrDefaultAsync();
+        if (affected == null)
+            return EBaseResponse<object>("Share does not exists or device/shocker does not belong to you",
+                HttpStatusCode.NotFound);
+
+        affected.PermShock = data.Permissions.Shock;
+        affected.PermSound = data.Permissions.Sound;
+        affected.PermVibrate = data.Permissions.Vibrate;
+        affected.LimitDuration = data.Limits.Duration;
+        affected.LimitIntensity = data.Limits.Intensity;
+
+        await _db.SaveChangesAsync();
+
+        return new BaseResponse<object>("Successfully updated share");
     }
 }
