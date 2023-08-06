@@ -210,6 +210,7 @@ export default {
                         label: "Edit Mode",
                         icon: this.editMode ? 'fa-solid fa-toggle-on' : 'fa-solid fa-toggle-off',
                         onClick: () => {
+                            this.loadShareLink();
                             this.editMode = !this.editMode;
                         }
                     },
