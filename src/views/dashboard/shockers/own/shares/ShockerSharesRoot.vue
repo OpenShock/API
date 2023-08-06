@@ -21,10 +21,18 @@
                 </template>
 
                 <template #cell(permissions)="row">
-                    <i class="perm fa-solid fa-volume-high"
-                        :class="row.item.permissions.sound ? 'enabled' : 'disabled'"></i>
-                    <i class="perm fa-solid fa-water" :class="row.item.permissions.vibrate ? 'enabled' : 'disabled'"></i>
-                    <i class="perm fa-solid fa-bolt" :class="row.item.permissions.shock ? 'enabled' : 'disabled'"></i>
+                    <span class="perm">
+                        <span :class="row.item.permissions.sound ? 'enabled' : 'disabled'">
+                            <i class="fa-solid fa-volume-high"></i>
+                        </span>
+
+                        <span :class="row.item.permissions.vibrate ? 'enabled' : 'disabled'">
+                            <i class="perm fa-solid fa-water"></i>
+                        </span>
+                        <span :class="row.item.permissions.shock ? 'enabled' : 'disabled'">
+                            <i class="perm fa-solid fa-bolt"></i>
+                        </span>
+                    </span>
                 </template>
 
                 <template #cell(limits)="row">
@@ -62,10 +70,47 @@
                         <img class="user-image" :src="editing.sharedWith.image + 'x128'" />
                     </b-col>
                     <b-col>
-                        <p class="user-name">{{ editing.sharedWith.name }}</p>
+                        <p class="mb-0">{{ editing.sharedWith.name }}</p>
                     </b-col>
                 </b-row>
 
+                <b-row>
+                    <b-container align-items="center" style="margin-top: 15px">
+                        <b-row align-h="center">
+                            <b-col md="auto" style="width: unset">
+                                <round-slider v-model="editing.limitsTranslated.intensity" pathColor="#1b1d1e"
+                                    rangeColor="#f16051" start-angle="315" end-angle="+270" width="30" line-cap="round"
+                                    radius="75" />
+
+                                <p style="text-align: center;">Intensity Limit</p>
+                            </b-col>
+                            <b-col md="auto" style="width: unset">
+                                <round-slider v-model="editing.limitsTranslated.duration" pathColor="#1b1d1e"
+                                    rangeColor="#f16051" start-angle="315" end-angle="+270" line-cap="round" radius="75"
+                                    width="30" min="0.3" max="30" step="0.1" />
+
+                                <p style="text-align: center;">Duration Limit</p>
+                            </b-col>
+                        </b-row>
+                    </b-container>
+                </b-row>
+
+                <b-row align-h="center">
+                    <b-col cols="auto" md="auto">
+                        <permission-button style="width: 46px" icon="fa-solid fa-volume-high"
+                            :state="editing.permissions.sound"
+                            @click="editing.permissions.sound = !editing.permissions.sound" />
+                    </b-col>
+                    <b-col cols="auto" md="auto">
+                        <permission-button style="width: 46px" icon="fa-solid fa-water" :state="editing.permissions.vibrate"
+                            @click="editing.permissions.vibrate = !editing.permissions.vibrate" />
+                    </b-col>
+                    <b-col cols="auto" md="auto">
+                        <permission-button style="left: 0; width: 46px" icon="fa-solid fa-bolt"
+                            :state="editing.permissions.shock"
+                            @click="editing.permissions.shock = !editing.permissions.shock" />
+                    </b-col>
+                </b-row>
 
             </b-container>
 
@@ -74,7 +119,10 @@
 </template>
 
 <script>
+import RoundSlider from 'vue-three-round-slider';
+import PermissionButton from '../../../shares/links/edit/PermissionButton.vue';
 export default {
+    components: { RoundSlider, PermissionButton },
     data() {
         return {
             fields: [
@@ -117,6 +165,15 @@ export default {
                     id: "",
                     name: "",
                     image: ""
+                },
+                limitsTranslated: {
+                    intensity: 0,
+                    duration: 0
+                },
+                permissions: {
+                    shock: false,
+                    sound: false,
+                    vibrate: false
                 }
             }
         }
@@ -227,7 +284,7 @@ export default {
                 allowOutsideClick: () => !this.$swal.isLoading(),
                 preConfirm: async () => {
                     try {
-                        const res = await apiCall.makeCall('DELETE', `1/shares/${this.$route.params.id}/${share.sharedWith.id}`);
+                        const res = await apiCall.makeCall('DELETE', `1/shockers/${this.$route.params.id}/shares/${share.sharedWith.id}`);
                         if (res.status !== 200) {
                             throw new Error(res);
                         }
@@ -244,11 +301,36 @@ export default {
             });
         },
         editShare(share) {
-            this.editing = share;
+            var temp = share;
+            temp.limitsTranslated = {
+                duration: temp.limits.duration === null ? 30 : temp.limits.duration / 1000.0,
+                intensity: temp.limits.intensity === null ? 100 : temp.limits.intensity
+            }
+
+            this.editing = temp;
             this.editModal = true;
         },
-        applyEdits() {
+        async applyEdits() {
+            const temp = this.editing;
+            const res = await apiCall.makeCall('PATCH', `1/shockers/${this.$route.params.id}/shares/${temp.sharedWith.id}`, {
+                permissions: {
+                    vibrate: temp.permissions.vibrate,
+                    shock: temp.permissions.shock,
+                    sound: temp.permissions.sound
+                },
+                limits: {
+                    duration: temp.limitsTranslated.duration == 30.0 ? null : temp.limitsTranslated.duration * 1000,
+                    intensity: temp.limitsTranslated.intensity == 100 ? null : temp.limitsTranslated.intensity
+                }
+            });
+            if (res === undefined || res.status !== 200) {
+                toastr.error("Error while creating share code");
+                return;
+            }
 
+            this.$swal('Success!', 'Successfully updated share', 'success');
+            this.loadShares();
+            this.editModal = false;
         },
         async createNewCode() {
             const res = await apiCall.makeCall('POST', `1/shockers/${this.$route.params.id}/shares`, {
@@ -299,13 +381,16 @@ export default {
 
 
     .perm {
-        margin-right: 8%;
 
-        &.enabled {
+        svg {
+            margin-right: 8%;
+        }
+
+        .enabled svg {
             color: greenyellow;
         }
 
-        &.disabled {
+        .disabled svg {
             color: red;
         }
     }
@@ -313,6 +398,7 @@ export default {
 
 .elli {
     width: 24px;
+
     .fa-ellipsis-vertical {
         height: 24px;
         margin: auto;

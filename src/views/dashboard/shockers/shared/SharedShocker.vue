@@ -109,7 +109,7 @@ export default {
                 allowOutsideClick: () => !this.$swal.isLoading(),
                 preConfirm: async () => {
                     try {
-                        const res = await apiCall.makeCall('DELETE', `1/shares/${this.shocker.id}`);
+                        const res = await apiCall.makeCall('DELETE', `1/shockers/${this.shocker.id}/shares/${this.$store.state.user.id}`);
                         if (res.status !== 200) {
                             throw new Error(res.statusText);
                         }

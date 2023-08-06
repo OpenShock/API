@@ -26,7 +26,7 @@ export default {
     async beforeMount() {
         await this.loadShared();
         this.emitter.on('refreshShockers', async () => {
-            await this.loadShockers();
+            await this.loadShared();
         });
     },
     methods: {
