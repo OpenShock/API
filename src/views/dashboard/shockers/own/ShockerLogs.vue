@@ -10,7 +10,7 @@
                                 <img class="user-image" :src="row.item.controlledBy.image + 'x128'" />
                             </b-col>
                             <b-col>
-                                <p class="mb-0">{{ row.item.controlledBy.name }}</p>
+                                <p class="mb-0">{{ row.item.controlledBy.customName === null ? row.item.controlledBy.name : row.item.controlledBy.customName + ' [' + row.item.controlledBy.name + ']' }}</p>
                             </b-col>
                         </b-row>
                     </b-container>
