@@ -128,7 +128,8 @@ public static class ControlLogic
                 CreatedOn = curTime,
                 Intensity = deviceEntry.Intensity,
                 Duration = deviceEntry.Duration,
-                Type = deviceEntry.Type
+                Type = deviceEntry.Type,
+                CustomName = sender.CustomName
             });
 
             if (!logs.ContainsKey(shockerInfo.Owner)) logs[shockerInfo.Owner] = new List<ControlLog>();
