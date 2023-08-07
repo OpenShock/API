@@ -28,7 +28,7 @@ public class ResetController : ShockLinkControllerBase
     [HttpPost]
     public async Task<BaseResponse<object>> ResetAction(ResetRequest data)
     {
-        var user = await _db.Users.Where(x => x.Email == data.Email).Select(x => new
+        var user = await _db.Users.Where(x => x.Email == data.Email.ToLowerInvariant()).Select(x => new
         {
             User = x,
             PasswordResetCount = x.PasswordResets.Count(y => y.UsedOn == null && y.CreatedOn.AddDays(7) > DateTime.UtcNow)

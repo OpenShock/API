@@ -29,7 +29,7 @@ public class SignupController : ShockLinkControllerBase
         {
             Id = newGuid,
             Name = data.Username,
-            Email = data.Email,
+            Email = data.Email.ToLowerInvariant(),
             Password = SecurePasswordHasher.Hash(data.Password),
             EmailActived = true
         });

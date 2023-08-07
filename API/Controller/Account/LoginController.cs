@@ -31,7 +31,7 @@ public class LoginController : ShockLinkControllerBase
     [HttpPost]
     public async Task<BaseResponse<LoginResponse>> Login(Login data)
     {
-        var user = await _db.Users.SingleOrDefaultAsync(x => x.Email == data.Email);
+        var user = await _db.Users.SingleOrDefaultAsync(x => x.Email == data.Email.ToLowerInvariant());
         if (user == null || !SecurePasswordHasher.Verify(data.Password, user.Password))
         {
             _logger.LogInformation("Failed to authenticate with email [{Email}]", data.Email);
