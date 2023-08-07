@@ -17,12 +17,7 @@ public class ControlLogController : AuthenticatedSessionControllerBase
 {
     private readonly ShockLinkContext _db;
 
-    private static readonly GenericIni Guest = new()
-    {
-        Id = Guid.Empty,
-        Name = "Guest",
-        Image = ImagesApi.GetImageRoot(Constants.DefaultAvatar)
-    };
+    public static readonly Uri DefaultAvatarUri = ImagesApi.GetImageRoot(Constants.DefaultAvatar);
 
     public ControlLogController(ShockLinkContext db)
     {
@@ -33,7 +28,6 @@ public class ControlLogController : AuthenticatedSessionControllerBase
     public async Task<BaseResponse<IEnumerable<LogEntry>>> GetShocker(Guid id, [FromQuery] uint offset = 0,
         [FromQuery] [Range(1, 500)] uint limit = 100)
     {
-        var guestIni = Guest;
         var exists = await _db.Shockers.AnyAsync(x => x.DeviceNavigation.Owner == CurrentUser.DbUser.Id && x.Id == id);
         if (!exists) return EBaseResponse<IEnumerable<LogEntry>>("Shocker does not exist", HttpStatusCode.NotFound);
 
@@ -46,12 +40,19 @@ public class ControlLogController : AuthenticatedSessionControllerBase
                 Type = x.Type,
                 CreatedOn = x.CreatedOn,
                 ControlledBy = x.ControlledByNavigation == null
-                    ? guestIni
-                    : new GenericIni
+                    ? new ControlLogSenderLight
+                    {
+                        Id = Guid.Empty,
+                        Name = "Guest",
+                        Image = DefaultAvatarUri,
+                        CustomName = x.CustomName
+                    }
+                    : new ControlLogSenderLight
                     {
                         Id = x.ControlledByNavigation.Id,
                         Name = x.ControlledByNavigation.Name,
-                        Image = ImagesApi.GetImageRoot(x.ControlledByNavigation.Image)
+                        Image = ImagesApi.GetImageRoot(x.ControlledByNavigation.Image),
+                        CustomName = x.CustomName
                     }
             }).ToListAsync();
 
@@ -69,7 +70,7 @@ public class ControlLogController : AuthenticatedSessionControllerBase
 
         public required ControlType Type { get; set; }
 
-        public required GenericIni ControlledBy { get; set; }
+        public required ControlLogSenderLight ControlledBy { get; set; }
 
         public required byte Intensity { get; set; }
 
