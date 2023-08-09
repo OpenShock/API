@@ -7,6 +7,18 @@
         <b-container>
             <b-table hover striped :items="shares" :fields="fields" class="shares-table">
 
+                <template #cell(pause)="row">
+                    <b-col cols="auto" class="pause-col" @click="togglePause(row.item)">
+                        <span v-if="row.item.paused" class="paused">
+                            <i class="fa-solid fa-play"></i>
+                        </span>
+
+                        <span v-else>
+                            <i class="fa-solid fa-pause"></i>
+                        </span>
+                    </b-col>
+                </template>
+
                 <template #cell(shared-with)="row">
                     <b-container>
                         <b-row align-h="start" align-v="center">
@@ -127,6 +139,11 @@ export default {
         return {
             fields: [
                 {
+                    key: 'pause',
+                    label: '',
+                    thClass: "width0"
+                },
+                {
                     key: "shared-with",
                     label: "Shared With"
                 },
@@ -139,7 +156,7 @@ export default {
                 {
                     key: 'actions',
                     label: '',
-                    thClass: "actions-header"
+                    thClass: "width0"
                 }
             ],
             fieldsCodes: [
@@ -154,7 +171,7 @@ export default {
                 {
                     key: 'actions',
                     label: '',
-                    thClass: "actions-header"
+                    thClass: "width0"
                 }
             ],
             codes: [],
@@ -183,6 +200,14 @@ export default {
         this.loadCodes();
     },
     methods: {
+        async togglePause(item) {
+            const toSet = !item.paused;
+            await apiCall.makeCall("POST", `1/shockers/${this.$route.params.id}/shares/${item.sharedWith.id}/pause`, {
+                pause: toSet
+            });
+
+            item.paused = toSet;
+        },
         ellipsisCode(e, item) {
             this.$contextmenu({
                 theme: utils.isDarkMode() ? 'default dark' : 'default',
@@ -362,10 +387,6 @@ export default {
     font-size: 14px;
 }
 
-:deep(.actions-header) {
-    width: 0px;
-}
-
 .shares-table {
     .mr {
         margin-right: 10px;
@@ -377,6 +398,17 @@ export default {
 
     :deep(td) {
         vertical-align: middle;
+    }
+
+    .pause-col {
+        cursor: pointer;
+        padding-left: 4px;
+        padding-right: 4px;
+        width: 20px;
+
+        .paused {
+            color: rgb(255, 86, 86);
+        }
     }
 
 

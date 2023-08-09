@@ -54,7 +54,7 @@ export default {
       fields: [
         {
           key: "status",
-          thClass: "actions-header",
+          thClass: "width0",
           label: ""
         },
         {
@@ -62,7 +62,7 @@ export default {
         },
         {
           key: 'actions',
-          thClass: "actions-header",
+          thClass: "width0",
           label: ""
         }
       ],
@@ -369,10 +369,6 @@ export default {
     margin: auto;
     display: block;
   }
-}
-
-:deep(.actions-header) {
-  width: 0px;
 }
 
 .devices-table {
