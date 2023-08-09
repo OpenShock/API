@@ -32,6 +32,7 @@ public class ShareShockerController : AuthenticatedSessionControllerBase
             .Where(x => x.ShockerId == id && x.Shocker.DeviceNavigation.Owner == CurrentUser.DbUser.Id).Select(x =>
                 new ShareInfo
                 {
+                    Paused = x.Paused,
                     SharedWith = new GenericIni
                     {
                         Name = x.SharedWithNavigation.Name,
@@ -143,5 +144,25 @@ public class ShareShockerController : AuthenticatedSessionControllerBase
         await _db.SaveChangesAsync();
 
         return new BaseResponse<object>("Successfully updated share");
+    }
+    
+    [HttpPost("{id:guid}/shares/{sharedWith:guid}/pause")]
+    public async Task<BaseResponse<object>> UpdatePauseShare(Guid id, Guid sharedWith, PauseShockersController.PauseRequest data)
+    {
+        var affected = await _db.ShockerShares.Where(x =>
+            x.ShockerId == id && x.SharedWith == sharedWith && x.Shocker.DeviceNavigation.Owner == CurrentUser.DbUser.Id).SingleOrDefaultAsync();
+        if (affected == null)
+            return EBaseResponse<object>("Share does not exists or device/shocker does not belong to you",
+                HttpStatusCode.NotFound);
+
+        affected.Paused = data.Pause;
+
+        await _db.SaveChangesAsync();
+
+        return new BaseResponse<object>
+        {
+            Message = "Successfully updated pause status share",
+            Data = data.Pause
+        };
     }
 }

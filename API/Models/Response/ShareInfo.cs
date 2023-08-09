@@ -8,6 +8,7 @@ public class ShareInfo
     public required DateTime CreatedOn { get; set; }
     public required PermissionsObj Permissions { get; set; }
     public required LimitObj Limits { get; set; }
+    public required bool Paused { get; set; }
 
     public class PermissionsObj
     {
