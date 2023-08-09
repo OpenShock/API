@@ -38,7 +38,7 @@ const store = createStore({
 		},
 		setDeviceState(state, {id, online}) {
 			state.deviceStates[id] = online;
-			emitter.emit('deviceStateUpdate');
+			emitter.emit('deviceStateUpdate', {id, online});
 		},
 		setUserHubState(state, newState) {
 			state.userHubState = newState;

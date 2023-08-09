@@ -6,6 +6,11 @@
 
     <b-container>
       <b-table hover striped :items="devices" :fields="fields" class="devices-table">
+        <template #cell(status)="row">
+          <span :class="!row.item.$onlineState ? 'offline' : 'online'">
+            <i class="fa-solid fa-circle"></i>
+          </span>
+        </template>
         <template #cell(actions)="row">
           <div cols="auto" class="elli" @click="ellipsis($event, row.item)">
             <i class="fa-solid fa-ellipsis-vertical"></i>
@@ -48,6 +53,11 @@ export default {
     return {
       fields: [
         {
+          key: "status",
+          thClass: "actions-header",
+          label: ""
+        },
+        {
           key: "name"
         },
         {
@@ -73,6 +83,10 @@ export default {
     this.$store.dispatch('setNewNav', []);
   },
   async beforeMount() {
+    this.emitter.on('deviceStateUpdate', () => {
+      this.updateOnlineStateAll();
+    });
+
     await this.loadDevices();
   },
   methods: {
@@ -195,6 +209,15 @@ export default {
       this.$swal('Success!', 'Successfully created new device', 'success');
       await this.loadDevices();
     },
+    getOnlineState(deviceId) {
+      if (this.$store.state.deviceStates[deviceId] === undefined) return false;
+      return this.$store.state.deviceStates[deviceId];
+    },
+    updateOnlineStateAll() {
+      this.devices.forEach(device => {
+        device.$onlineState = this.getOnlineState(device.id);
+      });
+    },
     async loadDevices() {
       const res = await apiCall.makeCall('GET', '1/devices');
       if (res === undefined || res.status !== 200) {
@@ -203,6 +226,7 @@ export default {
       }
 
       this.devices = res.data.data;
+      this.updateOnlineStateAll();
     },
     async editDevice(item) {
       this.modal.editLoading = true;
@@ -359,5 +383,13 @@ export default {
     --bs-btn-hover-color: #fff;
     --bs-btn-active-color: #fff;
   }
+}
+
+.online {
+  color: greenyellow;
+}
+
+.offline {
+  color: red;
 }
 </style>
