@@ -229,6 +229,7 @@ public partial class ShockLinkContext : DbContext
                 .HasColumnName("created_on");
             entity.Property(e => e.LimitDuration).HasColumnName("limit_duration");
             entity.Property(e => e.LimitIntensity).HasColumnName("limit_intensity");
+            entity.Property(e => e.Paused).HasColumnName("paused");
             entity.Property(e => e.PermShock)
                 .IsRequired()
                 .HasDefaultValueSql("true")

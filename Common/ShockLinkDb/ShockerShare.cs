@@ -21,6 +21,8 @@ public partial class ShockerShare
 
     public byte? LimitIntensity { get; set; }
 
+    public bool Paused { get; set; }
+
     public virtual User SharedWithNavigation { get; set; } = null!;
 
     public virtual Shocker Shocker { get; set; } = null!;

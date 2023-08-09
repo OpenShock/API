@@ -35,9 +35,9 @@ public class UserHub : Hub<IUserHub>
         var devicesOnline = _provider.RedisCollection<DeviceOnline>(false);
         var sharedDevices = await _db.Devices
             .Where(x => x.Shockers.Any(y => y.ShockerShares.Any(z => z.SharedWith == UserId)))
-            .Select(x => x.Id.ToString()).ToListAsync();
+            .Select(x => x.Id.ToString()).ToArrayAsync();
 
-        var own = devicesOnline.Where(x => x.Owner == UserId).ToListAsync();
+        var own = devicesOnline.Where(x => x.Owner == UserId).ToArrayAsync();
         var shared = devicesOnline.FindByIdsAsync(sharedDevices);
         await Task.WhenAll(own, shared);
 
