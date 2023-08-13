@@ -1,5 +1,5 @@
 <template>
-  <p class="version">ShockLink UI 1.1.0
+  <p class="version">ShockLink UI 1.2.0
     <a target="_blank" :href="'https://github.com/Shock-Link/WebUI/commit/' + commitHash">{{ commitHash }}</a> | API <span
       v-html="apiVersion"></span> <a target="_blank"
       :href="'https://github.com/Shock-Link/API/commit/' + apiCommitHash">{{ apiCommitHash }}</a>
