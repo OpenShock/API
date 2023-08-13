@@ -14,63 +14,43 @@
           <div class="right"/>
         </div>
         <item v-for="(item, index) in allElements" :item="item" :index="index" :key="index"/>
+        <item-link-external link="https://docs.shocklink.net"><i class="fa-solid fa-book-open-reader"></i>Wiki</item-link-external>
+        <item-link-external link="https://github.com/Shock-Link"><i class="fa-brands fa-github"></i>GitHub</item-link-external>
+        <item-link v-if="loggedIn" link="/dashboard"><i class="fa-solid fa-right-to-bracket"></i>Dashboard</item-link>
+        <item-link v-else link="/account/login"><i class="fa-solid fa-right-to-bracket"></i>Login</item-link>
       </ul>
     </div>
   </nav>
-  <second-level-nav/>
 </template>
 
 <script>
 import Item from "./Item";
-import SecondLevelNav from "./SecondLevelNav";
 import ThemeToggle from "../../utils/ThemeToggle";
+import ItemLink from './ItemLink.vue';
+import ItemLinkExternal from './ItemLinkExternal.vue';
 
 export default {
-  components: {ThemeToggle, SecondLevelNav, Item},
+  components: { ThemeToggle, ItemLink, ItemLinkExternal, Item },
   data() {
     return {
       activeItem: "",
       allElements: [
         {
-          routerLink: '/home',
+          routerLink: '/public/home',
           html: '<i class="fa-solid fa-house"></i>Home',
           active: false
-        },
-        {
-          routerLink: '/shockers',
-          html: '<i class="fa-solid fa-bolt"></i></i>Shockers',
-          active: false
-        },
-        {
-          routerLink: '/devices',
-          html: '<i class="fa-solid fa-microchip"></i>Devices',
-          active: false
-        },
-        {
-          routerLink: '/shares/links',
-          html: '<i class="fa-solid fa-link"></i>Share Links',
-          active: false
-        },
-        {
-          routerLink: '/tokens',
-          html: '<i class="fa-solid fa-code"></i>API Tokens',
-          active: false
-        },
-        {
-          routerLink: '/profile',
-          active: false,
-          profile: true
         }
       ],
       mobileShow: false,
-      currentIndex: 0,
+      currentIndex: -1,
       interval: 0,
       hori: {
         top: 0,
         left: 3000,
         width: 150,
         height: 60
-      }
+      },
+      loggedIn: false
     }
   },
   computed: {
@@ -83,14 +63,8 @@ export default {
       }
     }
   },
-  beforeMount() {
-
-      /*this.allElements.push({
-        routerLink: '/admin',
-        html: '<i class="fas fa-user-shield"></i>Admin',
-        active: false
-      });*/
-    
+  async beforeMount() {
+    this.loggedIn = await utils.checkIfLoggedIn();
   },
   mounted() {
     this.initActive();
@@ -113,10 +87,10 @@ export default {
     clicked(index) {
       this.currentIndex = index;
       this.updateActive();
-      this.$router.push('/dashboard' + this.allElements[this.currentIndex].routerLink);
+      this.$router.push(this.allElements[this.currentIndex].routerLink);
     },
     initActive() {
-      const path = this.$router.currentRoute._value.fullPath.replace('/dashboard', '')
+      const path = this.$router.currentRoute._value.fullPath
       for (const i in this.allElements) {
         const element = this.allElements[i];
         if (path.includes(element.routerLink)) {
@@ -129,9 +103,11 @@ export default {
     updateActive() {
       this.allElements.forEach(ele => ele.active = false);
       const le = this.allElements[this.currentIndex];
-      le.active = true;
-      this.activeItem = le.that;
-      this.updateHori()
+      if(le !== undefined) {
+        le.active = true;
+        this.activeItem = le.that;
+      }
+      this.updateHori();
     },
     updateHori() {
       if (this.activeItem.$refs === undefined || this.activeItem.$refs.li === undefined) return;
@@ -184,7 +160,7 @@ export default {
         left: 0;
         transition-duration: 0.6s;
         transition-timing-function: cubic-bezier(0.68, -0.55, 0.265, 1.55);
-        background-color: var(--secondary-background-color);
+        background-color: var(--main-background-color);
         border-top-left-radius: 15px;
         border-top-right-radius: 15px;
         margin-top: 10px;
@@ -193,7 +169,7 @@ export default {
           position: absolute;
           width: 25px;
           height: 25px;
-          background-color: var(--secondary-background-color);
+          background-color: var(--main-background-color);
           bottom: 10px;
 
           &:before {

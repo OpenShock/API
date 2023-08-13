@@ -34,7 +34,7 @@
                 <BFormCheckbox v-model="newShareLink.indef" switch>No expiry</BFormCheckbox>
                 <b-row v-if="!newShareLink.indef">
                     <b-form-group label="Valid until" label-for="valid-id" label-class="mb-1">
-                        <b-form-input type="date" id="valid-id" v-model="newShareLink.validUntil" />
+                        <b-form-input type="datetime-local" id="valid-id" v-model="newShareLink.validUntil" />
                     </b-form-group>
                 </b-row>
             </b-container>
@@ -53,7 +53,7 @@ export default {
                 modal: false,
                 name: "Share Link",
                 permissions: [],
-                validUntil: Date.UTC(),
+                validUntil: undefined,
                 indef: true
             }
         }
@@ -80,7 +80,7 @@ export default {
 
             const res = await apiCall.makeCall("POST", "1/shares/links", {
                 name: this.newShareLink.name,
-                validUntil: this.newShareLink.indef ? null : this.newShareLink.validUntil
+                expiresOn: this.newShareLink.indef ? null : new Date(this.newShareLink.validUntil).toISOString()
             });
 
             if (res === undefined || res.status !== 200) {
