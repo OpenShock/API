@@ -27,7 +27,7 @@ public class ShareLinksController : AuthenticatedSessionControllerBase
         {
             Id = Guid.NewGuid(),
             Owner = CurrentUser.DbUser,
-            ExpiresOn = data.ExpiresOn,
+            ExpiresOn = data.ExpiresOn == null ? null : DateTime.SpecifyKind(data.ExpiresOn.Value, DateTimeKind.Utc),
             Name = data.Name
         };
         _db.ShockerSharesLinks.Add(entity);
