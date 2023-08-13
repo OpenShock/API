@@ -40,8 +40,8 @@ public sealed class ShareLinkHub : Hub<IShareLinkHub>
             return;
         }
 
-        var exists = await _db.ShockerSharesLinks.AnyAsync(x => x.Id == id && x.ExpiresOn < DateTime.UtcNow);
-        if (exists)
+        var exists = await _db.ShockerSharesLinks.AnyAsync(x => x.Id == id && x.ExpiresOn > DateTime.UtcNow);
+        if (!exists)
         {
             _logger.LogWarning("Aborting connection... share link not found");
             Context.Abort();
