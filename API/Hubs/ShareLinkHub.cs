@@ -35,7 +35,15 @@ public sealed class ShareLinkHub : Hub<IShareLinkHub>
         var httpContext = Context.GetHttpContext();
         if (httpContext?.GetRouteValue("Id") is not string param || !Guid.TryParse(param, out var id))
         {
-            _logger.LogWarning("Aborting connection...");
+            _logger.LogWarning("Aborting connection... id not found");
+            Context.Abort();
+            return;
+        }
+
+        var exists = await _db.ShockerSharesLinks.AnyAsync(x => x.Id == id && x.ExpiresOn < DateTime.UtcNow);
+        if (exists)
+        {
+            _logger.LogWarning("Aborting connection... share link not found");
             Context.Abort();
             return;
         }
