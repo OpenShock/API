@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using ShockLink.API.Authentication;
+using ShockLink.API.Controller.Shockers;
 using ShockLink.API.Models;
 using ShockLink.API.Models.Requests;
 using ShockLink.API.Models.Response;
@@ -134,5 +135,28 @@ public class ShareLinksController : AuthenticatedSessionControllerBase
             };
 
         return EBaseResponse<ShareLinkResponse>("Shocker does not exist in share link, consider adding a new one");
+    }
+    
+    [HttpPost("{id:guid}/{shockerId:guid}/pause")]
+    public async Task<BaseResponse<bool>> PauseShocker(Guid id, Guid shockerId, PauseShockersController.PauseRequest data)
+    {
+        var exists = await _db.ShockerSharesLinks.AnyAsync(x => x.OwnerId == CurrentUser.DbUser.Id && x.Id == id);
+        if (!exists)
+            return EBaseResponse<bool>("Share link could not be found", HttpStatusCode.NotFound);
+
+        var shocker =
+            await _db.ShockerSharesLinksShockers.FirstOrDefaultAsync(x =>
+                x.ShareLinkId == id && x.ShockerId == shockerId);
+        if (shocker == null)
+            return EBaseResponse<bool>("Shocker does not exist in share link");
+
+        shocker.Paused = data.Pause;
+        await _db.SaveChangesAsync();
+        
+        return new BaseResponse<bool>
+        {
+            Message = "Successfully updated paused state shocker",
+            Data = data.Pause
+        };
     }
 }
