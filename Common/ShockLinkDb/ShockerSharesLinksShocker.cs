@@ -21,6 +21,8 @@ public partial class ShockerSharesLinksShocker
 
     public int? Cooldown { get; set; }
 
+    public bool Paused { get; set; }
+
     public virtual ShockerSharesLink ShareLink { get; set; } = null!;
 
     public virtual Shocker Shocker { get; set; } = null!;
