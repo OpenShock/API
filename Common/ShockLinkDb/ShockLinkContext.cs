@@ -71,8 +71,6 @@ public partial class ShockLinkContext : DbContext
                 .HasColumnName("token");
             entity.Property(e => e.UserId).HasColumnName("user_id");
             entity.Property(e => e.ValidUntil).HasColumnName("valid_until");
-            
-            entity.Property(e => e.Permissions).HasColumnType("permission_type[]").HasColumnName("permissions");
 
             entity.HasOne(d => d.User).WithMany(p => p.ApiTokens)
                 .HasForeignKey(d => d.UserId)
@@ -319,6 +317,7 @@ public partial class ShockLinkContext : DbContext
             entity.Property(e => e.Cooldown).HasColumnName("cooldown");
             entity.Property(e => e.LimitDuration).HasColumnName("limit_duration");
             entity.Property(e => e.LimitIntensity).HasColumnName("limit_intensity");
+            entity.Property(e => e.Paused).HasColumnName("paused");
             entity.Property(e => e.PermShock).HasColumnName("perm_shock");
             entity.Property(e => e.PermSound).HasColumnName("perm_sound");
             entity.Property(e => e.PermVibrate).HasColumnName("perm_vibrate");
