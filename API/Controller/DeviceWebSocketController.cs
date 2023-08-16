@@ -52,22 +52,21 @@ public class DeviceWebSocketController : WebsocketControllerBase<ResponseType>
 
     protected override async Task Logic()
     {
-        WebSocketReceiveResult? result = null;
+        ValueWebSocketReceiveResult? result = null;
         do
         {
             try
             {
                 if (WebSocket.State == WebSocketState.Aborted) return;
-                var message = await WebSocketUtils.ReceiveFullMessage(WebSocket, Linked.Token);
+                var message = await WebSocketUtils.ReceiveFullMessageAsyncNonAlloc<BaseRequest<RequestType>>(WebSocket, Linked.Token);
                 result = message.Item1;
 
-                if (result.MessageType == WebSocketMessageType.Close || result.CloseStatus.HasValue)
+                if (result.Value.MessageType == WebSocketMessageType.Close && WebSocket.State == WebSocketState.Open)
                 {
                     //await SelfOffline();
                     try
                     {
-                        await WebSocket.CloseAsync(WebSocketCloseStatus.NormalClosure,
-                            result.CloseStatusDescription ?? "Normal close", Linked.Token);
+                        await WebSocket.CloseAsync(WebSocketCloseStatus.NormalClosure, "Normal close", Linked.Token);
                     }
                     catch (OperationCanceledException e)
                     {
@@ -79,8 +78,7 @@ public class DeviceWebSocketController : WebsocketControllerBase<ResponseType>
                     return;
                 }
 
-                var msg = Encoding.UTF8.GetString(message.Item2.ToArray());
-                var json = JsonConvert.DeserializeObject<BaseRequest<RequestType>>(msg);
+                var json = message.Item2;
                 if (json == null) continue;
                 await ProcessResult(json);
             }
@@ -99,7 +97,7 @@ public class DeviceWebSocketController : WebsocketControllerBase<ResponseType>
             {
                 Logger.LogError(ex, "Exception while processing websocket request");
             }
-        } while (result is { CloseStatus: null });
+        } while (result != null && result.Value.MessageType != WebSocketMessageType.Close);
 
         Close.Cancel();
     }

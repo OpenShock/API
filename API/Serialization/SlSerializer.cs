@@ -9,10 +9,10 @@ public static class SlSerializer
         PropertyNameCaseInsensitive = true
     };
     
-    public static T? Deserialize<T>(this string json)
-    {       
-        return JsonSerializer.Deserialize<T>(json, DefaultSerializerSettings);
-    }
+    public static T? Deserialize<T>(this string json) => JsonSerializer.Deserialize<T>(json, DefaultSerializerSettings);
+    public static ValueTask<T?> DeserializeAsync<T>(this Stream stream) => JsonSerializer.DeserializeAsync<T>(stream, DefaultSerializerSettings);
+    public static T? Deserialize<T>(this ReadOnlySpan<byte> data) => JsonSerializer.Deserialize<T>(data, DefaultSerializerSettings);
+    
     
     public static TValue? SlDeserialize<TValue>(this JsonDocument? document)
     {
