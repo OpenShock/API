@@ -45,10 +45,8 @@ public static class WebSocketUtils
     public static Task SendFullMessage<T>(T obj, WebSocket socket, CancellationToken cancelToken) =>
         SendFullMessage(System.Text.Json.JsonSerializer.Serialize(obj), socket, cancelToken);
 
-
     public static Task SendFullMessage(string json, WebSocket socket, CancellationToken cancelToken) =>
         SendFullMessageBytes(Encoding.UTF8.GetBytes(json), socket, cancelToken);
-
 
     public static async Task SendFullMessageBytes(byte[] msg, WebSocket socket, CancellationToken cancelToken)
     {
