@@ -157,6 +157,7 @@ public class Startup
                     }
                 });
                 options.AddServer(new OpenApiServer { Url = "https://api.shocklink.net" });
+                options.AddServer(new OpenApiServer { Url = "https://dev-api.shocklink.net" });
                 options.AddServer(new OpenApiServer { Url = "https://localhost" });
             }
         );
