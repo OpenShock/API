@@ -46,7 +46,7 @@ public class LoginController : ShockLinkControllerBase
         
         HttpContext.Response.Cookies.Append("ShockLinkSession", randomSessionId, new CookieOptions
         {
-            Expires = new DateTimeOffset(DateTime.UtcNow.AddDays(7)),
+            Expires = new DateTimeOffset(DateTime.UtcNow.AddDays(30)),
             Secure = true,
             HttpOnly = true,
             SameSite = SameSiteMode.Strict
@@ -58,7 +58,7 @@ public class LoginController : ShockLinkControllerBase
             UserId = user.Id,
             UserAgent = HttpContext.Request.Headers.UserAgent.ToString(),
             Ip = HttpContext.Connection.RemoteIpAddress?.MapToIPv4().ToString() ?? string.Empty,
-        }, TimeSpan.FromDays(7));
+        }, TimeSpan.FromDays(30));
         
         return new BaseResponse<LoginResponse>
         {
