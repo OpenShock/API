@@ -71,6 +71,8 @@ public partial class ShockLinkContext : DbContext
                 .HasColumnName("token");
             entity.Property(e => e.UserId).HasColumnName("user_id");
             entity.Property(e => e.ValidUntil).HasColumnName("valid_until");
+            
+            entity.Property(e => e.Permissions).HasColumnType("permission_type[]").HasColumnName("permissions");
 
             entity.HasOne(d => d.User).WithMany(p => p.ApiTokens)
                 .HasForeignKey(d => d.UserId)
