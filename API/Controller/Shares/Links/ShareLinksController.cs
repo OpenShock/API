@@ -6,6 +6,8 @@ using ShockLink.API.Controller.Shockers;
 using ShockLink.API.Models;
 using ShockLink.API.Models.Requests;
 using ShockLink.API.Models.Response;
+using ShockLink.API.Utils;
+using ShockLink.Common.Models;
 using ShockLink.Common.ShockLinkDb;
 
 namespace ShockLink.API.Controller.Shares.Links;
@@ -106,11 +108,11 @@ public class ShareLinksController : AuthenticatedSessionControllerBase
         if (shocker == null)
             return EBaseResponse<ShareLinkResponse>("Shocker does not exist in share link, consider adding a new one");
 
-        shocker.PermSound = data.PermSound;
-        shocker.PermVibrate = data.PermVibrate;
-        shocker.PermShock = data.PermShock;
-        shocker.LimitDuration = data.LimitDuration;
-        shocker.LimitIntensity = data.LimitIntensity;
+        shocker.PermSound = data.Permissions.Sound;
+        shocker.PermVibrate = data.Permissions.Vibrate;
+        shocker.PermShock = data.Permissions.Shock;
+        shocker.LimitDuration = data.Limits.Duration;
+        shocker.LimitIntensity = data.Limits.Intensity;
         shocker.Cooldown = data.Cooldown;
 
         await _db.SaveChangesAsync();
@@ -138,25 +140,25 @@ public class ShareLinksController : AuthenticatedSessionControllerBase
     }
     
     [HttpPost("{id:guid}/{shockerId:guid}/pause")]
-    public async Task<BaseResponse<bool>> PauseShocker(Guid id, Guid shockerId, PauseShockersController.PauseRequest data)
+    public async Task<BaseResponse<PauseReason>> PauseShocker(Guid id, Guid shockerId, PauseShockersController.PauseRequest data)
     {
         var exists = await _db.ShockerSharesLinks.AnyAsync(x => x.OwnerId == CurrentUser.DbUser.Id && x.Id == id);
         if (!exists)
-            return EBaseResponse<bool>("Share link could not be found", HttpStatusCode.NotFound);
+            return EBaseResponse<PauseReason>("Share link could not be found", HttpStatusCode.NotFound);
 
         var shocker =
-            await _db.ShockerSharesLinksShockers.FirstOrDefaultAsync(x =>
-                x.ShareLinkId == id && x.ShockerId == shockerId);
+            await _db.ShockerSharesLinksShockers.Where(x =>
+                x.ShareLinkId == id && x.ShockerId == shockerId).Include(x => x.Shocker).FirstOrDefaultAsync();
         if (shocker == null)
-            return EBaseResponse<bool>("Shocker does not exist in share link");
+            return EBaseResponse<PauseReason>("Shocker does not exist in share link");
 
         shocker.Paused = data.Pause;
         await _db.SaveChangesAsync();
         
-        return new BaseResponse<bool>
+        return new BaseResponse<PauseReason>
         {
             Message = "Successfully updated paused state shocker",
-            Data = data.Pause
+            Data = ShareLinkUtils.GetPausedReason(shocker.Paused, shocker.Shocker.Paused)
         };
     }
 }

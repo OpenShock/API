@@ -40,16 +40,22 @@ public class PublicShareLinkController : ShockLinkControllerBase
             {
                 DeviceId = y.Shocker.DeviceNavigation.Id,
                 DeviceName = y.Shocker.DeviceNavigation.Name,
-                Shocker = new OwnerShockerResponse.SharedDevice.SharedShocker()
+                Shocker = new ShareLinkShocker
                 {
                     Id = y.Shocker.Id,
                     Name = y.Shocker.Name,
-                    IsPaused = y.Shocker.Paused,
-                    PermVibrate = y.PermVibrate,
-                    PermSound = y.PermSound,
-                    PermShock = y.PermShock,
-                    LimitDuration = y.LimitDuration,
-                    LimitIntensity = y.LimitIntensity
+                    Limits = new ShockerLimits
+                    {
+                        Duration = y.LimitDuration,
+                        Intensity = y.LimitIntensity
+                    },
+                    Permissions = new ShockerPermissions
+                    {
+                        Vibrate = y.PermVibrate,
+                        Sound = y.PermSound,
+                        Shock = y.PermShock,
+                    },
+                    Paused = ShareLinkUtils.GetPausedReason(y.Paused, y.Shocker.Paused),
                 }
             })
         }).SingleOrDefaultAsync();
@@ -68,7 +74,7 @@ public class PublicShareLinkController : ShockLinkControllerBase
         foreach (var shocker in shareLink.Shockers)
         {
             if (final.Devices.All(x => x.Id != shocker.DeviceId))
-                final.Devices.Add(new OwnerShockerResponse.SharedDevice
+                final.Devices.Add(new ShareLinkDevice
                 {
                     Id = shocker.DeviceId,
                     Name = shocker.DeviceName,
@@ -82,4 +88,6 @@ public class PublicShareLinkController : ShockLinkControllerBase
             Data = final
         };
     }
+
+
 }

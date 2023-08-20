@@ -4,6 +4,6 @@ namespace ShockLink.API.Models.Requests;
 
 public class CreateShareCode
 {
-    public required ShareInfo.PermissionsObj Permissions { get; set; }
-    public required ShareInfo.LimitObj Limits { get; set; }
+    public required ShockerPermissions Permissions { get; set; }
+    public required ShockerLimits Limits { get; set; }
 }

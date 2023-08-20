@@ -69,8 +69,8 @@ public static class ControlLogic
             Device = x.Shocker.Device,
             Model = x.Shocker.Model,
             Owner = x.Shocker.DeviceNavigation.Owner,
-            Paused = x.Shocker.Paused,
-            PermsAndLimits = new ControlShockerObj.SharePermsAndLimits()
+            Paused = x.Shocker.Paused || x.Paused,
+            PermsAndLimits = new ControlShockerObj.SharePermsAndLimits
             {
                 Shock = x.PermShock,
                 Vibrate = x.PermVibrate,

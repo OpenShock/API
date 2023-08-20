@@ -40,13 +40,13 @@ public class ShareShockerController : AuthenticatedSessionControllerBase
                         Image = ImagesApi.GetImageRoot(x.SharedWithNavigation.Image)
                     },
                     CreatedOn = x.CreatedOn,
-                    Permissions = new ShareInfo.PermissionsObj
+                    Permissions = new ShockerPermissions
                     {
                         Sound = x.PermSound!.Value,
                         Shock = x.PermShock!.Value,
                         Vibrate = x.PermVibrate!.Value
                     },
-                    Limits = new ShareInfo.LimitObj
+                    Limits = new ShockerLimits
                     {
                         Duration = x.LimitDuration,
                         Intensity = x.LimitIntensity

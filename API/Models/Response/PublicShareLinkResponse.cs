@@ -11,6 +11,6 @@ public class PublicShareLinkResponse
     public DateTime? ExpiresOn { get; set; }
     public required GenericIni Author { get; set; }
 
-    public IList<OwnerShockerResponse.SharedDevice> Devices { get; set; } =
-        new List<OwnerShockerResponse.SharedDevice>();
+    public IList<ShareLinkDevice> Devices { get; set; } =
+        new List<ShareLinkDevice>();
 }
