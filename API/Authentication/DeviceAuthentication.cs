@@ -21,20 +21,15 @@ public class DeviceAuthenticationSchemeOptions : AuthenticationSchemeOptions
 public class DeviceAuthentication : AuthenticationHandler<DeviceAuthenticationSchemeOptions>
 {
     private readonly IClientAuthService<ShockLink.Common.ShockLinkDb.Device> _authService;
-    private readonly IMemoryCache _memoryCache;
     private readonly ShockLinkContext _db;
-    private readonly IRedisCollection<LoginSession> _userSessions;
     private string _failReason = "Internal server error";
 
     public DeviceAuthentication(IOptionsMonitor<DeviceAuthenticationSchemeOptions> options,
-        ILoggerFactory logger, UrlEncoder encoder, ISystemClock clock, IClientAuthService<ShockLink.Common.ShockLinkDb.Device> clientAuth,
-        IMemoryCache memoryCache, ShockLinkContext db, IRedisConnectionProvider provider)
+        ILoggerFactory logger, UrlEncoder encoder, ISystemClock clock, IClientAuthService<ShockLink.Common.ShockLinkDb.Device> clientAuth, ShockLinkContext db)
         : base(options, logger, encoder, clock)
     {
         _authService = clientAuth;
-        _memoryCache = memoryCache;
         _db = db;
-        _userSessions = provider.RedisCollection<LoginSession>(false);
     }
 
     protected override async Task<AuthenticateResult> HandleAuthenticateAsync()
