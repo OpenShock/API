@@ -50,7 +50,7 @@ public sealed class SelfController : AuthenticatedSessionControllerBase
         catch (ImagesApi.IncorrectImageFormatException exception)
         {
             _logger.LogWarning(exception, "Image format is incorrect");
-            return EBaseResponse<object>("Image format must be PNG or JPG");
+            return EBaseResponse<object>("Image format must be PNG, JPEG, GIF, WebP or SVG");
         }
 
         if (oldImageId != Constants.DefaultAvatar)
