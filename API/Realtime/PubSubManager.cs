@@ -128,12 +128,14 @@ public static class PubSubManager
                     data.Owner.ToString()
                 };
                 userIds.AddRange(sharedWith.Select(x => x.ToString()));
+                var deviceOnline = await _devicesOnline.FindByIdAsync(msg[1]);
                 var arr = new[]
                 {
-                    new DeviceOnlineState()
+                    new DeviceOnlineState
                     {
                         Device = id,
-                        Online = set
+                        Online = set,
+                        FirmwareVersion = deviceOnline?.FirmwareVersion ?? null
                     }
                 };
                 await userHub.Clients.Users(userIds).DeviceStatus(arr);

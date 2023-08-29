@@ -42,15 +42,6 @@ public abstract class WebsocketControllerBase<T> : ShockLinkControllerBase, IWeb
             HttpContext.Response.StatusCode = StatusCodes.Status400BadRequest;
             return;
         }
-        
-        if (HttpContext.Request.Headers.TryGetValue("FirmwareVersion", out var header))
-        {
-            Logger.LogInformation("FirmwareVersion: " + header);
-        }
-        else
-        {
-            Logger.LogInformation("No version");
-        }
 
         Logger.LogInformation("Opening websocket connection");
         WebSocket = await HttpContext.WebSockets.AcceptWebSocketAsync();
@@ -97,10 +88,8 @@ public abstract class WebsocketControllerBase<T> : ShockLinkControllerBase, IWeb
 
     #endregion
 
-    protected virtual Task SendInitialData()
-    {
-        return Task.CompletedTask;
-    }
+    protected virtual Task SendInitialData() => Task.CompletedTask;
+    
 
     protected abstract Task Logic();
     protected virtual void RegisterConnection()
