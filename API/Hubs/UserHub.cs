@@ -46,13 +46,15 @@ public class UserHub : Hub<IUserHub>
             new DeviceOnlineState
             {
                 Device = x.Id,
-                Online = true
+                Online = true,
+                FirmwareVersion = x.FirmwareVersion
             }));
         final.AddRange(shared.Result.Values.Where(x => x != null).Select(x =>
             new DeviceOnlineState
             {
                 Device = x!.Id,
-                Online = true
+                Online = true,
+                FirmwareVersion = x.FirmwareVersion
             }));
         await Clients.Caller.DeviceStatus(final);
     }

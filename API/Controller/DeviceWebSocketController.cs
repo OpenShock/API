@@ -28,20 +28,25 @@ public class DeviceWebSocketController : WebsocketControllerBase<ResponseType>
 
     public override void OnActionExecuting(ActionExecutingContext context)
     {
-        _currentDevice = ControllerContext.HttpContext.RequestServices.GetRequiredService<IClientAuthService<Device>>().CurrentClient;
+        _currentDevice = ControllerContext.HttpContext.RequestServices.GetRequiredService<IClientAuthService<Device>>()
+            .CurrentClient;
         base.OnActionExecuting(context);
     }
-    
+
     public override Guid Id => _currentDevice.Id;
-    
-    public DeviceWebSocketController(ILogger<DeviceWebSocketController> logger, IHostApplicationLifetime lifetime, IRedisConnectionProvider redisConnectionProvider) : base(logger, lifetime)
+
+    public DeviceWebSocketController(ILogger<DeviceWebSocketController> logger, IHostApplicationLifetime lifetime,
+        IRedisConnectionProvider redisConnectionProvider) : base(logger, lifetime)
     {
         _redis = redisConnectionProvider;
         _devicesOnline = redisConnectionProvider.RedisCollection<DeviceOnline>(false);
     }
-    
+
     protected override void RegisterConnection()
     {
+        if (HttpContext.Request.Headers.TryGetValue("FirmwareVersion", out var header) &&
+            Version.TryParse(header, out var version)) FirmwareVersion = version;
+
         WebsocketManager.DeviceWebSockets.RegisterConnection(this);
     }
 
@@ -58,7 +63,9 @@ public class DeviceWebSocketController : WebsocketControllerBase<ResponseType>
             try
             {
                 if (WebSocket.State == WebSocketState.Aborted) return;
-                var message = await WebSocketUtils.ReceiveFullMessageAsyncNonAlloc<BaseRequest<RequestType>>(WebSocket, Linked.Token);
+                var message =
+                    await WebSocketUtils.ReceiveFullMessageAsyncNonAlloc<BaseRequest<RequestType>>(WebSocket,
+                        Linked.Token);
                 result = message.Item1;
 
                 if (result.Value.MessageType == WebSocketMessageType.Close && WebSocket.State == WebSocketState.Open)
@@ -101,7 +108,7 @@ public class DeviceWebSocketController : WebsocketControllerBase<ResponseType>
 
         Close.Cancel();
     }
-    
+
     private async Task ProcessResult(BaseRequest<RequestType> json)
     {
         switch (json.RequestType)
@@ -114,19 +121,35 @@ public class DeviceWebSocketController : WebsocketControllerBase<ResponseType>
 
     private async Task SelfOnline()
     {
-        var online = await _devicesOnline.FindByIdAsync(_currentDevice.Id.ToString());
+        var deviceId = _currentDevice.Id.ToString();
+        var online = await _devicesOnline.FindByIdAsync(deviceId);
         if (online == null)
         {
             await _devicesOnline.InsertAsync(new DeviceOnline
             {
                 Id = _currentDevice.Id,
-                Owner = _currentDevice.Owner
+                Owner = _currentDevice.Owner,
+                FirmwareVersion = FirmwareVersion
             }, TimeSpan.FromSeconds(65));
             return;
         }
-        
+
+        if (online.FirmwareVersion != FirmwareVersion)
+        {
+            var changeTracker = _redis.RedisCollection<DeviceOnline>();
+            var trackedDevice = await changeTracker.FindByIdAsync(deviceId);
+            if (trackedDevice != null)
+            {
+                trackedDevice.FirmwareVersion = FirmwareVersion;
+                await changeTracker.SaveAsync();
+                Logger.LogInformation("Updated firmware version of online device");
+            }
+            else Logger.LogWarning("Could not save changed firmware version to redis, device was not found in change tracker, this shouldn't be possible but it somehow was?");
+        }
+
         await _redis.Connection.ExecuteAsync("EXPIRE",
-                $"ShockLink.Common.Redis.DeviceOnline:{_currentDevice.Id}", "65");
+            $"ShockLink.Common.Redis.DeviceOnline:{_currentDevice.Id}", "65");
     }
 
+    private Version? FirmwareVersion { get; set; }
 }

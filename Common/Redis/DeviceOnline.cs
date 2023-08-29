@@ -7,4 +7,5 @@ public class DeviceOnline
 {
     [RedisIdField] [Indexed] public required Guid Id { get; set; }
     [Indexed] public required Guid Owner { get; set; }
+    public Version? FirmwareVersion { get; set; }
 }
