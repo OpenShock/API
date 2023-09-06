@@ -1,11 +1,12 @@
 ﻿using System.Security.Claims;
 using NpgsqlTypes;
+// ReSharper disable InconsistentNaming
 
 namespace ShockLink.Common.Models;
 
 public enum PermissionType
 {
-    [PgName("shockers.use")] ShockersUse
+    [PgName("shockers.use")] Shockers_Use
 }
 
 public static class PermissionTypeBindings
@@ -17,7 +18,7 @@ public static class PermissionTypeBindings
     public static readonly IReadOnlyDictionary<PermissionType, Claim> TypeToName =
         new Dictionary<PermissionType, Claim>
         {
-            { PermissionType.ShockersUse, new Claim(ClaimTypes.Role, "shockers.use") }
+            { PermissionType.Shockers_Use, new Claim(ClaimTypes.Role, "shockers.use") }
         };
 
     private static IEnumerable<Claim> ConvertToRoleClaims(IReadOnlyCollection<string> input) =>
