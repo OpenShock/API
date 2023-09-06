@@ -2,30 +2,20 @@
 using System.Net;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using ShockLink.API.Authentication;
 using ShockLink.API.Models;
+using ShockLink.API.Models.Response;
 using ShockLink.API.Utils;
 using ShockLink.Common;
 using ShockLink.Common.Models;
-using ShockLink.Common.ShockLinkDb;
 
 namespace ShockLink.API.Controller.Shockers;
 
-[ApiController]
-[Route("/{version:apiVersion}/shockers")]
-public class ControlLogController : AuthenticatedSessionControllerBase
+public sealed partial class ShockerController
 {
-    private readonly ShockLinkContext _db;
-
     public static readonly Uri DefaultAvatarUri = ImagesApi.GetImageRoot(Constants.DefaultAvatar);
 
-    public ControlLogController(ShockLinkContext db)
-    {
-        _db = db;
-    }
-
     [HttpGet("{id:guid}/logs")]
-    public async Task<BaseResponse<IEnumerable<LogEntry>>> GetShocker(Guid id, [FromQuery] uint offset = 0,
+    public async Task<BaseResponse<IEnumerable<LogEntry>>> GetShockerLogs(Guid id, [FromQuery] uint offset = 0,
         [FromQuery] [Range(1, 500)] uint limit = 100)
     {
         var exists = await _db.Shockers.AnyAsync(x => x.DeviceNavigation.Owner == CurrentUser.DbUser.Id && x.Id == id);
@@ -60,20 +50,5 @@ public class ControlLogController : AuthenticatedSessionControllerBase
         {
             Data = logs
         };
-    }
-
-    public class LogEntry
-    {
-        public required Guid Id { get; set; }
-
-        public required DateTime CreatedOn { get; set; }
-
-        public required ControlType Type { get; set; }
-
-        public required ControlLogSenderLight ControlledBy { get; set; }
-
-        public required byte Intensity { get; set; }
-
-        public required uint Duration { get; set; }
     }
 }

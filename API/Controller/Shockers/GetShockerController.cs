@@ -1,24 +1,13 @@
 ﻿using System.Net;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using ShockLink.API.Authentication;
 using ShockLink.API.Models;
 using ShockLink.API.Models.Response;
-using ShockLink.Common.ShockLinkDb;
 
 namespace ShockLink.API.Controller.Shockers;
 
-[ApiController]
-[Route("/{version:apiVersion}/shockers")]
-public class GetShockerController : AuthenticatedSessionControllerBase
+public sealed partial class ShockerController
 {
-    private readonly ShockLinkContext _db;
-    
-    public GetShockerController(ShockLinkContext db)
-    {
-        _db = db;
-    }
-    
     [HttpGet("{id:guid}")]
     public async Task<BaseResponse<ShockerWithDevice>> GetShocker(Guid id)
     {

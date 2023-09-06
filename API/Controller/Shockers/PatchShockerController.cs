@@ -1,24 +1,13 @@
 ﻿using System.Net;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using ShockLink.API.Authentication;
 using ShockLink.API.Models;
 using ShockLink.API.Models.Requests;
-using ShockLink.Common.ShockLinkDb;
 
 namespace ShockLink.API.Controller.Shockers;
 
-[ApiController]
-[Route("/{version:apiVersion}/shockers")]
-public class PatchShockerController : AuthenticatedSessionControllerBase
+public sealed partial class ShockerController
 {
-    private readonly ShockLinkContext _db;
-    
-    public PatchShockerController(ShockLinkContext db)
-    {
-        _db = db;
-    }
-    
     [HttpPatch("{id:guid}")]
     public async Task<BaseResponse<object>> EditShocker(Guid id, NewShocker data)
     {

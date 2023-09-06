@@ -1,24 +1,13 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using ShockLink.API.Authentication;
 using ShockLink.API.Models;
 using ShockLink.API.Models.Response;
-using ShockLink.Common.ShockLinkDb;
 
 namespace ShockLink.API.Controller.Shockers;
 
-[ApiController]
-[Route("/{version:apiVersion}/shockers/shared")]
-public class SharedShockersController : AuthenticatedSessionControllerBase
+public partial class ShockerController
 {
-    private readonly ShockLinkContext _db;
-
-    public SharedShockersController(ShockLinkContext db)
-    {
-        _db = db;
-    }
-
-    [HttpGet]
+    [HttpGet("shared")]
     public async Task<BaseResponse<IEnumerable<OwnerShockerResponse>>> GetSharedShockers()
     {
         var sharedShockersRaw = await _db.ShockerShares.Where(x => x.SharedWith == CurrentUser.DbUser.Id).Select(x =>

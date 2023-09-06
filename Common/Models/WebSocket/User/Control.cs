@@ -6,6 +6,7 @@ namespace ShockLink.Common.Models.WebSocket.User;
 public class Control
 {
     public required Guid Id { get; set; }
+    [EnumDataType(typeof(ControlType))]
     public required ControlType Type { get; set; }
     [Range(1, 100)]
     public required byte Intensity { get; set; }

@@ -1,23 +1,12 @@
 ﻿using System.Net;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using ShockLink.API.Authentication;
 using ShockLink.API.Models;
-using ShockLink.Common.ShockLinkDb;
 
 namespace ShockLink.API.Controller.Shockers;
 
-[ApiController]
-[Route("/{version:apiVersion}/shockers")]
-public class DeleteShockerController : AuthenticatedSessionControllerBase
+public sealed partial class ShockerController
 {
-    private readonly ShockLinkContext _db;
-    
-    public DeleteShockerController(ShockLinkContext db)
-    {
-        _db = db;
-    }
-    
     [HttpDelete("{id:guid}")]
     public async Task<BaseResponse<object>> DeleteShocker(Guid id)
     {

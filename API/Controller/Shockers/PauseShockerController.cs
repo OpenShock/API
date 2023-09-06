@@ -1,23 +1,13 @@
 ﻿using System.Net;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using ShockLink.API.Authentication;
 using ShockLink.API.Models;
-using ShockLink.Common.ShockLinkDb;
+using ShockLink.API.Models.Requests;
 
 namespace ShockLink.API.Controller.Shockers;
 
-[ApiController]
-[Route("/{version:apiVersion}/shockers")]
-public class PauseShockersController : AuthenticatedSessionControllerBase
+public sealed partial class ShockerController
 {
-    private readonly ShockLinkContext _db;
-
-    public PauseShockersController(ShockLinkContext db)
-    {
-        _db = db;
-    }
-
     [HttpPost("{id:guid}/pause")]
     public async Task<BaseResponse<bool?>> Pause(Guid id, PauseRequest data)
     {
@@ -30,8 +20,5 @@ public class PauseShockersController : AuthenticatedSessionControllerBase
         return new BaseResponse<bool?>("Successfully set pause state", data.Pause);
     }
     
-    public class PauseRequest
-    {
-        public required bool Pause { get; set; }
-    }
+
 }

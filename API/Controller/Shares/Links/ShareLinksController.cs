@@ -2,7 +2,6 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using ShockLink.API.Authentication;
-using ShockLink.API.Controller.Shockers;
 using ShockLink.API.Models;
 using ShockLink.API.Models.Requests;
 using ShockLink.API.Models.Response;
@@ -140,7 +139,7 @@ public class ShareLinksController : AuthenticatedSessionControllerBase
     }
     
     [HttpPost("{id:guid}/{shockerId:guid}/pause")]
-    public async Task<BaseResponse<PauseReason>> PauseShocker(Guid id, Guid shockerId, PauseShockersController.PauseRequest data)
+    public async Task<BaseResponse<PauseReason>> PauseShocker(Guid id, Guid shockerId, PauseRequest data)
     {
         var exists = await _db.ShockerSharesLinks.AnyAsync(x => x.OwnerId == CurrentUser.DbUser.Id && x.Id == id);
         if (!exists)

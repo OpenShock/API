@@ -1,6 +1,8 @@
 ﻿using System.Net;
 using System.Net.Http.Headers;
 using System.Text;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using Asp.Versioning;
 using Asp.Versioning.ApiExplorer;
 using Microsoft.AspNetCore.Authentication;
@@ -18,6 +20,7 @@ using ShockLink.API.ExceptionHandle;
 using ShockLink.API.Hubs;
 using ShockLink.API.Mailjet;
 using ShockLink.API.Realtime;
+using ShockLink.API.Serialization;
 using ShockLink.API.Utils;
 using ShockLink.Common;
 using ShockLink.Common.Models;
@@ -85,7 +88,7 @@ public class Startup
 
         services.AddScoped<IClientAuthService<LinkUser>, ClientAuthService<LinkUser>>();
         services.AddScoped<IClientAuthService<Device>, ClientAuthService<Device>>();
-        
+
         services.AddSingleton<IMailjetClient, MailjetClient>();
         services.AddHttpClient<IMailjetClient, MailjetClient>(client =>
         {
@@ -122,18 +125,23 @@ public class Startup
             options.DefaultApiVersion = new ApiVersion(1, 0);
             options.AssumeDefaultVersionWhenUnspecified = true;
         });
-        services.AddControllers().AddJsonOptions(x => { x.JsonSerializerOptions.PropertyNameCaseInsensitive = true; });
-        
-        
+        services.AddControllers().AddJsonOptions(x =>
+        {
+            x.JsonSerializerOptions.PropertyNameCaseInsensitive = true;
+            x.JsonSerializerOptions.Converters.Add(new CustomJsonStringEnumConverter());
+        });
+
+
         apiVersioningBuilder.AddApiExplorer(setup =>
         {
             setup.GroupNameFormat = "VVV";
             setup.SubstituteApiVersionInUrl = true;
         });
-        
+
         services.AddSwaggerGen(options =>
             {
-                options.CustomOperationIds(e => $"{e.ActionDescriptor.RouteValues["controller"]}_{e.ActionDescriptor.RouteValues["action"]}_{e.HttpMethod}");
+                options.CustomOperationIds(e =>
+                    $"{e.ActionDescriptor.RouteValues["controller"]}_{e.ActionDescriptor.RouteValues["action"]}_{e.HttpMethod}");
                 options.SchemaFilter<AttributeFilter>();
                 options.ParameterFilter<AttributeFilter>();
                 options.OperationFilter<AttributeFilter>();
@@ -165,7 +173,7 @@ public class Startup
                 options.AddServer(new OpenApiServer { Url = "https://localhost" });
             }
         );
-        
+
         services.ConfigureOptions<ConfigureSwaggerOptions>();
         services.AddSwaggerGenNewtonsoftSupport();
         //services.AddHealthChecks().AddCheck<DatabaseHealthCheck>("database");
@@ -211,7 +219,7 @@ public class Startup
         {
             KeepAliveInterval = TimeSpan.FromMinutes(1)
         };
-        
+
         app.UseSwagger();
         var provider = app.ApplicationServices.GetRequiredService<IApiVersionDescriptionProvider>();
         app.UseSwaggerUI(c =>
@@ -234,8 +242,10 @@ public class Startup
                     ResponseWriter = UiResponseWriter.WriteHealthCheckUiResponse
                 });*/
             endpoints.MapControllers();
-            endpoints.MapHub<UserHub>("/1/hubs/user", options => { options.Transports = HttpTransportType.WebSockets; });
-            endpoints.MapHub<ShareLinkHub>("/1/hubs/share/link/{id}", options => { options.Transports = HttpTransportType.WebSockets; });
+            endpoints.MapHub<UserHub>("/1/hubs/user",
+                options => { options.Transports = HttpTransportType.WebSockets; });
+            endpoints.MapHub<ShareLinkHub>("/1/hubs/share/link/{id}",
+                options => { options.Transports = HttpTransportType.WebSockets; });
         });
     }
 }

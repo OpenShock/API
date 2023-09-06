@@ -1,35 +1,22 @@
 ﻿using Asp.Versioning;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.SignalR;
-using ShockLink.API.Authentication;
 using ShockLink.API.DeviceControl;
 using ShockLink.API.Hubs;
 using ShockLink.API.Models;
 using ShockLink.API.Utils;
 using ShockLink.Common.Models;
-using ShockLink.Common.ShockLinkDb;
 
 namespace ShockLink.API.Controller.Shockers;
 
-[ApiController]
-[ApiVersion("1")]
-[ApiVersion("2")]
-[Route("/{version:apiVersion}/shockers")]
-public class ControlShockerController : AuthenticatedSessionControllerBase
+public sealed partial class ShockerController
 {
-    private readonly ShockLinkContext _db;
-    private readonly IHubContext<UserHub, IUserHub> _userHub;
-    private readonly IDictionary<string, object> _emptyDic = new Dictionary<string, object>();
-
-    public ControlShockerController(ShockLinkContext db, IHubContext<UserHub, IUserHub> userHub)
-    {
-        _db = db;
-        _userHub = userHub;
-    }
+    private static readonly IDictionary<string, object> EmptyDic = new Dictionary<string, object>();
 
     [HttpPost("control")]
     [MapToApiVersion("2")]
-    public async Task<BaseResponse<object>> ControlShocker(ControlRequest data)
+    public async Task<BaseResponse<object>> ControlShockerV2(ControlRequest data,
+        [FromServices] IHubContext<UserHub, IUserHub> userHub)
     {
         var sender = new ControlLogSender
         {
@@ -37,11 +24,11 @@ public class ControlShockerController : AuthenticatedSessionControllerBase
             Name = CurrentUser.DbUser.Name,
             Image = ImagesApi.GetImageRoot(CurrentUser.DbUser.Image),
             ConnectionId = HttpContext.Connection.Id,
-            AdditionalItems = _emptyDic,
+            AdditionalItems = EmptyDic,
             CustomName = data.CustomName
         };
 
-        await ControlLogic.ControlByUser(data.Shocks, _db, sender, _userHub.Clients);
+        await ControlLogic.ControlByUser(data.Shocks, _db, sender, userHub.Clients);
 
         return new BaseResponse<object>
         {
@@ -51,12 +38,13 @@ public class ControlShockerController : AuthenticatedSessionControllerBase
 
     [HttpPost("control")]
     [MapToApiVersion("1")]
-    public Task<BaseResponse<object>> ControlShocker(IEnumerable<Common.Models.WebSocket.User.Control> data)
+    public Task<BaseResponse<object>> ControlShocker(IEnumerable<Common.Models.WebSocket.User.Control> data,
+        [FromServices] IHubContext<UserHub, IUserHub> userHub)
     {
-        return ControlShocker(new ControlRequest
+        return ControlShockerV2(new ControlRequest
         {
             Shocks = data,
             CustomName = null
-        });
+        }, userHub);
     }
 }

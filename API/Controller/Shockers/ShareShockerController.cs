@@ -1,7 +1,6 @@
 ﻿using System.Net;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using ShockLink.API.Authentication;
 using ShockLink.API.Models;
 using ShockLink.API.Models.Requests;
 using ShockLink.API.Models.Response;
@@ -11,17 +10,8 @@ using ShockLink.Common.ShockLinkDb;
 
 namespace ShockLink.API.Controller.Shockers;
 
-[ApiController]
-[Route("/{version:apiVersion}/shockers")]
-public class ShareShockerController : AuthenticatedSessionControllerBase
+public sealed partial class ShockerController
 {
-    private readonly ShockLinkContext _db;
-
-    public ShareShockerController(ShockLinkContext db)
-    {
-        _db = db;
-    }
-
     [HttpGet("{id:guid}/shares")]
     public async Task<BaseResponse<IEnumerable<ShareInfo>>> GetShares(Guid id)
     {
@@ -147,7 +137,7 @@ public class ShareShockerController : AuthenticatedSessionControllerBase
     }
     
     [HttpPost("{id:guid}/shares/{sharedWith:guid}/pause")]
-    public async Task<BaseResponse<object>> UpdatePauseShare(Guid id, Guid sharedWith, PauseShockersController.PauseRequest data)
+    public async Task<BaseResponse<object>> UpdatePauseShare(Guid id, Guid sharedWith, PauseRequest data)
     {
         var affected = await _db.ShockerShares.Where(x =>
             x.ShockerId == id && x.SharedWith == sharedWith && x.Shocker.DeviceNavigation.Owner == CurrentUser.DbUser.Id).SingleOrDefaultAsync();
