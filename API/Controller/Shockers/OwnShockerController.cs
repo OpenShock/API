@@ -7,7 +7,7 @@ namespace ShockLink.API.Controller.Shockers;
 
 public sealed partial class ShockerController
 {
-    [HttpGet]
+    [HttpGet("own")]
     public async Task<BaseResponse<IEnumerable<DeviceWithShockers>>> GetOwnShockers()
     {
         var shockers = await _db.Devices.Where(x => x.Owner == CurrentUser.DbUser.Id).OrderBy(x => x.CreatedOn).Select(
