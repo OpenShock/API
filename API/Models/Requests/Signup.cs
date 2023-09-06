@@ -1,10 +1,11 @@
 ﻿using System.ComponentModel.DataAnnotations;
+using ShockLink.API.DataAnnotations;
 
 namespace ShockLink.API.Models.Requests;
 
 public class Signup
 {
-    [StringLength(32, MinimumLength = 3)]
+    [Username(true)]
     public required string Username { get; set; }
     [StringLength(256, MinimumLength = 12)]
     public required string Password { get; set; }

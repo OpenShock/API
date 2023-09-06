@@ -13,7 +13,7 @@ namespace ShockLink.API.DataAnnotations;
 /// Inherits from <see cref="ValidationAttribute"/>.
 /// </remarks>
 [AttributeUsage(AttributeTargets.Property | AttributeTargets.Field, AllowMultiple = false)]
-public class DisplaynameAttribute : ValidationAttribute, IParameterAttribute
+public class UsernameAttribute : ValidationAttribute, IParameterAttribute
 {
     /// <summary>
     /// Regular expression for username validation.
@@ -33,10 +33,10 @@ public class DisplaynameAttribute : ValidationAttribute, IParameterAttribute
     public bool ShouldValidate { get; }
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="DisplaynameAttribute"/> class with the specified validation behavior.
+    /// Initializes a new instance of the <see cref="UsernameAttribute"/> class with the specified validation behavior.
     /// </summary>
     /// <param name="shouldValidate">True if validation should be performed; otherwise, false.</param>
-    public DisplaynameAttribute(bool shouldValidate)
+    public UsernameAttribute(bool shouldValidate)
     {
         ShouldValidate = shouldValidate;
     }
@@ -56,7 +56,7 @@ public class DisplaynameAttribute : ValidationAttribute, IParameterAttribute
             return new ValidationResult(_ErrMsgMustBeString);
         }
 
-        var result = DisplaynameValidator.Validate(displayname);
+        var result = UsernameValidator.Validate(displayname);
 
         if (!result.Ok)
         {

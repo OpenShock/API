@@ -1,10 +1,13 @@
 ﻿using System.Net;
+using System.Net.Mime;
 using Microsoft.AspNetCore.Mvc;
 using ShockLink.API.Models;
 using ShockLink.API.Serialization;
 
 namespace ShockLink.API.Controller;
 
+[Consumes(MediaTypeNames.Application.Json)]
+[Produces(MediaTypeNames.Application.Json)]
 public class ShockLinkControllerBase : Microsoft.AspNetCore.Mvc.Controller
 {
 

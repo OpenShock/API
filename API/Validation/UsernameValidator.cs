@@ -1,8 +1,6 @@
-﻿using System.Text;
+﻿namespace ShockLink.API.Validation;
 
-namespace ShockLink.API.Validation;
-
-public static class DisplaynameValidator
+public static class UsernameValidator
 {
     public readonly record struct ValidationResult(bool Ok, string ErrorMessage);
 
@@ -12,12 +10,13 @@ public static class DisplaynameValidator
         {
             return new ValidationResult(false, "Username is too short.");
         }
-        else if (username.Length > ValidationConstants.UsernameMaxLength)
+
+        if (username.Length > ValidationConstants.UsernameMaxLength)
         {
             return new ValidationResult(false, "Username is too long.");
         }
 
-        if (Char.IsWhiteSpace(username[0]) || Char.IsWhiteSpace(username[^1]))
+        if (char.IsWhiteSpace(username[0]) || char.IsWhiteSpace(username[^1]))
         {
             return new ValidationResult(false, "Username cannot start or end with whitespace.");
         }
@@ -28,14 +27,12 @@ public static class DisplaynameValidator
         }
 
         // Check if string contains any unwanted characters
-        foreach (Rune r in username.EnumerateRunes())
-        {
+        // ReSharper disable once ForeachCanBeConvertedToQueryUsingAnotherGetEnumerator
+        foreach (var r in username.EnumerateRunes())
             if (CharsetMatchers.IsUnwantedUserInterfaceRune(r))
-            {
                 return new ValidationResult(false, "Username must not contain obnoxious characters.");
-            }
-        }
 
-        return new ValidationResult(true, String.Empty);
+
+        return new ValidationResult(true, string.Empty);
     }
 }
