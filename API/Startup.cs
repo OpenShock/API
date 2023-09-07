@@ -118,7 +118,10 @@ public class Startup
                 builder.SetPreflightMaxAge(TimeSpan.FromHours(24));
             });
         });
-        services.AddSignalR().AddStackExchangeRedis($"{ApiConfig.RedisHost}:6379");
+        services.AddSignalR().AddStackExchangeRedis($"{ApiConfig.RedisHost}:6379").AddJsonProtocol(options =>
+        {
+            options.PayloadSerializerOptions.PropertyNameCaseInsensitive = true;
+        });
 
         var apiVersioningBuilder = services.AddApiVersioning(options =>
         {
