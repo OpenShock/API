@@ -54,7 +54,7 @@ public static class WebSocketUtils
 
         while (doneBytes < msg.Length)
         {
-            var bytesProcessing = Math.Min(128, msg.Length - doneBytes);
+            var bytesProcessing = Math.Min(1024, msg.Length - doneBytes);
             var buffer = msg.AsMemory(doneBytes, bytesProcessing);
 
             doneBytes += bytesProcessing;
