@@ -120,14 +120,15 @@ public static class PubSubManager
                     SharedWith = x.Shockers.SelectMany(y => y.ShockerShares)
                 }).SingleOrDefaultAsync();
                 if (data == null) return;
+                
 
                 var sharedWith = await db.Users.Where(x => x.ShockerShares.Any(y => y.Shocker.Device == id))
                     .Select(x => x.Id).ToArrayAsync();
                 var userIds = new List<string>
                 {
-                    data.Owner.ToString()
+                    "local#" + data.Owner
                 };
-                userIds.AddRange(sharedWith.Select(x => x.ToString()));
+                userIds.AddRange(sharedWith.Select(x => "local#" + x));
                 var deviceOnline = await _devicesOnline.FindByIdAsync(msg[1]);
                 var arr = new[]
                 {
@@ -139,7 +140,6 @@ public static class PubSubManager
                     }
                 };
                 await userHub.Clients.Users(userIds).DeviceStatus(arr);
-                
                 break;
         }
     }
