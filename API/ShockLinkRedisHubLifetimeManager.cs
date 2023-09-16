@@ -35,7 +35,7 @@ public class ShockLinkRedisHubLifetimeManager<THub> : RedisHubLifetimeManager<TH
 
         foreach (var userId in userIds)
             if (userId.StartsWith("local#")) localUsers.Add(userId);
-            else remoteUsers.Add(userId);
+            else remoteUsers.Add(userId[6..]);
         var tasks = new List<Task> { base.SendUsersAsync(remoteUsers, methodName, args, cancellationToken) };
         // Do not close allocate here, just foreach :3
         // ReSharper disable once ForeachCanBeConvertedToQueryUsingAnotherGetEnumerator
@@ -45,11 +45,12 @@ public class ShockLinkRedisHubLifetimeManager<THub> : RedisHubLifetimeManager<TH
     }
 
     public override Task SendUserAsync(string userId, string methodName, object?[] args,
-        CancellationToken cancellationToken = default) => !userId.StartsWith("local#")
-        ? base.SendUserAsync(userId, methodName, args, cancellationToken)
-        : SendLocalMessageToUser(userId, methodName, args, cancellationToken);
-
-
+        CancellationToken cancellationToken = default)
+    {
+        return !userId.StartsWith("local#")
+            ? base.SendUserAsync(userId, methodName, args, cancellationToken)
+            : SendLocalMessageToUser(userId, methodName, args, cancellationToken);
+    }
     private Task SendLocalMessageToUser(string userId, string methodName, object?[] args,
         CancellationToken cancellationToken)
     {
