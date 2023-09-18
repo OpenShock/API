@@ -1,4 +1,5 @@
 ﻿using System.Net;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Redis.OM;
@@ -8,9 +9,10 @@ using ShockLink.API.Models;
 using ShockLink.Common.Redis;
 using ShockLink.Common.ShockLinkDb;
 
-namespace ShockLink.API.Controller;
+namespace ShockLink.API.Controller.Device;
 
 [ApiController]
+[AllowAnonymous]
 [Route("/{version:apiVersion}/pair")]
 [Route("/{version:apiVersion}/device/pair")]
 public class PairCodeController : ShockLinkControllerBase
