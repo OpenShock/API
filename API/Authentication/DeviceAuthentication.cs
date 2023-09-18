@@ -10,7 +10,6 @@ using Redis.OM.Searching;
 using ShockLink.API.Models;
 using ShockLink.Common.Redis;
 using ShockLink.Common.ShockLinkDb;
-using Device = ShockLink.API.Models.Response.Device;
 
 namespace ShockLink.API.Authentication;
 

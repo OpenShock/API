@@ -26,26 +26,26 @@ public class DeviceController : AuthenticatedSessionControllerBase
     }
 
     [HttpGet]
-    public async Task<BaseResponse<IEnumerable<Models.Response.Device>>> GetList()
+    public async Task<BaseResponse<IEnumerable<Models.Response.ResponseDevice>>> GetList()
     {
         var devices = await _db.Devices.Where(x => x.Owner == CurrentUser.DbUser.Id)
-            .Select(x => new Models.Response.Device
+            .Select(x => new Models.Response.ResponseDevice
             {
                 Id = x.Id,
                 Name = x.Name,
                 CreatedOn = x.CreatedOn
             }).ToListAsync();
-        return new BaseResponse<IEnumerable<Models.Response.Device>>
+        return new BaseResponse<IEnumerable<Models.Response.ResponseDevice>>
         {
            Data = devices
         };
     }
 
     [HttpGet("{id:guid}")]
-    public async Task<BaseResponse<Models.Response.DeviceWithToken>> Get(Guid id)
+    public async Task<BaseResponse<Models.Response.ResponseDeviceWithToken>> Get(Guid id)
     {
         var device = await _db.Devices.Where(x => x.Owner == CurrentUser.DbUser.Id && x.Id == id)
-            .Select(x => new Models.Response.DeviceWithToken
+            .Select(x => new Models.Response.ResponseDeviceWithToken
             {
                 Id = x.Id,
                 Name = x.Name,
@@ -53,8 +53,8 @@ public class DeviceController : AuthenticatedSessionControllerBase
                 Token = x.Token
             }).SingleOrDefaultAsync();
         if (device == null)
-            return EBaseResponse<Models.Response.DeviceWithToken>("Device does not exist", HttpStatusCode.NotFound);
-        return new BaseResponse<Models.Response.DeviceWithToken>
+            return EBaseResponse<Models.Response.ResponseDeviceWithToken>("Device does not exist", HttpStatusCode.NotFound);
+        return new BaseResponse<Models.Response.ResponseDeviceWithToken>
         {
             Data = device
         };
@@ -109,7 +109,7 @@ public class DeviceController : AuthenticatedSessionControllerBase
     [HttpPost]
     public async Task<BaseResponse<Guid>> CreateDevice()
     {
-        var device = new Device
+        var device = new Common.ShockLinkDb.Device
         {
             Id = Guid.NewGuid(),
             Owner = CurrentUser.DbUser.Id,

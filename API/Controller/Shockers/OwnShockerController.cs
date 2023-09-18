@@ -8,10 +8,10 @@ namespace ShockLink.API.Controller.Shockers;
 public sealed partial class ShockerController
 {
     [HttpGet("own")]
-    public async Task<BaseResponse<IEnumerable<DeviceWithShockers>>> GetOwnShockers()
+    public async Task<BaseResponse<IEnumerable<ResponseDeviceWithShockers>>> GetOwnShockers()
     {
         var shockers = await _db.Devices.Where(x => x.Owner == CurrentUser.DbUser.Id).OrderBy(x => x.CreatedOn).Select(
-            x => new DeviceWithShockers
+            x => new ResponseDeviceWithShockers
             {
                 Id = x.Id,
                 Name = x.Name,
@@ -27,7 +27,7 @@ public sealed partial class ShockerController
                 })
             }).ToListAsync();
 
-        return new BaseResponse<IEnumerable<DeviceWithShockers>>
+        return new BaseResponse<IEnumerable<ResponseDeviceWithShockers>>
         {
             Data = shockers
         };

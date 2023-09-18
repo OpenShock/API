@@ -14,6 +14,9 @@ public sealed partial class ShockerController
     {
         var device = await _db.Devices.AnyAsync(x => x.Owner == CurrentUser.DbUser.Id && x.Id == data.Device);
         if(!device) return EBaseResponse<Guid>("Device does not exist", HttpStatusCode.NotFound);
+        var shockerCount = await _db.Shockers.CountAsync(x => x.Device == data.Device);
+
+        if (shockerCount >= 11) return EBaseResponse<Guid>("You can have a maximum of 11 Shockers per Device.");
         
         var shocker = new Shocker
         {

@@ -1,6 +1,6 @@
 ﻿namespace ShockLink.API.Models.Response;
 
-public class DeviceWithShockers : Device
+public class ResponseDeviceWithShockers : ResponseDevice
 {
     public required IEnumerable<ShockerResponse> Shockers { get; set; }
 }

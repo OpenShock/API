@@ -12,6 +12,7 @@ namespace ShockLink.API.Controller;
 
 [ApiController]
 [Route("/{version:apiVersion}/pair")]
+[Route("/{version:apiVersion}/device/pair")]
 public class PairCodeController : ShockLinkControllerBase
 {
     private readonly IRedisCollection<DevicePair> _devicePairs;
