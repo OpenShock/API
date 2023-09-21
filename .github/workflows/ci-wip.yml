@@ -35,10 +35,13 @@ jobs:
       - name: Test
         run: dotnet test --no-restore --verbosity normal
       
+      - name: Grab artifacts
+        run: cp API/**/bin/Release/**/ShockLink.*.dll .
+      
       - name: Upload internal artifacts
         uses: actions/upload-artifact@v3
         with:
           name: artifacts
-          path: |
-            **/bin/Release/**/ShockLink.*.dll
+          path: ShockLink.*.dll
           retention-days: 1
+          if-no-files-found: error
