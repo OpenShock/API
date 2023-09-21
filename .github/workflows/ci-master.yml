@@ -39,8 +39,19 @@ jobs:
       - name: Test
         run: dotnet test --no-restore --verbosity normal
       
+      - name: Publish
+        run: dotnet publish "API.csproj" -c Release -o ./publish
+      
+      - name: Upload full artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: full
+          path: publish/*
+          retention-days: 1
+          if-no-files-found: error
+      
       - name: Grab artifacts
-        run: cp API/bin/Release/**/ShockLink.*.dll .
+        run: cp publish/**/ShockLink.*.dll .
       
       - name: Upload internal artifacts
         uses: actions/upload-artifact@v3
@@ -67,7 +78,8 @@ jobs:
       - name: Download artifacts
         uses: actions/download-artifact@v3
         with:
-          name: artifacts
+          name: full
+          path: publish/
 
       - name: Log in to Container Registry
         uses: docker/login-action@v3
