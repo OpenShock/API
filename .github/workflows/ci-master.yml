@@ -39,8 +39,8 @@ jobs:
       - name: Test
         run: dotnet test --no-restore --verbosity normal
       
-      - name: Publish
-        run: dotnet publish "API.csproj" -c Release -o ./publish
+      - name: Dotnet Publish
+        run: dotnet publish API/API.csproj -c Release -o ./publish
       
       - name: Upload full artifacts
         uses: actions/upload-artifact@v3
