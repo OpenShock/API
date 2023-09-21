@@ -36,7 +36,7 @@ jobs:
         run: dotnet test --no-restore --verbosity normal
       
       - name: Grab artifacts
-        run: cp **/bin/Release/**/ShockLink.*.dll .
+        run: cp API/bin/Release/**/ShockLink.*.dll .
       
       - name: Upload internal artifacts
         uses: actions/upload-artifact@v3
