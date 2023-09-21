@@ -45,19 +45,16 @@ jobs:
       - name: Upload full artifacts
         uses: actions/upload-artifact@v3
         with:
-          name: full
+          name: full-dotnet-app
           path: publish/*
           retention-days: 1
           if-no-files-found: error
       
-      - name: Grab artifacts
-        run: cp publish/ShockLink.*.dll .
-      
       - name: Upload internal artifacts
         uses: actions/upload-artifact@v3
         with:
-          name: artifacts
-          path: ShockLink.*.dll
+          name: only-shocklink-dlls
+          path: publish/ShockLink.*.dll
           retention-days: 1
           if-no-files-found: error
 
@@ -78,7 +75,7 @@ jobs:
       - name: Download artifacts
         uses: actions/download-artifact@v3
         with:
-          name: full
+          name: full-dotnet-app
           path: publish/
 
       - name: Log in to Container Registry

@@ -1,0 +1,33 @@
+# This file is a minimal example of a runnable ShockLink stack.
+
+version: '3.9'
+
+services:
+
+  db:
+    image: postgres:16
+    container_name: shocklink-pg
+    environment:
+      - POSTGRES_PASSWORD=postgres
+  
+  redis:
+    image: redislabs/redisearch:latest
+
+  api:
+    image: ghcr.io/shock-link/shocklink-api:latest
+    depends_on:
+      - db
+      - redis
+    ports:
+      - "5001:80/tcp"
+    environment:
+      - FRONTEND_BASE_URL=localhost
+      - REDIS_HOST=redis
+      - DB=db
+  
+  webui:
+    image: ghcr.io/shock-link/shocklink-webui:latest
+    depends_on:
+      - api
+    ports:
+      - "5002:80/tcp"
