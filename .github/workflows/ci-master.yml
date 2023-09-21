@@ -51,7 +51,7 @@ jobs:
           if-no-files-found: error
       
       - name: Grab artifacts
-        run: cp publish/**/ShockLink.*.dll .
+        run: cp publish/ShockLink.*.dll .
       
       - name: Upload internal artifacts
         uses: actions/upload-artifact@v3
