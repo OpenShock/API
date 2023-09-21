@@ -143,7 +143,7 @@ public class DeviceController : AuthenticatedSessionControllerBase
             Id = id,
             PairCode = r.Next(0, 1000000).ToString("000000")
         };
-        await _devicePairs.InsertAsync(pairCode, TimeSpan.FromMinutes(10));
+        await _devicePairs.InsertAsync(pairCode, TimeSpan.FromMinutes(15));
 
         return new BaseResponse<string>
         {
