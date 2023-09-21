@@ -38,7 +38,7 @@ jobs:
       - name: Upload internal artifacts
         uses: actions/upload-artifact@v3
         with:
-          name: libraries
+          name: artifacts
           path: |
-            **/bin/Release/**/*.dll
+            **/bin/Release/**/ShockLink.*.dll
           retention-days: 1
