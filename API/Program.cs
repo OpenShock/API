@@ -11,8 +11,9 @@ builder.UseContentRoot(Directory.GetCurrentDirectory())
     .ConfigureAppConfiguration((context, config) =>
     {
         config.AddJsonFile("appsettings.json", optional: false, reloadOnChange: false)
-            .AddJsonFile($"appsettings.{context.HostingEnvironment.EnvironmentName}.json", optional: true, reloadOnChange: false);
-        
+            .AddJsonFile($"appsettings.{context.HostingEnvironment.EnvironmentName}.json", optional: true,
+                reloadOnChange: false);
+
         config.AddEnvironmentVariables();
         if (args is { Length: > 0 }) config.AddCommandLine(args);
     })
@@ -22,17 +23,16 @@ builder.UseContentRoot(Directory.GetCurrentDirectory())
         options.ValidateScopes = isDevelopment;
         options.ValidateOnBuild = isDevelopment;
     })
-    .UseSerilog((context, _, config) => config.ReadFrom.Configuration(context.Configuration))
+    .UseSerilog((context, _, config) => { config.ReadFrom.Configuration(context.Configuration); })
     .ConfigureWebHostDefaults(webBuilder =>
     {
         webBuilder.UseKestrel();
         webBuilder.ConfigureKestrel(serverOptions =>
         {
             serverOptions.ListenAnyIP(80);
-            serverOptions.ListenAnyIP(443, options =>
-            {
-                options.UseHttps("devcert.pfx");
-            });
+#if DEBUG
+            serverOptions.ListenAnyIP(443, options => { options.UseHttps("devcert.pfx"); });
+#endif
             serverOptions.Limits.RequestHeadersTimeout = TimeSpan.FromMilliseconds(3000);
         });
         webBuilder.UseStartup<Startup>();
