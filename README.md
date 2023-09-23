@@ -1,19 +1,5 @@
 # ShockLink API
 
-# Configuration
-
-The API can be configured using the following environment variables:
-
-|Variable|Example value|
-|-|-|
-|`DB`|`Host=docker-node;Port=1337;Database=root;Username=root;Password=root;Search Path=ShockLink`|
-|`REDIS_HOST`|`redis`|
-|`REDIS_PASSWORD`| |
-|`CF_ACC_ID`| |
-|`CF_IMG_KEY`| |
-|`CF_IMG_URL`| |
-|`MAILJET_KEY`| |
-|`MAILJET_SECRET`| |
 
 # Deployment
 
