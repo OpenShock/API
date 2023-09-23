@@ -1,16 +1,16 @@
 on:
   push:
     branches:
-      - master
+      - develop
   pull_request:
     branches:
-      - master
+      - develop
     types: [opened, reopened, synchronize]
 
-name: ci-master
+name: ci-develop
 
 env:
-  BRANCH: master
+  BRANCH: develop
   DOTNET_VERSION: 7.0.x
   REGISTRY: ghcr.io
   IMAGE_NAME: ${{ github.repository_owner }}/shocklink-api
