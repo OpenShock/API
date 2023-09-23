@@ -36,6 +36,7 @@ namespace ShockLink.API;
 public class Startup
 {
     public static string EnvString { get; private set; } = null!;
+    private ConfigurationOptions _redisConfig;
 
     private readonly ForwardedHeadersOptions _forwardedSettings = new()
     {
@@ -43,6 +44,17 @@ public class Startup
         RequireHeaderSymmetry = false,
         ForwardLimit = null
     };
+
+    public Startup(IConfiguration configuration)
+    {
+        APIGlobals.ApiConfig = configuration.GetChildren().First(x => x.Key == "ShockLink").Get<ApiConfig>() ??
+                               throw new Exception("Couldnt bind config, check config file");
+#if DEBUG
+        var root = (IConfigurationRoot)configuration;
+        var debugView = root.GetDebugView();
+        Console.WriteLine(debugView);
+#endif
+    }
 
     public void ConfigureServices(IServiceCollection services)
     {
@@ -56,16 +68,23 @@ public class Startup
 #pragma warning restore CS0618
         services.AddDbContextPool<ShockLinkContext>(builder =>
         {
-            builder.UseNpgsql(ApiConfig.Db);
+            builder.UseNpgsql(APIGlobals.ApiConfig.Db);
             builder.EnableSensitiveDataLogging();
             builder.EnableDetailedErrors();
         });
 
-        var redis = new RedisConnectionProvider($"redis://:{ApiConfig.RedisPassword}@{ApiConfig.RedisHost}:6379");
-        redis.Connection.CreateIndex(typeof(LoginSession));
-        redis.Connection.CreateIndex(typeof(DeviceOnline));
-        redis.Connection.CreateIndex(typeof(DevicePair));
-        services.AddSingleton<IRedisConnectionProvider>(redis);
+        _redisConfig = new ConfigurationOptions
+        {
+            AbortOnConnectFail = true,
+            Password = APIGlobals.ApiConfig.Redis.Password,
+            User = APIGlobals.ApiConfig.Redis.User,
+            Ssl = false,
+            EndPoints = new EndPointCollection
+            {
+                { APIGlobals.ApiConfig.Redis.Host, APIGlobals.ApiConfig.Redis.Port }
+            }
+        };
+
         var redisConf = new RedisConfiguration
         {
             AbortOnConnectFail = true,
@@ -73,14 +92,22 @@ public class Startup
             {
                 new RedisHost
                 {
-                    Host = ApiConfig.RedisHost,
-                    Port = 6379
+                    Host = APIGlobals.ApiConfig.Redis.Host,
+                    Port = APIGlobals.ApiConfig.Redis.Port
                 }
             },
             Database = 0,
-            Password = ApiConfig.RedisPassword
+            User = APIGlobals.ApiConfig.Redis.User,
+            Password = APIGlobals.ApiConfig.Redis.Password
         };
 
+        var redis = new RedisConnectionProvider(_redisConfig);
+        redis.Connection.CreateIndex(typeof(LoginSession));
+        redis.Connection.CreateIndex(typeof(DeviceOnline));
+        redis.Connection.CreateIndex(typeof(DevicePair));
+        services.AddSingleton<IRedisConnectionProvider>(redis);
+
+        // TODO: Is this needed?
         services.AddStackExchangeRedisExtensions<NewtonsoftSerializer>(redisConf);
 
         services.AddMemoryCache();
@@ -89,12 +116,13 @@ public class Startup
         services.AddScoped<IClientAuthService<LinkUser>, ClientAuthService<LinkUser>>();
         services.AddScoped<IClientAuthService<Device>, ClientAuthService<Device>>();
 
-        services.AddSingleton<IMailjetClient, MailjetClient>();
         services.AddHttpClient<IMailjetClient, MailjetClient>(client =>
         {
             client.BaseAddress = new Uri("https://api.mailjet.com/v3.1/");
             client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Basic",
-                Convert.ToBase64String(Encoding.UTF8.GetBytes($"{ApiConfig.Mailjet.Key}:{ApiConfig.Mailjet.Secret}")));
+                Convert.ToBase64String(
+                    Encoding.UTF8.GetBytes(
+                        $"{APIGlobals.ApiConfig.Mailjet.Key}:{APIGlobals.ApiConfig.Mailjet.Secret}")));
         });
 
         services.AddWebEncoders();
@@ -118,10 +146,9 @@ public class Startup
                 builder.SetPreflightMaxAge(TimeSpan.FromHours(24));
             });
         });
-        services.AddSignalR().AddShockLinkStackExchangeRedis($"{ApiConfig.RedisHost}:6379").AddJsonProtocol(options =>
-        {
-            options.PayloadSerializerOptions.PropertyNameCaseInsensitive = true;
-        });
+        services.AddSignalR()
+            .AddShockLinkStackExchangeRedis(options => { options.Configuration = _redisConfig; })
+            .AddJsonProtocol(options => { options.PayloadSerializerOptions.PropertyNameCaseInsensitive = true; });
 
         var apiVersioningBuilder = services.AddApiVersioning(options =>
         {
@@ -182,18 +209,10 @@ public class Startup
         //services.AddHealthChecks().AddCheck<DatabaseHealthCheck>("database");
     }
 
-    private static readonly string[] CloudflareProxies =
-    {
-        "103.21.244.0/22", "103.22.200.0/22", "103.31.4.0/22", "104.16.0.0/13", "104.24.0.0/14", "108.162.192.0/18",
-        "131.0.72.0/22", "141.101.64.0/18", "162.158.0.0/15", "172.64.0.0/13", "173.245.48.0/20", "188.114.96.0/20",
-        "190.93.240.0/20", "197.234.240.0/22", "198.41.128.0/17", "2400:cb00::/32", "2606:4700::/32", "2803:f800::/32",
-        "2405:b500::/32", "2405:8100::/32", "2c0f:f248::/32", "2a06:98c0::/29"
-    };
-
     public void Configure(IApplicationBuilder app, IWebHostEnvironment env, ILoggerFactory loggerFactory)
     {
         EnvString = env.EnvironmentName;
-        foreach (var proxy in CloudflareProxies)
+        foreach (var proxy in APIGlobals.CloudflareProxies)
         {
             var split = proxy.Split('/');
             _forwardedSettings.KnownNetworks.Add(new IPNetwork(IPAddress.Parse(split[0]), int.Parse(split[1])));
@@ -208,15 +227,7 @@ public class Startup
         // global cors policy
         app.UseCors();
 
-        var redisConfiguration = new ConfigurationOptions
-        {
-            EndPoints = { { ApiConfig.RedisHost, 6379 } },
-            Password = ApiConfig.RedisPassword,
-            DefaultDatabase = 0,
-            ClientName = "shocklink-api"
-        };
-
-        PubSubManager.Initialize(ConnectionMultiplexer.Connect(redisConfiguration), app.ApplicationServices);
+        PubSubManager.Initialize(ConnectionMultiplexer.Connect(_redisConfig), app.ApplicationServices);
 
         var webSocketOptions = new WebSocketOptions
         {

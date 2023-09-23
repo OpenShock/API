@@ -1,32 +1,36 @@
 ﻿namespace ShockLink.API;
 
-public static class ApiConfig
+public class ApiConfig
 {
-    public static readonly string FrontendBaseUrl = GetVarOrDefault("FRONTEND_BASE_URL");
-    public static readonly string Db = GetVarOrDefault("DB");
-    public static readonly string RedisHost = GetVarOrDefault("REDIS_HOST");
-    public static readonly string RedisPassword = GetVarOrDefault("REDIS_PASSWORD", "");
+    public required Uri FrontendBaseUrl { get; init; }
+    public required string Db { get; init; }
+    public required RedisConfig Redis { get; init; }
+    public required CloudflareConfig Cloudflare { get; init; }
+    public required MailjetConfig Mailjet { get; init; }
     
-    public static class Cloudflare
+    public class RedisConfig
     {
-        public static readonly string AccountId = GetVarOrDefault("CF_ACC_ID");
-        public static readonly string ImagesKey = GetVarOrDefault("CF_IMG_KEY");
-        public static readonly string ImagesUrl = GetVarOrDefault("CF_IMG_URL");
+        public required string Host { get; init; }
+        public required string User { get; init; }
+        public required string Password { get; init; }
+        public required ushort Port { get; init; }
     }
     
-    public static class Mailjet
+    public class CloudflareConfig
     {
-        public static readonly string Key = GetVarOrDefault("MAILJET_KEY");
-        public static readonly string Secret = GetVarOrDefault("MAILJET_SECRET");
+        public required string AccountId { get; init; }
+        public required ImagesConfig Images { get; init; }
+        
+        public class ImagesConfig
+        {
+            public required string Key { get; init; }
+            public required Uri Url { get; init; }
+        }
     }
     
-    private static string GetVarOrDefault(string variableName, string? defaultValue = null)
+    public class MailjetConfig
     {
-        var var = Environment.GetEnvironmentVariable(variableName);
-        if (var != null) return var;
-        if (defaultValue == null)
-            throw new ArgumentNullException(variableName,
-                "Environment variable is null, and no default value is provided");
-        return defaultValue;
+        public required string Key { get; init; }
+        public required string Secret { get; init; }
     }
 }

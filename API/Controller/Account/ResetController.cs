@@ -61,7 +61,7 @@ public class ResetController : ShockLinkControllerBase
             TemplateId = 4903722,
             Variables = new Dictionary<string, string>
             {
-                {"link", new Uri(new Uri(ApiConfig.FrontendBaseUrl), $"/#/account/password/recover/{passwordReset.Id}/{secret}").ToString() },
+                {"link", new Uri(APIGlobals.ApiConfig.FrontendBaseUrl, $"/#/account/password/recover/{passwordReset.Id}/{secret}").ToString() },
             }
             
         });

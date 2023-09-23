@@ -19,10 +19,10 @@ public static class ImagesApi
     {
         DefaultRequestHeaders =
         {
-            Authorization = new AuthenticationHeaderValue("Bearer", ApiConfig.Cloudflare.ImagesKey)
+            Authorization = new AuthenticationHeaderValue("Bearer", APIGlobals.ApiConfig.Cloudflare.Images.Key)
         },
         BaseAddress =
-            new Uri($"https://api.cloudflare.com/client/v4/accounts/{ApiConfig.Cloudflare.AccountId}/")
+            new Uri($"https://api.cloudflare.com/client/v4/accounts/{APIGlobals.ApiConfig.Cloudflare.AccountId}/")
     };
 
     public static async Task<bool> UploadAvatar(Guid userId, Stream stream, ShockLinkContext db)
@@ -88,8 +88,8 @@ public static class ImagesApi
         }
     }
 
-    public static Uri GetImage(Guid id, ImageVariant variant) => new($"{ApiConfig.Cloudflare.ImagesUrl}{id}/{variant}");
-    public static Uri GetImageRoot(Guid id) => new($"{ApiConfig.Cloudflare.ImagesUrl}{id}/");
+    public static Uri GetImage(Guid id, ImageVariant variant) => new($"{APIGlobals.ApiConfig.Cloudflare.Images.Url}{id}/{variant}");
+    public static Uri GetImageRoot(Guid id) => new($"{APIGlobals.ApiConfig.Cloudflare.Images.Url}{id}/");
     
     internal class IncorrectImageFormatException : Exception
     {
