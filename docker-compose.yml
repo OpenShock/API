@@ -14,7 +14,7 @@ services:
     image: redislabs/redisearch:latest
 
   api:
-    image: ghcr.io/shock-link/shocklink-api:latest
+    image: ghcr.io/shock-link/api:latest
     depends_on:
       - db
       - redis

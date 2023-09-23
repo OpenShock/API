@@ -29,7 +29,7 @@ Assuming you have all other required containers running (if not, see above), you
 
 ```bash
 docker run \
-    ghcr.io/shock-link/shocklink-api:latest \
+    ghcr.io/shock-link/api:latest \
     --name shocklink-api \
     -e FRONTEND_BASE_URL=localhost \
     -e DB=localhost \

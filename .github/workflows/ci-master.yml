@@ -13,7 +13,7 @@ env:
   BRANCH: master
   DOTNET_VERSION: 7.0.x
   REGISTRY: ghcr.io
-  IMAGE_NAME: ${{ github.repository_owner }}/shocklink-api
+  IMAGE_NAME: ${{ github.repository_owner }}/api
 
 jobs:
 
