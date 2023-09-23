@@ -109,8 +109,8 @@ jobs:
         with:
           sparse-checkout: |
             README.md
-
-  	  - name: Create release
+      
+      - name: Create release
         uses: softprops/actions-gh-release@v1
         with:
           body_path: README.md
