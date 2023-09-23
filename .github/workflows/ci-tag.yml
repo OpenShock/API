@@ -111,7 +111,7 @@ jobs:
             README.md
       
       - name: Create release
-        uses: softprops/actions-gh-release@v1
+        uses: softprops/action-gh-release@v1
         with:
           body_path: README.md
           tag_name: ${{ github.ref }}
