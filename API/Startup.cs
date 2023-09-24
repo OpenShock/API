@@ -211,6 +211,8 @@ public class Startup
 
     public void Configure(IApplicationBuilder app, IWebHostEnvironment env, ILoggerFactory loggerFactory)
     {
+        ApplicationLogging.LoggerFactory = loggerFactory;
+        var logger = ApplicationLogging.CreateLogger<Startup>();
         EnvString = env.EnvironmentName;
         foreach (var proxy in APIGlobals.CloudflareProxies)
         {
@@ -220,8 +222,9 @@ public class Startup
 
         using (var services = app.ApplicationServices.CreateScope())
         {
-            if (APIGlobals.ApiConfig.SkipDbMigration)
+            if (!APIGlobals.ApiConfig.SkipDbMigration)
             {
+                logger.LogInformation("Running DB migration...");
                 var db = services.ServiceProvider.GetRequiredService<ShockLinkContext>();
                 if(db.Database.GetPendingMigrations().Any()) db.Database.Migrate();
             }
@@ -229,8 +232,7 @@ public class Startup
 
         app.UseForwardedHeaders(_forwardedSettings);
         app.UseSerilogRequestLogging();
-        ApplicationLogging.LoggerFactory = loggerFactory;
-
+        
         app.ConfigureExceptionHandler();
 
         // global cors policy

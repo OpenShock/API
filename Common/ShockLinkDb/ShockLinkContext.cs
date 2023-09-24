@@ -19,8 +19,6 @@ public partial class ShockLinkContext : DbContext
 
     public virtual DbSet<Device> Devices { get; set; }
 
-    public virtual DbSet<EspFirmware> EspFirmwares { get; set; }
-
     public virtual DbSet<PasswordReset> PasswordResets { get; set; }
 
     public virtual DbSet<Shocker> Shockers { get; set; }
