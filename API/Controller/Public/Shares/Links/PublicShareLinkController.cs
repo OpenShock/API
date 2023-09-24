@@ -30,7 +30,7 @@ public class PublicShareLinkController : ShockLinkControllerBase
             {
                 Id = x.Owner.Id,
                 Name = x.Owner.Name,
-                Image = ImagesApi.GetImageRoot(x.Owner.Image)
+                Image = GravatarUtils.GetImageUrl(x.Owner.Email)
             },
             x.Id,
             x.Name,

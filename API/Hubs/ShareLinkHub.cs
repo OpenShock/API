@@ -85,7 +85,7 @@ public sealed class ShareLinkHub : Hub<IShareLinkHub>
                 {
                     Id = Guid.Empty,
                     Name = "Guest",
-                    Image = ImagesApi.GetImageRoot(Constants.DefaultAvatar),
+                    Image = new Uri("https://www.gravatar.com/avatar/0"),
                     ConnectionId = Context.ConnectionId,
                     CustomName = customName,
                     AdditionalItems = additionalItems
@@ -117,10 +117,10 @@ public sealed class ShareLinkHub : Hub<IShareLinkHub>
     {
         var session = await _userSessions.FindByIdAsync(sessionKey);
         if (session == null) return null;
-        return await _db.Users.Select(x => new GenericIni()
+        return await _db.Users.Select(x => new GenericIni
         {
             Id = x.Id,
-            Image = ImagesApi.GetImageRoot(x.Image),
+            Image = GravatarUtils.GetImageUrl(x.Email),
             Name = x.Name
         }).FirstAsync(user => user.Id == session.UserId);
     }

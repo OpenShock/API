@@ -22,7 +22,7 @@ public sealed partial class ShockerController
         {
             Id = CurrentUser.DbUser.Id,
             Name = CurrentUser.DbUser.Name,
-            Image = ImagesApi.GetImageRoot(CurrentUser.DbUser.Image),
+            Image = GravatarUtils.GetImageUrl(CurrentUser.DbUser.Email),
             ConnectionId = HttpContext.Connection.Id,
             AdditionalItems = EmptyDic,
             CustomName = data.CustomName

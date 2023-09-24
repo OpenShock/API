@@ -27,7 +27,7 @@ public sealed partial class ShockerController
                     {
                         Name = x.SharedWithNavigation.Name,
                         Id = x.SharedWith,
-                        Image = ImagesApi.GetImageRoot(x.SharedWithNavigation.Image)
+                        Image = GravatarUtils.GetImageUrl(x.SharedWithNavigation.Email)
                     },
                     CreatedOn = x.CreatedOn,
                     Permissions = new ShockerPermissions

@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using ShockLink.Common.Models;
 
 namespace ShockLink.Common.ShockLinkDb;
 
@@ -16,14 +17,11 @@ public partial class User
     public DateTime CreatedAt { get; set; }
 
     public bool EmailActived { get; set; }
-
-    public Guid Image { get; set; }
+    public RankType Rank { get; set; }
 
     public virtual ICollection<ApiToken> ApiTokens { get; set; } = new List<ApiToken>();
 
     public virtual ICollection<Device> Devices { get; set; } = new List<Device>();
-
-    public virtual CfImage ImageNavigation { get; set; } = null!;
 
     public virtual ICollection<PasswordReset> PasswordResets { get; set; } = new List<PasswordReset>();
 

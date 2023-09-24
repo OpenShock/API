@@ -17,8 +17,6 @@ public partial class ShockLinkContext : DbContext
 
     public virtual DbSet<ApiToken> ApiTokens { get; set; }
 
-    public virtual DbSet<CfImage> CfImages { get; set; }
-
     public virtual DbSet<Device> Devices { get; set; }
 
     public virtual DbSet<EspFirmware> EspFirmwares { get; set; }
@@ -46,6 +44,7 @@ public partial class ShockLinkContext : DbContext
             .HasPostgresEnum("shocklink", "cf_images_type", new[] { "avatar" })
             .HasPostgresEnum("shocklink", "control_type", new[] { "sound", "vibrate", "shock", "stop" })
             .HasPostgresEnum("shocklink", "permission_type", new[] { "shockers.use" })
+            .HasPostgresEnum("shocklink", "rank_type", new[] { "User", "Support", "Staff", "Admin", "System" })
             .HasPostgresEnum("shocklink", "shocker_model_type", new[] { "small", "petTrainer" });
 
         modelBuilder.Entity<ApiToken>(entity =>
@@ -71,29 +70,12 @@ public partial class ShockLinkContext : DbContext
                 .HasColumnName("token");
             entity.Property(e => e.UserId).HasColumnName("user_id");
             entity.Property(e => e.ValidUntil).HasColumnName("valid_until");
-            
+
             entity.Property(e => e.Permissions).HasColumnType("permission_type[]").HasColumnName("permissions");
 
             entity.HasOne(d => d.User).WithMany(p => p.ApiTokens)
                 .HasForeignKey(d => d.UserId)
                 .HasConstraintName("fk_user_id");
-        });
-
-        modelBuilder.Entity<CfImage>(entity =>
-        {
-            entity.HasKey(e => e.Id).HasName("cf_images_pkey");
-
-            entity.ToTable("cf_images", "shocklink");
-
-            entity.Property(e => e.Id)
-                .ValueGeneratedNever()
-                .HasColumnName("id");
-            entity.Property(e => e.CreatedBy).HasColumnName("created_by");
-            entity.Property(e => e.CreatedOn)
-                .HasDefaultValueSql("CURRENT_TIMESTAMP")
-                .HasColumnName("created_on");
-            
-            entity.Property(e => e.Type).HasColumnType("cf_images_type").HasColumnName("type");
         });
 
         modelBuilder.Entity<Device>(entity =>
@@ -119,20 +101,6 @@ public partial class ShockLinkContext : DbContext
             entity.HasOne(d => d.OwnerNavigation).WithMany(p => p.Devices)
                 .HasForeignKey(d => d.Owner)
                 .HasConstraintName("owner_user_id");
-        });
-
-        modelBuilder.Entity<EspFirmware>(entity =>
-        {
-            entity.HasKey(e => new { e.Version, e.Branch });
-            entity.ToTable("esp_firmware", "shocklink");
-
-            entity.Property(e => e.Changelog).HasColumnName("changelog");
-            entity.Property(e => e.Commit)
-                .HasColumnType("character varying")
-                .HasColumnName("commit");
-            entity.Property(e => e.CreatedOn)
-                .HasDefaultValueSql("CURRENT_TIMESTAMP")
-                .HasColumnName("created_on");
         });
 
         modelBuilder.Entity<PasswordReset>(entity =>
@@ -357,20 +325,15 @@ public partial class ShockLinkContext : DbContext
                 .HasColumnType("character varying")
                 .HasColumnName("email");
             entity.Property(e => e.EmailActived).HasColumnName("email_actived");
-            entity.Property(e => e.Image)
-                .HasDefaultValueSql("'7d7302ba-be81-47bb-671d-33f9efd20900'::uuid")
-                .HasColumnName("image");
             entity.Property(e => e.Name)
                 .HasColumnType("character varying")
                 .HasColumnName("name");
             entity.Property(e => e.Password)
                 .HasColumnType("character varying")
                 .HasColumnName("password");
-
-            entity.HasOne(d => d.ImageNavigation).WithMany(p => p.Users)
-                .HasForeignKey(d => d.Image)
-                .OnDelete(DeleteBehavior.Restrict)
-                .HasConstraintName("fk_pfp");
+            entity.Property(e => e.Rank)
+                .HasColumnType("rank_type")
+                .HasColumnName("rank");
         });
     }
 }

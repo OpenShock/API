@@ -61,10 +61,10 @@ public class Startup
         // How do I do this now with EFCore?!
 #pragma warning disable CS0618
         NpgsqlConnection.GlobalTypeMapper.MapEnum<ControlType>();
-        NpgsqlConnection.GlobalTypeMapper.MapEnum<CfImagesType>();
         NpgsqlConnection.GlobalTypeMapper.MapEnum<PermissionType>();
         NpgsqlConnection.GlobalTypeMapper.MapEnum<ShockerModelType>();
         NpgsqlConnection.GlobalTypeMapper.MapEnum<BranchType>();
+        NpgsqlConnection.GlobalTypeMapper.MapEnum<RankType>();
 #pragma warning restore CS0618
         services.AddDbContextPool<ShockLinkContext>(builder =>
         {
@@ -72,7 +72,7 @@ public class Startup
             builder.EnableSensitiveDataLogging();
             builder.EnableDetailedErrors();
         });
-
+        
         _redisConfig = new ConfigurationOptions
         {
             AbortOnConnectFail = true,
@@ -216,6 +216,15 @@ public class Startup
         {
             var split = proxy.Split('/');
             _forwardedSettings.KnownNetworks.Add(new IPNetwork(IPAddress.Parse(split[0]), int.Parse(split[1])));
+        }
+
+        using (var services = app.ApplicationServices.CreateScope())
+        {
+            if (APIGlobals.ApiConfig.SkipDbMigration)
+            {
+                var db = services.ServiceProvider.GetRequiredService<ShockLinkContext>();
+                if(db.Database.GetPendingMigrations().Any()) db.Database.Migrate();
+            }
         }
 
         app.UseForwardedHeaders(_forwardedSettings);

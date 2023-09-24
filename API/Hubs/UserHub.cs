@@ -74,7 +74,7 @@ public class UserHub : Hub<IUserHub>
         {
             Id = x.Id,
             Name = x.Name,
-            Image = ImagesApi.GetImageRoot(x.Image),
+            Image = GravatarUtils.GetImageUrl(x.Email),
             ConnectionId = Context.ConnectionId,
             AdditionalItems = additionalItems,
             CustomName = customName

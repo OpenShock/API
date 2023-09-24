@@ -7,5 +7,5 @@ public class LinkUser
 {
     public required User DbUser { get; set; }
 
-    public Uri GetImageLink() => ImagesApi.GetImageRoot(DbUser.Image);
+    public Uri GetImageLink() => GravatarUtils.GetImageUrl(DbUser.Email);
 }

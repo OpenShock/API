@@ -1,10 +1,6 @@
-﻿using System.Net;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.AspNetCore.Mvc;
 using ShockLink.API.Authentication;
 using ShockLink.API.Models;
-using ShockLink.API.Utils;
-using ShockLink.Common;
 using ShockLink.Common.ShockLinkDb;
 
 namespace ShockLink.API.Controller.Users;
@@ -33,43 +29,6 @@ public sealed class SelfController : AuthenticatedSessionControllerBase
             Image = CurrentUser.GetImageLink()
         }
     };
-
-    [HttpPost("avatar")]
-    public async Task<BaseResponse<object>> UpdateAvatar(IFormFile avatar)
-    {
-        if (avatar == null) return EBaseResponse<object>("No 'avatar' file has been attached");
-
-        var oldImageId = CurrentUser.DbUser.Image;
-
-        try
-        {
-            _logger.LogDebug("Uploading new avatar to cloudflare and making db entry");
-            if (!await ImagesApi.UploadAvatar(CurrentUser.DbUser.Id, avatar.OpenReadStream(), _db))
-                return EBaseResponse<object>("Error during image creation", HttpStatusCode.InternalServerError);
-        }
-        catch (ImagesApi.IncorrectImageFormatException exception)
-        {
-            _logger.LogWarning(exception, "Image format is incorrect");
-            return EBaseResponse<object>("Image format must be PNG, JPEG, GIF, WebP or SVG");
-        }
-
-        if (oldImageId != Constants.DefaultAvatar)
-        {
-            // Delete old avatar from cloudflare and db
-            _logger.LogDebug("Deleting old avatar from cloudflare and db");
-            if (await _db.CfImages.Where(x => x.Id == oldImageId).ExecuteDeleteAsync() < 1)
-                _logger.LogWarning("Trying to delete old avatar file out of db, but it couldn't be found. {Image}",
-                    oldImageId);
-
-            await ImagesApi.DeleteImage(oldImageId);
-        }
-
-        return new BaseResponse<object>
-        {
-            Message = "Profile picture has been changed successfully"
-        };
-    }
-
     public class SelfResponse
     {
         public required Guid Id { get; set; }

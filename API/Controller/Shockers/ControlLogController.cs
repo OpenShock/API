@@ -12,8 +12,6 @@ namespace ShockLink.API.Controller.Shockers;
 
 public sealed partial class ShockerController
 {
-    public static readonly Uri DefaultAvatarUri = ImagesApi.GetImageRoot(Constants.DefaultAvatar);
-
     [HttpGet("{id:guid}/logs")]
     public async Task<BaseResponse<IEnumerable<LogEntry>>> GetShockerLogs(Guid id, [FromQuery] uint offset = 0,
         [FromQuery] [Range(1, 500)] uint limit = 100)
@@ -34,14 +32,14 @@ public sealed partial class ShockerController
                     {
                         Id = Guid.Empty,
                         Name = "Guest",
-                        Image = DefaultAvatarUri,
+                        Image = new Uri("https://www.gravatar.com/avatar/0"),
                         CustomName = x.CustomName
                     }
                     : new ControlLogSenderLight
                     {
                         Id = x.ControlledByNavigation.Id,
                         Name = x.ControlledByNavigation.Name,
-                        Image = ImagesApi.GetImageRoot(x.ControlledByNavigation.Image),
+                        Image = GravatarUtils.GetImageUrl(x.ControlledByNavigation.Email),
                         CustomName = x.CustomName
                     }
             }).ToListAsync();
