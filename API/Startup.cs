@@ -220,16 +220,6 @@ public class Startup
             _forwardedSettings.KnownNetworks.Add(new IPNetwork(IPAddress.Parse(split[0]), int.Parse(split[1])));
         }
 
-        using (var services = app.ApplicationServices.CreateScope())
-        {
-            if (!APIGlobals.ApiConfig.SkipDbMigration)
-            {
-                logger.LogInformation("Running DB migration...");
-                var db = services.ServiceProvider.GetRequiredService<ShockLinkContext>();
-                if(db.Database.GetPendingMigrations().Any()) db.Database.Migrate();
-            }
-        }
-
         app.UseForwardedHeaders(_forwardedSettings);
         app.UseSerilogRequestLogging();
         
@@ -272,5 +262,19 @@ public class Startup
             endpoints.MapHub<ShareLinkHub>("/1/hubs/share/link/{id}",
                 options => { options.Transports = HttpTransportType.WebSockets; });
         });
+
+        // LucTask.Run(async () =>
+        // {
+        //     await Task.Delay(10000);
+        //     using (var services = app.ApplicationServices.CreateScope())
+        //     {
+        //         if (!APIGlobals.ApiConfig.SkipDbMigration)
+        //         {
+        //             logger.LogInformation("Running DB migration...");
+        //             var db = services.ServiceProvider.GetRequiredService<ShockLinkContext>();
+        //             if ((await db.Database.GetPendingMigrationsAsync()).Any()) await db.Database.MigrateAsync();
+        //         }
+        //     }
+        // });
     }
 }
