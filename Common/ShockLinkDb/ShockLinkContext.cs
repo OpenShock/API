@@ -43,11 +43,9 @@ public partial class ShockLinkContext : DbContext
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder
-            .HasPostgresEnum("shocklink", "branch_type", new[] { "Release", "Beta", "Dev" })
-            .HasPostgresEnum("shocklink", "cf_images_type", new[] { "avatar" })
             .HasPostgresEnum("shocklink", "control_type", new[] { "sound", "vibrate", "shock", "stop" })
             .HasPostgresEnum("shocklink", "permission_type", new[] { "shockers.use" })
-            .HasPostgresEnum("shocklink", "rank_type", new[] { "User", "Support", "Staff", "Admin", "System" })
+            .HasPostgresEnum("shocklink", "rank_type", new[] { "user", "support", "staff", "admin", "system" })
             .HasPostgresEnum("shocklink", "shocker_model_type", new[] { "small", "petTrainer" });
 
         modelBuilder.Entity<ApiToken>(entity =>
