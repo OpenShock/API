@@ -6,8 +6,8 @@
         <ImplicitUsings>enable</ImplicitUsings>
         <AssemblyName>ShockLink.API</AssemblyName>
         <RootNamespace>ShockLink.API</RootNamespace>
-        <AssemblyVersion>1.4.3</AssemblyVersion>
-        <FileVersion>1.4.3</FileVersion>
+        <AssemblyVersion>1.4.5</AssemblyVersion>
+        <FileVersion>1.4.5</FileVersion>
         <GenerateDocumentationFile>true</GenerateDocumentationFile>
     </PropertyGroup>
 
