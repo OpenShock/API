@@ -63,7 +63,6 @@ public class Startup
         NpgsqlConnection.GlobalTypeMapper.MapEnum<ControlType>();
         NpgsqlConnection.GlobalTypeMapper.MapEnum<PermissionType>();
         NpgsqlConnection.GlobalTypeMapper.MapEnum<ShockerModelType>();
-        NpgsqlConnection.GlobalTypeMapper.MapEnum<BranchType>();
         NpgsqlConnection.GlobalTypeMapper.MapEnum<RankType>();
 #pragma warning restore CS0618
         services.AddDbContextPool<ShockLinkContext>(builder =>
