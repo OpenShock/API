@@ -32,6 +32,8 @@ public class DeviceSelfController : AuthenticatedDeviceControllerBase
         {
             Data = new DeviceSelfResponse
             {
+                Id = CurrentDevice.Id,
+                Name = CurrentDevice.Name,
                 Shockers = shockers
             }
         };

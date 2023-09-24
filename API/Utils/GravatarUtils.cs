@@ -9,7 +9,7 @@ public static class GravatarUtils
     {
         Span<byte> tempSpan = stackalloc byte[32];
         SHA256.HashData(Encoding.UTF8.GetBytes(email), tempSpan);
-        return new Uri($"https://www.gravatar.com/avatar/{Convert.ToHexString(tempSpan).ToLowerInvariant()}?d=https%3A%2F%2Fstatic.wikia.nocookie.net%2Frickandmorty%2Fimages%2Fe%2Fee%2FMorty501.png");
+        return new Uri($"https://www.gravatar.com/avatar/{Convert.ToHexString(tempSpan).ToLowerInvariant()}?d=https%3A%2F%2Fshocklink.b-cdn.net%2Fweb%2Fshocklink-logo-only.png");
     }
     
 }
