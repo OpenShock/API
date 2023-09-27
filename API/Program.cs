@@ -1,5 +1,5 @@
+using OpenShock.API;
 using Serilog;
-using ShockLink.API;
 
 HostBuilder builder = new();
 builder.UseContentRoot(Directory.GetCurrentDirectory())

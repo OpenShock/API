@@ -1,11 +1,11 @@
 ﻿using System.Reflection;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using ShockLink.API.Models;
-using ShockLink.API.Utils;
-using ShockLink.Common.Models;
+using OpenShock.API.Utils;
+using OpenShock.Common.Models;
+using OpenShock.ServicesCommon;
 
-namespace ShockLink.API.Controller;
+namespace OpenShock.API.Controller;
 
 [ApiController]
 [AllowAnonymous]

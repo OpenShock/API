@@ -2,7 +2,7 @@
 using Microsoft.AspNetCore.SignalR.StackExchangeRedis;
 using StackExchange.Redis;
 
-namespace ShockLink.API.Utils;
+namespace OpenShock.API.Utils;
 
 public static class SignalRExtensions
 {

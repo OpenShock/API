@@ -1,20 +1,19 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
+using OpenShock.API.DeviceControl;
+using OpenShock.API.Models.WebSocket;
+using OpenShock.API.Realtime;
+using OpenShock.Common.Models;
+using OpenShock.Common.Redis;
+using OpenShock.Common.Redis.PubSub;
+using OpenShock.Common.ShockLinkDb;
+using OpenShock.ServicesCommon.Authentication;
 using OpenShock.ServicesCommon.Utils;
-using Redis.OM.Contracts;
-using ShockLink.API.Authentication;
-using ShockLink.API.Models.WebSocket;
-using ShockLink.API.Realtime;
-using ShockLink.Common.Redis;
-using ShockLink.Common.Redis.PubSub;
-using ShockLink.Common.ShockLinkDb;
 using Redis.OM;
-using ShockLink.API.DeviceControl;
-using ShockLink.API.Utils;
-using ShockLink.Common.Models;
+using Redis.OM.Contracts;
 
-namespace ShockLink.API.Hubs;
+namespace OpenShock.API.Hubs;
 
 [Authorize(AuthenticationSchemes = ShockLinkAuthSchemas.SessionTokenCombo)]
 public class UserHub : Hub<IUserHub>

@@ -1,8 +1,8 @@
 ﻿using System.Collections.Concurrent;
-using ShockLink.API.Controller;
-using ShockLink.Common.Models.WebSocket;
+using OpenShock.API.Controller;
+using OpenShock.Common.Models.WebSocket;
 
-namespace ShockLink.API.Realtime;
+namespace OpenShock.API.Realtime;
 
 public class WebsocketCollection<T> where T : Enum
 {

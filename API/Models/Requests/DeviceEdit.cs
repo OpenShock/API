@@ -1,6 +1,6 @@
 ﻿using System.ComponentModel.DataAnnotations;
 
-namespace ShockLink.API.Models.Requests;
+namespace OpenShock.API.Models.Requests;
 
 public class DeviceEdit
 {

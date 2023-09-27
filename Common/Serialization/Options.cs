@@ -1,7 +1,7 @@
 ﻿using Newtonsoft.Json;
 using Newtonsoft.Json.Serialization;
 
-namespace ShockLink.API.Serialization;
+namespace OpenShock.Common.Serialization;
 
 public static class Options
 {

@@ -1,9 +1,9 @@
 ﻿using Asp.Versioning;
 using Microsoft.AspNetCore.Mvc;
-using ShockLink.API.Authentication;
-using ShockLink.Common.ShockLinkDb;
+using OpenShock.Common.ShockLinkDb;
+using OpenShock.ServicesCommon.Authentication;
 
-namespace ShockLink.API.Controller.Shockers;
+namespace OpenShock.API.Controller.Shockers;
 
 [ApiController]
 [ApiVersion("1")]

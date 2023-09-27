@@ -1,6 +1,6 @@
-﻿using ShockLink.API.Models.Response;
+﻿using OpenShock.API.Models.Response;
 
-namespace ShockLink.API.Models.Requests;
+namespace OpenShock.API.Models.Requests;
 
 public class CreateShareCode
 {

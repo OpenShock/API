@@ -1,7 +1,7 @@
 ﻿using System.Security.Cryptography;
 using System.Text;
 
-namespace ShockLink.API.Utils;
+namespace OpenShock.API.Utils;
 
 public static class CryptoUtils
 {

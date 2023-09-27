@@ -1,10 +1,10 @@
 ﻿using System.Net;
 using System.Net.Mime;
 using Microsoft.AspNetCore.Mvc;
-using ShockLink.API.Serialization;
-using ShockLink.Common.Models;
+using OpenShock.Common.Models;
+using OpenShock.Common.Serialization;
 
-namespace ShockLink.API.Controller;
+namespace OpenShock.ServicesCommon;
 
 [Consumes(MediaTypeNames.Application.Json)]
 [Produces(MediaTypeNames.Application.Json)]

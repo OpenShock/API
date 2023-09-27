@@ -2,15 +2,15 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using OpenShock.Common.Models;
+using OpenShock.Common.Redis;
+using OpenShock.Common.ShockLinkDb;
+using OpenShock.ServicesCommon;
 using Redis.OM;
 using Redis.OM.Contracts;
 using Redis.OM.Searching;
-using ShockLink.API.Models;
-using ShockLink.Common.Models;
-using ShockLink.Common.Redis;
-using ShockLink.Common.ShockLinkDb;
 
-namespace ShockLink.API.Controller.Device;
+namespace OpenShock.API.Controller.Device;
 
 [ApiController]
 [AllowAnonymous]

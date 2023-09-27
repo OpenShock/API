@@ -1,6 +1,6 @@
-﻿using ShockLink.Common.Models;
+﻿using OpenShock.Common.Models;
 
-namespace ShockLink.API.Models.Response;
+namespace OpenShock.API.Models.Response;
 
 public class PublicShareLinkResponse
 {

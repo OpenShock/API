@@ -1,17 +1,16 @@
 ﻿using System.Net;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using OpenShock.API.Models.Requests;
+using OpenShock.API.Utils;
+using OpenShock.Common.Models;
+using OpenShock.Common.Redis;
+using OpenShock.Common.ShockLinkDb;
+using OpenShock.ServicesCommon.Authentication;
 using Redis.OM.Contracts;
 using Redis.OM.Searching;
-using ShockLink.API.Authentication;
-using ShockLink.API.Models;
-using ShockLink.API.Models.Requests;
-using ShockLink.API.Utils;
-using ShockLink.Common.Models;
-using ShockLink.Common.Redis;
-using ShockLink.Common.ShockLinkDb;
 
-namespace ShockLink.API.Controller.Devices;
+namespace OpenShock.API.Controller.Devices;
 
 [ApiController]
 [Route("/{version:apiVersion}/devices")]

@@ -1,16 +1,18 @@
 ﻿using System.Net;
-using System.Net.Http.Headers;
-using System.Text;
 using Asp.Versioning;
 using Asp.Versioning.ApiExplorer;
-using LiveControlGateway.Services;
 using Microsoft.AspNetCore.Authentication;
-using Microsoft.AspNetCore.Http.Connections;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.OpenApi.Models;
 using Npgsql;
+using OpenShock.Common;
+using OpenShock.Common.Models;
+using OpenShock.Common.Redis;
+using OpenShock.Common.Serialization;
+using OpenShock.Common.ShockLinkDb;
+using OpenShock.LiveControlGateway.Services;
 using OpenShock.ServicesCommon;
 using OpenShock.ServicesCommon.Authentication;
 using OpenShock.ServicesCommon.ExceptionHandle;
@@ -18,16 +20,10 @@ using OpenShock.ServicesCommon.Utils;
 using Redis.OM;
 using Redis.OM.Contracts;
 using Serilog;
-using ShockLink.API.Authentication;
-using ShockLink.API.Serialization;
-using ShockLink.Common;
-using ShockLink.Common.Models;
-using ShockLink.Common.Redis;
-using ShockLink.Common.ShockLinkDb;
 using StackExchange.Redis;
 using WebSocketOptions = Microsoft.AspNetCore.Builder.WebSocketOptions;
 
-namespace ShockLink.LiveControlGateway;
+namespace OpenShock.LiveControlGateway;
 
 public class Startup
 {

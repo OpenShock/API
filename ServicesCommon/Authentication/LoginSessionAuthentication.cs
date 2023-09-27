@@ -5,13 +5,13 @@ using Microsoft.AspNetCore.Authentication;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Options;
+using OpenShock.Common.Models;
+using OpenShock.Common.Redis;
+using OpenShock.Common.ShockLinkDb;
 using Redis.OM.Contracts;
 using Redis.OM.Searching;
-using ShockLink.Common.Models;
-using ShockLink.Common.Redis;
-using ShockLink.Common.ShockLinkDb;
 
-namespace ShockLink.API.Authentication;
+namespace OpenShock.ServicesCommon.Authentication;
 
 public class LoginSessionAuthenticationSchemeOptions : AuthenticationSchemeOptions
 {

@@ -1,6 +1,5 @@
-using LiveControlGateway.Services;
+using OpenShock.LiveControlGateway;
 using Serilog;
-using ShockLink.LiveControlGateway;
 
 HostBuilder builder = new();
 builder.UseContentRoot(Directory.GetCurrentDirectory())

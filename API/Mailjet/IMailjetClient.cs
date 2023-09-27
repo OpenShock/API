@@ -1,4 +1,4 @@
-﻿namespace ShockLink.API.Mailjet;
+﻿namespace OpenShock.API.Mailjet;
 
 public interface IMailjetClient
 {

@@ -1,6 +1,6 @@
 ﻿// ReSharper disable UnusedAutoPropertyAccessor.Global
 
-namespace ShockLink.Common.Redis.PubSub;
+namespace OpenShock.Common.Redis.PubSub;
 
 public class CaptiveMessage
 {

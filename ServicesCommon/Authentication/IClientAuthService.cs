@@ -1,4 +1,4 @@
-﻿namespace ShockLink.API.Authentication;
+﻿namespace OpenShock.ServicesCommon.Authentication;
 
 public interface IClientAuthService<T>
 {

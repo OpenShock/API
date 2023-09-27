@@ -1,10 +1,11 @@
 ﻿using System.Net.WebSockets;
 using System.Threading.Channels;
 using Microsoft.AspNetCore.Mvc;
-using ShockLink.API.Utils;
-using ShockLink.Common.Models.WebSocket;
+using OpenShock.API.Utils;
+using OpenShock.Common.Models.WebSocket;
+using OpenShock.ServicesCommon;
 
-namespace ShockLink.API.Controller;
+namespace OpenShock.API.Controller;
 
 public abstract class WebsocketControllerBase<T> : ShockLinkControllerBase, IWebsocketController<T> where T : Enum
 {

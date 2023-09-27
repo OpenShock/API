@@ -1,6 +1,6 @@
 ﻿using System.Text.Json;
 
-namespace ShockLink.Common.Models.WebSocket;
+namespace OpenShock.Common.Models.WebSocket;
 
 public class BaseRequest<T>
 {

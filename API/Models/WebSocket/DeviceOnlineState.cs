@@ -1,4 +1,4 @@
-﻿namespace ShockLink.API.Models.WebSocket;
+﻿namespace OpenShock.API.Models.WebSocket;
 
 public class DeviceOnlineState
 {

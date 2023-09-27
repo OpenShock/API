@@ -1,10 +1,9 @@
-﻿using System.Net.Mime;
-using Microsoft.AspNetCore.Authorization;
+﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using ShockLink.API.Models;
-using ShockLink.Common.Models;
+using OpenShock.Common.Models;
+using OpenShock.ServicesCommon;
 
-namespace ShockLink.API.Controller.Public;
+namespace OpenShock.API.Controller.Public;
 
 [ApiController]
 [Route("/{version:apiVersion}/public/firmware/version")]

@@ -1,22 +1,22 @@
 ﻿using System.Text.Json;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
+using OpenShock.API.Hubs;
+using OpenShock.API.Models.WebSocket;
+using OpenShock.API.Utils;
+using OpenShock.Common;
+using OpenShock.Common.Models.WebSocket;
+using OpenShock.Common.Models.WebSocket.Device;
+using OpenShock.Common.Redis;
+using OpenShock.Common.Redis.PubSub;
+using OpenShock.Common.ShockLinkDb;
 using Redis.OM.Contracts;
 using Redis.OM.Searching;
-using ShockLink.API.Hubs;
-using ShockLink.API.Models.WebSocket;
-using ShockLink.API.Utils;
-using ShockLink.Common;
-using ShockLink.Common.Models.WebSocket;
-using ShockLink.Common.Models.WebSocket.Device;
-using ShockLink.Common.Redis;
-using ShockLink.Common.Redis.PubSub;
-using ShockLink.Common.ShockLinkDb;
 using StackExchange.Redis;
 
 #pragma warning disable CS8618
 
-namespace ShockLink.API.Realtime;
+namespace OpenShock.API.Realtime;
 
 public static class PubSubManager
 {

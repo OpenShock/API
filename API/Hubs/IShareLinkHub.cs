@@ -1,4 +1,4 @@
-﻿namespace ShockLink.API.Hubs;
+﻿namespace OpenShock.API.Hubs;
 
 public interface IShareLinkHub
 {

@@ -2,15 +2,14 @@
 using Microsoft.EntityFrameworkCore;
 using OneOf;
 using OneOf.Types;
-using ShockLink.API.Hubs;
-using ShockLink.API.Realtime;
-using ShockLink.API.Utils;
-using ShockLink.Common.Models;
-using ShockLink.Common.Models.WebSocket.User;
-using ShockLink.Common.Redis.PubSub;
-using ShockLink.Common.ShockLinkDb;
+using OpenShock.API.Hubs;
+using OpenShock.API.Realtime;
+using OpenShock.Common.Models;
+using OpenShock.Common.Models.WebSocket.User;
+using OpenShock.Common.Redis.PubSub;
+using OpenShock.Common.ShockLinkDb;
 
-namespace ShockLink.API.DeviceControl;
+namespace OpenShock.API.DeviceControl;
 
 public static class ControlLogic
 {

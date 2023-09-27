@@ -1,6 +1,6 @@
-﻿using ShockLink.Common.ShockLinkDb;
+﻿using OpenShock.Common.ShockLinkDb;
 
-namespace ShockLink.API.Models.Response;
+namespace OpenShock.API.Models.Response;
 
 public class ShareLinkResponse
 {

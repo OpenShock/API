@@ -1,7 +1,7 @@
-﻿using OpenShock.ServicesCommon.Utils;
-using ShockLink.Common.ShockLinkDb;
+﻿using OpenShock.Common.ShockLinkDb;
+using OpenShock.ServicesCommon.Utils;
 
-namespace ShockLink.API.Authentication;
+namespace OpenShock.ServicesCommon.Authentication;
 
 public class LinkUser
 {

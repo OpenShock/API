@@ -1,6 +1,6 @@
-﻿using ShockLink.Common.Models.WebSocket.User;
+﻿using OpenShock.Common.Models.WebSocket.User;
 
-namespace ShockLink.Common.Models;
+namespace OpenShock.Common.Models;
 
 public class GenericIni : GenericIn
 {

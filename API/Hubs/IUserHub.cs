@@ -1,8 +1,8 @@
-﻿using ShockLink.API.Models.WebSocket;
-using ShockLink.Common.Models;
-using ShockLink.Common.Models.WebSocket.User;
+﻿using OpenShock.API.Models.WebSocket;
+using OpenShock.Common.Models;
+using OpenShock.Common.Models.WebSocket.User;
 
-namespace ShockLink.API.Hubs;
+namespace OpenShock.API.Hubs;
 
 public interface IUserHub
 {

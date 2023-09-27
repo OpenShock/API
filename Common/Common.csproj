@@ -4,10 +4,12 @@
         <TargetFramework>net7.0</TargetFramework>
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
-        <AssemblyName>ShockLink.Common</AssemblyName>
-        <RootNamespace>ShockLink.Common</RootNamespace>
-        <Company>LucHeart</Company>
-        <Product>ShockLink.Common</Product>
+        <AssemblyName>OpenShock.Common</AssemblyName>
+        <RootNamespace>OpenShock.Common</RootNamespace>
+        <Company>OpenShock</Company>
+        <Product>OpenShock.Common</Product>
+        <AssemblyVersion>1.0.0.0</AssemblyVersion>
+        <FileVersion>1.0.0.0</FileVersion>
     </PropertyGroup>
 
     <ItemGroup>

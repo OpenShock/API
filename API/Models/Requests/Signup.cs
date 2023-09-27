@@ -1,7 +1,7 @@
 ﻿using System.ComponentModel.DataAnnotations;
 using OpenShock.ServicesCommon.DataAnnotations;
 
-namespace ShockLink.API.Models.Requests;
+namespace OpenShock.API.Models.Requests;
 
 public class Signup
 {

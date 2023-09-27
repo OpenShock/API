@@ -1,5 +1,5 @@
 ﻿// ReSharper disable UnusedAutoPropertyAccessor.Global
-namespace ShockLink.API.ExceptionHandle;
+namespace OpenShock.ServicesCommon.ExceptionHandle;
 
 public class RequestInfo
 {

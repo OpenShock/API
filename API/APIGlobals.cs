@@ -1,4 +1,4 @@
-﻿namespace ShockLink.API;
+﻿namespace OpenShock.API;
 
 // ReSharper disable once InconsistentNaming
 public static class APIGlobals

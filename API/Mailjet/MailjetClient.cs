@@ -1,9 +1,9 @@
 ﻿using System.Net.Mime;
 using System.Text;
 using Newtonsoft.Json;
-using ShockLink.API.Mailjet.Mail;
+using OpenShock.API.Mailjet.Mail;
 
-namespace ShockLink.API.Mailjet;
+namespace OpenShock.API.Mailjet;
 
 public class MailjetClient : IMailjetClient
 {

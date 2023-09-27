@@ -1,12 +1,11 @@
 ﻿using System.Net;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using ShockLink.API.Authentication;
-using ShockLink.API.Models;
-using ShockLink.Common.Models;
-using ShockLink.Common.ShockLinkDb;
+using OpenShock.Common.Models;
+using OpenShock.Common.ShockLinkDb;
+using OpenShock.ServicesCommon.Authentication;
 
-namespace ShockLink.API.Controller.Shares;
+namespace OpenShock.API.Controller.Shares;
 
 [ApiController]
 [Route("/{version:apiVersion}/shares")]

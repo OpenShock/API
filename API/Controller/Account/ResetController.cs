@@ -1,14 +1,14 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using ShockLink.API.Mailjet;
-using ShockLink.API.Mailjet.Mail;
-using ShockLink.API.Models;
-using ShockLink.API.Utils;
-using ShockLink.Common.Models;
-using ShockLink.Common.ShockLinkDb;
+using OpenShock.API.Mailjet;
+using OpenShock.API.Mailjet.Mail;
+using OpenShock.API.Utils;
+using OpenShock.Common.Models;
+using OpenShock.Common.ShockLinkDb;
+using OpenShock.ServicesCommon;
 
-namespace ShockLink.API.Controller.Account;
+namespace OpenShock.API.Controller.Account;
 
 [ApiController]
 [AllowAnonymous]

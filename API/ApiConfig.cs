@@ -1,4 +1,4 @@
-﻿namespace ShockLink.API;
+﻿namespace OpenShock.API;
 
 public class ApiConfig
 {

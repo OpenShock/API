@@ -1,6 +1,6 @@
-﻿using ShockLink.Common.Models;
+﻿using OpenShock.Common.Models;
 
-namespace ShockLink.API.Utils;
+namespace OpenShock.API.Utils;
 
 public static class ShareLinkUtils
 {

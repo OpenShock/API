@@ -1,6 +1,6 @@
 ﻿using System.ComponentModel.DataAnnotations;
 
-namespace ShockLink.Common.Models.WebSocket.User;
+namespace OpenShock.Common.Models.WebSocket.User;
 
 // ReSharper disable once ClassNeverInstantiated.Global
 public class Control

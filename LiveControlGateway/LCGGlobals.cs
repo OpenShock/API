@@ -1,5 +1,5 @@
 ﻿// ReSharper disable InconsistentNaming
-namespace ShockLink.LiveControlGateway;
+namespace OpenShock.LiveControlGateway;
 
 public static class LCGGlobals
 {

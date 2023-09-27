@@ -1,4 +1,4 @@
-﻿namespace ShockLink.API.DeviceControl;
+﻿namespace OpenShock.API.DeviceControl;
 
 public struct NotAllShockersSucceeded
 {

@@ -4,11 +4,12 @@
         <TargetFramework>net7.0</TargetFramework>
         <Nullable>enable</Nullable>
         <ImplicitUsings>enable</ImplicitUsings>
-        <AssemblyName>ShockLink.LiveControlGateway</AssemblyName>
-        <RootNamespace>ShockLink.LiveControlGateway</RootNamespace>
+        <AssemblyName>OpenShock.LiveControlGateway</AssemblyName>
+        <RootNamespace>OpenShock.LiveControlGateway</RootNamespace>
         <Company>OpenShock</Company>
         <AssemblyVersion>1.5.0</AssemblyVersion>
         <FileVersion>1.5.0</FileVersion>
+        <Product>LiveControlGateway</Product>
     </PropertyGroup>
 
     <ItemGroup>

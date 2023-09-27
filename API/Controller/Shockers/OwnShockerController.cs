@@ -1,10 +1,9 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using ShockLink.API.Models;
-using ShockLink.API.Models.Response;
-using ShockLink.Common.Models;
+using OpenShock.API.Models.Response;
+using OpenShock.Common.Models;
 
-namespace ShockLink.API.Controller.Shockers;
+namespace OpenShock.API.Controller.Shockers;
 
 public sealed partial class ShockerController
 {

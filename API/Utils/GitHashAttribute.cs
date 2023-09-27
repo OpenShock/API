@@ -1,6 +1,6 @@
 ﻿using System.Reflection;
 
-namespace ShockLink.API.Utils;
+namespace OpenShock.API.Utils;
 
 [AttributeUsage(AttributeTargets.Assembly)]
 public sealed class GitHashAttribute : Attribute

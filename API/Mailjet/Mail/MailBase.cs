@@ -1,4 +1,4 @@
-﻿namespace ShockLink.API.Mailjet.Mail;
+﻿namespace OpenShock.API.Mailjet.Mail;
 
 public abstract class MailBase
 {

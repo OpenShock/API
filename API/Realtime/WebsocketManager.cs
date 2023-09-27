@@ -1,5 +1,5 @@
 ﻿
-namespace ShockLink.API.Realtime;
+namespace OpenShock.API.Realtime;
 
 public static class WebsocketManager
 {

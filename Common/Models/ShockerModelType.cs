@@ -1,6 +1,6 @@
 ﻿using NpgsqlTypes;
 
-namespace ShockLink.Common.Models;
+namespace OpenShock.Common.Models;
 
 public enum ShockerModelType
 {

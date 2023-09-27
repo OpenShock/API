@@ -1,20 +1,17 @@
 ﻿using System.Net.WebSockets;
-using System.Text;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
-using Newtonsoft.Json;
+using OpenShock.API.Realtime;
+using OpenShock.API.Utils;
+using OpenShock.Common.Models.WebSocket;
+using OpenShock.Common.Models.WebSocket.Device;
+using OpenShock.Common.Redis;
+using OpenShock.ServicesCommon.Authentication;
 using Redis.OM.Contracts;
 using Redis.OM.Searching;
-using ShockLink.API.Authentication;
-using ShockLink.API.Realtime;
-using ShockLink.API.Utils;
-using ShockLink.Common.Models.WebSocket;
-using ShockLink.Common.Models.WebSocket.Device;
-using ShockLink.Common.Redis;
-using ShockLink.Common.ShockLinkDb;
 
-namespace ShockLink.API.Controller;
+namespace OpenShock.API.Controller;
 
 [ApiController]
 [Authorize(AuthenticationSchemes = ShockLinkAuthSchemas.DeviceToken)]

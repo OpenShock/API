@@ -1,4 +1,4 @@
-﻿namespace ShockLink.Common.Models;
+﻿namespace OpenShock.Common.Models;
 
 public class ControlRequest
 {

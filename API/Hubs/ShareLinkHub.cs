@@ -1,19 +1,14 @@
-﻿using System.Security.Claims;
-using Microsoft.AspNetCore.Authentication;
-using Microsoft.AspNetCore.SignalR;
+﻿using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
+using OpenShock.API.DeviceControl;
+using OpenShock.Common.Models;
+using OpenShock.Common.Redis;
+using OpenShock.Common.ShockLinkDb;
 using OpenShock.ServicesCommon.Utils;
 using Redis.OM.Contracts;
 using Redis.OM.Searching;
-using ShockLink.API.Authentication;
-using ShockLink.API.DeviceControl;
-using ShockLink.API.Utils;
-using ShockLink.Common;
-using ShockLink.Common.Models;
-using ShockLink.Common.Redis;
-using ShockLink.Common.ShockLinkDb;
 
-namespace ShockLink.API.Hubs;
+namespace OpenShock.API.Hubs;
 
 public sealed class ShareLinkHub : Hub<IShareLinkHub>
 {

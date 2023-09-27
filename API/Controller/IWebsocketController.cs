@@ -1,6 +1,6 @@
-﻿using ShockLink.Common.Models.WebSocket;
+﻿using OpenShock.Common.Models.WebSocket;
 
-namespace ShockLink.API.Controller;
+namespace OpenShock.API.Controller;
 
 public interface IWebsocketController<T> where T : Enum
 {

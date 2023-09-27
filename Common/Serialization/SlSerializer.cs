@@ -1,6 +1,6 @@
 ﻿using System.Text.Json;
 
-namespace ShockLink.API.Serialization;
+namespace OpenShock.Common.Serialization;
 
 public static class SlSerializer
 {

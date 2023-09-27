@@ -1,4 +1,4 @@
-﻿namespace ShockLink.Common.Models.WebSocket.Device;
+﻿namespace OpenShock.Common.Models.WebSocket.Device;
 
 public enum ResponseType
 {

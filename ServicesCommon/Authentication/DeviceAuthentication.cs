@@ -4,9 +4,8 @@ using System.Text.Encodings.Web;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
-using ShockLink.API.Authentication;
-using ShockLink.Common.Models;
-using ShockLink.Common.ShockLinkDb;
+using OpenShock.Common.Models;
+using OpenShock.Common.ShockLinkDb;
 
 namespace OpenShock.ServicesCommon.Authentication;
 
@@ -16,12 +15,12 @@ public class DeviceAuthenticationSchemeOptions : AuthenticationSchemeOptions
 
 public class DeviceAuthentication : AuthenticationHandler<DeviceAuthenticationSchemeOptions>
 {
-    private readonly IClientAuthService<ShockLink.Common.ShockLinkDb.Device> _authService;
+    private readonly IClientAuthService<Device> _authService;
     private readonly ShockLinkContext _db;
     private string _failReason = "Internal server error";
 
     public DeviceAuthentication(IOptionsMonitor<DeviceAuthenticationSchemeOptions> options,
-        ILoggerFactory logger, UrlEncoder encoder, ISystemClock clock, IClientAuthService<ShockLink.Common.ShockLinkDb.Device> clientAuth, ShockLinkContext db)
+        ILoggerFactory logger, UrlEncoder encoder, ISystemClock clock, IClientAuthService<Device> clientAuth, ShockLinkContext db)
         : base(options, logger, encoder, clock)
     {
         _authService = clientAuth;

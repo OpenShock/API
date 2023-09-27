@@ -1,8 +1,7 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc.Filters;
-using ShockLink.API.Controller;
 
-namespace ShockLink.API.Authentication;
+namespace OpenShock.ServicesCommon.Authentication;
 
 [Authorize(AuthenticationSchemes = ShockLinkAuthSchemas.SessionTokenCombo, Roles = "shockers.use")]
 public class AuthenticatedSessionControllerBase : ShockLinkControllerBase

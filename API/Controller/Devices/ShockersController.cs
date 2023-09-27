@@ -1,13 +1,12 @@
 ﻿using System.Net;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using ShockLink.API.Authentication;
-using ShockLink.API.Models;
-using ShockLink.API.Models.Response;
-using ShockLink.Common.Models;
-using ShockLink.Common.ShockLinkDb;
+using OpenShock.API.Models.Response;
+using OpenShock.Common.Models;
+using OpenShock.Common.ShockLinkDb;
+using OpenShock.ServicesCommon.Authentication;
 
-namespace ShockLink.API.Controller.Devices;
+namespace OpenShock.API.Controller.Devices;
 
 [ApiController]
 [Route("/{version:apiVersion}/devices")]

@@ -1,8 +1,6 @@
 ﻿using System.Net;
 using System.Net.Http.Headers;
 using System.Text;
-using System.Text.Json;
-using System.Text.Json.Serialization;
 using Asp.Versioning;
 using Asp.Versioning.ApiExplorer;
 using Microsoft.AspNetCore.Authentication;
@@ -12,6 +10,15 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.OpenApi.Models;
 using Npgsql;
+using OpenShock.API.Hubs;
+using OpenShock.API.Mailjet;
+using OpenShock.API.Realtime;
+using OpenShock.API.Utils;
+using OpenShock.Common;
+using OpenShock.Common.Models;
+using OpenShock.Common.Redis;
+using OpenShock.Common.Serialization;
+using OpenShock.Common.ShockLinkDb;
 using OpenShock.ServicesCommon;
 using OpenShock.ServicesCommon.Authentication;
 using OpenShock.ServicesCommon.ExceptionHandle;
@@ -19,23 +26,12 @@ using OpenShock.ServicesCommon.Utils;
 using Redis.OM;
 using Redis.OM.Contracts;
 using Serilog;
-using ShockLink.API.Authentication;
-using ShockLink.API.ExceptionHandle;
-using ShockLink.API.Hubs;
-using ShockLink.API.Mailjet;
-using ShockLink.API.Realtime;
-using ShockLink.API.Serialization;
-using ShockLink.API.Utils;
-using ShockLink.Common;
-using ShockLink.Common.Models;
-using ShockLink.Common.Redis;
-using ShockLink.Common.ShockLinkDb;
 using StackExchange.Redis;
 using StackExchange.Redis.Extensions.Core.Configuration;
 using StackExchange.Redis.Extensions.Newtonsoft;
 using WebSocketOptions = Microsoft.AspNetCore.Builder.WebSocketOptions;
 
-namespace ShockLink.API;
+namespace OpenShock.API;
 
 public class Startup
 {

@@ -2,9 +2,9 @@
 using System.Net.WebSockets;
 using System.Text;
 using Microsoft.IO;
-using ShockLink.API.Serialization;
+using OpenShock.Common.Serialization;
 
-namespace ShockLink.API.Utils;
+namespace OpenShock.API.Utils;
 
 public static class WebSocketUtils
 {

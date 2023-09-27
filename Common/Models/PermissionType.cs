@@ -1,8 +1,9 @@
 ﻿using System.Security.Claims;
 using NpgsqlTypes;
+
 // ReSharper disable InconsistentNaming
 
-namespace ShockLink.Common.Models;
+namespace OpenShock.Common.Models;
 
 public enum PermissionType
 {

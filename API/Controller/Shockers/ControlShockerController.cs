@@ -1,14 +1,12 @@
 ﻿using Asp.Versioning;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.SignalR;
+using OpenShock.API.DeviceControl;
+using OpenShock.API.Hubs;
+using OpenShock.Common.Models;
 using OpenShock.ServicesCommon.Utils;
-using ShockLink.API.DeviceControl;
-using ShockLink.API.Hubs;
-using ShockLink.API.Models;
-using ShockLink.API.Utils;
-using ShockLink.Common.Models;
 
-namespace ShockLink.API.Controller.Shockers;
+namespace OpenShock.API.Controller.Shockers;
 
 public sealed partial class ShockerController
 {

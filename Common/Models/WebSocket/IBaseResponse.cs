@@ -1,4 +1,4 @@
-﻿namespace ShockLink.Common.Models.WebSocket;
+﻿namespace OpenShock.Common.Models.WebSocket;
 
 public interface IBaseResponse<T> where T : Enum
 {

@@ -1,12 +1,12 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using OpenShock.Common.Models;
+using OpenShock.Common.Redis;
+using OpenShock.ServicesCommon;
 using Redis.OM.Contracts;
 using Redis.OM.Searching;
-using ShockLink.API.Models;
-using ShockLink.Common.Models;
-using ShockLink.Common.Redis;
 
-namespace ShockLink.API.Controller.Public;
+namespace OpenShock.API.Controller.Public;
 
 [ApiController]
 [Route("/{version:apiVersion}/public/stats")]

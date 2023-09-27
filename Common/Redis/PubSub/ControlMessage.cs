@@ -1,7 +1,8 @@
-﻿using ShockLink.Common.Models;
+﻿using OpenShock.Common.Models;
+
 // ReSharper disable UnusedAutoPropertyAccessor.Global
 
-namespace ShockLink.Common.Redis.PubSub;
+namespace OpenShock.Common.Redis.PubSub;
 
 public class ControlMessage
 {

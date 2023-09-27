@@ -1,4 +1,4 @@
-﻿using ShockLink.Common.Models;
+﻿using OpenShock.Common.Models;
 
 // ReSharper disable UnusedAutoPropertyAccessor.Global
 

@@ -1,7 +1,6 @@
 ﻿using System.Net;
 using Microsoft.AspNetCore.Diagnostics;
-using ShockLink.API.ExceptionHandle;
-using ShockLink.Common;
+using OpenShock.Common;
 
 namespace OpenShock.ServicesCommon.ExceptionHandle;
 

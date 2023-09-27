@@ -1,7 +1,7 @@
 ﻿using System.ComponentModel.DataAnnotations;
-using ShockLink.Common.Models;
+using OpenShock.Common.Models;
 
-namespace ShockLink.API.Models.Requests;
+namespace OpenShock.API.Models.Requests;
 
 public class NewShocker
 {

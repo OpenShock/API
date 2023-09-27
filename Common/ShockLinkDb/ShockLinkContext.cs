@@ -1,8 +1,6 @@
-﻿using System;
-using System.Collections.Generic;
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 
-namespace ShockLink.Common.ShockLinkDb;
+namespace OpenShock.Common.ShockLinkDb;
 
 public partial class ShockLinkContext : DbContext
 {

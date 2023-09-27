@@ -1,6 +1,6 @@
-﻿using ShockLink.Common.Models;
+﻿using OpenShock.Common.Models;
 
-namespace ShockLink.API.DeviceControl;
+namespace OpenShock.API.DeviceControl;
 
 public class ControlShockerObj
 {

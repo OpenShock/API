@@ -1,15 +1,13 @@
 ﻿using System.Net;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using OpenShock.API.Models.Requests;
+using OpenShock.API.Models.Response;
+using OpenShock.Common.Models;
+using OpenShock.Common.ShockLinkDb;
 using OpenShock.ServicesCommon.Utils;
-using ShockLink.API.Models;
-using ShockLink.API.Models.Requests;
-using ShockLink.API.Models.Response;
-using ShockLink.API.Utils;
-using ShockLink.Common.Models;
-using ShockLink.Common.ShockLinkDb;
 
-namespace ShockLink.API.Controller.Shockers;
+namespace OpenShock.API.Controller.Shockers;
 
 public sealed partial class ShockerController
 {

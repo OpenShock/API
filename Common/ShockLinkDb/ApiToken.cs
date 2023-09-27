@@ -1,8 +1,6 @@
-﻿using System;
-using System.Collections.Generic;
-using ShockLink.Common.Models;
+﻿using OpenShock.Common.Models;
 
-namespace ShockLink.Common.ShockLinkDb;
+namespace OpenShock.Common.ShockLinkDb;
 
 public partial class ApiToken
 {

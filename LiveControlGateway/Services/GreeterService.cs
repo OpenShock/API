@@ -1,7 +1,7 @@
 using Grpc.Core;
 using LiveControlGateway;
 
-namespace LiveControlGateway.Services;
+namespace OpenShock.LiveControlGateway.Services;
 
 public class GreeterService : Greeter.GreeterBase
 {

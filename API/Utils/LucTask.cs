@@ -1,7 +1,7 @@
 ﻿using System.Runtime.CompilerServices;
-using ShockLink.Common;
+using OpenShock.Common;
 
-namespace ShockLink.API.Utils;
+namespace OpenShock.API.Utils;
 
 public static class LucTask
 {

@@ -1,6 +1,6 @@
 ﻿using System.ComponentModel.DataAnnotations;
 
-namespace ShockLink.API.Models.Response;
+namespace OpenShock.API.Models.Response;
 
 public class ShockerLimits
 {

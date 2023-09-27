@@ -1,6 +1,6 @@
 ﻿using System.Security.Cryptography;
 
-namespace ShockLink.API.Utils;
+namespace OpenShock.API.Utils;
 
 public static class SecurePasswordHasher
 {

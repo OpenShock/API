@@ -1,6 +1,6 @@
 ﻿using Microsoft.Extensions.Logging;
 
-namespace ShockLink.Common;
+namespace OpenShock.Common;
 
 public static class ApplicationLogging
 {

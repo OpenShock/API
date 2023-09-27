@@ -1,4 +1,4 @@
-﻿namespace ShockLink.API.Models.Requests;
+﻿namespace OpenShock.API.Models.Requests;
 
 public class ShareLinkCreate
 {

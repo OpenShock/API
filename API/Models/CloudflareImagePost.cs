@@ -1,6 +1,6 @@
 ﻿using Newtonsoft.Json;
 
-namespace ShockLink.API.Models;
+namespace OpenShock.API.Models;
 
 public class CloudflareImagePost
 {

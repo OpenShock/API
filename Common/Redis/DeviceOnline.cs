@@ -1,6 +1,6 @@
 ﻿using Redis.OM.Modeling;
 
-namespace ShockLink.Common.Redis;
+namespace OpenShock.Common.Redis;
 
 [Document(StorageType = StorageType.Json, IndexName = "device-online")]
 public class DeviceOnline

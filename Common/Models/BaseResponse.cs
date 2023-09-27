@@ -2,7 +2,7 @@
 
 // ReSharper disable UnusedAutoPropertyAccessor.Global
 
-namespace ShockLink.Common.Models;
+namespace OpenShock.Common.Models;
 
 public class BaseResponse<T>
 {
