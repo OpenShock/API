@@ -6,8 +6,8 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Options;
 using OpenShock.Common.Models;
+using OpenShock.Common.OpenShockDb;
 using OpenShock.Common.Redis;
-using OpenShock.Common.ShockLinkDb;
 using Redis.OM.Contracts;
 using Redis.OM.Searching;
 
@@ -21,13 +21,13 @@ public class LoginSessionAuthentication : AuthenticationHandler<LoginSessionAuth
 {
     private readonly IClientAuthService<LinkUser> _authService;
     private readonly IMemoryCache _memoryCache;
-    private readonly ShockLinkContext _db;
+    private readonly OpenShockContext _db;
     private readonly IRedisCollection<LoginSession> _userSessions;
     private string _failReason = "Internal server error";
 
     public LoginSessionAuthentication(IOptionsMonitor<LoginSessionAuthenticationSchemeOptions> options,
         ILoggerFactory logger, UrlEncoder encoder, ISystemClock clock, IClientAuthService<LinkUser> clientAuth,
-        IMemoryCache memoryCache, ShockLinkContext db, IRedisConnectionProvider provider)
+        IMemoryCache memoryCache, OpenShockContext db, IRedisConnectionProvider provider)
         : base(options, logger, encoder, clock)
     {
         _authService = clientAuth;

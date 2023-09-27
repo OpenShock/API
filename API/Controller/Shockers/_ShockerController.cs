@@ -1,6 +1,6 @@
 ﻿using Asp.Versioning;
 using Microsoft.AspNetCore.Mvc;
-using OpenShock.Common.ShockLinkDb;
+using OpenShock.Common.OpenShockDb;
 using OpenShock.ServicesCommon.Authentication;
 
 namespace OpenShock.API.Controller.Shockers;
@@ -11,9 +11,9 @@ namespace OpenShock.API.Controller.Shockers;
 [Route("/{version:apiVersion}/shockers")]
 public sealed partial class ShockerController : AuthenticatedSessionControllerBase
 {
-    private readonly ShockLinkContext _db;
+    private readonly OpenShockContext _db;
 
-    public ShockerController(ShockLinkContext db)
+    public ShockerController(OpenShockContext db)
     {
         _db = db;
     }

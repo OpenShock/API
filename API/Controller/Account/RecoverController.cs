@@ -5,7 +5,7 @@ using Microsoft.EntityFrameworkCore;
 using OpenShock.API.Mailjet;
 using OpenShock.API.Utils;
 using OpenShock.Common.Models;
-using OpenShock.Common.ShockLinkDb;
+using OpenShock.Common.OpenShockDb;
 using OpenShock.ServicesCommon;
 
 namespace OpenShock.API.Controller.Account;
@@ -15,11 +15,11 @@ namespace OpenShock.API.Controller.Account;
 [Route("/{version:apiVersion}/account/recover/{id:guid}/{secret}")]
 public class RecoverController : ShockLinkControllerBase
 {
-    private readonly ShockLinkContext _db;
+    private readonly OpenShockContext _db;
     private readonly ILogger<RecoverController> _logger;
     private readonly IMailjetClient _mailjetClient;
 
-    public RecoverController(ShockLinkContext db, ILogger<RecoverController> logger, IMailjetClient mailjetClient)
+    public RecoverController(OpenShockContext db, ILogger<RecoverController> logger, IMailjetClient mailjetClient)
     {
         _db = db;
         _logger = logger;

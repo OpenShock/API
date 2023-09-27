@@ -1,4 +1,4 @@
-﻿using OpenShock.Common.ShockLinkDb;
+﻿using OpenShock.Common.OpenShockDb;
 using OpenShock.ServicesCommon.Utils;
 
 namespace OpenShock.ServicesCommon.Authentication;

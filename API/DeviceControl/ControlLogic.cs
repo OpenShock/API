@@ -6,15 +6,15 @@ using OpenShock.API.Hubs;
 using OpenShock.API.Realtime;
 using OpenShock.Common.Models;
 using OpenShock.Common.Models.WebSocket.User;
+using OpenShock.Common.OpenShockDb;
 using OpenShock.Common.Redis.PubSub;
-using OpenShock.Common.ShockLinkDb;
 
 namespace OpenShock.API.DeviceControl;
 
 public static class ControlLogic
 {
 
-    public static async Task<OneOf<Success>> ControlByUser(IEnumerable<Control> shocks, ShockLinkContext db, ControlLogSender sender,
+    public static async Task<OneOf<Success>> ControlByUser(IEnumerable<Control> shocks, OpenShockContext db, ControlLogSender sender,
         IHubClients<IUserHub> hubClients)
     {
         var ownShockers = await db.Shockers.Where(x => x.DeviceNavigation.Owner == sender.Id).Select(x =>
@@ -55,7 +55,7 @@ public static class ControlLogic
         return await ControlInternal(shocks, db, sender, hubClients, ownShockers);
     }
 
-    public static async Task<OneOf<Success>> ControlShareLink(IEnumerable<Control> shocks, ShockLinkContext db,
+    public static async Task<OneOf<Success>> ControlShareLink(IEnumerable<Control> shocks, OpenShockContext db,
         ControlLogSender sender,
         IHubClients<IUserHub> hubClients, Guid shareLinkId)
     {
@@ -81,7 +81,7 @@ public static class ControlLogic
         return await ControlInternal(shocks, db, sender, hubClients, shareLinkShockers);
     }
     
-    private static async Task<OneOf<Success>> ControlInternal(IEnumerable<Control> shocks, ShockLinkContext db, ControlLogSender sender,
+    private static async Task<OneOf<Success>> ControlInternal(IEnumerable<Control> shocks, OpenShockContext db, ControlLogSender sender,
         IHubClients<IUserHub> hubClients, IReadOnlyCollection<ControlShockerObj> allowedShockers)
     {
         var finalMessages = new Dictionary<Guid, IList<ControlMessage.ShockerControlInfo>>();

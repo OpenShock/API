@@ -5,7 +5,7 @@ using OpenShock.API.Mailjet;
 using OpenShock.API.Mailjet.Mail;
 using OpenShock.API.Utils;
 using OpenShock.Common.Models;
-using OpenShock.Common.ShockLinkDb;
+using OpenShock.Common.OpenShockDb;
 using OpenShock.ServicesCommon;
 
 namespace OpenShock.API.Controller.Account;
@@ -15,11 +15,11 @@ namespace OpenShock.API.Controller.Account;
 [Route("/{version:apiVersion}/account/reset")]
 public class ResetController : ShockLinkControllerBase
 {
-    private readonly ShockLinkContext _db;
+    private readonly OpenShockContext _db;
     private readonly ILogger<ResetController> _logger;
     private readonly IMailjetClient _mailjetClient;
 
-    public ResetController(ILogger<ResetController> logger, ShockLinkContext db, IMailjetClient mailjetClient)
+    public ResetController(ILogger<ResetController> logger, OpenShockContext db, IMailjetClient mailjetClient)
     {
         _logger = logger;
         _db = db;

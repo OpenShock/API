@@ -1,6 +1,6 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc.Filters;
-using OpenShock.Common.ShockLinkDb;
+using OpenShock.Common.OpenShockDb;
 
 namespace OpenShock.ServicesCommon.Authentication;
 

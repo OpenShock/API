@@ -2,7 +2,7 @@
 using Microsoft.EntityFrameworkCore;
 using OpenShock.API.Models.Response;
 using OpenShock.Common.Models;
-using OpenShock.Common.ShockLinkDb;
+using OpenShock.Common.OpenShockDb;
 using OpenShock.ServicesCommon.Authentication;
 
 namespace OpenShock.API.Controller.Device;
@@ -11,9 +11,9 @@ namespace OpenShock.API.Controller.Device;
 [Route("/{version:apiVersion}/device/self")]
 public class DeviceSelfController : AuthenticatedDeviceControllerBase
 {
-    private readonly ShockLinkContext _db;
+    private readonly OpenShockContext _db;
     
-    public DeviceSelfController(ShockLinkContext db)
+    public DeviceSelfController(OpenShockContext db)
     {
         _db = db;
     }

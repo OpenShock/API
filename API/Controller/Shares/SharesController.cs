@@ -2,7 +2,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using OpenShock.Common.Models;
-using OpenShock.Common.ShockLinkDb;
+using OpenShock.Common.OpenShockDb;
 using OpenShock.ServicesCommon.Authentication;
 
 namespace OpenShock.API.Controller.Shares;
@@ -11,9 +11,9 @@ namespace OpenShock.API.Controller.Shares;
 [Route("/{version:apiVersion}/shares")]
 public class SharesController : AuthenticatedSessionControllerBase
 {
-    private readonly ShockLinkContext _db;
+    private readonly OpenShockContext _db;
 
-    public SharesController(ShockLinkContext db)
+    public SharesController(OpenShockContext db)
     {
         _db = db;
     }

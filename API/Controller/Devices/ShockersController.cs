@@ -3,7 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using OpenShock.API.Models.Response;
 using OpenShock.Common.Models;
-using OpenShock.Common.ShockLinkDb;
+using OpenShock.Common.OpenShockDb;
 using OpenShock.ServicesCommon.Authentication;
 
 namespace OpenShock.API.Controller.Devices;
@@ -12,9 +12,9 @@ namespace OpenShock.API.Controller.Devices;
 [Route("/{version:apiVersion}/devices")]
 public class ShockersController : AuthenticatedSessionControllerBase
 {
-    private readonly ShockLinkContext _db;
+    private readonly OpenShockContext _db;
     
-    public ShockersController(ShockLinkContext db)
+    public ShockersController(OpenShockContext db)
     {
         _db = db;
     }

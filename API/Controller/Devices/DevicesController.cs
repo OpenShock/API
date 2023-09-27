@@ -4,8 +4,8 @@ using Microsoft.EntityFrameworkCore;
 using OpenShock.API.Models.Requests;
 using OpenShock.API.Utils;
 using OpenShock.Common.Models;
+using OpenShock.Common.OpenShockDb;
 using OpenShock.Common.Redis;
-using OpenShock.Common.ShockLinkDb;
 using OpenShock.ServicesCommon.Authentication;
 using Redis.OM.Contracts;
 using Redis.OM.Searching;
@@ -16,10 +16,10 @@ namespace OpenShock.API.Controller.Devices;
 [Route("/{version:apiVersion}/devices")]
 public class DeviceController : AuthenticatedSessionControllerBase
 {
-    private readonly ShockLinkContext _db;
+    private readonly OpenShockContext _db;
     private readonly IRedisCollection<DevicePair> _devicePairs;
 
-    public DeviceController(ShockLinkContext db, IRedisConnectionProvider provider)
+    public DeviceController(OpenShockContext db, IRedisConnectionProvider provider)
     {
         _db = db;
         _devicePairs = provider.RedisCollection<DevicePair>();
@@ -109,7 +109,7 @@ public class DeviceController : AuthenticatedSessionControllerBase
     [HttpPost]
     public async Task<BaseResponse<Guid>> CreateDevice()
     {
-        var device = new Common.ShockLinkDb.Device
+        var device = new Common.OpenShockDb.Device
         {
             Id = Guid.NewGuid(),
             Owner = CurrentUser.DbUser.Id,

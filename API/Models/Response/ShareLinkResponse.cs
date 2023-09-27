@@ -1,4 +1,4 @@
-﻿using OpenShock.Common.ShockLinkDb;
+﻿using OpenShock.Common.OpenShockDb;
 
 namespace OpenShock.API.Models.Response;
 

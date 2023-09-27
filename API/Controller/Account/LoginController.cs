@@ -5,8 +5,8 @@ using Microsoft.EntityFrameworkCore;
 using OpenShock.API.Models.Requests;
 using OpenShock.API.Utils;
 using OpenShock.Common.Models;
+using OpenShock.Common.OpenShockDb;
 using OpenShock.Common.Redis;
-using OpenShock.Common.ShockLinkDb;
 using OpenShock.ServicesCommon;
 using Redis.OM.Contracts;
 using Redis.OM.Searching;
@@ -18,11 +18,11 @@ namespace OpenShock.API.Controller.Account;
 [Route("/{version:apiVersion}/account/login")]
 public class LoginController : ShockLinkControllerBase
 {
-    private readonly ShockLinkContext _db;
+    private readonly OpenShockContext _db;
     private readonly ILogger<LoginController> _logger;
     private readonly IRedisCollection<LoginSession> _loginSessions;
 
-    public LoginController(ShockLinkContext db, ILogger<LoginController> logger, IRedisConnectionProvider provider)
+    public LoginController(OpenShockContext db, ILogger<LoginController> logger, IRedisConnectionProvider provider)
     {
         _logger = logger;
         _loginSessions = provider.RedisCollection<LoginSession>(false);

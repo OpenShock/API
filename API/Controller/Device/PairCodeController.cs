@@ -3,8 +3,8 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using OpenShock.Common.Models;
+using OpenShock.Common.OpenShockDb;
 using OpenShock.Common.Redis;
-using OpenShock.Common.ShockLinkDb;
 using OpenShock.ServicesCommon;
 using Redis.OM;
 using Redis.OM.Contracts;
@@ -19,11 +19,11 @@ namespace OpenShock.API.Controller.Device;
 public class PairCodeController : ShockLinkControllerBase
 {
     private readonly IRedisCollection<DevicePair> _devicePairs;
-    private readonly ShockLinkContext _shockLinkContext;
+    private readonly OpenShockContext _openShockContext;
 
-    public PairCodeController(IRedisConnectionProvider provider, ShockLinkContext shockLinkContext)
+    public PairCodeController(IRedisConnectionProvider provider, OpenShockContext openShockContext)
     {
-        _shockLinkContext = shockLinkContext;
+        _openShockContext = openShockContext;
         _devicePairs = provider.RedisCollection<DevicePair>();
     }
 
@@ -34,7 +34,7 @@ public class PairCodeController : ShockLinkControllerBase
         if (pair == null) return EBaseResponse<string>("No such pair code exists", HttpStatusCode.NotFound);
         await _devicePairs.DeleteAsync(pair);
         
-        var device = await _shockLinkContext.Devices.SingleOrDefaultAsync(x => x.Id == pair.Id);
+        var device = await _openShockContext.Devices.SingleOrDefaultAsync(x => x.Id == pair.Id);
         if (device == null) return EBaseResponse<string>("No such device exists for the pair code", HttpStatusCode.InternalServerError);
 
         return new BaseResponse<string>

@@ -16,9 +16,9 @@ using OpenShock.API.Realtime;
 using OpenShock.API.Utils;
 using OpenShock.Common;
 using OpenShock.Common.Models;
+using OpenShock.Common.OpenShockDb;
 using OpenShock.Common.Redis;
 using OpenShock.Common.Serialization;
-using OpenShock.Common.ShockLinkDb;
 using OpenShock.ServicesCommon;
 using OpenShock.ServicesCommon.Authentication;
 using OpenShock.ServicesCommon.ExceptionHandle;
@@ -65,7 +65,7 @@ public class Startup
         NpgsqlConnection.GlobalTypeMapper.MapEnum<ShockerModelType>();
         NpgsqlConnection.GlobalTypeMapper.MapEnum<RankType>();
 #pragma warning restore CS0618
-        services.AddDbContextPool<ShockLinkContext>(builder =>
+        services.AddDbContextPool<OpenShockContext>(builder =>
         {
             builder.UseNpgsql(APIGlobals.ApiConfig.Db);
             builder.EnableSensitiveDataLogging();

@@ -61,7 +61,7 @@
 
     <Target Name="SetHash" AfterTargets="InitializeSourceControlInformation">
         <ItemGroup>
-            <AssemblyAttribute Include="ShockLink.API.Utils.GitHashAttribute">
+            <AssemblyAttribute Include="OpenShock.API.Utils.GitHashAttribute">
                 <_Parameter1>$(SourceRevisionId)</_Parameter1>
             </AssemblyAttribute>
         </ItemGroup>

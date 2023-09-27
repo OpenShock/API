@@ -5,9 +5,9 @@ using OpenShock.API.DeviceControl;
 using OpenShock.API.Models.WebSocket;
 using OpenShock.API.Realtime;
 using OpenShock.Common.Models;
+using OpenShock.Common.OpenShockDb;
 using OpenShock.Common.Redis;
 using OpenShock.Common.Redis.PubSub;
-using OpenShock.Common.ShockLinkDb;
 using OpenShock.ServicesCommon.Authentication;
 using OpenShock.ServicesCommon.Utils;
 using Redis.OM;
@@ -19,10 +19,10 @@ namespace OpenShock.API.Hubs;
 public class UserHub : Hub<IUserHub>
 {
     private readonly ILogger<UserHub> _logger;
-    private readonly ShockLinkContext _db;
+    private readonly OpenShockContext _db;
     private readonly IRedisConnectionProvider _provider;
 
-    public UserHub(ILogger<UserHub> logger, ShockLinkContext db, IRedisConnectionProvider provider)
+    public UserHub(ILogger<UserHub> logger, OpenShockContext db, IRedisConnectionProvider provider)
     {
         _logger = logger;
         _db = db;
@@ -100,5 +100,5 @@ public class UserHub : Hub<IUserHub>
 
     private Guid UserId => _userId ??= Guid.Parse(Context.UserIdentifier!);
     private Guid? _userId;
-    private static Task<User> GetUser(Guid userId, ShockLinkContext db) => db.Users.SingleAsync(x => x.Id == userId);
+    private static Task<User> GetUser(Guid userId, OpenShockContext db) => db.Users.SingleAsync(x => x.Id == userId);
 }

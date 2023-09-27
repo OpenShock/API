@@ -1,6 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using OpenShock.Common.Models;
-using OpenShock.Common.ShockLinkDb;
+using OpenShock.Common.OpenShockDb;
 using OpenShock.ServicesCommon.Authentication;
 
 namespace OpenShock.API.Controller.Users;
@@ -9,10 +9,10 @@ namespace OpenShock.API.Controller.Users;
 [Route("/{version:apiVersion}/users/self")]
 public sealed class SelfController : AuthenticatedSessionControllerBase
 {
-    private readonly ShockLinkContext _db;
+    private readonly OpenShockContext _db;
     private readonly ILogger<SelfController> _logger;
 
-    public SelfController(ShockLinkContext db, ILogger<SelfController> logger)
+    public SelfController(OpenShockContext db, ILogger<SelfController> logger)
     {
         _db = db;
         _logger = logger;

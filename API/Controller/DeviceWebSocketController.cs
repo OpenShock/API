@@ -21,11 +21,11 @@ public class DeviceWebSocketController : WebsocketControllerBase<ResponseType>
     private readonly IRedisCollection<DeviceOnline> _devicesOnline;
     private readonly IRedisConnectionProvider _redis;
 
-    private Common.ShockLinkDb.Device _currentDevice = null!;
+    private Common.OpenShockDb.Device _currentDevice = null!;
 
     public override void OnActionExecuting(ActionExecutingContext context)
     {
-        _currentDevice = ControllerContext.HttpContext.RequestServices.GetRequiredService<IClientAuthService<Common.ShockLinkDb.Device>>()
+        _currentDevice = ControllerContext.HttpContext.RequestServices.GetRequiredService<IClientAuthService<Common.OpenShockDb.Device>>()
             .CurrentClient;
         base.OnActionExecuting(context);
     }

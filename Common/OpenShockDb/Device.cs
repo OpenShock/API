@@ -1,4 +1,4 @@
-﻿namespace OpenShock.Common.ShockLinkDb;
+﻿namespace OpenShock.Common.OpenShockDb;
 
 public partial class Device
 {

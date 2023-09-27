@@ -5,7 +5,7 @@ using Npgsql;
 using OpenShock.API.Models.Requests;
 using OpenShock.API.Utils;
 using OpenShock.Common.Models;
-using OpenShock.Common.ShockLinkDb;
+using OpenShock.Common.OpenShockDb;
 using OpenShock.ServicesCommon;
 
 namespace OpenShock.API.Controller.Account;
@@ -15,9 +15,9 @@ namespace OpenShock.API.Controller.Account;
 [Route("/{version:apiVersion}/account/signup")]
 public class SignupController : ShockLinkControllerBase
 {
-    private readonly ShockLinkContext _db;
+    private readonly OpenShockContext _db;
     
-    public SignupController(ShockLinkContext db)
+    public SignupController(OpenShockContext db)
     {
         _db = db;
     }

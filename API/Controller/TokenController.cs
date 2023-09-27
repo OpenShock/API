@@ -4,7 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using OpenShock.API.Models.Response;
 using OpenShock.API.Utils;
 using OpenShock.Common.Models;
-using OpenShock.Common.ShockLinkDb;
+using OpenShock.Common.OpenShockDb;
 using OpenShock.ServicesCommon.Authentication;
 
 namespace OpenShock.API.Controller;
@@ -13,9 +13,9 @@ namespace OpenShock.API.Controller;
 [Route("/{version:apiVersion}/tokens")]
 public class TokenController : AuthenticatedSessionControllerBase
 {
-    private readonly ShockLinkContext _db;
+    private readonly OpenShockContext _db;
     
-    public TokenController(ShockLinkContext db)
+    public TokenController(OpenShockContext db)
     {
         _db = db;
     }

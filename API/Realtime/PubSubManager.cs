@@ -7,9 +7,9 @@ using OpenShock.API.Utils;
 using OpenShock.Common;
 using OpenShock.Common.Models.WebSocket;
 using OpenShock.Common.Models.WebSocket.Device;
+using OpenShock.Common.OpenShockDb;
 using OpenShock.Common.Redis;
 using OpenShock.Common.Redis.PubSub;
-using OpenShock.Common.ShockLinkDb;
 using Redis.OM.Contracts;
 using Redis.OM.Searching;
 using StackExchange.Redis;
@@ -108,7 +108,7 @@ public static class PubSubManager
         var msg = message.ToString().Split(':');
         if (msg.Length < 2) return;
         await using var scope = _serviceProvider.CreateAsyncScope();
-        var db = scope.ServiceProvider.GetRequiredService<ShockLinkContext>();
+        var db = scope.ServiceProvider.GetRequiredService<OpenShockContext>();
         var userHub = scope.ServiceProvider.GetRequiredService<IHubContext<UserHub, IUserHub>>();
         if (!Guid.TryParse(msg[1], out var id)) return;
         switch (msg[0])

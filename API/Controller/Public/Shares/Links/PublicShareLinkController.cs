@@ -4,7 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using OpenShock.API.Models.Response;
 using OpenShock.API.Utils;
 using OpenShock.Common.Models;
-using OpenShock.Common.ShockLinkDb;
+using OpenShock.Common.OpenShockDb;
 using OpenShock.ServicesCommon;
 using OpenShock.ServicesCommon.Utils;
 
@@ -15,9 +15,9 @@ namespace OpenShock.API.Controller.Public.Shares.Links;
 [AllowAnonymous]
 public class PublicShareLinkController : ShockLinkControllerBase
 {
-    private readonly ShockLinkContext _db;
+    private readonly OpenShockContext _db;
 
-    public PublicShareLinkController(ShockLinkContext db)
+    public PublicShareLinkController(OpenShockContext db)
     {
         _db = db;
     }

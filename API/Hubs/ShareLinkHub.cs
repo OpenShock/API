@@ -2,8 +2,8 @@
 using Microsoft.EntityFrameworkCore;
 using OpenShock.API.DeviceControl;
 using OpenShock.Common.Models;
+using OpenShock.Common.OpenShockDb;
 using OpenShock.Common.Redis;
-using OpenShock.Common.ShockLinkDb;
 using OpenShock.ServicesCommon.Utils;
 using Redis.OM.Contracts;
 using Redis.OM.Searching;
@@ -13,11 +13,11 @@ namespace OpenShock.API.Hubs;
 public sealed class ShareLinkHub : Hub<IShareLinkHub>
 {
     private readonly IRedisCollection<LoginSession> _userSessions;
-    private readonly ShockLinkContext _db;
+    private readonly OpenShockContext _db;
     private readonly IHubContext<UserHub, IUserHub> _userHub;
     private readonly ILogger<ShareLinkHub> _logger;
 
-    public ShareLinkHub(ShockLinkContext db, IHubContext<UserHub, IUserHub> userHub, ILogger<ShareLinkHub> logger,
+    public ShareLinkHub(OpenShockContext db, IHubContext<UserHub, IUserHub> userHub, ILogger<ShareLinkHub> logger,
         IRedisConnectionProvider provider)
     {
         _db = db;

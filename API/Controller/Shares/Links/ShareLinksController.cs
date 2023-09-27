@@ -5,7 +5,7 @@ using OpenShock.API.Models.Requests;
 using OpenShock.API.Models.Response;
 using OpenShock.API.Utils;
 using OpenShock.Common.Models;
-using OpenShock.Common.ShockLinkDb;
+using OpenShock.Common.OpenShockDb;
 using OpenShock.ServicesCommon.Authentication;
 
 namespace OpenShock.API.Controller.Shares.Links;
@@ -14,9 +14,9 @@ namespace OpenShock.API.Controller.Shares.Links;
 [Route("/{version:apiVersion}/shares/links")]
 public class ShareLinksController : AuthenticatedSessionControllerBase
 {
-    private readonly ShockLinkContext _db;
+    private readonly OpenShockContext _db;
 
-    public ShareLinksController(ShockLinkContext db)
+    public ShareLinksController(OpenShockContext db)
     {
         _db = db;
     }

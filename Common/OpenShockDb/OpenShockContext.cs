@@ -1,14 +1,14 @@
 ﻿using Microsoft.EntityFrameworkCore;
 
-namespace OpenShock.Common.ShockLinkDb;
+namespace OpenShock.Common.OpenShockDb;
 
-public partial class ShockLinkContext : DbContext
+public partial class OpenShockContext : DbContext
 {
-    public ShockLinkContext()
+    public OpenShockContext()
     {
     }
 
-    public ShockLinkContext(DbContextOptions<ShockLinkContext> options)
+    public OpenShockContext(DbContextOptions<OpenShockContext> options)
         : base(options)
     {
     }
