@@ -9,4 +9,4 @@ RUN dotnet publish "API.csproj" -c Release -o /app/publish
 FROM mcr.microsoft.com/dotnet/aspnet:7.0-alpine
 WORKDIR /app
 COPY --from=build /app/publish .
-ENTRYPOINT ["dotnet", "ShockLink.API.dll"]
+ENTRYPOINT ["dotnet", "OpenShock.API.dll"]
