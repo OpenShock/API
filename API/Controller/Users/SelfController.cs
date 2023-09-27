@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using ShockLink.API.Authentication;
 using ShockLink.API.Models;
+using ShockLink.Common.Models;
 using ShockLink.Common.ShockLinkDb;
 
 namespace ShockLink.API.Controller.Users;

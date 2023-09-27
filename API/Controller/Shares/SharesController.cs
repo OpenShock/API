@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using ShockLink.API.Authentication;
 using ShockLink.API.Models;
+using ShockLink.Common.Models;
 using ShockLink.Common.ShockLinkDb;
 
 namespace ShockLink.API.Controller.Shares;

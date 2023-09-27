@@ -1,5 +1,5 @@
 ﻿using System.ComponentModel.DataAnnotations;
-using ShockLink.API.DataAnnotations;
+using OpenShock.ServicesCommon.DataAnnotations;
 
 namespace ShockLink.API.Models.Requests;
 

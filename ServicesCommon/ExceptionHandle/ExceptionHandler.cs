@@ -1,9 +1,9 @@
 ﻿using System.Net;
 using Microsoft.AspNetCore.Diagnostics;
-using ShockLink.API.Utils;
+using ShockLink.API.ExceptionHandle;
 using ShockLink.Common;
 
-namespace ShockLink.API.ExceptionHandle;
+namespace OpenShock.ServicesCommon.ExceptionHandle;
 
 public static class ExceptionHandler
 {

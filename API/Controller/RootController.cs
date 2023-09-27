@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using ShockLink.API.Models;
 using ShockLink.API.Utils;
+using ShockLink.Common.Models;
 
 namespace ShockLink.API.Controller;
 

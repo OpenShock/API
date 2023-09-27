@@ -3,15 +3,12 @@ using System.Security.Claims;
 using System.Text.Encodings.Web;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Options;
-using Redis.OM.Contracts;
-using Redis.OM.Searching;
-using ShockLink.API.Models;
-using ShockLink.Common.Redis;
+using ShockLink.API.Authentication;
+using ShockLink.Common.Models;
 using ShockLink.Common.ShockLinkDb;
 
-namespace ShockLink.API.Authentication;
+namespace OpenShock.ServicesCommon.Authentication;
 
 public class DeviceAuthenticationSchemeOptions : AuthenticationSchemeOptions
 {

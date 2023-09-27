@@ -1,17 +1,18 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc.Filters;
+using ShockLink.API.Authentication;
 using ShockLink.API.Controller;
 
-namespace ShockLink.API.Authentication;
+namespace OpenShock.ServicesCommon.Authentication;
 
 [Authorize(AuthenticationSchemes = ShockLinkAuthSchemas.DeviceToken)]
 public class AuthenticatedDeviceControllerBase : ShockLinkControllerBase
 {
-    public Common.ShockLinkDb.Device CurrentDevice = null!;
+    public ShockLink.Common.ShockLinkDb.Device CurrentDevice = null!;
 
     public override void OnActionExecuting(ActionExecutingContext context)
     {
-        CurrentDevice = ControllerContext.HttpContext.RequestServices.GetRequiredService<IClientAuthService<Common.ShockLinkDb.Device>>().CurrentClient;
+        CurrentDevice = ControllerContext.HttpContext.RequestServices.GetRequiredService<IClientAuthService<ShockLink.Common.ShockLinkDb.Device>>().CurrentClient;
         base.OnActionExecuting(context);
     }
 }

@@ -68,6 +68,7 @@
     <ItemGroup>
         <ProjectReference Include="..\Common\Common.csproj" />
         <None Include="devcert.pfx" CopyToPublishDirectory="Always" />
+        <ProjectReference Include="..\ServicesCommon\ServicesCommon.csproj" />
     </ItemGroup>
 
 </Project>

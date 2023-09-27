@@ -1,6 +1,7 @@
 ﻿using Asp.Versioning;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.SignalR;
+using OpenShock.ServicesCommon.Utils;
 using ShockLink.API.DeviceControl;
 using ShockLink.API.Hubs;
 using ShockLink.API.Models;

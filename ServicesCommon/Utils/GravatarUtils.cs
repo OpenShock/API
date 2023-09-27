@@ -1,7 +1,7 @@
 ﻿using System.Security.Cryptography;
 using System.Text;
 
-namespace ShockLink.API.Utils;
+namespace OpenShock.ServicesCommon.Utils;
 
 public static class GravatarUtils
 {

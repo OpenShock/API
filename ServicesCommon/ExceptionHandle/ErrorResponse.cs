@@ -1,8 +1,8 @@
-﻿using ShockLink.API.Models;
+﻿using ShockLink.Common.Models;
 
 // ReSharper disable UnusedAutoPropertyAccessor.Global
 
-namespace ShockLink.API.ExceptionHandle;
+namespace OpenShock.ServicesCommon.ExceptionHandle;
 
 public class ErrorResponse : BaseResponse<object>
 {

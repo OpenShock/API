@@ -5,6 +5,7 @@ using ShockLink.API.Mailjet;
 using ShockLink.API.Mailjet.Mail;
 using ShockLink.API.Models;
 using ShockLink.API.Utils;
+using ShockLink.Common.Models;
 using ShockLink.Common.ShockLinkDb;
 
 namespace ShockLink.API.Controller.Account;

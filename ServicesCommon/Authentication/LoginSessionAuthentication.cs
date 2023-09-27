@@ -7,7 +7,6 @@ using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Options;
 using Redis.OM.Contracts;
 using Redis.OM.Searching;
-using ShockLink.API.Models;
 using ShockLink.Common.Models;
 using ShockLink.Common.Redis;
 using ShockLink.Common.ShockLinkDb;

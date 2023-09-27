@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using ShockLink.API.Models;
+using ShockLink.Common.Models;
 
 namespace ShockLink.API.Controller.Shockers;
 

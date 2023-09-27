@@ -7,6 +7,7 @@ using ShockLink.API.Authentication;
 using ShockLink.API.Models;
 using ShockLink.API.Models.Requests;
 using ShockLink.API.Utils;
+using ShockLink.Common.Models;
 using ShockLink.Common.Redis;
 using ShockLink.Common.ShockLinkDb;
 

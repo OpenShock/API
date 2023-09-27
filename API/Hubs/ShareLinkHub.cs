@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
+using OpenShock.ServicesCommon.Utils;
 using Redis.OM.Contracts;
 using Redis.OM.Searching;
 using ShockLink.API.Authentication;

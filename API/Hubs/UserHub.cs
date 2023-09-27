@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
+using OpenShock.ServicesCommon.Utils;
 using Redis.OM.Contracts;
 using ShockLink.API.Authentication;
 using ShockLink.API.Models.WebSocket;

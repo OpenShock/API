@@ -1,10 +1,9 @@
 ﻿using System.Net;
 using System.Net.Http.Headers;
 using System.Text;
-using System.Text.Json;
-using System.Text.Json.Serialization;
 using Asp.Versioning;
 using Asp.Versioning.ApiExplorer;
+using LiveControlGateway.Services;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Http.Connections;
 using Microsoft.AspNetCore.HttpOverrides;
@@ -20,22 +19,15 @@ using Redis.OM;
 using Redis.OM.Contracts;
 using Serilog;
 using ShockLink.API.Authentication;
-using ShockLink.API.ExceptionHandle;
-using ShockLink.API.Hubs;
-using ShockLink.API.Mailjet;
-using ShockLink.API.Realtime;
 using ShockLink.API.Serialization;
-using ShockLink.API.Utils;
 using ShockLink.Common;
 using ShockLink.Common.Models;
 using ShockLink.Common.Redis;
 using ShockLink.Common.ShockLinkDb;
 using StackExchange.Redis;
-using StackExchange.Redis.Extensions.Core.Configuration;
-using StackExchange.Redis.Extensions.Newtonsoft;
 using WebSocketOptions = Microsoft.AspNetCore.Builder.WebSocketOptions;
 
-namespace ShockLink.API;
+namespace ShockLink.LiveControlGateway;
 
 public class Startup
 {
@@ -51,7 +43,7 @@ public class Startup
 
     public Startup(IConfiguration configuration)
     {
-        APIGlobals.ApiConfig = configuration.GetChildren().First(x => x.Key == "ShockLink").Get<ApiConfig>() ??
+        LCGGlobals.LCGConfig = configuration.GetChildren().First(x => x.Key == "ShockLink").Get<LCGConfig>() ??
                                throw new Exception("Couldnt bind config, check config file");
 #if DEBUG
         var root = (IConfigurationRoot)configuration;
@@ -71,7 +63,7 @@ public class Startup
 #pragma warning restore CS0618
         services.AddDbContextPool<ShockLinkContext>(builder =>
         {
-            builder.UseNpgsql(APIGlobals.ApiConfig.Db);
+            builder.UseNpgsql(LCGGlobals.LCGConfig.Db);
             builder.EnableSensitiveDataLogging();
             builder.EnableDetailedErrors();
         });
@@ -79,31 +71,33 @@ public class Startup
         _redisConfig = new ConfigurationOptions
         {
             AbortOnConnectFail = true,
-            Password = APIGlobals.ApiConfig.Redis.Password,
-            User = APIGlobals.ApiConfig.Redis.User,
+            Password = LCGGlobals.LCGConfig.Redis.Password,
+            User = LCGGlobals.LCGConfig.Redis.User,
             Ssl = false,
             EndPoints = new EndPointCollection
             {
-                { APIGlobals.ApiConfig.Redis.Host, APIGlobals.ApiConfig.Redis.Port }
+                { LCGGlobals.LCGConfig.Redis.Host, LCGGlobals.LCGConfig.Redis.Port }
             }
         };
 
-        var redisConf = new RedisConfiguration
-        {
-            AbortOnConnectFail = true,
-            Hosts = new[]
-            {
-                new RedisHost
-                {
-                    Host = APIGlobals.ApiConfig.Redis.Host,
-                    Port = APIGlobals.ApiConfig.Redis.Port
-                }
-            },
-            Database = 0,
-            User = APIGlobals.ApiConfig.Redis.User,
-            Password = APIGlobals.ApiConfig.Redis.Password
-        };
+        // var redisConf = new RedisConfiguration
+        // {
+        //     AbortOnConnectFail = true,
+        //     Hosts = new[]
+        //     {
+        //         new RedisHost
+        //         {
+        //             Host = APIGlobals.ApiConfig.Redis.Host,
+        //             Port = APIGlobals.ApiConfig.Redis.Port
+        //         }
+        //     },
+        //     Database = 0,
+        //     User = APIGlobals.ApiConfig.Redis.User,
+        //     Password = APIGlobals.ApiConfig.Redis.Password
+        // };
 
+        services.AddGrpc();
+        
         var redis = new RedisConnectionProvider(_redisConfig);
         redis.Connection.CreateIndex(typeof(LoginSession));
         redis.Connection.CreateIndex(typeof(DeviceOnline));
@@ -111,22 +105,13 @@ public class Startup
         services.AddSingleton<IRedisConnectionProvider>(redis);
 
         // TODO: Is this needed?
-        services.AddStackExchangeRedisExtensions<NewtonsoftSerializer>(redisConf);
+        //services.AddStackExchangeRedisExtensions<NewtonsoftSerializer>(redisConf);
 
         services.AddMemoryCache();
         services.AddHttpContextAccessor();
 
         services.AddScoped<IClientAuthService<LinkUser>, ClientAuthService<LinkUser>>();
         services.AddScoped<IClientAuthService<Device>, ClientAuthService<Device>>();
-
-        services.AddHttpClient<IMailjetClient, MailjetClient>(client =>
-        {
-            client.BaseAddress = new Uri("https://api.mailjet.com/v3.1/");
-            client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Basic",
-                Convert.ToBase64String(
-                    Encoding.UTF8.GetBytes(
-                        $"{APIGlobals.ApiConfig.Mailjet.Key}:{APIGlobals.ApiConfig.Mailjet.Secret}")));
-        });
 
         services.AddWebEncoders();
         services.TryAddSingleton<ISystemClock, SystemClock>();
@@ -150,7 +135,7 @@ public class Startup
             });
         });
         services.AddSignalR()
-            .AddShockLinkStackExchangeRedis(options => { options.Configuration = _redisConfig; })
+            .AddStackExchangeRedis(options => { options.Configuration = _redisConfig; })
             .AddJsonProtocol(options => { options.PayloadSerializerOptions.PropertyNameCaseInsensitive = true; });
 
         var apiVersioningBuilder = services.AddApiVersioning(options =>
@@ -231,7 +216,7 @@ public class Startup
         // global cors policy
         app.UseCors();
 
-        PubSubManager.Initialize(ConnectionMultiplexer.Connect(_redisConfig), app.ApplicationServices);
+        //PubSubManager.Initialize(ConnectionMultiplexer.Connect(_redisConfig), app.ApplicationServices);
 
         var webSocketOptions = new WebSocketOptions
         {
@@ -260,10 +245,11 @@ public class Startup
                     ResponseWriter = UiResponseWriter.WriteHealthCheckUiResponse
                 });*/
             endpoints.MapControllers();
-            endpoints.MapHub<UserHub>("/1/hubs/user",
-                options => { options.Transports = HttpTransportType.WebSockets; });
-            endpoints.MapHub<ShareLinkHub>("/1/hubs/share/link/{id}",
-                options => { options.Transports = HttpTransportType.WebSockets; });
+            endpoints.MapGrpcService<GreeterService>();
+            // endpoints.MapHub<UserHub>("/1/hubs/user",
+            //     options => { options.Transports = HttpTransportType.WebSockets; });
+            // endpoints.MapHub<ShareLinkHub>("/1/hubs/share/link/{id}",
+            //     options => { options.Transports = HttpTransportType.WebSockets; });
         });
 
         // LucTask.Run(async () =>

@@ -1,4 +1,4 @@
-﻿namespace ShockLink.API.Validation;
+﻿namespace OpenShock.ServicesCommon.Validation;
 
 public static class UsernameValidator
 {

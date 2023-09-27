@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using Redis.OM.Contracts;
 using Redis.OM.Searching;
 using ShockLink.API.Models;
+using ShockLink.Common.Models;
 using ShockLink.Common.Redis;
 
 namespace ShockLink.API.Controller.Public;

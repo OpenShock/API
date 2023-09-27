@@ -1,8 +1,10 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using OpenShock.ServicesCommon.Authentication;
 using ShockLink.API.Authentication;
 using ShockLink.API.Models;
 using ShockLink.API.Models.Response;
+using ShockLink.Common.Models;
 using ShockLink.Common.ShockLinkDb;
 
 namespace ShockLink.API.Controller.Device;

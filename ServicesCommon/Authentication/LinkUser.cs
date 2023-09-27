@@ -1,4 +1,4 @@
-﻿using ShockLink.API.Utils;
+﻿using OpenShock.ServicesCommon.Utils;
 using ShockLink.Common.ShockLinkDb;
 
 namespace ShockLink.API.Authentication;

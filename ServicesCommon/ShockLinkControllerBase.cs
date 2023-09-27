@@ -1,8 +1,8 @@
 ﻿using System.Net;
 using System.Net.Mime;
 using Microsoft.AspNetCore.Mvc;
-using ShockLink.API.Models;
 using ShockLink.API.Serialization;
+using ShockLink.Common.Models;
 
 namespace ShockLink.API.Controller;
 
