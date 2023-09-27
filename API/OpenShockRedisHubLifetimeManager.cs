@@ -12,21 +12,21 @@ namespace OpenShock.API;
 /// Use #local in front of user id's to target only locally connected clients.
 /// </summary>
 /// <typeparam name="THub"></typeparam>
-public class ShockLinkRedisHubLifetimeManager<THub> : RedisHubLifetimeManager<THub> where THub : Hub
+public class OpenShockRedisHubLifetimeManager<THub> : RedisHubLifetimeManager<THub> where THub : Hub
 {
     private readonly FieldInfo _usersField;
     private readonly FieldInfo _subscriptionsField;
     private readonly string _redisPrefix = typeof(THub).FullName!;
     
     /// <summary>
-    /// Constructs the <see cref="ShockLinkRedisHubLifetimeManager{THub}"/> with types from Dependency Injection.
+    /// Constructs the <see cref="OpenShockRedisHubLifetimeManager{THub}"/> with types from Dependency Injection.
     /// </summary>
     /// <param name="logger">The logger to write information about what the class is doing.</param>
     /// <param name="options">The <see cref="RedisOptions"/> that influence behavior of the Redis connection.</param>
     /// <param name="hubProtocolResolver">The <see cref="IHubProtocolResolver"/> to get an <see cref="IHubProtocol"/> instance when writing to connections.</param>
     /// <param name="globalHubOptions">The global <see cref="HubOptions"/>.</param>
     /// <param name="hubOptions">The <typeparamref name="THub"/> specific options.</param>
-    public ShockLinkRedisHubLifetimeManager(ILogger<ShockLinkRedisHubLifetimeManager<THub>> logger,
+    public OpenShockRedisHubLifetimeManager(ILogger<OpenShockRedisHubLifetimeManager<THub>> logger,
         IOptions<RedisOptions> options, IHubProtocolResolver hubProtocolResolver,
         IOptions<HubOptions>? globalHubOptions,
         IOptions<HubOptions<THub>>? hubOptions) : base(logger, options, hubProtocolResolver, globalHubOptions,

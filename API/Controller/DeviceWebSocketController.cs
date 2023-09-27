@@ -14,7 +14,7 @@ using Redis.OM.Searching;
 namespace OpenShock.API.Controller;
 
 [ApiController]
-[Authorize(AuthenticationSchemes = ShockLinkAuthSchemas.DeviceToken)]
+[Authorize(AuthenticationSchemes = OpenShockAuthSchemas.DeviceToken)]
 [Route("/{version:apiVersion}/ws/device")]
 public class DeviceWebSocketController : WebsocketControllerBase<ResponseType>
 {
@@ -145,7 +145,7 @@ public class DeviceWebSocketController : WebsocketControllerBase<ResponseType>
         }
 
         await _redis.Connection.ExecuteAsync("EXPIRE",
-            $"ShockLink.Common.Redis.DeviceOnline:{_currentDevice.Id}", "65");
+            $"OpenShock.Common.Redis.DeviceOnline:{_currentDevice.Id}", "65");
     }
 
     private Version? FirmwareVersion { get; set; }

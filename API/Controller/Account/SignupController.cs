@@ -13,7 +13,7 @@ namespace OpenShock.API.Controller.Account;
 [ApiController]
 [AllowAnonymous]
 [Route("/{version:apiVersion}/account/signup")]
-public class SignupController : ShockLinkControllerBase
+public class SignupController : OpenShockControllerBase
 {
     private readonly OpenShockContext _db;
     

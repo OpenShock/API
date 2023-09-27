@@ -47,7 +47,7 @@ public class Startup
 
     public Startup(IConfiguration configuration)
     {
-        APIGlobals.ApiConfig = configuration.GetChildren().First(x => x.Key == "ShockLink").Get<ApiConfig>() ??
+        APIGlobals.ApiConfig = configuration.GetChildren().First(x => x.Key == "OpenShock").Get<ApiConfig>() ??
                                throw new Exception("Couldnt bind config, check config file");
 #if DEBUG
         var root = (IConfigurationRoot)configuration;
@@ -128,9 +128,9 @@ public class Startup
         services.TryAddSingleton<ISystemClock, SystemClock>();
         new AuthenticationBuilder(services)
             .AddScheme<LoginSessionAuthenticationSchemeOptions, LoginSessionAuthentication>(
-                ShockLinkAuthSchemas.SessionTokenCombo, _ => { })
+                OpenShockAuthSchemas.SessionTokenCombo, _ => { })
             .AddScheme<DeviceAuthenticationSchemeOptions, DeviceAuthentication>(
-                ShockLinkAuthSchemas.DeviceToken, _ => { });
+                OpenShockAuthSchemas.DeviceToken, _ => { });
         services.AddAuthenticationCore();
         services.AddAuthorization();
 
@@ -146,7 +146,7 @@ public class Startup
             });
         });
         services.AddSignalR()
-            .AddShockLinkStackExchangeRedis(options => { options.Configuration = _redisConfig; })
+            .AddOpenShockStackExchangeRedis(options => { options.Configuration = _redisConfig; })
             .AddJsonProtocol(options => { options.PayloadSerializerOptions.PropertyNameCaseInsensitive = true; });
 
         var apiVersioningBuilder = services.AddApiVersioning(options =>
@@ -174,10 +174,10 @@ public class Startup
                 options.SchemaFilter<AttributeFilter>();
                 options.ParameterFilter<AttributeFilter>();
                 options.OperationFilter<AttributeFilter>();
-                options.IncludeXmlComments(Path.Combine(AppContext.BaseDirectory, "ShockLink.API.xml"));
-                options.AddSecurityDefinition("ShockLinkToken", new OpenApiSecurityScheme
+                options.IncludeXmlComments(Path.Combine(AppContext.BaseDirectory, "OpenShock.API.xml"));
+                options.AddSecurityDefinition("OpenShockToken", new OpenApiSecurityScheme
                 {
-                    Name = "ShockLinkToken",
+                    Name = "OpenShockToken",
                     Type = SecuritySchemeType.ApiKey,
                     Scheme = "ApiKeyAuth",
                     In = ParameterLocation.Header,
@@ -191,7 +191,7 @@ public class Startup
                             Reference = new OpenApiReference
                             {
                                 Type = ReferenceType.SecurityScheme,
-                                Id = "ShockLinkToken"
+                                Id = "OpenShockToken"
                             }
                         },
                         Array.Empty<string>()

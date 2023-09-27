@@ -36,27 +36,21 @@ public class LoginSessionAuthentication : AuthenticationHandler<LoginSessionAuth
         _userSessions = provider.RedisCollection<LoginSession>(false);
     }
 
-    protected override async Task<AuthenticateResult> HandleAuthenticateAsync()
+    protected override Task<AuthenticateResult> HandleAuthenticateAsync()
     {
-        if (Context.Request.Headers.TryGetValue("ShockLinkSession", out var sessionKeyHeader) &&
-            !string.IsNullOrEmpty(sessionKeyHeader))
-        {
-            return await SessionAuth(sessionKeyHeader!);
-        }
+        if (Context.Request.Headers.TryGetValue("OpenShockSession", out var sessionKeyHeader) &&
+            !string.IsNullOrEmpty(sessionKeyHeader)) return SessionAuth(sessionKeyHeader!);
 
-        if (Context.Request.Cookies.TryGetValue("shockLinkSession", out var accessKeyCookie) &&
-            !string.IsNullOrEmpty(accessKeyCookie))
-        {
-            return await SessionAuth(accessKeyCookie);
-        }
+        if (Context.Request.Cookies.TryGetValue("openShockSession", out var accessKeyCookie) &&
+            !string.IsNullOrEmpty(accessKeyCookie)) return SessionAuth(accessKeyCookie);
         
         if (Context.Request.Headers.TryGetValue("ShockLinkToken", out var tokenHeader) &&
-            !string.IsNullOrEmpty(tokenHeader))
-        {
-            return await TokenAuth(tokenHeader!);
-        }
+            !string.IsNullOrEmpty(tokenHeader)) return TokenAuth(tokenHeader!);
         
-        return Fail("ShockLinkSession/ShockLinkToken header/cookie was not found");
+        if (Context.Request.Headers.TryGetValue("OpenShockToken", out var tokenHeaderO) &&
+            !string.IsNullOrEmpty(tokenHeaderO)) return TokenAuth(tokenHeaderO!);
+        
+        return Task.FromResult(Fail("OpenShockSession/OpenShockToken header/cookie was not found"));
     }
 
     private async Task<AuthenticateResult> TokenAuth(string token)

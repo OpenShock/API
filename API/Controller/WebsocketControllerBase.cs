@@ -7,7 +7,7 @@ using OpenShock.ServicesCommon;
 
 namespace OpenShock.API.Controller;
 
-public abstract class WebsocketControllerBase<T> : ShockLinkControllerBase, IWebsocketController<T> where T : Enum
+public abstract class WebsocketControllerBase<T> : OpenShockControllerBase, IWebsocketController<T> where T : Enum
 {
     protected readonly ILogger<WebsocketControllerBase<T>> Logger;
     protected readonly CancellationTokenSource Close = new();

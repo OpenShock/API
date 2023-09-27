@@ -13,7 +13,7 @@ namespace OpenShock.API.Controller.Account;
 [ApiController]
 [AllowAnonymous]
 [Route("/{version:apiVersion}/account/reset")]
-public class ResetController : ShockLinkControllerBase
+public class ResetController : OpenShockControllerBase
 {
     private readonly OpenShockContext _db;
     private readonly ILogger<ResetController> _logger;

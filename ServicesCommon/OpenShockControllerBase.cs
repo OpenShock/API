@@ -8,7 +8,7 @@ namespace OpenShock.ServicesCommon;
 
 [Consumes(MediaTypeNames.Application.Json)]
 [Produces(MediaTypeNames.Application.Json)]
-public class ShockLinkControllerBase : Microsoft.AspNetCore.Mvc.Controller
+public class OpenShockControllerBase : Microsoft.AspNetCore.Mvc.Controller
 {
 
     [NonAction]

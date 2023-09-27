@@ -5,9 +5,9 @@
       "dotnetRunMessages": true,
       "environmentVariables": {
         "ASPNETCORE_ENVIRONMENT": "Production",
-        "SHOCKLINK__DB": "Host=docker-node;Port=1337;Database=root;Username=root;Password=root;Search Path=shocklink",
-        "SHOCKLINK__REDIS__HOST":"docker-node",
-        "SHOCKLINK__REDIS__PASSWORD": ""
+        "OPENSHOCK__DB": "Host=docker-node;Port=1337;Database=root;Username=root;Password=root;Search Path=openshock",
+        "OPENSHOCK__REDIS__HOST":"docker-node",
+        "OPENSHOCK__REDIS__PASSWORD": ""
       }
     }
   }

@@ -35,22 +35,22 @@ public partial class OpenShockContext : DbContext
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {
-        //optionsBuilder.UseNpgsql("Host=docker-node;Port=1337;Database=root;Username=root;Password=root;Search Path=shocklink-new");
+        //optionsBuilder.UseNpgsql("Host=docker-node;Port=1337;Database=root;Username=root;Password=root;Search Path=openshock-new");
     }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder
-            .HasPostgresEnum("shocklink", "control_type", new[] { "sound", "vibrate", "shock", "stop" })
-            .HasPostgresEnum("shocklink", "permission_type", new[] { "shockers.use" })
-            .HasPostgresEnum("shocklink", "rank_type", new[] { "user", "support", "staff", "admin", "system" })
-            .HasPostgresEnum("shocklink", "shocker_model_type", new[] { "small", "petTrainer" });
+            .HasPostgresEnum("openshock", "control_type", new[] { "sound", "vibrate", "shock", "stop" })
+            .HasPostgresEnum("openshock", "permission_type", new[] { "shockers.use" })
+            .HasPostgresEnum("openshock", "rank_type", new[] { "user", "support", "staff", "admin", "system" })
+            .HasPostgresEnum("openshock", "shocker_model_type", new[] { "small", "petTrainer" });
 
         modelBuilder.Entity<ApiToken>(entity =>
         {
             entity.HasKey(e => e.Id).HasName("api_tokens_pkey");
 
-            entity.ToTable("api_tokens", "shocklink");
+            entity.ToTable("api_tokens", "openshock");
 
             entity.Property(e => e.Id)
                 .ValueGeneratedNever()
@@ -81,7 +81,7 @@ public partial class OpenShockContext : DbContext
         {
             entity.HasKey(e => e.Id).HasName("devices_pkey");
 
-            entity.ToTable("devices", "shocklink");
+            entity.ToTable("devices", "openshock");
 
             entity.Property(e => e.Id)
                 .ValueGeneratedNever()
@@ -106,7 +106,7 @@ public partial class OpenShockContext : DbContext
         {
             entity.HasKey(e => e.Id).HasName("password_resets_pkey");
 
-            entity.ToTable("password_resets", "shocklink");
+            entity.ToTable("password_resets", "openshock");
 
             entity.Property(e => e.Id)
                 .ValueGeneratedNever()
@@ -131,7 +131,7 @@ public partial class OpenShockContext : DbContext
         {
             entity.HasKey(e => e.Id).HasName("shockers_pkey");
 
-            entity.ToTable("shockers", "shocklink");
+            entity.ToTable("shockers", "openshock");
 
             entity.Property(e => e.Id)
                 .ValueGeneratedNever()
@@ -156,7 +156,7 @@ public partial class OpenShockContext : DbContext
         {
             entity.HasKey(e => e.Id).HasName("shocker_control_logs_pkey");
 
-            entity.ToTable("shocker_control_logs", "shocklink");
+            entity.ToTable("shocker_control_logs", "openshock");
 
             entity.Property(e => e.Id)
                 .ValueGeneratedNever()
@@ -187,7 +187,7 @@ public partial class OpenShockContext : DbContext
         {
             entity.HasKey(e => new { e.ShockerId, e.SharedWith }).HasName("shocker_shares_pkey");
 
-            entity.ToTable("shocker_shares", "shocklink");
+            entity.ToTable("shocker_shares", "openshock");
 
             entity.Property(e => e.ShockerId).HasColumnName("shocker_id");
             entity.Property(e => e.SharedWith).HasColumnName("shared_with");
@@ -223,7 +223,7 @@ public partial class OpenShockContext : DbContext
         {
             entity.HasKey(e => e.Id).HasName("shocker_share_codes_pkey");
 
-            entity.ToTable("shocker_share_codes", "shocklink");
+            entity.ToTable("shocker_share_codes", "openshock");
 
             entity.Property(e => e.Id)
                 .ValueGeneratedNever()
@@ -256,7 +256,7 @@ public partial class OpenShockContext : DbContext
         {
             entity.HasKey(e => e.Id).HasName("shocker_shares_links_pkey");
 
-            entity.ToTable("shocker_shares_links", "shocklink");
+            entity.ToTable("shocker_shares_links", "openshock");
 
             entity.Property(e => e.Id)
                 .ValueGeneratedNever()
@@ -279,7 +279,7 @@ public partial class OpenShockContext : DbContext
         {
             entity.HasKey(e => new { e.ShareLinkId, e.ShockerId }).HasName("shocker_shares_links_shockers_pkey");
 
-            entity.ToTable("shocker_shares_links_shockers", "shocklink");
+            entity.ToTable("shocker_shares_links_shockers", "openshock");
 
             entity.Property(e => e.ShareLinkId).HasColumnName("share_link_id");
             entity.Property(e => e.ShockerId).HasColumnName("shocker_id");
@@ -304,7 +304,7 @@ public partial class OpenShockContext : DbContext
         {
             entity.HasKey(e => e.Id).HasName("users_pkey");
 
-            entity.ToTable("users", "shocklink");
+            entity.ToTable("users", "openshock");
 
             entity.HasIndex(e => e.Email, "email").IsUnique();
 

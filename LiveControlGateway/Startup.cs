@@ -39,7 +39,7 @@ public class Startup
 
     public Startup(IConfiguration configuration)
     {
-        LCGGlobals.LCGConfig = configuration.GetChildren().First(x => x.Key == "ShockLink").Get<LCGConfig>() ??
+        LCGGlobals.LCGConfig = configuration.GetChildren().First(x => x.Key == "OpenShock").Get<LCGConfig>() ??
                                throw new Exception("Couldnt bind config, check config file");
 #if DEBUG
         var root = (IConfigurationRoot)configuration;
@@ -113,9 +113,9 @@ public class Startup
         services.TryAddSingleton<ISystemClock, SystemClock>();
         new AuthenticationBuilder(services)
             .AddScheme<LoginSessionAuthenticationSchemeOptions, LoginSessionAuthentication>(
-                ShockLinkAuthSchemas.SessionTokenCombo, _ => { })
+                OpenShockAuthSchemas.SessionTokenCombo, _ => { })
             .AddScheme<DeviceAuthenticationSchemeOptions, DeviceAuthentication>(
-                ShockLinkAuthSchemas.DeviceToken, _ => { });
+                OpenShockAuthSchemas.DeviceToken, _ => { });
         services.AddAuthenticationCore();
         services.AddAuthorization();
 
@@ -159,10 +159,10 @@ public class Startup
                 options.SchemaFilter<AttributeFilter>();
                 options.ParameterFilter<AttributeFilter>();
                 options.OperationFilter<AttributeFilter>();
-                options.IncludeXmlComments(Path.Combine(AppContext.BaseDirectory, "ShockLink.API.xml"));
-                options.AddSecurityDefinition("ShockLinkToken", new OpenApiSecurityScheme
+                options.IncludeXmlComments(Path.Combine(AppContext.BaseDirectory, "OpenShock.API.xml"));
+                options.AddSecurityDefinition("OpenShockToken", new OpenApiSecurityScheme
                 {
-                    Name = "ShockLinkToken",
+                    Name = "OpenShockToken",
                     Type = SecuritySchemeType.ApiKey,
                     Scheme = "ApiKeyAuth",
                     In = ParameterLocation.Header,
@@ -176,7 +176,7 @@ public class Startup
                             Reference = new OpenApiReference
                             {
                                 Type = ReferenceType.SecurityScheme,
-                                Id = "ShockLinkToken"
+                                Id = "OpenShockToken"
                             }
                         },
                         Array.Empty<string>()
@@ -248,18 +248,5 @@ public class Startup
             //     options => { options.Transports = HttpTransportType.WebSockets; });
         });
 
-        // LucTask.Run(async () =>
-        // {
-        //     await Task.Delay(10000);
-        //     using (var services = app.ApplicationServices.CreateScope())
-        //     {
-        //         if (!APIGlobals.ApiConfig.SkipDbMigration)
-        //         {
-        //             logger.LogInformation("Running DB migration...");
-        //             var db = services.ServiceProvider.GetRequiredService<ShockLinkContext>();
-        //             if ((await db.Database.GetPendingMigrationsAsync()).Any()) await db.Database.MigrateAsync();
-        //         }
-        //     }
-        // });
     }
 }

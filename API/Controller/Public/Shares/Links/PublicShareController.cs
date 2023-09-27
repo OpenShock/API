@@ -13,11 +13,11 @@ namespace OpenShock.API.Controller.Public.Shares.Links;
 [ApiController]
 [Route("/{version:apiVersion}/public/shares/links")]
 [AllowAnonymous]
-public class PublicShareLinkController : ShockLinkControllerBase
+public class PublicShareController : OpenShockControllerBase
 {
     private readonly OpenShockContext _db;
 
-    public PublicShareLinkController(OpenShockContext db)
+    public PublicShareController(OpenShockContext db)
     {
         _db = db;
     }

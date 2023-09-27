@@ -6,15 +6,15 @@ using Serilog.Events;
 
 namespace OpenShock.ServicesCommon.Utils
 {
-    public class ShockLinkEnricher : ILogEventEnricher
+    public class OpenShockEnricher : ILogEventEnricher
     {
         private readonly IHttpContextAccessor _contextAccessor;
 
-        public ShockLinkEnricher() : this(new HttpContextAccessor())
+        public OpenShockEnricher() : this(new HttpContextAccessor())
         {
         }
 
-        public ShockLinkEnricher(IHttpContextAccessor contextAccessor)
+        public OpenShockEnricher(IHttpContextAccessor contextAccessor)
         {
             _contextAccessor = contextAccessor;
         }
@@ -45,12 +45,12 @@ namespace OpenShock.ServicesCommon.Utils
         }
     }
 
-    public static class ShockLinkEnricherLoggerConfigurationExtensions
+    public static class OpenShockEnricherLoggerConfigurationExtensions
     {
-        public static LoggerConfiguration WithShockLinkEnricher(this LoggerEnrichmentConfiguration enrichmentConfiguration)
+        public static LoggerConfiguration WithOpenShockEnricher(this LoggerEnrichmentConfiguration enrichmentConfiguration)
         {
             if (enrichmentConfiguration == null) throw new ArgumentNullException(nameof(enrichmentConfiguration));
-            return enrichmentConfiguration.With<ShockLinkEnricher>();
+            return enrichmentConfiguration.With<OpenShockEnricher>();
         }
     }
 }

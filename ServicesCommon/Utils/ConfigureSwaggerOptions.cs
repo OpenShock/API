@@ -30,7 +30,7 @@ namespace OpenShock.ServicesCommon.Utils
         {
             var info = new OpenApiInfo
             {
-                Title = "ShockLink.API",
+                Title = "OpenShock.API",
                 Version = description.ApiVersion.ToString()
             };
             if (description.IsDeprecated) info.Description += " This API version has been deprecated.";

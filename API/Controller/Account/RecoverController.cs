@@ -13,7 +13,7 @@ namespace OpenShock.API.Controller.Account;
 [ApiController]
 [AllowAnonymous]
 [Route("/{version:apiVersion}/account/recover/{id:guid}/{secret}")]
-public class RecoverController : ShockLinkControllerBase
+public class RecoverController : OpenShockControllerBase
 {
     private readonly OpenShockContext _db;
     private readonly ILogger<RecoverController> _logger;

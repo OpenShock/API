@@ -8,6 +8,6 @@ public class Contact
     public static Contact AccountManagement = new()
     {
         Email = "system@shocklink.net",
-        Name = "ShockLink System"
+        Name = "OpenShock System"
     };
 }

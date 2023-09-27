@@ -3,8 +3,8 @@ using Microsoft.AspNetCore.Mvc.Filters;
 
 namespace OpenShock.ServicesCommon.Authentication;
 
-[Authorize(AuthenticationSchemes = ShockLinkAuthSchemas.SessionTokenCombo, Roles = "shockers.use")]
-public class AuthenticatedSessionControllerBase : ShockLinkControllerBase
+[Authorize(AuthenticationSchemes = OpenShockAuthSchemas.SessionTokenCombo, Roles = "shockers.use")]
+public class AuthenticatedSessionControllerBase : OpenShockControllerBase
 {
     public LinkUser CurrentUser = null!;
 

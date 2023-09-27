@@ -1,4 +1,5 @@
-﻿using System.Text.Json;
+﻿using System.Runtime.CompilerServices;
+using System.Text.Json;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using OpenShock.API.Hubs;
@@ -63,16 +64,18 @@ public static class PubSubManager
     #region Exposing methods
 
     public static Task SendControlMessage(ControlMessage data) =>
-        _subscriber.PublishAsync(new RedisChannel("msg-device-control", RedisChannel.PatternMode.Literal), JsonSerializer.Serialize(data));
-    
+        _subscriber.PublishAsync(new RedisChannel("msg-device-control", RedisChannel.PatternMode.Literal),
+            JsonSerializer.Serialize(data));
+
     public static Task SendCaptiveControlMessage(CaptiveMessage data) =>
-        _subscriber.PublishAsync(new RedisChannel("msg-device-control-captive", RedisChannel.PatternMode.Literal), JsonSerializer.Serialize(data));
+        _subscriber.PublishAsync(new RedisChannel("msg-device-control-captive", RedisChannel.PatternMode.Literal),
+            JsonSerializer.Serialize(data));
 
     #endregion
 
     private static async Task DeviceControlCaptive(RedisValue value)
     {
-        if(!value.HasValue) return;
+        if (!value.HasValue) return;
         var data = JsonSerializer.Deserialize<CaptiveMessage>(value.ToString());
         if (data == null) return;
 
@@ -82,7 +85,7 @@ public static class PubSubManager
             Data = data.Enabled
         });
     }
-    
+
     private static async Task DeviceControl(RedisValue value)
     {
         if (!value.HasValue) return;
@@ -92,7 +95,10 @@ public static class PubSubManager
         foreach (var controlMessage in data.ControlMessages)
         {
             var shockies = controlMessage.Value.Select(shock => new ControlResponse
-                { Id = shock.RfId, Duration = shock.Duration, Intensity = shock.Intensity, Type = shock.Type, Model = shock.Model});
+            {
+                Id = shock.RfId, Duration = shock.Duration, Intensity = shock.Intensity, Type = shock.Type,
+                Model = shock.Model
+            });
 
             await WebsocketManager.DeviceWebSockets.SendMessageTo(controlMessage.Key, new BaseResponse<ResponseType>
             {
@@ -111,36 +117,35 @@ public static class PubSubManager
         var db = scope.ServiceProvider.GetRequiredService<OpenShockContext>();
         var userHub = scope.ServiceProvider.GetRequiredService<IHubContext<UserHub, IUserHub>>();
         if (!Guid.TryParse(msg[1], out var id)) return;
-        switch (msg[0])
+        
+        if (typeof(DeviceOnline).FullName == msg[0])
         {
-            case "ShockLink.Common.Redis.DeviceOnline":
-                var data = await db.Devices.Where(x => x.Id == id).Select(x => new
-                {
-                    x.Owner,
-                    SharedWith = x.Shockers.SelectMany(y => y.ShockerShares)
-                }).SingleOrDefaultAsync();
-                if (data == null) return;
-                
+            var data = await db.Devices.Where(x => x.Id == id).Select(x => new
+            {
+                x.Owner,
+                SharedWith = x.Shockers.SelectMany(y => y.ShockerShares)
+            }).SingleOrDefaultAsync();
+            if (data == null) return;
 
-                var sharedWith = await db.Users.Where(x => x.ShockerShares.Any(y => y.Shocker.Device == id))
-                    .Select(x => x.Id).ToArrayAsync();
-                var userIds = new List<string>
+
+            var sharedWith = await db.Users.Where(x => x.ShockerShares.Any(y => y.Shocker.Device == id))
+                .Select(x => x.Id).ToArrayAsync();
+            var userIds = new List<string>
+            {
+                "local#" + data.Owner
+            };
+            userIds.AddRange(sharedWith.Select(x => "local#" + x));
+            var deviceOnline = await _devicesOnline.FindByIdAsync(msg[1]);
+            var arr = new[]
+            {
+                new DeviceOnlineState
                 {
-                    "local#" + data.Owner
-                };
-                userIds.AddRange(sharedWith.Select(x => "local#" + x));
-                var deviceOnline = await _devicesOnline.FindByIdAsync(msg[1]);
-                var arr = new[]
-                {
-                    new DeviceOnlineState
-                    {
-                        Device = id,
-                        Online = set,
-                        FirmwareVersion = deviceOnline?.FirmwareVersion ?? null
-                    }
-                };
-                await userHub.Clients.Users(userIds).DeviceStatus(arr);
-                break;
+                    Device = id,
+                    Online = set,
+                    FirmwareVersion = deviceOnline?.FirmwareVersion ?? null
+                }
+            };
+            await userHub.Clients.Users(userIds).DeviceStatus(arr);
         }
     }
 }

@@ -1,5 +1,5 @@
-# ShockLink API
-ShockLink backend.
+# OpenShock API
+OpenShock backend.
 
 # Configuration
 
@@ -7,21 +7,21 @@ The API can be configured using the following environment variables:
 
 | Variable                              | Default value           | Example value                                                                                |
 |---------------------------------------|-------------------------|----------------------------------------------------------------------------------------------|
-| `SHOCKLINK__DB`                       |                         | `Host=docker-node;Port=1337;Database=root;Username=root;Password=root;Search Path=ShockLink` |
-| `SHOCKLINK__FRONTENDBASEURL`          | `https://shocklink.net` | `https://shocklink.net`                                                                      |
-| `SHOCKLINK__REDIS__HOST`              | x                       | `redis`                                                                                      |
-| `SHOCKLINK__REDIS__PORT`              | `6379`                  |
-| `SHOCKLINK__REDIS__USER`              |                         |
-| `SHOCKLINK__REDIS__PASSWORD`          |                         |
-| `SHOCKLINK__CLOUDFLARE__ACCOUNTID`    |                         |
-| `SHOCKLINK__CLOUDFLARE___IMAGES__KEY` |                         |
-| `SHOCKLINK__CLOUDFLARE___IMAGES__URL` |                         |
-| `SHOCKLINK__MAILJET__KEY`             |                         |
-| `SHOCKLINK__MAILJET__SECRET`          |                         |
+| `OPENSHOCK__DB`                       |                         | `Host=docker-node;Port=1337;Database=root;Username=root;Password=root;Search Path=openshock` |
+| `OPENSHOCK__FRONTENDBASEURL`          | `https://shocklink.net` | `https://shocklink.net`                                                                      |
+| `OPENSHOCK__REDIS__HOST`              | x                       | `redis`                                                                                      |
+| `OPENSHOCK__REDIS__PORT`              | `6379`                  |
+| `OPENSHOCK__REDIS__USER`              |                         |
+| `OPENSHOCK__REDIS__PASSWORD`          |                         |
+| `OPENSHOCK__CLOUDFLARE__ACCOUNTID`    |                         |
+| `OPENSHOCK__CLOUDFLARE___IMAGES__KEY` |                         |
+| `OPENSHOCK__CLOUDFLARE___IMAGES__URL` |                         |
+| `OPENSHOCK__MAILJET__KEY`             |                         |
+| `OPENSHOCK__MAILJET__SECRET`          |                         |
 
 # Deployment
 
-The ShockLink stack consists of the following components:
+The OpenShock stack consists of the following components:
 
 - Postgres as database
 - Redis
@@ -37,9 +37,9 @@ the API:
 docker run \
     ghcr.io/shock-link/api:latest \
     --name shocklink-api \
-    -e SHOCKLINK__DB=Host=docker-node;Port=1337;Database=root;Username=root;Password=root;Search Path=ShockLink \
-    -e SHOCKLINK__REDIS__HOST=localhost \
-    -e SHOCKLINK__FRONTENDBASEURL=https://myshocklink.app \
+    -e OPENSHOCK__DB=Host=docker-node;Port=1337;Database=root;Username=root;Password=root;Search Path=openshock \
+    -e OPENSHOCK__REDIS__HOST=localhost \
+    -e OPENSHOCK__FRONTENDBASEURL=https://myopenshock.app \
     -p 80:80/tcp
 ```
 

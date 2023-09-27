@@ -4,8 +4,8 @@ using OpenShock.Common.OpenShockDb;
 
 namespace OpenShock.ServicesCommon.Authentication;
 
-[Authorize(AuthenticationSchemes = ShockLinkAuthSchemas.DeviceToken)]
-public class AuthenticatedDeviceControllerBase : ShockLinkControllerBase
+[Authorize(AuthenticationSchemes = OpenShockAuthSchemas.DeviceToken)]
+public class AuthenticatedDeviceControllerBase : OpenShockControllerBase
 {
     public Device CurrentDevice = null!;
 

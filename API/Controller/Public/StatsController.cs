@@ -11,7 +11,7 @@ namespace OpenShock.API.Controller.Public;
 [ApiController]
 [Route("/{version:apiVersion}/public/stats")]
 [AllowAnonymous]
-public class StatsController : ShockLinkControllerBase
+public class StatsController : OpenShockControllerBase
 {
     private readonly IRedisCollection<DeviceOnline> _deviceOnlines;
 

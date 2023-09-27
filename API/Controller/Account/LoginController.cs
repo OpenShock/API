@@ -16,7 +16,7 @@ namespace OpenShock.API.Controller.Account;
 [ApiController]
 [AllowAnonymous]
 [Route("/{version:apiVersion}/account/login")]
-public class LoginController : ShockLinkControllerBase
+public class LoginController : OpenShockControllerBase
 {
     private readonly OpenShockContext _db;
     private readonly ILogger<LoginController> _logger;
@@ -30,22 +30,22 @@ public class LoginController : ShockLinkControllerBase
     }
     
     [HttpPost]
-    public async Task<BaseResponse<LoginResponse>> Login(Login data)
+    public async Task<BaseResponse<object>> Login(Login data)
     {
         var user = await _db.Users.SingleOrDefaultAsync(x => x.Email == data.Email.ToLowerInvariant());
         if (user == null || !SecurePasswordHasher.Verify(data.Password, user.Password))
         {
             _logger.LogInformation("Failed to authenticate with email [{Email}]", data.Email);
-            return EBaseResponse<LoginResponse>("The provided credentials do not match any account",
+            return EBaseResponse<object>("The provided credentials do not match any account",
                 HttpStatusCode.Unauthorized);
         }
 
-        if (!user.EmailActived) return EBaseResponse<LoginResponse>("You must activate your account first, before you can login",
+        if (!user.EmailActived) return EBaseResponse<object>("You must activate your account first, before you can login",
                 HttpStatusCode.Forbidden);
         
         var randomSessionId = CryptoUtils.RandomString(64);
         
-        HttpContext.Response.Cookies.Append("ShockLinkSession", randomSessionId, new CookieOptions
+        HttpContext.Response.Cookies.Append("openShockSession", randomSessionId, new CookieOptions
         {
             Expires = new DateTimeOffset(DateTime.UtcNow.AddDays(30)),
             Secure = true,
@@ -61,18 +61,9 @@ public class LoginController : ShockLinkControllerBase
             Ip = HttpContext.Connection.RemoteIpAddress?.MapToIPv4().ToString() ?? string.Empty,
         }, TimeSpan.FromDays(30));
         
-        return new BaseResponse<LoginResponse>
+        return new BaseResponse<object>
         {
-            Message = "Successfully signed in",
-            Data = new LoginResponse
-            {
-                ShockLinkSession = randomSessionId
-            }
+            Message = "Successfully signed in"
         };
-    }
-    
-    public class LoginResponse
-    {
-        public required string ShockLinkSession { get; set; }
     }
 }

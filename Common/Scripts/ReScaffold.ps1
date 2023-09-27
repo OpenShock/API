@@ -1,1 +1,1 @@
-﻿dotnet ef dbcontext scaffold "Host=docker-node;Port=1337;Database=root;Username=root;Password=root;Search Path=ShockLink" Npgsql.EntityFrameworkCore.PostgreSQL -c ShockLinkContext -o ShockLinkDb -f
+﻿dotnet ef dbcontext scaffold "Host=docker-node;Port=1337;Database=root;Username=root;Password=root;Search Path=openshock" Npgsql.EntityFrameworkCore.PostgreSQL -c OpenShockContext -o OpenShockDb -f

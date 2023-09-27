@@ -10,18 +10,18 @@ namespace OpenShock.API.Controller;
 [ApiController]
 [AllowAnonymous]
 [Route("/{version:apiVersion}")]
-public class RootController : ShockLinkControllerBase
+public class RootController : OpenShockControllerBase
 {
-    private static readonly string ShockLinkBackendVersion =
+    private static readonly string OpenShockBackendVersion =
         Assembly.GetEntryAssembly()?.GetName().Version?.ToString() ?? "error";
 
     [HttpGet]
     public BaseResponse<RootResponse> Get() => new()
     {
-        Message = "ShockLink",
+        Message = "OpenShock",
         Data = new RootResponse
         {
-            Version = ShockLinkBackendVersion,
+            Version = OpenShockBackendVersion,
             Commit = GitHashAttribute.FullHash,
             CurrentTime = DateTimeOffset.UtcNow
         }
