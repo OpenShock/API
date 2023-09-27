@@ -1,6 +1,6 @@
 ﻿{
   "profiles": {
-    "OpenShock": {
+    "LiveControlGateway": {
       "commandName": "Project",
       "dotnetRunMessages": true,
       "environmentVariables": {

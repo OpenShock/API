@@ -145,7 +145,7 @@ public class DeviceWebSocketController : WebsocketControllerBase<ResponseType>
         }
 
         await _redis.Connection.ExecuteAsync("EXPIRE",
-            $"OpenShock.Common.Redis.DeviceOnline:{_currentDevice.Id}", "65");
+            $"{typeof(DeviceOnline).FullName}:{_currentDevice.Id}", "65");
     }
 
     private Version? FirmwareVersion { get; set; }
