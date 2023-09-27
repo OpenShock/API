@@ -213,7 +213,7 @@ public class Startup
         ApplicationLogging.LoggerFactory = loggerFactory;
         var logger = ApplicationLogging.CreateLogger<Startup>();
         EnvString = env.EnvironmentName;
-        foreach (var proxy in APIGlobals.CloudflareProxies)
+        foreach (var proxy in APIGlobals.TrustedProxies)
         {
             var split = proxy.Split('/');
             _forwardedSettings.KnownNetworks.Add(new IPNetwork(IPAddress.Parse(split[0]), int.Parse(split[1])));
