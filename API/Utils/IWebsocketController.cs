@@ -1,6 +1,6 @@
 ﻿using OpenShock.Common.Models.WebSocket;
 
-namespace OpenShock.API.Controller;
+namespace OpenShock.API.Utils;
 
 public interface IWebsocketController<T> where T : Enum
 {

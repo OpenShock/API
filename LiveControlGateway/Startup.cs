@@ -12,7 +12,6 @@ using OpenShock.Common.Models;
 using OpenShock.Common.OpenShockDb;
 using OpenShock.Common.Redis;
 using OpenShock.Common.Serialization;
-using OpenShock.LiveControlGateway.Services;
 using OpenShock.ServicesCommon;
 using OpenShock.ServicesCommon.Authentication;
 using OpenShock.ServicesCommon.ExceptionHandle;
@@ -91,8 +90,6 @@ public class Startup
         //     User = APIGlobals.ApiConfig.Redis.User,
         //     Password = APIGlobals.ApiConfig.Redis.Password
         // };
-
-        services.AddGrpc();
         
         var redis = new RedisConnectionProvider(_redisConfig);
         redis.Connection.CreateIndex(typeof(LoginSession));
@@ -241,7 +238,6 @@ public class Startup
                     ResponseWriter = UiResponseWriter.WriteHealthCheckUiResponse
                 });*/
             endpoints.MapControllers();
-            endpoints.MapGrpcService<GreeterService>();
             // endpoints.MapHub<UserHub>("/1/hubs/user",
             //     options => { options.Transports = HttpTransportType.WebSockets; });
             // endpoints.MapHub<ShareLinkHub>("/1/hubs/share/link/{id}",
