@@ -10,6 +10,7 @@
         <AssemblyVersion>1.5.0</AssemblyVersion>
         <FileVersion>1.5.0</FileVersion>
         <Product>LiveControlGateway</Product>
+        <GenerateDocumentationFile>true</GenerateDocumentationFile>
     </PropertyGroup>
 
     <ItemGroup>
@@ -33,6 +34,12 @@
       <ProjectReference Include="..\Common\Common.csproj" />
       <ProjectReference Include="..\ServicesCommon\ServicesCommon.csproj" />
       <FlatSharpSchema Include="Serialization\**\*.fbs" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <None Update="devcert.pfx">
+        <CopyToPublishDirectory>Always</CopyToPublishDirectory>
+      </None>
     </ItemGroup>
 
 </Project>

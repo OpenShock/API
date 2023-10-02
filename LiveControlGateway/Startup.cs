@@ -156,7 +156,7 @@ public class Startup
                 options.SchemaFilter<AttributeFilter>();
                 options.ParameterFilter<AttributeFilter>();
                 options.OperationFilter<AttributeFilter>();
-                options.IncludeXmlComments(Path.Combine(AppContext.BaseDirectory, "OpenShock.API.xml"));
+                options.IncludeXmlComments(Path.Combine(AppContext.BaseDirectory, "OpenShock.LiveControlGateway.xml"));
                 options.AddSecurityDefinition("OpenShockToken", new OpenApiSecurityScheme
                 {
                     Name = "OpenShockToken",

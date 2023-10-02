@@ -1,11 +1,8 @@
-namespace OpenShock.Serialization;
+include "./ShockerCommandType.fbs";
 
-enum ShockerCommandType : uint8 {
-  Stop = 0,
-  Shock = 1,
-  Vibrate = 2,
-  Sound = 3
-}
+attribute "fs_serializer";
+
+namespace OpenShock.Serialization;
 
 struct ShockerCommand {
   model:uint8;
@@ -23,13 +20,13 @@ struct CaptivePortalConfig {
   enabled:bool;
 }
 
-union ServerMessagePayload {
+union ServerToDeviceMessagePayload {
   ShockerCommandList,
   CaptivePortalConfig
 }
 
-table ServerMessage {
-  payload:ServerMessagePayload;
+table ServerToDeviceMessage (fs_serializer) {
+  payload:ServerToDeviceMessagePayload;
 }
 
-root_type ServerMessage;
+root_type ServerToDeviceMessage;

@@ -1,0 +1,22 @@
+include "./ShockerCommandType.fbs";
+
+attribute "fs_serializer";
+
+namespace OpenShock.Serialization;
+
+table LiveControlPacketSyncBack {
+  id:string;
+  type:ShockerCommandType;
+  intensity:uint8;
+  duration:uint32;
+}
+
+union ServerToUserMessagePayload {
+  LiveControlPacketSyncBack
+}
+
+table ServerToUserMessage (fs_serializer) {
+  payload:ServerToUserMessagePayload;
+}
+
+root_type ServerToUserMessage;
