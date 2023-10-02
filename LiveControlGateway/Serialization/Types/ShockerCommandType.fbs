@@ -1,4 +1,4 @@
-﻿namespace OpenShock.Serialization;
+﻿namespace OpenShock.Serialization.Types;
 
 enum ShockerCommandType : uint8 {
   Stop = 0,

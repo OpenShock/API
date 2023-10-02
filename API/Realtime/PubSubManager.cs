@@ -30,24 +30,24 @@ public static class PubSubManager
     private static ISubscriber _subscriber;
     private static IRedisCollection<DeviceOnline> _devicesOnline;
 
-    public static void Initialize(ConnectionMultiplexer con, IServiceProvider serviceProvider)
+    public static async Task Initialize(ConnectionMultiplexer con, IServiceProvider serviceProvider)
     {
         _con = con;
         _serviceProvider = serviceProvider;
         var provider = _serviceProvider.GetRequiredService<IRedisConnectionProvider>();
         _devicesOnline = provider.RedisCollection<DeviceOnline>(false);
         _subscriber = _con.GetSubscriber();
-        _subscriber.Subscribe(
+        await _subscriber.SubscribeAsync(
             new RedisChannel("__keyevent@0__:expired", RedisChannel.PatternMode.Literal),
             (_, message) => { LucTask.Run(() => RunLogic(message, false)); });
-        _subscriber.Subscribe(
+        await _subscriber.SubscribeAsync(
             new RedisChannel("__keyevent@0__:json.set", RedisChannel.PatternMode.Literal),
             (_, message) => { LucTask.Run(() => RunLogic(message, true)); });
-        _subscriber.Subscribe(
+        await _subscriber.SubscribeAsync(
             new RedisChannel("__keyevent@0__:del", RedisChannel.PatternMode.Literal),
             (_, message) => { LucTask.Run(() => RunLogic(message, false)); });
 
-        _subscriber.Subscribe(new RedisChannel("msg-*", RedisChannel.PatternMode.Pattern), (channel, value) =>
+        await _subscriber.SubscribeAsync(new RedisChannel("msg-*", RedisChannel.PatternMode.Pattern), (channel, value) =>
         {
             switch (channel.ToString())
             {

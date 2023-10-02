@@ -1,21 +1,49 @@
 ﻿using System.Net.WebSockets;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Filters;
 using OpenShock.LiveControlGateway.Websocket;
 using OpenShock.Serialization;
+using OpenShock.ServicesCommon.Authentication;
 
 namespace OpenShock.LiveControlGateway.Controllers;
 
+/// <summary>
+/// Communication with the devices aka ESP-32 micro controllers
+/// </summary>
 [ApiController]
-//[Authorize(AuthenticationSchemes = OpenShockAuthSchemas.DeviceToken)]
+[Authorize(AuthenticationSchemes = OpenShockAuthSchemas.DeviceToken)]
 [Route("/{version:apiVersion}/ws/device")]
 public sealed class DeviceController : WebsocketBaseController<ServerToDeviceMessage>
 {
-    public DeviceController(ILogger<WebsocketBaseController<ServerToDeviceMessage>> logger, IHostApplicationLifetime lifetime)
+    private Common.OpenShockDb.Device _currentDevice = null!;
+
+    /// <summary>
+    /// Authentication context
+    /// </summary>
+    /// <param name="context"></param>
+    public override void OnActionExecuting(ActionExecutingContext context)
+    {
+        _currentDevice = ControllerContext.HttpContext.RequestServices.GetRequiredService<IClientAuthService<Common.OpenShockDb.Device>>()
+            .CurrentClient;
+        base.OnActionExecuting(context);
+    }
+
+    /// <inheritdoc />
+    public override Guid Id => _currentDevice.Id;
+    
+    
+    /// <summary>
+    /// DI
+    /// </summary>
+    /// <param name="logger"></param>
+    /// <param name="lifetime"></param>
+    public DeviceController(ILogger<DeviceController> logger, IHostApplicationLifetime lifetime)
         : base(logger, lifetime, ServerToDeviceMessage.Serializer)
     {
     }
 
-    public override Guid Id { get; }
+    /// <inheritdoc />
     protected override async Task Logic()
     {
         ValueWebSocketReceiveResult? result = null;
@@ -23,7 +51,7 @@ public sealed class DeviceController : WebsocketBaseController<ServerToDeviceMes
         {
             try
             {
-                if (WebSocket.State == WebSocketState.Aborted) return;
+                if (WebSocket!.State == WebSocketState.Aborted) return;
                 var message =
                     await WebSocketUtils.ReceiveFullMessageAsyncNonAlloc(WebSocket, _flatBuffersSerializer, Linked.Token);
                 result = message.Item1;
@@ -63,35 +91,18 @@ public sealed class DeviceController : WebsocketBaseController<ServerToDeviceMes
             {
                 Logger.LogError(ex, "Exception while processing websocket request");
             }
-            Console.WriteLine(result == null);
         } while (result != null && result.Value.MessageType != WebSocketMessageType.Close);
 
         Close.Cancel();
     }
 
+    /// <inheritdoc />
     protected override void RegisterConnection()
     {
         WebsocketManager.ServerToDevice.RegisterConnection(this);
-
-        QueueMessage(new ServerToDeviceMessage()
-        {
-            Payload = new ServerToDeviceMessagePayload(new ShockerCommandList()
-            {
-                Commands = new List<ShockerCommand>()
-                {
-                    new ShockerCommand()
-                    {
-                        Id = 435,
-                        Duration = 34,
-                        Intensity = 33,
-                        Model = 1,
-                        Type = ShockerCommandType.Shock
-                    }
-                }
-            })
-        });
     }
-    
+
+    /// <inheritdoc />
     protected override void UnregisterConnection()
     {
         WebsocketManager.ServerToDevice.UnregisterConnection(this);

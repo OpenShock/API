@@ -1,13 +1,14 @@
-include "./ShockerCommandType.fbs";
+include "./Types/ShockerCommandType.fbs";
+include "./Types/ShockerModelType.fbs";
 
 attribute "fs_serializer";
 
 namespace OpenShock.Serialization;
 
 struct ShockerCommand {
-  model:uint8;
+  model:Types.ShockerModelType;
   id:uint16;
-  type:ShockerCommandType;
+  type:Types.ShockerCommandType;
   intensity:uint8;
   duration:uint32;
 }

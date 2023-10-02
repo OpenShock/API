@@ -22,6 +22,7 @@ using OpenShock.Common.Serialization;
 using OpenShock.ServicesCommon;
 using OpenShock.ServicesCommon.Authentication;
 using OpenShock.ServicesCommon.ExceptionHandle;
+using OpenShock.ServicesCommon.Geo;
 using OpenShock.ServicesCommon.Utils;
 using Redis.OM;
 using Redis.OM.Contracts;
@@ -35,7 +36,6 @@ namespace OpenShock.API;
 
 public class Startup
 {
-    public static string EnvString { get; private set; } = null!;
     private ConfigurationOptions _redisConfig;
 
     private readonly ForwardedHeadersOptions _forwardedSettings = new()
@@ -47,13 +47,13 @@ public class Startup
 
     public Startup(IConfiguration configuration)
     {
-        APIGlobals.ApiConfig = configuration.GetChildren().First(x => x.Key == "OpenShock").Get<ApiConfig>() ??
-                               throw new Exception("Couldnt bind config, check config file");
 #if DEBUG
         var root = (IConfigurationRoot)configuration;
         var debugView = root.GetDebugView();
         Console.WriteLine(debugView);
 #endif
+        APIGlobals.ApiConfig = configuration.GetChildren().First(x => x.Key.ToLowerInvariant() == "openshock").Get<ApiConfig>() ??
+                               throw new Exception("Couldnt bind config, check config file");
     }
 
     public void ConfigureServices(IServiceCollection services)
@@ -114,6 +114,7 @@ public class Startup
 
         services.AddScoped<IClientAuthService<LinkUser>, ClientAuthService<LinkUser>>();
         services.AddScoped<IClientAuthService<Device>, ClientAuthService<Device>>();
+        services.AddSingleton<IGeoLocation, GeoLocation>();
 
         services.AddHttpClient<IMailjetClient, MailjetClient>(client =>
         {
@@ -212,7 +213,6 @@ public class Startup
     {
         ApplicationLogging.LoggerFactory = loggerFactory;
         var logger = ApplicationLogging.CreateLogger<Startup>();
-        EnvString = env.EnvironmentName;
         foreach (var proxy in OpenShockConstants.TrustedProxies)
         {
             var split = proxy.Split('/');
@@ -227,7 +227,7 @@ public class Startup
         // global cors policy
         app.UseCors();
 
-        PubSubManager.Initialize(ConnectionMultiplexer.Connect(_redisConfig), app.ApplicationServices);
+        PubSubManager.Initialize(ConnectionMultiplexer.Connect(_redisConfig), app.ApplicationServices).Wait();
 
         var webSocketOptions = new WebSocketOptions
         {

@@ -75,8 +75,6 @@ public static class WebSocketUtils
         try
         {
             var bytesWritten = serializer.Write(buffer, obj);
-            Console.WriteLine("expected: " + maxSize);
-            Console.WriteLine("actual: " + bytesWritten);
             return SendFullMessageBytes(buffer.AsMemory(0, bytesWritten), socket, cancelToken);
         }
         finally

@@ -12,9 +12,11 @@ using OpenShock.Common.Models;
 using OpenShock.Common.OpenShockDb;
 using OpenShock.Common.Redis;
 using OpenShock.Common.Serialization;
+using OpenShock.LiveControlGateway.PubSub;
 using OpenShock.ServicesCommon;
 using OpenShock.ServicesCommon.Authentication;
 using OpenShock.ServicesCommon.ExceptionHandle;
+using OpenShock.ServicesCommon.Geo;
 using OpenShock.ServicesCommon.Utils;
 using Redis.OM;
 using Redis.OM.Contracts;
@@ -26,7 +28,6 @@ namespace OpenShock.LiveControlGateway;
 
 public class Startup
 {
-    public static string EnvString { get; private set; } = null!;
     private ConfigurationOptions _redisConfig;
 
     private readonly ForwardedHeadersOptions _forwardedSettings = new()
@@ -38,13 +39,13 @@ public class Startup
 
     public Startup(IConfiguration configuration)
     {
-        LCGGlobals.LCGConfig = configuration.GetChildren().First(x => x.Key == "OpenShock").Get<LCGConfig>() ??
-                               throw new Exception("Couldnt bind config, check config file");
 #if DEBUG
         var root = (IConfigurationRoot)configuration;
         var debugView = root.GetDebugView();
         Console.WriteLine(debugView);
 #endif
+        LCGGlobals.LCGConfig = configuration.GetChildren().First(x => x.Key.ToLowerInvariant() == "openshock").Get<LCGConfig>() ??
+                               throw new Exception("Couldnt bind config, check config file");
     }
 
     public void ConfigureServices(IServiceCollection services)
@@ -95,6 +96,7 @@ public class Startup
         redis.Connection.CreateIndex(typeof(LoginSession));
         redis.Connection.CreateIndex(typeof(DeviceOnline));
         redis.Connection.CreateIndex(typeof(DevicePair));
+        redis.Connection.CreateIndex(typeof(LcgNode));
         services.AddSingleton<IRedisConnectionProvider>(redis);
 
         // TODO: Is this needed?
@@ -105,6 +107,7 @@ public class Startup
 
         services.AddScoped<IClientAuthService<LinkUser>, ClientAuthService<LinkUser>>();
         services.AddScoped<IClientAuthService<Device>, ClientAuthService<Device>>();
+        services.AddSingleton<IGeoLocation, GeoLocation>();
 
         services.AddWebEncoders();
         services.TryAddSingleton<ISystemClock, SystemClock>();
@@ -194,7 +197,6 @@ public class Startup
     {
         ApplicationLogging.LoggerFactory = loggerFactory;
         var logger = ApplicationLogging.CreateLogger<Startup>();
-        EnvString = env.EnvironmentName;
         foreach (var proxy in OpenShockConstants.TrustedProxies)
         {
             var split = proxy.Split('/');
@@ -209,7 +211,7 @@ public class Startup
         // global cors policy
         app.UseCors();
 
-        //PubSubManager.Initialize(ConnectionMultiplexer.Connect(_redisConfig), app.ApplicationServices);
+        PubSubManager.Initialize(ConnectionMultiplexer.Connect(_redisConfig)).Wait();
 
         var webSocketOptions = new WebSocketOptions
         {
