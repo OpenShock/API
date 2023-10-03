@@ -104,6 +104,7 @@ public class Startup
         redis.Connection.CreateIndex(typeof(LoginSession));
         redis.Connection.CreateIndex(typeof(DeviceOnline));
         redis.Connection.CreateIndex(typeof(DevicePair));
+        redis.Connection.CreateIndex(typeof(LcgNode));
         services.AddSingleton<IRedisConnectionProvider>(redis);
 
         // TODO: Is this needed?

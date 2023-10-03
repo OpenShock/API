@@ -1,8 +1,9 @@
 ﻿using System.Net;
+using OpenShock.Common.Redis;
 
 namespace OpenShock.ServicesCommon.Geo;
 
 public interface IGeoLocation
 {
-    public Task GetClosestNode(IPAddress ipAddress);
+    public Task<LcgNode?> GetClosestNode(IPAddress ipAddress);
 }
