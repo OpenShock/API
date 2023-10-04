@@ -47,8 +47,8 @@ jobs:
       - name: Upload internal artifacts
         uses: actions/upload-artifact@v3
         with:
-          name: only-shocklink-dlls
-          path: publish/ShockLink.*.dll
+          name: only-openshock-dlls
+          path: publish/OpenShock.*.dll
           retention-days: 1
           if-no-files-found: error
 

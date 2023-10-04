@@ -48,5 +48,4 @@ docker run \
 See [docker-compose.yml](docker-compose.yml).
 
 # Current struggles
-+ Dependency to Cloudflare Images (Paid)
 + Dependency with Mailjet templates
