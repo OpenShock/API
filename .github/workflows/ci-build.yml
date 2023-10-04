@@ -96,9 +96,15 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      # Get container image name. sed does two things here:
+      #   - Replaces "aB" with "a-b";
+      #   - Replaces "AAA" with "aaa".
+      # The end result is:
+      #   - "API" becomes "api"
+      #   - "LiveControlGateway" becomes "live-control-gateway"
       - name: Get image name
         id: name
-        run: echo "name=${{ matrix.project }}" | tr '[:upper:]' '[:lower:]' >> $GITHUB_OUTPUT
+        run: echo "name=$(echo "${{ matrix.project }}" | sed -r 's|([a-z0-9])([A-Z])|\1-\L\2|g;s|([A-Z])|\L\1|g')" >> $GITHUB_OUTPUT
       
       - name: Extract metadata (tags, labels) for Docker
         id: meta
