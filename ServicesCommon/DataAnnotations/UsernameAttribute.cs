@@ -43,7 +43,7 @@ namespace OpenShock.ServicesCommon.DataAnnotations
         {
             if (!ShouldValidate) return ValidationResult.Success;
 
-            if (value is null) return ValidationResult.Success;
+            if (value is null) return new ValidationResult("Username cannot be null");
             
             if (value is not string displayname) return new ValidationResult(_ErrMsgMustBeString);
             

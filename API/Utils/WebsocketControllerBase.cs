@@ -1,11 +1,11 @@
 ﻿using System.Net.WebSockets;
 using System.Threading.Channels;
 using Microsoft.AspNetCore.Mvc;
-using OpenShock.API.Utils;
 using OpenShock.Common.Models.WebSocket;
+using OpenShock.Common.Utils;
 using OpenShock.ServicesCommon;
 
-namespace OpenShock.API.Controller;
+namespace OpenShock.API.Utils;
 
 public abstract class WebsocketControllerBase<T> : OpenShockControllerBase, IWebsocketController<T> where T : Enum
 {

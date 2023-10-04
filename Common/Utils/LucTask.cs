@@ -1,7 +1,7 @@
 ﻿using System.Runtime.CompilerServices;
-using OpenShock.Common;
+using Microsoft.Extensions.Logging;
 
-namespace OpenShock.API.Utils;
+namespace OpenShock.Common.Utils;
 
 public static class LucTask
 {

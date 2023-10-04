@@ -9,7 +9,7 @@ namespace OpenShock.API.Controller.Device;
 
 [ApiController]
 [Route("/{version:apiVersion}/device/self")]
-public class DeviceSelfController : AuthenticatedDeviceControllerBase
+public sealed class DeviceSelfController : AuthenticatedDeviceControllerBase
 {
     private readonly OpenShockContext _db;
     

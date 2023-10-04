@@ -16,7 +16,7 @@ namespace OpenShock.API.Controller.Device;
 [AllowAnonymous]
 [Route("/{version:apiVersion}/pair")]
 [Route("/{version:apiVersion}/device/pair")]
-public class PairCodeController : OpenShockControllerBase
+public sealed class PairCodeController : OpenShockControllerBase
 {
     private readonly IRedisCollection<DevicePair> _devicePairs;
     private readonly OpenShockContext _openShockContext;

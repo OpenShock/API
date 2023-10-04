@@ -1,4 +1,6 @@
-﻿using System.Net;
+﻿using System.ComponentModel.DataAnnotations;
+using System.Net;
+using System.Text.Json;
 using Asp.Versioning;
 using Asp.Versioning.ApiExplorer;
 using Microsoft.AspNetCore.Authentication;
@@ -6,28 +8,30 @@ using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.OpenApi.Models;
+using Newtonsoft.Json;
 using Npgsql;
 using OpenShock.Common;
 using OpenShock.Common.Models;
 using OpenShock.Common.OpenShockDb;
 using OpenShock.Common.Redis;
 using OpenShock.Common.Serialization;
-using OpenShock.LiveControlGateway.Services;
+using OpenShock.LiveControlGateway.PubSub;
 using OpenShock.ServicesCommon;
 using OpenShock.ServicesCommon.Authentication;
 using OpenShock.ServicesCommon.ExceptionHandle;
+using OpenShock.ServicesCommon.Geo;
 using OpenShock.ServicesCommon.Utils;
 using Redis.OM;
 using Redis.OM.Contracts;
 using Serilog;
 using StackExchange.Redis;
+using JsonSerializer = System.Text.Json.JsonSerializer;
 using WebSocketOptions = Microsoft.AspNetCore.Builder.WebSocketOptions;
 
 namespace OpenShock.LiveControlGateway;
 
 public class Startup
 {
-    public static string EnvString { get; private set; } = null!;
     private ConfigurationOptions _redisConfig;
 
     private readonly ForwardedHeadersOptions _forwardedSettings = new()
@@ -39,12 +43,21 @@ public class Startup
 
     public Startup(IConfiguration configuration)
     {
-        LCGGlobals.LCGConfig = configuration.GetChildren().First(x => x.Key == "OpenShock").Get<LCGConfig>() ??
-                               throw new Exception("Couldnt bind config, check config file");
 #if DEBUG
         var root = (IConfigurationRoot)configuration;
         var debugView = root.GetDebugView();
         Console.WriteLine(debugView);
+#endif
+        LCGGlobals.LCGConfig = configuration.GetChildren().First(x => x.Key.ToLowerInvariant() == "openshock")
+                                   .Get<LCGConfig>() ??
+                               throw new Exception("Couldnt bind config, check config file");
+
+        var validator = new ValidationContext(LCGGlobals.LCGConfig);
+        Validator.ValidateObject(LCGGlobals.LCGConfig, validator, true);
+
+#if DEBUG
+        Console.WriteLine(JsonSerializer.Serialize(LCGGlobals.LCGConfig,
+            new JsonSerializerOptions { WriteIndented = true }));
 #endif
     }
 
@@ -63,7 +76,7 @@ public class Startup
             builder.EnableSensitiveDataLogging();
             builder.EnableDetailedErrors();
         });
-        
+
         _redisConfig = new ConfigurationOptions
         {
             AbortOnConnectFail = true,
@@ -92,12 +105,11 @@ public class Startup
         //     Password = APIGlobals.ApiConfig.Redis.Password
         // };
 
-        services.AddGrpc();
-        
         var redis = new RedisConnectionProvider(_redisConfig);
         redis.Connection.CreateIndex(typeof(LoginSession));
         redis.Connection.CreateIndex(typeof(DeviceOnline));
         redis.Connection.CreateIndex(typeof(DevicePair));
+        redis.Connection.CreateIndex(typeof(LcgNode));
         services.AddSingleton<IRedisConnectionProvider>(redis);
 
         // TODO: Is this needed?
@@ -108,6 +120,7 @@ public class Startup
 
         services.AddScoped<IClientAuthService<LinkUser>, ClientAuthService<LinkUser>>();
         services.AddScoped<IClientAuthService<Device>, ClientAuthService<Device>>();
+        services.AddSingleton<IGeoLocation, GeoLocation>();
 
         services.AddWebEncoders();
         services.TryAddSingleton<ISystemClock, SystemClock>();
@@ -159,7 +172,7 @@ public class Startup
                 options.SchemaFilter<AttributeFilter>();
                 options.ParameterFilter<AttributeFilter>();
                 options.OperationFilter<AttributeFilter>();
-                options.IncludeXmlComments(Path.Combine(AppContext.BaseDirectory, "OpenShock.API.xml"));
+                options.IncludeXmlComments(Path.Combine(AppContext.BaseDirectory, "OpenShock.LiveControlGateway.xml"));
                 options.AddSecurityDefinition("OpenShockToken", new OpenApiSecurityScheme
                 {
                     Name = "OpenShockToken",
@@ -191,13 +204,14 @@ public class Startup
         services.ConfigureOptions<ConfigureSwaggerOptions>();
         services.AddSwaggerGenNewtonsoftSupport();
         //services.AddHealthChecks().AddCheck<DatabaseHealthCheck>("database");
+
+        services.AddHostedService<LcgKeepAlive>();
     }
 
     public void Configure(IApplicationBuilder app, IWebHostEnvironment env, ILoggerFactory loggerFactory)
     {
         ApplicationLogging.LoggerFactory = loggerFactory;
         var logger = ApplicationLogging.CreateLogger<Startup>();
-        EnvString = env.EnvironmentName;
         foreach (var proxy in OpenShockConstants.TrustedProxies)
         {
             var split = proxy.Split('/');
@@ -206,13 +220,13 @@ public class Startup
 
         app.UseForwardedHeaders(_forwardedSettings);
         app.UseSerilogRequestLogging();
-        
+
         app.ConfigureExceptionHandler();
 
         // global cors policy
         app.UseCors();
 
-        //PubSubManager.Initialize(ConnectionMultiplexer.Connect(_redisConfig), app.ApplicationServices);
+        PubSubManager.Initialize(ConnectionMultiplexer.Connect(_redisConfig)).Wait();
 
         var webSocketOptions = new WebSocketOptions
         {
@@ -241,12 +255,10 @@ public class Startup
                     ResponseWriter = UiResponseWriter.WriteHealthCheckUiResponse
                 });*/
             endpoints.MapControllers();
-            endpoints.MapGrpcService<GreeterService>();
             // endpoints.MapHub<UserHub>("/1/hubs/user",
             //     options => { options.Transports = HttpTransportType.WebSockets; });
             // endpoints.MapHub<ShareLinkHub>("/1/hubs/share/link/{id}",
             //     options => { options.Transports = HttpTransportType.WebSockets; });
         });
-
     }
 }
