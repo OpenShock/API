@@ -22,6 +22,9 @@ jobs:
 
   build:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        project: [API, LiveControlGateway]
 
     steps:
       - name: Checkout
@@ -47,7 +50,7 @@ jobs:
       - name: Publish LiveControlGateway
         run: dotnet publish LiveControlGateway/LiveControlGateway.csproj -c Release -o ./publish/LiveControlGateway
       
-      - name: Upload full artifacts
+      - name: Upload API artifacts
         uses: actions/upload-artifact@v3
         with:
           name: API
@@ -55,11 +58,11 @@ jobs:
           retention-days: 1
           if-no-files-found: error
       
-      - name: Upload LiveControlGateway app
+      - name: Upload LiveControlGateway artifacts
         uses: actions/upload-artifact@v3
         with:
           name: LiveControlGateway
-          path: publish/API/*
+          path: publish/LiveControlGateway/*
           retention-days: 1
           if-no-files-found: error
       
