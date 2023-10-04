@@ -2,15 +2,17 @@ on:
   push:
     branches:
       - master
+      - develop
   pull_request:
     branches:
       - master
+      - develop
     types: [opened, reopened, synchronize]
 
-name: ci-master
+name: ci-build
 
 env:
-  BRANCH: master
+  BRANCH: ${{ github.ref_name }}
   DOTNET_VERSION: 7.0.x
   REGISTRY: ghcr.io
   IMAGE_NAME: ${{ github.repository_owner }}/api
@@ -52,8 +54,8 @@ jobs:
       - name: Upload internal artifacts
         uses: actions/upload-artifact@v3
         with:
-          name: only-shocklink-dlls
-          path: publish/ShockLink.*.dll
+          name: only-openshock-dlls
+          path: publish/OpenShock.*.dll
           retention-days: 1
           if-no-files-found: error
 
