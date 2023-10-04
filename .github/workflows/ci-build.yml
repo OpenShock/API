@@ -3,6 +3,7 @@ on:
     branches:
       - master
       - develop
+      - feature/live-control-ci
   pull_request:
     branches:
       - master
@@ -21,9 +22,6 @@ jobs:
 
   build:
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        project: [API, LiveControlGateway]
 
     steps:
       - name: Checkout
@@ -94,12 +92,16 @@ jobs:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Get image name
+        id: name
+        run: echo "name=${{ matrix.project }}" | tr '[:upper:]' '[:lower:]' >> $GITHUB_OUTPUT
       
       - name: Extract metadata (tags, labels) for Docker
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          images: ${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ steps.name.outputs.name }}
           tags: |
             type=raw,value={{branch}},enable=${{ github.ref_name == env.BRANCH }}
             type=ref,event=branch
