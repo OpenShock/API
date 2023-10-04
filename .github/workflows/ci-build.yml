@@ -22,9 +22,6 @@ jobs:
 
   build:
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        project: [API, LiveControlGateway]
 
     steps:
       - name: Checkout
