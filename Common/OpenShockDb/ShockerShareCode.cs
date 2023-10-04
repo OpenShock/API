@@ -1,4 +1,7 @@
-﻿namespace OpenShock.Common.OpenShockDb;
+﻿using System;
+using System.Collections.Generic;
+
+namespace OpenShock.Common.OpenShockDb;
 
 public partial class ShockerShareCode
 {

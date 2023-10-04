@@ -6,8 +6,8 @@
         <ImplicitUsings>enable</ImplicitUsings>
         <AssemblyName>OpenShock.API</AssemblyName>
         <RootNamespace>OpenShock.API</RootNamespace>
-        <AssemblyVersion>1.5.1</AssemblyVersion>
-        <FileVersion>1.5.1</FileVersion>
+        <AssemblyVersion>1.5.2</AssemblyVersion>
+        <FileVersion>1.5.2</FileVersion>
         <GenerateDocumentationFile>true</GenerateDocumentationFile>
         <Company>OpenShock</Company>
         <Product>API</Product>
@@ -34,7 +34,6 @@
             <PrivateAssets>all</PrivateAssets>
             <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
         </PackageReference>
-        <PackageReference Include="Microsoft.IO.RecyclableMemoryStream" Version="2.3.2" />
         <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="7.0.11" />
         <PackageReference Include="OneOf" Version="3.0.263" />
         <PackageReference Include="Redis.OM" Version="0.5.3" />

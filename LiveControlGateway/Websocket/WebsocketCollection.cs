@@ -1,12 +1,9 @@
 ﻿using System.Collections.Concurrent;
-using OpenShock.API.Controller;
-using OpenShock.API.Utils;
-using OpenShock.Common.Models.WebSocket;
-using OpenShock.ServicesCommon;
+using FlatSharp;
 
-namespace OpenShock.API.Realtime;
+namespace OpenShock.LiveControlGateway.Websocket;
 
-public class WebsocketCollection<T> where T : Enum
+public class WebsocketCollection<T> where T : class, IFlatBufferSerializable
 {
     private readonly ConcurrentDictionary<Guid, List<IWebsocketController<T>>> _websockets = new();
 
@@ -41,7 +38,7 @@ public class WebsocketCollection<T> where T : Enum
         return Array.Empty<IWebsocketController<T>>();
     }
 
-    public async ValueTask SendMessageTo(Guid id, IBaseResponse<T> msg)
+    public async ValueTask SendMessageTo(Guid id, T msg)
     {
         var list = GetConnections(id);
 
@@ -53,15 +50,15 @@ public class WebsocketCollection<T> where T : Enum
         }
     }
 
-    public Task SendMessageTo(IBaseResponse<T> msg, params Guid[] id) => SendMessageTo(id, msg);
+    public Task SendMessageTo(T msg, params Guid[] id) => SendMessageTo(id, msg);
 
-    public Task SendMessageTo(IEnumerable<Guid> id, IBaseResponse<T> msg)
+    public Task SendMessageTo(IEnumerable<Guid> id, T msg)
     {
         var tasks = id.Select(x => SendMessageTo(x, msg).AsTask());
         return Task.WhenAll(tasks);
     }
 
-    public async ValueTask SendMessageToAll(IBaseResponse<T> msg)
+    public async ValueTask SendMessageToAll(T msg)
     {
         // Im cloning a moment-in-time snapshot on purpose here, so we dont miss any connections.
         // This is fine since this is not regularly called, and does not need to be realtime.
