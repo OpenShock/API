@@ -1,6 +1,5 @@
-﻿using System.Net;
-using MaxMind.GeoIP2;
-using OpenShock.Common.Redis;
+﻿using OpenShock.Common.Redis;
+using OpenShock.Common.Utils;
 using Redis.OM.Contracts;
 using Redis.OM.Searching;
 
@@ -8,29 +7,26 @@ namespace OpenShock.ServicesCommon.Geo;
 
 public class GeoLocation : IGeoLocation
 {
+    private readonly ILogger<GeoLocation> _logger;
     private readonly IRedisCollection<LcgNode> _lcgNodes;
     
-    public GeoLocation(IRedisConnectionProvider redisConnectionProvider)
+    public GeoLocation(IRedisConnectionProvider redisConnectionProvider, ILogger<GeoLocation> logger)
     {
+        _logger = logger;
         _lcgNodes = redisConnectionProvider.RedisCollection<LcgNode>(false);
     }
     
-    public async Task<LcgNode?> GetClosestNode(IPAddress ipAddress)
+    public async Task<LcgNode?> GetClosestNode(CountryCodeMapper.CountryInfo country)
     {
-        ipAddress = IPAddress.Parse("123.123.123.123"); // Example IP
-        using var geoDb = new DatabaseReader(Path.Combine(Environment.CurrentDirectory, "GeoLite2-City.mmdb"));
-        var city = geoDb.TryCity(ipAddress, out var cityResponse);
-        Console.WriteLine(cityResponse);
-
         var nodes = await _lcgNodes.ToListAsync();
-        nodes.Add(new LcgNode
-        {
-            Fqdn = "eu1.gateway.shocklink.net",
-            Country = "DE",
-            Load = 0
-        });
+        var orderedNodes = nodes
+            .OrderBy(x => CountryCodeMapper.GetCountryOrDefault(x.Country).DistanceTo(country))
+            .ThenBy(x => x.Load);
 
-
-        return default;
+        var node = orderedNodes.FirstOrDefault();
+        if(node == null) _logger.LogWarning("No LCG nodes available!");
+        else if(_logger.IsEnabled(LogLevel.Debug)) _logger.LogDebug("LCG node provisioned: {@LcgNode}", node);
+        
+        return node;
     }
 }

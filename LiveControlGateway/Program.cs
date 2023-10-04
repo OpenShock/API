@@ -29,9 +29,12 @@ builder.UseContentRoot(Directory.GetCurrentDirectory())
         webBuilder.UseKestrel();
         webBuilder.ConfigureKestrel(serverOptions =>
         {
-            serverOptions.ListenAnyIP(80);
+
 #if DEBUG
-            serverOptions.ListenAnyIP(443, options => { options.UseHttps("devcert.pfx"); });
+            serverOptions.ListenAnyIP(580);
+            serverOptions.ListenAnyIP(5443, options => { options.UseHttps("devcert.pfx"); });
+#else
+            serverOptions.ListenAnyIP(80);
 #endif
             serverOptions.Limits.RequestHeadersTimeout = TimeSpan.FromMilliseconds(3000);
         });

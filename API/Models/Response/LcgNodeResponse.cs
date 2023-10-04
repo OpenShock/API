@@ -2,5 +2,6 @@
 
 public class LcgNodeResponse
 {
-    
+    public required string Fqdn { get; set; }
+    public required string Country { get; set; }
 }

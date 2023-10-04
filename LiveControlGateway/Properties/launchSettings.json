@@ -4,10 +4,12 @@
       "commandName": "Project",
       "dotnetRunMessages": true,
       "environmentVariables": {
-        "ASPNETCORE_ENVIRONMENT": "Production",
-        //"OPENSHOCK__DB": "Host=docker-node;Port=1337;Database=root;Username=root;Password=root;Search Path=openshock",
-        //"OPENSHOCK__REDIS__HOST":"docker-node",
-        "OPENSHOCK__REDIS__HOST":"localhost",
+        "ASPNETCORE_ENVIRONMENT": "Development",
+        "OPENSHOCK__DB": "Host=docker-node;Port=1337;Database=root;Username=root;Password=root;Search Path=openshock",
+        "OPENSHOCK__FQDN": "test.gateway.shocklink.net",
+        "OPENSHOCK__COUNTRYCODE": "DE",
+        "OPENSHOCK__REDIS__HOST":"docker-node",
+        //"OPENSHOCK__REDIS__HOST":"localhost",
         "OPENSHOCK__REDIS__PASSWORD": ""
       }
     }

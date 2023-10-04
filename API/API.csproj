@@ -71,11 +71,5 @@
         <None Include="devcert.pfx" CopyToPublishDirectory="Always" />
         <ProjectReference Include="..\ServicesCommon\ServicesCommon.csproj" />
     </ItemGroup>
-    
-    <ItemGroup>
-      <Resource Include="GeoLite2-City.mmdb">
-        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-      </Resource>
-    </ItemGroup>
 
 </Project>

@@ -1,4 +1,6 @@
-﻿using System.Net;
+﻿using System.ComponentModel.DataAnnotations;
+using System.Net;
+using System.Text.Json;
 using Asp.Versioning;
 using Asp.Versioning.ApiExplorer;
 using Microsoft.AspNetCore.Authentication;
@@ -6,6 +8,7 @@ using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.OpenApi.Models;
+using Newtonsoft.Json;
 using Npgsql;
 using OpenShock.Common;
 using OpenShock.Common.Models;
@@ -22,6 +25,7 @@ using Redis.OM;
 using Redis.OM.Contracts;
 using Serilog;
 using StackExchange.Redis;
+using JsonSerializer = System.Text.Json.JsonSerializer;
 using WebSocketOptions = Microsoft.AspNetCore.Builder.WebSocketOptions;
 
 namespace OpenShock.LiveControlGateway;
@@ -44,8 +48,17 @@ public class Startup
         var debugView = root.GetDebugView();
         Console.WriteLine(debugView);
 #endif
-        LCGGlobals.LCGConfig = configuration.GetChildren().First(x => x.Key.ToLowerInvariant() == "openshock").Get<LCGConfig>() ??
+        LCGGlobals.LCGConfig = configuration.GetChildren().First(x => x.Key.ToLowerInvariant() == "openshock")
+                                   .Get<LCGConfig>() ??
                                throw new Exception("Couldnt bind config, check config file");
+
+        var validator = new ValidationContext(LCGGlobals.LCGConfig);
+        Validator.ValidateObject(LCGGlobals.LCGConfig, validator, true);
+
+#if DEBUG
+        Console.WriteLine(JsonSerializer.Serialize(LCGGlobals.LCGConfig,
+            new JsonSerializerOptions { WriteIndented = true }));
+#endif
     }
 
     public void ConfigureServices(IServiceCollection services)
@@ -63,7 +76,7 @@ public class Startup
             builder.EnableSensitiveDataLogging();
             builder.EnableDetailedErrors();
         });
-        
+
         _redisConfig = new ConfigurationOptions
         {
             AbortOnConnectFail = true,
@@ -91,7 +104,7 @@ public class Startup
         //     User = APIGlobals.ApiConfig.Redis.User,
         //     Password = APIGlobals.ApiConfig.Redis.Password
         // };
-        
+
         var redis = new RedisConnectionProvider(_redisConfig);
         redis.Connection.CreateIndex(typeof(LoginSession));
         redis.Connection.CreateIndex(typeof(DeviceOnline));
@@ -191,6 +204,8 @@ public class Startup
         services.ConfigureOptions<ConfigureSwaggerOptions>();
         services.AddSwaggerGenNewtonsoftSupport();
         //services.AddHealthChecks().AddCheck<DatabaseHealthCheck>("database");
+
+        services.AddHostedService<LcgKeepAlive>();
     }
 
     public void Configure(IApplicationBuilder app, IWebHostEnvironment env, ILoggerFactory loggerFactory)
@@ -205,7 +220,7 @@ public class Startup
 
         app.UseForwardedHeaders(_forwardedSettings);
         app.UseSerilogRequestLogging();
-        
+
         app.ConfigureExceptionHandler();
 
         // global cors policy
@@ -245,6 +260,5 @@ public class Startup
             // endpoints.MapHub<ShareLinkHub>("/1/hubs/share/link/{id}",
             //     options => { options.Transports = HttpTransportType.WebSockets; });
         });
-
     }
 }
