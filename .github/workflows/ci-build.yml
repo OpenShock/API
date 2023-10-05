@@ -9,6 +9,7 @@ on:
       - develop
     types: [opened, reopened, synchronize]
   workflow_call:
+  workflow_dispatch:
 
 name: ci-build
 
@@ -107,10 +108,15 @@ jobs:
         uses: docker/metadata-action@v5
         with:
           images: ${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ steps.name.outputs.name }}
+          flavor: |
+            latest=false
           tags: |
-            type=raw,value={{branch}},enable=${{ github.ref_name == env.BRANCH }}
+            type=raw,value={{branch}},enable=${{ github.ref_type == 'branch' && github.ref_name == env.BRANCH }}
             type=ref,event=branch
             type=ref,event=pr
+            type=semver,pattern={{major}},enable=${{ !startsWith(github.ref, 'refs/tags/v0.') }}
+            type=semver,pattern={{major}}.{{minor}}
+            type=semver,pattern={{major}}.{{minor}}.{{patch}} 
 
       - name: Build and push
         uses: docker/build-push-action@v5

@@ -1,7 +1,8 @@
 on:
   push:
     tags:
-      - 'v*'
+      - '[0-9]+.[0-9]+.[0-9]+'
+      - '[0-9]+.[0-9]+.[0-9]+-rc[0-9]+'
 
 name: ci-tag
 
@@ -32,3 +33,4 @@ jobs:
         with:
           body_path: README.md
           tag_name: ${{ github.ref_name }}
+          prerelease: ${{ contains(github.ref_name, '-rc') }}
