@@ -7,8 +7,8 @@
         <AssemblyName>OpenShock.LiveControlGateway</AssemblyName>
         <RootNamespace>OpenShock.LiveControlGateway</RootNamespace>
         <Company>OpenShock</Company>
-        <AssemblyVersion>1.5.0</AssemblyVersion>
-        <FileVersion>1.5.0</FileVersion>
+        <AssemblyVersion>1.6.0</AssemblyVersion>
+        <FileVersion>1.6.0</FileVersion>
         <Product>LiveControlGateway</Product>
         <GenerateDocumentationFile>true</GenerateDocumentationFile>
     </PropertyGroup>
