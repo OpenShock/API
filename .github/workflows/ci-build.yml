@@ -9,6 +9,7 @@ on:
       - develop
     types: [opened, reopened, synchronize]
   workflow_call:
+  workflow_dispatch:
 
 name: ci-build
 
