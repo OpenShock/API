@@ -7,8 +7,8 @@
         <AssemblyName>OpenShock.ServicesCommon</AssemblyName>
         <RootNamespace>OpenShock.ServicesCommon</RootNamespace>
         <Company>OpenShock</Company>
-        <AssemblyVersion>1.6.0</AssemblyVersion>
-        <FileVersion>1.6.0</FileVersion>
+        <AssemblyVersion>1.6.1</AssemblyVersion>
+        <FileVersion>1.6.1</FileVersion>
         <OutputType>Library</OutputType>
     </PropertyGroup>
 
