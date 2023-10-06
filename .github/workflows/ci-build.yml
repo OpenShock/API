@@ -107,6 +107,7 @@ jobs:
         id: latest-tag
         with:
           repository: ${{ github.repository }}
+          regex: '^[0-9]+.[0-9]+.[0-9]+$'
           releases-only: false
       
       - name: Extract metadata (tags, labels) for Docker
