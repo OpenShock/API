@@ -46,6 +46,12 @@ public sealed class ShareLinkHub : Hub<IShareLinkHub>
 
         GenericIni? user = null;
 
+        if (httpContext.Request.Query.TryGetValue("session", out var sessionKeyGet) &&
+            !string.IsNullOrEmpty(sessionKeyGet))
+        {
+            user = await SessionAuth(sessionKeyGet!);
+        }
+        
         if (httpContext.Request.Headers.TryGetValue("OpenShockSession", out var sessionKeyHeader) &&
             !string.IsNullOrEmpty(sessionKeyHeader))
         {
