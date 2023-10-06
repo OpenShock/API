@@ -38,16 +38,19 @@ public class LoginSessionAuthentication : AuthenticationHandler<LoginSessionAuth
 
     protected override Task<AuthenticateResult> HandleAuthenticateAsync()
     {
+        if (Context.Request.Query.TryGetValue("session", out var getSession) &&
+            !string.IsNullOrEmpty(getSession)) return SessionAuth(getSession!);
+
         if (Context.Request.Headers.TryGetValue("OpenShockSession", out var sessionKeyHeader) &&
             !string.IsNullOrEmpty(sessionKeyHeader)) return SessionAuth(sessionKeyHeader!);
-        
+
         if (Context.Request.Headers.TryGetValue("ShockLinkToken", out var tokenHeader) &&
             !string.IsNullOrEmpty(tokenHeader)) return TokenAuth(tokenHeader!);
-        
+
         if (Context.Request.Headers.TryGetValue("OpenShockToken", out var tokenHeaderO) &&
             !string.IsNullOrEmpty(tokenHeaderO)) return TokenAuth(tokenHeaderO!);
-        
-        return Task.FromResult(Fail("OpenShockSession/OpenShockToken header/cookie was not found"));
+
+        return Task.FromResult(Fail("OpenShockSession/OpenShockToken header/getparam was not found"));
     }
 
     private async Task<AuthenticateResult> TokenAuth(string token)
@@ -55,7 +58,7 @@ public class LoginSessionAuthentication : AuthenticationHandler<LoginSessionAuth
         var tokenDto = await _db.ApiTokens.Include(x => x.User).SingleOrDefaultAsync(x => x.Token == token &&
             (x.ValidUntil == null || x.ValidUntil >= DateOnly.FromDateTime(DateTime.UtcNow)));
         if (tokenDto == null) return Fail("Token is not valid");
-        
+
         _authService.CurrentClient = new LinkUser
         {
             DbUser = tokenDto.User
@@ -66,10 +69,11 @@ public class LoginSessionAuthentication : AuthenticationHandler<LoginSessionAuth
         var claims = new List<Claim>
         {
             new(ClaimTypes.NameIdentifier, _authService.CurrentClient.DbUser.Id.ToString()),
-            new (ControlLogAdditionalItem.ApiTokenId, tokenDto.Id.ToString())
+            new(ControlLogAdditionalItem.ApiTokenId, tokenDto.Id.ToString())
         };
-        claims.AddRange(tokenDto.Permissions.Select(tokenDtoPermission => PermissionTypeBindings.TypeToName[tokenDtoPermission]));
-        
+        claims.AddRange(tokenDto.Permissions.Select(tokenDtoPermission =>
+            PermissionTypeBindings.TypeToName[tokenDtoPermission]));
+
         var ident = new ClaimsIdentity(claims, nameof(LoginSessionAuthentication));
         var ticket = new AuthenticationTicket(new ClaimsPrincipal(ident), Scheme.Name);
 
@@ -79,9 +83,9 @@ public class LoginSessionAuthentication : AuthenticationHandler<LoginSessionAuth
     private async Task<AuthenticateResult> SessionAuth(string sessionKey)
     {
         var session = await _userSessions.FindByIdAsync(sessionKey);
-        if(session == null) return Fail("Session was not found");
+        if (session == null) return Fail("Session was not found");
 
-        var retrievedUser = await _db.Users.FirstAsync(user => user.Id == session.UserId );
+        var retrievedUser = await _db.Users.FirstAsync(user => user.Id == session.UserId);
 
         _authService.CurrentClient = new LinkUser
         {
@@ -101,7 +105,7 @@ public class LoginSessionAuthentication : AuthenticationHandler<LoginSessionAuth
 
         return AuthenticateResult.Success(ticket);
     }
-    
+
     private AuthenticateResult Fail(string reason)
     {
         _failReason = reason;

@@ -77,7 +77,7 @@ public sealed class ShareLinkHub : Hub<IShareLinkHub>
                 {
                     Id = Guid.Empty,
                     Name = "Guest",
-                    Image = new Uri("https://www.gravatar.com/avatar/0"),
+                    Image = new Uri("https://www.gravatar.com/avatar/0?d=https%3A%2F%2Fshocklink.net%2Fstatic%2Fimages%2FIcon512.png"),
                     ConnectionId = Context.ConnectionId,
                     CustomName = customName,
                     AdditionalItems = additionalItems

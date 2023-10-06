@@ -1,4 +1,6 @@
-﻿namespace OpenShock.API.Models.Response;
+﻿using System.Text.Json.Serialization;
+
+namespace OpenShock.API.Models.Response;
 
 public class LoginResponse
 {
