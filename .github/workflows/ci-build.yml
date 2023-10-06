@@ -14,7 +14,6 @@ on:
 name: ci-build
 
 env:
-  BRANCH: ${{ github.ref_name }}
   DOTNET_VERSION: 7.0.x
   REGISTRY: ghcr.io
 
@@ -103,7 +102,8 @@ jobs:
         id: name
         run: echo "name=$(echo "${{ matrix.project }}" | sed -r 's|([a-z0-9])([A-Z])|\1-\L\2|g;s|([A-Z])|\L\1|g')" >> $GITHUB_OUTPUT
       
-      - uses: oprypin/find-latest-tag@v1
+      - name: Find latest tag
+        uses: oprypin/find-latest-tag@v1
         id: latest-tag
         with:
           repository: ${{ github.repository }}
@@ -117,7 +117,7 @@ jobs:
           flavor: |
             latest=false
           tags: |
-            type=raw,value={{branch}},enable=${{ github.ref_type == 'branch' && github.ref_name == env.BRANCH }}
+            type=raw,value={{branch}},enable=${{ github.ref_type == 'branch' && github.event_name != 'pull_request' }}
             type=raw,value=latest,enable=${{ steps.latest-tag.outputs.tag == github.ref_name }}
             type=ref,event=branch
             type=ref,event=pr
