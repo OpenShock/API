@@ -103,6 +103,12 @@ jobs:
         id: name
         run: echo "name=$(echo "${{ matrix.project }}" | sed -r 's|([a-z0-9])([A-Z])|\1-\L\2|g;s|([A-Z])|\L\1|g')" >> $GITHUB_OUTPUT
       
+      - uses: oprypin/find-latest-tag@v1
+        id: latest-tag
+        with:
+          repository: ${{ github.repository }}
+          releases-only: false
+      
       - name: Extract metadata (tags, labels) for Docker
         id: meta
         uses: docker/metadata-action@v5
@@ -112,6 +118,7 @@ jobs:
             latest=false
           tags: |
             type=raw,value={{branch}},enable=${{ github.ref_type == 'branch' && github.ref_name == env.BRANCH }}
+            type=raw,value=latest,enable=${{ steps.latest-tag.outputs.tag == github.ref_name }}
             type=ref,event=branch
             type=ref,event=pr
             type=semver,pattern={{major}},enable=${{ !startsWith(github.ref, 'refs/tags/v0.') }}
