@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using OpenShock.API.Models.Requests;
+using OpenShock.API.Models.Response;
 using OpenShock.API.Utils;
 using OpenShock.Common.Models;
 using OpenShock.Common.OpenShockDb;
@@ -21,6 +22,7 @@ public class LoginController : OpenShockControllerBase
     private readonly OpenShockContext _db;
     private readonly ILogger<LoginController> _logger;
     private readonly IRedisCollection<LoginSession> _loginSessions;
+    public static readonly TimeSpan SessionLifetime = TimeSpan.FromDays(30);
 
     public LoginController(OpenShockContext db, ILogger<LoginController> logger, IRedisConnectionProvider provider)
     {
@@ -30,28 +32,20 @@ public class LoginController : OpenShockControllerBase
     }
     
     [HttpPost]
-    public async Task<BaseResponse<object>> Login(Login data)
+    public async Task<BaseResponse<LoginResponse>> Login(Login data)
     {
         var user = await _db.Users.SingleOrDefaultAsync(x => x.Email == data.Email.ToLowerInvariant());
         if (user == null || !SecurePasswordHasher.Verify(data.Password, user.Password))
         {
             _logger.LogInformation("Failed to authenticate with email [{Email}]", data.Email);
-            return EBaseResponse<object>("The provided credentials do not match any account",
+            return EBaseResponse<LoginResponse>("The provided credentials do not match any account",
                 HttpStatusCode.Unauthorized);
         }
 
-        if (!user.EmailActived) return EBaseResponse<object>("You must activate your account first, before you can login",
+        if (!user.EmailActived) return EBaseResponse<LoginResponse>("You must activate your account first, before you can login",
                 HttpStatusCode.Forbidden);
         
         var randomSessionId = CryptoUtils.RandomString(64);
-        
-        HttpContext.Response.Cookies.Append("openShockSession", randomSessionId, new CookieOptions
-        {
-            Expires = new DateTimeOffset(DateTime.UtcNow.AddDays(30)),
-            Secure = true,
-            HttpOnly = true,
-            SameSite = SameSiteMode.Strict
-        });
         
         await _loginSessions.InsertAsync(new LoginSession
         {
@@ -59,11 +53,16 @@ public class LoginController : OpenShockControllerBase
             UserId = user.Id,
             UserAgent = HttpContext.Request.Headers.UserAgent.ToString(),
             Ip = HttpContext.Connection.RemoteIpAddress?.MapToIPv4().ToString() ?? string.Empty,
-        }, TimeSpan.FromDays(30));
+        }, SessionLifetime);
         
-        return new BaseResponse<object>
+        return new BaseResponse<LoginResponse>
         {
-            Message = "Successfully signed in"
+            Message = "Successfully signed in",
+            Data = new LoginResponse
+            {
+                SessionToken = randomSessionId,
+                ValidUntil = DateTime.UtcNow.Add(SessionLifetime)
+            }
         };
     }
 }

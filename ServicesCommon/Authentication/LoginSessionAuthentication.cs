@@ -40,9 +40,6 @@ public class LoginSessionAuthentication : AuthenticationHandler<LoginSessionAuth
     {
         if (Context.Request.Headers.TryGetValue("OpenShockSession", out var sessionKeyHeader) &&
             !string.IsNullOrEmpty(sessionKeyHeader)) return SessionAuth(sessionKeyHeader!);
-
-        if (Context.Request.Cookies.TryGetValue("openShockSession", out var accessKeyCookie) &&
-            !string.IsNullOrEmpty(accessKeyCookie)) return SessionAuth(accessKeyCookie);
         
         if (Context.Request.Headers.TryGetValue("ShockLinkToken", out var tokenHeader) &&
             !string.IsNullOrEmpty(tokenHeader)) return TokenAuth(tokenHeader!);
