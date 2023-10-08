@@ -32,17 +32,17 @@ public class LoginController : OpenShockControllerBase
     }
     
     [HttpPost]
-    public async Task<BaseResponse<LoginResponse>> Login(Login data)
+    public async Task<BaseResponse<object>> Login(Login data)
     {
         var user = await _db.Users.SingleOrDefaultAsync(x => x.Email == data.Email.ToLowerInvariant());
         if (user == null || !SecurePasswordHasher.Verify(data.Password, user.Password))
         {
             _logger.LogInformation("Failed to authenticate with email [{Email}]", data.Email);
-            return EBaseResponse<LoginResponse>("The provided credentials do not match any account",
+            return EBaseResponse<object>("The provided credentials do not match any account",
                 HttpStatusCode.Unauthorized);
         }
 
-        if (!user.EmailActived) return EBaseResponse<LoginResponse>("You must activate your account first, before you can login",
+        if (!user.EmailActived) return EBaseResponse<object>("You must activate your account first, before you can login",
                 HttpStatusCode.Forbidden);
         
         var randomSessionId = CryptoUtils.RandomString(64);
@@ -55,14 +55,17 @@ public class LoginController : OpenShockControllerBase
             Ip = HttpContext.Connection.RemoteIpAddress?.MapToIPv4().ToString() ?? string.Empty,
         }, SessionLifetime);
         
-        return new BaseResponse<LoginResponse>
+        HttpContext.Response.Cookies.Append("openShockSession", randomSessionId, new CookieOptions
         {
-            Message = "Successfully signed in",
-            Data = new LoginResponse
-            {
-                SessionToken = randomSessionId,
-                ValidUntil = DateTime.UtcNow.Add(SessionLifetime)
-            }
+            Expires = new DateTimeOffset(DateTime.UtcNow.Add(SessionLifetime)),
+            Secure = true,
+            HttpOnly = true,
+            SameSite = SameSiteMode.Strict
+        });
+        
+        return new BaseResponse<object>
+        {
+            Message = "Successfully signed in"
         };
     }
 }
