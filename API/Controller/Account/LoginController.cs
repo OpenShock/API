@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using OpenShock.API.Models.Requests;
+using OpenShock.API.Models.Response;
 using OpenShock.API.Utils;
 using OpenShock.Common.Models;
 using OpenShock.Common.OpenShockDb;
@@ -21,6 +22,7 @@ public class LoginController : OpenShockControllerBase
     private readonly OpenShockContext _db;
     private readonly ILogger<LoginController> _logger;
     private readonly IRedisCollection<LoginSession> _loginSessions;
+    public static readonly TimeSpan SessionLifetime = TimeSpan.FromDays(30);
 
     public LoginController(OpenShockContext db, ILogger<LoginController> logger, IRedisConnectionProvider provider)
     {
@@ -45,21 +47,21 @@ public class LoginController : OpenShockControllerBase
         
         var randomSessionId = CryptoUtils.RandomString(64);
         
-        HttpContext.Response.Cookies.Append("openShockSession", randomSessionId, new CookieOptions
-        {
-            Expires = new DateTimeOffset(DateTime.UtcNow.AddDays(30)),
-            Secure = true,
-            HttpOnly = true,
-            SameSite = SameSiteMode.Strict
-        });
-        
         await _loginSessions.InsertAsync(new LoginSession
         {
             Id = randomSessionId,
             UserId = user.Id,
             UserAgent = HttpContext.Request.Headers.UserAgent.ToString(),
             Ip = HttpContext.Connection.RemoteIpAddress?.MapToIPv4().ToString() ?? string.Empty,
-        }, TimeSpan.FromDays(30));
+        }, SessionLifetime);
+        
+        HttpContext.Response.Cookies.Append("openShockSession", randomSessionId, new CookieOptions
+        {
+            Expires = new DateTimeOffset(DateTime.UtcNow.Add(SessionLifetime)),
+            Secure = true,
+            HttpOnly = true,
+            SameSite = SameSiteMode.Strict
+        });
         
         return new BaseResponse<object>
         {

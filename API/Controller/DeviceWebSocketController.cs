@@ -128,7 +128,8 @@ public class DeviceWebSocketController : WebsocketControllerBase<ResponseType>
             {
                 Id = _currentDevice.Id,
                 Owner = _currentDevice.Owner,
-                FirmwareVersion = FirmwareVersion
+                FirmwareVersion = FirmwareVersion,
+                Gateway = null
             }, TimeSpan.FromSeconds(65));
             return;
         }

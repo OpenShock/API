@@ -2,9 +2,12 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
+using OpenShock.Common.Redis;
+using OpenShock.Common.Utils;
 using OpenShock.LiveControlGateway.Websocket;
 using OpenShock.Serialization;
 using OpenShock.ServicesCommon.Authentication;
+using Redis.OM.Contracts;
 
 namespace OpenShock.LiveControlGateway.Controllers;
 
@@ -17,6 +20,7 @@ namespace OpenShock.LiveControlGateway.Controllers;
 public sealed class DeviceController : WebsocketBaseController<ServerToDeviceMessage>
 {
     private Common.OpenShockDb.Device _currentDevice = null!;
+    private IRedisConnectionProvider _redisConnectionProvider;
 
     /// <summary>
     /// Authentication context
@@ -24,23 +28,27 @@ public sealed class DeviceController : WebsocketBaseController<ServerToDeviceMes
     /// <param name="context"></param>
     public override void OnActionExecuting(ActionExecutingContext context)
     {
-        _currentDevice = ControllerContext.HttpContext.RequestServices.GetRequiredService<IClientAuthService<Common.OpenShockDb.Device>>()
+        _currentDevice = ControllerContext.HttpContext.RequestServices
+            .GetRequiredService<IClientAuthService<Common.OpenShockDb.Device>>()
             .CurrentClient;
         base.OnActionExecuting(context);
     }
 
     /// <inheritdoc />
     public override Guid Id => _currentDevice.Id;
-    
-    
+
+
     /// <summary>
     /// DI
     /// </summary>
     /// <param name="logger"></param>
     /// <param name="lifetime"></param>
-    public DeviceController(ILogger<DeviceController> logger, IHostApplicationLifetime lifetime)
+    /// <param name="redisConnectionProvider"></param>
+    public DeviceController(ILogger<DeviceController> logger, IHostApplicationLifetime lifetime,
+        IRedisConnectionProvider redisConnectionProvider)
         : base(logger, lifetime, ServerToDeviceMessage.Serializer)
     {
+        _redisConnectionProvider = redisConnectionProvider;
     }
 
     /// <inheritdoc />
@@ -53,12 +61,12 @@ public sealed class DeviceController : WebsocketBaseController<ServerToDeviceMes
             {
                 if (WebSocket!.State == WebSocketState.Aborted) return;
                 var message =
-                    await WebSocketUtils.ReceiveFullMessageAsyncNonAlloc(WebSocket, _flatBuffersSerializer, Linked.Token);
+                    await WebSocketUtils.ReceiveFullMessageAsyncNonAlloc(WebSocket, DeviceToServerMessage.Serializer,
+                        Linked.Token);
                 result = message.Item1;
 
                 if (result.Value.MessageType == WebSocketMessageType.Close && WebSocket.State == WebSocketState.Open)
                 {
-                    //await SelfOffline();
                     try
                     {
                         await WebSocket.CloseAsync(WebSocketCloseStatus.NormalClosure, "Normal close", Linked.Token);
@@ -73,8 +81,10 @@ public sealed class DeviceController : WebsocketBaseController<ServerToDeviceMes
                     return;
                 }
 
-                var json = message.Item2;
-                if (json == null) continue;
+                if (message.Item2 is not { Payload: not null }) continue;
+#pragma warning disable CS4014
+                LucTask.Run(() => Handle(message.Item2.Payload.Value));
+#pragma warning restore CS4014
             }
             catch (OperationCanceledException)
             {
@@ -96,9 +106,56 @@ public sealed class DeviceController : WebsocketBaseController<ServerToDeviceMes
         Close.Cancel();
     }
 
+    private async Task Handle(DeviceToServerMessagePayload payload)
+    {
+        switch (payload.Kind)
+        {
+            case DeviceToServerMessagePayload.ItemKind.KeepAlive:
+                await SelfOnline();
+                break;
+            case DeviceToServerMessagePayload.ItemKind.NONE:
+            default:
+                Logger.LogWarning("Payload kind not defined [{Kind}]", payload.Kind);
+                break;
+        }
+    }
+
+    private async Task SelfOnline()
+    {
+        var deviceOnline = _redisConnectionProvider.RedisCollection<DeviceOnline>();
+        var deviceId = _currentDevice.Id.ToString();
+        var online = await deviceOnline.FindByIdAsync(deviceId);
+        if (online == null)
+        {
+            await deviceOnline.InsertAsync(new DeviceOnline
+            {
+                Id = _currentDevice.Id,
+                Owner = _currentDevice.Owner,
+                FirmwareVersion = FirmwareVersion,
+                Gateway = LCGGlobals.LCGConfig.Fqdn
+            }, TimeSpan.FromSeconds(35));
+            return;
+        }
+
+        if (online.FirmwareVersion != FirmwareVersion)
+        {
+            online.FirmwareVersion = FirmwareVersion;
+            await deviceOnline.SaveAsync();
+            Logger.LogInformation("Updated firmware version of online device");
+        }
+
+        await _redisConnectionProvider.Connection.ExecuteAsync("EXPIRE",
+            $"{typeof(DeviceOnline).FullName}:{_currentDevice.Id}", "15");
+    }
+
+    private Version? FirmwareVersion { get; set; }
+
     /// <inheritdoc />
     protected override void RegisterConnection()
     {
+        if (HttpContext.Request.Headers.TryGetValue("FirmwareVersion", out var header) &&
+            Version.TryParse(header, out var version)) FirmwareVersion = version;
+
         WebsocketManager.ServerToDevice.RegisterConnection(this);
     }
 

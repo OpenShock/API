@@ -45,17 +45,17 @@ public sealed class ShareLinkHub : Hub<IShareLinkHub>
         }
 
         GenericIni? user = null;
-
-        if (httpContext.Request.Headers.TryGetValue("OpenShockSession", out var sessionKeyHeader) &&
-            !string.IsNullOrEmpty(sessionKeyHeader))
-        {
-            user = await SessionAuth(sessionKeyHeader!);
-        }
-
+        
         if (httpContext.Request.Cookies.TryGetValue("openShockSession", out var accessKeyCookie) &&
             !string.IsNullOrEmpty(accessKeyCookie))
         {
             user = await SessionAuth(accessKeyCookie);
+        }
+        
+        if (httpContext.Request.Headers.TryGetValue("OpenShockSession", out var sessionKeyHeader) &&
+            !string.IsNullOrEmpty(sessionKeyHeader))
+        {
+            user = await SessionAuth(sessionKeyHeader!);
         }
         
         // TODO: Add token auth
@@ -83,7 +83,7 @@ public sealed class ShareLinkHub : Hub<IShareLinkHub>
                 {
                     Id = Guid.Empty,
                     Name = "Guest",
-                    Image = new Uri("https://www.gravatar.com/avatar/0"),
+                    Image = new Uri("https://www.gravatar.com/avatar/0?d=https%3A%2F%2Fshocklink.net%2Fstatic%2Fimages%2FIcon512.png"),
                     ConnectionId = Context.ConnectionId,
                     CustomName = customName,
                     AdditionalItems = additionalItems

@@ -52,7 +52,8 @@ public class Startup
         var debugView = root.GetDebugView();
         Console.WriteLine(debugView);
 #endif
-        APIGlobals.ApiConfig = configuration.GetChildren().First(x => x.Key.ToLowerInvariant() == "openshock").Get<ApiConfig>() ??
+        APIGlobals.ApiConfig = configuration.GetChildren().First(x => x.Key.ToLowerInvariant() == "openshock")
+                                   .Get<ApiConfig>() ??
                                throw new Exception("Couldnt bind config, check config file");
     }
 
@@ -71,7 +72,7 @@ public class Startup
             builder.EnableSensitiveDataLogging();
             builder.EnableDetailedErrors();
         });
-        
+
         _redisConfig = new ConfigurationOptions
         {
             AbortOnConnectFail = true,
@@ -222,7 +223,7 @@ public class Startup
 
         app.UseForwardedHeaders(_forwardedSettings);
         app.UseSerilogRequestLogging();
-        
+
         app.ConfigureExceptionHandler();
 
         // global cors policy
