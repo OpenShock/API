@@ -124,7 +124,7 @@ jobs:
             type=ref,event=pr
             type=semver,pattern={{major}},enable=${{ !startsWith(github.ref, 'refs/tags/v0.') }}
             type=semver,pattern={{major}}.{{minor}}
-            type=semver,pattern={{major}}.{{minor}}.{{patch}} 
+            type=semver,pattern={{major}}.{{minor}}.{{patch}}
 
       - name: Build and push
         uses: docker/build-push-action@v5
@@ -135,12 +135,30 @@ jobs:
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
 
-  deploy:
+  deploy-production:
     runs-on: ubuntu-latest
-    needs: publish
-    if: ${{ github.ref_type == 'branch' && github.ref_protected && github.event_name != 'pull_request' }}
+    needs: containerize
+    if: ${{ github.ref_type == 'branch' && github.ref_protected && github.event_name != 'pull_request' && github.ref_name == 'production' }}
+    environment: production
 
     steps:
       - name: Call deployment webhook
+        shell: bash
+        env:
+          WEBHOOK_URL: ${{ secrets.WEBHOOK_URL }}
         run: |
-          curl -X HEAD -d "" ${{ secrets.WEBHOOK_URL }}
+          curl -X POST -d "" "$WEBHOOK_URL"
+
+  deploy-develp:
+    runs-on: ubuntu-latest
+    needs: containerize
+    if: ${{ github.ref_type == 'branch' && github.ref_protected && github.event_name != 'pull_request' && github.ref_name == 'develop' }}
+    environment: develp
+
+    steps:
+      - name: Call deployment webhook
+        shell: bash
+        env:
+          WEBHOOK_URL: ${{ secrets.WEBHOOK_URL }}
+        run: |
+          curl -X POST -d "" "$WEBHOOK_URL"
