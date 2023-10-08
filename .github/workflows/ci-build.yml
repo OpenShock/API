@@ -138,7 +138,7 @@ jobs:
   deploy-production:
     runs-on: ubuntu-latest
     needs: containerize
-    if: ${{ github.ref_type == 'branch' && github.ref_protected && github.event_name != 'pull_request' && github.ref_name == 'production' }}
+    if: ${{ github.ref_type == 'branch' && github.event_name != 'pull_request' && github.ref_name == 'master' }}
     environment: production
 
     steps:
@@ -152,7 +152,7 @@ jobs:
   deploy-staging:
     runs-on: ubuntu-latest
     needs: containerize
-    if: ${{ github.ref_type == 'branch' && github.ref_protected && github.event_name != 'pull_request' && github.ref_name == 'develop' }}
+    if: ${{ github.ref_type == 'branch' && github.event_name != 'pull_request' && github.ref_name == 'develop' }}
     environment: staging
 
     steps:
