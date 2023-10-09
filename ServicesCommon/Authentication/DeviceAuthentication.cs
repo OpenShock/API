@@ -36,6 +36,11 @@ public class DeviceAuthentication : AuthenticationHandler<DeviceAuthenticationSc
         {
             sessionKey = sessionKeyHeader!;
         }
+        else if (Context.Request.Headers.TryGetValue("Device-Token", out var sessionKeyHeader2) &&
+                            !string.IsNullOrEmpty(sessionKeyHeader2))
+        {
+            sessionKey = sessionKeyHeader2!;
+        }
         else return Fail("DeviceToken header was not found");
 
         var device = await _db.Devices.Where(x => x.Token == sessionKey).SingleOrDefaultAsync();

@@ -162,7 +162,7 @@ public sealed class DeviceController : WebsocketBaseController<ServerToDeviceMes
     /// <inheritdoc />
     protected override void RegisterConnection()
     {
-        if (HttpContext.Request.Headers.TryGetValue("FirmwareVersion", out var header) &&
+        if (HttpContext.Request.Headers.TryGetValue("Firmware-Version", out var header) &&
             Version.TryParse(header, out var version)) FirmwareVersion = version;
 
         WebsocketManager.ServerToDevice.RegisterConnection(this);
