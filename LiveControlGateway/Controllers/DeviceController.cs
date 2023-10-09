@@ -54,8 +54,7 @@ public sealed class DeviceController : WebsocketBaseController<ServerToDeviceMes
     /// <inheritdoc />
     protected override async Task Logic()
     {
-        ValueWebSocketReceiveResult? result = null;
-        do
+        while (true)
         {
             try
             {
@@ -64,48 +63,43 @@ public sealed class DeviceController : WebsocketBaseController<ServerToDeviceMes
                     await WebSocketUtils.ReceiveFullMessageAsyncNonAlloc(WebSocket, DeviceToServerMessage.Serializer,
                         Linked.Token);
 
-                await message.Match(serverMessage =>
+                if (message.IsT2)
+                {
+                    if (WebSocket.State != WebSocketState.Open)
                     {
-                        if (serverMessage?.Payload == null) return Task.CompletedTask;
+                        Logger.LogWarning("Client sent closure, but connection state is not open");
+                        break;
+                    }
+
+                    try
+                    {
+                        await WebSocket.CloseAsync(WebSocketCloseStatus.NormalClosure, "Normal close",
+                            Linked.Token);
+                    }
+                    catch (OperationCanceledException e)
+                    {
+                        Logger.LogError(e, "Error during close handshake");
+                    }
+
+                    Logger.LogInformation("Closing websocket connection");
+                    break;
+                }
+
+                message.Switch(serverMessage =>
+                    {
+                        if (serverMessage?.Payload == null) return;
                         var payload = serverMessage.Payload.Value;
 #pragma warning disable CS4014
                         LucTask.Run(() => Handle(payload));
 #pragma warning restore CS4014
-
-                        return Task.CompletedTask;
                     },
-                    failed =>
-                    {
-                        Logger.LogWarning(failed.Exception, "Deserialization failed for websocket message");
-                        return Task.CompletedTask;
-                    },
-                    async closure =>
-                    {
-                        if (WebSocket.State != WebSocketState.Open)
-                        {
-                            Logger.LogWarning("Client sent closure, but connection state is not open");
-                            return;
-                        }
-
-                        try
-                        {
-                            await WebSocket.CloseAsync(WebSocketCloseStatus.NormalClosure, "Normal close",
-                                Linked.Token);
-                        }
-                        catch (OperationCanceledException e)
-                        {
-                            Logger.LogError(e, "Error during close handshake");
-                        }
-
-                        Close.Cancel();
-                        Logger.LogInformation("Closing websocket connection");
-                    });
+                    failed => { Logger.LogWarning(failed.Exception, "Deserialization failed for websocket message"); },
+                    _ => { });
             }
             catch (OperationCanceledException)
             {
                 Logger.LogInformation("WebSocket connection terminated due to close or shutdown");
-                Close.Cancel();
-                return;
+                break;
             }
             catch (WebSocketException e)
             {
@@ -116,7 +110,7 @@ public sealed class DeviceController : WebsocketBaseController<ServerToDeviceMes
             {
                 Logger.LogError(ex, "Exception while processing websocket request");
             }
-        } while (result != null && result.Value.MessageType != WebSocketMessageType.Close);
+        }
 
         Close.Cancel();
     }
