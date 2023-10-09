@@ -63,28 +63,43 @@ public sealed class DeviceController : WebsocketBaseController<ServerToDeviceMes
                 var message =
                     await WebSocketUtils.ReceiveFullMessageAsyncNonAlloc(WebSocket, DeviceToServerMessage.Serializer,
                         Linked.Token);
-                result = message.Item1;
 
-                if (result.Value.MessageType == WebSocketMessageType.Close && WebSocket.State == WebSocketState.Open)
-                {
-                    try
+                await message.Match(serverMessage =>
                     {
-                        await WebSocket.CloseAsync(WebSocketCloseStatus.NormalClosure, "Normal close", Linked.Token);
-                    }
-                    catch (OperationCanceledException e)
-                    {
-                        Logger.LogError(e, "Error during close handshake");
-                    }
-
-                    Close.Cancel();
-                    Logger.LogInformation("Closing websocket connection");
-                    return;
-                }
-
-                if (message.Item2 is not { Payload: not null }) continue;
+                        if (serverMessage?.Payload == null) return Task.CompletedTask;
+                        var payload = serverMessage.Payload.Value;
 #pragma warning disable CS4014
-                LucTask.Run(() => Handle(message.Item2.Payload.Value));
+                        LucTask.Run(() => Handle(payload));
 #pragma warning restore CS4014
+
+                        return Task.CompletedTask;
+                    },
+                    failed =>
+                    {
+                        Logger.LogWarning(failed.Exception, "Deserialization failed for websocket message");
+                        return Task.CompletedTask;
+                    },
+                    async closure =>
+                    {
+                        if (WebSocket.State != WebSocketState.Open)
+                        {
+                            Logger.LogWarning("Client sent closure, but connection state is not open");
+                            return;
+                        }
+
+                        try
+                        {
+                            await WebSocket.CloseAsync(WebSocketCloseStatus.NormalClosure, "Normal close",
+                                Linked.Token);
+                        }
+                        catch (OperationCanceledException e)
+                        {
+                            Logger.LogError(e, "Error during close handshake");
+                        }
+
+                        Close.Cancel();
+                        Logger.LogInformation("Closing websocket connection");
+                    });
             }
             catch (OperationCanceledException)
             {

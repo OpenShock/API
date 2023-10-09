@@ -2,13 +2,15 @@
 using System.Net.WebSockets;
 using FlatSharp;
 using Microsoft.IO;
+using OneOf;
+using Serilog.Core;
 
 namespace OpenShock.LiveControlGateway.Websocket;
 
 public static class WebSocketUtils
 {
     private const uint MaxMessageSize = 512_000; // 512 000 bytes
-    
+
 
     private static readonly RecyclableMemoryStreamManager RecyclableMemory = new();
 
@@ -21,8 +23,9 @@ public static class WebSocketUtils
     /// <typeparam name="T"></typeparam>
     /// <returns></returns>
     /// <exception cref="MessageTooLongException"></exception>
-    public static async Task<(ValueWebSocketReceiveResult, T?)> ReceiveFullMessageAsyncNonAlloc<T>(
-        WebSocket socket, ISerializer<T> serializer, CancellationToken cancellationToken) where T : class, IFlatBufferSerializable
+    public static async Task<OneOf<T?, DeserializeFailed, WebsocketClosure>> ReceiveFullMessageAsyncNonAlloc<T>(
+        WebSocket socket, ISerializer<T> serializer, CancellationToken cancellationToken)
+        where T : class, IFlatBufferSerializable
     {
         var buffer = ArrayPool<byte>.Shared.Rent(4096);
         try
@@ -38,15 +41,22 @@ public static class WebSocketUtils
                 {
                     await socket.CloseAsync(WebSocketCloseStatus.NormalClosure, "Closure during message read",
                         cancellationToken);
-                    return (result, default);
+                    return new WebsocketClosure();
                 }
 
                 if (buffer.Length + result.Count > MaxMessageSize) throw new MessageTooLongException();
-                
+
                 message.Write(buffer, 0, result.Count);
             } while (!result.EndOfMessage);
-            
-            return (result, serializer.Parse(message.GetBuffer().AsMemory(0, bytes)));
+
+            try
+            {
+                return serializer.Parse(message.GetBuffer().AsMemory(0, bytes));
+            }
+            catch (Exception e)
+            {
+                return new DeserializeFailed { Exception = e };
+            }
         }
         finally
         {
@@ -69,7 +79,7 @@ public static class WebSocketUtils
     {
         var maxSize = serializer.GetMaxSize(obj);
         if (maxSize > MaxMessageSize) throw new MessageTooLongException();
-        
+
         var buffer = ArrayPool<byte>.Shared.Rent(maxSize);
 
         try
@@ -83,7 +93,8 @@ public static class WebSocketUtils
         }
     }
 
-    private static async Task SendFullMessageBytes(ReadOnlyMemory<byte> msg, WebSocket socket, CancellationToken cancelToken)
+    private static async Task SendFullMessageBytes(ReadOnlyMemory<byte> msg, WebSocket socket,
+        CancellationToken cancelToken)
     {
         var doneBytes = 0;
 
@@ -96,4 +107,19 @@ public static class WebSocketUtils
             await socket.SendAsync(buffer, WebSocketMessageType.Binary, doneBytes >= msg.Length, cancelToken);
         }
     }
+}
+
+/// <summary>
+/// When flatbuffers deserialization fails
+/// </summary>
+public readonly struct DeserializeFailed
+{
+    public required Exception Exception { get; init; }
+}
+
+/// <summary>
+/// When the websocket sent a close frame
+/// </summary>
+public readonly struct WebsocketClosure
+{
 }
