@@ -22,11 +22,17 @@ public partial class ShockerController
                     Id = x.Shocker.Id,
                     Name = x.Shocker.Name,
                     IsPaused = x.Shocker.Paused,
-                    PermShock = x.PermShock!.Value,
-                    PermSound = x.PermVibrate!.Value,
-                    PermVibrate = x.PermVibrate!.Value,
-                    LimitDuration = x.LimitDuration,
-                    LimitIntensity = x.LimitIntensity
+                    Permissions = new ShockerPermissions
+                    {
+                        Shock = x.PermShock!.Value,
+                        Sound = x.PermVibrate!.Value,
+                        Vibrate = x.PermVibrate!.Value
+                    },
+                    Limits = new ShockerLimits
+                    {
+                        Duration = x.LimitDuration,
+                        Intensity = x.LimitIntensity
+                    }
                 }
             }).ToListAsync();
 

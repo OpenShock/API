@@ -18,11 +18,8 @@ public class OwnerShockerResponse
             public required Guid Id { get; set; }
             public required string Name { get; set; }
             public required bool IsPaused { get; set; }
-            public required bool PermSound { get; set; }
-            public required bool PermVibrate { get; set; }
-            public required bool PermShock { get; set; }
-            public required uint? LimitDuration { get; set; }
-            public required byte? LimitIntensity { get; set; }
+            public required ShockerPermissions Permissions { get; set; }
+            public required ShockerLimits Limits { get; set; }
         }
     }
 }
