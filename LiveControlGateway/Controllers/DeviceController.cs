@@ -154,7 +154,7 @@ public sealed class DeviceController : WebsocketBaseController<ServerToDeviceMes
         }
 
         await _redisConnectionProvider.Connection.ExecuteAsync("EXPIRE",
-            $"{typeof(DeviceOnline).FullName}:{_currentDevice.Id}", "15");
+            $"{typeof(DeviceOnline).FullName}:{_currentDevice.Id}", "35");
     }
 
     private Version? FirmwareVersion { get; set; }
