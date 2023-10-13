@@ -18,7 +18,7 @@ public class FirmwareVersionController : OpenShockControllerBase
             Data = new FirmwareVersion
             {
                 Version = new Version(0, 8, 0),
-                DownloadUri = new Uri("https://cdn.shocklink.net/firmware/shocklink_firmware_0.8.0.bin")
+                DownloadUri = new Uri("https://cdn.openshock.org/firmware/0.8.0.bin")
             }
         };
     }
