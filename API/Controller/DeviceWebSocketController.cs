@@ -12,6 +12,7 @@ using OpenShock.ServicesCommon;
 using OpenShock.ServicesCommon.Authentication;
 using Redis.OM.Contracts;
 using Redis.OM.Searching;
+using Semver;
 
 namespace OpenShock.API.Controller;
 
@@ -44,7 +45,7 @@ public class DeviceWebSocketController : WebsocketControllerBase<ResponseType>
     protected override void RegisterConnection()
     {
         if (HttpContext.Request.Headers.TryGetValue("FirmwareVersion", out var header) &&
-            Version.TryParse(header, out var version)) FirmwareVersion = version;
+            SemVersion.TryParse(header, SemVersionStyles.Strict, out var version)) FirmwareVersion = version;
 
         WebsocketManager.DeviceWebSockets.RegisterConnection(this);
     }
@@ -151,5 +152,5 @@ public class DeviceWebSocketController : WebsocketControllerBase<ResponseType>
             $"{typeof(DeviceOnline).FullName}:{_currentDevice.Id}", "65");
     }
 
-    private Version? FirmwareVersion { get; set; }
+    private SemVersion? FirmwareVersion { get; set; }
 }

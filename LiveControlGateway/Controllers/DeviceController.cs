@@ -8,6 +8,7 @@ using OpenShock.LiveControlGateway.Websocket;
 using OpenShock.Serialization;
 using OpenShock.ServicesCommon.Authentication;
 using Redis.OM.Contracts;
+using Semver;
 
 namespace OpenShock.LiveControlGateway.Controllers;
 
@@ -157,13 +158,13 @@ public sealed class DeviceController : WebsocketBaseController<ServerToDeviceMes
             $"{typeof(DeviceOnline).FullName}:{_currentDevice.Id}", "35");
     }
 
-    private Version? FirmwareVersion { get; set; }
+    private SemVersion? FirmwareVersion { get; set; }
 
     /// <inheritdoc />
     protected override void RegisterConnection()
     {
         if (HttpContext.Request.Headers.TryGetValue("Firmware-Version", out var header) &&
-            Version.TryParse(header, out var version)) FirmwareVersion = version;
+            SemVersion.TryParse(header, SemVersionStyles.Strict, out var version)) FirmwareVersion = version;
 
         WebsocketManager.ServerToDevice.RegisterConnection(this);
     }
