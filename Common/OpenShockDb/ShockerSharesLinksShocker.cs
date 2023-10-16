@@ -15,7 +15,7 @@ public partial class ShockerSharesLinksShocker
 
     public bool PermShock { get; set; }
 
-    public uint? LimitDuration { get; set; }
+    public ushort? LimitDuration { get; set; }
 
     public byte? LimitIntensity { get; set; }
 

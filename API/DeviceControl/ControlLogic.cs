@@ -112,7 +112,7 @@ public static class ControlLogic
             {
                 Id = shockerInfo.Id,
                 RfId = shockerInfo.RfId,
-                Duration = Math.Clamp(shock.Duration, 300, durationMax),
+                Duration = Math.Clamp(shock.Duration, (ushort)300, durationMax),
                 Intensity = Math.Clamp(shock.Intensity, (byte)1, intensityMax),
                 Type = shock.Type,
                 Model = shockerInfo.Model

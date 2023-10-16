@@ -11,5 +11,5 @@ public class Control
     [Range(1, 100)]
     public required byte Intensity { get; set; }
     [Range(300, 30000)]
-    public required uint Duration { get; set; }
+    public required ushort Duration { get; set; }
 }
