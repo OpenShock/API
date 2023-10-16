@@ -14,7 +14,7 @@ public class ControlMessage
         public required Guid Id { get; set; }
         public required ushort RfId { get; set; }
         public required byte Intensity { get; set; }
-        public required uint Duration { get; set; }
+        public required ushort Duration { get; set; }
         public required ControlType Type { get; set; }
         public required ShockerModelType Model { get; set; }
     }
