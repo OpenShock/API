@@ -17,7 +17,7 @@ public class StatsController : OpenShockControllerBase
 
     public StatsController(IRedisConnectionProvider redis)
     {
-        _deviceOnlines = redis.RedisCollection<DeviceOnline>();
+        _deviceOnlines = redis.RedisCollection<DeviceOnline>(false);
     }
 
     [HttpGet]
