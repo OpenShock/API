@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using Newtonsoft.Json;
 using OpenShock.Common.Models;
 using OpenShock.Common.OpenShockDb;
@@ -30,7 +31,8 @@ public class OnlineDevicesController : AuthenticatedSessionControllerBase
     public async Task<BaseResponse<object>> Get()
     {
         var allOnlineDevices = await _devicesOnline.ToListAsync();
-        var dbLookup = _db.Devices.Where(x => allOnlineDevices.Select(y => y.Id).Contains(x.Id)).ToDictionary(x => x.Id,
+        var dbLookup = await _db.Devices.Where(x => allOnlineDevices.Select(y => y.Id)
+            .Contains(x.Id)).ToDictionaryAsync(x => x.Id,
             x =>
                 new
                 {
@@ -48,7 +50,7 @@ public class OnlineDevicesController : AuthenticatedSessionControllerBase
             Data = allOnlineDevices.Select(x =>
             {
                 var dbItem = dbLookup[x.Id];
-                return new AdminOnlineDeviceResponse()
+                return new AdminOnlineDeviceResponse
                 {
                     Id = x.Id,
                     FirmwareVersion = x.FirmwareVersion,
