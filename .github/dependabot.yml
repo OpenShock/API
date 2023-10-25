@@ -10,10 +10,18 @@ updates:
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
-      interval: "daily"
+      interval: 'weekly'
+      day: 'monday'
+      time: '06:00'
 
   # Check for Nuget package updates
   - package-ecosystem: "nuget"
     directory: "/"
     schedule:
-      interval: "daily"
+      interval: 'weekly'
+      day: 'monday'
+      time: '06:00'
+    groups:
+      nuget-dependencies:
+        patterns:
+          - '*' # Group all updates together
