@@ -41,7 +41,7 @@
         <PackageReference Include="Serilog.Enrichers.CorrelationId" Version="3.0.1" />
         <PackageReference Include="Serilog.Sinks.Console" Version="4.1.0" />
         <PackageReference Include="Serilog.Sinks.Grafana.Loki" Version="8.1.0" />
-        <PackageReference Include="StackExchange.Redis" Version="2.6.122" />
+        <PackageReference Include="StackExchange.Redis" Version="2.7.4" />
         <PackageReference Include="StackExchange.Redis.Extensions.AspNetCore" Version="9.1.0" />
         <PackageReference Include="StackExchange.Redis.Extensions.Newtonsoft" Version="9.1.0" />
         <PackageReference Include="Swashbuckle.AspNetCore" Version="6.5.0" />
