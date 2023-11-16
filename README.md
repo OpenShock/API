@@ -13,9 +13,6 @@ The API can be configured using the following environment variables:
 | `OPENSHOCK__REDIS__PORT`              | `6379`                  |
 | `OPENSHOCK__REDIS__USER`              |                         |
 | `OPENSHOCK__REDIS__PASSWORD`          |                         |
-| `OPENSHOCK__CLOUDFLARE__ACCOUNTID`    |                         |
-| `OPENSHOCK__CLOUDFLARE___IMAGES__KEY` |                         |
-| `OPENSHOCK__CLOUDFLARE___IMAGES__URL` |                         |
 | `OPENSHOCK__MAILJET__KEY`             |                         |
 | `OPENSHOCK__MAILJET__SECRET`          |                         |
 
