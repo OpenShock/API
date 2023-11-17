@@ -1,38 +1,32 @@
-﻿using System.Net;
-using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using OpenShock.API.Models.Requests;
-using OpenShock.API.Models.Response;
 using OpenShock.API.Utils;
 using OpenShock.Common.Models;
-using OpenShock.Common.OpenShockDb;
 using OpenShock.Common.Redis;
-using OpenShock.ServicesCommon;
-using Redis.OM.Contracts;
 using Redis.OM.Searching;
+using System.Net;
 
 namespace OpenShock.API.Controller.Account;
 
-[ApiController]
-[AllowAnonymous]
-[Route("/{version:apiVersion}/account/login")]
-public class LoginController : OpenShockControllerBase
+partial class AccountController
 {
-    private readonly OpenShockContext _db;
-    private readonly ILogger<LoginController> _logger;
-    private readonly IRedisCollection<LoginSession> _loginSessions;
     public static readonly TimeSpan SessionLifetime = TimeSpan.FromDays(30);
 
-    public LoginController(OpenShockContext db, ILogger<LoginController> logger, IRedisConnectionProvider provider)
-    {
-        _logger = logger;
-        _loginSessions = provider.RedisCollection<LoginSession>(false);
-        _db = db;
-    }
-    
-    [HttpPost]
-    public async Task<BaseResponse<object>> Login(Login data)
+    /// <summary>
+    /// Logs in a user
+    /// </summary>
+    /// <param name="data"></param>
+    /// <param name="loginSessions"></param>
+    /// <returns></returns>
+    /// <response code="200">User successfully logged in</response>
+    /// <response code="401">Invalid username or password</response>
+    /// <response code="403">Account not activated</response>
+    [HttpPost("/login")]
+    [ProducesResponseType((int)HttpStatusCode.OK)]
+    [ProducesResponseType((int)HttpStatusCode.Forbidden)]
+    [ProducesResponseType((int)HttpStatusCode.Unauthorized)]
+    public async Task<BaseResponse<object>> Login([FromBody] Login data, [FromServices] IRedisCollection<LoginSession> loginSessions)
     {
         var user = await _db.Users.SingleOrDefaultAsync(x => x.Email == data.Email.ToLowerInvariant());
         if (user == null || !SecurePasswordHasher.Verify(data.Password, user.Password))
@@ -44,10 +38,10 @@ public class LoginController : OpenShockControllerBase
 
         if (!user.EmailActived) return EBaseResponse<object>("You must activate your account first, before you can login",
                 HttpStatusCode.Forbidden);
-        
+
         var randomSessionId = CryptoUtils.RandomString(64);
-        
-        await _loginSessions.InsertAsync(new LoginSession
+
+        await loginSessions.InsertAsync(new LoginSession
         {
             Id = randomSessionId,
             UserId = user.Id,
