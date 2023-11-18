@@ -1,29 +1,16 @@
-﻿using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using OpenShock.API.Models.Response;
 using OpenShock.API.Utils;
 using OpenShock.Common.Models;
-using OpenShock.Common.OpenShockDb;
-using OpenShock.ServicesCommon;
 using OpenShock.ServicesCommon.Utils;
 
-namespace OpenShock.API.Controller.Public.Shares.Links;
+namespace OpenShock.API.Controller.Public;
 
-[ApiController]
-[Route("/{version:apiVersion}/public/shares/links")]
-[AllowAnonymous]
-public class PublicShareController : OpenShockControllerBase
+partial class PublicController
 {
-    private readonly OpenShockContext _db;
-
-    public PublicShareController(OpenShockContext db)
-    {
-        _db = db;
-    }
-
-    [HttpGet("{id:guid}")]
-    public async Task<BaseResponse<PublicShareLinkResponse>> Get(Guid id)
+    [HttpGet("shares/links/{id}")]
+    public async Task<BaseResponse<PublicShareLinkResponse>> Get([FromRoute] Guid id)
     {
         var shareLink = await _db.ShockerSharesLinks.Where(x => x.Id == id).Select(x => new
         {
@@ -89,6 +76,4 @@ public class PublicShareController : OpenShockControllerBase
             Data = final
         };
     }
-
-
 }

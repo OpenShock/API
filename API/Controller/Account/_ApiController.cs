@@ -5,6 +5,9 @@ using OpenShock.ServicesCommon;
 
 namespace OpenShock.API.Controller.Account;
 
+/// <summary>
+/// User account management
+/// </summary>
 [ApiController]
 [AllowAnonymous]
 [Route("/{version:apiVersion}/account")]

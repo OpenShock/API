@@ -16,7 +16,6 @@ partial class AccountController
     /// </summary>
     /// <param name="data"></param>
     /// <param name="mailjetClient"></param>
-    /// <returns></returns>
     /// <response code="200">Password reset email sent if the email is associated to an registered account</response>
     [HttpPost("reset")]
     [ProducesResponseType((int)HttpStatusCode.OK)]

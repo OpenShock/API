@@ -14,7 +14,6 @@ partial class AccountController
     /// Signs up a user
     /// </summary>
     /// <param name="data"></param>
-    /// <returns></returns>
     /// <response code="200">User successfully signed up</response>
     /// <response code="400">Username or email already exists</response>
     [HttpPost("signup")]

@@ -27,8 +27,8 @@ partial class DevicesController
         };
     }
 
-    [HttpGet("{id:guid}")]
-    public async Task<BaseResponse<Models.Response.ResponseDeviceWithToken>> Get(Guid id)
+    [HttpGet("{id}")]
+    public async Task<BaseResponse<Models.Response.ResponseDeviceWithToken>> Get([FromRoute] Guid id)
     {
         var device = await _db.Devices.Where(x => x.Owner == CurrentUser.DbUser.Id && x.Id == id)
             .Select(x => new Models.Response.ResponseDeviceWithToken
@@ -46,8 +46,8 @@ partial class DevicesController
         };
     }
 
-    [HttpPatch("{id:guid}")]
-    public async Task<BaseResponse<object>> Edit(Guid id, DeviceEdit data)
+    [HttpPatch("{id}")]
+    public async Task<BaseResponse<object>> Edit([FromRoute] Guid id, [FromBody] DeviceEdit data)
     {
         var device = await _db.Devices.Where(x => x.Owner == CurrentUser.DbUser.Id && x.Id == id).SingleOrDefaultAsync();
         if (device == null)
@@ -62,8 +62,8 @@ partial class DevicesController
         };
     }
 
-    [HttpPut("{id:guid}")]
-    public async Task<BaseResponse<object>> RegenToken(Guid id)
+    [HttpPut("{id}")]
+    public async Task<BaseResponse<object>> RegenToken([FromRoute] Guid id)
     {
         var device = await _db.Devices.Where(x => x.Owner == CurrentUser.DbUser.Id && x.Id == id).SingleOrDefaultAsync();
         if (device == null)
@@ -80,8 +80,8 @@ partial class DevicesController
         };
     }
 
-    [HttpDelete("{id:guid}")]
-    public async Task<BaseResponse<object>> Delete(Guid id)
+    [HttpDelete("{id}")]
+    public async Task<BaseResponse<object>> Delete([FromRoute] Guid id)
     {
         var affected = await _db.Devices.Where(x => x.Owner == CurrentUser.DbUser.Id && x.Id == id).ExecuteDeleteAsync();
         if (affected <= 0)
@@ -113,8 +113,8 @@ partial class DevicesController
         };
     }
 
-    [HttpGet("{id:guid}/pair")]
-    public async Task<BaseResponse<string>> GetPairCode(Guid id, [FromServices] IRedisConnectionProvider redisProvider)
+    [HttpGet("{id}/pair")]
+    public async Task<BaseResponse<string>> GetPairCode([FromRoute] Guid id, [FromServices] IRedisConnectionProvider redisProvider)
     {
         var devicePairs = redisProvider.RedisCollection<DevicePair>();
 

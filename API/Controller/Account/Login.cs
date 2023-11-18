@@ -18,7 +18,6 @@ partial class AccountController
     /// </summary>
     /// <param name="data"></param>
     /// <param name="redisCollectionProvider"></param>
-    /// <returns></returns>
     /// <response code="200">User successfully logged in</response>
     /// <response code="401">Invalid username or password</response>
     /// <response code="403">Account not activated</response>

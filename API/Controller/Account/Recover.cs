@@ -13,7 +13,6 @@ partial class AccountController
     /// </summary>
     /// <param name="id"></param>
     /// <param name="secret"></param>
-    /// <returns></returns>
     /// <response code="200">Valid password reset process</response>
     /// <response code="404">Password reset process not found</response>
     [HttpHead("recover/{id}/{secret}")]

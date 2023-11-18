@@ -4,6 +4,9 @@ using OpenShock.ServicesCommon.Authentication;
 
 namespace OpenShock.API.Controller.Devices;
 
+/// <summary>
+/// Device management
+/// </summary>
 [ApiController]
 [Route("/{version:apiVersion}/devices")]
 public sealed partial class DevicesController : AuthenticatedSessionControllerBase

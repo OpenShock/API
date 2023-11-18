@@ -10,8 +10,14 @@ namespace OpenShock.API.Controller.Device;
 
 partial class DeviceController
 {
+    /// <summary>
+    /// Assigns a Live Control Gateway node to the device
+    /// </summary>
+    /// <param name="geoLocation"></param>
+    /// <response code="200">Successfully assigned LCG node</response>
+    /// <response code="503">Unable to find suitable LCG node</response>
     [HttpGet("assignLCG")]
-    public async Task<BaseResponse<LcgNodeResponse>> Get([FromServices] IGeoLocation geoLocation)
+    public async Task<BaseResponse<LcgNodeResponse>> AssignLCG([FromServices] IGeoLocation geoLocation)
     {
         var messageBuilder = new StringBuilder();
         var countryCode = CountryCodeMapper.CountryInfo.Alpha2CountryCode.DefaultAlphaCode;

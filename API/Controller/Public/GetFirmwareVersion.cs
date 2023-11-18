@@ -1,17 +1,12 @@
-﻿using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using OpenShock.Common.Models;
-using OpenShock.ServicesCommon;
 
 namespace OpenShock.API.Controller.Public;
 
-[ApiController]
-[Route("/{version:apiVersion}/public/firmware/version")]
-[AllowAnonymous]
-public class FirmwareVersionController : OpenShockControllerBase
+partial class PublicController
 {
-    [HttpGet]
-    public BaseResponse<FirmwareVersion> Get()
+    [HttpGet("firmware/version")]
+    public BaseResponse<FirmwareVersion> GetFirmwareVersion()
     {
         return new BaseResponse<FirmwareVersion>
         {
