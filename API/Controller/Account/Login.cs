@@ -17,7 +17,6 @@ partial class AccountController
     /// Logs in a user
     /// </summary>
     /// <param name="data"></param>
-    /// <param name="redisCollectionProvider"></param>
     /// <response code="200">User successfully logged in</response>
     /// <response code="401">Invalid username or password</response>
     /// <response code="403">Account not activated</response>
@@ -25,9 +24,9 @@ partial class AccountController
     [ProducesResponseType((int)HttpStatusCode.OK)]
     [ProducesResponseType((int)HttpStatusCode.Forbidden)]
     [ProducesResponseType((int)HttpStatusCode.Unauthorized)]
-    public async Task<BaseResponse<object>> Login([FromBody] Login data, [FromServices] IRedisConnectionProvider redisCollectionProvider)
+    public async Task<BaseResponse<object>> Login([FromBody] Login data)
     {
-        var loginSessions = redisCollectionProvider.RedisCollection<LoginSession>(false);
+        var loginSessions = _redis.RedisCollection<LoginSession>(false);
 
         var user = await _db.Users.SingleOrDefaultAsync(x => x.Email == data.Email.ToLowerInvariant());
         if (user == null || !SecurePasswordHasher.Verify(data.Password, user.Password))

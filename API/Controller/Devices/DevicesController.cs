@@ -114,9 +114,9 @@ partial class DevicesController
     }
 
     [HttpGet("{id}/pair")]
-    public async Task<BaseResponse<string>> GetPairCode([FromRoute] Guid id, [FromServices] IRedisConnectionProvider redisProvider)
+    public async Task<BaseResponse<string>> GetPairCode([FromRoute] Guid id)
     {
-        var devicePairs = redisProvider.RedisCollection<DevicePair>();
+        var devicePairs = _redis.RedisCollection<DevicePair>();
 
         var deviceExists = await _db.Devices.AnyAsync(x => x.Id == id && x.Owner == CurrentUser.DbUser.Id);
         if (!deviceExists)

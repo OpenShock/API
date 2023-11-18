@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Mvc;
 using OpenShock.Common.OpenShockDb;
 using OpenShock.ServicesCommon.Authentication;
+using Redis.OM.Contracts;
 
 namespace OpenShock.API.Controller.Shockers;
 
@@ -12,9 +13,13 @@ namespace OpenShock.API.Controller.Shockers;
 public sealed partial class ShockerController : AuthenticatedSessionControllerBase
 {
     private readonly OpenShockContext _db;
+    private readonly IRedisConnectionProvider _redis;
+    private readonly ILogger<ShockerController> _logger;
 
-    public ShockerController(OpenShockContext db)
+    public ShockerController(OpenShockContext db, IRedisConnectionProvider redis, ILogger<ShockerController> logger)
     {
         _db = db;
+        _redis = redis;
+        _logger = logger;
     }
 }

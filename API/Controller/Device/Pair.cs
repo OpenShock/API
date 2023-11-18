@@ -15,15 +15,14 @@ partial class DeviceController
     /// Pair a device with a pair code.
     /// </summary>
     /// <param name="pairCode">The pair code to pair with.</param>
-    /// <param name="redisProvider">The Redis connection provider.</param>
     /// <response code="200">Successfully assigned LCG node</response>
     /// <response code="404">No such pair code exists</response>
     [AllowAnonymous]
     [HttpGet("pair/{pairCode}")]
     [HttpGet("~/{version:apiVersion}/pair/{pairCode}")] // Backwards compatibility
-    public async Task<BaseResponse<string>> Pair([FromRoute] string pairCode, [FromServices] IRedisConnectionProvider redisProvider)
+    public async Task<BaseResponse<string>> Pair([FromRoute] string pairCode)
     {
-        var devicePairs = redisProvider.RedisCollection<DevicePair>();
+        var devicePairs = _redis.RedisCollection<DevicePair>();
 
         var pair = await devicePairs.Where(x => x.PairCode == pairCode).SingleOrDefaultAsync();
         if (pair == null) return EBaseResponse<string>("No such pair code exists", HttpStatusCode.NotFound);

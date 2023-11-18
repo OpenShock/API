@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Mvc;
 using OpenShock.Common.OpenShockDb;
 using OpenShock.ServicesCommon;
+using Redis.OM.Contracts;
 
 namespace OpenShock.API.Controller.Account;
 
@@ -14,11 +15,13 @@ namespace OpenShock.API.Controller.Account;
 public sealed partial class AccountController : OpenShockControllerBase
 {
     private readonly OpenShockContext _db;
+    private readonly IRedisConnectionProvider _redis;
     private readonly ILogger<AccountController> _logger;
 
-    public AccountController(OpenShockContext db, ILogger<AccountController> logger)
+    public AccountController(OpenShockContext db, IRedisConnectionProvider redis, ILogger<AccountController> logger)
     {
         _db = db;
+        _redis = redis;
         _logger = logger;
     }
 }
