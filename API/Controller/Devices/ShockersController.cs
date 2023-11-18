@@ -1,24 +1,13 @@
-﻿using System.Net;
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using OpenShock.API.Models.Response;
 using OpenShock.Common.Models;
-using OpenShock.Common.OpenShockDb;
-using OpenShock.ServicesCommon.Authentication;
+using System.Net;
 
 namespace OpenShock.API.Controller.Devices;
 
-[ApiController]
-[Route("/{version:apiVersion}/devices")]
-public class ShockersController : AuthenticatedSessionControllerBase
+partial class DevicesController
 {
-    private readonly OpenShockContext _db;
-    
-    public ShockersController(OpenShockContext db)
-    {
-        _db = db;
-    }
-
     [HttpGet("{id:guid}/shockers")]
     public async Task<BaseResponse<IEnumerable<ShockerResponse>>> GetShockers(Guid id)
     {

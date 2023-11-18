@@ -17,7 +17,7 @@ partial class AccountController
     /// <returns></returns>
     /// <response code="200">User successfully signed up</response>
     /// <response code="400">Username or email already exists</response>
-    [HttpPost("/signup")]
+    [HttpPost("signup")]
     public async Task<BaseResponse<object>> Signup([FromBody] Signup data)
     {
         var newGuid = Guid.NewGuid();

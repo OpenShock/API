@@ -1,40 +1,28 @@
-﻿using System.Net;
-using Microsoft.AspNetCore.Authorization;
+﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using OpenShock.Common.Models;
-using OpenShock.Common.OpenShockDb;
 using OpenShock.Common.Redis;
-using OpenShock.ServicesCommon;
 using Redis.OM;
 using Redis.OM.Contracts;
-using Redis.OM.Searching;
+using System.Net;
 
 namespace OpenShock.API.Controller.Device;
 
-[ApiController]
-[AllowAnonymous]
-[Route("/{version:apiVersion}/pair")]
-[Route("/{version:apiVersion}/device/pair")]
-public sealed class PairCodeController : OpenShockControllerBase
+partial class DeviceController
 {
-    private readonly IRedisCollection<DevicePair> _devicePairs;
-    private readonly OpenShockContext _openShockContext;
-
-    public PairCodeController(IRedisConnectionProvider provider, OpenShockContext openShockContext)
+    [AllowAnonymous]
+    [HttpGet("pair/{pairCode}")]
+    [HttpGet("~/{version:apiVersion}/pair/{pairCode}")] // Backwards compatibility
+    public async Task<BaseResponse<string>> Get([FromRoute] string pairCode, [FromServices] IRedisConnectionProvider redisProvider)
     {
-        _openShockContext = openShockContext;
-        _devicePairs = provider.RedisCollection<DevicePair>();
-    }
+        var devicePairs = redisProvider.RedisCollection<DevicePair>();
 
-    [HttpGet("{pairCode}")]
-    public async Task<BaseResponse<string>> Get(string pairCode)
-    {
-        var pair = await _devicePairs.Where(x => x.PairCode == pairCode).SingleOrDefaultAsync();
+        var pair = await devicePairs.Where(x => x.PairCode == pairCode).SingleOrDefaultAsync();
         if (pair == null) return EBaseResponse<string>("No such pair code exists", HttpStatusCode.NotFound);
-        await _devicePairs.DeleteAsync(pair);
-        
-        var device = await _openShockContext.Devices.SingleOrDefaultAsync(x => x.Id == pair.Id);
+        await devicePairs.DeleteAsync(pair);
+
+        var device = await _db.Devices.SingleOrDefaultAsync(x => x.Id == pair.Id);
         if (device == null) return EBaseResponse<string>("No such device exists for the pair code", HttpStatusCode.InternalServerError);
 
         return new BaseResponse<string>

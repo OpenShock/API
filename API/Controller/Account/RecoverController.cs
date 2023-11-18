@@ -16,10 +16,10 @@ partial class AccountController
     /// <returns></returns>
     /// <response code="200">Valid password reset process</response>
     /// <response code="404">Password reset process not found</response>
-    [HttpHead("/recover/{id}/{secret}")]
+    [HttpHead("recover/{id}/{secret}")]
     [ProducesResponseType((int)HttpStatusCode.OK)]
     [ProducesResponseType((int)HttpStatusCode.NotFound)]
-    public async Task<BaseResponse<object>> CheckForReset(Guid id, string secret)
+    public async Task<BaseResponse<object>> CheckForReset([FromRoute] Guid id, [FromRoute] string secret)
     {
         var reset = await _db.PasswordResets.SingleOrDefaultAsync(x =>
             x.Id == id && x.UsedOn == null && x.CreatedOn.AddDays(7) > DateTime.UtcNow);
@@ -39,7 +39,7 @@ partial class AccountController
     /// <returns></returns>
     /// <response code="200">Password successfully changed</response>
     /// <response code="404">Password reset process not found</response>
-    [HttpPost("/recover/{id}/{secret}")]
+    [HttpPost("recover/{id}/{secret}")]
     public async Task<BaseResponse<object>> UseRecover(Guid id, string secret, PasswordResetProcessData data)
     {
         var reset = await _db.PasswordResets.Include(x => x.User).SingleOrDefaultAsync(x =>

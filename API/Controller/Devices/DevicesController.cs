@@ -1,30 +1,16 @@
-﻿using System.Net;
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using OpenShock.API.Models.Requests;
 using OpenShock.API.Utils;
 using OpenShock.Common.Models;
-using OpenShock.Common.OpenShockDb;
 using OpenShock.Common.Redis;
-using OpenShock.ServicesCommon.Authentication;
 using Redis.OM.Contracts;
-using Redis.OM.Searching;
+using System.Net;
 
 namespace OpenShock.API.Controller.Devices;
 
-[ApiController]
-[Route("/{version:apiVersion}/devices")]
-public class DeviceController : AuthenticatedSessionControllerBase
+partial class DevicesController
 {
-    private readonly OpenShockContext _db;
-    private readonly IRedisCollection<DevicePair> _devicePairs;
-
-    public DeviceController(OpenShockContext db, IRedisConnectionProvider provider)
-    {
-        _db = db;
-        _devicePairs = provider.RedisCollection<DevicePair>();
-    }
-
     [HttpGet]
     public async Task<BaseResponse<IEnumerable<Models.Response.ResponseDevice>>> GetList()
     {
@@ -37,7 +23,7 @@ public class DeviceController : AuthenticatedSessionControllerBase
             }).ToListAsync();
         return new BaseResponse<IEnumerable<Models.Response.ResponseDevice>>
         {
-           Data = devices
+            Data = devices
         };
     }
 
@@ -59,7 +45,7 @@ public class DeviceController : AuthenticatedSessionControllerBase
             Data = device
         };
     }
-    
+
     [HttpPatch("{id:guid}")]
     public async Task<BaseResponse<object>> Edit(Guid id, DeviceEdit data)
     {
@@ -75,7 +61,7 @@ public class DeviceController : AuthenticatedSessionControllerBase
             Message = "Successfully updated device"
         };
     }
-        
+
     [HttpPut("{id:guid}")]
     public async Task<BaseResponse<object>> RegenToken(Guid id)
     {
@@ -87,13 +73,13 @@ public class DeviceController : AuthenticatedSessionControllerBase
 
         var affected = await _db.SaveChangesAsync();
         if (affected <= 0) return EBaseResponse<object>("Failed to save regenerated token", HttpStatusCode.InternalServerError);
-        
+
         return new BaseResponse<object>
         {
             Message = "Successfully regenerated device token"
         };
     }
-    
+
     [HttpDelete("{id:guid}")]
     public async Task<BaseResponse<object>> Delete(Guid id)
     {
@@ -118,7 +104,7 @@ public class DeviceController : AuthenticatedSessionControllerBase
         };
         _db.Devices.Add(device);
         await _db.SaveChangesAsync();
-        
+
         Response.StatusCode = (int)HttpStatusCode.Created;
         return new BaseResponse<Guid>
         {
@@ -128,22 +114,24 @@ public class DeviceController : AuthenticatedSessionControllerBase
     }
 
     [HttpGet("{id:guid}/pair")]
-    public async Task<BaseResponse<string>> GetPairCode(Guid id)
+    public async Task<BaseResponse<string>> GetPairCode(Guid id, [FromServices] IRedisConnectionProvider redisProvider)
     {
+        var devicePairs = redisProvider.RedisCollection<DevicePair>();
+
         var deviceExists = await _db.Devices.AnyAsync(x => x.Id == id && x.Owner == CurrentUser.DbUser.Id);
         if (!deviceExists)
             return EBaseResponse<string>("Device does not exists or does not belong to you", HttpStatusCode.NotFound);
         // replace with unlink?
-        var existing = await _devicePairs.FindByIdAsync(id.ToString());
-        if (existing != null) await _devicePairs.DeleteAsync(existing);
-        
+        var existing = await devicePairs.FindByIdAsync(id.ToString());
+        if (existing != null) await devicePairs.DeleteAsync(existing);
+
         var r = new Random();
         var pairCode = new DevicePair
         {
             Id = id,
             PairCode = r.Next(0, 1000000).ToString("000000")
         };
-        await _devicePairs.InsertAsync(pairCode, TimeSpan.FromMinutes(15));
+        await devicePairs.InsertAsync(pairCode, TimeSpan.FromMinutes(15));
 
         return new BaseResponse<string>
         {

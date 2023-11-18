@@ -4,7 +4,7 @@ using OpenShock.API.Models.Requests;
 using OpenShock.API.Utils;
 using OpenShock.Common.Models;
 using OpenShock.Common.Redis;
-using Redis.OM.Searching;
+using Redis.OM.Contracts;
 using System.Net;
 
 namespace OpenShock.API.Controller.Account;
@@ -17,17 +17,19 @@ partial class AccountController
     /// Logs in a user
     /// </summary>
     /// <param name="data"></param>
-    /// <param name="loginSessions"></param>
+    /// <param name="redisCollectionProvider"></param>
     /// <returns></returns>
     /// <response code="200">User successfully logged in</response>
     /// <response code="401">Invalid username or password</response>
     /// <response code="403">Account not activated</response>
-    [HttpPost("/login")]
+    [HttpPost("login")]
     [ProducesResponseType((int)HttpStatusCode.OK)]
     [ProducesResponseType((int)HttpStatusCode.Forbidden)]
     [ProducesResponseType((int)HttpStatusCode.Unauthorized)]
-    public async Task<BaseResponse<object>> Login([FromBody] Login data, [FromServices] IRedisCollection<LoginSession> loginSessions)
+    public async Task<BaseResponse<object>> Login([FromBody] Login data, [FromServices] IRedisConnectionProvider redisCollectionProvider)
     {
+        var loginSessions = redisCollectionProvider.RedisCollection<LoginSession>(false);
+
         var user = await _db.Users.SingleOrDefaultAsync(x => x.Email == data.Email.ToLowerInvariant());
         if (user == null || !SecurePasswordHasher.Verify(data.Password, user.Password))
         {
@@ -48,7 +50,7 @@ partial class AccountController
             UserAgent = HttpContext.Request.Headers.UserAgent.ToString(),
             Ip = HttpContext.Connection.RemoteIpAddress?.MapToIPv4().ToString() ?? string.Empty,
         }, SessionLifetime);
-        
+
         HttpContext.Response.Cookies.Append("openShockSession", randomSessionId, new CookieOptions
         {
             Expires = new DateTimeOffset(DateTime.UtcNow.Add(SessionLifetime)),
@@ -56,7 +58,7 @@ partial class AccountController
             HttpOnly = true,
             SameSite = SameSiteMode.Strict
         });
-        
+
         return new BaseResponse<object>
         {
             Message = "Successfully signed in"

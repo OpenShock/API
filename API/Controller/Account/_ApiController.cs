@@ -7,8 +7,8 @@ namespace OpenShock.API.Controller.Account;
 
 [ApiController]
 [AllowAnonymous]
-[Route("/{version:apiVersion}/[Controller]")]
-public partial class AccountController : OpenShockControllerBase
+[Route("/{version:apiVersion}/account")]
+public sealed partial class AccountController : OpenShockControllerBase
 {
     private readonly OpenShockContext _db;
     private readonly ILogger<AccountController> _logger;
