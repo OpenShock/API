@@ -30,6 +30,7 @@ using Serilog;
 using StackExchange.Redis;
 using StackExchange.Redis.Extensions.Core.Configuration;
 using StackExchange.Redis.Extensions.Newtonsoft;
+using IPNetwork = Microsoft.AspNetCore.HttpOverrides.IPNetwork;
 using WebSocketOptions = Microsoft.AspNetCore.Builder.WebSocketOptions;
 
 namespace OpenShock.API;
@@ -128,7 +129,10 @@ public class Startup
         });
 
         services.AddWebEncoders();
+        services.TryAddSingleton<TimeProvider>(provider => TimeProvider.System);
+#pragma warning disable CS0618 // Type or member is obsolete
         services.TryAddSingleton<ISystemClock, SystemClock>();
+#pragma warning restore CS0618 // Type or member is obsolete
         new AuthenticationBuilder(services)
             .AddScheme<LoginSessionAuthenticationSchemeOptions, LoginSessionAuthentication>(
                 OpenShockAuthSchemas.SessionTokenCombo, _ => { })

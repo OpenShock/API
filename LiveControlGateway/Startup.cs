@@ -25,6 +25,7 @@ using Redis.OM;
 using Redis.OM.Contracts;
 using Serilog;
 using StackExchange.Redis;
+using IPNetwork = Microsoft.AspNetCore.HttpOverrides.IPNetwork;
 using JsonSerializer = System.Text.Json.JsonSerializer;
 using WebSocketOptions = Microsoft.AspNetCore.Builder.WebSocketOptions;
 
@@ -123,7 +124,10 @@ public class Startup
         services.AddSingleton<IGeoLocation, GeoLocation>();
 
         services.AddWebEncoders();
+        services.TryAddSingleton<TimeProvider>(provider => TimeProvider.System);
+#pragma warning disable CS0618 // Type or member is obsolete
         services.TryAddSingleton<ISystemClock, SystemClock>();
+#pragma warning restore CS0618 // Type or member is obsolete
         new AuthenticationBuilder(services)
             .AddScheme<LoginSessionAuthenticationSchemeOptions, LoginSessionAuthentication>(
                 OpenShockAuthSchemas.SessionTokenCombo, _ => { })

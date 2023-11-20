@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
-        <TargetFramework>net7.0</TargetFramework>
+        <TargetFramework>net8.0</TargetFramework>
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
         <AssemblyName>OpenShock.Common</AssemblyName>
@@ -10,6 +10,7 @@
         <Product>OpenShock.Common</Product>
         <AssemblyVersion>1.6.1</AssemblyVersion>
         <FileVersion>1.6.1</FileVersion>
+        <LangVersion>12</LangVersion>
     </PropertyGroup>
 
     <ItemGroup>
@@ -26,9 +27,9 @@
       <PackageReference Include="Microsoft.IO.RecyclableMemoryStream" Version="2.3.2" />
       <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
       <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="7.0.11" />
-      <PackageReference Include="Redis.OM" Version="0.5.3" />
+      <PackageReference Include="Redis.OM" Version="0.5.4" />
       <PackageReference Include="Semver" Version="2.3.0" />
-      <PackageReference Include="Serilog.Sinks.Grafana.Loki" Version="8.1.0" />
+      <PackageReference Include="Serilog.Sinks.Grafana.Loki" Version="8.2.0" />
     </ItemGroup>
 
 </Project>
