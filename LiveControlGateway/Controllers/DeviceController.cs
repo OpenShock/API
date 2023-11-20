@@ -21,7 +21,7 @@ namespace OpenShock.LiveControlGateway.Controllers;
 public sealed class DeviceController : WebsocketBaseController<ServerToDeviceMessage>
 {
     private Common.OpenShockDb.Device _currentDevice = null!;
-    private IRedisConnectionProvider _redisConnectionProvider;
+    private readonly IRedisConnectionProvider _redisConnectionProvider;
 
     /// <summary>
     /// Authentication context
