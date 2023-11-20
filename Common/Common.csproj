@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
-        <TargetFramework>net7.0</TargetFramework>
+        <TargetFramework>net8.0</TargetFramework>
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
         <AssemblyName>OpenShock.Common</AssemblyName>
@@ -10,6 +10,7 @@
         <Product>OpenShock.Common</Product>
         <AssemblyVersion>1.6.1</AssemblyVersion>
         <FileVersion>1.6.1</FileVersion>
+        <LangVersion>12</LangVersion>
     </PropertyGroup>
 
     <ItemGroup>
