@@ -77,6 +77,14 @@ public class Startup
             builder.EnableSensitiveDataLogging();
             builder.EnableDetailedErrors();
         });
+        
+        services.AddDbContextFactory<OpenShockContext>(builder =>
+        {
+            builder.UseNpgsql(LCGGlobals.LCGConfig.Db);
+            builder.EnableSensitiveDataLogging();
+            builder.EnableDetailedErrors();
+        });
+
 
         _redisConfig = new ConfigurationOptions
         {

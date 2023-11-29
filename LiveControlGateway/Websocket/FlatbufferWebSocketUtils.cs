@@ -1,19 +1,15 @@
 ﻿using System.Buffers;
 using System.Net.WebSockets;
 using FlatSharp;
-using Microsoft.IO;
 using OneOf;
-using Serilog.Core;
+using OpenShock.ServicesCommon.Utils;
 
 namespace OpenShock.LiveControlGateway.Websocket;
 
-public static class WebSocketUtils
+public static class FlatbufferWebSocketUtils
 {
     private const uint MaxMessageSize = 512_000; // 512 000 bytes
-
-
-    private static readonly RecyclableMemoryStreamManager RecyclableMemory = new();
-
+    
     /// <summary>
     /// Receive a websocket message with the given FlatBuffer type
     /// </summary>
@@ -31,7 +27,7 @@ public static class WebSocketUtils
         try
         {
             ValueWebSocketReceiveResult result;
-            await using var message = RecyclableMemory.GetStream();
+            await using var message = JsonWebSocketUtils.RecyclableMemory.GetStream();
             var bytes = 0;
             do
             {

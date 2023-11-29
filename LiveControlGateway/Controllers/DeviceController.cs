@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
 using OpenShock.Common.Redis;
 using OpenShock.Common.Utils;
+using OpenShock.LiveControlGateway.LifetimeManager;
 using OpenShock.LiveControlGateway.Websocket;
 using OpenShock.Serialization;
 using OpenShock.ServicesCommon.Authentication;
@@ -18,7 +19,7 @@ namespace OpenShock.LiveControlGateway.Controllers;
 [ApiController]
 [Authorize(AuthenticationSchemes = OpenShockAuthSchemas.DeviceToken)]
 [Route("/{version:apiVersion}/ws/device")]
-public sealed class DeviceController : WebsocketBaseController<ServerToDeviceMessage>
+public sealed class DeviceController : FlatbuffersWebsocketBaseController<ServerToDeviceMessage>
 {
     private Common.OpenShockDb.Device _currentDevice = null!;
     private readonly IRedisConnectionProvider _redisConnectionProvider;
@@ -37,8 +38,7 @@ public sealed class DeviceController : WebsocketBaseController<ServerToDeviceMes
 
     /// <inheritdoc />
     public override Guid Id => _currentDevice.Id;
-
-
+    
     /// <summary>
     /// DI
     /// </summary>
@@ -59,9 +59,9 @@ public sealed class DeviceController : WebsocketBaseController<ServerToDeviceMes
         {
             try
             {
-                if (WebSocket!.State == WebSocketState.Aborted) return;
+                if (WebSocket?.State == WebSocketState.Aborted) return;
                 var message =
-                    await WebSocketUtils.ReceiveFullMessageAsyncNonAlloc(WebSocket, DeviceToServerMessage.Serializer,
+                    await FlatbufferWebSocketUtils.ReceiveFullMessageAsyncNonAlloc(WebSocket, DeviceToServerMessage.Serializer,
                         Linked.Token);
 
                 if (message.IsT2)
@@ -113,7 +113,7 @@ public sealed class DeviceController : WebsocketBaseController<ServerToDeviceMes
             }
         }
 
-        Close.Cancel();
+        await Close.CancelAsync();
     }
 
     private async Task Handle(DeviceToServerMessagePayload payload)
@@ -161,17 +161,20 @@ public sealed class DeviceController : WebsocketBaseController<ServerToDeviceMes
     private SemVersion? FirmwareVersion { get; set; }
 
     /// <inheritdoc />
-    protected override void RegisterConnection()
+    protected override async Task RegisterConnection()
     {
         if (HttpContext.Request.Headers.TryGetValue("Firmware-Version", out var header) &&
             SemVersion.TryParse(header, SemVersionStyles.Strict, out var version)) FirmwareVersion = version;
 
+        await DeviceLifetimeManager.AddDeviceConnection(this, default);
+        
         WebsocketManager.ServerToDevice.RegisterConnection(this);
     }
 
     /// <inheritdoc />
-    protected override void UnregisterConnection()
+    protected override async Task UnregisterConnection()
     {
+        await DeviceLifetimeManager.RemoveDeviceConnection(this, default);
         WebsocketManager.ServerToDevice.UnregisterConnection(this);
     }
 }

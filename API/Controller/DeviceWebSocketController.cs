@@ -10,6 +10,8 @@ using OpenShock.Common.Redis;
 using OpenShock.Common.Utils;
 using OpenShock.ServicesCommon;
 using OpenShock.ServicesCommon.Authentication;
+using OpenShock.ServicesCommon.Utils;
+using OpenShock.ServicesCommon.Websocket;
 using Redis.OM.Contracts;
 using Redis.OM.Searching;
 using Semver;
@@ -19,7 +21,7 @@ namespace OpenShock.API.Controller;
 [ApiController]
 [Authorize(AuthenticationSchemes = OpenShockAuthSchemas.DeviceToken)]
 [Route("/{version:apiVersion}/ws/device")]
-public class DeviceWebSocketController : WebsocketControllerBase<ResponseType>
+public class DeviceWebSocketController : WebsocketBaseController<IBaseResponse<ResponseType>>
 {
     private readonly IRedisCollection<DeviceOnline> _devicesOnline;
     private readonly IRedisConnectionProvider _redis;
@@ -42,58 +44,67 @@ public class DeviceWebSocketController : WebsocketControllerBase<ResponseType>
         _devicesOnline = redisConnectionProvider.RedisCollection<DeviceOnline>(false);
     }
 
-    protected override void RegisterConnection()
+    protected override Task RegisterConnection()
     {
         if (HttpContext.Request.Headers.TryGetValue("FirmwareVersion", out var header) &&
             SemVersion.TryParse(header, SemVersionStyles.Strict, out var version)) FirmwareVersion = version;
 
         WebsocketManager.DeviceWebSockets.RegisterConnection(this);
+        
+        return Task.CompletedTask;
     }
 
-    protected override void UnregisterConnection()
+    protected override Task UnregisterConnection()
     {
         WebsocketManager.DeviceWebSockets.UnregisterConnection(this);
+        return Task.CompletedTask;
     }
 
     protected override async Task Logic()
     {
-        ValueWebSocketReceiveResult? result = null;
-        do
+        while(true)
         {
             try
             {
-                if (WebSocket.State == WebSocketState.Aborted) return;
+                if (WebSocket!.State == WebSocketState.Aborted) return;
                 var message =
-                    await WebSocketUtils.ReceiveFullMessageAsyncNonAlloc<BaseRequest<RequestType>>(WebSocket,
+                    await JsonWebSocketUtils.ReceiveFullMessageAsyncNonAlloc<BaseRequest<RequestType>>(WebSocket,
                         Linked.Token);
-                result = message.Item1;
 
-                if (result.Value.MessageType == WebSocketMessageType.Close && WebSocket.State == WebSocketState.Open)
+                if (message.IsT2)
                 {
-                    //await SelfOffline();
+                    if (WebSocket.State != WebSocketState.Open)
+                    {
+                        Logger.LogWarning("Client sent closure, but connection state is not open");
+                        break;
+                    }
+
                     try
                     {
-                        await WebSocket.CloseAsync(WebSocketCloseStatus.NormalClosure, "Normal close", Linked.Token);
+                        await WebSocket.CloseAsync(WebSocketCloseStatus.NormalClosure, "Normal close",
+                            Linked.Token);
                     }
                     catch (OperationCanceledException e)
                     {
                         Logger.LogError(e, "Error during close handshake");
                     }
 
-                    Close.Cancel();
                     Logger.LogInformation("Closing websocket connection");
-                    return;
+                    break;
                 }
-
-                var json = message.Item2;
-                if (json == null) continue;
-                await ProcessResult(json);
+                
+                message.Switch(wsRequest =>
+                    {
+                        if (wsRequest?.Data == null) return;
+                        Task.Run(() => ProcessResult(wsRequest));
+                    },
+                    failed => { Logger.LogWarning(failed.Exception, "Deserialization failed for websocket message"); },
+                    _ => { });
             }
             catch (OperationCanceledException)
             {
                 Logger.LogInformation("WebSocket connection terminated due to close or shutdown");
-                Close.Cancel();
-                return;
+                break;
             }
             catch (WebSocketException e)
             {
@@ -104,9 +115,9 @@ public class DeviceWebSocketController : WebsocketControllerBase<ResponseType>
             {
                 Logger.LogError(ex, "Exception while processing websocket request");
             }
-        } while (result != null && result.Value.MessageType != WebSocketMessageType.Close);
+        }
 
-        Close.Cancel();
+        await Close.CancelAsync();
     }
 
     private async Task ProcessResult(BaseRequest<RequestType> json)
