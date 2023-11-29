@@ -9,6 +9,7 @@ using OpenShock.Common.Models.WebSocket;
 using OpenShock.Common.Models.WebSocket.LCG;
 using OpenShock.Common.OpenShockDb;
 using OpenShock.Common.Serialization;
+using OpenShock.Common.Utils;
 using OpenShock.LiveControlGateway.LifetimeManager;
 using OpenShock.ServicesCommon.Authentication;
 using OpenShock.ServicesCommon.Utils;
@@ -106,7 +107,7 @@ public sealed class LiveControlController : WebsocketBaseController<IBaseRespons
                 message.Switch(wsRequest =>
                     {
                         if (wsRequest?.Data == null) return;
-                        Task.Run(() => ProcessResult(wsRequest));
+                        LucTask.Run(() => ProcessResult(wsRequest));
                     },
                     failed => { Logger.LogWarning(failed.Exception, "Deserialization failed for websocket message"); },
                     _ => { });
@@ -134,16 +135,34 @@ public sealed class LiveControlController : WebsocketBaseController<IBaseRespons
         => request.RequestType switch
         {
             LiveRequestType.Frame => IntakeFrame(request.Data),
-            _ => Task.CompletedTask
+            _ => QueueMessage(new BaseResponse<LiveResponseType>()
+            {
+                ResponseType = LiveResponseType.RequestTypeNotFound
+            }).AsTask()
         };
 
 
     private async Task IntakeFrame(JsonDocument? requestData)
     {
-        var frame = requestData.SlDeserialize<ClientLiveFrame>();
-        
-        if (frame == null)
+        Logger.LogTrace("Intake frame");
+        ClientLiveFrame? frame;
+        try
         {
+            frame = requestData.NewSlDeserialize<ClientLiveFrame>();
+            
+            if (frame == null)
+            {
+                Logger.LogWarning("Error while deserializing frame");
+                await QueueMessage(new BaseResponse<LiveResponseType>
+                {
+                    ResponseType = LiveResponseType.InvalidData
+                });
+                return;
+            }
+        }
+        catch (Exception e)
+        {
+            Logger.LogWarning(e, "Error while deserializing frame");
             await QueueMessage(new BaseResponse<LiveResponseType>
             {
                 ResponseType = LiveResponseType.InvalidData
@@ -151,8 +170,14 @@ public sealed class LiveControlController : WebsocketBaseController<IBaseRespons
             return;
         }
 
+
+        Logger.LogTrace("Frame: {@Frame}", frame);
+
         var result = DeviceLifetimeManager.ReceiveFrame(_deviceId!.Value, frame.Shocker, frame.Type, frame.Intensity);
-        if(result.IsT0) return;
+        if (result.IsT0)
+        {
+            Logger.LogTrace("Successfully received frame");
+        };
 
         if (result.IsT1)
         {

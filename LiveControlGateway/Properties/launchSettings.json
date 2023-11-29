@@ -5,8 +5,8 @@
       "dotnetRunMessages": true,
       "environmentVariables": {
         "ASPNETCORE_ENVIRONMENT": "Development",
-        "OPENSHOCK__DB": "Host=docker-node;Port=1337;Database=root;Username=root;Password=root",
-        "OPENSHOCK__FQDN": "test.gateway.shocklink.net",
+        "OPENSHOCK__DB": "Host=docker-node;Port=1337;Database=openshock;Username=root;Password=root",
+        "OPENSHOCK__FQDN": "luc-lcg.lucheart.ovh",
         "OPENSHOCK__COUNTRYCODE": "DE",
         "OPENSHOCK__REDIS__HOST":"docker-node",
         //"OPENSHOCK__REDIS__HOST":"localhost",

@@ -86,7 +86,7 @@ namespace OpenShock.ServicesCommon.Websocket
                 return;
             }
 
-            if (await ConnectionPrecondition())
+            if (!await ConnectionPrecondition())
             { 
                 await Close.CancelAsync();
                 return;

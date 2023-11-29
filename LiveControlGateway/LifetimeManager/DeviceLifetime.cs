@@ -43,7 +43,7 @@ public sealed class DeviceLifetime : IAsyncDisposable
     private async Task UpdateLoop()
     {
         var stopwatch = Stopwatch.StartNew();
-        while (_cancellationToken.IsCancellationRequested)
+        while (!_cancellationToken.IsCancellationRequested)
         {
             stopwatch.Restart();
 

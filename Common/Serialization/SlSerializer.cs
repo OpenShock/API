@@ -4,7 +4,17 @@ namespace OpenShock.Common.Serialization;
 
 public static class SlSerializer
 {
-    private static readonly JsonSerializerOptions? DefaultSerializerSettings = new()
+    private static readonly JsonSerializerOptions DefaultSerializerSettings = new()
+    {
+        PropertyNameCaseInsensitive = true
+    };
+
+    static SlSerializer()
+    {
+        DefaultSerializerSettings.Converters.Add(new CustomJsonStringEnumConverter());
+    }
+    
+    private static readonly JsonSerializerOptions NewDefaultSerializerSettings = new()
     {
         PropertyNameCaseInsensitive = true
     };
@@ -14,8 +24,8 @@ public static class SlSerializer
     public static T? Deserialize<T>(this ReadOnlySpan<byte> data) => JsonSerializer.Deserialize<T>(data, DefaultSerializerSettings);
     
     
-    public static TValue? SlDeserialize<TValue>(this JsonDocument? document)
+    public static TValue? NewSlDeserialize<TValue>(this JsonDocument? document)
     {
-        return document is null ? default : document.Deserialize<TValue>(DefaultSerializerSettings);
+        return document is null ? default : document.Deserialize<TValue>(NewDefaultSerializerSettings);
     }
 }
