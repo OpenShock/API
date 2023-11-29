@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
+using OpenShock.Common.OpenShockDb;
 using OpenShock.Common.Redis;
 using OpenShock.Common.Utils;
 using OpenShock.LiveControlGateway.LifetimeManager;
@@ -23,6 +24,7 @@ public sealed class DeviceController : FlatbuffersWebsocketBaseController<Server
 {
     private Common.OpenShockDb.Device _currentDevice = null!;
     private readonly IRedisConnectionProvider _redisConnectionProvider;
+    private readonly OpenShockContext _db;
 
     /// <summary>
     /// Authentication context
@@ -46,10 +48,11 @@ public sealed class DeviceController : FlatbuffersWebsocketBaseController<Server
     /// <param name="lifetime"></param>
     /// <param name="redisConnectionProvider"></param>
     public DeviceController(ILogger<DeviceController> logger, IHostApplicationLifetime lifetime,
-        IRedisConnectionProvider redisConnectionProvider)
+        IRedisConnectionProvider redisConnectionProvider, OpenShockContext db)
         : base(logger, lifetime, ServerToDeviceMessage.Serializer)
     {
         _redisConnectionProvider = redisConnectionProvider;
+        _db = db;
     }
 
     /// <inheritdoc />
@@ -166,7 +169,7 @@ public sealed class DeviceController : FlatbuffersWebsocketBaseController<Server
         if (HttpContext.Request.Headers.TryGetValue("Firmware-Version", out var header) &&
             SemVersion.TryParse(header, SemVersionStyles.Strict, out var version)) FirmwareVersion = version;
 
-        await DeviceLifetimeManager.AddDeviceConnection(this, default);
+        await DeviceLifetimeManager.AddDeviceConnection(this, _db, Linked.Token);
         
         WebsocketManager.ServerToDevice.RegisterConnection(this);
     }
@@ -174,7 +177,7 @@ public sealed class DeviceController : FlatbuffersWebsocketBaseController<Server
     /// <inheritdoc />
     protected override async Task UnregisterConnection()
     {
-        await DeviceLifetimeManager.RemoveDeviceConnection(this, default);
+        await DeviceLifetimeManager.RemoveDeviceConnection(this);
         WebsocketManager.ServerToDevice.UnregisterConnection(this);
     }
 }

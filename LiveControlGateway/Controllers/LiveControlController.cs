@@ -1,5 +1,6 @@
 ﻿using System.Net;
 using System.Net.WebSockets;
+using System.Text.Json;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
@@ -7,6 +8,8 @@ using Microsoft.EntityFrameworkCore;
 using OpenShock.Common.Models.WebSocket;
 using OpenShock.Common.Models.WebSocket.LCG;
 using OpenShock.Common.OpenShockDb;
+using OpenShock.Common.Serialization;
+using OpenShock.LiveControlGateway.LifetimeManager;
 using OpenShock.ServicesCommon.Authentication;
 using OpenShock.ServicesCommon.Utils;
 using OpenShock.ServicesCommon.Websocket;
@@ -20,11 +23,13 @@ public sealed class LiveControlController : WebsocketBaseController<IBaseRespons
 {
     private readonly IDbContextFactory<OpenShockContext> _dbContextFactory;
     private readonly OpenShockContext _db;
-    
+
     private LinkUser _currentUser;
     private Guid? _deviceId;
-    
-    public LiveControlController(OpenShockContext db, ILogger<WebsocketBaseController<IBaseResponse<LiveResponseType>>> logger, IHostApplicationLifetime lifetime, IDbContextFactory<OpenShockContext> dbContextFactory) : base(logger, lifetime)
+
+    public LiveControlController(OpenShockContext db,
+        ILogger<WebsocketBaseController<IBaseResponse<LiveResponseType>>> logger, IHostApplicationLifetime lifetime,
+        IDbContextFactory<OpenShockContext> dbContextFactory) : base(logger, lifetime)
     {
         _dbContextFactory = dbContextFactory;
         _db = db;
@@ -37,7 +42,7 @@ public sealed class LiveControlController : WebsocketBaseController<IBaseRespons
             HttpContext.Response.StatusCode = (int)HttpStatusCode.BadRequest;
             return false;
         }
-        
+
         _deviceId = id;
 
         var deviceExistsAndYouHaveAccess = await _db.Devices.AnyAsync(x =>
@@ -45,7 +50,7 @@ public sealed class LiveControlController : WebsocketBaseController<IBaseRespons
                 z => z.SharedWith == _currentUser.DbUser.Id))));
 
         HttpContext.Response.StatusCode = (int)HttpStatusCode.NotFound;
-        
+
         return deviceExistsAndYouHaveAccess;
     }
 
@@ -55,7 +60,8 @@ public sealed class LiveControlController : WebsocketBaseController<IBaseRespons
     /// <param name="context"></param>
     public override void OnActionExecuting(ActionExecutingContext context)
     {
-        _currentUser = ControllerContext.HttpContext.RequestServices.GetRequiredService<IClientAuthService<LinkUser>>().CurrentClient;
+        _currentUser = ControllerContext.HttpContext.RequestServices.GetRequiredService<IClientAuthService<LinkUser>>()
+            .CurrentClient;
         base.OnActionExecuting(context);
     }
 
@@ -66,7 +72,7 @@ public sealed class LiveControlController : WebsocketBaseController<IBaseRespons
     /// <inheritdoc />
     protected override async Task Logic()
     {
-        while(true)
+        while (true)
         {
             try
             {
@@ -96,7 +102,7 @@ public sealed class LiveControlController : WebsocketBaseController<IBaseRespons
                     Logger.LogInformation("Closing websocket connection");
                     break;
                 }
-                
+
                 message.Switch(wsRequest =>
                     {
                         if (wsRequest?.Data == null) return;
@@ -125,7 +131,45 @@ public sealed class LiveControlController : WebsocketBaseController<IBaseRespons
     }
 
     private Task ProcessResult(BaseRequest<LiveRequestType> request)
+        => request.RequestType switch
+        {
+            LiveRequestType.Frame => IntakeFrame(request.Data),
+            _ => Task.CompletedTask
+        };
+
+
+    private async Task IntakeFrame(JsonDocument? requestData)
     {
+        var frame = requestData.SlDeserialize<ClientLiveFrame>();
         
+        if (frame == null)
+        {
+            await QueueMessage(new BaseResponse<LiveResponseType>
+            {
+                ResponseType = LiveResponseType.InvalidData
+            });
+            return;
+        }
+
+        var result = DeviceLifetimeManager.ReceiveFrame(_deviceId!.Value, frame.Shocker, frame.Type, frame.Intensity);
+        if(result.IsT0) return;
+
+        if (result.IsT1)
+        {
+            await QueueMessage(new BaseResponse<LiveResponseType>
+            {
+                ResponseType = LiveResponseType.DeviceNotConnected
+            });
+            return;
+        }
+
+        if (result.IsT2)
+        {
+            await QueueMessage(new BaseResponse<LiveResponseType>
+            {
+                ResponseType = LiveResponseType.ShockerNotFound
+            });
+            return;
+        }
     }
 }

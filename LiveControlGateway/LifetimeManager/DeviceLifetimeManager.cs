@@ -1,25 +1,25 @@
-﻿using Microsoft.AspNetCore.SignalR;
+﻿using OneOf;
+using OneOf.Types;
 using OpenShock.Common.Models;
 using OpenShock.Common.OpenShockDb;
-using OpenShock.Common.Utils;
 using OpenShock.LiveControlGateway.Controllers;
-using OpenShock.Serialization;
 
 namespace OpenShock.LiveControlGateway.LifetimeManager;
 
-public sealed class DeviceLifetimeManager : IAsyncDisposable
+public static class DeviceLifetimeManager
 {
-    private static readonly Dictionary<Guid, DeviceLifetimeManager> Managers = new();
+    private static readonly Dictionary<Guid, DeviceLifetime> Managers = new();
     private static readonly SemaphoreSlim Lock = new(1, 1);
 
-    private readonly DeviceController _deviceController;
-
-    private DeviceLifetimeManager(DeviceController deviceController)
-    {
-        _deviceController = deviceController;
-    }
-
-    public static async Task AddDeviceConnection(DeviceController deviceController, CancellationToken cancellationToken)
+    /// <summary>
+    /// Add device to lifetime manager, called on successful connect of device
+    /// </summary>
+    /// <param name="deviceController"></param>
+    /// <param name="db"></param>
+    /// <param name="cancellationToken"></param>
+    /// <returns></returns>
+    public static async Task<DeviceLifetime> AddDeviceConnection(DeviceController deviceController,
+        OpenShockContext db, CancellationToken cancellationToken)
     {
         await Lock.WaitAsync(cancellationToken);
         try
@@ -29,7 +29,10 @@ public sealed class DeviceLifetimeManager : IAsyncDisposable
                 await oldController.DisposeAsync();
             }
 
-            Managers[deviceController.Id] = new DeviceLifetimeManager(deviceController);
+            var deviceLifetime = new DeviceLifetime(deviceController, cancellationToken);
+            await deviceLifetime.InitAsync(db);
+            Managers[deviceController.Id] = deviceLifetime;
+            return deviceLifetime;
         }
         finally
         {
@@ -37,9 +40,13 @@ public sealed class DeviceLifetimeManager : IAsyncDisposable
         }
     }
 
-    public static async Task RemoveDeviceConnection(DeviceController deviceController, CancellationToken cancellationToken)
+    /// <summary>
+    /// Remove device from Lifetime Manager, called on dispose of device controller
+    /// </summary>
+    /// <param name="deviceController"></param>
+    public static async Task RemoveDeviceConnection(DeviceController deviceController)
     {
-        await Lock.WaitAsync(cancellationToken);
+        await Lock.WaitAsync();
         try
         {
             Managers.Remove(deviceController.Id);
@@ -50,40 +57,29 @@ public sealed class DeviceLifetimeManager : IAsyncDisposable
         }
     }
 
-    public static bool IsConnected(Guid id) => Managers.ContainsKey(id);
-
-    
-    private DateTimeOffset _lastPacket = DateTimeOffset.MinValue;
-    private byte _lastIntensity = 0;
-    private ControlType _lastType;
+    /// <summary>
+    /// Check if device is connected to LCG
+    /// </summary>
+    /// <param name="device"></param>
+    /// <returns></returns>
+    public static bool IsConnected(Guid device) => Managers.ContainsKey(device);
 
     /// <summary>
-    /// Update all shockers config
+    /// Receive a control frame by a client, this implies that limits and permissions have been checked before
     /// </summary>
-    private async Task UpdateShockers(OpenShockContext db)
+    /// <param name="device"></param>
+    /// <param name="shocker"></param>
+    /// <param name="type"></param>
+    /// <param name="intensity"></param>
+    /// <returns></returns>
+    public static OneOf<Success, DeviceNotFound, ShockerNotFound> ReceiveFrame(Guid device, Guid shocker,
+        ControlType type, byte intensity)
     {
-        db.Shockers.Where(x => x.)
-    }
-    
-    public async Task ReceivePacket(Guid shockerId, byte intensity)
-    {
-        await _deviceController.QueueMessage(new ServerToDeviceMessage
-        {
-            Payload = new ServerToDeviceMessagePayload(new ShockerCommandList
-            {
-                Commands = new List<ShockerCommand>
-                {
-                    new ShockerCommand
-                    {
-                    }
-                }
-            })
-        });
-    }
-
-    /// <inheritdoc />
-    public ValueTask DisposeAsync()
-    {
-        return _deviceController.DisposeAsync();
+        if (!Managers.TryGetValue(device, out var deviceLifetime)) return new DeviceNotFound();
+        return deviceLifetime.ReceiveFrame(shocker, type, intensity) ? new Success() : new ShockerNotFound();
     }
 }
+
+public struct DeviceNotFound;
+
+public struct ShockerNotFound;

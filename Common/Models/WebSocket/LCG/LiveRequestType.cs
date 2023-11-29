@@ -2,5 +2,5 @@
 
 public enum LiveRequestType
 {
-    Packet = 0
+    Frame = 0
 }
