@@ -5,5 +5,5 @@ namespace OpenShock.Common.Models;
 public enum ShockerModelType
 {
     [PgName("caiXianlin")] CaiXianlin = 0,
-    [PgName("petTrainer")] PetTrainer = 1
+    [PgName("petrainer")] Petrainer = 1
 }
