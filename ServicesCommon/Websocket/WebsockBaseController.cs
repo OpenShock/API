@@ -66,12 +66,14 @@ namespace OpenShock.ServicesCommon.Websocket
         public async ValueTask DisposeAsync()
         {
             if(_disposed) return;
+            Logger.LogTrace("Disposing websocket controller..");
             _disposed = true;
             await UnregisterConnection();
-
+            
             _channel.Writer.Complete();
             await Close.CancelAsync();
             WebSocket?.Dispose();
+            Logger.LogTrace("Disposed websocket controller");
         }
     
         /// <summary>
@@ -168,5 +170,10 @@ namespace OpenShock.ServicesCommon.Websocket
         /// </summary>
         [NonAction]
         protected virtual Task<bool> ConnectionPrecondition() => Task.FromResult(true);
+        
+        ~WebsocketBaseController()
+        {
+            Console.WriteLine("Finalized");
+        }
     }
 }

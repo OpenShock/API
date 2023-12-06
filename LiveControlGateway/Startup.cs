@@ -8,7 +8,6 @@ using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.OpenApi.Models;
-using Newtonsoft.Json;
 using Npgsql;
 using OpenShock.Common;
 using OpenShock.Common.Models;
@@ -155,9 +154,6 @@ public class Startup
                 builder.SetPreflightMaxAge(TimeSpan.FromHours(24));
             });
         });
-        services.AddSignalR()
-            .AddStackExchangeRedis(options => { options.Configuration = _redisConfig; })
-            .AddJsonProtocol(options => { options.PayloadSerializerOptions.PropertyNameCaseInsensitive = true; });
 
         var apiVersioningBuilder = services.AddApiVersioning(options =>
         {

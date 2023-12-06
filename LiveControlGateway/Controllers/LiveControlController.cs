@@ -11,9 +11,11 @@ using OpenShock.Common.OpenShockDb;
 using OpenShock.Common.Serialization;
 using OpenShock.Common.Utils;
 using OpenShock.LiveControlGateway.LifetimeManager;
+using OpenShock.LiveControlGateway.Websocket;
 using OpenShock.ServicesCommon.Authentication;
 using OpenShock.ServicesCommon.Utils;
 using OpenShock.ServicesCommon.Websocket;
+using Timer = System.Timers.Timer;
 
 namespace OpenShock.LiveControlGateway.Controllers;
 
@@ -24,18 +26,46 @@ public sealed class LiveControlController : WebsocketBaseController<IBaseRespons
 {
     private readonly IDbContextFactory<OpenShockContext> _dbContextFactory;
     private readonly OpenShockContext _db;
+    private static readonly TimeSpan PingInterval = TimeSpan.FromSeconds(5);
 
     private LinkUser _currentUser;
     private Guid? _deviceId;
+    
+    /// <summary>
+    /// Last latency in milliseconds, 0 initially
+    /// </summary>
+    public long LastLatency { get; private set; } = 0;
+    
+    private readonly Timer _pingTimer = new(PingInterval);
 
     public LiveControlController(OpenShockContext db,
-        ILogger<WebsocketBaseController<IBaseResponse<LiveResponseType>>> logger, IHostApplicationLifetime lifetime,
+        ILogger<LiveControlController> logger, IHostApplicationLifetime lifetime,
         IDbContextFactory<OpenShockContext> dbContextFactory) : base(logger, lifetime)
     {
         _dbContextFactory = dbContextFactory;
         _db = db;
+
+        _pingTimer.Elapsed += (_, _) => LucTask.Run(SendPing);
     }
 
+    /// <inheritdoc />
+    protected override Task RegisterConnection()
+    {
+        WebsocketManager.LiveControlUsers.RegisterConnection(this);
+        return Task.CompletedTask;
+    }
+
+    /// <inheritdoc />
+    protected override Task UnregisterConnection()
+    {
+        WebsocketManager.LiveControlUsers.UnregisterConnection(this);
+        return Task.CompletedTask;
+    }
+
+    /// <summary>
+    /// We get the id from the route, check if its valid, check if the user has access to the shocker / device
+    /// </summary>
+    /// <returns></returns>
     protected override async Task<bool> ConnectionPrecondition()
     {
         if (HttpContext.GetRouteValue("deviceId") is not string param || !Guid.TryParse(param, out var id))
@@ -50,9 +80,14 @@ public sealed class LiveControlController : WebsocketBaseController<IBaseRespons
             x.Id == _deviceId && (x.Owner == _currentUser.DbUser.Id || x.Shockers.Any(y => y.ShockerShares.Any(
                 z => z.SharedWith == _currentUser.DbUser.Id))));
 
+        if (deviceExistsAndYouHaveAccess) return true;
+        
         HttpContext.Response.StatusCode = (int)HttpStatusCode.NotFound;
-
-        return deviceExistsAndYouHaveAccess;
+        await HttpContext.Response.WriteAsJsonAsync(new Common.Models.BaseResponse<object>
+        {
+            Message = "Device does not exist or you do not have access to it"
+        });
+        return false;
     }
 
     /// <summary>
@@ -69,11 +104,13 @@ public sealed class LiveControlController : WebsocketBaseController<IBaseRespons
     /// <inheritdoc />
     public override Guid Id => _deviceId ?? throw new Exception("Device id is null");
 
-
     /// <inheritdoc />
     protected override async Task Logic()
     {
-        while (true)
+        Logger.LogDebug("Starting ping timer...");
+        _pingTimer.Start();
+
+        while (!Close.IsCancellationRequested)
         {
             try
             {
@@ -134,26 +171,33 @@ public sealed class LiveControlController : WebsocketBaseController<IBaseRespons
     private Task ProcessResult(BaseRequest<LiveRequestType> request)
         => request.RequestType switch
         {
+            LiveRequestType.Pong => IntakePong(request.Data),
             LiveRequestType.Frame => IntakeFrame(request.Data),
-            _ => QueueMessage(new BaseResponse<LiveResponseType>()
+            _ => QueueMessage(new Common.Models.WebSocket.BaseResponse<LiveResponseType>()
             {
                 ResponseType = LiveResponseType.RequestTypeNotFound
             }).AsTask()
         };
 
-
-    private async Task IntakeFrame(JsonDocument? requestData)
+    /// <summary>
+    /// Pong callback from the client, we can calculate latency from this
+    /// </summary>
+    /// <param name="requestData"></param>
+    private async Task IntakePong(JsonDocument? requestData)
     {
-        Logger.LogTrace("Intake frame");
-        ClientLiveFrame? frame;
+        Logger.LogTrace("Intake pong");
+        
+        var currentTimestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+        
+        PingResponse? pong;
         try
         {
-            frame = requestData.NewSlDeserialize<ClientLiveFrame>();
-            
-            if (frame == null)
+            pong = requestData.NewSlDeserialize<PingResponse>();
+
+            if (pong == null)
             {
-                Logger.LogWarning("Error while deserializing frame");
-                await QueueMessage(new BaseResponse<LiveResponseType>
+                Logger.LogWarning("Error while deserializing pong");
+                await QueueMessage(new Common.Models.WebSocket.BaseResponse<LiveResponseType>
                 {
                     ResponseType = LiveResponseType.InvalidData
                 });
@@ -163,7 +207,52 @@ public sealed class LiveControlController : WebsocketBaseController<IBaseRespons
         catch (Exception e)
         {
             Logger.LogWarning(e, "Error while deserializing frame");
-            await QueueMessage(new BaseResponse<LiveResponseType>
+            await QueueMessage(new Common.Models.WebSocket.BaseResponse<LiveResponseType>
+            {
+                ResponseType = LiveResponseType.InvalidData
+            });
+            return;
+        }
+
+        var latency = currentTimestamp - pong.Timestamp;
+        LastLatency = Math.Max(0, latency);
+        
+        if(Logger.IsEnabled(LogLevel.Trace))
+            Logger.LogTrace("Latency: {Latency}ms (raw: {RawLatency}ms)", LastLatency, latency);
+
+        await QueueMessage(new BaseResponse<LiveResponseType>
+        {
+            ResponseType = LiveResponseType.LatencyAnnounce,
+            Data = new Dictionary<Guid, long>
+            {
+                {_currentUser.DbUser.Id, LastLatency}
+            }
+        });
+    }
+
+
+    private async Task IntakeFrame(JsonDocument? requestData)
+    {
+        Logger.LogTrace("Intake frame");
+        ClientLiveFrame? frame;
+        try
+        {
+            frame = requestData.NewSlDeserialize<ClientLiveFrame>();
+
+            if (frame == null)
+            {
+                Logger.LogWarning("Error while deserializing frame");
+                await QueueMessage(new Common.Models.WebSocket.BaseResponse<LiveResponseType>
+                {
+                    ResponseType = LiveResponseType.InvalidData
+                });
+                return;
+            }
+        }
+        catch (Exception e)
+        {
+            Logger.LogWarning(e, "Error while deserializing frame");
+            await QueueMessage(new Common.Models.WebSocket.BaseResponse<LiveResponseType>
             {
                 ResponseType = LiveResponseType.InvalidData
             });
@@ -177,11 +266,13 @@ public sealed class LiveControlController : WebsocketBaseController<IBaseRespons
         if (result.IsT0)
         {
             Logger.LogTrace("Successfully received frame");
-        };
+        }
+
+        ;
 
         if (result.IsT1)
         {
-            await QueueMessage(new BaseResponse<LiveResponseType>
+            await QueueMessage(new Common.Models.WebSocket.BaseResponse<LiveResponseType>
             {
                 ResponseType = LiveResponseType.DeviceNotConnected
             });
@@ -190,11 +281,32 @@ public sealed class LiveControlController : WebsocketBaseController<IBaseRespons
 
         if (result.IsT2)
         {
-            await QueueMessage(new BaseResponse<LiveResponseType>
+            await QueueMessage(new Common.Models.WebSocket.BaseResponse<LiveResponseType>
             {
                 ResponseType = LiveResponseType.ShockerNotFound
             });
             return;
         }
+    }
+
+    /// <summary>
+    /// Send a ping to the client, the client should respond with a pong
+    /// </summary>
+    private async Task SendPing()
+    {
+        if (WebSocket is not { State: WebSocketState.Open }) return;
+
+        if (Logger.IsEnabled(LogLevel.Debug))
+            Logger.LogDebug("Sending ping to live control user [{User}] for device [{Device}]", _currentUser.DbUser.Id,
+                _deviceId);
+        
+        await QueueMessage(new Common.Models.WebSocket.BaseResponse<LiveResponseType>
+        {
+            ResponseType = LiveResponseType.Ping,
+            Data = new PingResponse
+            {
+                Timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()
+            }
+        });
     }
 }

@@ -1,5 +1,7 @@
-﻿using OneOf;
+﻿using System.Collections.Concurrent;
+using OneOf;
 using OneOf.Types;
+using OpenShock.Common;
 using OpenShock.Common.Models;
 using OpenShock.Common.OpenShockDb;
 using OpenShock.LiveControlGateway.Controllers;
@@ -8,8 +10,8 @@ namespace OpenShock.LiveControlGateway.LifetimeManager;
 
 public static class DeviceLifetimeManager
 {
-    private static readonly Dictionary<Guid, DeviceLifetime> Managers = new();
-    private static readonly SemaphoreSlim Lock = new(1, 1);
+    private static readonly ILogger Logger = ApplicationLogging.CreateLogger(typeof(DeviceLifetimeManager));
+    private static readonly ConcurrentDictionary<Guid, DeviceLifetime> Managers = new();
 
     /// <summary>
     /// Add device to lifetime manager, called on successful connect of device
@@ -21,40 +23,26 @@ public static class DeviceLifetimeManager
     public static async Task<DeviceLifetime> AddDeviceConnection(DeviceController deviceController,
         OpenShockContext db, CancellationToken cancellationToken)
     {
-        await Lock.WaitAsync(cancellationToken);
-        try
-        {
             if (Managers.TryGetValue(deviceController.Id, out var oldController))
             {
+                Logger.LogDebug("Disposing old device controller");
                 await oldController.DisposeAsync();
             }
-
+            Logger.LogInformation("New device connected, creating lifetime [{DeviceId}]", deviceController.Id);
+            
             var deviceLifetime = new DeviceLifetime(deviceController, cancellationToken);
             await deviceLifetime.InitAsync(db);
             Managers[deviceController.Id] = deviceLifetime;
             return deviceLifetime;
-        }
-        finally
-        {
-            Lock.Release();
-        }
     }
 
     /// <summary>
     /// Remove device from Lifetime Manager, called on dispose of device controller
     /// </summary>
     /// <param name="deviceController"></param>
-    public static async Task RemoveDeviceConnection(DeviceController deviceController)
+    public static void RemoveDeviceConnection(DeviceController deviceController)
     {
-        await Lock.WaitAsync();
-        try
-        {
-            Managers.Remove(deviceController.Id);
-        }
-        finally
-        {
-            Lock.Release();
-        }
+        Managers.Remove(deviceController.Id, out _);
     }
 
     /// <summary>

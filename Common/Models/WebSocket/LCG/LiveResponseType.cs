@@ -5,11 +5,14 @@ namespace OpenShock.Common.Models.WebSocket.LCG;
 [JsonConverter(typeof(JsonStringEnumConverter))]
 public enum LiveResponseType
 {
-    ServerFrame = 0,
+    Frame = 0,
     
     DeviceNotConnected = 100,
     ShockerNotFound = 101,
     
     InvalidData = 200,
-    RequestTypeNotFound = 201
+    RequestTypeNotFound = 201,
+    
+    Ping = 1000,
+    LatencyAnnounce = 1001
 }

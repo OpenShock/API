@@ -19,12 +19,14 @@ public class DeviceController : AuthenticatedSessionControllerBase
     private readonly OpenShockContext _db;
     private readonly IRedisCollection<DevicePair> _devicePairs;
     private readonly IRedisCollection<DeviceOnline> _devicesOnline;
+    private readonly IRedisCollection<LcgNode> _lcgNodes;
 
     public DeviceController(OpenShockContext db, IRedisConnectionProvider provider)
     {
         _db = db;
         _devicePairs = provider.RedisCollection<DevicePair>();
         _devicesOnline = provider.RedisCollection<DeviceOnline>(false);
+        _lcgNodes = provider.RedisCollection<LcgNode>(false);
     }
 
     [HttpGet]
@@ -164,28 +166,40 @@ public class DeviceController : AuthenticatedSessionControllerBase
     /// <param name="id"></param>
     /// <returns></returns>
     [HttpGet("{id:guid}/lcg")]
-    public async Task<BaseResponse<string>> GetLcgInfo(Guid id)
+    public async Task<BaseResponse<LcgResponse>> GetLcgInfo(Guid id)
     {
         // Check if user owns device or has a share
         var deviceExistsAndYouHaveAccess = await _db.Devices.AnyAsync(x =>
             x.Id == id && (x.Owner == CurrentUser.DbUser.Id || x.Shockers.Any(y => y.ShockerShares.Any(
                 z => z.SharedWith == CurrentUser.DbUser.Id))));
         if (!deviceExistsAndYouHaveAccess)
-            return EBaseResponse<string>("Device does not exists or does not belong to you", HttpStatusCode.NotFound);
-        
+            return EBaseResponse<LcgResponse>("Device does not exists or does not belong to you",
+                HttpStatusCode.NotFound);
+
         // Check if device is online
         var online = await _devicesOnline.FindByIdAsync(id.ToString());
-        if (online == null) return EBaseResponse<string>("Device is not online", HttpStatusCode.NotFound);
-        
+        if (online == null) return EBaseResponse<LcgResponse>("Device is not online", HttpStatusCode.NotFound);
+
         // Check if device is connected to a LCG node
         if (online.Gateway == null)
-            return EBaseResponse<string>(
+            return EBaseResponse<LcgResponse>(
                 "Device is online but not connected to a LCG node, you might need to upgrade your firmware to use this feature",
                 HttpStatusCode.PreconditionFailed);
 
-        return new BaseResponse<string>
+        // Get LCG node info
+        var gateway = await _lcgNodes.FindByIdAsync(online.Gateway);
+        if (gateway == null)
+            return EBaseResponse<LcgResponse>("Internal server error, lcg node could not be found",
+                HttpStatusCode.InternalServerError);
+
+
+        return new BaseResponse<LcgResponse>
         {
-            Data = online.Gateway
+            Data = new LcgResponse
+            {
+                Gateway = gateway.Fqdn,
+                Country = gateway.Country
+            }
         };
     }
 }

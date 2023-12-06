@@ -22,7 +22,7 @@ namespace OpenShock.LiveControlGateway.Controllers;
 [Route("/{version:apiVersion}/ws/device")]
 public sealed class DeviceController : FlatbuffersWebsocketBaseController<ServerToDeviceMessage>
 {
-    private Common.OpenShockDb.Device _currentDevice = null!;
+    private Device _currentDevice = null!;
     private readonly IRedisConnectionProvider _redisConnectionProvider;
     private readonly OpenShockContext _db;
 
@@ -135,6 +135,7 @@ public sealed class DeviceController : FlatbuffersWebsocketBaseController<Server
 
     private async Task SelfOnline()
     {
+        Logger.LogDebug("Received keep alive from device [{DeviceId}]", _currentDevice.Id);
         var deviceOnline = _redisConnectionProvider.RedisCollection<DeviceOnline>();
         var deviceId = _currentDevice.Id.ToString();
         var online = await deviceOnline.FindByIdAsync(deviceId);
@@ -175,9 +176,11 @@ public sealed class DeviceController : FlatbuffersWebsocketBaseController<Server
     }
 
     /// <inheritdoc />
-    protected override async Task UnregisterConnection()
+    protected override Task UnregisterConnection()
     {
-        await DeviceLifetimeManager.RemoveDeviceConnection(this);
+        Logger.LogDebug("Unregistering device connection [{DeviceId}]", Id);
+        DeviceLifetimeManager.RemoveDeviceConnection(this);
         WebsocketManager.ServerToDevice.UnregisterConnection(this);
+        return Task.CompletedTask;
     }
 }
