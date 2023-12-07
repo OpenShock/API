@@ -46,7 +46,7 @@ public partial class OpenShockContext : DbContext
             .HasPostgresEnum("control_type", new[] { "sound", "vibrate", "shock", "stop" })
             .HasPostgresEnum("permission_type", new[] { "shockers.use" })
             .HasPostgresEnum("rank_type", new[] { "user", "support", "staff", "admin", "system" })
-            .HasPostgresEnum("shocker_model_type", new[] { "caiXianlin", "petrainer" });
+            .HasPostgresEnum("shocker_model_type", new[] { "caiXianlin", "petTrainer" });
 
         modelBuilder.Entity<ApiToken>(entity =>
         {
