@@ -173,7 +173,7 @@ public sealed class LiveControlController : WebsocketBaseController<IBaseRespons
         {
             LiveRequestType.Pong => IntakePong(request.Data),
             LiveRequestType.Frame => IntakeFrame(request.Data),
-            _ => QueueMessage(new Common.Models.WebSocket.BaseResponse<LiveResponseType>()
+            _ => QueueMessage(new BaseResponse<LiveResponseType>()
             {
                 ResponseType = LiveResponseType.RequestTypeNotFound
             }).AsTask()
@@ -197,7 +197,7 @@ public sealed class LiveControlController : WebsocketBaseController<IBaseRespons
             if (pong == null)
             {
                 Logger.LogWarning("Error while deserializing pong");
-                await QueueMessage(new Common.Models.WebSocket.BaseResponse<LiveResponseType>
+                await QueueMessage(new BaseResponse<LiveResponseType>
                 {
                     ResponseType = LiveResponseType.InvalidData
                 });
@@ -207,7 +207,7 @@ public sealed class LiveControlController : WebsocketBaseController<IBaseRespons
         catch (Exception e)
         {
             Logger.LogWarning(e, "Error while deserializing frame");
-            await QueueMessage(new Common.Models.WebSocket.BaseResponse<LiveResponseType>
+            await QueueMessage(new BaseResponse<LiveResponseType>
             {
                 ResponseType = LiveResponseType.InvalidData
             });
@@ -242,7 +242,7 @@ public sealed class LiveControlController : WebsocketBaseController<IBaseRespons
             if (frame == null)
             {
                 Logger.LogWarning("Error while deserializing frame");
-                await QueueMessage(new Common.Models.WebSocket.BaseResponse<LiveResponseType>
+                await QueueMessage(new BaseResponse<LiveResponseType>
                 {
                     ResponseType = LiveResponseType.InvalidData
                 });
@@ -252,7 +252,7 @@ public sealed class LiveControlController : WebsocketBaseController<IBaseRespons
         catch (Exception e)
         {
             Logger.LogWarning(e, "Error while deserializing frame");
-            await QueueMessage(new Common.Models.WebSocket.BaseResponse<LiveResponseType>
+            await QueueMessage(new BaseResponse<LiveResponseType>
             {
                 ResponseType = LiveResponseType.InvalidData
             });
@@ -272,7 +272,7 @@ public sealed class LiveControlController : WebsocketBaseController<IBaseRespons
 
         if (result.IsT1)
         {
-            await QueueMessage(new Common.Models.WebSocket.BaseResponse<LiveResponseType>
+            await QueueMessage(new BaseResponse<LiveResponseType>
             {
                 ResponseType = LiveResponseType.DeviceNotConnected
             });
@@ -281,7 +281,7 @@ public sealed class LiveControlController : WebsocketBaseController<IBaseRespons
 
         if (result.IsT2)
         {
-            await QueueMessage(new Common.Models.WebSocket.BaseResponse<LiveResponseType>
+            await QueueMessage(new BaseResponse<LiveResponseType>
             {
                 ResponseType = LiveResponseType.ShockerNotFound
             });
@@ -300,7 +300,7 @@ public sealed class LiveControlController : WebsocketBaseController<IBaseRespons
             Logger.LogDebug("Sending ping to live control user [{User}] for device [{Device}]", _currentUser.DbUser.Id,
                 _deviceId);
         
-        await QueueMessage(new Common.Models.WebSocket.BaseResponse<LiveResponseType>
+        await QueueMessage(new BaseResponse<LiveResponseType>
         {
             ResponseType = LiveResponseType.Ping,
             Data = new PingResponse

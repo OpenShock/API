@@ -33,7 +33,7 @@ public sealed class DeviceController : FlatbuffersWebsocketBaseController<Server
     public override void OnActionExecuting(ActionExecutingContext context)
     {
         _currentDevice = ControllerContext.HttpContext.RequestServices
-            .GetRequiredService<IClientAuthService<Common.OpenShockDb.Device>>()
+            .GetRequiredService<IClientAuthService<Device>>()
             .CurrentClient;
         base.OnActionExecuting(context);
     }
