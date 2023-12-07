@@ -2,5 +2,5 @@
 
 enum ShockerModelType : uint8 {
   CaiXianlin = 0,
-  PetTrainer = 1
+  Petrainer = 1
 }
