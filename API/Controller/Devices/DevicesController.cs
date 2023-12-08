@@ -2,10 +2,12 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using OpenShock.API.Models.Requests;
+using OpenShock.API.Realtime;
 using OpenShock.API.Utils;
 using OpenShock.Common.Models;
 using OpenShock.Common.OpenShockDb;
 using OpenShock.Common.Redis;
+using OpenShock.Common.Redis.PubSub;
 using OpenShock.ServicesCommon.Authentication;
 using Redis.OM.Contracts;
 using Redis.OM.Searching;
@@ -76,6 +78,11 @@ public class DeviceController : AuthenticatedSessionControllerBase
         device.Name = data.Name;
         await _db.SaveChangesAsync();
 
+        await PubSubManager.SendDeviceUpdate(new DeviceUpdatedMessage
+        {
+            Id = device.Id
+        });
+        
         return new BaseResponse<object>
         {
             Message = "Successfully updated device"
@@ -109,6 +116,12 @@ public class DeviceController : AuthenticatedSessionControllerBase
             .ExecuteDeleteAsync();
         if (affected <= 0)
             return EBaseResponse<object>("Device does not exist", HttpStatusCode.NotFound);
+        
+        await PubSubManager.SendDeviceUpdate(new DeviceUpdatedMessage
+        {
+            Id = id
+        });
+        
         return new BaseResponse<object>
         {
             Message = "Successfully deleted device"
@@ -128,6 +141,11 @@ public class DeviceController : AuthenticatedSessionControllerBase
         _db.Devices.Add(device);
         await _db.SaveChangesAsync();
 
+        await PubSubManager.SendDeviceUpdate(new DeviceUpdatedMessage
+        {
+            Id = device.Id
+        });
+        
         Response.StatusCode = (int)HttpStatusCode.Created;
         return new BaseResponse<Guid>
         {

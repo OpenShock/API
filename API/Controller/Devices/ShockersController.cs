@@ -24,7 +24,7 @@ public class ShockersController : AuthenticatedSessionControllerBase
     {
         var deviceExists = await _db.Devices.AnyAsync(x => x.Owner == CurrentUser.DbUser.Id && x.Id == id);
         if (!deviceExists) return EBaseResponse<IEnumerable<ShockerResponse>>("Device does not exists or you do not have access to it.", HttpStatusCode.NotFound);
-        var shockers = await _db.Shockers.Where(x => x.Device == id).Select(x => new ShockerResponse()
+        var shockers = await _db.Shockers.Where(x => x.Device == id).Select(x => new ShockerResponse
         {
             Id = x.Id,
             Name = x.Name,

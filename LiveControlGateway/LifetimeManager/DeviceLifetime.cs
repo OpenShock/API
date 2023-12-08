@@ -21,11 +21,14 @@ public sealed class DeviceLifetime : IAsyncDisposable
     private Dictionary<Guid, ShockerState> _shockerStates = new();
     private readonly DeviceController _deviceController;
     private readonly CancellationToken _cancellationToken;
+    
+    private readonly IDbContextFactory<OpenShockContext> _dbContextFactory;
 
-    public DeviceLifetime(DeviceController deviceController, CancellationToken cancellationToken)
+    public DeviceLifetime(DeviceController deviceController, IDbContextFactory<OpenShockContext> dbContextFactory, CancellationToken cancellationToken = default)
     {
         _deviceController = deviceController;
         _cancellationToken = cancellationToken;
+        _dbContextFactory = dbContextFactory;
     }
     
     /// <summary>
@@ -101,7 +104,16 @@ public sealed class DeviceLifetime : IAsyncDisposable
     /// <summary>
     /// Update all shockers config
     /// </summary>
-    public async Task UpdateShockers(OpenShockContext db)
+    public async Task UpdateDevice()
+    {
+        await using var db = await _dbContextFactory.CreateDbContextAsync(_cancellationToken);
+        await UpdateShockers(db);
+    }
+
+    /// <summary>
+    /// Update all shockers config
+    /// </summary>
+    private async Task UpdateShockers(OpenShockContext db)
     {
         var ownShockers = await db.Shockers.Where(x => x.Device == _deviceController.Id).Select(x => new ShockerState()
         {

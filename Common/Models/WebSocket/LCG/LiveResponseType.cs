@@ -8,7 +8,8 @@ public enum LiveResponseType
     Frame = 0,
     
     DeviceNotConnected = 100,
-    ShockerNotFound = 101,
+    DeviceConnected = 101,
+    ShockerNotFound = 150,
     
     InvalidData = 200,
     RequestTypeNotFound = 201,

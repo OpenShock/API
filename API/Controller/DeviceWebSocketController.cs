@@ -160,7 +160,7 @@ public class DeviceWebSocketController : WebsocketBaseController<IBaseResponse<R
         }
 
         await _redis.Connection.ExecuteAsync("EXPIRE",
-            $"{typeof(DeviceOnline).FullName}:{_currentDevice.Id}", "65");
+            $"{typeof(DeviceOnline).FullName}:{_currentDevice.Id}", 65);
     }
 
     private SemVersion? FirmwareVersion { get; set; }

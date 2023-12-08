@@ -63,11 +63,12 @@ namespace OpenShock.ServicesCommon.Websocket
         
         /// <inheritdoc />
         [NonAction]
-        public async ValueTask DisposeAsync()
+        public virtual async ValueTask DisposeAsync()
         {
             if(_disposed) return;
             Logger.LogTrace("Disposing websocket controller..");
             _disposed = true;
+            await DisposeControllerAsync();
             await UnregisterConnection();
             
             _channel.Writer.Complete();
@@ -75,6 +76,8 @@ namespace OpenShock.ServicesCommon.Websocket
             WebSocket?.Dispose();
             Logger.LogTrace("Disposed websocket controller");
         }
+        
+        public virtual ValueTask DisposeControllerAsync() => ValueTask.CompletedTask;
     
         /// <summary>
         /// Initial get request to the websocket route - rewrite to websocket connection
@@ -102,7 +105,9 @@ namespace OpenShock.ServicesCommon.Websocket
 #pragma warning disable CS4014
             LucTask.Run(MessageLoop);
 #pragma warning restore CS4014
-        
+
+            await SendInitialData();
+            
             await Logic();
 
             await UnregisterConnection();
@@ -152,6 +157,13 @@ namespace OpenShock.ServicesCommon.Websocket
         /// <returns></returns>
         [NonAction]
         protected abstract Task Logic();
+        
+        /// <summary>
+        /// Send initial data to the client
+        /// </summary>
+        /// <returns></returns>
+        [NonAction]
+        protected virtual Task SendInitialData() => Task.CompletedTask;
     
         /// <summary>
         /// Action when the websocket connection is created to register the connection to a websocket manager

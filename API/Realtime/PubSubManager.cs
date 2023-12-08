@@ -71,6 +71,10 @@ public static class PubSubManager
     public static Task SendCaptiveControlMessage(CaptiveMessage data) =>
         _subscriber.PublishAsync(new RedisChannel("msg-device-control-captive", RedisChannel.PatternMode.Literal),
             JsonSerializer.Serialize(data));
+    
+    public static Task SendDeviceUpdate(DeviceUpdatedMessage data) =>
+        _subscriber.PublishAsync(new RedisChannel("msg-device-update", RedisChannel.PatternMode.Literal),
+            JsonSerializer.Serialize(data));
 
     #endregion
 

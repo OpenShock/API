@@ -1,7 +1,9 @@
-﻿using System.Net.WebSockets;
+﻿using System.Globalization;
+using System.Net.WebSockets;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
+using Microsoft.EntityFrameworkCore;
 using OpenShock.Common.OpenShockDb;
 using OpenShock.Common.Redis;
 using OpenShock.Common.Utils;
@@ -11,6 +13,7 @@ using OpenShock.Serialization;
 using OpenShock.ServicesCommon.Authentication;
 using Redis.OM.Contracts;
 using Semver;
+using Timer = System.Timers.Timer;
 
 namespace OpenShock.LiveControlGateway.Controllers;
 
@@ -25,6 +28,11 @@ public sealed class DeviceController : FlatbuffersWebsocketBaseController<Server
     private Device _currentDevice = null!;
     private readonly IRedisConnectionProvider _redisConnectionProvider;
     private readonly OpenShockContext _db;
+    private readonly IDbContextFactory<OpenShockContext> _dbContextFactory;
+    private static readonly TimeSpan InitialTimeout = TimeSpan.FromSeconds(65);
+    private static readonly TimeSpan KeepAliveTimeout = TimeSpan.FromSeconds(35);
+    private static readonly object KeepAliveTimeoutInt = (int)KeepAliveTimeout.TotalSeconds;
+    private readonly Timer _keepAliveTimer = new(InitialTimeout);
 
     /// <summary>
     /// Authentication context
@@ -40,19 +48,28 @@ public sealed class DeviceController : FlatbuffersWebsocketBaseController<Server
 
     /// <inheritdoc />
     public override Guid Id => _currentDevice.Id;
-    
+
     /// <summary>
     /// DI
     /// </summary>
     /// <param name="logger"></param>
     /// <param name="lifetime"></param>
     /// <param name="redisConnectionProvider"></param>
+    /// <param name="db"></param>
+    /// <param name="dbContextFactory"></param>
     public DeviceController(ILogger<DeviceController> logger, IHostApplicationLifetime lifetime,
-        IRedisConnectionProvider redisConnectionProvider, OpenShockContext db)
+        IRedisConnectionProvider redisConnectionProvider, OpenShockContext db, IDbContextFactory<OpenShockContext> dbContextFactory)
         : base(logger, lifetime, ServerToDeviceMessage.Serializer)
     {
         _redisConnectionProvider = redisConnectionProvider;
         _db = db;
+        _dbContextFactory = dbContextFactory;
+        _keepAliveTimer.Elapsed += async (sender, args) =>
+        {
+            Logger.LogWarning("Keep alive timeout reached, closing websocket connection");
+            await Close.CancelAsync();
+        };
+        _keepAliveTimer.Start();
     }
 
     /// <inheritdoc />
@@ -64,12 +81,12 @@ public sealed class DeviceController : FlatbuffersWebsocketBaseController<Server
             {
                 if (WebSocket?.State == WebSocketState.Aborted) return;
                 var message =
-                    await FlatbufferWebSocketUtils.ReceiveFullMessageAsyncNonAlloc(WebSocket, DeviceToServerMessage.Serializer,
+                    await FlatbufferWebSocketUtils.ReceiveFullMessageAsyncNonAlloc(WebSocket!, DeviceToServerMessage.Serializer,
                         Linked.Token);
 
                 if (message.IsT2)
                 {
-                    if (WebSocket.State != WebSocketState.Open)
+                    if (WebSocket!.State != WebSocketState.Open)
                     {
                         Logger.LogWarning("Client sent closure, but connection state is not open");
                         break;
@@ -136,6 +153,9 @@ public sealed class DeviceController : FlatbuffersWebsocketBaseController<Server
     private async Task SelfOnline()
     {
         Logger.LogDebug("Received keep alive from device [{DeviceId}]", _currentDevice.Id);
+
+        _keepAliveTimer.Interval = KeepAliveTimeout.TotalMilliseconds;
+        
         var deviceOnline = _redisConnectionProvider.RedisCollection<DeviceOnline>();
         var deviceId = _currentDevice.Id.ToString();
         var online = await deviceOnline.FindByIdAsync(deviceId);
@@ -147,7 +167,7 @@ public sealed class DeviceController : FlatbuffersWebsocketBaseController<Server
                 Owner = _currentDevice.Owner,
                 FirmwareVersion = FirmwareVersion,
                 Gateway = LCGGlobals.LCGConfig.Fqdn
-            }, TimeSpan.FromSeconds(35));
+            }, KeepAliveTimeout);
             return;
         }
 
@@ -159,7 +179,7 @@ public sealed class DeviceController : FlatbuffersWebsocketBaseController<Server
         }
 
         await _redisConnectionProvider.Connection.ExecuteAsync("EXPIRE",
-            $"{typeof(DeviceOnline).FullName}:{_currentDevice.Id}", "35");
+            $"{typeof(DeviceOnline).FullName}:{_currentDevice.Id}", KeepAliveTimeoutInt);
     }
 
     private SemVersion? FirmwareVersion { get; set; }
@@ -170,17 +190,28 @@ public sealed class DeviceController : FlatbuffersWebsocketBaseController<Server
         if (HttpContext.Request.Headers.TryGetValue("Firmware-Version", out var header) &&
             SemVersion.TryParse(header, SemVersionStyles.Strict, out var version)) FirmwareVersion = version;
 
-        await DeviceLifetimeManager.AddDeviceConnection(this, _db, Linked.Token);
-        
+        await DeviceLifetimeManager.AddDeviceConnection(this, _db, _dbContextFactory, Linked.Token);
+         
         WebsocketManager.ServerToDevice.RegisterConnection(this);
+        
+        foreach (var websocketController in WebsocketManager.LiveControlUsers.GetConnections(Id)) 
+            await websocketController.UpdateConnectedState(true);
     }
 
     /// <inheritdoc />
-    protected override Task UnregisterConnection()
+    protected override async Task UnregisterConnection()
     {
         Logger.LogDebug("Unregistering device connection [{DeviceId}]", Id);
         DeviceLifetimeManager.RemoveDeviceConnection(this);
         WebsocketManager.ServerToDevice.UnregisterConnection(this);
-        return Task.CompletedTask;
+        foreach (var websocketController in WebsocketManager.LiveControlUsers.GetConnections(Id)) 
+            await websocketController.UpdateConnectedState(false);
+    }
+
+    public override ValueTask DisposeControllerAsync()
+    {
+        Logger.LogTrace("Disposing controller timer");
+        _keepAliveTimer.Dispose();
+        return base.DisposeControllerAsync();
     }
 }

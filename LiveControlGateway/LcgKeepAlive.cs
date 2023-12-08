@@ -48,7 +48,7 @@ public class LcgKeepAlive : IHostedService
         }
 
         await _redisConnectionProvider.Connection.ExecuteAsync("EXPIRE",
-            $"{typeof(LcgNode).FullName}:{LCGGlobals.LCGConfig.Fqdn}", "35");
+            $"{typeof(LcgNode).FullName}:{LCGGlobals.LCGConfig.Fqdn}", 35);
     }
 
     private async Task Loop()

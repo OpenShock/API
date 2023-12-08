@@ -8,6 +8,7 @@ using OpenShock.Common.OpenShockDb;
 using OpenShock.Common.Redis;
 using OpenShock.Common.Redis.PubSub;
 using OpenShock.Common.Utils;
+using OpenShock.LiveControlGateway.LifetimeManager;
 using OpenShock.LiveControlGateway.Websocket;
 using OpenShock.Serialization;
 using OpenShock.Serialization.Types;
@@ -46,8 +47,16 @@ public static class PubSubManager
         await _subscriber.SubscribeAsync(
             new RedisChannel("msg-device-control-captive", RedisChannel.PatternMode.Literal),
             (channel, value) => { LucTask.Run(() => DeviceControlCaptive(value)); });
+        
+        await _subscriber.SubscribeAsync(
+            new RedisChannel("msg-device-update", RedisChannel.PatternMode.Literal),
+            (channel, value) => { LucTask.Run(() => DeviceUpdate(value)); });
     }
 
+    /// <summary>
+    /// Captive portal turned on or off remotely
+    /// </summary>
+    /// <param name="value"></param>
     private static async Task DeviceControlCaptive(RedisValue value)
     {
         if (!value.HasValue) return;
@@ -63,10 +72,14 @@ public static class PubSubManager
         });
     }
 
+    /// <summary>
+    /// Regular control message via redis
+    /// </summary>
+    /// <param name="value"></param>
     private static async Task DeviceControl(RedisValue value)
     {
         if (!value.HasValue) return;
-        var data = JsonSerializer.Deserialize<ControlMessage>(value.ToString()!);
+        var data = JsonSerializer.Deserialize<ControlMessage>(value.ToString());
         if (data == null) return;
 
         foreach (var controlMessage in data.ControlMessages)
@@ -83,5 +96,17 @@ public static class PubSubManager
                 Payload = new ServerToDeviceMessagePayload(new ShockerCommandList { Commands = shockies })
             });
         }
+    }
+
+    /// <summary>
+    /// Update the device connection if found
+    /// </summary>
+    /// <param name="value"></param>
+    /// <returns></returns>
+    private static Task DeviceUpdate(RedisValue value)
+    {
+        if (!value.HasValue) return Task.CompletedTask;
+        var data = JsonSerializer.Deserialize<DeviceUpdatedMessage>(value.ToString());
+        return data == null ? Task.CompletedTask : DeviceLifetimeManager.UpdateDevice(data.Id);
     }
 }

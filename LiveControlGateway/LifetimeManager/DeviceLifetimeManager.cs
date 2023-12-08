@@ -1,4 +1,5 @@
 ﻿using System.Collections.Concurrent;
+using Microsoft.EntityFrameworkCore;
 using OneOf;
 using OneOf.Types;
 using OpenShock.Common;
@@ -21,7 +22,7 @@ public static class DeviceLifetimeManager
     /// <param name="cancellationToken"></param>
     /// <returns></returns>
     public static async Task<DeviceLifetime> AddDeviceConnection(DeviceController deviceController,
-        OpenShockContext db, CancellationToken cancellationToken)
+        OpenShockContext db, IDbContextFactory<OpenShockContext> dbContextFactory, CancellationToken cancellationToken)
     {
             if (Managers.TryGetValue(deviceController.Id, out var oldController))
             {
@@ -30,7 +31,7 @@ public static class DeviceLifetimeManager
             }
             Logger.LogInformation("New device connected, creating lifetime [{DeviceId}]", deviceController.Id);
             
-            var deviceLifetime = new DeviceLifetime(deviceController, cancellationToken);
+            var deviceLifetime = new DeviceLifetime(deviceController, dbContextFactory, cancellationToken);
             await deviceLifetime.InitAsync(db);
             Managers[deviceController.Id] = deviceLifetime;
             return deviceLifetime;
@@ -65,6 +66,13 @@ public static class DeviceLifetimeManager
     {
         if (!Managers.TryGetValue(device, out var deviceLifetime)) return new DeviceNotFound();
         return deviceLifetime.ReceiveFrame(shocker, type, intensity) ? new Success() : new ShockerNotFound();
+    }
+
+    public static async Task<OneOf<Success, DeviceNotFound>> UpdateDevice(Guid device)
+    {
+        if (!Managers.TryGetValue(device, out var deviceLifetime)) return new DeviceNotFound();
+        await deviceLifetime.UpdateDevice();
+        return new Success();
     }
 }
 

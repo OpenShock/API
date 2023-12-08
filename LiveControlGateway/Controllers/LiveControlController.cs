@@ -105,6 +105,42 @@ public sealed class LiveControlController : WebsocketBaseController<IBaseRespons
     public override Guid Id => _deviceId ?? throw new Exception("Device id is null");
 
     /// <inheritdoc />
+    protected override async Task SendInitialData()
+    {
+        await UpdateConnectedState(DeviceLifetimeManager.IsConnected(Id), true);
+    }
+    
+    private bool _lastIsConnected;
+    
+    /// <summary>
+    /// Update the connected state of the device if different from what was last sent
+    /// </summary>
+    /// <param name="isConnected"></param>
+    /// <param name="force"></param>
+    [NonAction]
+    public async Task UpdateConnectedState(bool isConnected, bool force = false)
+    {
+        if(_lastIsConnected == isConnected && !force) return;
+        
+        Logger.LogTrace("Sending connection update for device [{Device}] [{State}]", Id, isConnected);
+        
+        _lastIsConnected = isConnected;
+        try
+        {
+            await QueueMessage(new BaseResponse<LiveResponseType>
+            {
+                ResponseType = _lastIsConnected
+                    ? LiveResponseType.DeviceConnected
+                    : LiveResponseType.DeviceNotConnected,
+            });
+        }
+        catch (Exception e)
+        {
+            Logger.LogWarning(e, "Error while sending device connected state");
+        }
+    }
+
+    /// <inheritdoc />
     protected override async Task Logic()
     {
         Logger.LogDebug("Starting ping timer...");
@@ -262,7 +298,7 @@ public sealed class LiveControlController : WebsocketBaseController<IBaseRespons
 
         Logger.LogTrace("Frame: {@Frame}", frame);
 
-        var result = DeviceLifetimeManager.ReceiveFrame(_deviceId!.Value, frame.Shocker, frame.Type, frame.Intensity);
+        var result = DeviceLifetimeManager.ReceiveFrame(Id, frame.Shocker, frame.Type, frame.Intensity);
         if (result.IsT0)
         {
             Logger.LogTrace("Successfully received frame");
@@ -297,8 +333,7 @@ public sealed class LiveControlController : WebsocketBaseController<IBaseRespons
         if (WebSocket is not { State: WebSocketState.Open }) return;
 
         if (Logger.IsEnabled(LogLevel.Debug))
-            Logger.LogDebug("Sending ping to live control user [{User}] for device [{Device}]", _currentUser.DbUser.Id,
-                _deviceId);
+            Logger.LogDebug("Sending ping to live control user [{User}] for device [{Device}]", _currentUser.DbUser.Id, Id);
         
         await QueueMessage(new BaseResponse<LiveResponseType>
         {
