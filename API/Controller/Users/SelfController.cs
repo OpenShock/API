@@ -26,7 +26,8 @@ public sealed class SelfController : AuthenticatedSessionControllerBase
             Id = CurrentUser.DbUser.Id,
             Name = CurrentUser.DbUser.Name,
             Email = CurrentUser.DbUser.Email,
-            Image = CurrentUser.GetImageLink()
+            Image = CurrentUser.GetImageLink(),
+            Rank = CurrentUser.DbUser.Rank
         }
     };
     public class SelfResponse
@@ -35,5 +36,6 @@ public sealed class SelfController : AuthenticatedSessionControllerBase
         public required string Name { get; set; }
         public required string Email { get; set; }
         public required Uri Image { get; set; }
+        public required RankType Rank { get; set; }
     }
 }
