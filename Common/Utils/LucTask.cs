@@ -15,7 +15,8 @@ public static class LucTask
             var index = file.LastIndexOf('\\');
             if (index == -1) index = file.LastIndexOf('/');
             Logger.LogError(t.Exception,
-                "Error during task execution. {File}::{Member}:{Line}",
-                file.Substring(index + 1, file.Length - index - 1), member, line);
+                "Error during task execution. {File}::{Member}:{Line} - Stack: {Stack}",
+                file.Substring(index + 1, file.Length - index - 1), member, line, t.Exception?.StackTrace);
+            
         }, TaskContinuationOptions.OnlyOnFaulted);
 }
