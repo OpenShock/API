@@ -20,7 +20,7 @@ partial class AccountController
     /// <response code="200">User successfully logged in</response>
     /// <response code="401">Invalid username or password</response>
     /// <response code="403">Account not activated</response>
-    [HttpPost("login")]
+    [HttpPost("login", Name = "Login")]
     [ProducesResponseType((int)HttpStatusCode.OK)]
     [ProducesResponseType((int)HttpStatusCode.Forbidden)]
     [ProducesResponseType((int)HttpStatusCode.Unauthorized)]

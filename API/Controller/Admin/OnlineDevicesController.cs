@@ -5,13 +5,21 @@ using OpenShock.Common.Redis;
 using OpenShock.Common.Serialization;
 using OpenShock.ServicesCommon.Utils;
 using Semver;
+using System.Net;
 using System.Text.Json.Serialization;
 
 namespace OpenShock.API.Controller.Admin;
 
 partial class AdminController
 {
-    [HttpGet]
+    /// <summary>
+    /// Gets all online devices
+    /// </summary>
+    /// <response code="200">All online devices</response>
+    /// <response code="401">Unauthorized</response>
+    [HttpGet(Name = "GetOnlineDevices")]
+    [ProducesResponseType((int)HttpStatusCode.OK)]
+    [ProducesResponseType((int)HttpStatusCode.Unauthorized)]
     public async Task<BaseResponse<object>> Get()
     {
         var devicesOnline = _redis.RedisCollection<DeviceOnline>(false);

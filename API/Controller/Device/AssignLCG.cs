@@ -16,7 +16,9 @@ partial class DeviceController
     /// <param name="geoLocation"></param>
     /// <response code="200">Successfully assigned LCG node</response>
     /// <response code="503">Unable to find suitable LCG node</response>
-    [HttpGet("assignLCG")]
+    [HttpGet("assignLCG", Name = "AssignLiveControlGateway")]
+    [ProducesResponseType((int)HttpStatusCode.OK)]
+    [ProducesResponseType((int)HttpStatusCode.ServiceUnavailable)]
     public async Task<BaseResponse<LcgNodeResponse>> AssignLCG([FromServices] IGeoLocation geoLocation)
     {
         var messageBuilder = new StringBuilder();

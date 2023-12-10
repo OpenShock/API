@@ -18,8 +18,9 @@ partial class DeviceController
     /// <response code="200">Successfully assigned LCG node</response>
     /// <response code="404">No such pair code exists</response>
     [AllowAnonymous]
-    [HttpGet("pair/{pairCode}")]
-    [HttpGet("~/{version:apiVersion}/pair/{pairCode}")] // Backwards compatibility
+    [HttpGet("pair/{pairCode}", Name = "PairDevice")]
+    [HttpGet("~/{version:apiVersion}/pair/{pairCode}", Name = "PairDeviceLegacy")] // Backwards compatibility
+    [ProducesResponseType((int)HttpStatusCode.OK)]
     public async Task<BaseResponse<string>> Pair([FromRoute] string pairCode)
     {
         var devicePairs = _redis.RedisCollection<DevicePair>();

@@ -12,7 +12,8 @@ partial class DeviceController : AuthenticatedDeviceControllerBase
     /// Gets information about the authenticated device.
     /// </summary>
     /// <response code="200">The device information was successfully retrieved.</response>
-    [HttpGet("self")]
+    [HttpGet("self", Name = "GetSelf")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
     public async Task<BaseResponse<DeviceSelfResponse>> GetSelf()
     {
         var shockers = await _db.Shockers.Where(x => x.Device == CurrentDevice.Id).Select(x => new MinimalShocker

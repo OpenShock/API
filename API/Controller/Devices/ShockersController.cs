@@ -8,7 +8,15 @@ namespace OpenShock.API.Controller.Devices;
 
 partial class DevicesController
 {
-    [HttpGet("{id}/shockers")]
+    /// <summary>
+    /// Gets all shockers for a device
+    /// </summary>
+    /// <param name="id">The device id</param>
+    /// <response code="200">All shockers for the device</response>
+    /// <response code="404">Device does not exists or you do not have access to it.</response>
+    [HttpGet("{id}/shockers", Name = "GetShockers")]
+    [ProducesResponseType((int)HttpStatusCode.OK)]
+    [ProducesResponseType((int)HttpStatusCode.NotFound)]
     public async Task<BaseResponse<IEnumerable<ShockerResponse>>> GetShockers([FromRoute] Guid id)
     {
         var deviceExists = await _db.Devices.AnyAsync(x => x.Owner == CurrentUser.DbUser.Id && x.Id == id);

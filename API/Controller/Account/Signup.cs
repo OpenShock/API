@@ -5,6 +5,7 @@ using OpenShock.API.Models.Requests;
 using OpenShock.API.Utils;
 using OpenShock.Common.Models;
 using OpenShock.Common.OpenShockDb;
+using System.Net;
 
 namespace OpenShock.API.Controller.Account;
 
@@ -16,7 +17,9 @@ partial class AccountController
     /// <param name="data"></param>
     /// <response code="200">User successfully signed up</response>
     /// <response code="400">Username or email already exists</response>
-    [HttpPost("signup")]
+    [HttpPost("signup", Name = "Signup")]
+    [ProducesResponseType((int)HttpStatusCode.OK)]
+    [ProducesResponseType((int)HttpStatusCode.BadRequest)]
     public async Task<BaseResponse<object>> Signup([FromBody] Signup data)
     {
         var newGuid = Guid.NewGuid();

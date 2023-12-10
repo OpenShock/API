@@ -5,7 +5,12 @@ namespace OpenShock.API.Controller.Public;
 
 partial class PublicController
 {
-    [HttpGet("firmware/version")]
+    /// <summary>
+    /// Gets the latest firmware version.
+    /// </summary>
+    /// <response code="200">The firmware version was successfully retrieved.</response>
+    [HttpGet("firmware/version", Name = "GetFirmwareVersion")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
     public BaseResponse<FirmwareVersion> GetFirmwareVersion()
     {
         return new BaseResponse<FirmwareVersion>

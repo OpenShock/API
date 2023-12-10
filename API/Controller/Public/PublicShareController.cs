@@ -9,7 +9,15 @@ namespace OpenShock.API.Controller.Public;
 
 partial class PublicController
 {
-    [HttpGet("shares/links/{id}")]
+    /// <summary>
+    /// Gets information about a public share link.
+    /// </summary>
+    /// <param name="id"></param>
+    /// <response code="200">The share link information was successfully retrieved.</response>
+    /// <response code="404">The share link does not exist.</response>
+    [HttpGet("shares/links/{id}", Name = "GetShareLink")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<BaseResponse<PublicShareLinkResponse>> Get([FromRoute] Guid id)
     {
         var shareLink = await _db.ShockerSharesLinks.Where(x => x.Id == id).Select(x => new

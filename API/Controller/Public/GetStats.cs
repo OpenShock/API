@@ -7,7 +7,12 @@ namespace OpenShock.API.Controller.Public;
 
 partial class PublicController
 {
-    [HttpGet("stats")]
+    /// <summary>
+    /// Gets online devices statistics
+    /// </summary>
+    /// <response code="200">The statistics were successfully retrieved.</response>
+    [HttpGet("stats", Name = "GetStats")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
     public async Task<BaseResponse<StatsResponse>> GetStats([FromServices] IRedisConnectionProvider redisConnectionProvider)
     {
         var deviceOnlines = redisConnectionProvider.RedisCollection<DeviceOnline>(false);

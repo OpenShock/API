@@ -17,8 +17,9 @@ partial class AccountController
     /// <param name="data"></param>
     /// <param name="mailjetClient"></param>
     /// <response code="200">Password reset email sent if the email is associated to an registered account</response>
-    [HttpPost("reset")]
+    [HttpPost("reset", Name = "ResetPassword")]
     [ProducesResponseType((int)HttpStatusCode.OK)]
+
     public async Task<BaseResponse<object>> ResetAction([FromBody] ResetRequest data, [FromServices] IMailjetClient mailjetClient)
     {
         var user = await _db.Users.Where(x => x.Email == data.Email.ToLowerInvariant()).Select(x => new
