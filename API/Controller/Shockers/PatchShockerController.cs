@@ -1,4 +1,5 @@
 ﻿using System.Net;
+using Asp.Versioning;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using OpenShock.API.Models.Requests;
@@ -20,6 +21,7 @@ public sealed partial class ShockerController
     [HttpPatch("{id}", Name = "EditShocker")]
     [ProducesResponseType((int)HttpStatusCode.OK)]
     [ProducesResponseType((int)HttpStatusCode.NotFound)]
+    [MapToApiVersion("1")]
     public async Task<BaseResponse<object>> EditShocker([FromRoute] Guid id, [FromBody] NewShocker data)
     {
         var device = await _db.Devices.AnyAsync(x => x.Owner == CurrentUser.DbUser.Id && x.Id == data.Device);

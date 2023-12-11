@@ -1,4 +1,5 @@
 ﻿using System.Net;
+using Asp.Versioning;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using OpenShock.API.Models.Response;
@@ -17,6 +18,7 @@ public sealed partial class ShockerController
     [HttpGet("{id}", Name = "GetShocker")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [MapToApiVersion("1")]
     public async Task<BaseResponse<ShockerWithDevice>> GetShocker([FromRoute] Guid id)
     {
         var shocker = await _db.Shockers.Where(x => x.DeviceNavigation.Owner == CurrentUser.DbUser.Id && x.Id == id).Select(x => new ShockerWithDevice
