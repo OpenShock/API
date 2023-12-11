@@ -1,33 +1,24 @@
-﻿using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using OpenShock.API.Mailjet;
 using OpenShock.API.Mailjet.Mail;
 using OpenShock.API.Utils;
 using OpenShock.Common.Models;
 using OpenShock.Common.OpenShockDb;
-using OpenShock.ServicesCommon;
+using System.Net;
 
 namespace OpenShock.API.Controller.Account;
 
-[ApiController]
-[AllowAnonymous]
-[Route("/{version:apiVersion}/account/reset")]
-public class ResetController : OpenShockControllerBase
+public sealed partial class AccountController
 {
-    private readonly OpenShockContext _db;
-    private readonly ILogger<ResetController> _logger;
-    private readonly IMailjetClient _mailjetClient;
-
-    public ResetController(ILogger<ResetController> logger, OpenShockContext db, IMailjetClient mailjetClient)
-    {
-        _logger = logger;
-        _db = db;
-        _mailjetClient = mailjetClient;
-    }
-
-    [HttpPost]
-    public async Task<BaseResponse<object>> ResetAction(ResetRequest data)
+    /// <summary>
+    /// Sends a password reset email
+    /// </summary>
+    /// <param name="data"></param>
+    /// <response code="200">Password reset email sent if the email is associated to an registered account</response>
+    [HttpPost("reset", Name = "ResetPassword")]
+    [ProducesResponseType((int)HttpStatusCode.OK)]
+    public async Task<BaseResponse<object>> ResetAction([FromBody] ResetRequest data, [FromServices] IMailjetClient mailjetClient)
     {
         var user = await _db.Users.Where(x => x.Email == data.Email.ToLowerInvariant()).Select(x => new
         {
@@ -46,12 +37,12 @@ public class ResetController : OpenShockControllerBase
         };
         _db.PasswordResets.Add(passwordReset);
         await _db.SaveChangesAsync();
-        
-        await _mailjetClient.SendMail(new TemplateMail
+
+        await mailjetClient.SendMail(new TemplateMail
         {
             From = Contact.AccountManagement,
             Subject = "Password reset request",
-            To = new []
+            To = new[]
             {
                 new Contact
                 {
@@ -64,12 +55,12 @@ public class ResetController : OpenShockControllerBase
             {
                 {"link", new Uri(APIGlobals.ApiConfig.FrontendBaseUrl, $"/#/account/password/recover/{passwordReset.Id}/{secret}").ToString() },
             }
-            
+
         });
-        
+
         return SendResponse();
     }
-    
+
     private static BaseResponse<object> SendResponse() => new("Password reset has been sent via email if the email is associated to an registered account");
 
     public class ResetRequest

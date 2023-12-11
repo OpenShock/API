@@ -10,8 +10,18 @@ namespace OpenShock.API.Controller.Shockers;
 
 public sealed partial class ShockerController
 {
-    [HttpGet("{id:guid}/logs")]
-    public async Task<BaseResponse<IEnumerable<LogEntry>>> GetShockerLogs(Guid id, [FromQuery] uint offset = 0,
+    /// <summary>
+    /// Gets the logs for a shocker.
+    /// </summary>
+    /// <param name="id"></param>
+    /// <param name="offset"></param>
+    /// <param name="limit"></param>
+    /// <response code="200">The logs</response>
+    /// <response code="404">Shocker does not exist</response>
+    [HttpGet("{id}/logs", Name = "GetShockerLogs")]
+    [ProducesResponseType((int)HttpStatusCode.OK)]
+    [ProducesResponseType((int)HttpStatusCode.NotFound)]
+    public async Task<BaseResponse<IEnumerable<LogEntry>>> GetShockerLogs([FromRoute] Guid id, [FromQuery] uint offset = 0,
         [FromQuery] [Range(1, 500)] uint limit = 100)
     {
         var exists = await _db.Shockers.AnyAsync(x => x.DeviceNavigation.Owner == CurrentUser.DbUser.Id && x.Id == id);

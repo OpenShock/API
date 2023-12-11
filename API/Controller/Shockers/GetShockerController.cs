@@ -8,8 +8,16 @@ namespace OpenShock.API.Controller.Shockers;
 
 public sealed partial class ShockerController
 {
-    [HttpGet("{id:guid}")]
-    public async Task<BaseResponse<ShockerWithDevice>> GetShocker(Guid id)
+    /// <summary>
+    /// Gets information about a shocker.
+    /// </summary>
+    /// <param name="id"></param>
+    /// <response code="200">The shocker information was successfully retrieved.</response>
+    /// <response code="404">The shocker does not exist or you do not have access to it.</response>
+    [HttpGet("{id}", Name = "GetShocker")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<BaseResponse<ShockerWithDevice>> GetShocker([FromRoute] Guid id)
     {
         var shocker = await _db.Shockers.Where(x => x.DeviceNavigation.Owner == CurrentUser.DbUser.Id && x.Id == id).Select(x => new ShockerWithDevice
         {

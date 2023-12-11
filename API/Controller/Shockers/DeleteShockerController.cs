@@ -9,8 +9,16 @@ namespace OpenShock.API.Controller.Shockers;
 
 public sealed partial class ShockerController
 {
-    [HttpDelete("{id:guid}")]
-    public async Task<BaseResponse<object>> DeleteShocker(Guid id)
+    /// <summary>
+    /// Deletes a shocker
+    /// </summary>
+    /// <param name="id"></param>
+    /// <response code="200">Successfully deleted shocker</response>
+    /// <response code="404">Shocker does not exist</response>
+    [HttpDelete("{id}", Name = "DeleteShocker")]
+    [ProducesResponseType((int)HttpStatusCode.OK)]
+    [ProducesResponseType((int)HttpStatusCode.NotFound)]
+    public async Task<BaseResponse<object>> DeleteShocker([FromRoute] Guid id)
     {
         var affected = await _db.Shockers.Where(x => x.DeviceNavigation.Owner == CurrentUser.DbUser.Id && x.Id == id).SingleOrDefaultAsync();
         

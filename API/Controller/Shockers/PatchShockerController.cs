@@ -10,8 +10,17 @@ namespace OpenShock.API.Controller.Shockers;
 
 public sealed partial class ShockerController
 {
-    [HttpPatch("{id:guid}")]
-    public async Task<BaseResponse<object>> EditShocker(Guid id, NewShocker data)
+    /// <summary>
+    /// Edits a shocker
+    /// </summary>
+    /// <param name="id"></param>
+    /// <param name="data"></param>
+    /// <response code="200">Successfully updated shocker</response>
+    /// <response code="404">Shocker does not exist</response>
+    [HttpPatch("{id}", Name = "EditShocker")]
+    [ProducesResponseType((int)HttpStatusCode.OK)]
+    [ProducesResponseType((int)HttpStatusCode.NotFound)]
+    public async Task<BaseResponse<object>> EditShocker([FromRoute] Guid id, [FromBody] NewShocker data)
     {
         var device = await _db.Devices.AnyAsync(x => x.Owner == CurrentUser.DbUser.Id && x.Id == data.Device);
         if (!device)

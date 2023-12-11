@@ -1,29 +1,24 @@
-﻿using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using OpenShock.API.Models.Response;
 using OpenShock.API.Utils;
 using OpenShock.Common.Models;
-using OpenShock.Common.OpenShockDb;
-using OpenShock.ServicesCommon;
 using OpenShock.ServicesCommon.Utils;
 
-namespace OpenShock.API.Controller.Public.Shares.Links;
+namespace OpenShock.API.Controller.Public;
 
-[ApiController]
-[Route("/{version:apiVersion}/public/shares/links")]
-[AllowAnonymous]
-public class PublicShareController : OpenShockControllerBase
+public sealed partial class PublicController
 {
-    private readonly OpenShockContext _db;
-
-    public PublicShareController(OpenShockContext db)
-    {
-        _db = db;
-    }
-
-    [HttpGet("{id:guid}")]
-    public async Task<BaseResponse<PublicShareLinkResponse>> Get(Guid id)
+    /// <summary>
+    /// Gets information about a public share link.
+    /// </summary>
+    /// <param name="id"></param>
+    /// <response code="200">The share link information was successfully retrieved.</response>
+    /// <response code="404">The share link does not exist.</response>
+    [HttpGet("shares/links/{id}", Name = "GetShareLink")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<BaseResponse<PublicShareLinkResponse>> Get([FromRoute] Guid id)
     {
         var shareLink = await _db.ShockerSharesLinks.Where(x => x.Id == id).Select(x => new
         {
@@ -89,6 +84,4 @@ public class PublicShareController : OpenShockControllerBase
             Data = final
         };
     }
-
-
 }

@@ -14,24 +14,14 @@ using Redis.OM.Searching;
 
 namespace OpenShock.API.Controller.Devices;
 
-[ApiController]
-[Route("/{version:apiVersion}/devices")]
-public class DeviceController : AuthenticatedSessionControllerBase
+public sealed partial class DevicesController
 {
-    private readonly OpenShockContext _db;
-    private readonly IRedisCollection<DevicePair> _devicePairs;
-    private readonly IRedisCollection<DeviceOnline> _devicesOnline;
-    private readonly IRedisCollection<LcgNode> _lcgNodes;
-
-    public DeviceController(OpenShockContext db, IRedisConnectionProvider provider)
-    {
-        _db = db;
-        _devicePairs = provider.RedisCollection<DevicePair>();
-        _devicesOnline = provider.RedisCollection<DeviceOnline>(false);
-        _lcgNodes = provider.RedisCollection<LcgNode>(false);
-    }
-
-    [HttpGet]
+    /// <summary>
+    /// Gets all devices for the current user
+    /// </summary>
+    /// <response code="200">All devices for the current user</response>
+    [HttpGet(Name = "GetDevices")]
+    [ProducesResponseType((int)HttpStatusCode.OK)]
     public async Task<BaseResponse<IEnumerable<Models.Response.ResponseDevice>>> GetList()
     {
         var devices = await _db.Devices.Where(x => x.Owner == CurrentUser.DbUser.Id)
@@ -47,8 +37,14 @@ public class DeviceController : AuthenticatedSessionControllerBase
         };
     }
 
-    [HttpGet("{id:guid}")]
-    public async Task<BaseResponse<Models.Response.ResponseDeviceWithToken>> Get(Guid id)
+    /// <summary>
+    /// Gets a device by id
+    /// </summary>
+    /// <param name="id"></param>
+    /// <response code="200">The device</response>
+    [HttpGet("{id}", Name = "GetDevice")]
+    [ProducesResponseType((int)HttpStatusCode.OK)]
+    public async Task<BaseResponse<Models.Response.ResponseDeviceWithToken>> Get([FromRoute] Guid id)
     {
         var device = await _db.Devices.Where(x => x.Owner == CurrentUser.DbUser.Id && x.Id == id)
             .Select(x => new Models.Response.ResponseDeviceWithToken
@@ -67,8 +63,15 @@ public class DeviceController : AuthenticatedSessionControllerBase
         };
     }
 
-    [HttpPatch("{id:guid}")]
-    public async Task<BaseResponse<object>> Edit(Guid id, DeviceEdit data)
+    /// <summary>
+    /// Edits a device
+    /// </summary>
+    /// <response code="200">Successfully updated device</response>
+    /// <response code="404">Device does not exist</response>
+    [HttpPatch("{id}", Name = "EditDevice")]
+    [ProducesResponseType((int)HttpStatusCode.OK)]
+    [ProducesResponseType((int)HttpStatusCode.NotFound)]
+    public async Task<BaseResponse<object>> Edit([FromRoute] Guid id, [FromBody] DeviceEdit data)
     {
         var device = await _db.Devices.Where(x => x.Owner == CurrentUser.DbUser.Id && x.Id == id)
             .SingleOrDefaultAsync();
@@ -89,8 +92,18 @@ public class DeviceController : AuthenticatedSessionControllerBase
         };
     }
 
-    [HttpPut("{id:guid}")]
-    public async Task<BaseResponse<object>> RegenToken(Guid id)
+    /// <summary>
+    /// Regenerates a device token
+    /// </summary>
+    /// <param name="id">The id of the device to regenerate the token for</param>
+    /// <response code="200">Successfully regenerated device token</response>
+    /// <response code="404">Device does not exist</response>
+    /// <response code="500">Failed to save regenerated token</response>
+    [HttpPut("{id}", Name = "RegenDeviceToken")]
+    [ProducesResponseType((int)HttpStatusCode.OK)]
+    [ProducesResponseType((int)HttpStatusCode.NotFound)]
+    [ProducesResponseType((int)HttpStatusCode.InternalServerError)]
+    public async Task<BaseResponse<object>> RegenToken([FromRoute] Guid id)
     {
         var device = await _db.Devices.Where(x => x.Owner == CurrentUser.DbUser.Id && x.Id == id)
             .SingleOrDefaultAsync();
@@ -109,8 +122,16 @@ public class DeviceController : AuthenticatedSessionControllerBase
         };
     }
 
-    [HttpDelete("{id:guid}")]
-    public async Task<BaseResponse<object>> Delete(Guid id)
+    /// <summary>
+    /// Deletes a device
+    /// </summary>
+    /// <param name="id">The id of the device to delete</param>
+    /// <response code="200">Successfully deleted device</response>
+    /// <response code="404">Device does not exist</response>
+    [HttpDelete("{id}", Name = "DeleteDevice")]
+    [ProducesResponseType((int)HttpStatusCode.OK)]
+    [ProducesResponseType((int)HttpStatusCode.NotFound)]
+    public async Task<BaseResponse<object>> Delete([FromRoute] Guid id)
     {
         var affected = await _db.Devices.Where(x => x.Owner == CurrentUser.DbUser.Id && x.Id == id)
             .ExecuteDeleteAsync();
@@ -128,7 +149,12 @@ public class DeviceController : AuthenticatedSessionControllerBase
         };
     }
 
-    [HttpPost]
+    /// <summary>
+    /// Creates a new device
+    /// </summary>
+    /// <response code="201">Successfully created device</response>
+    [HttpPost(Name = "CreateDevice")]
+    [ProducesResponseType((int)HttpStatusCode.Created)]
     public async Task<BaseResponse<Guid>> CreateDevice()
     {
         var device = new Common.OpenShockDb.Device
@@ -154,15 +180,25 @@ public class DeviceController : AuthenticatedSessionControllerBase
         };
     }
 
-    [HttpGet("{id:guid}/pair")]
-    public async Task<BaseResponse<string>> GetPairCode(Guid id)
+    /// <summary>
+    /// Gets a pair code for a device
+    /// </summary>
+    /// <param name="id"></param>
+    /// <response code="200">The pair code</response>
+    /// <response code="404">Device does not exist or does not belong to you</response>
+    [HttpGet("{id}/pair", Name = "GetPairCode")]
+    [ProducesResponseType((int)HttpStatusCode.OK)]
+    [ProducesResponseType((int)HttpStatusCode.NotFound)]
+    public async Task<BaseResponse<string>> GetPairCode([FromRoute] Guid id)
     {
+        var devicePairs = _redis.RedisCollection<DevicePair>();
+
         var deviceExists = await _db.Devices.AnyAsync(x => x.Id == id && x.Owner == CurrentUser.DbUser.Id);
         if (!deviceExists)
             return EBaseResponse<string>("Device does not exists or does not belong to you", HttpStatusCode.NotFound);
         // replace with unlink?
-        var existing = await _devicePairs.FindByIdAsync(id.ToString());
-        if (existing != null) await _devicePairs.DeleteAsync(existing);
+        var existing = await devicePairs.FindByIdAsync(id.ToString());
+        if (existing != null) await devicePairs.DeleteAsync(existing);
 
         var r = new Random();
         var pairCode = new DevicePair
@@ -170,7 +206,7 @@ public class DeviceController : AuthenticatedSessionControllerBase
             Id = id,
             PairCode = r.Next(0, 1000000).ToString("000000")
         };
-        await _devicePairs.InsertAsync(pairCode, TimeSpan.FromMinutes(15));
+        await devicePairs.InsertAsync(pairCode, TimeSpan.FromMinutes(15));
 
         return new BaseResponse<string>
         {
@@ -195,7 +231,8 @@ public class DeviceController : AuthenticatedSessionControllerBase
                 HttpStatusCode.NotFound);
 
         // Check if device is online
-        var online = await _devicesOnline.FindByIdAsync(id.ToString());
+        var devicesOnline = _redis.RedisCollection<DeviceOnline>();
+        var online = await devicesOnline.FindByIdAsync(id.ToString());
         if (online == null) return EBaseResponse<LcgResponse>("Device is not online", HttpStatusCode.NotFound);
 
         // Check if device is connected to a LCG node
@@ -205,7 +242,8 @@ public class DeviceController : AuthenticatedSessionControllerBase
                 HttpStatusCode.PreconditionFailed);
 
         // Get LCG node info
-        var gateway = await _lcgNodes.FindByIdAsync(online.Gateway);
+        var lcgNodes = _redis.RedisCollection<LcgNode>();
+        var gateway = await lcgNodes.FindByIdAsync(online.Gateway);
         if (gateway == null)
             return EBaseResponse<LcgResponse>("Internal server error, lcg node could not be found",
                 HttpStatusCode.InternalServerError);

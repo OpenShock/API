@@ -1,29 +1,26 @@
-﻿using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Npgsql;
 using OpenShock.API.Models.Requests;
 using OpenShock.API.Utils;
 using OpenShock.Common.Models;
 using OpenShock.Common.OpenShockDb;
-using OpenShock.ServicesCommon;
+using System.Net;
 
 namespace OpenShock.API.Controller.Account;
 
-[ApiController]
-[AllowAnonymous]
-[Route("/{version:apiVersion}/account/signup")]
-public class SignupController : OpenShockControllerBase
+public sealed partial class AccountController
 {
-    private readonly OpenShockContext _db;
-    
-    public SignupController(OpenShockContext db)
-    {
-        _db = db;
-    }
-    
-    [HttpPost]
-    public async Task<BaseResponse<object>> Signup(Signup data)
+    /// <summary>
+    /// Signs up a user
+    /// </summary>
+    /// <param name="data"></param>
+    /// <response code="200">User successfully signed up</response>
+    /// <response code="400">Username or email already exists</response>
+    [HttpPost("signup", Name = "Signup")]
+    [ProducesResponseType((int)HttpStatusCode.OK)]
+    [ProducesResponseType((int)HttpStatusCode.BadRequest)]
+    public async Task<BaseResponse<object>> Signup([FromBody] Signup data)
     {
         var newGuid = Guid.NewGuid();
         _db.Users.Add(new User

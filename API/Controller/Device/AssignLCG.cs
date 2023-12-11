@@ -1,32 +1,25 @@
-﻿using System.Net;
-using System.Text;
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using OpenShock.API.Models.Response;
 using OpenShock.Common.Models;
-using OpenShock.Common.OpenShockDb;
 using OpenShock.Common.Utils;
-using OpenShock.ServicesCommon.Authentication;
 using OpenShock.ServicesCommon.Geo;
+using System.Net;
+using System.Text;
 
 namespace OpenShock.API.Controller.Device;
 
-[ApiController]
-[Route("/{version:apiVersion}/device/assignLCG")]
-public sealed class DeviceAssignLcgController : AuthenticatedDeviceControllerBase
+public sealed partial class DeviceController
 {
-    private readonly OpenShockContext _db;
-    private readonly IGeoLocation _geoLocation;
-    private readonly ILogger<DeviceAssignLcgController> _logger;
-
-    public DeviceAssignLcgController(OpenShockContext db, IGeoLocation geoLocation, ILogger<DeviceAssignLcgController> logger)
-    {
-        _db = db;
-        _geoLocation = geoLocation;
-        _logger = logger;
-    }
-
-    [HttpGet]
-    public async Task<BaseResponse<LcgNodeResponse>> Get()
+    /// <summary>
+    /// Assigns a Live Control Gateway node to the device
+    /// </summary>
+    /// <param name="geoLocation"></param>
+    /// <response code="200">Successfully assigned LCG node</response>
+    /// <response code="503">Unable to find suitable LCG node</response>
+    [HttpGet("assignLCG", Name = "AssignLiveControlGateway")]
+    [ProducesResponseType((int)HttpStatusCode.OK)]
+    [ProducesResponseType((int)HttpStatusCode.ServiceUnavailable)]
+    public async Task<BaseResponse<LcgNodeResponse>> AssignLCG([FromServices] IGeoLocation geoLocation)
     {
         var messageBuilder = new StringBuilder();
         var countryCode = CountryCodeMapper.CountryInfo.Alpha2CountryCode.DefaultAlphaCode;
@@ -50,7 +43,7 @@ public sealed class DeviceAssignLcgController : AuthenticatedDeviceControllerBas
         if (CountryCodeMapper.CountryCodeToCountryInfo.TryGetValue(countryCode, out var country))
         {
             if (_logger.IsEnabled(LogLevel.Debug))
-                _logger.LogDebug("Client country identified as [{@CountryInfo}]", country);            
+                _logger.LogDebug("Client country identified as [{@CountryInfo}]", country);
         }
         else
         {
@@ -58,12 +51,12 @@ public sealed class DeviceAssignLcgController : AuthenticatedDeviceControllerBas
             _logger.LogWarning("Country not found in mapping [{Alpha2Code}]", countryCode);
             messageBuilder.AppendLine("Country not found in mapping, default country used.");
         }
-        
-        var closestNode = await _geoLocation.GetClosestNode(country);
+
+        var closestNode = await geoLocation.GetClosestNode(country);
 
         if (closestNode == null)
             return EBaseResponse<LcgNodeResponse>("No LCG nodes available", HttpStatusCode.ServiceUnavailable);
-        
+
         return new BaseResponse<LcgNodeResponse>
         {
             Message = messageBuilder.ToString(),

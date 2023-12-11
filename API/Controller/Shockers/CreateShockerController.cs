@@ -11,8 +11,18 @@ namespace OpenShock.API.Controller.Shockers;
 
 public sealed partial class ShockerController
 {
-    [HttpPost]
-    public async Task<BaseResponse<Guid>> CreateShocker(NewShocker data)
+    /// <summary>
+    /// Creates a new Shocker.
+    /// </summary>
+    /// <param name="data"></param>
+    /// <response code="201">Successfully created shocker</response>
+    /// <response code="400">You can have a maximum of 11 Shockers per Device.</response>
+    /// <response code="404">Device does not exist</response>
+    [HttpPost(Name = "CreateShocker")]
+    [ProducesResponseType((int)HttpStatusCode.Created)]
+    [ProducesResponseType((int)HttpStatusCode.BadRequest)]
+    [ProducesResponseType((int)HttpStatusCode.NotFound)]
+    public async Task<BaseResponse<Guid>> CreateShocker([FromBody] NewShocker data)
     {
         var device = await _db.Devices.Where(x => x.Owner == CurrentUser.DbUser.Id && x.Id == data.Device).Select(x => x.Id).SingleOrDefaultAsync();
         if(device == Guid.Empty) return EBaseResponse<Guid>("Device does not exist", HttpStatusCode.NotFound);

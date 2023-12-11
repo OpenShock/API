@@ -3,12 +3,9 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
 using OpenShock.API.Realtime;
-using OpenShock.API.Utils;
 using OpenShock.Common.Models.WebSocket;
 using OpenShock.Common.Models.WebSocket.Device;
 using OpenShock.Common.Redis;
-using OpenShock.Common.Utils;
-using OpenShock.ServicesCommon;
 using OpenShock.ServicesCommon.Authentication;
 using OpenShock.ServicesCommon.Utils;
 using OpenShock.ServicesCommon.Websocket;
@@ -21,7 +18,7 @@ namespace OpenShock.API.Controller;
 [ApiController]
 [Authorize(AuthenticationSchemes = OpenShockAuthSchemas.DeviceToken)]
 [Route("/{version:apiVersion}/ws/device")]
-public class DeviceWebSocketController : WebsocketBaseController<IBaseResponse<ResponseType>>
+public sealed class DeviceWebSocketController : WebsocketBaseController<IBaseResponse<ResponseType>>
 {
     private readonly IRedisCollection<DeviceOnline> _devicesOnline;
     private readonly IRedisConnectionProvider _redis;
