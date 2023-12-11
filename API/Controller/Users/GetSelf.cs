@@ -5,20 +5,14 @@ using OpenShock.ServicesCommon.Authentication;
 
 namespace OpenShock.API.Controller.Users;
 
-[ApiController]
-[Route("/{version:apiVersion}/users/self")]
-public sealed class SelfController : AuthenticatedSessionControllerBase
+public sealed partial class UsersController : AuthenticatedSessionControllerBase
 {
-    private readonly OpenShockContext _db;
-    private readonly ILogger<SelfController> _logger;
-
-    public SelfController(OpenShockContext db, ILogger<SelfController> logger)
-    {
-        _db = db;
-        _logger = logger;
-    }
-
-    [HttpGet]
+    /// <summary>
+    /// Gets the current user's information.
+    /// </summary>
+    /// <response code="200">The user's information was successfully retrieved.</response>
+    [HttpGet("self", Name = "UsersGetSelf")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
     public BaseResponse<SelfResponse> GetSelf() => new()
     {
         Data = new SelfResponse

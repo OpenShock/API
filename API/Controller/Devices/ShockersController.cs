@@ -1,26 +1,23 @@
-﻿using System.Net;
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using OpenShock.API.Models.Response;
 using OpenShock.Common.Models;
-using OpenShock.Common.OpenShockDb;
-using OpenShock.ServicesCommon.Authentication;
+using System.Net;
 
 namespace OpenShock.API.Controller.Devices;
 
-[ApiController]
-[Route("/{version:apiVersion}/devices")]
-public class ShockersController : AuthenticatedSessionControllerBase
+public sealed partial class DevicesController
 {
-    private readonly OpenShockContext _db;
-    
-    public ShockersController(OpenShockContext db)
-    {
-        _db = db;
-    }
-
-    [HttpGet("{id:guid}/shockers")]
-    public async Task<BaseResponse<IEnumerable<ShockerResponse>>> GetShockers(Guid id)
+    /// <summary>
+    /// Gets all shockers for a device
+    /// </summary>
+    /// <param name="id">The device id</param>
+    /// <response code="200">All shockers for the device</response>
+    /// <response code="404">Device does not exists or you do not have access to it.</response>
+    [HttpGet("{id}/shockers", Name = "GetShockers")]
+    [ProducesResponseType((int)HttpStatusCode.OK)]
+    [ProducesResponseType((int)HttpStatusCode.NotFound)]
+    public async Task<BaseResponse<IEnumerable<ShockerResponse>>> GetShockers([FromRoute] Guid id)
     {
         var deviceExists = await _db.Devices.AnyAsync(x => x.Owner == CurrentUser.DbUser.Id && x.Id == id);
         if (!deviceExists) return EBaseResponse<IEnumerable<ShockerResponse>>("Device does not exists or you do not have access to it.", HttpStatusCode.NotFound);

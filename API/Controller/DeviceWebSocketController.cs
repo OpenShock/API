@@ -19,7 +19,7 @@ namespace OpenShock.API.Controller;
 [ApiController]
 [Authorize(AuthenticationSchemes = OpenShockAuthSchemas.DeviceToken)]
 [Route("/{version:apiVersion}/ws/device")]
-public class DeviceWebSocketController : WebsocketControllerBase<ResponseType>
+public sealed class DeviceWebSocketController : WebsocketControllerBase<ResponseType>
 {
     private readonly IRedisCollection<DeviceOnline> _devicesOnline;
     private readonly IRedisConnectionProvider _redis;

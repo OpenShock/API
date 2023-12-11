@@ -12,10 +12,16 @@ public sealed partial class ShockerController
 {
     private static readonly IDictionary<string, object> EmptyDic = new Dictionary<string, object>();
 
-    [HttpPost("control")]
+    /// <summary>
+    /// Controls the shockers
+    /// </summary>
+    /// <param name="data"></param>
+    /// <param name="userHub"></param>
+    /// <response code="200">The control messages were successfully sent.</response>
     [MapToApiVersion("2")]
-    public async Task<BaseResponse<object>> ControlShockerV2(ControlRequest data,
-        [FromServices] IHubContext<UserHub, IUserHub> userHub)
+    [HttpPost("control", Name = "ControlShockerV2")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    public async Task<BaseResponse<object>> ControlShockerV2([FromBody] ControlRequest data, [FromServices] IHubContext<UserHub, IUserHub> userHub)
     {
         var sender = new ControlLogSender
         {
@@ -35,10 +41,16 @@ public sealed partial class ShockerController
         };
     }
 
-    [HttpPost("control")]
+    /// <summary>
+    /// Controls the shockers (Deprecated)
+    /// </summary>
+    /// <param name="data"></param>
+    /// <param name="userHub"></param>
+    /// <response code="200">The control messages were successfully sent.</response>
     [MapToApiVersion("1")]
-    public Task<BaseResponse<object>> ControlShocker(IEnumerable<Common.Models.WebSocket.User.Control> data,
-        [FromServices] IHubContext<UserHub, IUserHub> userHub)
+    [HttpPost("control", Name = "ControlShockerV1")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    public Task<BaseResponse<object>> ControlShockerV1([FromBody] IEnumerable<Common.Models.WebSocket.User.Control> data, [FromServices] IHubContext<UserHub, IUserHub> userHub)
     {
         return ControlShockerV2(new ControlRequest
         {

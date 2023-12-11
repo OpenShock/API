@@ -7,33 +7,22 @@ using OpenShock.ServicesCommon.Authentication;
 
 namespace OpenShock.API.Controller.Shares;
 
-[ApiController]
-[Route("/{version:apiVersion}/shares")]
-public class SharesController : AuthenticatedSessionControllerBase
+public sealed partial class SharesController
 {
-    private readonly OpenShockContext _db;
-
-    public SharesController(OpenShockContext db)
-    {
-        _db = db;
-    }
-
-    [HttpDelete("code/{id:guid}")]
-    public async Task<BaseResponse<object>> DeleteCode(Guid id)
-    {
-        var yes = await _db.ShockerShareCodes
-            .Where(x => x.Id == id && x.Shocker.DeviceNavigation.Owner == CurrentUser.DbUser.Id).SingleOrDefaultAsync();
-        var affected = await _db.ShockerShareCodes.Where(x =>
-            x.Id == id && x.Shocker.DeviceNavigation.Owner == CurrentUser.DbUser.Id).ExecuteDeleteAsync();
-        if (affected <= 0)
-            return EBaseResponse<object>("Share code does not exists or device/shocker does not belong to you",
-                HttpStatusCode.NotFound);
-
-        return new BaseResponse<object>("Successfully deleted share code");
-    }
-
-    [HttpPost("code/{id:guid}")]
-    public async Task<BaseResponse<object>> LinkCode(Guid id)
+    /// <summary>
+    /// Link a share code to your account
+    /// </summary>
+    /// <param name="id"></param>
+    /// <response code="200">Linked share code</response>
+    /// <response code="404">Share code not found or does not belong to you</response>
+    /// <response code="400">You cannot link your own shocker code / You already have this shocker linked to your account</response>
+    /// <response code="500">Error while linking share code to your account</response>
+    [HttpPost("code/{id}", Name = "LinkShareCode")]
+    [ProducesResponseType((int) HttpStatusCode.OK)]
+    [ProducesResponseType((int) HttpStatusCode.NotFound)]
+    [ProducesResponseType((int) HttpStatusCode.BadRequest)]
+    [ProducesResponseType((int) HttpStatusCode.InternalServerError)]
+    public async Task<BaseResponse<object>> LinkCode([FromRoute] Guid id)
     {
         var shareCode = await _db.ShockerShareCodes.Where(x => x.Id == id).Select(x => new
         {
@@ -64,5 +53,4 @@ public class SharesController : AuthenticatedSessionControllerBase
         
         return new BaseResponse<object>("Successfully linked share code");
     }
-
 }
