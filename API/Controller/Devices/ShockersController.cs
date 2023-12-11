@@ -6,7 +6,7 @@ using System.Net;
 
 namespace OpenShock.API.Controller.Devices;
 
-partial class DevicesController
+public sealed partial class DevicesController
 {
     /// <summary>
     /// Gets all shockers for a device

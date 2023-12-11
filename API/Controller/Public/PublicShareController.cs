@@ -7,7 +7,7 @@ using OpenShock.ServicesCommon.Utils;
 
 namespace OpenShock.API.Controller.Public;
 
-partial class PublicController
+public sealed partial class PublicController
 {
     /// <summary>
     /// Gets information about a public share link.

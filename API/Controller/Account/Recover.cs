@@ -6,7 +6,7 @@ using System.Net;
 
 namespace OpenShock.API.Controller.Account;
 
-partial class AccountController
+public sealed partial class AccountController
 {
     /// <summary>
     /// Checks if a password reset process is valid

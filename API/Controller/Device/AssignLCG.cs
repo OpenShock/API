@@ -8,7 +8,7 @@ using System.Text;
 
 namespace OpenShock.API.Controller.Device;
 
-partial class DeviceController
+public sealed partial class DeviceController
 {
     /// <summary>
     /// Assigns a Live Control Gateway node to the device

@@ -7,42 +7,8 @@ using OpenShock.ServicesCommon.Authentication;
 
 namespace OpenShock.API.Controller.Shares;
 
-/// <summary>
-/// Shocker share management
-/// </summary>
-[ApiController]
-[Route("/{version:apiVersion}/shares")]
-public class SharesController : AuthenticatedSessionControllerBase
+public sealed partial class SharesController
 {
-    private readonly OpenShockContext _db;
-
-    public SharesController(OpenShockContext db)
-    {
-        _db = db;
-    }
-
-    /// <summary>
-    /// Delete a share code
-    /// </summary>
-    /// <param name="id"></param>
-    /// <response code="200">Deleted share code</response>
-    /// <response code="404">Share code not found or does not belong to you</response>
-    [HttpDelete("code/{id}", Name = "DeleteShareCode")]
-    [ProducesResponseType((int) HttpStatusCode.OK)]
-    [ProducesResponseType((int) HttpStatusCode.NotFound)]
-    public async Task<BaseResponse<object>> DeleteCode([FromRoute] Guid id)
-    {
-        var yes = await _db.ShockerShareCodes
-            .Where(x => x.Id == id && x.Shocker.DeviceNavigation.Owner == CurrentUser.DbUser.Id).SingleOrDefaultAsync();
-        var affected = await _db.ShockerShareCodes.Where(x =>
-            x.Id == id && x.Shocker.DeviceNavigation.Owner == CurrentUser.DbUser.Id).ExecuteDeleteAsync();
-        if (affected <= 0)
-            return EBaseResponse<object>("Share code does not exists or device/shocker does not belong to you",
-                HttpStatusCode.NotFound);
-
-        return new BaseResponse<object>("Successfully deleted share code");
-    }
-
     /// <summary>
     /// Link a share code to your account
     /// </summary>
@@ -87,5 +53,4 @@ public class SharesController : AuthenticatedSessionControllerBase
         
         return new BaseResponse<object>("Successfully linked share code");
     }
-
 }

@@ -9,7 +9,7 @@ using System.Net;
 
 namespace OpenShock.API.Controller.Device;
 
-partial class DeviceController
+public sealed partial class DeviceController
 {
     /// <summary>
     /// Pair a device with a pair code.

@@ -10,7 +10,7 @@ using System.Text.Json.Serialization;
 
 namespace OpenShock.API.Controller.Admin;
 
-partial class AdminController
+public sealed partial class AdminController
 {
     /// <summary>
     /// Gets all online devices

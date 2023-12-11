@@ -9,7 +9,7 @@ using System.Net;
 
 namespace OpenShock.API.Controller.Account;
 
-partial class AccountController
+public sealed partial class AccountController
 {
     public static readonly TimeSpan SessionLifetime = TimeSpan.FromDays(30);
 

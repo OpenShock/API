@@ -14,7 +14,7 @@ namespace OpenShock.API.Controller;
 [ApiController]
 [AllowAnonymous]
 [Route("/{version:apiVersion}")]
-public class VersionController : OpenShockControllerBase
+public sealed partial class VersionController : OpenShockControllerBase
 {
     private static readonly string OpenShockBackendVersion =
         Assembly.GetEntryAssembly()?.GetName().Version?.ToString() ?? "error";

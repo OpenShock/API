@@ -5,7 +5,7 @@ using OpenShock.ServicesCommon.Authentication;
 
 namespace OpenShock.API.Controller.Users;
 
-partial class UsersController : AuthenticatedSessionControllerBase
+public sealed partial class UsersController : AuthenticatedSessionControllerBase
 {
     /// <summary>
     /// Gets the current user's information.

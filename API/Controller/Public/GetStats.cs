@@ -5,7 +5,7 @@ using Redis.OM.Contracts;
 
 namespace OpenShock.API.Controller.Public;
 
-partial class PublicController
+public sealed partial class PublicController
 {
     /// <summary>
     /// Gets online devices statistics

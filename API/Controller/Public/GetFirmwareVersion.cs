@@ -3,7 +3,7 @@ using OpenShock.Common.Models;
 
 namespace OpenShock.API.Controller.Public;
 
-partial class PublicController
+public sealed partial class PublicController
 {
     /// <summary>
     /// Gets the latest firmware version.

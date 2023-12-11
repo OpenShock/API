@@ -9,7 +9,7 @@ using OpenShock.ServicesCommon.Authentication;
 
 namespace OpenShock.API.Controller.Tokens;
 
-partial class TokensController
+public sealed partial class TokensController
 {
     /// <summary>
     /// Gets all tokens for the current user
