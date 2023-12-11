@@ -1,5 +1,6 @@
 ﻿using System.ComponentModel.DataAnnotations;
 using System.Net;
+using Asp.Versioning;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using OpenShock.API.Models.Response;
@@ -21,6 +22,7 @@ public sealed partial class ShockerController
     [HttpGet("{id}/logs", Name = "GetShockerLogs")]
     [ProducesResponseType((int)HttpStatusCode.OK)]
     [ProducesResponseType((int)HttpStatusCode.NotFound)]
+    [MapToApiVersion("1")]
     public async Task<BaseResponse<IEnumerable<LogEntry>>> GetShockerLogs([FromRoute] Guid id, [FromQuery] uint offset = 0,
         [FromQuery] [Range(1, 500)] uint limit = 100)
     {

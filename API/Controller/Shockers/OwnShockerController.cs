@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Asp.Versioning;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using OpenShock.API.Models.Response;
 using OpenShock.Common.Models;
@@ -13,6 +14,7 @@ public sealed partial class ShockerController
     /// <response code="200">The shockers were successfully retrieved.</response>
     [HttpGet("own", Name = "GetOwnShockers")]
     [ProducesResponseType(StatusCodes.Status200OK)]
+    [MapToApiVersion("1")]
     public async Task<BaseResponse<IEnumerable<ResponseDeviceWithShockers>>> GetOwnShockers()
     {
         var shockers = await _db.Devices.Where(x => x.Owner == CurrentUser.DbUser.Id).OrderBy(x => x.CreatedOn).Select(

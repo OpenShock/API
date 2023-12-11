@@ -1,4 +1,5 @@
 ﻿using System.Net;
+using Asp.Versioning;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using OpenShock.API.Models.Requests;
@@ -20,6 +21,7 @@ public sealed partial class ShockerController
     [HttpGet("{id}/shares", Name = "GetShares")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [MapToApiVersion("1")]
     public async Task<BaseResponse<IEnumerable<ShareInfo>>> GetShares([FromRoute] Guid id)
     {
         var owns = await _db.Shockers.AnyAsync(x => x.DeviceNavigation.Owner == CurrentUser.DbUser.Id && x.Id == id);
@@ -66,6 +68,7 @@ public sealed partial class ShockerController
     [HttpGet("{id}/shareCodes", Name = "GetShareCodes")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [MapToApiVersion("1")]
     public async Task<BaseResponse<IEnumerable<ShareCodeInfo>>> GetShareCodes([FromRoute] Guid id)
     {
         var owns = await _db.Shockers.AnyAsync(x => x.DeviceNavigation.Owner == CurrentUser.DbUser.Id && x.Id == id);
@@ -103,6 +106,7 @@ public sealed partial class ShockerController
     [HttpPost("{id}/shares", Name = "CreateShare")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [MapToApiVersion("1")]
     public async Task<BaseResponse<Guid>> CreateShareCode([FromRoute] Guid id, [FromBody] CreateShareCode data)
     {
         var device = await _db.Shockers.Where(x => x.DeviceNavigation.Owner == CurrentUser.DbUser.Id && x.Id == id).AnyAsync();
@@ -138,6 +142,7 @@ public sealed partial class ShockerController
     [HttpDelete("{id}/shares/{sharedWith}", Name = "DeleteShare")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [MapToApiVersion("1")]
     public async Task<BaseResponse<object>> DeleteShare([FromRoute] Guid id, [FromRoute] Guid sharedWith)
     {
         var affected = await _db.ShockerShares.Where(x =>
@@ -160,6 +165,7 @@ public sealed partial class ShockerController
     [HttpPatch("{id}/shares/{sharedWith}", Name = "UpdateShare")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [MapToApiVersion("1")]
     public async Task<BaseResponse<object>> UpdateShare([FromRoute] Guid id, [FromRoute] Guid sharedWith, [FromBody] CreateShareCode data)
     {
         var affected = await _db.ShockerShares.Where(x =>
@@ -190,6 +196,7 @@ public sealed partial class ShockerController
     [HttpPost("{id}/shares/{sharedWith}/pause", Name = "PauseShare")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [MapToApiVersion("1")]
     public async Task<BaseResponse<object>> UpdatePauseShare([FromRoute] Guid id, [FromRoute] Guid sharedWith, [FromBody] PauseRequest data)
     {
         var affected = await _db.ShockerShares.Where(x =>
