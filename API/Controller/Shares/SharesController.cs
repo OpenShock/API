@@ -7,6 +7,9 @@ using OpenShock.ServicesCommon.Authentication;
 
 namespace OpenShock.API.Controller.Shares;
 
+/// <summary>
+/// Shocker share management
+/// </summary>
 [ApiController]
 [Route("/{version:apiVersion}/shares")]
 public class SharesController : AuthenticatedSessionControllerBase
@@ -18,8 +21,16 @@ public class SharesController : AuthenticatedSessionControllerBase
         _db = db;
     }
 
-    [HttpDelete("code/{id:guid}")]
-    public async Task<BaseResponse<object>> DeleteCode(Guid id)
+    /// <summary>
+    /// Delete a share code
+    /// </summary>
+    /// <param name="id"></param>
+    /// <response code="200">Deleted share code</response>
+    /// <response code="404">Share code not found or does not belong to you</response>
+    [HttpDelete("code/{id}", Name = "DeleteShareCode")]
+    [ProducesResponseType((int) HttpStatusCode.OK)]
+    [ProducesResponseType((int) HttpStatusCode.NotFound)]
+    public async Task<BaseResponse<object>> DeleteCode([FromRoute] Guid id)
     {
         var yes = await _db.ShockerShareCodes
             .Where(x => x.Id == id && x.Shocker.DeviceNavigation.Owner == CurrentUser.DbUser.Id).SingleOrDefaultAsync();
@@ -32,8 +43,20 @@ public class SharesController : AuthenticatedSessionControllerBase
         return new BaseResponse<object>("Successfully deleted share code");
     }
 
-    [HttpPost("code/{id:guid}")]
-    public async Task<BaseResponse<object>> LinkCode(Guid id)
+    /// <summary>
+    /// Link a share code to your account
+    /// </summary>
+    /// <param name="id"></param>
+    /// <response code="200">Linked share code</response>
+    /// <response code="404">Share code not found or does not belong to you</response>
+    /// <response code="400">You cannot link your own shocker code / You already have this shocker linked to your account</response>
+    /// <response code="500">Error while linking share code to your account</response>
+    [HttpPost("code/{id}", Name = "LinkShareCode")]
+    [ProducesResponseType((int) HttpStatusCode.OK)]
+    [ProducesResponseType((int) HttpStatusCode.NotFound)]
+    [ProducesResponseType((int) HttpStatusCode.BadRequest)]
+    [ProducesResponseType((int) HttpStatusCode.InternalServerError)]
+    public async Task<BaseResponse<object>> LinkCode([FromRoute] Guid id)
     {
         var shareCode = await _db.ShockerShareCodes.Where(x => x.Id == id).Select(x => new
         {

@@ -7,15 +7,24 @@ using OpenShock.ServicesCommon;
 
 namespace OpenShock.API.Controller;
 
+
+/// <summary>
+/// Version stuff
+/// </summary>
 [ApiController]
 [AllowAnonymous]
 [Route("/{version:apiVersion}")]
-public class RootController : OpenShockControllerBase
+public class VersionController : OpenShockControllerBase
 {
     private static readonly string OpenShockBackendVersion =
         Assembly.GetEntryAssembly()?.GetName().Version?.ToString() ?? "error";
 
-    [HttpGet]
+    /// <summary>
+    /// Gets the version of the OpenShock backend.
+    /// </summary>
+    /// <response code="200">The version was successfully retrieved.</response>
+    [HttpGet(Name = "Version")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
     public BaseResponse<RootResponse> Get() => new()
     {
         Message = "OpenShock",

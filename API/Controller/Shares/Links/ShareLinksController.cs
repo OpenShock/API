@@ -10,6 +10,9 @@ using OpenShock.ServicesCommon.Authentication;
 
 namespace OpenShock.API.Controller.Shares.Links;
 
+/// <summary>
+/// Share links management
+/// </summary>
 [ApiController]
 [Route("/{version:apiVersion}/shares/links")]
 public class ShareLinksController : AuthenticatedSessionControllerBase
@@ -21,8 +24,14 @@ public class ShareLinksController : AuthenticatedSessionControllerBase
         _db = db;
     }
 
-    [HttpPost]
-    public async Task<BaseResponse<Guid>> CreateShareLink(ShareLinkCreate data)
+    /// <summary>
+    /// Creates a new share link
+    /// </summary>
+    /// <param name="data"></param>
+    /// <response code="200">The created share link</response>
+    [HttpPost(Name = "CreateShareLink")]
+    [ProducesResponseType((int) HttpStatusCode.OK)]
+    public async Task<BaseResponse<Guid>> CreateShareLink([FromBody] ShareLinkCreate data)
     {
         var entity = new ShockerSharesLink
         {
@@ -40,8 +49,16 @@ public class ShareLinksController : AuthenticatedSessionControllerBase
         };
     }
 
-    [HttpDelete("{id:guid}")]
-    public async Task<BaseResponse<object>> DeleteShareLink(Guid id)
+    /// <summary>
+    /// Deletes a share link
+    /// </summary>
+    /// <param name="id"></param>
+    /// <response code="200">Deleted share link</response>
+    /// <response code="404">Share link not found or does not belong to you</response>
+    [HttpDelete("{id}", Name = "DeleteShareLink")]
+    [ProducesResponseType((int) HttpStatusCode.OK)]
+    [ProducesResponseType((int) HttpStatusCode.NotFound)]
+    public async Task<BaseResponse<object>> DeleteShareLink([FromRoute] Guid id)
     {
         var result = await _db.ShockerSharesLinks.Where(x => x.Id == id && x.OwnerId == CurrentUser.DbUser.Id)
             .ExecuteDeleteAsync();
@@ -51,7 +68,12 @@ public class ShareLinksController : AuthenticatedSessionControllerBase
             : EBaseResponse<object>("Share link not found or does not belong to you", HttpStatusCode.NotFound);
     }
 
-    [HttpGet]
+    /// <summary>
+    /// Get all share links for the current user
+    /// </summary>
+    /// <response code="200">All share links for the current user</response>
+    [HttpGet(Name = "ListShareLinks")]
+    [ProducesResponseType((int) HttpStatusCode.OK)]
     public async Task<BaseResponse<IEnumerable<ShareLinkResponse>>> List()
     {
         var ownShareLinks = await _db.ShockerSharesLinks.Where(x => x.OwnerId == CurrentUser.DbUser.Id)
@@ -63,8 +85,17 @@ public class ShareLinksController : AuthenticatedSessionControllerBase
         };
     }
 
-    [HttpPost("{id:guid}/{shockerId:guid}")]
-    public async Task<BaseResponse<object>> AddShocker(Guid id, Guid shockerId)
+    /// <summary>
+    /// Add a shocker to a share link
+    /// </summary>
+    /// <response code="200">Successfully added shocker</response>
+    /// <response code="404">Share link or shocker does not exist</response>
+    /// <response code="409">Shocker already exists in share link</response>
+    [HttpPost("{id}/{shockerId}", Name = "AddShocker")]
+    [ProducesResponseType((int) HttpStatusCode.OK)]
+    [ProducesResponseType((int) HttpStatusCode.NotFound)]
+    [ProducesResponseType((int) HttpStatusCode.Conflict)]
+    public async Task<BaseResponse<object>> AddShocker([FromRoute] Guid id, [FromRoute] Guid shockerId)
     {
         var exists = await _db.ShockerSharesLinks.AnyAsync(x => x.OwnerId == CurrentUser.DbUser.Id && x.Id == id);
         if (!exists)
@@ -93,8 +124,20 @@ public class ShareLinksController : AuthenticatedSessionControllerBase
         };
     }
 
-    [HttpPatch("{id:guid}/{shockerId:guid}")]
-    public async Task<BaseResponse<ShareLinkResponse>> EditShocker(Guid id, Guid shockerId, ShareLinkEditShocker data)
+    /// <summary>
+    /// Edit a shocker in a share link
+    /// </summary>
+    /// <param name="id"></param>
+    /// <param name="shockerId"></param>
+    /// <param name="data"></param>
+    /// <response code="200">Successfully updated shocker</response>
+    /// <response code="404">Share link or shocker does not exist</response>
+    /// <response code="400">Shocker does not exist in share link</response>
+    [HttpPatch("{id}/{shockerId}", Name = "EditShockerShareLink")]
+    [ProducesResponseType((int) HttpStatusCode.OK)]
+    [ProducesResponseType((int) HttpStatusCode.NotFound)]
+    [ProducesResponseType((int) HttpStatusCode.BadRequest)]
+    public async Task<BaseResponse<ShareLinkResponse>> EditShocker([FromRoute] Guid id, [FromRoute] Guid shockerId, [FromBody] ShareLinkEditShocker data)
     {
         var exists = await _db.ShockerSharesLinks.AnyAsync(x => x.OwnerId == CurrentUser.DbUser.Id && x.Id == id);
         if (!exists)
@@ -120,8 +163,18 @@ public class ShareLinksController : AuthenticatedSessionControllerBase
         };
     }
 
-    [HttpDelete("{id:guid}/{shockerId:guid}")]
-    public async Task<BaseResponse<ShareLinkResponse>> DeleteShocker(Guid id, Guid shockerId)
+    /// <summary>
+    /// Delete a shocker from a share link
+    /// </summary>
+    /// <param name="id"></param>
+    /// <param name="shockerId"></param>
+    /// <response code="200">Successfully removed shocker</response>
+    /// <response code="404">Share link or shocker does not exist</response>
+    /// <response code="400">Shocker does not exist in share link</response>
+    [HttpDelete("{id}/{shockerId}", Name = "DeleteShockerShareLink")]
+    [ProducesResponseType((int) HttpStatusCode.OK)]
+    [ProducesResponseType((int) HttpStatusCode.NotFound)]
+    public async Task<BaseResponse<ShareLinkResponse>> DeleteShocker([FromRoute] Guid id, [FromRoute] Guid shockerId)
     {
         var exists = await _db.ShockerSharesLinks.AnyAsync(x => x.OwnerId == CurrentUser.DbUser.Id && x.Id == id);
         if (!exists) return EBaseResponse<ShareLinkResponse>("Share link could not be found", HttpStatusCode.NotFound);
@@ -137,8 +190,20 @@ public class ShareLinksController : AuthenticatedSessionControllerBase
         return EBaseResponse<ShareLinkResponse>("Shocker does not exist in share link, consider adding a new one");
     }
     
-    [HttpPost("{id:guid}/{shockerId:guid}/pause")]
-    public async Task<BaseResponse<PauseReason>> PauseShocker(Guid id, Guid shockerId, PauseRequest data)
+    /// <summary>
+    /// Pause a shocker in a share link
+    /// </summary>
+    /// <param name="id"></param>
+    /// <param name="shockerId"></param>
+    /// <param name="data"></param>
+    /// <response code="200">Successfully updated paused state shocker</response>
+    /// <response code="404">Share link or shocker does not exist</response>
+    /// <response code="400">Shocker does not exist in share link</response>
+    [HttpPost("{id}/{shockerId}/pause", Name = "PauseShockerShareLink")]
+    [ProducesResponseType((int) HttpStatusCode.OK)]
+    [ProducesResponseType((int) HttpStatusCode.NotFound)]
+    [ProducesResponseType((int) HttpStatusCode.BadRequest)]
+    public async Task<BaseResponse<PauseReason>> PauseShocker([FromRoute] Guid id, [FromRoute] Guid shockerId, [FromBody] PauseRequest data)
     {
         var exists = await _db.ShockerSharesLinks.AnyAsync(x => x.OwnerId == CurrentUser.DbUser.Id && x.Id == id);
         if (!exists)

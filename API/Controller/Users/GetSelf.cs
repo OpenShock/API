@@ -7,7 +7,12 @@ namespace OpenShock.API.Controller.Users;
 
 partial class UsersController : AuthenticatedSessionControllerBase
 {
-    [HttpGet]
+    /// <summary>
+    /// Gets the current user's information.
+    /// </summary>
+    /// <response code="200">The user's information was successfully retrieved.</response>
+    [HttpGet("self", Name = "UsersGetSelf")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
     public BaseResponse<SelfResponse> GetSelf() => new()
     {
         Data = new SelfResponse

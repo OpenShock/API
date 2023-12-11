@@ -6,6 +6,9 @@ using Redis.OM.Contracts;
 
 namespace OpenShock.API.Controller.Shockers;
 
+/// <summary>
+/// Shocker management
+/// </summary>
 [ApiController]
 [ApiVersion("1")]
 [ApiVersion("2")]

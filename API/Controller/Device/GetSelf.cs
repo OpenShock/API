@@ -12,7 +12,7 @@ partial class DeviceController : AuthenticatedDeviceControllerBase
     /// Gets information about the authenticated device.
     /// </summary>
     /// <response code="200">The device information was successfully retrieved.</response>
-    [HttpGet("self", Name = "GetSelf")]
+    [HttpGet("self", Name = "DeviceGetSelf")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     public async Task<BaseResponse<DeviceSelfResponse>> GetSelf()
     {

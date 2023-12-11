@@ -7,7 +7,12 @@ namespace OpenShock.API.Controller.Shockers;
 
 public sealed partial class ShockerController
 {
-    [HttpGet("own")]
+    /// <summary>
+    /// Gets all shockers owned by the authenticated user.
+    /// </summary>
+    /// <response code="200">The shockers were successfully retrieved.</response>
+    [HttpGet("own", Name = "GetOwnShockers")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
     public async Task<BaseResponse<IEnumerable<ResponseDeviceWithShockers>>> GetOwnShockers()
     {
         var shockers = await _db.Devices.Where(x => x.Owner == CurrentUser.DbUser.Id).OrderBy(x => x.CreatedOn).Select(
