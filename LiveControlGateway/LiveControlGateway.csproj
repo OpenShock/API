@@ -7,7 +7,7 @@
         <AssemblyName>OpenShock.LiveControlGateway</AssemblyName>
         <RootNamespace>OpenShock.LiveControlGateway</RootNamespace>
         <Company>OpenShock</Company>
-        <AssemblyVersion>1.8.1</AssemblyVersion>
+        <AssemblyVersion>1.8.2</AssemblyVersion>
         <Product>LiveControlGateway</Product>
         <GenerateDocumentationFile>true</GenerateDocumentationFile>
         <LangVersion>12</LangVersion>
