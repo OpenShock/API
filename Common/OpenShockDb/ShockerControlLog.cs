@@ -22,6 +22,8 @@ public partial class ShockerControlLog
 
     public string? CustomName { get; set; }
 
+    public bool LiveControl { get; set; }
+
     public virtual User? ControlledByNavigation { get; set; }
 
     public virtual Shocker Shocker { get; set; } = null!;

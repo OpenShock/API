@@ -172,6 +172,7 @@ public partial class OpenShockContext : DbContext
                 .HasColumnName("custom_name");
             entity.Property(e => e.Duration).HasColumnName("duration");
             entity.Property(e => e.Intensity).HasColumnName("intensity");
+            entity.Property(e => e.LiveControl).HasColumnName("live_control");
             entity.Property(e => e.ShockerId).HasColumnName("shocker_id");
             entity.Property(e => e.Type).HasColumnType("control_type").HasColumnName("type");
 
@@ -199,6 +200,10 @@ public partial class OpenShockContext : DbContext
             entity.Property(e => e.LimitDuration).HasColumnName("limit_duration");
             entity.Property(e => e.LimitIntensity).HasColumnName("limit_intensity");
             entity.Property(e => e.Paused).HasColumnName("paused");
+            entity.Property(e => e.PermLive)
+                .IsRequired()
+                .HasDefaultValueSql("true")
+                .HasColumnName("perm_live");
             entity.Property(e => e.PermShock)
                 .IsRequired()
                 .HasDefaultValueSql("true")
@@ -289,6 +294,10 @@ public partial class OpenShockContext : DbContext
             entity.Property(e => e.LimitDuration).HasColumnName("limit_duration");
             entity.Property(e => e.LimitIntensity).HasColumnName("limit_intensity");
             entity.Property(e => e.Paused).HasColumnName("paused");
+            entity.Property(e => e.PermLive)
+                .IsRequired()
+                .HasDefaultValueSql("true")
+                .HasColumnName("perm_live");
             entity.Property(e => e.PermShock).HasColumnName("perm_shock");
             entity.Property(e => e.PermSound).HasColumnName("perm_sound");
             entity.Property(e => e.PermVibrate).HasColumnName("perm_vibrate");

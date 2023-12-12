@@ -23,6 +23,8 @@ public partial class ShockerShare
 
     public bool Paused { get; set; }
 
+    public bool? PermLive { get; set; }
+
     public virtual User SharedWithNavigation { get; set; } = null!;
 
     public virtual Shocker Shocker { get; set; } = null!;
