@@ -17,7 +17,7 @@ public sealed partial class AdminController
     /// </summary>
     /// <response code="200">All online devices</response>
     /// <response code="401">Unauthorized</response>
-    [HttpGet(Name = "GetOnlineDevices")]
+    [HttpGet("monitoring/onlineDevices", Name = "GetOnlineDevices")]
     [ProducesResponseType((int)HttpStatusCode.OK)]
     [ProducesResponseType((int)HttpStatusCode.Unauthorized)]
     public async Task<BaseResponse<object>> Get()

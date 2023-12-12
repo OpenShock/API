@@ -113,9 +113,6 @@ public class Startup
         redis.Connection.CreateIndex(typeof(LcgNode));
         services.AddSingleton<IRedisConnectionProvider>(redis);
 
-        // TODO: Is this needed?
-        //services.AddStackExchangeRedisExtensions<NewtonsoftSerializer>(redisConf);
-
         services.AddMemoryCache();
         services.AddHttpContextAccessor();
 
