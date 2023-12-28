@@ -10,6 +10,8 @@ public enum LiveResponseType
     DeviceNotConnected = 100,
     DeviceConnected = 101,
     ShockerNotFound = 150,
+    ShockerMissingLivePermission = 151,
+    ShockerMissingPermission = 152,
     
     InvalidData = 200,
     RequestTypeNotFound = 201,

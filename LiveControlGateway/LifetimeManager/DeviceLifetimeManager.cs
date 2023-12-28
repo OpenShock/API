@@ -6,6 +6,7 @@ using OpenShock.Common;
 using OpenShock.Common.Models;
 using OpenShock.Common.OpenShockDb;
 using OpenShock.LiveControlGateway.Controllers;
+using OpenShock.LiveControlGateway.Websocket;
 
 namespace OpenShock.LiveControlGateway.LifetimeManager;
 
@@ -34,6 +35,10 @@ public static class DeviceLifetimeManager
             var deviceLifetime = new DeviceLifetime(deviceController, dbContextFactory, cancellationToken);
             await deviceLifetime.InitAsync(db);
             Managers[deviceController.Id] = deviceLifetime;
+            
+            foreach (var websocketController in WebsocketManager.LiveControlUsers.GetConnections(deviceController.Id)) 
+                await websocketController.UpdateConnectedState(true);
+            
             return deviceLifetime;
     }
 
@@ -41,8 +46,11 @@ public static class DeviceLifetimeManager
     /// Remove device from Lifetime Manager, called on dispose of device controller
     /// </summary>
     /// <param name="deviceController"></param>
-    public static void RemoveDeviceConnection(DeviceController deviceController)
+    public static async Task RemoveDeviceConnection(DeviceController deviceController)
     {
+        foreach (var websocketController in WebsocketManager.LiveControlUsers.GetConnections(deviceController.Id)) 
+            await websocketController.UpdateConnectedState(false);
+        
         Managers.Remove(deviceController.Id, out _);
     }
 

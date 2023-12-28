@@ -1,6 +1,7 @@
 ﻿using System.Net;
 using Asp.Versioning;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using OpenShock.API.Models.Requests;
 using OpenShock.API.Models.Response;
@@ -8,6 +9,8 @@ using OpenShock.API.Realtime;
 using OpenShock.Common.Models;
 using OpenShock.Common.OpenShockDb;
 using OpenShock.Common.Redis.PubSub;
+using OpenShock.ServicesCommon.Hubs;
+using OpenShock.ServicesCommon.Services.Device;
 using OpenShock.ServicesCommon.Utils;
 
 namespace OpenShock.API.Controller.Shockers;
@@ -27,8 +30,10 @@ public sealed partial class ShockerController
     public async Task<BaseResponse<IEnumerable<ShareInfo>>> GetShares([FromRoute] Guid id)
     {
         var owns = await _db.Shockers.AnyAsync(x => x.DeviceNavigation.Owner == CurrentUser.DbUser.Id && x.Id == id);
-        if(!owns) return EBaseResponse<IEnumerable<ShareInfo>>("Device/Shocker does not exists or device does not belong to you",
-            HttpStatusCode.NotFound);
+        if (!owns)
+            return EBaseResponse<IEnumerable<ShareInfo>>(
+                "Device/Shocker does not exists or device does not belong to you",
+                HttpStatusCode.NotFound);
         var shares = await _db.ShockerShares
             .Where(x => x.ShockerId == id && x.Shocker.DeviceNavigation.Owner == CurrentUser.DbUser.Id).Select(x =>
                 new ShareInfo
@@ -60,7 +65,7 @@ public sealed partial class ShockerController
             Data = shares
         };
     }
-    
+
     /// <summary>
     /// Gets share codes for a shocker
     /// </summary>
@@ -74,8 +79,10 @@ public sealed partial class ShockerController
     public async Task<BaseResponse<IEnumerable<ShareCodeInfo>>> GetShareCodes([FromRoute] Guid id)
     {
         var owns = await _db.Shockers.AnyAsync(x => x.DeviceNavigation.Owner == CurrentUser.DbUser.Id && x.Id == id);
-        if(!owns) return EBaseResponse<IEnumerable<ShareCodeInfo>>("Device/Shocker does not exists or device does not belong to you",
-            HttpStatusCode.NotFound);
+        if (!owns)
+            return EBaseResponse<IEnumerable<ShareCodeInfo>>(
+                "Device/Shocker does not exists or device does not belong to you",
+                HttpStatusCode.NotFound);
         var shares = await _db.ShockerShareCodes
             .Where(x => x.ShockerId == id && x.Shocker.DeviceNavigation.Owner == CurrentUser.DbUser.Id).Select(x =>
                 new ShareCodeInfo
@@ -90,7 +97,7 @@ public sealed partial class ShockerController
             Data = shares
         };
     }
-    
+
     public class ShareCodeInfo
     {
         public required Guid Id { get; set; }
@@ -102,6 +109,7 @@ public sealed partial class ShockerController
     /// </summary>
     /// <param name="id"></param>
     /// <param name="data"></param>
+    /// <param name="deviceService"></param>
     /// <response code="200">The device information was successfully retrieved.</response>
     /// <response code="404">Device does not exists or you do not have access to it.</response>
     /// <returns></returns>
@@ -109,9 +117,14 @@ public sealed partial class ShockerController
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [MapToApiVersion("1")]
-    public async Task<BaseResponse<Guid>> CreateShareCode([FromRoute] Guid id, [FromBody] CreateShareCode data)
+    public async Task<BaseResponse<Guid>> CreateShareCode(
+        [FromRoute] Guid id,
+        [FromBody] CreateShareCode data,
+        [FromServices] IDeviceService deviceService
+    )
     {
-        var device = await _db.Shockers.Where(x => x.DeviceNavigation.Owner == CurrentUser.DbUser.Id && x.Id == id).Select(x => x.Device).SingleOrDefaultAsync();
+        var device = await _db.Shockers.Where(x => x.DeviceNavigation.Owner == CurrentUser.DbUser.Id && x.Id == id)
+            .Select(x => x.Device).SingleOrDefaultAsync();
         if (device == Guid.Empty)
             return EBaseResponse<Guid>("Device/Shocker does not exists or device does not belong to you",
                 HttpStatusCode.NotFound);
@@ -129,109 +142,123 @@ public sealed partial class ShockerController
         _db.ShockerShareCodes.Add(newCode);
         await _db.SaveChangesAsync();
 
-        await PubSubManager.SendDeviceUpdate(new DeviceUpdatedMessage
-        {
-            Id = device
-        });
-        
+        await deviceService.UpdateDevice(CurrentUser.DbUser.Id, device, DeviceUpdateType.ShockerUpdated);
+
         return new BaseResponse<Guid>
         {
             Data = newCode.Id
         };
     }
-    
+
     /// <summary>
     /// Deletes a share code for a shocker
     /// </summary>
     /// <param name="id"></param>
     /// <param name="sharedWith"></param>
+    /// <param name="deviceService"></param>
     /// <response code="200">The device information was successfully retrieved.</response>
     /// <response code="404">Device does not exists or you do not have access to it.</response>
     [HttpDelete("{id}/shares/{sharedWith}", Name = "DeleteShare")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [MapToApiVersion("1")]
-    public async Task<BaseResponse<object>> DeleteShare([FromRoute] Guid id, [FromRoute] Guid sharedWith)
+    public async Task<BaseResponse<object>> DeleteShare(
+        [FromRoute] Guid id,
+        [FromRoute] Guid sharedWith,
+        [FromServices] IDeviceService deviceService)
     {
         var affected = await _db.ShockerShares.Where(x =>
-            x.ShockerId == id && x.SharedWith == sharedWith && (x.Shocker.DeviceNavigation.Owner == CurrentUser.DbUser.Id || x.SharedWith == CurrentUser.DbUser.Id)).ExecuteDeleteAsync();
+                x.ShockerId == id && x.SharedWith == sharedWith &&
+                (x.Shocker.DeviceNavigation.Owner == CurrentUser.DbUser.Id || x.SharedWith == CurrentUser.DbUser.Id))
+            .ExecuteDeleteAsync();
         if (affected <= 0)
-            return EBaseResponse<object>("Share does not exists or device/shocker does not belong to you nor is shared with you",
+            return EBaseResponse<object>(
+                "Share does not exists or device/shocker does not belong to you nor is shared with you",
                 HttpStatusCode.NotFound);
-        
-        var device = await _db.Shockers.Where(x => x.DeviceNavigation.Owner == CurrentUser.DbUser.Id && x.Id == id).Select(x => x.Device).SingleOrDefaultAsync();
-        await PubSubManager.SendDeviceUpdate(new DeviceUpdatedMessage
-        {
-            Id = device
-        });
+
+        var device = await _db.Shockers.Where(x => x.DeviceNavigation.Owner == CurrentUser.DbUser.Id && x.Id == id)
+            .Select(x => new { x.Device, x.DeviceNavigation.Owner }).SingleAsync();
+
+        await deviceService.UpdateDevice(device.Owner, device.Device, DeviceUpdateType.ShockerUpdated);
 
         return new BaseResponse<object>("Successfully deleted share");
     }
-    
+
     /// <summary>
     /// Updates a share code for a shocker
     /// </summary>
     /// <param name="id"></param>
     /// <param name="sharedWith"></param>
     /// <param name="data"></param>
+    /// <param name="deviceService"></param>
     /// <response code="200">The device information was successfully retrieved.</response>
     /// <response code="404">Device does not exists or you do not have access to it.</response>
     [HttpPatch("{id}/shares/{sharedWith}", Name = "UpdateShare")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [MapToApiVersion("1")]
-    public async Task<BaseResponse<object>> UpdateShare([FromRoute] Guid id, [FromRoute] Guid sharedWith, [FromBody] CreateShareCode data)
+    public async Task<BaseResponse<object>> UpdateShare(
+        [FromRoute] Guid id,
+        [FromRoute] Guid sharedWith,
+        [FromBody] CreateShareCode data,
+        [FromServices] IDeviceService deviceService)
     {
         var affected = await _db.ShockerShares.Where(x =>
-            x.ShockerId == id && x.SharedWith == sharedWith && x.Shocker.DeviceNavigation.Owner == CurrentUser.DbUser.Id).Include(x => x.Shocker).SingleOrDefaultAsync();
+                x.ShockerId == id && x.SharedWith == sharedWith &&
+                x.Shocker.DeviceNavigation.Owner == CurrentUser.DbUser.Id).Select(x =>
+                new { Share = x, DeviceId = x.Shocker.Device, Owner = x.Shocker.DeviceNavigation.Owner })
+            .SingleOrDefaultAsync();
         if (affected == null)
             return EBaseResponse<object>("Share does not exists or device/shocker does not belong to you",
                 HttpStatusCode.NotFound);
 
-        affected.PermShock = data.Permissions.Shock;
-        affected.PermSound = data.Permissions.Sound;
-        affected.PermVibrate = data.Permissions.Vibrate;
-        affected.LimitDuration = data.Limits.Duration;
-        affected.LimitIntensity = data.Limits.Intensity;
+        var share = affected.Share;
+        
+        share.PermShock = data.Permissions.Shock;
+        share.PermSound = data.Permissions.Sound;
+        share.PermVibrate = data.Permissions.Vibrate;
+        share.LimitDuration = data.Limits.Duration;
+        share.LimitIntensity = data.Limits.Intensity;
 
         await _db.SaveChangesAsync();
-        
-        await PubSubManager.SendDeviceUpdate(new DeviceUpdatedMessage
-        {
-            Id = affected.Shocker.Device
-        });
+
+        await deviceService.UpdateDevice(affected.Owner, affected.DeviceId, DeviceUpdateType.ShockerUpdated);
 
         return new BaseResponse<object>("Successfully updated share");
     }
-    
+
     /// <summary>
     /// Pauses a share code for a shocker
     /// </summary>
     /// <param name="id"></param>
     /// <param name="sharedWith"></param>
     /// <param name="data"></param>
+    /// <param name="deviceService"></param>
     /// <response code="200">The device information was successfully retrieved.</response>
     /// <response code="404">Device does not exists or you do not have access to it.</response>
     [HttpPost("{id}/shares/{sharedWith}/pause", Name = "PauseShare")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [MapToApiVersion("1")]
-    public async Task<BaseResponse<object>> UpdatePauseShare([FromRoute] Guid id, [FromRoute] Guid sharedWith, [FromBody] PauseRequest data)
+    public async Task<BaseResponse<object>> UpdatePauseShare(
+        [FromRoute] Guid id,
+        [FromRoute] Guid sharedWith,
+        [FromBody] PauseRequest data,
+        [FromServices] IDeviceService deviceService)
     {
         var affected = await _db.ShockerShares.Where(x =>
-            x.ShockerId == id && x.SharedWith == sharedWith && x.Shocker.DeviceNavigation.Owner == CurrentUser.DbUser.Id).Include(x => x.Shocker).SingleOrDefaultAsync();
+            x.ShockerId == id && x.SharedWith == sharedWith &&
+            x.Shocker.DeviceNavigation.Owner == CurrentUser.DbUser.Id).Select(x =>
+            new { Share = x, DeviceId = x.Shocker.Device, Owner = x.Shocker.DeviceNavigation.Owner }).SingleOrDefaultAsync();
         if (affected == null)
             return EBaseResponse<object>("Share does not exists or device/shocker does not belong to you",
                 HttpStatusCode.NotFound);
 
-        affected.Paused = data.Pause;
+        affected.Share.Paused = data.Pause;
 
         await _db.SaveChangesAsync();
-        
-        await PubSubManager.SendDeviceUpdate(new DeviceUpdatedMessage
-        {
-            Id = affected.Shocker.Device
-        });
+
+        await deviceService.UpdateDevice(affected.Owner, affected.DeviceId, DeviceUpdateType.ShockerUpdated);
 
         return new BaseResponse<object>
         {

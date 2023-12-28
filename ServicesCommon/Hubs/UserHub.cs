@@ -1,19 +1,18 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
-using OpenShock.API.DeviceControl;
-using OpenShock.API.Models.WebSocket;
-using OpenShock.API.Realtime;
 using OpenShock.Common.Models;
+using OpenShock.Common.Models.WebSocket;
 using OpenShock.Common.OpenShockDb;
 using OpenShock.Common.Redis;
-using OpenShock.Common.Redis.PubSub;
 using OpenShock.ServicesCommon.Authentication;
+using OpenShock.ServicesCommon.DeviceControl;
+using OpenShock.ServicesCommon.Services.RedisPubSub;
 using OpenShock.ServicesCommon.Utils;
 using Redis.OM;
 using Redis.OM.Contracts;
 
-namespace OpenShock.API.Hubs;
+namespace OpenShock.ServicesCommon.Hubs;
 
 [Authorize(AuthenticationSchemes = OpenShockAuthSchemas.SessionTokenCombo)]
 public class UserHub : Hub<IUserHub>
@@ -21,12 +20,14 @@ public class UserHub : Hub<IUserHub>
     private readonly ILogger<UserHub> _logger;
     private readonly OpenShockContext _db;
     private readonly IRedisConnectionProvider _provider;
+    private readonly IRedisPubService _redisPubService;
 
-    public UserHub(ILogger<UserHub> logger, OpenShockContext db, IRedisConnectionProvider provider)
+    public UserHub(ILogger<UserHub> logger, OpenShockContext db, IRedisConnectionProvider provider, IRedisPubService redisPubService)
     {
         _logger = logger;
         _db = db;
         _provider = provider;
+        _redisPubService = redisPubService;
     }
 
     public override async Task OnConnectedAsync()
@@ -80,7 +81,7 @@ public class UserHub : Hub<IUserHub>
             CustomName = customName
         }).SingleAsync();
 
-        await ControlLogic.ControlByUser(shocks, _db, sender, Clients);
+        await ControlLogic.ControlByUser(shocks, _db, sender, Clients, _redisPubService);
     }
 
     public async Task CaptivePortal(Guid deviceId, bool enabled)
@@ -89,11 +90,7 @@ public class UserHub : Hub<IUserHub>
             .AnyAsync(x => x.Id == deviceId);
         if (!devices) return;
 
-        await PubSubManager.SendCaptiveControlMessage(new CaptiveMessage
-        {
-            DeviceId = deviceId,
-            Enabled = enabled
-        });
+        await _redisPubService.SendDeviceCaptivePortal(deviceId, enabled);
     }
 
     private Task<User> GetUser() => GetUser(UserId, _db);

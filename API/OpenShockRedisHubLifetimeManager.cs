@@ -49,9 +49,9 @@ public class OpenShockRedisHubLifetimeManager<THub> : RedisHubLifetimeManager<TH
 
         foreach (var userId in userIds)
             if (userId.StartsWith("local#")) localUsers.Add(userId);
-            else remoteUsers.Add(userId[6..]);
+            else remoteUsers.Add(userId);
         var tasks = new List<Task> { base.SendUsersAsync(remoteUsers, methodName, args, cancellationToken) };
-        // Do not close allocate here, just foreach :3
+        // Do not closure allocate here, just foreach :3
         // ReSharper disable once ForeachCanBeConvertedToQueryUsingAnotherGetEnumerator
         foreach (var localUser in localUsers) tasks.Add(SendLocalMessageToUser(localUser, message, cancellationToken));
 

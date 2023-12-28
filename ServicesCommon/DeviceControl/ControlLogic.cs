@@ -2,20 +2,21 @@
 using Microsoft.EntityFrameworkCore;
 using OneOf;
 using OneOf.Types;
-using OpenShock.API.Hubs;
-using OpenShock.API.Realtime;
+using OpenShock.API.DeviceControl;
 using OpenShock.Common.Models;
 using OpenShock.Common.Models.WebSocket.User;
 using OpenShock.Common.OpenShockDb;
 using OpenShock.Common.Redis.PubSub;
+using OpenShock.ServicesCommon.Hubs;
+using OpenShock.ServicesCommon.Models;
+using OpenShock.ServicesCommon.Services.RedisPubSub;
 
-namespace OpenShock.API.DeviceControl;
+namespace OpenShock.ServicesCommon.DeviceControl;
 
 public static class ControlLogic
 {
-
     public static async Task<OneOf<Success>> ControlByUser(IEnumerable<Control> shocks, OpenShockContext db, ControlLogSender sender,
-        IHubClients<IUserHub> hubClients)
+        IHubClients<IUserHub> hubClients, IRedisPubService redisPubService)
     {
         var ownShockers = await db.Shockers.Where(x => x.DeviceNavigation.Owner == sender.Id).Select(x =>
             new ControlShockerObj
@@ -40,7 +41,7 @@ public static class ControlLogic
                 Model = x.Shocker.Model,
                 Owner = x.Shocker.DeviceNavigation.Owner,
                 Paused = x.Shocker.Paused || x.Paused,
-                PermsAndLimits = new ControlShockerObj.SharePermsAndLimits
+                PermsAndLimits = new SharePermsAndLimits
                 {
                     Shock = x.PermShock!.Value,
                     Vibrate = x.PermVibrate!.Value,
@@ -52,12 +53,12 @@ public static class ControlLogic
 
         ownShockers.AddRange(sharedShockers);
 
-        return await ControlInternal(shocks, db, sender, hubClients, ownShockers);
+        return await ControlInternal(shocks, db, sender, hubClients, ownShockers, redisPubService);
     }
 
     public static async Task<OneOf<Success>> ControlShareLink(IEnumerable<Control> shocks, OpenShockContext db,
         ControlLogSender sender,
-        IHubClients<IUserHub> hubClients, Guid shareLinkId)
+        IHubClients<IUserHub> hubClients, Guid shareLinkId, IRedisPubService redisPubService)
     {
         var shareLinkShockers = await db.ShockerSharesLinksShockers.Where(x => x.ShareLinkId == shareLinkId && (x.ShareLink.ExpiresOn > DateTime.UtcNow || x.ShareLink.ExpiresOn == null))
             .Select(x => new ControlShockerObj
@@ -69,7 +70,7 @@ public static class ControlLogic
             Model = x.Shocker.Model,
             Owner = x.Shocker.DeviceNavigation.Owner,
             Paused = x.Shocker.Paused || x.Paused,
-            PermsAndLimits = new ControlShockerObj.SharePermsAndLimits
+            PermsAndLimits = new SharePermsAndLimits
             {
                 Shock = x.PermShock,
                 Vibrate = x.PermVibrate,
@@ -78,11 +79,11 @@ public static class ControlLogic
                 Intensity = x.LimitIntensity
             }
         }).ToListAsync();
-        return await ControlInternal(shocks, db, sender, hubClients, shareLinkShockers);
+        return await ControlInternal(shocks, db, sender, hubClients, shareLinkShockers, redisPubService);
     }
     
     private static async Task<OneOf<Success>> ControlInternal(IEnumerable<Control> shocks, OpenShockContext db, ControlLogSender sender,
-        IHubClients<IUserHub> hubClients, IReadOnlyCollection<ControlShockerObj> allowedShockers)
+        IHubClients<IUserHub> hubClients, IReadOnlyCollection<ControlShockerObj> allowedShockers, IRedisPubService redisPubService)
     {
         var finalMessages = new Dictionary<Guid, IList<ControlMessage.ShockerControlInfo>>();
         var curTime = DateTime.UtcNow;
@@ -147,11 +148,7 @@ public static class ControlLogic
             });
         }
 
-        var redisTask = PubSubManager.SendControlMessage(new ControlMessage
-        {
-            Shocker = sender.Id,
-            ControlMessages = finalMessages
-        });
+        var redisTask =  redisPubService.SendDeviceControl(sender.Id, finalMessages);
         var logSends = logs.Select(x => hubClients.User(x.Key.ToString()).Log(sender, x.Value));
 
         var listOfTasks = new List<Task>
@@ -166,7 +163,7 @@ public static class ControlLogic
         return new OneOf<Success>();
     }
 
-    private static bool IsAllowed(ControlType type, ControlShockerObj.SharePermsAndLimits? perms)
+    private static bool IsAllowed(ControlType type, SharePermsAndLimits? perms)
     {
         if (perms == null) return true;
         return type switch

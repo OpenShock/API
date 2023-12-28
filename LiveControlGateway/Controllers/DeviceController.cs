@@ -193,19 +193,14 @@ public sealed class DeviceController : FlatbuffersWebsocketBaseController<Server
         await DeviceLifetimeManager.AddDeviceConnection(this, _db, _dbContextFactory, Linked.Token);
          
         WebsocketManager.ServerToDevice.RegisterConnection(this);
-        
-        foreach (var websocketController in WebsocketManager.LiveControlUsers.GetConnections(Id)) 
-            await websocketController.UpdateConnectedState(true);
     }
 
     /// <inheritdoc />
     protected override async Task UnregisterConnection()
     {
         Logger.LogDebug("Unregistering device connection [{DeviceId}]", Id);
-        DeviceLifetimeManager.RemoveDeviceConnection(this);
+        await DeviceLifetimeManager.RemoveDeviceConnection(this);
         WebsocketManager.ServerToDevice.UnregisterConnection(this);
-        foreach (var websocketController in WebsocketManager.LiveControlUsers.GetConnections(Id)) 
-            await websocketController.UpdateConnectedState(false);
     }
 
     public override ValueTask DisposeControllerAsync()

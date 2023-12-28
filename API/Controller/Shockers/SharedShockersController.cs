@@ -32,7 +32,7 @@ public partial class ShockerController
                     Permissions = new ShockerPermissions
                     {
                         Shock = x.PermShock!.Value,
-                        Sound = x.PermVibrate!.Value,
+                        Sound = x.PermSound!.Value,
                         Vibrate = x.PermVibrate!.Value
                     },
                     Limits = new ShockerLimits

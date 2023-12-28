@@ -1,11 +1,14 @@
 ﻿using System.Net;
 using Asp.Versioning;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using OpenShock.API.Models.Requests;
 using OpenShock.API.Realtime;
 using OpenShock.Common.Models;
 using OpenShock.Common.Redis.PubSub;
+using OpenShock.ServicesCommon.Hubs;
+using OpenShock.ServicesCommon.Services.Device;
 
 namespace OpenShock.API.Controller.Shockers;
 
@@ -16,13 +19,18 @@ public sealed partial class ShockerController
     /// </summary>
     /// <param name="id"></param>
     /// <param name="data"></param>
+    /// <param name="deviceService"></param>
+    /// <param name="userHubContext"></param>
     /// <response code="200">Successfully updated shocker</response>
     /// <response code="404">Shocker does not exist</response>
     [HttpPatch("{id}", Name = "EditShocker")]
     [ProducesResponseType((int)HttpStatusCode.OK)]
     [ProducesResponseType((int)HttpStatusCode.NotFound)]
     [MapToApiVersion("1")]
-    public async Task<BaseResponse<object>> EditShocker([FromRoute] Guid id, [FromBody] NewShocker data)
+    public async Task<BaseResponse<object>> EditShocker(
+        [FromRoute] Guid id,
+        [FromBody] NewShocker data, 
+        [FromServices] IDeviceService deviceService)
     {
         var device = await _db.Devices.AnyAsync(x => x.Owner == CurrentUser.DbUser.Id && x.Id == data.Device);
         if (!device)
@@ -40,18 +48,12 @@ public sealed partial class ShockerController
         shocker.Model = data.Model;
 
         await _db.SaveChangesAsync();
-
-        await Task.WhenAll(
-            PubSubManager.SendDeviceUpdate(new DeviceUpdatedMessage
-            {
-                Id = oldDevice
-            }),
-            PubSubManager.SendDeviceUpdate(new DeviceUpdatedMessage
-            {
-                Id = data.Device
-            })
-        );
-
+        
+        if (oldDevice != data.Device) 
+            await deviceService.UpdateDevice(CurrentUser.DbUser.Id, oldDevice, DeviceUpdateType.ShockerUpdated);
+        
+        await deviceService.UpdateDevice(CurrentUser.DbUser.Id, data.Device, DeviceUpdateType.ShockerUpdated);
+        
         return new BaseResponse<object>
         {
             Message = "Successfully updated shocker"

@@ -1,4 +1,4 @@
-﻿namespace OpenShock.API.Hubs;
+﻿namespace OpenShock.ServicesCommon.Hubs;
 
 public interface IShareLinkHub
 {

@@ -1,11 +1,14 @@
 ﻿using System.Net;
 using Asp.Versioning;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using OpenShock.API.Models.Requests;
 using OpenShock.API.Realtime;
 using OpenShock.Common.Models;
 using OpenShock.Common.Redis.PubSub;
+using OpenShock.ServicesCommon.Hubs;
+using OpenShock.ServicesCommon.Services.Device;
 
 namespace OpenShock.API.Controller.Shockers;
 
@@ -16,13 +19,16 @@ public sealed partial class ShockerController
     /// </summary>
     /// <param name="id"></param>
     /// <param name="data"></param>
+    /// <param name="deviceService"></param>
+    /// <param name="userHubContext"></param>
     /// <response code="200">Successfully set pause state</response>
     /// <response code="404">Shocker not found or does not belong to you</response>
     [HttpPost("{id}/pause", Name = "PauseShocker")]
-    [ProducesResponseType((int) HttpStatusCode.OK)]
-    [ProducesResponseType((int) HttpStatusCode.NotFound)]
+    [ProducesResponseType((int)HttpStatusCode.OK)]
+    [ProducesResponseType((int)HttpStatusCode.NotFound)]
     [MapToApiVersion("1")]
-    public async Task<BaseResponse<bool?>> Pause([FromRoute] Guid id, [FromBody] PauseRequest data)
+    public async Task<BaseResponse<bool?>> Pause([FromRoute] Guid id, [FromBody] PauseRequest data,
+        [FromServices] IDeviceService deviceService)
     {
         var shocker = await _db.Shockers.Where(x => x.Id == id && x.DeviceNavigation.Owner == CurrentUser.DbUser.Id)
             .SingleOrDefaultAsync();
@@ -31,11 +37,8 @@ public sealed partial class ShockerController
         shocker.Paused = data.Pause;
         await _db.SaveChangesAsync();
 
-        await PubSubManager.SendDeviceUpdate(new DeviceUpdatedMessage
-        {
-            Id = shocker.Device
-        });
-        
+        await deviceService.UpdateDevice(CurrentUser.DbUser.Id, shocker.Device, DeviceUpdateType.ShockerUpdated);
+
         return new BaseResponse<bool?>("Successfully set pause state", data.Pause);
     }
 }

@@ -5,6 +5,9 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
 using Microsoft.EntityFrameworkCore;
+using OneOf;
+using OneOf.Types;
+using OpenShock.Common.Models;
 using OpenShock.Common.Models.WebSocket;
 using OpenShock.Common.Models.WebSocket.LCG;
 using OpenShock.Common.OpenShockDb;
@@ -13,6 +16,7 @@ using OpenShock.Common.Utils;
 using OpenShock.LiveControlGateway.LifetimeManager;
 using OpenShock.LiveControlGateway.Websocket;
 using OpenShock.ServicesCommon.Authentication;
+using OpenShock.ServicesCommon.Models;
 using OpenShock.ServicesCommon.Utils;
 using OpenShock.ServicesCommon.Websocket;
 using Timer = System.Timers.Timer;
@@ -24,25 +28,34 @@ namespace OpenShock.LiveControlGateway.Controllers;
 [Authorize(AuthenticationSchemes = OpenShockAuthSchemas.SessionTokenCombo)]
 public sealed class LiveControlController : WebsocketBaseController<IBaseResponse<LiveResponseType>>
 {
-    private readonly IDbContextFactory<OpenShockContext> _dbContextFactory;
     private readonly OpenShockContext _db;
+    
     private static readonly TimeSpan PingInterval = TimeSpan.FromSeconds(5);
+    private static readonly SharePermsAndLimitsLive OwnerPermsAndLimitsLive = new()
+    {
+        Shock = true,
+        Vibrate = true,
+        Sound = true,
+        Duration = null,
+        Intensity = null,
+        Live = true
+    };
 
     private LinkUser _currentUser;
     private Guid? _deviceId;
-    
+    private Device? _device;
+    private Dictionary<Guid, SharePermsAndLimitsLive> _sharedShockers;
+
     /// <summary>
     /// Last latency in milliseconds, 0 initially
     /// </summary>
     public long LastLatency { get; private set; } = 0;
-    
+
     private readonly Timer _pingTimer = new(PingInterval);
 
     public LiveControlController(OpenShockContext db,
-        ILogger<LiveControlController> logger, IHostApplicationLifetime lifetime,
-        IDbContextFactory<OpenShockContext> dbContextFactory) : base(logger, lifetime)
+        ILogger<LiveControlController> logger, IHostApplicationLifetime lifetime) : base(logger, lifetime)
     {
-        _dbContextFactory = dbContextFactory;
         _db = db;
 
         _pingTimer.Elapsed += (_, _) => LucTask.Run(SendPing);
@@ -63,6 +76,35 @@ public sealed class LiveControlController : WebsocketBaseController<IBaseRespons
     }
 
     /// <summary>
+    /// Update all shockers permissions for this user on this device
+    /// </summary>
+    /// <param name="db"></param>
+    public async Task UpdatePermissions(OpenShockContext db)
+    {
+        if (_device!.Owner == _currentUser.DbUser.Id)
+        {
+            Logger.LogTrace("User is owner, skipping update permissions");
+            return;
+        }
+        
+        Logger.LogDebug("Updating shared permissions for device [{Device}] for user [{User}]", Id, _currentUser.DbUser.Id);
+        
+        var updated = await db.ShockerShares
+            .Where(x => x.Shocker.Device == Id && x.SharedWith == _currentUser.DbUser.Id).ToDictionaryAsync(
+                x => x.ShockerId, x => new SharePermsAndLimitsLive
+                {
+                    Shock = x.PermShock!.Value,
+                    Vibrate = x.PermVibrate!.Value,
+                    Sound = x.PermSound!.Value,
+                    Duration = x.LimitDuration,
+                    Intensity = x.LimitIntensity,
+                    Live = x.PermLive!.Value
+                });
+        
+        _sharedShockers = updated;
+    }
+
+    /// <summary>
     /// We get the id from the route, check if its valid, check if the user has access to the shocker / device
     /// </summary>
     /// <returns></returns>
@@ -78,10 +120,17 @@ public sealed class LiveControlController : WebsocketBaseController<IBaseRespons
 
         var deviceExistsAndYouHaveAccess = await _db.Devices.AnyAsync(x =>
             x.Id == _deviceId && (x.Owner == _currentUser.DbUser.Id || x.Shockers.Any(y => y.ShockerShares.Any(
-                z => z.SharedWith == _currentUser.DbUser.Id))));
+                z => z.SharedWith == _currentUser.DbUser.Id && z.PermLive!.Value))));
 
-        if (deviceExistsAndYouHaveAccess) return true;
-        
+        if (deviceExistsAndYouHaveAccess)
+        {
+            _device = await _db.Devices.FirstOrDefaultAsync(x => x.Id == _deviceId);
+
+            await UpdatePermissions(_db);
+
+            return true;
+        }
+
         HttpContext.Response.StatusCode = (int)HttpStatusCode.NotFound;
         await HttpContext.Response.WriteAsJsonAsync(new Common.Models.BaseResponse<object>
         {
@@ -109,9 +158,9 @@ public sealed class LiveControlController : WebsocketBaseController<IBaseRespons
     {
         await UpdateConnectedState(DeviceLifetimeManager.IsConnected(Id), true);
     }
-    
+
     private bool _lastIsConnected;
-    
+
     /// <summary>
     /// Update the connected state of the device if different from what was last sent
     /// </summary>
@@ -120,14 +169,14 @@ public sealed class LiveControlController : WebsocketBaseController<IBaseRespons
     [NonAction]
     public async Task UpdateConnectedState(bool isConnected, bool force = false)
     {
-        if(_lastIsConnected == isConnected && !force) return;
-        
+        if (_lastIsConnected == isConnected && !force) return;
+
         Logger.LogTrace("Sending connection update for device [{Device}] [{State}]", Id, isConnected);
-        
+
         _lastIsConnected = isConnected;
         try
         {
-            await QueueMessage(new BaseResponse<LiveResponseType>
+            await QueueMessage(new Common.Models.WebSocket.BaseResponse<LiveResponseType>
             {
                 ResponseType = _lastIsConnected
                     ? LiveResponseType.DeviceConnected
@@ -209,7 +258,7 @@ public sealed class LiveControlController : WebsocketBaseController<IBaseRespons
         {
             LiveRequestType.Pong => IntakePong(request.Data),
             LiveRequestType.Frame => IntakeFrame(request.Data),
-            _ => QueueMessage(new BaseResponse<LiveResponseType>()
+            _ => QueueMessage(new Common.Models.WebSocket.BaseResponse<LiveResponseType>()
             {
                 ResponseType = LiveResponseType.RequestTypeNotFound
             }).AsTask()
@@ -222,9 +271,9 @@ public sealed class LiveControlController : WebsocketBaseController<IBaseRespons
     private async Task IntakePong(JsonDocument? requestData)
     {
         Logger.LogTrace("Intake pong");
-        
+
         var currentTimestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
-        
+
         PingResponse? pong;
         try
         {
@@ -233,7 +282,7 @@ public sealed class LiveControlController : WebsocketBaseController<IBaseRespons
             if (pong == null)
             {
                 Logger.LogWarning("Error while deserializing pong");
-                await QueueMessage(new BaseResponse<LiveResponseType>
+                await QueueMessage(new Common.Models.WebSocket.BaseResponse<LiveResponseType>
                 {
                     ResponseType = LiveResponseType.InvalidData
                 });
@@ -243,7 +292,7 @@ public sealed class LiveControlController : WebsocketBaseController<IBaseRespons
         catch (Exception e)
         {
             Logger.LogWarning(e, "Error while deserializing frame");
-            await QueueMessage(new BaseResponse<LiveResponseType>
+            await QueueMessage(new Common.Models.WebSocket.BaseResponse<LiveResponseType>
             {
                 ResponseType = LiveResponseType.InvalidData
             });
@@ -252,16 +301,16 @@ public sealed class LiveControlController : WebsocketBaseController<IBaseRespons
 
         var latency = currentTimestamp - pong.Timestamp;
         LastLatency = Math.Max(0, latency);
-        
-        if(Logger.IsEnabled(LogLevel.Trace))
+
+        if (Logger.IsEnabled(LogLevel.Trace))
             Logger.LogTrace("Latency: {Latency}ms (raw: {RawLatency}ms)", LastLatency, latency);
 
-        await QueueMessage(new BaseResponse<LiveResponseType>
+        await QueueMessage(new Common.Models.WebSocket.BaseResponse<LiveResponseType>
         {
             ResponseType = LiveResponseType.LatencyAnnounce,
             Data = new Dictionary<Guid, long>
             {
-                {_currentUser.DbUser.Id, LastLatency}
+                { _currentUser.DbUser.Id, LastLatency }
             }
         });
     }
@@ -278,7 +327,7 @@ public sealed class LiveControlController : WebsocketBaseController<IBaseRespons
             if (frame == null)
             {
                 Logger.LogWarning("Error while deserializing frame");
-                await QueueMessage(new BaseResponse<LiveResponseType>
+                await QueueMessage(new Common.Models.WebSocket.BaseResponse<LiveResponseType>
                 {
                     ResponseType = LiveResponseType.InvalidData
                 });
@@ -288,27 +337,58 @@ public sealed class LiveControlController : WebsocketBaseController<IBaseRespons
         catch (Exception e)
         {
             Logger.LogWarning(e, "Error while deserializing frame");
-            await QueueMessage(new BaseResponse<LiveResponseType>
+            await QueueMessage(new Common.Models.WebSocket.BaseResponse<LiveResponseType>
             {
                 ResponseType = LiveResponseType.InvalidData
             });
             return;
         }
-
-
+        
         Logger.LogTrace("Frame: {@Frame}", frame);
 
-        var result = DeviceLifetimeManager.ReceiveFrame(Id, frame.Shocker, frame.Type, frame.Intensity);
+        var permCheck = CheckFramePermissions(frame.Shocker, frame.Type);
+        if (permCheck.IsT1)
+        {
+            await QueueMessage(new Common.Models.WebSocket.BaseResponse<LiveResponseType>
+            {
+                ResponseType = LiveResponseType.ShockerNotFound
+            });
+            return;
+        }
+
+        if (permCheck.IsT2)
+        {
+            await QueueMessage(new Common.Models.WebSocket.BaseResponse<LiveResponseType>
+            {
+                ResponseType = LiveResponseType.ShockerMissingLivePermission
+            });
+            return;
+        }
+
+        if (permCheck.IsT3)
+        {
+            await QueueMessage(new Common.Models.WebSocket.BaseResponse<LiveResponseType>
+            {
+                ResponseType = LiveResponseType.ShockerMissingPermission
+            });
+            return;
+        }
+        
+        
+        var perms = permCheck.AsT0.Value;
+        // Clamp to limits
+        var intensityMax = perms.Intensity ?? 100;
+        var intensity = Math.Clamp(frame.Intensity, (byte)0, intensityMax);
+
+        var result = DeviceLifetimeManager.ReceiveFrame(Id, frame.Shocker, frame.Type, intensity);
         if (result.IsT0)
         {
             Logger.LogTrace("Successfully received frame");
         }
 
-        ;
-
         if (result.IsT1)
         {
-            await QueueMessage(new BaseResponse<LiveResponseType>
+            await QueueMessage(new Common.Models.WebSocket.BaseResponse<LiveResponseType>
             {
                 ResponseType = LiveResponseType.DeviceNotConnected
             });
@@ -317,13 +397,39 @@ public sealed class LiveControlController : WebsocketBaseController<IBaseRespons
 
         if (result.IsT2)
         {
-            await QueueMessage(new BaseResponse<LiveResponseType>
+            await QueueMessage(new Common.Models.WebSocket.BaseResponse<LiveResponseType>
             {
                 ResponseType = LiveResponseType.ShockerNotFound
             });
             return;
         }
     }
+
+    private OneOf<Success<SharePermsAndLimitsLive>, NotFound, LiveNotEnabled, NoPermission> CheckFramePermissions(Guid shocker, ControlType controlType)
+    {
+        if (_device!.Owner == _currentUser.DbUser.Id)
+            return new Success<SharePermsAndLimitsLive>(OwnerPermsAndLimitsLive);
+        
+        if (!_sharedShockers.TryGetValue(shocker, out var shockerShare) || !shockerShare.Live) return new NotFound();
+
+        if (!IsAllowed(controlType, shockerShare)) return new NoPermission();
+
+        return new Success<SharePermsAndLimitsLive>(shockerShare);
+    }
+
+    private static bool IsAllowed(ControlType type, SharePermsAndLimits? perms)
+    {
+        if (perms == null) return true;
+        return type switch
+        {
+            ControlType.Shock => perms.Shock,
+            ControlType.Vibrate => perms.Vibrate,
+            ControlType.Sound => perms.Sound,
+            ControlType.Stop => perms.Shock || perms.Vibrate || perms.Sound,
+            _ => false
+        };
+    }
+
 
     /// <summary>
     /// Send a ping to the client, the client should respond with a pong
@@ -333,9 +439,10 @@ public sealed class LiveControlController : WebsocketBaseController<IBaseRespons
         if (WebSocket is not { State: WebSocketState.Open }) return;
 
         if (Logger.IsEnabled(LogLevel.Debug))
-            Logger.LogDebug("Sending ping to live control user [{User}] for device [{Device}]", _currentUser.DbUser.Id, Id);
-        
-        await QueueMessage(new BaseResponse<LiveResponseType>
+            Logger.LogDebug("Sending ping to live control user [{User}] for device [{Device}]", _currentUser.DbUser.Id,
+                Id);
+
+        await QueueMessage(new Common.Models.WebSocket.BaseResponse<LiveResponseType>
         {
             ResponseType = LiveResponseType.Ping,
             Data = new PingResponse
@@ -345,3 +452,6 @@ public sealed class LiveControlController : WebsocketBaseController<IBaseRespons
         });
     }
 }
+
+public struct LiveNotEnabled;
+public struct NoPermission;

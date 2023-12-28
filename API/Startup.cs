@@ -10,7 +10,6 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.OpenApi.Models;
 using Npgsql;
-using OpenShock.API.Hubs;
 using OpenShock.API.Mailjet;
 using OpenShock.API.Realtime;
 using OpenShock.API.Utils;
@@ -23,13 +22,14 @@ using OpenShock.ServicesCommon;
 using OpenShock.ServicesCommon.Authentication;
 using OpenShock.ServicesCommon.ExceptionHandle;
 using OpenShock.ServicesCommon.Geo;
+using OpenShock.ServicesCommon.Hubs;
+using OpenShock.ServicesCommon.Services.Device;
+using OpenShock.ServicesCommon.Services.RedisPubSub;
 using OpenShock.ServicesCommon.Utils;
 using Redis.OM;
 using Redis.OM.Contracts;
 using Serilog;
 using StackExchange.Redis;
-using StackExchange.Redis.Extensions.Core.Configuration;
-using StackExchange.Redis.Extensions.Newtonsoft;
 using IPNetwork = Microsoft.AspNetCore.HttpOverrides.IPNetwork;
 using WebSocketOptions = Microsoft.AspNetCore.Builder.WebSocketOptions;
 
@@ -37,8 +37,6 @@ namespace OpenShock.API;
 
 public class Startup
 {
-    private ConfigurationOptions _redisConfig;
-
     private readonly ForwardedHeadersOptions _forwardedSettings = new()
     {
         ForwardedHeaders = ForwardedHeaders.All,
@@ -60,6 +58,8 @@ public class Startup
 
     public void ConfigureServices(IServiceCollection services)
     {
+        // ----------------- DATABASE -----------------
+        
         // How do I do this now with EFCore?!
 #pragma warning disable CS0618
         NpgsqlConnection.GlobalTypeMapper.MapEnum<ControlType>();
@@ -73,8 +73,18 @@ public class Startup
             builder.EnableSensitiveDataLogging();
             builder.EnableDetailedErrors();
         });
+        
+        services.AddDbContextFactory<OpenShockContext>(builder =>
+        {
+            builder.UseNpgsql(APIGlobals.ApiConfig.Db);
+            builder.EnableSensitiveDataLogging();
+            builder.EnableDetailedErrors();
+        });
 
-        _redisConfig = new ConfigurationOptions
+
+        // ----------------- REDIS -----------------
+        
+        var redisConfig = new ConfigurationOptions
         {
             AbortOnConnectFail = true,
             Password = APIGlobals.ApiConfig.Redis.Password,
@@ -85,33 +95,13 @@ public class Startup
                 { APIGlobals.ApiConfig.Redis.Host, APIGlobals.ApiConfig.Redis.Port }
             }
         };
+        
+        services.AddSingleton<IConnectionMultiplexer>(ConnectionMultiplexer.Connect(redisConfig));
+        services.AddSingleton<IRedisConnectionProvider, RedisConnectionProvider>();
+        services.AddSingleton<IRedisPubService, RedisPubService>();
 
-        var redisConf = new RedisConfiguration
-        {
-            AbortOnConnectFail = true,
-            Hosts = new[]
-            {
-                new RedisHost
-                {
-                    Host = APIGlobals.ApiConfig.Redis.Host,
-                    Port = APIGlobals.ApiConfig.Redis.Port
-                }
-            },
-            Database = 0,
-            User = APIGlobals.ApiConfig.Redis.User,
-            Password = APIGlobals.ApiConfig.Redis.Password
-        };
-
-        var redis = new RedisConnectionProvider(_redisConfig);
-        redis.Connection.CreateIndex(typeof(LoginSession));
-        redis.Connection.CreateIndex(typeof(DeviceOnline));
-        redis.Connection.CreateIndex(typeof(DevicePair));
-        redis.Connection.CreateIndex(typeof(LcgNode));
-        services.AddSingleton<IRedisConnectionProvider>(redis);
-
-        // TODO: Is this needed?
-        services.AddStackExchangeRedisExtensions<NewtonsoftSerializer>(redisConf);
-
+        services.AddHostedService<RedisSubscriberService>();
+        
         services.AddMemoryCache();
         services.AddHttpContextAccessor();
 
@@ -153,9 +143,11 @@ public class Startup
             });
         });
         services.AddSignalR()
-            .AddOpenShockStackExchangeRedis(options => { options.Configuration = _redisConfig; })
+            .AddOpenShockStackExchangeRedis(options => { options.Configuration = redisConfig; })
             .AddJsonProtocol(options => { options.PayloadSerializerOptions.PropertyNameCaseInsensitive = true; });
 
+        services.AddTransient<IDeviceService, DeviceService>();
+        
         var apiVersioningBuilder = services.AddApiVersioning(options =>
         {
             options.DefaultApiVersion = new ApiVersion(1, 0);
@@ -232,8 +224,15 @@ public class Startup
 
         // global cors policy
         app.UseCors();
+        
+        // Redis
 
-        PubSubManager.Initialize(ConnectionMultiplexer.Connect(_redisConfig), app.ApplicationServices).Wait();
+        var redisConnection = app.ApplicationServices.GetRequiredService<IRedisConnectionProvider>().Connection;
+        
+        redisConnection.CreateIndex(typeof(LoginSession));
+        redisConnection.CreateIndex(typeof(DeviceOnline));
+        redisConnection.CreateIndex(typeof(DevicePair));
+        redisConnection.CreateIndex(typeof(LcgNode));
 
         var webSocketOptions = new WebSocketOptions
         {

@@ -1,14 +1,15 @@
 ﻿using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
-using OpenShock.API.DeviceControl;
 using OpenShock.Common.Models;
 using OpenShock.Common.OpenShockDb;
 using OpenShock.Common.Redis;
+using OpenShock.ServicesCommon.DeviceControl;
+using OpenShock.ServicesCommon.Services.RedisPubSub;
 using OpenShock.ServicesCommon.Utils;
 using Redis.OM.Contracts;
 using Redis.OM.Searching;
 
-namespace OpenShock.API.Hubs;
+namespace OpenShock.ServicesCommon.Hubs;
 
 public sealed class ShareLinkHub : Hub<IShareLinkHub>
 {
@@ -16,13 +17,15 @@ public sealed class ShareLinkHub : Hub<IShareLinkHub>
     private readonly OpenShockContext _db;
     private readonly IHubContext<UserHub, IUserHub> _userHub;
     private readonly ILogger<ShareLinkHub> _logger;
+    private readonly IRedisPubService _redisPubService;
 
     public ShareLinkHub(OpenShockContext db, IHubContext<UserHub, IUserHub> userHub, ILogger<ShareLinkHub> logger,
-        IRedisConnectionProvider provider)
+        IRedisConnectionProvider provider, IRedisPubService redisPubService)
     {
         _db = db;
         _userHub = userHub;
         _logger = logger;
+        _redisPubService = redisPubService;
         _userSessions = provider.RedisCollection<LoginSession>(false);
     }
 
@@ -105,7 +108,7 @@ public sealed class ShareLinkHub : Hub<IShareLinkHub>
     public Task Control(IEnumerable<Common.Models.WebSocket.User.Control> shocks)
     {
         return ControlLogic.ControlShareLink(shocks, _db, CustomData.CachedControlLogSender, _userHub.Clients,
-            CustomData.ShareLinkId);
+            CustomData.ShareLinkId, _redisPubService);
     }
 
     private CustomDataHolder CustomData => (CustomDataHolder)Context.Items[ShareLinkCustomData]!;

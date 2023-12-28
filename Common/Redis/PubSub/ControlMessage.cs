@@ -6,7 +6,11 @@ namespace OpenShock.Common.Redis.PubSub;
 
 public class ControlMessage
 {
-    public required Guid Shocker { get; set; }
+    public required Guid Sender { get; set; }
+    
+    /// <summary>
+    /// Guid is the device id
+    /// </summary>
     public required IDictionary<Guid, IList<ShockerControlInfo>> ControlMessages { get; set; }
 
     public class ShockerControlInfo

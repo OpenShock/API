@@ -5,6 +5,7 @@ using OpenShock.Common.Models;
 using OpenShock.Common.OpenShockDb;
 using OpenShock.Common.Utils;
 using OpenShock.LiveControlGateway.Controllers;
+using OpenShock.LiveControlGateway.Websocket;
 using OpenShock.Serialization;
 using OpenShock.Serialization.Types;
 using ShockerModelType = OpenShock.Serialization.Types.ShockerModelType;
@@ -78,7 +79,7 @@ public sealed class DeviceLifetime : IAsyncDisposable
         foreach (var (id, state) in _shockerStates)
         {
             if (state.LastReceive < acceptedTimestamp) continue;
-            commandList ??= new List<ShockerCommand>();
+            commandList ??= [];
             
             commandList.Add(new ShockerCommand
             {
@@ -108,6 +109,9 @@ public sealed class DeviceLifetime : IAsyncDisposable
     {
         await using var db = await _dbContextFactory.CreateDbContextAsync(_cancellationToken);
         await UpdateShockers(db);
+        
+        foreach (var websocketController in WebsocketManager.LiveControlUsers.GetConnections(_deviceController.Id)) 
+            await websocketController.UpdatePermissions(db);
     }
 
     /// <summary>
@@ -115,6 +119,7 @@ public sealed class DeviceLifetime : IAsyncDisposable
     /// </summary>
     private async Task UpdateShockers(OpenShockContext db)
     {
+        Logger.LogDebug("Updating shockers for device [{DeviceId}]", _deviceController.Id);
         var ownShockers = await db.Shockers.Where(x => x.Device == _deviceController.Id).Select(x => new ShockerState()
         {
             Id = x.Id,

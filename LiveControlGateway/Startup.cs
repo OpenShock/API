@@ -19,6 +19,7 @@ using OpenShock.ServicesCommon;
 using OpenShock.ServicesCommon.Authentication;
 using OpenShock.ServicesCommon.ExceptionHandle;
 using OpenShock.ServicesCommon.Geo;
+using OpenShock.ServicesCommon.Services.Device;
 using OpenShock.ServicesCommon.Utils;
 using Redis.OM;
 using Redis.OM.Contracts;
@@ -152,6 +153,8 @@ public class Startup
             });
         });
 
+        services.AddTransient<IDeviceService, DeviceService>();
+        
         var apiVersioningBuilder = services.AddApiVersioning(options =>
         {
             options.DefaultApiVersion = new ApiVersion(1, 0);

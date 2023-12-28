@@ -2,7 +2,7 @@
 using OpenShock.Common.Serialization;
 using Semver;
 
-namespace OpenShock.API.Models.WebSocket;
+namespace OpenShock.Common.Models.WebSocket;
 
 public class DeviceOnlineState
 {

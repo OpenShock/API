@@ -2,8 +2,10 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.SignalR;
 using OpenShock.API.DeviceControl;
-using OpenShock.API.Hubs;
 using OpenShock.Common.Models;
+using OpenShock.ServicesCommon.DeviceControl;
+using OpenShock.ServicesCommon.Hubs;
+using OpenShock.ServicesCommon.Services.RedisPubSub;
 using OpenShock.ServicesCommon.Utils;
 
 namespace OpenShock.API.Controller.Shockers;
@@ -17,11 +19,15 @@ public sealed partial class ShockerController
     /// </summary>
     /// <param name="data"></param>
     /// <param name="userHub"></param>
+    /// <param name="redisPubService"></param>
     /// <response code="200">The control messages were successfully sent.</response>
     [MapToApiVersion("2")]
     [HttpPost("control", Name = "ControlShockerV2")]
     [ProducesResponseType(StatusCodes.Status200OK)]
-    public async Task<BaseResponse<object>> ControlShockerV2([FromBody] ControlRequest data, [FromServices] IHubContext<UserHub, IUserHub> userHub)
+    public async Task<BaseResponse<object>> ControlShockerV2(
+        [FromBody] ControlRequest data,
+        [FromServices] IHubContext<UserHub, IUserHub> userHub,
+        [FromServices] IRedisPubService redisPubService)
     {
         var sender = new ControlLogSender
         {
@@ -33,7 +39,7 @@ public sealed partial class ShockerController
             CustomName = data.CustomName
         };
 
-        await ControlLogic.ControlByUser(data.Shocks, _db, sender, userHub.Clients);
+        await ControlLogic.ControlByUser(data.Shocks, _db, sender, userHub.Clients, redisPubService);
 
         return new BaseResponse<object>
         {
@@ -46,16 +52,20 @@ public sealed partial class ShockerController
     /// </summary>
     /// <param name="data"></param>
     /// <param name="userHub"></param>
+    /// <param name="redisPubService"></param>
     /// <response code="200">The control messages were successfully sent.</response>
     [MapToApiVersion("1")]
     [HttpPost("control", Name = "ControlShockerV1")]
     [ProducesResponseType(StatusCodes.Status200OK)]
-    public Task<BaseResponse<object>> ControlShockerV1([FromBody] IEnumerable<Common.Models.WebSocket.User.Control> data, [FromServices] IHubContext<UserHub, IUserHub> userHub)
+    public Task<BaseResponse<object>> ControlShockerV1(
+        [FromBody] IEnumerable<Common.Models.WebSocket.User.Control> data,
+        [FromServices] IHubContext<UserHub, IUserHub> userHub,
+        [FromServices] IRedisPubService redisPubService)
     {
         return ControlShockerV2(new ControlRequest
         {
             Shocks = data,
             CustomName = null
-        }, userHub);
+        }, userHub, redisPubService);
     }
 }
