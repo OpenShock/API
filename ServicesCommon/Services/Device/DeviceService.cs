@@ -1,28 +1,19 @@
-﻿using Microsoft.AspNetCore.SignalR;
-using Microsoft.EntityFrameworkCore;
-using OpenShock.Common.Models;
+﻿using Microsoft.EntityFrameworkCore;
 using OpenShock.Common.OpenShockDb;
-using OpenShock.ServicesCommon.Hubs;
-using OpenShock.ServicesCommon.Services.RedisPubSub;
 
 namespace OpenShock.ServicesCommon.Services.Device;
 
 public class DeviceService : IDeviceService
 {
     private readonly OpenShockContext _db;
-    private readonly IRedisPubService _redisPubService;
-    private readonly IHubContext<UserHub, IUserHub> _hubContext;
 
     /// <summary>
     /// DI Constructor
     /// </summary>
     /// <param name="db"></param>
-    /// <param name="redisPubService"></param>
-    /// <param name="hubContext"></param>
-    public DeviceService(OpenShockContext db, IRedisPubService redisPubService)
+    public DeviceService(OpenShockContext db)
     {
         _db = db;
-        _redisPubService = redisPubService;
     }
 
     /// <inheritdoc />

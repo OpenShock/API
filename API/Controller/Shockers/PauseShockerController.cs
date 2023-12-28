@@ -8,7 +8,6 @@ using OpenShock.API.Realtime;
 using OpenShock.API.Services;
 using OpenShock.Common.Models;
 using OpenShock.Common.Redis.PubSub;
-using OpenShock.ServicesCommon.Hubs;
 using OpenShock.ServicesCommon.Services.Device;
 
 namespace OpenShock.API.Controller.Shockers;

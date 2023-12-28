@@ -2,7 +2,7 @@
 using OpenShock.Common.Models.WebSocket;
 using OpenShock.Common.Models.WebSocket.User;
 
-namespace OpenShock.ServicesCommon.Hubs;
+namespace OpenShock.API.Hubs;
 
 public interface IUserHub
 {

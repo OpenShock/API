@@ -2,16 +2,15 @@
 using Microsoft.EntityFrameworkCore;
 using OneOf;
 using OneOf.Types;
-using OpenShock.API.DeviceControl;
+using OpenShock.API.Hubs;
 using OpenShock.Common.Models;
 using OpenShock.Common.Models.WebSocket.User;
 using OpenShock.Common.OpenShockDb;
 using OpenShock.Common.Redis.PubSub;
-using OpenShock.ServicesCommon.Hubs;
 using OpenShock.ServicesCommon.Models;
 using OpenShock.ServicesCommon.Services.RedisPubSub;
 
-namespace OpenShock.ServicesCommon.DeviceControl;
+namespace OpenShock.API.DeviceControl;
 
 public static class ControlLogic
 {
