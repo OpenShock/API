@@ -20,7 +20,6 @@ public sealed partial class ShockerController
     /// <param name="id"></param>
     /// <param name="data"></param>
     /// <param name="deviceService"></param>
-    /// <param name="userHubContext"></param>
     /// <response code="200">Successfully updated shocker</response>
     /// <response code="404">Shocker does not exist</response>
     [HttpPatch("{id}", Name = "EditShocker")]
@@ -50,9 +49,9 @@ public sealed partial class ShockerController
         await _db.SaveChangesAsync();
         
         if (oldDevice != data.Device) 
-            await deviceService.UpdateDevice(CurrentUser.DbUser.Id, oldDevice, DeviceUpdateType.ShockerUpdated);
+            await deviceService.UpdateDeviceForAllShared(CurrentUser.DbUser.Id, oldDevice, DeviceUpdateType.ShockerUpdated);
         
-        await deviceService.UpdateDevice(CurrentUser.DbUser.Id, data.Device, DeviceUpdateType.ShockerUpdated);
+        await deviceService.UpdateDeviceForAllShared(CurrentUser.DbUser.Id, data.Device, DeviceUpdateType.ShockerUpdated);
         
         return new BaseResponse<object>
         {

@@ -1,15 +1,11 @@
 ﻿using System.Net;
 using Asp.Versioning;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using OpenShock.API.Models.Requests;
 using OpenShock.API.Models.Response;
-using OpenShock.API.Realtime;
 using OpenShock.Common.Models;
 using OpenShock.Common.OpenShockDb;
-using OpenShock.Common.Redis.PubSub;
-using OpenShock.ServicesCommon.Hubs;
 using OpenShock.ServicesCommon.Services.Device;
 using OpenShock.ServicesCommon.Utils;
 
@@ -142,7 +138,7 @@ public sealed partial class ShockerController
         _db.ShockerShareCodes.Add(newCode);
         await _db.SaveChangesAsync();
 
-        await deviceService.UpdateDevice(CurrentUser.DbUser.Id, device, DeviceUpdateType.ShockerUpdated);
+        await deviceService.UpdateDeviceForAllShared(CurrentUser.DbUser.Id, device, DeviceUpdateType.ShockerUpdated);
 
         return new BaseResponse<Guid>
         {
@@ -179,7 +175,7 @@ public sealed partial class ShockerController
         var device = await _db.Shockers.Where(x => x.DeviceNavigation.Owner == CurrentUser.DbUser.Id && x.Id == id)
             .Select(x => new { x.Device, x.DeviceNavigation.Owner }).SingleAsync();
 
-        await deviceService.UpdateDevice(device.Owner, device.Device, DeviceUpdateType.ShockerUpdated);
+        await deviceService.UpdateDevice(device.Owner, device.Device, DeviceUpdateType.ShockerUpdated, sharedWith);
 
         return new BaseResponse<object>("Successfully deleted share");
     }
@@ -222,7 +218,7 @@ public sealed partial class ShockerController
 
         await _db.SaveChangesAsync();
 
-        await deviceService.UpdateDevice(affected.Owner, affected.DeviceId, DeviceUpdateType.ShockerUpdated);
+        await deviceService.UpdateDevice(affected.Owner, affected.DeviceId, DeviceUpdateType.ShockerUpdated, sharedWith);
 
         return new BaseResponse<object>("Successfully updated share");
     }
@@ -258,7 +254,7 @@ public sealed partial class ShockerController
 
         await _db.SaveChangesAsync();
 
-        await deviceService.UpdateDevice(affected.Owner, affected.DeviceId, DeviceUpdateType.ShockerUpdated);
+        await deviceService.UpdateDevice(affected.Owner, affected.DeviceId, DeviceUpdateType.ShockerUpdated, sharedWith);
 
         return new BaseResponse<object>
         {

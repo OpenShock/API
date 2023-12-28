@@ -26,6 +26,7 @@ public class DeviceService : IDeviceService
         _hubContext = hubContext;
     }
 
+    /// <inheritdoc />
     public async Task<IList<Guid>> GetSharedUsers(Guid deviceId)
     {
         var sharedUsers = await _db.ShockerShares.AsNoTracking().Where(x => x.Shocker.Device == deviceId).GroupBy(x => x.SharedWith)
@@ -34,12 +35,25 @@ public class DeviceService : IDeviceService
         return sharedUsers;
     }
 
-    public async Task UpdateDevice(Guid ownerId, Guid deviceId, DeviceUpdateType type)
+    /// <inheritdoc />
+    public async Task UpdateDevice(Guid ownerId, Guid deviceId, DeviceUpdateType type, Guid affectedUser)
     {
         var task1 = _redisPubService.SendDeviceUpdate(deviceId);
+        var task2 = _hubContext.Clients.Users(ownerId.ToString(), affectedUser.ToString())
+            .DeviceUpdate(deviceId, DeviceUpdateType.ShockerUpdated);
+        await Task.WhenAll(task1, task2);
+    }
+
+    /// <inheritdoc />
+    public async Task UpdateDeviceForAllShared(Guid ownerId, Guid deviceId, DeviceUpdateType type)
+    {
+        var task1 = _redisPubService.SendDeviceUpdate(deviceId);
+        
         var sharedWith = await GetSharedUsers(deviceId);
         sharedWith.Add(ownerId); // Add the owner to the list of users to send to
-        await Task.WhenAll(task1, _hubContext.Clients.Users(sharedWith.Select(x => x.ToString()))
-            .DeviceUpdate(deviceId, DeviceUpdateType.ShockerUpdated));
+        var task2 = _hubContext.Clients.Users(sharedWith.Select(x => x.ToString()))
+            .DeviceUpdate(deviceId, DeviceUpdateType.ShockerUpdated);
+        
+        await Task.WhenAll(task1, task2);
     }
 }

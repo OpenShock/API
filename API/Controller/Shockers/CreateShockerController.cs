@@ -50,7 +50,7 @@ public sealed partial class ShockerController
         _db.Shockers.Add(shocker);
         await _db.SaveChangesAsync();
 
-        await deviceService.UpdateDevice(CurrentUser.DbUser.Id, device, DeviceUpdateType.ShockerUpdated);
+        await deviceService.UpdateDeviceForAllShared(CurrentUser.DbUser.Id, device, DeviceUpdateType.ShockerUpdated);
 
         Response.StatusCode = (int)HttpStatusCode.Created;
         return new BaseResponse<Guid>

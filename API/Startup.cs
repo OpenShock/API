@@ -146,7 +146,7 @@ public class Startup
             .AddOpenShockStackExchangeRedis(options => { options.Configuration = redisConfig; })
             .AddJsonProtocol(options => { options.PayloadSerializerOptions.PropertyNameCaseInsensitive = true; });
 
-        services.AddTransient<IDeviceService, DeviceService>();
+        services.AddScoped<IDeviceService, DeviceService>();
         
         var apiVersioningBuilder = services.AddApiVersioning(options =>
         {

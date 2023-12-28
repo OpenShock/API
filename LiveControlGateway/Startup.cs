@@ -153,7 +153,7 @@ public class Startup
             });
         });
 
-        services.AddTransient<IDeviceService, DeviceService>();
+        services.AddScoped<IDeviceService, DeviceService>();
         
         var apiVersioningBuilder = services.AddApiVersioning(options =>
         {

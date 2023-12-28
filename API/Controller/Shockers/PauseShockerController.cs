@@ -37,7 +37,7 @@ public sealed partial class ShockerController
         shocker.Paused = data.Pause;
         await _db.SaveChangesAsync();
 
-        await deviceService.UpdateDevice(CurrentUser.DbUser.Id, shocker.Device, DeviceUpdateType.ShockerUpdated);
+        await deviceService.UpdateDeviceForAllShared(CurrentUser.DbUser.Id, shocker.Device, DeviceUpdateType.ShockerUpdated);
 
         return new BaseResponse<bool?>("Successfully set pause state", data.Pause);
     }
