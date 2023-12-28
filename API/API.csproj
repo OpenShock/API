@@ -69,9 +69,5 @@
         <None Include="devcert.pfx" CopyToPublishDirectory="Always" />
         <ProjectReference Include="..\ServicesCommon\ServicesCommon.csproj" />
     </ItemGroup>
-    
-    <ItemGroup>
-      <Folder Include="Models\WebSocket\" />
-    </ItemGroup>
 
 </Project>
