@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using OpenShock.API.Models.Requests;
 using OpenShock.API.Realtime;
+using OpenShock.API.Services;
 using OpenShock.Common.Models;
 using OpenShock.Common.Redis.PubSub;
 using OpenShock.ServicesCommon.Hubs;
@@ -19,8 +20,6 @@ public sealed partial class ShockerController
     /// </summary>
     /// <param name="id"></param>
     /// <param name="data"></param>
-    /// <param name="deviceService"></param>
-    /// <param name="userHubContext"></param>
     /// <response code="200">Successfully set pause state</response>
     /// <response code="404">Shocker not found or does not belong to you</response>
     [HttpPost("{id}/pause", Name = "PauseShocker")]
@@ -28,7 +27,7 @@ public sealed partial class ShockerController
     [ProducesResponseType((int)HttpStatusCode.NotFound)]
     [MapToApiVersion("1")]
     public async Task<BaseResponse<bool?>> Pause([FromRoute] Guid id, [FromBody] PauseRequest data,
-        [FromServices] IDeviceService deviceService)
+        [FromServices] IDeviceUpdateService deviceUpdateService)
     {
         var shocker = await _db.Shockers.Where(x => x.Id == id && x.DeviceNavigation.Owner == CurrentUser.DbUser.Id)
             .SingleOrDefaultAsync();
@@ -37,7 +36,7 @@ public sealed partial class ShockerController
         shocker.Paused = data.Pause;
         await _db.SaveChangesAsync();
 
-        await deviceService.UpdateDeviceForAllShared(CurrentUser.DbUser.Id, shocker.Device, DeviceUpdateType.ShockerUpdated);
+        await deviceUpdateService.UpdateDeviceForAllShared(CurrentUser.DbUser.Id, shocker.Device, DeviceUpdateType.ShockerUpdated);
 
         return new BaseResponse<bool?>("Successfully set pause state", data.Pause);
     }

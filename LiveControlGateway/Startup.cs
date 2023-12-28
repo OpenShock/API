@@ -20,6 +20,7 @@ using OpenShock.ServicesCommon.Authentication;
 using OpenShock.ServicesCommon.ExceptionHandle;
 using OpenShock.ServicesCommon.Geo;
 using OpenShock.ServicesCommon.Services.Device;
+using OpenShock.ServicesCommon.Services.RedisPubSub;
 using OpenShock.ServicesCommon.Utils;
 using Redis.OM;
 using Redis.OM.Contracts;
@@ -33,8 +34,6 @@ namespace OpenShock.LiveControlGateway;
 
 public class Startup
 {
-    private ConfigurationOptions _redisConfig;
-
     private readonly ForwardedHeadersOptions _forwardedSettings = new()
     {
         ForwardedHeaders = ForwardedHeaders.All,
@@ -49,9 +48,9 @@ public class Startup
         var debugView = root.GetDebugView();
         Console.WriteLine(debugView);
 #endif
-        LCGGlobals.LCGConfig = configuration.GetChildren().First(x => x.Key.ToLowerInvariant() == "openshock")
+        LCGGlobals.LCGConfig = configuration.GetChildren().First(x => x.Key.Equals("openshock", StringComparison.InvariantCultureIgnoreCase))
                                    .Get<LCGConfig>() ??
-                               throw new Exception("Couldnt bind config, check config file");
+                               throw new Exception("Couldn't bind config, check config file");
 
         var validator = new ValidationContext(LCGGlobals.LCGConfig);
         Validator.ValidateObject(LCGGlobals.LCGConfig, validator, true);
@@ -64,6 +63,8 @@ public class Startup
 
     public void ConfigureServices(IServiceCollection services)
     {
+        // ----------------- DATABASE -----------------
+        
         // How do I do this now with EFCore?!
 #pragma warning disable CS0618
         NpgsqlConnection.GlobalTypeMapper.MapEnum<ControlType>();
@@ -84,9 +85,10 @@ public class Startup
             builder.EnableSensitiveDataLogging();
             builder.EnableDetailedErrors();
         });
-
-
-        _redisConfig = new ConfigurationOptions
+        
+        // ----------------- REDIS -----------------
+        
+        var redisConfig = new ConfigurationOptions
         {
             AbortOnConnectFail = true,
             Password = LCGGlobals.LCGConfig.Redis.Password,
@@ -97,29 +99,10 @@ public class Startup
                 { LCGGlobals.LCGConfig.Redis.Host, LCGGlobals.LCGConfig.Redis.Port }
             }
         };
-
-        // var redisConf = new RedisConfiguration
-        // {
-        //     AbortOnConnectFail = true,
-        //     Hosts = new[]
-        //     {
-        //         new RedisHost
-        //         {
-        //             Host = APIGlobals.ApiConfig.Redis.Host,
-        //             Port = APIGlobals.ApiConfig.Redis.Port
-        //         }
-        //     },
-        //     Database = 0,
-        //     User = APIGlobals.ApiConfig.Redis.User,
-        //     Password = APIGlobals.ApiConfig.Redis.Password
-        // };
-
-        var redis = new RedisConnectionProvider(_redisConfig);
-        redis.Connection.CreateIndex(typeof(LoginSession));
-        redis.Connection.CreateIndex(typeof(DeviceOnline));
-        redis.Connection.CreateIndex(typeof(DevicePair));
-        redis.Connection.CreateIndex(typeof(LcgNode));
-        services.AddSingleton<IRedisConnectionProvider>(redis);
+        
+        services.AddSingleton<IConnectionMultiplexer>(ConnectionMultiplexer.Connect(redisConfig));
+        services.AddSingleton<IRedisConnectionProvider, RedisConnectionProvider>();
+        services.AddSingleton<IRedisPubService, RedisPubService>();
 
         services.AddMemoryCache();
         services.AddHttpContextAccessor();
@@ -155,6 +138,7 @@ public class Startup
 
         services.AddScoped<IDeviceService, DeviceService>();
         
+
         var apiVersioningBuilder = services.AddApiVersioning(options =>
         {
             options.DefaultApiVersion = new ApiVersion(1, 0);
@@ -213,6 +197,7 @@ public class Startup
         services.AddSwaggerGenNewtonsoftSupport();
         //services.AddHealthChecks().AddCheck<DatabaseHealthCheck>("database");
 
+        services.AddHostedService<RedisSubscriberService>(); 
         services.AddHostedService<LcgKeepAlive>();
     }
 
@@ -233,13 +218,16 @@ public class Startup
 
         // global cors policy
         app.UseCors();
-
-        PubSubManager.Initialize(ConnectionMultiplexer.Connect(_redisConfig)).Wait();
-
-        var webSocketOptions = new WebSocketOptions
-        {
-            KeepAliveInterval = TimeSpan.FromMinutes(1)
-        };
+        
+        // Redis
+        
+        var redisConnection = app.ApplicationServices.GetRequiredService<IRedisConnectionProvider>().Connection;
+        
+        redisConnection.CreateIndex(typeof(LoginSession));
+        redisConnection.CreateIndex(typeof(DeviceOnline));
+        redisConnection.CreateIndex(typeof(DevicePair));
+        redisConnection.CreateIndex(typeof(LcgNode));
+        
 
         app.UseSwagger();
         var provider = app.ApplicationServices.GetRequiredService<IApiVersionDescriptionProvider>();
@@ -251,22 +239,16 @@ public class Startup
         });
 
 
-        app.UseWebSockets(webSocketOptions);
+        app.UseWebSockets(new WebSocketOptions
+        {
+            KeepAliveInterval = TimeSpan.FromMinutes(1)
+        });
         app.UseRouting();
         app.UseAuthentication();
         app.UseAuthorization();
         app.UseEndpoints(endpoints =>
         {
-            /*endpoints.MapHealthChecks("/{version:apiVersion}/public/healthcheck",
-                new Microsoft.AspNetCore.Diagnostics.HealthChecks.HealthCheckOptions
-                {
-                    ResponseWriter = UiResponseWriter.WriteHealthCheckUiResponse
-                });*/
             endpoints.MapControllers();
-            // endpoints.MapHub<UserHub>("/1/hubs/user",
-            //     options => { options.Transports = HttpTransportType.WebSockets; });
-            // endpoints.MapHub<ShareLinkHub>("/1/hubs/share/link/{id}",
-            //     options => { options.Transports = HttpTransportType.WebSockets; });
         });
     }
 }

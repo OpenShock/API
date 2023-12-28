@@ -1,7 +1,4 @@
-﻿using System.Net;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using OpenShock.Common.Models;
+﻿using Microsoft.AspNetCore.Mvc;
 using OpenShock.Common.OpenShockDb;
 using OpenShock.ServicesCommon.Authentication;
 

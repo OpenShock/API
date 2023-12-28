@@ -5,12 +5,22 @@ using Redis.OM.Searching;
 
 namespace OpenShock.LiveControlGateway;
 
+/// <summary>
+/// Lcg keep alive task, to report to redis
+/// </summary>
 public class LcgKeepAlive : IHostedService
 {
     private readonly ILogger<LcgKeepAlive> _logger;
     private readonly IRedisConnectionProvider _redisConnectionProvider;
     private readonly IRedisCollection<LcgNode> _lcgNodes;
     
+    private const uint KeepAliveInterval = 35; // 35 seconds
+    
+    /// <summary>
+    /// DI Constructor
+    /// </summary>
+    /// <param name="redisConnectionProvider"></param>
+    /// <param name="logger"></param>
     public LcgKeepAlive(IRedisConnectionProvider redisConnectionProvider, ILogger<LcgKeepAlive> logger)
     {
         _redisConnectionProvider = redisConnectionProvider;
@@ -48,7 +58,7 @@ public class LcgKeepAlive : IHostedService
         }
 
         await _redisConnectionProvider.Connection.ExecuteAsync("EXPIRE",
-            $"{typeof(LcgNode).FullName}:{LCGGlobals.LCGConfig.Fqdn}", 35);
+            $"{typeof(LcgNode).FullName}:{LCGGlobals.LCGConfig.Fqdn}", KeepAliveInterval);
     }
 
     private async Task Loop()
@@ -69,6 +79,7 @@ public class LcgKeepAlive : IHostedService
         // ReSharper disable once FunctionNeverReturns
     }
 
+    /// <inheritdoc />
     public Task StartAsync(CancellationToken cancellationToken)
     {
         LucTask.Run(Loop);
@@ -76,6 +87,7 @@ public class LcgKeepAlive : IHostedService
         return Task.CompletedTask;
     }
 
+    /// <inheritdoc />
     public Task StopAsync(CancellationToken cancellationToken)
     {
         return Task.CompletedTask;

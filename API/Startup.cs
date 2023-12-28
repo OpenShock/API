@@ -12,6 +12,7 @@ using Microsoft.OpenApi.Models;
 using Npgsql;
 using OpenShock.API.Mailjet;
 using OpenShock.API.Realtime;
+using OpenShock.API.Services;
 using OpenShock.API.Utils;
 using OpenShock.Common;
 using OpenShock.Common.Models;
@@ -51,9 +52,9 @@ public class Startup
         var debugView = root.GetDebugView();
         Console.WriteLine(debugView);
 #endif
-        APIGlobals.ApiConfig = configuration.GetChildren().First(x => x.Key.ToLowerInvariant() == "openshock")
+        APIGlobals.ApiConfig = configuration.GetChildren().First(x => x.Key.Equals("openshock", StringComparison.InvariantCultureIgnoreCase))
                                    .Get<ApiConfig>() ??
-                               throw new Exception("Couldnt bind config, check config file");
+                               throw new Exception("Couldn't bind config, check config file");
     }
 
     public void ConfigureServices(IServiceCollection services)
@@ -99,8 +100,9 @@ public class Startup
         services.AddSingleton<IConnectionMultiplexer>(ConnectionMultiplexer.Connect(redisConfig));
         services.AddSingleton<IRedisConnectionProvider, RedisConnectionProvider>();
         services.AddSingleton<IRedisPubService, RedisPubService>();
-
-        services.AddHostedService<RedisSubscriberService>();
+        
+        
+        services.AddSingleton<IDeviceUpdateService, DeviceUpdateService>();
         
         services.AddMemoryCache();
         services.AddHttpContextAccessor();
@@ -159,7 +161,6 @@ public class Startup
             x.JsonSerializerOptions.Converters.Add(new CustomJsonStringEnumConverter());
         });
 
-
         apiVersioningBuilder.AddApiExplorer(setup =>
         {
             setup.GroupNameFormat = "VVV";
@@ -205,6 +206,8 @@ public class Startup
         services.ConfigureOptions<ConfigureSwaggerOptions>();
         services.AddSwaggerGenNewtonsoftSupport();
         //services.AddHealthChecks().AddCheck<DatabaseHealthCheck>("database");
+        
+        services.AddHostedService<RedisSubscriberService>();
     }
 
     public void Configure(IApplicationBuilder app, IWebHostEnvironment env, ILoggerFactory loggerFactory)
@@ -233,11 +236,7 @@ public class Startup
         redisConnection.CreateIndex(typeof(DeviceOnline));
         redisConnection.CreateIndex(typeof(DevicePair));
         redisConnection.CreateIndex(typeof(LcgNode));
-
-        var webSocketOptions = new WebSocketOptions
-        {
-            KeepAliveInterval = TimeSpan.FromMinutes(1)
-        };
+        
 
         app.UseSwagger();
         var provider = app.ApplicationServices.GetRequiredService<IApiVersionDescriptionProvider>();
@@ -247,38 +246,21 @@ public class Startup
                 c.SwaggerEndpoint($"/swagger/{description.GroupName}/swagger.json",
                     description.GroupName.ToUpperInvariant());
         });
-
-
-        app.UseWebSockets(webSocketOptions);
+        
+        app.UseWebSockets(new WebSocketOptions
+        {
+            KeepAliveInterval = TimeSpan.FromMinutes(1)
+        });
         app.UseRouting();
         app.UseAuthentication();
         app.UseAuthorization();
         app.UseEndpoints(endpoints =>
         {
-            /*endpoints.MapHealthChecks("/{version:apiVersion}/public/healthcheck",
-                new Microsoft.AspNetCore.Diagnostics.HealthChecks.HealthCheckOptions
-                {
-                    ResponseWriter = UiResponseWriter.WriteHealthCheckUiResponse
-                });*/
             endpoints.MapControllers();
             endpoints.MapHub<UserHub>("/1/hubs/user",
                 options => { options.Transports = HttpTransportType.WebSockets; });
             endpoints.MapHub<ShareLinkHub>("/1/hubs/share/link/{id}",
                 options => { options.Transports = HttpTransportType.WebSockets; });
         });
-
-        // LucTask.Run(async () =>
-        // {
-        //     await Task.Delay(10000);
-        //     using (var services = app.ApplicationServices.CreateScope())
-        //     {
-        //         if (!APIGlobals.ApiConfig.SkipDbMigration)
-        //         {
-        //             logger.LogInformation("Running DB migration...");
-        //             var db = services.ServiceProvider.GetRequiredService<ShockLinkContext>();
-        //             if ((await db.Database.GetPendingMigrationsAsync()).Any()) await db.Database.MigrateAsync();
-        //         }
-        //     }
-        // });
     }
 }

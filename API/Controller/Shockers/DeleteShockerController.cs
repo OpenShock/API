@@ -2,6 +2,7 @@
 using Asp.Versioning;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using OpenShock.API.Services;
 using OpenShock.Common.Models;
 using OpenShock.ServicesCommon.Services.Device;
 
@@ -13,7 +14,7 @@ public sealed partial class ShockerController
     /// Deletes a shocker
     /// </summary>
     /// <param name="id"></param>
-    /// <param name="deviceService"></param>
+    /// <param name="deviceUpdateService"></param>
     /// <response code="200">Successfully deleted shocker</response>
     /// <response code="404">Shocker does not exist</response>
     [HttpDelete("{id}", Name = "DeleteShocker")]
@@ -22,7 +23,7 @@ public sealed partial class ShockerController
     [MapToApiVersion("1")]
     public async Task<BaseResponse<object>> DeleteShocker(
         [FromRoute] Guid id,
-        [FromServices] IDeviceService deviceService)
+        [FromServices] IDeviceUpdateService deviceUpdateService)
     {
         var affected = await _db.Shockers.Where(x => x.DeviceNavigation.Owner == CurrentUser.DbUser.Id && x.Id == id)
             .SingleOrDefaultAsync();
@@ -33,7 +34,7 @@ public sealed partial class ShockerController
         _db.Shockers.Remove(affected);
         await _db.SaveChangesAsync();
 
-        await deviceService.UpdateDeviceForAllShared(CurrentUser.DbUser.Id, affected.Device, DeviceUpdateType.ShockerUpdated);
+        await deviceUpdateService.UpdateDeviceForAllShared(CurrentUser.DbUser.Id, affected.Device, DeviceUpdateType.ShockerUpdated);
 
         return new BaseResponse<object>
         {

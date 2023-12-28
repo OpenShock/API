@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
+using OpenShock.API.Services;
 using OpenShock.Common.Models;
 using OpenShock.Common.OpenShockDb;
 using OpenShock.ServicesCommon.Authentication;
@@ -16,7 +17,7 @@ public sealed partial class SharesController
     /// Link a share code to your account
     /// </summary>
     /// <param name="id"></param>
-    /// <param name="deviceService"></param>
+    /// <param name="deviceUpdateService"></param>
     /// <response code="200">Linked share code</response>
     /// <response code="404">Share code not found or does not belong to you</response>
     /// <response code="400">You cannot link your own shocker code / You already have this shocker linked to your account</response>
@@ -28,7 +29,7 @@ public sealed partial class SharesController
     [ProducesResponseType((int)HttpStatusCode.InternalServerError)]
     public async Task<BaseResponse<object>> LinkCode(
         [FromRoute] Guid id,
-        [FromServices] IDeviceService deviceService
+        [FromServices] IDeviceUpdateService deviceUpdateService
     )
     {
         var shareCode = await _db.ShockerShareCodes.Where(x => x.Id == id).Select(x => new
@@ -58,7 +59,7 @@ public sealed partial class SharesController
             return EBaseResponse<object>("Error while linking share code to your account",
                 HttpStatusCode.InternalServerError);
 
-        await deviceService.UpdateDevice(shareCode.Owner, shareCode.Device, DeviceUpdateType.ShockerUpdated, CurrentUser.DbUser.Id);
+        await deviceUpdateService.UpdateDevice(shareCode.Owner, shareCode.Device, DeviceUpdateType.ShockerUpdated, CurrentUser.DbUser.Id);
 
         return new BaseResponse<object>("Successfully linked share code");
     }

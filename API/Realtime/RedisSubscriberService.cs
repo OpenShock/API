@@ -15,6 +15,9 @@ using StackExchange.Redis;
 
 namespace OpenShock.API.Realtime;
 
+/// <summary>
+/// Redis subscription service, which handles listening to pub sub on redis
+/// </summary>
 public class RedisSubscriberService : IHostedService, IAsyncDisposable
 {
     private readonly IHubContext<UserHub, IUserHub> _hubContext;
@@ -40,7 +43,8 @@ public class RedisSubscriberService : IHostedService, IAsyncDisposable
         _subscriber = connectionMultiplexer.GetSubscriber();
         _devicesOnline = redisConnectionProvider.RedisCollection<DeviceOnline>(false);
     }
-
+    
+    /// <inheritdoc />
     public async Task StartAsync(CancellationToken cancellationToken)
     {
         await _subscriber.SubscribeAsync(RedisChannels.KeyEventExpired, (_, message) => { LucTask.Run(() => RunLogic(message, false)); });
@@ -48,7 +52,7 @@ public class RedisSubscriberService : IHostedService, IAsyncDisposable
         await _subscriber.SubscribeAsync(RedisChannels.KeyEventDel, (_, message) => { LucTask.Run(() => RunLogic(message, false)); });
         
         await _subscriber.SubscribeAsync(RedisChannels.DeviceControl, (_, message) => { LucTask.Run(() => DeviceControl(message)); });
-        await _subscriber.SubscribeAsync(RedisChannels.DeviceCaptive, (_, message) => { LucTask.Run(() => DeviceControl(message)); });
+        await _subscriber.SubscribeAsync(RedisChannels.DeviceCaptive, (_, message) => { LucTask.Run(() => DeviceControlCaptive(message)); });
     }
 
     private static async Task DeviceControl(RedisValue value)
@@ -126,11 +130,13 @@ public class RedisSubscriberService : IHostedService, IAsyncDisposable
         }
     }
 
+    /// <inheritdoc />
     public Task StopAsync(CancellationToken cancellationToken)
     {
         return Task.CompletedTask;
     }
 
+    /// <inheritdoc />
     public async ValueTask DisposeAsync()
     {
         await _subscriber.UnsubscribeAllAsync();

@@ -19,11 +19,10 @@ public class DeviceService : IDeviceService
     /// <param name="db"></param>
     /// <param name="redisPubService"></param>
     /// <param name="hubContext"></param>
-    public DeviceService(OpenShockContext db, IRedisPubService redisPubService, IHubContext<UserHub, IUserHub> hubContext)
+    public DeviceService(OpenShockContext db, IRedisPubService redisPubService)
     {
         _db = db;
         _redisPubService = redisPubService;
-        _hubContext = hubContext;
     }
 
     /// <inheritdoc />
@@ -33,27 +32,5 @@ public class DeviceService : IDeviceService
             .Select(x => x.Key)
             .ToListAsync();
         return sharedUsers;
-    }
-
-    /// <inheritdoc />
-    public async Task UpdateDevice(Guid ownerId, Guid deviceId, DeviceUpdateType type, Guid affectedUser)
-    {
-        var task1 = _redisPubService.SendDeviceUpdate(deviceId);
-        var task2 = _hubContext.Clients.Users(ownerId.ToString(), affectedUser.ToString())
-            .DeviceUpdate(deviceId, DeviceUpdateType.ShockerUpdated);
-        await Task.WhenAll(task1, task2);
-    }
-
-    /// <inheritdoc />
-    public async Task UpdateDeviceForAllShared(Guid ownerId, Guid deviceId, DeviceUpdateType type)
-    {
-        var task1 = _redisPubService.SendDeviceUpdate(deviceId);
-        
-        var sharedWith = await GetSharedUsers(deviceId);
-        sharedWith.Add(ownerId); // Add the owner to the list of users to send to
-        var task2 = _hubContext.Clients.Users(sharedWith.Select(x => x.ToString()))
-            .DeviceUpdate(deviceId, DeviceUpdateType.ShockerUpdated);
-        
-        await Task.WhenAll(task1, task2);
     }
 }
