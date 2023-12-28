@@ -101,9 +101,6 @@ public class Startup
         services.AddSingleton<IRedisConnectionProvider, RedisConnectionProvider>();
         services.AddSingleton<IRedisPubService, RedisPubService>();
         
-        
-        services.AddSingleton<IDeviceUpdateService, DeviceUpdateService>();
-        
         services.AddMemoryCache();
         services.AddHttpContextAccessor();
 
@@ -149,6 +146,7 @@ public class Startup
             .AddJsonProtocol(options => { options.PayloadSerializerOptions.PropertyNameCaseInsensitive = true; });
 
         services.AddScoped<IDeviceService, DeviceService>();
+        services.AddScoped<IDeviceUpdateService, DeviceUpdateService>();
         
         var apiVersioningBuilder = services.AddApiVersioning(options =>
         {
