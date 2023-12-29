@@ -17,7 +17,7 @@ public sealed partial class PublicController
         {
             Data = new FirmwareVersion
             {
-                Version = new Version(0, 8, 0),
+                Version = new System.Version(0, 8, 0),
                 DownloadUri = new Uri("https://cdn.openshock.org/firmware/0.8.0.bin")
             }
         };

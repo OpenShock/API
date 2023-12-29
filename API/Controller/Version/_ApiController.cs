@@ -1,11 +1,12 @@
 ﻿using System.Reflection;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Primitives;
 using OpenShock.API.Utils;
 using OpenShock.Common.Models;
 using OpenShock.ServicesCommon;
 
-namespace OpenShock.API.Controller;
+namespace OpenShock.API.Controller.Version;
 
 
 /// <summary>
@@ -25,21 +26,28 @@ public sealed partial class VersionController : OpenShockControllerBase
     /// <response code="200">The version was successfully retrieved.</response>
     [HttpGet(Name = "Version")]
     [ProducesResponseType(StatusCodes.Status200OK)]
-    public BaseResponse<RootResponse> Get() => new()
+    public BaseResponse<RootResponse> Get()
     {
-        Message = "OpenShock",
-        Data = new RootResponse
+        var headers = HttpContext.Request.Headers.ToDictionary(x => x.Key, x => x.Value.ToString());
+        
+        return new BaseResponse<RootResponse>
         {
-            Version = OpenShockBackendVersion,
-            Commit = GitHashAttribute.FullHash,
-            CurrentTime = DateTimeOffset.UtcNow
-        }
-    };
+            Message = "OpenShock",
+            Data = new RootResponse
+            {
+                Version = OpenShockBackendVersion,
+                Commit = GitHashAttribute.FullHash,
+                CurrentTime = DateTimeOffset.UtcNow,
+                Headers = headers
+            }
+        };
+    }
 
     public class RootResponse
     {
         public required string Version { get; set; }
         public required string Commit { get; set; }
         public required DateTimeOffset CurrentTime { get; set; }
+        public required Dictionary<string, string> Headers { get; set; }
     }
 }
