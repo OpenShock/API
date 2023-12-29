@@ -54,7 +54,8 @@ public sealed partial class AccountController
             Expires = new DateTimeOffset(DateTime.UtcNow.Add(SessionLifetime)),
             Secure = true,
             HttpOnly = true,
-            SameSite = SameSiteMode.Strict
+            SameSite = SameSiteMode.Strict,
+            Domain = "." + APIGlobals.ApiConfig.CookieDomain.Host
         });
 
         return new BaseResponse<object>

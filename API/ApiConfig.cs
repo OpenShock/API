@@ -3,6 +3,7 @@
 public class ApiConfig
 {
     public required Uri FrontendBaseUrl { get; init; }
+    public required Uri CookieDomain { get; init; }
     public required string Db { get; init; }
     public required bool SkipDbMigration { get; init; }
     public required RedisConfig Redis { get; init; }
