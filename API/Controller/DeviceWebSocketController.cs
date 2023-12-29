@@ -23,6 +23,8 @@ public sealed class DeviceWebSocketController : WebsocketBaseController<IBaseRes
     private readonly IRedisCollection<DeviceOnline> _devicesOnline;
     private readonly IRedisConnectionProvider _redis;
 
+    public override int MaxChunkSize => 4096;
+    
     private Common.OpenShockDb.Device _currentDevice = null!;
 
     public override void OnActionExecuting(ActionExecutingContext context)

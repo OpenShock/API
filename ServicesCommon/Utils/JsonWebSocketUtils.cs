@@ -54,21 +54,16 @@ public static class JsonWebSocketUtils
         }
     }
 
-    public static Task SendFullMessage<T>(T obj, WebSocket socket, CancellationToken cancelToken) =>
+    public static Task SendFullMessage<T>(T obj, WebSocket socket, CancellationToken cancelToken, int maxChunkSize = 256) =>
         SendFullMessageBytes(JsonSerializer.SerializeToUtf8Bytes(obj), socket, cancelToken);
 
-
-    public static Task SendFullMessage(string json, WebSocket socket, CancellationToken cancelToken) =>
-        SendFullMessageBytes(Encoding.UTF8.GetBytes(json), socket, cancelToken);
-
-
-    public static async Task SendFullMessageBytes(byte[] msg, WebSocket socket, CancellationToken cancelToken)
+    public static async Task SendFullMessageBytes(byte[] msg, WebSocket socket, CancellationToken cancelToken, int maxChunkSize = 256)
     {
         var doneBytes = 0;
 
         while (doneBytes < msg.Length)
         {
-            var bytesProcessing = Math.Min(16, msg.Length - doneBytes);
+            var bytesProcessing = Math.Min(maxChunkSize, msg.Length - doneBytes);
             var buffer = msg.AsMemory(doneBytes, bytesProcessing);
 
             doneBytes += bytesProcessing;

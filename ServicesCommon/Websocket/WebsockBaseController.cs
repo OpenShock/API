@@ -14,6 +14,8 @@ namespace OpenShock.ServicesCommon.Websocket
     {
         /// <inheritdoc />
         public abstract Guid Id { get; }
+
+        public virtual int MaxChunkSize => 256;
     
         /// <summary>
         /// Logger
@@ -146,7 +148,7 @@ namespace OpenShock.ServicesCommon.Websocket
         /// <returns></returns>
         [NonAction]
         protected virtual Task SendWebSocketMessage(T message, WebSocket websocket, CancellationToken cancellationToken) =>
-            JsonWebSocketUtils.SendFullMessage(message, websocket, cancellationToken);
+            JsonWebSocketUtils.SendFullMessage(message, websocket, cancellationToken, MaxChunkSize);
     
 
         #endregion
