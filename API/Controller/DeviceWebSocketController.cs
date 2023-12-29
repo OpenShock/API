@@ -92,7 +92,7 @@ public sealed class DeviceWebSocketController : WebsocketBaseController<IBaseRes
                 
                 message.Switch(wsRequest =>
                     {
-                        if (wsRequest?.Data == null) return;
+                        if (wsRequest == null) return;
                         Task.Run(() => ProcessResult(wsRequest));
                     },
                     failed => { Logger.LogWarning(failed.Exception, "Deserialization failed for websocket message"); },
