@@ -55,7 +55,7 @@ public sealed partial class AccountController
             Secure = true,
             HttpOnly = true,
             SameSite = SameSiteMode.Strict,
-            Domain = "." + APIGlobals.ApiConfig.CookieDomain.Host
+            Domain = "." + APIGlobals.ApiConfig.CookieDomain
         });
 
         return new BaseResponse<object>
