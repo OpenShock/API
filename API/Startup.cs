@@ -42,7 +42,8 @@ public class Startup
     {
         ForwardedHeaders = ForwardedHeaders.All,
         RequireHeaderSymmetry = false,
-        ForwardLimit = null
+        ForwardLimit = null,
+        ForwardedForHeaderName = "CF-Connecting-IP"
     };
 
     public Startup(IConfiguration configuration)

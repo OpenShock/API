@@ -28,7 +28,6 @@ public sealed partial class VersionController : OpenShockControllerBase
     [ProducesResponseType(StatusCodes.Status200OK)]
     public BaseResponse<RootResponse> Get()
     {
-        var headers = HttpContext.Request.Headers.ToDictionary(x => x.Key, x => x.Value.ToString());
         
         return new BaseResponse<RootResponse>
         {
@@ -37,8 +36,7 @@ public sealed partial class VersionController : OpenShockControllerBase
             {
                 Version = OpenShockBackendVersion,
                 Commit = GitHashAttribute.FullHash,
-                CurrentTime = DateTimeOffset.UtcNow,
-                Headers = headers
+                CurrentTime = DateTimeOffset.UtcNow
             }
         };
     }
@@ -48,6 +46,5 @@ public sealed partial class VersionController : OpenShockControllerBase
         public required string Version { get; set; }
         public required string Commit { get; set; }
         public required DateTimeOffset CurrentTime { get; set; }
-        public required Dictionary<string, string> Headers { get; set; }
     }
 }
