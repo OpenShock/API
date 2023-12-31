@@ -171,11 +171,12 @@ public sealed class DeviceController : FlatbuffersWebsocketBaseController<Server
             return;
         }
 
-        if (online.FirmwareVersion != FirmwareVersion)
+        if (online.FirmwareVersion != FirmwareVersion || online.Gateway != LCGGlobals.LCGConfig.Fqdn)
         {
+            online.Gateway = LCGGlobals.LCGConfig.Fqdn;
             online.FirmwareVersion = FirmwareVersion;
             await deviceOnline.SaveAsync();
-            Logger.LogInformation("Updated firmware version of online device");
+            Logger.LogInformation("Updated details of online device");
         }
 
         await _redisConnectionProvider.Connection.ExecuteAsync("EXPIRE",
