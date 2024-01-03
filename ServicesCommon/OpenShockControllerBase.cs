@@ -1,8 +1,8 @@
 ﻿using System.Net;
 using System.Net.Mime;
 using Microsoft.AspNetCore.Mvc;
+using OpenShock.Common.JsonSerialization;
 using OpenShock.Common.Models;
-using OpenShock.Common.Serialization;
 
 namespace OpenShock.ServicesCommon;
 

@@ -1,5 +1,5 @@
 ﻿using System.Text.Json.Serialization;
-using OpenShock.Common.Serialization;
+using OpenShock.Common.JsonSerialization;
 using Redis.OM.Modeling;
 using Semver;
 

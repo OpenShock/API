@@ -1,7 +1,7 @@
 ﻿using Newtonsoft.Json;
 using Newtonsoft.Json.Serialization;
 
-namespace OpenShock.Common.Serialization;
+namespace OpenShock.Common.JsonSerialization;
 
 public static class Options
 {

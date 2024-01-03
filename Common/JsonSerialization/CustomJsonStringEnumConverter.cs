@@ -1,7 +1,7 @@
 ﻿using System.Text.Json;
 using System.Text.Json.Serialization;
 
-namespace OpenShock.Common.Serialization;
+namespace OpenShock.Common.JsonSerialization;
 
 public class CustomJsonStringEnumConverter : JsonConverterFactory
 {

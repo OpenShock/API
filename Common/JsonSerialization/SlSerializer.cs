@@ -1,6 +1,6 @@
 ﻿using System.Text.Json;
 
-namespace OpenShock.Common.Serialization;
+namespace OpenShock.Common.JsonSerialization;
 
 public static class SlSerializer
 {

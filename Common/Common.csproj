@@ -14,6 +14,11 @@
     </PropertyGroup>
 
     <ItemGroup>
+      <PackageReference Include="FlatSharp.Compiler" Version="7.4.0">
+        <PrivateAssets>all</PrivateAssets>
+        <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      </PackageReference>
+      <PackageReference Include="FlatSharp.Runtime" Version="7.4.0" />
       <PackageReference Include="Microsoft.EntityFrameworkCore" Version="8.0.0" />
       <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="8.0.0">
         <PrivateAssets>all</PrivateAssets>
@@ -30,6 +35,13 @@
       <PackageReference Include="Redis.OM" Version="0.6.1" />
       <PackageReference Include="Semver" Version="2.3.0" />
       <PackageReference Include="Serilog.Sinks.Grafana.Loki" Version="8.2.0" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <FlatSharpSchema Include="Serialization\DeviceToServerMessage.fbs" />
+      <FlatSharpSchema Include="Serialization\ServerToDeviceMessage.fbs" />
+      <FlatSharpSchema Include="Serialization\Types\ShockerCommandType.fbs" />
+      <FlatSharpSchema Include="Serialization\Types\ShockerModelType.fbs" />
     </ItemGroup>
 
 </Project>

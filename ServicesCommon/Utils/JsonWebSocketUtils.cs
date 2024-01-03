@@ -3,8 +3,8 @@ using System.Net.WebSockets;
 using System.Text;
 using System.Text.Json;
 using Microsoft.IO;
+using OpenShock.Common.JsonSerialization;
 using OpenShock.Common.Models.WebSocket;
-using OpenShock.Common.Serialization;
 
 namespace OpenShock.ServicesCommon.Utils;
 
