@@ -31,9 +31,9 @@ public partial class ShockerController
                     IsPaused = x.Shocker.Paused,
                     Permissions = new ShockerPermissions
                     {
-                        Shock = x.PermShock!.Value,
-                        Sound = x.PermSound!.Value,
-                        Vibrate = x.PermVibrate!.Value
+                        Shock = x.PermShock,
+                        Sound = x.PermSound,
+                        Vibrate = x.PermVibrate
                     },
                     Limits = new ShockerLimits
                     {

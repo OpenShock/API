@@ -93,12 +93,12 @@ public sealed class LiveControlController : WebsocketBaseController<IBaseRespons
             .Where(x => x.Shocker.Device == Id && x.SharedWith == _currentUser.DbUser.Id).ToDictionaryAsync(
                 x => x.ShockerId, x => new SharePermsAndLimitsLive
                 {
-                    Shock = x.PermShock!.Value,
-                    Vibrate = x.PermVibrate!.Value,
-                    Sound = x.PermSound!.Value,
+                    Shock = x.PermShock,
+                    Vibrate = x.PermVibrate,
+                    Sound = x.PermSound,
                     Duration = x.LimitDuration,
                     Intensity = x.LimitIntensity,
-                    Live = x.PermLive!.Value
+                    Live = x.PermLive
                 });
         
         _sharedShockers = updated;
@@ -120,7 +120,7 @@ public sealed class LiveControlController : WebsocketBaseController<IBaseRespons
 
         var deviceExistsAndYouHaveAccess = await _db.Devices.AnyAsync(x =>
             x.Id == _deviceId && (x.Owner == _currentUser.DbUser.Id || x.Shockers.Any(y => y.ShockerShares.Any(
-                z => z.SharedWith == _currentUser.DbUser.Id && z.PermLive!.Value))));
+                z => z.SharedWith == _currentUser.DbUser.Id && z.PermLive))));
 
         if (deviceExistsAndYouHaveAccess)
         {

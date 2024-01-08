@@ -45,9 +45,9 @@ public sealed partial class ShockerController
                     CreatedOn = x.CreatedOn,
                     Permissions = new ShockerPermissions
                     {
-                        Sound = x.PermSound!.Value,
-                        Shock = x.PermShock!.Value,
-                        Vibrate = x.PermVibrate!.Value
+                        Sound = x.PermSound,
+                        Shock = x.PermShock,
+                        Vibrate = x.PermVibrate
                     },
                     Limits = new ShockerLimits
                     {
