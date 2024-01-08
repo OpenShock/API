@@ -5,8 +5,10 @@ using OneOf.Types;
 using OpenShock.Common;
 using OpenShock.Common.Models;
 using OpenShock.Common.OpenShockDb;
+using OpenShock.Common.Redis.PubSub;
 using OpenShock.LiveControlGateway.Controllers;
 using OpenShock.LiveControlGateway.Websocket;
+using Semver;
 
 namespace OpenShock.LiveControlGateway.LifetimeManager;
 
@@ -20,6 +22,7 @@ public static class DeviceLifetimeManager
     /// </summary>
     /// <param name="deviceController"></param>
     /// <param name="db"></param>
+    /// <param name="dbContextFactory"></param>
     /// <param name="cancellationToken"></param>
     /// <returns></returns>
     public static async Task<DeviceLifetime> AddDeviceConnection(DeviceController deviceController,
@@ -76,10 +79,54 @@ public static class DeviceLifetimeManager
         return deviceLifetime.ReceiveFrame(shocker, type, intensity) ? new Success() : new ShockerNotFound();
     }
 
+    /// <summary>
+    /// Update device data from the database
+    /// </summary>
+    /// <param name="device"></param>
+    /// <returns></returns>
     public static async Task<OneOf<Success, DeviceNotFound>> UpdateDevice(Guid device)
     {
         if (!Managers.TryGetValue(device, out var deviceLifetime)) return new DeviceNotFound();
         await deviceLifetime.UpdateDevice();
+        return new Success();
+    }
+
+    /// <summary>
+    /// Control from redis, aka a regular command
+    /// </summary>
+    /// <param name="device"></param>
+    /// <param name="shocks"></param>
+    /// <returns></returns>
+    public static async Task<OneOf<Success, DeviceNotFound>> Control(Guid device, IEnumerable<ControlMessage.ShockerControlInfo> shocks)
+    {
+        if (!Managers.TryGetValue(device, out var deviceLifetime)) return new DeviceNotFound();
+        await deviceLifetime.Control(shocks);
+        return new Success();
+    }
+
+    /// <summary>
+    /// Captive portal control from redis
+    /// </summary>
+    /// <param name="device"></param>
+    /// <param name="enabled"></param>
+    /// <returns></returns>
+    public static async Task<OneOf<Success, DeviceNotFound>> ControlCaptive(Guid device, bool enabled)
+    {
+        if (!Managers.TryGetValue(device, out var deviceLifetime)) return new DeviceNotFound();
+        await deviceLifetime.ControlCaptive(enabled);
+        return new Success();
+    }
+
+    /// <summary>
+    /// Ota start install
+    /// </summary>
+    /// <param name="device"></param>
+    /// <param name="version"></param>
+    /// <returns></returns>
+    public static async Task<OneOf<Success, DeviceNotFound>> OtaInstall(Guid device, SemVersion version)
+    {
+        if (!Managers.TryGetValue(device, out var deviceLifetime)) return new DeviceNotFound();
+        await deviceLifetime.OtaInstall(version);
         return new Success();
     }
 }

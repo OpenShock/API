@@ -3,11 +3,13 @@ using Microsoft.EntityFrameworkCore;
 using OpenShock.Common;
 using OpenShock.Common.Models;
 using OpenShock.Common.OpenShockDb;
+using OpenShock.Common.Redis.PubSub;
 using OpenShock.Common.Utils;
 using OpenShock.LiveControlGateway.Controllers;
 using OpenShock.LiveControlGateway.Websocket;
 using OpenShock.Serialization;
 using OpenShock.Serialization.Types;
+using Semver;
 using ShockerModelType = OpenShock.Serialization.Types.ShockerModelType;
 
 namespace OpenShock.LiveControlGateway.LifetimeManager;
@@ -18,20 +20,21 @@ public sealed class DeviceLifetime : IAsyncDisposable
     private static readonly TimeSpan AcceptanceStateAge = TimeSpan.FromMilliseconds(200);
     private const ushort CommandDuration = 250;
     private static readonly ILogger<DeviceLifetime> Logger = ApplicationLogging.CreateLogger<DeviceLifetime>();
-    
+
     private Dictionary<Guid, ShockerState> _shockerStates = new();
     private readonly DeviceController _deviceController;
     private readonly CancellationToken _cancellationToken;
-    
+
     private readonly IDbContextFactory<OpenShockContext> _dbContextFactory;
 
-    public DeviceLifetime(DeviceController deviceController, IDbContextFactory<OpenShockContext> dbContextFactory, CancellationToken cancellationToken = default)
+    public DeviceLifetime(DeviceController deviceController, IDbContextFactory<OpenShockContext> dbContextFactory,
+        CancellationToken cancellationToken = default)
     {
         _deviceController = deviceController;
         _cancellationToken = cancellationToken;
         _dbContextFactory = dbContextFactory;
     }
-    
+
     /// <summary>
     /// Call on creation to setup shockers for the first time
     /// </summary>
@@ -59,7 +62,7 @@ public sealed class DeviceLifetime : IAsyncDisposable
             {
                 Logger.LogError(e, "Error in Update()");
             }
-            
+
             var elapsed = stopwatch.Elapsed;
             var waitTime = WaitBetweenTicks - elapsed;
             if (waitTime.TotalMilliseconds < 1)
@@ -71,7 +74,7 @@ public sealed class DeviceLifetime : IAsyncDisposable
             await Task.Delay(waitTime, _cancellationToken);
         }
     }
-    
+
     private async Task Update()
     {
         var acceptedTimestamp = DateTimeOffset.UtcNow.Subtract(AcceptanceStateAge);
@@ -80,7 +83,7 @@ public sealed class DeviceLifetime : IAsyncDisposable
         {
             if (state.LastReceive < acceptedTimestamp) continue;
             commandList ??= [];
-            
+
             commandList.Add(new ShockerCommand
             {
                 Id = state.RfId,
@@ -91,8 +94,8 @@ public sealed class DeviceLifetime : IAsyncDisposable
             });
         }
 
-        if(commandList == null) return;
-        
+        if (commandList == null) return;
+
         await _deviceController.QueueMessage(new ServerToDeviceMessage
         {
             Payload = new ServerToDeviceMessagePayload(new ShockerCommandList
@@ -109,8 +112,8 @@ public sealed class DeviceLifetime : IAsyncDisposable
     {
         await using var db = await _dbContextFactory.CreateDbContextAsync(_cancellationToken);
         await UpdateShockers(db);
-        
-        foreach (var websocketController in WebsocketManager.LiveControlUsers.GetConnections(_deviceController.Id)) 
+
+        foreach (var websocketController in WebsocketManager.LiveControlUsers.GetConnections(_deviceController.Id))
             await websocketController.UpdatePermissions(db);
     }
 
@@ -128,7 +131,7 @@ public sealed class DeviceLifetime : IAsyncDisposable
         }).ToListAsync(cancellationToken: _cancellationToken);
         _shockerStates = ownShockers.ToDictionary(x => x.Id, x => x);
     }
-    
+
     /// <summary>
     /// Receive a control frame by a client, this implies that limits and permissions have been checked before
     /// </summary>
@@ -146,9 +149,53 @@ public sealed class DeviceLifetime : IAsyncDisposable
         return true;
     }
 
-    /// <inheritdoc />
-    public ValueTask DisposeAsync()
+    /// <summary>
+    /// Control from redis, aka a regular command
+    /// </summary>
+    /// <param name="shocks"></param>
+    /// <returns></returns>
+    public ValueTask Control(IEnumerable<ControlMessage.ShockerControlInfo> shocks)
     {
-        return _deviceController.DisposeAsync();
+        var shocksTransformed = shocks.Select(shock => new ShockerCommand
+        {
+            Id = shock.RfId, Duration = shock.Duration, Intensity = shock.Intensity,
+            Type = (ShockerCommandType)shock.Type,
+            Model = (ShockerModelType)shock.Model
+        }).ToList();
+        
+        return _deviceController.QueueMessage(new ServerToDeviceMessage
+        {
+            Payload = new ServerToDeviceMessagePayload(new ShockerCommandList { Commands = shocksTransformed })
+        });
     }
+
+    /// <summary>
+    /// Control from redis
+    /// </summary>
+    /// <param name="enabled"></param>
+    /// <returns></returns>
+    public ValueTask ControlCaptive(bool enabled) =>
+        _deviceController.QueueMessage(new ServerToDeviceMessage
+        {
+            Payload = new ServerToDeviceMessagePayload(new CaptivePortalConfig
+            {
+                Enabled = enabled
+            })
+        });
+
+    /// <summary>
+    /// Ota install from redis
+    /// </summary>
+    /// <returns></returns>
+    public ValueTask OtaInstall(SemVersion semVersion) =>
+        _deviceController.QueueMessage(new ServerToDeviceMessage
+        {
+            Payload = new ServerToDeviceMessagePayload(new OtaInstall
+            {
+                Version = semVersion.ToSemVer()
+            })
+        });
+
+    /// <inheritdoc />
+    public ValueTask DisposeAsync() => _deviceController.DisposeAsync();
 }

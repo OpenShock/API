@@ -1,5 +1,6 @@
 ﻿using System.Text.Json;
 using OpenShock.Common.Redis.PubSub;
+using Semver;
 using StackExchange.Redis;
 
 namespace OpenShock.ServicesCommon.Services.RedisPubSub;
@@ -50,5 +51,17 @@ public class RedisPubService : IRedisPubService
         };
 
         return _subscriber.PublishAsync(RedisChannels.DeviceUpdate, JsonSerializer.Serialize(redisMessage));
+    }
+
+    /// <inheritdoc />
+    public Task SendDeviceOtaInstall(Guid deviceId, SemVersion version)
+    {
+        var redisMessage = new DeviceOtaInstallMessage
+        {
+            Id = deviceId,
+            Version = version
+        };
+        
+        return _subscriber.PublishAsync(RedisChannels.DeviceOtaInstall, JsonSerializer.Serialize(redisMessage));
     }
 }

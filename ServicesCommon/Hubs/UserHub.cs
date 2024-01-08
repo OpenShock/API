@@ -1,18 +1,19 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
-using OpenShock.API.DeviceControl;
 using OpenShock.Common.Models;
 using OpenShock.Common.Models.WebSocket;
 using OpenShock.Common.OpenShockDb;
 using OpenShock.Common.Redis;
 using OpenShock.ServicesCommon.Authentication;
+using OpenShock.ServicesCommon.DeviceControl;
 using OpenShock.ServicesCommon.Services.RedisPubSub;
 using OpenShock.ServicesCommon.Utils;
 using Redis.OM;
 using Redis.OM.Contracts;
+using Semver;
 
-namespace OpenShock.API.Hubs;
+namespace OpenShock.ServicesCommon.Hubs;
 
 [Authorize(AuthenticationSchemes = OpenShockAuthSchemas.SessionTokenCombo)]
 public class UserHub : Hub<IUserHub>
@@ -92,6 +93,16 @@ public class UserHub : Hub<IUserHub>
 
         await _redisPubService.SendDeviceCaptivePortal(deviceId, enabled);
     }
+
+    public async Task OtaInstall(Guid deviceId, SemVersion version)
+    {
+        var devices = await _db.Devices.Where(x => x.Owner == UserId)
+            .AnyAsync(x => x.Id == deviceId);
+        if (!devices) return;
+
+        await _redisPubService.SendDeviceOtaInstall(deviceId, version);
+    }
+    
 
     private Task<User> GetUser() => GetUser(UserId, _db);
 

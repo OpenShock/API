@@ -5,7 +5,7 @@ using Microsoft.AspNetCore.SignalR.Protocol;
 using Microsoft.AspNetCore.SignalR.StackExchangeRedis;
 using Microsoft.Extensions.Options;
 
-namespace OpenShock.API;
+namespace OpenShock.ServicesCommon;
 
 /// <summary>
 /// Custom redis backplane for SignalR

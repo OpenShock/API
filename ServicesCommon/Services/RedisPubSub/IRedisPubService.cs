@@ -1,4 +1,5 @@
 ﻿using OpenShock.Common.Redis.PubSub;
+using Semver;
 
 namespace OpenShock.ServicesCommon.Services.RedisPubSub;
 
@@ -26,4 +27,12 @@ public interface IRedisPubService
     /// <param name="deviceId"></param>
     /// <returns></returns>
     Task SendDeviceUpdate(Guid deviceId);
+
+    /// <summary>
+    /// Start an OTA update on the device
+    /// </summary>
+    /// <param name="deviceId"></param>
+    /// <param name="version"></param>
+    /// <returns></returns>
+    Task SendDeviceOtaInstall(Guid deviceId, SemVersion version);
 }

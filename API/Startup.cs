@@ -10,7 +10,6 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.OpenApi.Models;
 using Npgsql;
-using OpenShock.API.Hubs;
 using OpenShock.API.Mailjet;
 using OpenShock.API.Realtime;
 using OpenShock.API.Services;
@@ -24,6 +23,7 @@ using OpenShock.ServicesCommon;
 using OpenShock.ServicesCommon.Authentication;
 using OpenShock.ServicesCommon.ExceptionHandle;
 using OpenShock.ServicesCommon.Geo;
+using OpenShock.ServicesCommon.Hubs;
 using OpenShock.ServicesCommon.Services.Device;
 using OpenShock.ServicesCommon.Services.RedisPubSub;
 using OpenShock.ServicesCommon.Utils;
@@ -53,7 +53,8 @@ public class Startup
         var debugView = root.GetDebugView();
         Console.WriteLine(debugView);
 #endif
-        APIGlobals.ApiConfig = configuration.GetChildren().First(x => x.Key.Equals("openshock", StringComparison.InvariantCultureIgnoreCase))
+        APIGlobals.ApiConfig = configuration.GetChildren()
+                                   .First(x => x.Key.Equals("openshock", StringComparison.InvariantCultureIgnoreCase))
                                    .Get<ApiConfig>() ??
                                throw new Exception("Couldn't bind config, check config file");
     }
@@ -61,7 +62,7 @@ public class Startup
     public void ConfigureServices(IServiceCollection services)
     {
         // ----------------- DATABASE -----------------
-        
+
         // How do I do this now with EFCore?!
 #pragma warning disable CS0618
         NpgsqlConnection.GlobalTypeMapper.MapEnum<ControlType>();
@@ -75,7 +76,7 @@ public class Startup
             builder.EnableSensitiveDataLogging();
             builder.EnableDetailedErrors();
         });
-        
+
         services.AddDbContextFactory<OpenShockContext>(builder =>
         {
             builder.UseNpgsql(APIGlobals.ApiConfig.Db);
@@ -85,7 +86,7 @@ public class Startup
 
 
         // ----------------- REDIS -----------------
-        
+
         var redisConfig = new ConfigurationOptions
         {
             AbortOnConnectFail = true,
@@ -97,11 +98,11 @@ public class Startup
                 { APIGlobals.ApiConfig.Redis.Host, APIGlobals.ApiConfig.Redis.Port }
             }
         };
-        
+
         services.AddSingleton<IConnectionMultiplexer>(ConnectionMultiplexer.Connect(redisConfig));
         services.AddSingleton<IRedisConnectionProvider, RedisConnectionProvider>();
         services.AddSingleton<IRedisPubService, RedisPubService>();
-        
+
         services.AddMemoryCache();
         services.AddHttpContextAccessor();
 
@@ -144,11 +145,15 @@ public class Startup
         });
         services.AddSignalR()
             .AddOpenShockStackExchangeRedis(options => { options.Configuration = redisConfig; })
-            .AddJsonProtocol(options => { options.PayloadSerializerOptions.PropertyNameCaseInsensitive = true; });
+            .AddJsonProtocol(options =>
+            {
+                options.PayloadSerializerOptions.PropertyNameCaseInsensitive = true;
+                options.PayloadSerializerOptions.Converters.Add(new SemVersionJsonConverter());
+            });
 
         services.AddScoped<IDeviceService, DeviceService>();
         services.AddScoped<IDeviceUpdateService, DeviceUpdateService>();
-        
+
         var apiVersioningBuilder = services.AddApiVersioning(options =>
         {
             options.DefaultApiVersion = new ApiVersion(1, 0);
@@ -205,7 +210,7 @@ public class Startup
         services.ConfigureOptions<ConfigureSwaggerOptions>();
         services.AddSwaggerGenNewtonsoftSupport();
         //services.AddHealthChecks().AddCheck<DatabaseHealthCheck>("database");
-        
+
         services.AddHostedService<RedisSubscriberService>();
     }
 
@@ -226,16 +231,16 @@ public class Startup
 
         // global cors policy
         app.UseCors();
-        
+
         // Redis
 
         var redisConnection = app.ApplicationServices.GetRequiredService<IRedisConnectionProvider>().Connection;
-        
+
         redisConnection.CreateIndex(typeof(LoginSession));
         redisConnection.CreateIndex(typeof(DeviceOnline));
         redisConnection.CreateIndex(typeof(DevicePair));
         redisConnection.CreateIndex(typeof(LcgNode));
-        
+
 
         app.UseSwagger();
         var provider = app.ApplicationServices.GetRequiredService<IApiVersionDescriptionProvider>();
@@ -245,7 +250,7 @@ public class Startup
                 c.SwaggerEndpoint($"/swagger/{description.GroupName}/swagger.json",
                     description.GroupName.ToUpperInvariant());
         });
-        
+
         app.UseWebSockets(new WebSocketOptions
         {
             KeepAliveInterval = TimeSpan.FromMinutes(1)

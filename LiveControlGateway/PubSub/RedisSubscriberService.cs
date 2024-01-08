@@ -30,9 +30,16 @@ public class RedisSubscriberService : IHostedService, IAsyncDisposable
     /// <inheritdoc />
     public async Task StartAsync(CancellationToken cancellationToken)
     {
-        await _subscriber.SubscribeAsync(RedisChannels.DeviceControl, (_, message) => { LucTask.Run(() => DeviceControl(message)); });
-        await _subscriber.SubscribeAsync(RedisChannels.DeviceCaptive, (_, message) => { LucTask.Run(() => DeviceControlCaptive(message)); });
-        await _subscriber.SubscribeAsync(RedisChannels.DeviceUpdate, (_, message) => { LucTask.Run(() => DeviceUpdate(message)); });
+        await _subscriber.SubscribeAsync(RedisChannels.DeviceControl,
+            (_, message) => { LucTask.Run(() => DeviceControl(message)); });
+        await _subscriber.SubscribeAsync(RedisChannels.DeviceCaptive,
+            (_, message) => { LucTask.Run(() => DeviceControlCaptive(message)); });
+        await _subscriber.SubscribeAsync(RedisChannels.DeviceUpdate,
+            (_, message) => { LucTask.Run(() => DeviceUpdate(message)); });
+
+        // OTA
+        await _subscriber.SubscribeAsync(RedisChannels.DeviceOtaInstall,
+            (_, message) => { LucTask.Run(() => DeviceOtaInstall(message)); });
     }
 
     private static async Task DeviceControl(RedisValue value)
@@ -41,50 +48,47 @@ public class RedisSubscriberService : IHostedService, IAsyncDisposable
         var data = JsonSerializer.Deserialize<ControlMessage>(value.ToString());
         if (data == null) return;
 
-        foreach (var controlMessage in data.ControlMessages)
-        {
-            var shockies = controlMessage.Value.Select(shock => new ShockerCommand
-            {
-                Id = shock.RfId, Duration = shock.Duration, Intensity = shock.Intensity,
-                Type = (ShockerCommandType)shock.Type,
-                Model = (ShockerModelType)shock.Model
-            }).ToList();
-            
-            await WebsocketManager.ServerToDevice.SendMessageTo(controlMessage.Key, new ServerToDeviceMessage()
-            {
-                Payload = new ServerToDeviceMessagePayload(new ShockerCommandList { Commands = shockies })
-            });
-        }
+        await Task.WhenAll(data.ControlMessages.Select(x => DeviceLifetimeManager.Control(x.Key, x.Value)));
     }
-    
+
     private static async Task DeviceControlCaptive(RedisValue value)
     {
         if (!value.HasValue) return;
         var data = JsonSerializer.Deserialize<CaptiveMessage>(value.ToString());
         if (data == null) return;
 
-        await WebsocketManager.ServerToDevice.SendMessageTo(data.DeviceId, new ServerToDeviceMessage
-        {
-            Payload = new ServerToDeviceMessagePayload
-            {
-                CaptivePortalConfig = { Enabled = data.Enabled }
-            }
-        });
+        await DeviceLifetimeManager.ControlCaptive(data.DeviceId, data.Enabled);
     }
-    
+
     /// <summary>
     /// Update the device connection if found
     /// </summary>
     /// <param name="value"></param>
     /// <returns></returns>
-    private static Task DeviceUpdate(RedisValue value)
+    private static async Task DeviceUpdate(RedisValue value)
     {
-        if (!value.HasValue) return Task.CompletedTask;
+        if (!value.HasValue) return;
         var data = JsonSerializer.Deserialize<DeviceUpdatedMessage>(value.ToString());
-        return data == null ? Task.CompletedTask : DeviceLifetimeManager.UpdateDevice(data.Id);
+        if (data == null) return;
+        
+        await DeviceLifetimeManager.UpdateDevice(data.Id);
     }
 
-    
+    /// <summary>
+    /// Update the device connection if found
+    /// </summary>
+    /// <param name="value"></param>
+    /// <returns></returns>
+    private static async Task DeviceOtaInstall(RedisValue value)
+    {
+        if (!value.HasValue) return;
+        var data = JsonSerializer.Deserialize<DeviceOtaInstallMessage>(value.ToString());
+        if (data == null) return;
+        
+        await DeviceLifetimeManager.OtaInstall(data.Id, data.Version);
+    }
+
+
     /// <inheritdoc />
     public Task StopAsync(CancellationToken cancellationToken)
     {

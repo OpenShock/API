@@ -1,5 +1,6 @@
 include "./Types/ShockerCommandType.fbs";
 include "./Types/ShockerModelType.fbs";
+include "./Types/SemVer.fbs";
 
 attribute "fs_serializer";
 
@@ -21,9 +22,15 @@ struct CaptivePortalConfig {
   enabled:bool;
 }
 
+// Begin installing an OTA update
+table OtaInstall {
+  version:SemVer;
+}
+
 union ServerToDeviceMessagePayload {
   ShockerCommandList,
-  CaptivePortalConfig
+  CaptivePortalConfig,
+  OtaInstall
 }
 
 table ServerToDeviceMessage (fs_serializer) {

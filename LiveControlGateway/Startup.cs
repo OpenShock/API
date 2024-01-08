@@ -136,6 +136,14 @@ public class Startup
                 builder.SetPreflightMaxAge(TimeSpan.FromHours(24));
             });
         });
+        
+        services.AddSignalR()
+            .AddOpenShockStackExchangeRedis(options => { options.Configuration = redisConfig; })
+            .AddJsonProtocol(options =>
+            {
+                options.PayloadSerializerOptions.PropertyNameCaseInsensitive = true;
+                options.PayloadSerializerOptions.Converters.Add(new SemVersionJsonConverter());
+            });
 
         services.AddScoped<IDeviceService, DeviceService>();
         

@@ -1,6 +1,6 @@
 ﻿using Microsoft.AspNetCore.SignalR;
-using OpenShock.API.Hubs;
 using OpenShock.Common.Models;
+using OpenShock.ServicesCommon.Hubs;
 using OpenShock.ServicesCommon.Services.Device;
 using OpenShock.ServicesCommon.Services.RedisPubSub;
 

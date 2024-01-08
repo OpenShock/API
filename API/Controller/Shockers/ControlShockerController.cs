@@ -2,8 +2,9 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.SignalR;
 using OpenShock.API.DeviceControl;
-using OpenShock.API.Hubs;
 using OpenShock.Common.Models;
+using OpenShock.ServicesCommon.DeviceControl;
+using OpenShock.ServicesCommon.Hubs;
 using OpenShock.ServicesCommon.Services.RedisPubSub;
 using OpenShock.ServicesCommon.Utils;
 

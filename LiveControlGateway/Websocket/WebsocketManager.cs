@@ -8,7 +8,5 @@ namespace OpenShock.LiveControlGateway.Websocket;
 
 public static class WebsocketManager
 {
-    public static readonly SimpleWebsocketCollection<DeviceController, ServerToDeviceMessage> ServerToDevice = new();
-    
     public static readonly SimpleWebsocketCollection<LiveControlController, IBaseResponse<LiveResponseType>> LiveControlUsers = new();
 }

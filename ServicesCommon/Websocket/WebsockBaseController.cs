@@ -79,6 +79,10 @@ namespace OpenShock.ServicesCommon.Websocket
             Logger.LogTrace("Disposed websocket controller");
         }
         
+        /// <summary>
+        /// Dispose function for any inheriting controller
+        /// </summary>
+        /// <returns></returns>
         public virtual ValueTask DisposeControllerAsync() => ValueTask.CompletedTask;
     
         /// <summary>

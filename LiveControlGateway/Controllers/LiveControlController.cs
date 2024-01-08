@@ -451,6 +451,14 @@ public sealed class LiveControlController : WebsocketBaseController<IBaseRespons
             }
         });
     }
+    
+    /// <inheritdoc />
+    public override ValueTask DisposeControllerAsync()
+    {
+        Logger.LogTrace("Disposing controller timer");
+        _pingTimer.Dispose();
+        return base.DisposeControllerAsync();
+    }
 }
 
 public struct LiveNotEnabled;

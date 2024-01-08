@@ -3,6 +3,7 @@ using System.Net.WebSockets;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using OpenShock.Common.OpenShockDb;
 using OpenShock.Common.Redis;
@@ -11,6 +12,7 @@ using OpenShock.LiveControlGateway.LifetimeManager;
 using OpenShock.LiveControlGateway.Websocket;
 using OpenShock.Serialization;
 using OpenShock.ServicesCommon.Authentication;
+using OpenShock.ServicesCommon.Hubs;
 using Redis.OM.Contracts;
 using Semver;
 using Timer = System.Timers.Timer;
@@ -29,6 +31,7 @@ public sealed class DeviceController : FlatbuffersWebsocketBaseController<Server
     private readonly IRedisConnectionProvider _redisConnectionProvider;
     private readonly OpenShockContext _db;
     private readonly IDbContextFactory<OpenShockContext> _dbContextFactory;
+    private readonly IHubContext<UserHub, IUserHub> _userHubContext;
     private static readonly TimeSpan InitialTimeout = TimeSpan.FromSeconds(65);
     private static readonly TimeSpan KeepAliveTimeout = TimeSpan.FromSeconds(35);
     private static readonly object KeepAliveTimeoutInt = (int)KeepAliveTimeout.TotalSeconds;
@@ -57,13 +60,20 @@ public sealed class DeviceController : FlatbuffersWebsocketBaseController<Server
     /// <param name="redisConnectionProvider"></param>
     /// <param name="db"></param>
     /// <param name="dbContextFactory"></param>
-    public DeviceController(ILogger<DeviceController> logger, IHostApplicationLifetime lifetime,
-        IRedisConnectionProvider redisConnectionProvider, OpenShockContext db, IDbContextFactory<OpenShockContext> dbContextFactory)
+    /// <param name="userHubContext"></param>
+    public DeviceController(
+        ILogger<DeviceController> logger,
+        IHostApplicationLifetime lifetime,
+        IRedisConnectionProvider redisConnectionProvider,
+        OpenShockContext db,
+        IDbContextFactory<OpenShockContext> dbContextFactory,
+        IHubContext<UserHub, IUserHub> userHubContext)
         : base(logger, lifetime, ServerToDeviceMessage.Serializer)
     {
         _redisConnectionProvider = redisConnectionProvider;
         _db = db;
         _dbContextFactory = dbContextFactory;
+        _userHubContext = userHubContext;
         _keepAliveTimer.Elapsed += async (sender, args) =>
         {
             Logger.LogWarning("Keep alive timeout reached, closing websocket connection");
@@ -138,17 +148,34 @@ public sealed class DeviceController : FlatbuffersWebsocketBaseController<Server
 
     private async Task Handle(DeviceToServerMessagePayload payload)
     {
+        Logger.LogTrace("Received payload [{Kind}] from device [{DeviceId}]", payload.Kind, _currentDevice.Id);
         switch (payload.Kind)
         {
             case DeviceToServerMessagePayload.ItemKind.KeepAlive:
                 await SelfOnline();
                 break;
+            
+            case DeviceToServerMessagePayload.ItemKind.OtaInstallStarted:
+                await HcOwner.OtaInstallStarted(_currentDevice.Id, payload.OtaInstallStarted.Version!.ToSemVersion());
+                break;
+            case DeviceToServerMessagePayload.ItemKind.OtaInstallProgress:
+                await HcOwner.OtaInstallProgress(_currentDevice.Id, payload.OtaInstallProgress.Task!, payload.OtaInstallProgress.Progress);
+                break;
+            case DeviceToServerMessagePayload.ItemKind.OtaInstallFailed:
+                await HcOwner.OtaInstallFailed(_currentDevice.Id, payload.OtaInstallFailed.Bricked, payload.OtaInstallFailed.Message!);
+                break;
+            case DeviceToServerMessagePayload.ItemKind.OtaInstallSucceeded:
+                await HcOwner.OtaInstallSucceeded(_currentDevice.Id, payload.OtaInstallSucceeded.Version!.ToSemVersion());
+                break;
+            
             case DeviceToServerMessagePayload.ItemKind.NONE:
             default:
                 Logger.LogWarning("Payload kind not defined [{Kind}]", payload.Kind);
                 break;
         }
     }
+
+    private IUserHub HcOwner => _userHubContext.Clients.User(_currentDevice.Owner.ToString());
 
     private async Task SelfOnline()
     {
@@ -192,8 +219,6 @@ public sealed class DeviceController : FlatbuffersWebsocketBaseController<Server
             SemVersion.TryParse(header, SemVersionStyles.Strict, out var version)) FirmwareVersion = version;
 
         await DeviceLifetimeManager.AddDeviceConnection(this, _db, _dbContextFactory, Linked.Token);
-         
-        WebsocketManager.ServerToDevice.RegisterConnection(this);
     }
 
     /// <inheritdoc />
@@ -201,9 +226,9 @@ public sealed class DeviceController : FlatbuffersWebsocketBaseController<Server
     {
         Logger.LogDebug("Unregistering device connection [{DeviceId}]", Id);
         await DeviceLifetimeManager.RemoveDeviceConnection(this);
-        WebsocketManager.ServerToDevice.UnregisterConnection(this);
     }
 
+    /// <inheritdoc />
     public override ValueTask DisposeControllerAsync()
     {
         Logger.LogTrace("Disposing controller timer");
