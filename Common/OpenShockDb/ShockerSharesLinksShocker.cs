@@ -23,7 +23,7 @@ public partial class ShockerSharesLinksShocker
 
     public bool Paused { get; set; }
 
-    public bool? PermLive { get; set; }
+    public bool PermLive { get; set; }
 
     public virtual ShockerSharesLink ShareLink { get; set; } = null!;
 

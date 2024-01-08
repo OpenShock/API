@@ -11,11 +11,11 @@ public partial class ShockerShareCode
 
     public DateTime CreatedOn { get; set; }
 
-    public bool? PermSound { get; set; }
+    public bool PermSound { get; set; }
 
-    public bool? PermVibrate { get; set; }
+    public bool PermVibrate { get; set; }
 
-    public bool? PermShock { get; set; }
+    public bool PermShock { get; set; }
 
     public ushort? LimitDuration { get; set; }
 
