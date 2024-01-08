@@ -15,6 +15,8 @@ public partial class Device
 
     public string Token { get; set; } = null!;
 
+    public virtual ICollection<DeviceOtaUpdate> DeviceOtaUpdates { get; set; } = new List<DeviceOtaUpdate>();
+
     public virtual User OwnerNavigation { get; set; } = null!;
 
     public virtual ICollection<Shocker> Shockers { get; set; } = new List<Shocker>();
