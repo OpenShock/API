@@ -11,8 +11,10 @@ using OpenShock.Common.Utils;
 using OpenShock.LiveControlGateway.LifetimeManager;
 using OpenShock.LiveControlGateway.Websocket;
 using OpenShock.Serialization;
+using OpenShock.Serialization.Gateway;
 using OpenShock.ServicesCommon.Authentication;
 using OpenShock.ServicesCommon.Hubs;
+using OpenShock.ServicesCommon.Services.Ota;
 using Redis.OM.Contracts;
 using Semver;
 using Timer = System.Timers.Timer;
@@ -25,7 +27,7 @@ namespace OpenShock.LiveControlGateway.Controllers;
 [ApiController]
 [Authorize(AuthenticationSchemes = OpenShockAuthSchemas.DeviceToken)]
 [Route("/{version:apiVersion}/ws/device")]
-public sealed class DeviceController : FlatbuffersWebsocketBaseController<ServerToDeviceMessage>
+public sealed class DeviceController : FlatbuffersWebsocketBaseController<GatewayToDeviceMessage>
 {
     private Device _currentDevice = null!;
     private readonly IRedisConnectionProvider _redisConnectionProvider;
@@ -68,7 +70,7 @@ public sealed class DeviceController : FlatbuffersWebsocketBaseController<Server
         OpenShockContext db,
         IDbContextFactory<OpenShockContext> dbContextFactory,
         IHubContext<UserHub, IUserHub> userHubContext)
-        : base(logger, lifetime, ServerToDeviceMessage.Serializer)
+        : base(logger, lifetime, GatewayToDeviceMessage.Serializer)
     {
         _redisConnectionProvider = redisConnectionProvider;
         _db = db;
@@ -91,7 +93,7 @@ public sealed class DeviceController : FlatbuffersWebsocketBaseController<Server
             {
                 if (WebSocket?.State == WebSocketState.Aborted) return;
                 var message =
-                    await FlatbufferWebSocketUtils.ReceiveFullMessageAsyncNonAlloc(WebSocket!, DeviceToServerMessage.Serializer,
+                    await FlatbufferWebSocketUtils.ReceiveFullMessageAsyncNonAlloc(WebSocket!, DeviceToGatewayMessage.Serializer,
                         Linked.Token);
 
                 if (message.IsT2)
@@ -146,29 +148,20 @@ public sealed class DeviceController : FlatbuffersWebsocketBaseController<Server
         await Close.CancelAsync();
     }
 
-    private async Task Handle(DeviceToServerMessagePayload payload)
+    private async Task Handle(DeviceToGatewayMessagePayload payload)
     {
         Logger.LogTrace("Received payload [{Kind}] from device [{DeviceId}]", payload.Kind, _currentDevice.Id);
         switch (payload.Kind)
         {
-            case DeviceToServerMessagePayload.ItemKind.KeepAlive:
+            case DeviceToGatewayMessagePayload.ItemKind.KeepAlive:
                 await SelfOnline();
                 break;
             
-            case DeviceToServerMessagePayload.ItemKind.OtaInstallStarted:
+            case DeviceToGatewayMessagePayload.ItemKind.OtaInstallStarted:
                 await HcOwner.OtaInstallStarted(_currentDevice.Id, payload.OtaInstallStarted.Version!.ToSemVersion());
                 break;
-            case DeviceToServerMessagePayload.ItemKind.OtaInstallProgress:
-                await HcOwner.OtaInstallProgress(_currentDevice.Id, payload.OtaInstallProgress.Task!, payload.OtaInstallProgress.Progress);
-                break;
-            case DeviceToServerMessagePayload.ItemKind.OtaInstallFailed:
-                await HcOwner.OtaInstallFailed(_currentDevice.Id, payload.OtaInstallFailed.Bricked, payload.OtaInstallFailed.Message!);
-                break;
-            case DeviceToServerMessagePayload.ItemKind.OtaInstallSucceeded:
-                await HcOwner.OtaInstallSucceeded(_currentDevice.Id, payload.OtaInstallSucceeded.Version!.ToSemVersion());
-                break;
             
-            case DeviceToServerMessagePayload.ItemKind.NONE:
+            case DeviceToGatewayMessagePayload.ItemKind.NONE:
             default:
                 Logger.LogWarning("Payload kind not defined [{Kind}]", payload.Kind);
                 break;

@@ -8,6 +8,7 @@ using OpenShock.Common.Utils;
 using OpenShock.LiveControlGateway.Controllers;
 using OpenShock.LiveControlGateway.Websocket;
 using OpenShock.Serialization;
+using OpenShock.Serialization.Gateway;
 using OpenShock.Serialization.Types;
 using Semver;
 using ShockerModelType = OpenShock.Serialization.Types.ShockerModelType;
@@ -96,9 +97,9 @@ public sealed class DeviceLifetime : IAsyncDisposable
 
         if (commandList == null) return;
 
-        await _deviceController.QueueMessage(new ServerToDeviceMessage
+        await _deviceController.QueueMessage(new GatewayToDeviceMessage
         {
-            Payload = new ServerToDeviceMessagePayload(new ShockerCommandList
+            Payload = new GatewayToDeviceMessagePayload(new ShockerCommandList
             {
                 Commands = commandList
             })
@@ -163,9 +164,9 @@ public sealed class DeviceLifetime : IAsyncDisposable
             Model = (ShockerModelType)shock.Model
         }).ToList();
         
-        return _deviceController.QueueMessage(new ServerToDeviceMessage
+        return _deviceController.QueueMessage(new GatewayToDeviceMessage
         {
-            Payload = new ServerToDeviceMessagePayload(new ShockerCommandList { Commands = shocksTransformed })
+            Payload = new GatewayToDeviceMessagePayload(new ShockerCommandList { Commands = shocksTransformed })
         });
     }
 
@@ -175,9 +176,9 @@ public sealed class DeviceLifetime : IAsyncDisposable
     /// <param name="enabled"></param>
     /// <returns></returns>
     public ValueTask ControlCaptive(bool enabled) =>
-        _deviceController.QueueMessage(new ServerToDeviceMessage
+        _deviceController.QueueMessage(new GatewayToDeviceMessage
         {
-            Payload = new ServerToDeviceMessagePayload(new CaptivePortalConfig
+            Payload = new GatewayToDeviceMessagePayload(new CaptivePortalConfig
             {
                 Enabled = enabled
             })
@@ -188,9 +189,9 @@ public sealed class DeviceLifetime : IAsyncDisposable
     /// </summary>
     /// <returns></returns>
     public ValueTask OtaInstall(SemVersion semVersion) =>
-        _deviceController.QueueMessage(new ServerToDeviceMessage
+        _deviceController.QueueMessage(new GatewayToDeviceMessage
         {
-            Payload = new ServerToDeviceMessagePayload(new OtaInstall
+            Payload = new GatewayToDeviceMessagePayload(new OtaInstall
             {
                 Version = semVersion.ToSemVer()
             })

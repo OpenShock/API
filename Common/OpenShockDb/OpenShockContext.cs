@@ -123,6 +123,9 @@ public partial class OpenShockContext : DbContext
             entity.Property(e => e.Version)
                 .HasColumnType("character varying")
                 .HasColumnName("version");
+            
+            entity.Property(e => e.Status).HasColumnType("ota_update_status").HasColumnName("status");
+            
 
             entity.HasOne(d => d.DeviceNavigation).WithMany(p => p.DeviceOtaUpdates)
                 .HasForeignKey(d => d.Device)

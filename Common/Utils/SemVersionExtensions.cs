@@ -1,4 +1,5 @@
-﻿using Semver;
+﻿using OpenShock.Serialization.Types;
+using Semver;
 
 namespace OpenShock.Common.Utils;
 

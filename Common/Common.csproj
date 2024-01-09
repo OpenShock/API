@@ -38,8 +38,8 @@
     </ItemGroup>
 
     <ItemGroup>
-      <FlatSharpSchema Include="Serialization\DeviceToServerMessage.fbs" />
-      <FlatSharpSchema Include="Serialization\ServerToDeviceMessage.fbs" />
+      <FlatSharpSchema Include="Serialization\DeviceToGatewayMessage.fbs" />
+      <FlatSharpSchema Include="Serialization\GatewayToDeviceMessage.fbs" />
       <FlatSharpSchema Include="Serialization\Types\ShockerCommandType.fbs" />
       <FlatSharpSchema Include="Serialization\Types\ShockerModelType.fbs" />
     </ItemGroup>
