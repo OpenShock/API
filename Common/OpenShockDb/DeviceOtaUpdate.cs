@@ -8,11 +8,11 @@ public partial class DeviceOtaUpdate
 {
     public Guid Device { get; set; }
 
-    public Guid UpdateId { get; set; }
-
     public DateTime CreatedOn { get; set; }
 
     public string Version { get; set; } = null!;
+
+    public int UpdateId { get; set; }
     
     public OtaUpdateStatus Status { get; set; }
 
