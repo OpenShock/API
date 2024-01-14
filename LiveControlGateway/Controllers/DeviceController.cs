@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
+using OpenShock.Common.Models;
 using OpenShock.Common.OpenShockDb;
 using OpenShock.Common.Redis;
 using OpenShock.Common.Utils;
@@ -12,6 +13,7 @@ using OpenShock.LiveControlGateway.LifetimeManager;
 using OpenShock.LiveControlGateway.Websocket;
 using OpenShock.Serialization;
 using OpenShock.Serialization.Gateway;
+using OpenShock.Serialization.Types;
 using OpenShock.ServicesCommon.Authentication;
 using OpenShock.ServicesCommon.Hubs;
 using OpenShock.ServicesCommon.Services.Ota;
@@ -31,9 +33,9 @@ public sealed class DeviceController : FlatbuffersWebsocketBaseController<Gatewa
 {
     private Device _currentDevice = null!;
     private readonly IRedisConnectionProvider _redisConnectionProvider;
-    private readonly OpenShockContext _db;
     private readonly IDbContextFactory<OpenShockContext> _dbContextFactory;
     private readonly IHubContext<UserHub, IUserHub> _userHubContext;
+    private readonly IServiceProvider _serviceProvider;
     private static readonly TimeSpan InitialTimeout = TimeSpan.FromSeconds(65);
     private static readonly TimeSpan KeepAliveTimeout = TimeSpan.FromSeconds(35);
     private static readonly object KeepAliveTimeoutInt = (int)KeepAliveTimeout.TotalSeconds;
@@ -60,22 +62,22 @@ public sealed class DeviceController : FlatbuffersWebsocketBaseController<Gatewa
     /// <param name="logger"></param>
     /// <param name="lifetime"></param>
     /// <param name="redisConnectionProvider"></param>
-    /// <param name="db"></param>
     /// <param name="dbContextFactory"></param>
     /// <param name="userHubContext"></param>
+    /// <param name="serviceProvider"></param>
     public DeviceController(
         ILogger<DeviceController> logger,
         IHostApplicationLifetime lifetime,
         IRedisConnectionProvider redisConnectionProvider,
-        OpenShockContext db,
         IDbContextFactory<OpenShockContext> dbContextFactory,
-        IHubContext<UserHub, IUserHub> userHubContext)
+        IHubContext<UserHub, IUserHub> userHubContext,
+        IServiceProvider serviceProvider)
         : base(logger, lifetime, GatewayToDeviceMessage.Serializer)
     {
         _redisConnectionProvider = redisConnectionProvider;
-        _db = db;
         _dbContextFactory = dbContextFactory;
         _userHubContext = userHubContext;
+        _serviceProvider = serviceProvider;
         _keepAliveTimer.Elapsed += async (sender, args) =>
         {
             Logger.LogWarning("Keep alive timeout reached, closing websocket connection");
@@ -148,8 +150,13 @@ public sealed class DeviceController : FlatbuffersWebsocketBaseController<Gatewa
         await Close.CancelAsync();
     }
 
+    private OtaUpdateStatus? _lastStatus;
+    
     private async Task Handle(DeviceToGatewayMessagePayload payload)
     {
+        await using var scope = _serviceProvider.CreateAsyncScope();
+        var otaService = scope.ServiceProvider.GetRequiredService<IOtaService>();
+        
         Logger.LogTrace("Received payload [{Kind}] from device [{DeviceId}]", payload.Kind, _currentDevice.Id);
         switch (payload.Kind)
         {
@@ -158,7 +165,63 @@ public sealed class DeviceController : FlatbuffersWebsocketBaseController<Gatewa
                 break;
             
             case DeviceToGatewayMessagePayload.ItemKind.OtaInstallStarted:
-                await HcOwner.OtaInstallStarted(_currentDevice.Id, payload.OtaInstallStarted.Version!.ToSemVersion());
+                _lastStatus = OtaUpdateStatus.Started;
+                await HcOwner.OtaInstallStarted(
+                    _currentDevice.Id,
+                    payload.OtaInstallStarted.UpdateId,
+                    payload.OtaInstallStarted.Version!.ToSemVersion());
+                await otaService.Started(
+                    _currentDevice.Id,
+                    payload.OtaInstallStarted.UpdateId,
+                    payload.OtaInstallStarted.Version!.ToSemVersion());
+                break;
+            
+            case DeviceToGatewayMessagePayload.ItemKind.OtaInstallProgress:
+                await HcOwner.OtaInstallProgress(
+                    _currentDevice.Id,
+                    payload.OtaInstallProgress.UpdateId,
+                    payload.OtaInstallProgress.Task,
+                    payload.OtaInstallProgress.Progress);
+
+                if (_lastStatus == OtaUpdateStatus.Started)
+                {
+                    _lastStatus = OtaUpdateStatus.Running;
+                    await otaService.Progress(_currentDevice.Id, payload.OtaInstallProgress.UpdateId);
+                }
+                break;
+            
+            case DeviceToGatewayMessagePayload.ItemKind.OtaInstallFailed:
+                await HcOwner.OtaInstallFailed(
+                    _currentDevice.Id,
+                    payload.OtaInstallFailed.UpdateId,
+                    payload.OtaInstallFailed.Fatal,
+                    payload.OtaInstallFailed.Message!);
+
+                
+                
+                _lastStatus = OtaUpdateStatus.Error;
+                break;
+            
+            case DeviceToGatewayMessagePayload.ItemKind.BootStatus:
+                if (payload.BootStatus.BootType == FirmwareBootType.NewFirmware)
+                {
+                    await HcOwner.OtaInstallSucceeded(
+                        _currentDevice.Id, payload.BootStatus.OtaUpdateId);
+                    
+                    await otaService.Success(_currentDevice.Id, payload.BootStatus.OtaUpdateId);
+                    _lastStatus = OtaUpdateStatus.Finished;
+                    break;
+                }
+
+                if (payload.BootStatus.BootType == FirmwareBootType.Rollback)
+                {
+                    await HcOwner.OtaRollback(
+                        _currentDevice.Id, payload.BootStatus.OtaUpdateId);
+                    
+                    await otaService.Error(_currentDevice.Id, payload.BootStatus.OtaUpdateId);
+                    _lastStatus = OtaUpdateStatus.Error;
+                    break;
+                }
                 break;
             
             case DeviceToGatewayMessagePayload.ItemKind.NONE:
@@ -211,7 +274,8 @@ public sealed class DeviceController : FlatbuffersWebsocketBaseController<Gatewa
         if (HttpContext.Request.Headers.TryGetValue("Firmware-Version", out var header) &&
             SemVersion.TryParse(header, SemVersionStyles.Strict, out var version)) FirmwareVersion = version;
 
-        await DeviceLifetimeManager.AddDeviceConnection(this, _db, _dbContextFactory, Linked.Token);
+        await using var db = await _dbContextFactory.CreateDbContextAsync();
+        await DeviceLifetimeManager.AddDeviceConnection(this, db, _dbContextFactory, Linked.Token);
     }
 
     /// <inheritdoc />

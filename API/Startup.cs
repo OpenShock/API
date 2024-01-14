@@ -25,6 +25,7 @@ using OpenShock.ServicesCommon.ExceptionHandle;
 using OpenShock.ServicesCommon.Geo;
 using OpenShock.ServicesCommon.Hubs;
 using OpenShock.ServicesCommon.Services.Device;
+using OpenShock.ServicesCommon.Services.Ota;
 using OpenShock.ServicesCommon.Services.RedisPubSub;
 using OpenShock.ServicesCommon.Utils;
 using Redis.OM;
@@ -153,6 +154,7 @@ public class Startup
 
         services.AddScoped<IDeviceService, DeviceService>();
         services.AddScoped<IDeviceUpdateService, DeviceUpdateService>();
+        services.AddScoped<IOtaService, OtaService>();
 
         var apiVersioningBuilder = services.AddApiVersioning(options =>
         {

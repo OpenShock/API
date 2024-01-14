@@ -2,7 +2,6 @@
 
 public enum OtaUpdateStatus
 {
-    Requested,
     Started,
     Running,
     Finished,

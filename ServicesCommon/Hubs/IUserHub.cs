@@ -1,6 +1,7 @@
 ﻿using OpenShock.Common.Models;
 using OpenShock.Common.Models.WebSocket;
 using OpenShock.Common.Models.WebSocket.User;
+using OpenShock.Serialization.Gateway;
 using Semver;
 
 namespace OpenShock.ServicesCommon.Hubs;
@@ -13,8 +14,9 @@ public interface IUserHub
     Task DeviceUpdate(Guid deviceId, DeviceUpdateType type);
     
     // OTA
-    Task OtaInstallStarted(Guid deviceId, SemVersion version);
-    Task OtaInstallProgress(Guid deviceId, string task, float progress);
-    Task OtaInstallFailed(Guid deviceId, bool bricked, string message);
-    Task OtaInstallSucceeded(Guid deviceId, SemVersion version);
+    Task OtaInstallStarted(Guid deviceId, int updateId, SemVersion version);
+    Task OtaInstallProgress(Guid deviceId, int updateId, OtaInstallProgressTask task, float progress);
+    Task OtaInstallFailed(Guid deviceId, int updateId, bool fatal, string message);
+    Task OtaRollback(Guid deviceId, int updateId);
+    Task OtaInstallSucceeded(Guid deviceId, int updateId);
 }

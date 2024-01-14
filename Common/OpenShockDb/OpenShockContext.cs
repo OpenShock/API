@@ -46,7 +46,7 @@ public partial class OpenShockContext : DbContext
     {
         modelBuilder
             .HasPostgresEnum("control_type", new[] { "sound", "vibrate", "shock", "stop" })
-            .HasPostgresEnum("ota_update_status", new[] { "requested", "started", "running", "finished", "error", "timeout" })
+            .HasPostgresEnum("ota_update_status", new[] { "started", "running", "finished", "error", "timeout" })
             .HasPostgresEnum("permission_type", new[] { "shockers.use" })
             .HasPostgresEnum("rank_type", new[] { "user", "support", "staff", "admin", "system" })
             .HasPostgresEnum("shocker_model_type", new[] { "caiXianlin", "petTrainer" });
