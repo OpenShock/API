@@ -52,6 +52,7 @@ namespace OpenShock.ServicesCommon.Websocket
 
 
         /// <inheritdoc />
+        [NonAction]
         public ValueTask QueueMessage(T data) => _channel.Writer.WriteAsync(data);
 
         private bool _disposed;
@@ -83,6 +84,7 @@ namespace OpenShock.ServicesCommon.Websocket
         /// Dispose function for any inheriting controller
         /// </summary>
         /// <returns></returns>
+        [NonAction]
         public virtual ValueTask DisposeControllerAsync() => ValueTask.CompletedTask;
     
         /// <summary>
@@ -116,6 +118,7 @@ namespace OpenShock.ServicesCommon.Websocket
             
             await Logic();
 
+            Logger.LogError("YO NIG");
             await UnregisterConnection();
 
             await Close.CancelAsync();

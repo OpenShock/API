@@ -1,4 +1,6 @@
-﻿namespace OpenShock.ServicesCommon.Websocket
+﻿using Microsoft.AspNetCore.Mvc;
+
+namespace OpenShock.ServicesCommon.Websocket
 {
     /// <summary>
     /// Interface description for a websocket controller with any type
@@ -16,6 +18,7 @@
         /// </summary>
         /// <param name="data"></param>
         /// <returns>ValueTask</returns>
+        [NonAction]
         public ValueTask QueueMessage(T data);
     }
 }

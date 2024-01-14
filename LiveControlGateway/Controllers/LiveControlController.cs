@@ -79,6 +79,7 @@ public sealed class LiveControlController : WebsocketBaseController<IBaseRespons
     /// Update all shockers permissions for this user on this device
     /// </summary>
     /// <param name="db"></param>
+    [NonAction]
     public async Task UpdatePermissions(OpenShockContext db)
     {
         if (_device!.Owner == _currentUser.DbUser.Id)
