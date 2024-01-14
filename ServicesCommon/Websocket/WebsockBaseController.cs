@@ -117,8 +117,7 @@ namespace OpenShock.ServicesCommon.Websocket
             await SendInitialData();
             
             await Logic();
-
-            Logger.LogError("YO NIG");
+            
             await UnregisterConnection();
 
             await Close.CancelAsync();
