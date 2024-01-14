@@ -196,8 +196,6 @@ public sealed class DeviceController : FlatbuffersWebsocketBaseController<Gatewa
                     payload.OtaInstallFailed.UpdateId,
                     payload.OtaInstallFailed.Fatal,
                     payload.OtaInstallFailed.Message!);
-
-                
                 
                 _lastStatus = OtaUpdateStatus.Error;
                 break;

@@ -50,6 +50,7 @@ public sealed partial class PublicController
                         Vibrate = y.PermVibrate,
                         Sound = y.PermSound,
                         Shock = y.PermShock,
+                        Live = y.PermLive
                     },
                     Paused = ShareLinkUtils.GetPausedReason(y.Paused, y.Shocker.Paused),
                 }

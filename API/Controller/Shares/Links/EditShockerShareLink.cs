@@ -39,6 +39,7 @@ public sealed partial class ShareLinksController
         shocker.PermShock = data.Permissions.Shock;
         shocker.LimitDuration = data.Limits.Duration;
         shocker.LimitIntensity = data.Limits.Intensity;
+        shocker.PermLive = data.Permissions.Live;
         shocker.Cooldown = data.Cooldown;
 
         await _db.SaveChangesAsync();

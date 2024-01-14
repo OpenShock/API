@@ -47,7 +47,8 @@ public sealed partial class ShockerController
                     {
                         Sound = x.PermSound,
                         Shock = x.PermShock,
-                        Vibrate = x.PermVibrate
+                        Vibrate = x.PermVibrate,
+                        Live = x.PermLive
                     },
                     Limits = new ShockerLimits
                     {
@@ -216,6 +217,7 @@ public sealed partial class ShockerController
         share.PermVibrate = data.Permissions.Vibrate;
         share.LimitDuration = data.Limits.Duration;
         share.LimitIntensity = data.Limits.Intensity;
+        share.PermLive = data.Permissions.Live;
 
         await _db.SaveChangesAsync();
 

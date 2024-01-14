@@ -33,7 +33,8 @@ public partial class ShockerController
                     {
                         Shock = x.PermShock,
                         Sound = x.PermSound,
-                        Vibrate = x.PermVibrate
+                        Vibrate = x.PermVibrate,
+                        Live = x.PermLive
                     },
                     Limits = new ShockerLimits
                     {
