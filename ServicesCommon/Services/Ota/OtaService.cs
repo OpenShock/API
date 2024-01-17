@@ -1,5 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using OpenShock.Common.Models;
+using OpenShock.Common.Models.Services.Ota;
 using OpenShock.Common.OpenShockDb;
 using Semver;
 
@@ -63,5 +64,17 @@ public class OtaService : IOtaService
 
         await _db.SaveChangesAsync();
     }
-    
+
+    public async Task<IReadOnlyCollection<OtaItem>> GetUpdates(Guid deviceId)
+    {
+        return await _db.DeviceOtaUpdates.AsNoTracking()
+            .Where(x => x.Device == deviceId)
+            .OrderByDescending(x => x.CreatedOn)
+            .Select(x => new OtaItem
+        {
+            StartedAt = x.CreatedOn,
+            Status = x.Status,
+            Version = SemVersion.Parse(x.Version, SemVersionStyles.Strict, 1024)
+        }).ToArrayAsync();
+    }
 }

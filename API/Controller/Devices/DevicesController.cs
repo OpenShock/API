@@ -2,16 +2,10 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using OpenShock.API.Models.Requests;
-using OpenShock.API.Realtime;
 using OpenShock.API.Utils;
 using OpenShock.Common.Models;
-using OpenShock.Common.OpenShockDb;
 using OpenShock.Common.Redis;
-using OpenShock.Common.Redis.PubSub;
-using OpenShock.ServicesCommon.Authentication;
 using OpenShock.ServicesCommon.Services.RedisPubSub;
-using Redis.OM.Contracts;
-using Redis.OM.Searching;
 
 namespace OpenShock.API.Controller.Devices;
 
@@ -210,7 +204,11 @@ public sealed partial class DevicesController
     /// Get LCG info for a device if it is online and connected to a LCG node
     /// </summary>
     /// <param name="id"></param>
-    /// <returns></returns>
+    /// <response code="200">LCG node was found and device is online</response>
+    /// <response code="404">Device does not exist or does not belong to you</response>
+    /// <response code="404">Device is not online</response>
+    /// <response code="412">Device is online but not connected to a LCG node, you might need to upgrade your firmware to use this feature</response>
+    /// <response code="500">Internal server error, lcg node could not be found</response>
     [HttpGet("{id:guid}/lcg")]
     public async Task<BaseResponse<LcgResponse>> GetLcgInfo(Guid id)
     {
