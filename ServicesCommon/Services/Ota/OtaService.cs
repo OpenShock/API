@@ -72,6 +72,7 @@ public class OtaService : IOtaService
             .OrderByDescending(x => x.CreatedOn)
             .Select(x => new OtaItem
         {
+            Id = x.UpdateId,
             StartedAt = x.CreatedOn,
             Status = x.Status,
             Version = SemVersion.Parse(x.Version, SemVersionStyles.Strict, 1024)

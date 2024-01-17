@@ -70,6 +70,7 @@ public class Startup
         NpgsqlConnection.GlobalTypeMapper.MapEnum<PermissionType>();
         NpgsqlConnection.GlobalTypeMapper.MapEnum<ShockerModelType>();
         NpgsqlConnection.GlobalTypeMapper.MapEnum<RankType>();
+        NpgsqlConnection.GlobalTypeMapper.MapEnum<OtaUpdateStatus>();
 #pragma warning restore CS0618
         services.AddDbContextPool<OpenShockContext>(builder =>
         {
