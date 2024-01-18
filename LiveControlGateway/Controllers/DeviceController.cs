@@ -166,6 +166,7 @@ public sealed class DeviceController : FlatbuffersWebsocketBaseController<Gatewa
                 break;
 
             case DeviceToGatewayMessagePayload.ItemKind.OtaInstallStarted:
+                Logger.LogInformation("OTA started {Version}", payload.OtaInstallStarted.Version!.ToSemVersion());
                 _lastStatus = OtaUpdateStatus.Started;
                 await HcOwner.OtaInstallStarted(
                     _currentDevice.Id,
@@ -178,6 +179,7 @@ public sealed class DeviceController : FlatbuffersWebsocketBaseController<Gatewa
                 break;
 
             case DeviceToGatewayMessagePayload.ItemKind.OtaInstallProgress:
+                Logger.LogInformation("OTA progress {Progress}", payload.OtaInstallProgress.Progress.ToString(CultureInfo.InvariantCulture));
                 await HcOwner.OtaInstallProgress(
                     _currentDevice.Id,
                     payload.OtaInstallProgress.UpdateId,
@@ -203,6 +205,7 @@ public sealed class DeviceController : FlatbuffersWebsocketBaseController<Gatewa
                 break;
 
             case DeviceToGatewayMessagePayload.ItemKind.BootStatus:
+                Logger.LogInformation("Boot status {BootType}", payload.BootStatus.BootType);
                 if (payload.BootStatus.BootType == FirmwareBootType.NewFirmware)
                 {
                     await HcOwner.OtaInstallSucceeded(
