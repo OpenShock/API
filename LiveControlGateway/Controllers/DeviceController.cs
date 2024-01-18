@@ -95,7 +95,8 @@ public sealed class DeviceController : FlatbuffersWebsocketBaseController<Gatewa
             {
                 if (WebSocket?.State == WebSocketState.Aborted) return;
                 var message =
-                    await FlatbufferWebSocketUtils.ReceiveFullMessageAsyncNonAlloc(WebSocket!, DeviceToGatewayMessage.Serializer,
+                    await FlatbufferWebSocketUtils.ReceiveFullMessageAsyncNonAlloc(WebSocket!,
+                        DeviceToGatewayMessage.Serializer,
                         Linked.Token);
 
                 if (message.IsT2)
@@ -151,19 +152,19 @@ public sealed class DeviceController : FlatbuffersWebsocketBaseController<Gatewa
     }
 
     private OtaUpdateStatus? _lastStatus;
-    
+
     private async Task Handle(DeviceToGatewayMessagePayload payload)
     {
         await using var scope = _serviceProvider.CreateAsyncScope();
         var otaService = scope.ServiceProvider.GetRequiredService<IOtaService>();
-        
+
         Logger.LogTrace("Received payload [{Kind}] from device [{DeviceId}]", payload.Kind, _currentDevice.Id);
         switch (payload.Kind)
         {
             case DeviceToGatewayMessagePayload.ItemKind.KeepAlive:
                 await SelfOnline();
                 break;
-            
+
             case DeviceToGatewayMessagePayload.ItemKind.OtaInstallStarted:
                 _lastStatus = OtaUpdateStatus.Started;
                 await HcOwner.OtaInstallStarted(
@@ -175,7 +176,7 @@ public sealed class DeviceController : FlatbuffersWebsocketBaseController<Gatewa
                     payload.OtaInstallStarted.UpdateId,
                     payload.OtaInstallStarted.Version!.ToSemVersion());
                 break;
-            
+
             case DeviceToGatewayMessagePayload.ItemKind.OtaInstallProgress:
                 await HcOwner.OtaInstallProgress(
                     _currentDevice.Id,
@@ -188,25 +189,28 @@ public sealed class DeviceController : FlatbuffersWebsocketBaseController<Gatewa
                     _lastStatus = OtaUpdateStatus.Running;
                     await otaService.Progress(_currentDevice.Id, payload.OtaInstallProgress.UpdateId);
                 }
+
                 break;
-            
+
             case DeviceToGatewayMessagePayload.ItemKind.OtaInstallFailed:
                 await HcOwner.OtaInstallFailed(
                     _currentDevice.Id,
                     payload.OtaInstallFailed.UpdateId,
                     payload.OtaInstallFailed.Fatal,
                     payload.OtaInstallFailed.Message!);
-                
+
                 _lastStatus = OtaUpdateStatus.Error;
                 break;
-            
+
             case DeviceToGatewayMessagePayload.ItemKind.BootStatus:
                 if (payload.BootStatus.BootType == FirmwareBootType.NewFirmware)
                 {
                     await HcOwner.OtaInstallSucceeded(
                         _currentDevice.Id, payload.BootStatus.OtaUpdateId);
+
                     
-                    await otaService.Success(_currentDevice.Id, payload.BootStatus.OtaUpdateId);
+                    var test = await otaService.Success(_currentDevice.Id, payload.BootStatus.OtaUpdateId);
+                    Logger.LogInformation("SUCCESS DB UPDATE {A}", test);
                     _lastStatus = OtaUpdateStatus.Finished;
                     break;
                 }
@@ -215,13 +219,14 @@ public sealed class DeviceController : FlatbuffersWebsocketBaseController<Gatewa
                 {
                     await HcOwner.OtaRollback(
                         _currentDevice.Id, payload.BootStatus.OtaUpdateId);
-                    
+
                     await otaService.Error(_currentDevice.Id, payload.BootStatus.OtaUpdateId);
                     _lastStatus = OtaUpdateStatus.Error;
                     break;
                 }
+
                 break;
-            
+
             case DeviceToGatewayMessagePayload.ItemKind.NONE:
             default:
                 Logger.LogWarning("Payload kind not defined [{Kind}]", payload.Kind);
@@ -236,7 +241,7 @@ public sealed class DeviceController : FlatbuffersWebsocketBaseController<Gatewa
         Logger.LogDebug("Received keep alive from device [{DeviceId}]", _currentDevice.Id);
 
         _keepAliveTimer.Interval = KeepAliveTimeout.TotalMilliseconds;
-        
+
         var deviceOnline = _redisConnectionProvider.RedisCollection<DeviceOnline>();
         var deviceId = _currentDevice.Id.ToString();
         var online = await deviceOnline.FindByIdAsync(deviceId);

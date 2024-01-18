@@ -54,15 +54,16 @@ public class OtaService : IOtaService
         await _db.SaveChangesAsync();
     }
     
-    public async Task Success(Guid deviceId, int updateId)
+    public async Task<bool> Success(Guid deviceId, int updateId)
     {
         var updateTask = await _db.DeviceOtaUpdates
             .Where(x => x.Device == deviceId && x.UpdateId == updateId)
             .FirstOrDefaultAsync();
-        if (updateTask == null) return;
-        updateTask.Status = OtaUpdateStatus.Error;
+        if (updateTask == null) return false;
+        updateTask.Status = OtaUpdateStatus.Finished;
 
         await _db.SaveChangesAsync();
+        return true;
     }
 
     public async Task<IReadOnlyCollection<OtaItem>> GetUpdates(Guid deviceId)
