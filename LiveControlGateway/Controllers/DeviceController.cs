@@ -99,6 +99,30 @@ public sealed class DeviceController : FlatbuffersWebsocketBaseController<Gatewa
                         DeviceToGatewayMessage.Serializer,
                         Linked.Token);
 
+                // All is good, normal message, deserialize and handle
+                if (message.IsT0)
+                {
+                    var serverMessage = message.AsT0;
+                    if (serverMessage?.Payload == null) return;
+                    var payload = serverMessage.Payload.Value;
+                    try
+                    {
+                        await Handle(payload);
+                    }
+                    catch (Exception e)
+                    {
+                        Logger.LogError(e, "Error while handling device message");
+                    }
+                    continue;
+                }
+
+                // Deserialization failed, log and continue
+                if (message.IsT1)
+                {
+                    Logger.LogWarning(message.AsT1.Exception, "Deserialization failed for websocket message");
+                }
+                
+                // Device sent closure, close connection
                 if (message.IsT2)
                 {
                     if (WebSocket!.State != WebSocketState.Open)
@@ -120,17 +144,6 @@ public sealed class DeviceController : FlatbuffersWebsocketBaseController<Gatewa
                     Logger.LogInformation("Closing websocket connection");
                     break;
                 }
-
-                message.Switch(serverMessage =>
-                    {
-                        if (serverMessage?.Payload == null) return;
-                        var payload = serverMessage.Payload.Value;
-#pragma warning disable CS4014
-                        LucTask.Run(() => Handle(payload));
-#pragma warning restore CS4014
-                    },
-                    failed => { Logger.LogWarning(failed.Exception, "Deserialization failed for websocket message"); },
-                    _ => { });
             }
             catch (OperationCanceledException)
             {
@@ -179,7 +192,8 @@ public sealed class DeviceController : FlatbuffersWebsocketBaseController<Gatewa
                 break;
 
             case DeviceToGatewayMessagePayload.ItemKind.OtaInstallProgress:
-                Logger.LogInformation("OTA progress {Progress}", payload.OtaInstallProgress.Progress.ToString(CultureInfo.InvariantCulture));
+                Logger.LogInformation("OTA progress {Progress}",
+                    payload.OtaInstallProgress.Progress.ToString(CultureInfo.InvariantCulture));
                 await HcOwner.OtaInstallProgress(
                     _currentDevice.Id,
                     payload.OtaInstallProgress.UpdateId,
@@ -211,7 +225,7 @@ public sealed class DeviceController : FlatbuffersWebsocketBaseController<Gatewa
                     await HcOwner.OtaInstallSucceeded(
                         _currentDevice.Id, payload.BootStatus.OtaUpdateId);
 
-                    
+
                     var test = await otaService.Success(_currentDevice.Id, payload.BootStatus.OtaUpdateId);
                     Logger.LogInformation("SUCCESS DB UPDATE {A}", test);
                     _lastStatus = OtaUpdateStatus.Finished;
