@@ -11,7 +11,6 @@ using OpenShock.Common.Redis;
 using OpenShock.Common.Utils;
 using OpenShock.LiveControlGateway.LifetimeManager;
 using OpenShock.LiveControlGateway.Websocket;
-using OpenShock.Serialization;
 using OpenShock.Serialization.Gateway;
 using OpenShock.Serialization.Types;
 using OpenShock.ServicesCommon.Authentication;
@@ -19,6 +18,7 @@ using OpenShock.ServicesCommon.Hubs;
 using OpenShock.ServicesCommon.Services.Ota;
 using Redis.OM.Contracts;
 using Semver;
+using Serilog;
 using Timer = System.Timers.Timer;
 
 namespace OpenShock.LiveControlGateway.Controllers;
@@ -240,6 +240,24 @@ public sealed class DeviceController : FlatbuffersWebsocketBaseController<Gatewa
                     await otaService.Error(_currentDevice.Id, payload.BootStatus.OtaUpdateId);
                     _lastStatus = OtaUpdateStatus.Error;
                     break;
+                }
+
+                if (payload.BootStatus.BootType == FirmwareBootType.Normal)
+                {
+                    if(payload.BootStatus.OtaUpdateId == 0) break;
+                    
+                    var unfinished = await otaService.UpdateUnfinished(_currentDevice.Id, 
+                        payload.BootStatus.OtaUpdateId);
+                    
+                    if (!unfinished) break;
+                    
+                    Log.Warning("OTA update unfinished, rolling back");
+                    
+                    await HcOwner.OtaRollback(
+                        _currentDevice.Id, payload.BootStatus.OtaUpdateId);
+
+                    await otaService.Error(_currentDevice.Id, payload.BootStatus.OtaUpdateId);
+                    _lastStatus = OtaUpdateStatus.Error;
                 }
 
                 break;

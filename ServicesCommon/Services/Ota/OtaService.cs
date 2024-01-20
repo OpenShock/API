@@ -19,6 +19,7 @@ public class OtaService : IOtaService
         _db = db;
     }
 
+    /// <inheritdoc />
     public Task Started(Guid deviceId, int updateId, SemVersion version)
     {
         _db.DeviceOtaUpdates.Add(new DeviceOtaUpdate
@@ -32,6 +33,7 @@ public class OtaService : IOtaService
         return _db.SaveChangesAsync();
     }
 
+    /// <inheritdoc />
     public async Task Progress(Guid deviceId, int updateId)
     {
         var updateTask = await _db.DeviceOtaUpdates
@@ -43,6 +45,7 @@ public class OtaService : IOtaService
         await _db.SaveChangesAsync();
     }
 
+    /// <inheritdoc />
     public async Task Error(Guid deviceId, int updateId)
     {
         var updateTask = await _db.DeviceOtaUpdates
@@ -54,6 +57,7 @@ public class OtaService : IOtaService
         await _db.SaveChangesAsync();
     }
     
+    /// <inheritdoc />
     public async Task<bool> Success(Guid deviceId, int updateId)
     {
         var updateTask = await _db.DeviceOtaUpdates
@@ -66,6 +70,7 @@ public class OtaService : IOtaService
         return true;
     }
 
+    /// <inheritdoc />
     public async Task<IReadOnlyCollection<OtaItem>> GetUpdates(Guid deviceId)
     {
         return await _db.DeviceOtaUpdates.AsNoTracking()
@@ -78,5 +83,14 @@ public class OtaService : IOtaService
             Status = x.Status,
             Version = SemVersion.Parse(x.Version, SemVersionStyles.Strict, 1024)
         }).ToArrayAsync();
+    }
+
+    /// <inheritdoc />
+    public async Task<bool> UpdateUnfinished(Guid deviceId, int updateId)
+    {
+        return await _db.DeviceOtaUpdates.AsNoTracking()
+            .AnyAsync(x => x.Device == deviceId &&
+                           x.UpdateId == updateId &&
+                           (x.Status == OtaUpdateStatus.Running || x.Status == OtaUpdateStatus.Started));
     }
 }
