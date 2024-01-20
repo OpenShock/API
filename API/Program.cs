@@ -1,5 +1,4 @@
 using OpenShock.API;
-using OpenShock.API.Realtime;
 using Serilog;
 
 HostBuilder builder = new();

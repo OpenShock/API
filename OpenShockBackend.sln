@@ -8,6 +8,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LiveControlGateway", "LiveC
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ServicesCommon", "ServicesCommon\ServicesCommon.csproj", "{AAEE455D-15EB-4307-8583-9BFD2A6BB825}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Cron", "Cron\Cron.csproj", "{1A5D3B84-AF07-4884-B317-50BC600F33A8}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -30,5 +32,9 @@ Global
 		{AAEE455D-15EB-4307-8583-9BFD2A6BB825}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{AAEE455D-15EB-4307-8583-9BFD2A6BB825}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{AAEE455D-15EB-4307-8583-9BFD2A6BB825}.Release|Any CPU.Build.0 = Release|Any CPU
+		{1A5D3B84-AF07-4884-B317-50BC600F33A8}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{1A5D3B84-AF07-4884-B317-50BC600F33A8}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{1A5D3B84-AF07-4884-B317-50BC600F33A8}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{1A5D3B84-AF07-4884-B317-50BC600F33A8}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal
