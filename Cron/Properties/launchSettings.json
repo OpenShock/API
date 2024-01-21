@@ -5,8 +5,12 @@
       "commandName": "Project",
       "dotnetRunMessages": true,
       "environmentVariables": {
-        "DOTNET_ENVIRONMENT": "Development"
+        "DOTNET_ENVIRONMENT": "Development",
+        "OPENSHOCK__DB": "Host=docker-node;Port=1337;Database=openshock;Username=root;Password=root",
+        "OPENSHOCK__REDIS__HOST":"docker-node",
+        "OPENSHOCK__REDIS__PASSWORD": ""
       }
     }
   }
 }
+
