@@ -6,28 +6,68 @@ services:
 
   db:
     image: postgres:16
-    container_name: shocklink-pg
+    restart: unless-stopped
+    container_name: openshock-pg
+    networks:
+     - openshock
     environment:
       - POSTGRES_PASSWORD=postgres
   
   redis:
+    restart: unless-stopped
+    networks:
+     - openshock
     image: redislabs/redisearch:latest
 
   api:
-    image: ghcr.io/shock-link/api:latest
+    image: ghcr.io/openshock/api:latest
+    restart: unless-stopped
+    networks:
+     - openshock
     depends_on:
       - db
       - redis
     ports:
       - "5001:80/tcp"
     environment:
-      - FRONTEND_BASE_URL=localhost
-      - REDIS_HOST=redis
-      - DB=db
+    environment:
+      OPENSHOCK__DB=Host: db;Port=5432;Database=shocklink;Username=shocklink;Password=someSuperSecurePassword
+      OPENSHOCK__REDIS__HOST: redis
+      OPENSHOCK__FRONTENDBASEURL: https://shocklink.net
+      OPENSHOCK__MAILJET__KEY: mailjetkey
+      OPENSHOCK__MAILJET__SECRET: mailjetsecret
   
   webui:
-    image: ghcr.io/shock-link/webui:latest
-    depends_on:
-      - api
+    image: ghcr.io/openshock/webui:latest
+    restart: unless-stopped
     ports:
       - "5002:80/tcp"
+    environment:
+      - OPENSHOCK_NAME=ShockLink
+      - OPENSHOCK_URL=https://shocklink.net
+      - OPENSHOCK_SHARE_URL=https://shockl.ink
+      - OPENSHOCK_API_URL=https://api.shocklink.net
+
+  lcg:
+    image: ghcr.io/openshock/live-control-gateway:latest
+    restart: unless-stopped
+    networks:
+     - openshock
+    environment:
+      OPENSHOCK__DB=Host: db;Port=5432;Database=shocklink;Username=shocklink;Password=someSuperSecurePassword
+      OPENSHOCK__REDIS__HOST: redis
+      OPENSHOCK__COUNTRYCODE: DE
+      OPENSHOCK__FQDN: de1-gateway.shocklink.net
+
+  cron:
+    image: ghcr.io/openshock/cron:master
+    restart: unless-stopped
+    networks:
+     - openshock
+    environment:
+      OPENSHOCK__DB=Host: db;Port=5432;Database=shocklink;Username=shocklink;Password=someSuperSecurePassword
+      OPENSHOCK__REDIS__HOST: redis
+
+
+networks:
+  openshock:
