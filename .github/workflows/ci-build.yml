@@ -50,7 +50,7 @@ jobs:
         run: dotnet publish Cron/Cron.csproj -c Release -o ./publish/Cron
       
       - name: Upload API artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: API
           path: publish/API/*
@@ -58,7 +58,7 @@ jobs:
           if-no-files-found: error
       
       - name: Upload LiveControlGateway artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: LiveControlGateway
           path: publish/LiveControlGateway/*
@@ -66,7 +66,7 @@ jobs:
           if-no-files-found: error
           
       - name: Upload Cron artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: Cron
           path: publish/Cron/*
