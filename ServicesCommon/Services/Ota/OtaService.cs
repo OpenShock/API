@@ -82,7 +82,7 @@ public class OtaService : IOtaService
             StartedAt = x.CreatedOn,
             Status = x.Status,
             Version = SemVersion.Parse(x.Version, SemVersionStyles.Strict, 1024),
-            Message = string.Empty
+            Message = x.Message
         }).ToArrayAsync();
     }
 
