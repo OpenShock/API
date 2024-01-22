@@ -26,12 +26,14 @@ The OpenShock stack consists of the following components:
 - The API (this repository)
 - [The WebUI](https://github.com/Shock-Link/WebUI)
 
+## Important
+OpenShock instance needs to be under the same domain name to work correctly. This is due to cookie limitations in browsers.
+E.g.
+Fontend: https://ShockLink.net
+API: https://api.ShockLink.net
+LCG: https://de1-gateway.shocklink.net
+
 ## Using Docker
-
-Assuming you have all other required containers running (if not, see above), you can run the following command to start
-the API:
-
-## Using `docker-compose`
 
 See [docker-compose.yml](docker-compose.yml).
 
