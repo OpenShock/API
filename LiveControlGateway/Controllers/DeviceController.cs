@@ -113,6 +113,7 @@ public sealed class DeviceController : FlatbuffersWebsocketBaseController<Gatewa
                     {
                         Logger.LogError(e, "Error while handling device message");
                     }
+
                     continue;
                 }
 
@@ -121,7 +122,7 @@ public sealed class DeviceController : FlatbuffersWebsocketBaseController<Gatewa
                 {
                     Logger.LogWarning(message.AsT1.Exception, "Deserialization failed for websocket message");
                 }
-                
+
                 // Device sent closure, close connection
                 if (message.IsT2)
                 {
@@ -215,6 +216,9 @@ public sealed class DeviceController : FlatbuffersWebsocketBaseController<Gatewa
                     payload.OtaInstallFailed.Fatal,
                     payload.OtaInstallFailed.Message!);
 
+                await otaService.Error(_currentDevice.Id, payload.OtaInstallFailed.UpdateId,
+                    payload.OtaInstallFailed.Fatal, payload.OtaInstallFailed.Message!);
+
                 _lastStatus = OtaUpdateStatus.Error;
                 break;
 
@@ -224,7 +228,6 @@ public sealed class DeviceController : FlatbuffersWebsocketBaseController<Gatewa
                 {
                     await HcOwner.OtaInstallSucceeded(
                         _currentDevice.Id, payload.BootStatus.OtaUpdateId);
-
 
                     var test = await otaService.Success(_currentDevice.Id, payload.BootStatus.OtaUpdateId);
                     Logger.LogInformation("SUCCESS DB UPDATE {A}", test);
@@ -237,26 +240,26 @@ public sealed class DeviceController : FlatbuffersWebsocketBaseController<Gatewa
                     await HcOwner.OtaRollback(
                         _currentDevice.Id, payload.BootStatus.OtaUpdateId);
 
-                    await otaService.Error(_currentDevice.Id, payload.BootStatus.OtaUpdateId);
+                    await otaService.Error(_currentDevice.Id, payload.BootStatus.OtaUpdateId, false, "Device booted with firmware rollback");
                     _lastStatus = OtaUpdateStatus.Error;
                     break;
                 }
 
                 if (payload.BootStatus.BootType == FirmwareBootType.Normal)
                 {
-                    if(payload.BootStatus.OtaUpdateId == 0) break;
-                    
-                    var unfinished = await otaService.UpdateUnfinished(_currentDevice.Id, 
+                    if (payload.BootStatus.OtaUpdateId == 0) break;
+
+                    var unfinished = await otaService.UpdateUnfinished(_currentDevice.Id,
                         payload.BootStatus.OtaUpdateId);
-                    
+
                     if (!unfinished) break;
-                    
+
                     Log.Warning("OTA update unfinished, rolling back");
-                    
+
                     await HcOwner.OtaRollback(
                         _currentDevice.Id, payload.BootStatus.OtaUpdateId);
 
-                    await otaService.Error(_currentDevice.Id, payload.BootStatus.OtaUpdateId);
+                    await otaService.Error(_currentDevice.Id, payload.BootStatus.OtaUpdateId, false, "Device booted with normal boot, update seems unfinished");
                     _lastStatus = OtaUpdateStatus.Error;
                 }
 

@@ -120,6 +120,9 @@ public partial class OpenShockContext : DbContext
             entity.Property(e => e.CreatedOn)
                 .HasDefaultValueSql("CURRENT_TIMESTAMP")
                 .HasColumnName("created_on");
+            entity.Property(e => e.Message)
+                .HasColumnType("character varying")
+                .HasColumnName("message");
             entity.Property(e => e.Version)
                 .HasColumnType("character varying")
                 .HasColumnName("version");

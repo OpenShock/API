@@ -11,4 +11,5 @@ public sealed class OtaItem
     public required OtaUpdateStatus Status { get; init; }
     [JsonConverter(typeof(SemVersionJsonConverter))]
     public required SemVersion Version { get; init; }
+    public required string? Message { get; init; }
 }

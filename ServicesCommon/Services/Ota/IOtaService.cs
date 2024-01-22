@@ -28,7 +28,7 @@ public interface IOtaService
     /// <param name="deviceId"></param>
     /// <param name="updateId"></param>
     /// <returns></returns>
-    public Task Error(Guid deviceId, int updateId);
+    public Task Error(Guid deviceId, int updateId, bool fatal, string message);
     
     /// <summary>
     /// Updated succeeded

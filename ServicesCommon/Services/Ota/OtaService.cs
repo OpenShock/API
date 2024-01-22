@@ -46,7 +46,7 @@ public class OtaService : IOtaService
     }
 
     /// <inheritdoc />
-    public async Task Error(Guid deviceId, int updateId)
+    public async Task Error(Guid deviceId, int updateId, bool fatal, string message)
     {
         var updateTask = await _db.DeviceOtaUpdates
             .Where(x => x.Device == deviceId && x.UpdateId == updateId)
@@ -81,7 +81,8 @@ public class OtaService : IOtaService
             Id = x.UpdateId,
             StartedAt = x.CreatedOn,
             Status = x.Status,
-            Version = SemVersion.Parse(x.Version, SemVersionStyles.Strict, 1024)
+            Version = SemVersion.Parse(x.Version, SemVersionStyles.Strict, 1024),
+            Message = string.Empty
         }).ToArrayAsync();
     }
 

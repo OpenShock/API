@@ -16,5 +16,7 @@ public partial class DeviceOtaUpdate
     
     public OtaUpdateStatus Status { get; set; }
 
+    public string? Message { get; set; }
+
     public virtual Device DeviceNavigation { get; set; } = null!;
 }
