@@ -14,6 +14,7 @@ using OpenShock.Common.Models.WebSocket.LCG;
 using OpenShock.Common.OpenShockDb;
 using OpenShock.Common.Utils;
 using OpenShock.LiveControlGateway.LifetimeManager;
+using OpenShock.LiveControlGateway.Models;
 using OpenShock.LiveControlGateway.Websocket;
 using OpenShock.ServicesCommon.Authentication;
 using OpenShock.ServicesCommon.Models;
@@ -29,8 +30,9 @@ namespace OpenShock.LiveControlGateway.Controllers;
 public sealed class LiveControlController : WebsocketBaseController<IBaseResponse<LiveResponseType>>
 {
     private readonly OpenShockContext _db;
-    
+
     private static readonly TimeSpan PingInterval = TimeSpan.FromSeconds(5);
+
     private static readonly SharePermsAndLimitsLive OwnerPermsAndLimitsLive = new()
     {
         Shock = true,
@@ -44,7 +46,7 @@ public sealed class LiveControlController : WebsocketBaseController<IBaseRespons
     private LinkUser _currentUser;
     private Guid? _deviceId;
     private Device? _device;
-    private Dictionary<Guid, SharePermsAndLimitsLive> _sharedShockers;
+    private Dictionary<Guid, LiveShockerPermission> _sharedShockers;
 
     /// <summary>
     /// Last latency in milliseconds, 0 initially
@@ -82,27 +84,37 @@ public sealed class LiveControlController : WebsocketBaseController<IBaseRespons
     [NonAction]
     public async Task UpdatePermissions(OpenShockContext db)
     {
+        Logger.LogDebug("Updating shared permissions for device [{Device}] for user [{User}]", Id,
+            _currentUser.DbUser.Id);
+        
         if (_device!.Owner == _currentUser.DbUser.Id)
         {
-            Logger.LogTrace("User is owner, skipping update permissions");
+            Logger.LogTrace("User is owner of device");
+            _sharedShockers = await db.Shockers.Where(x => x.Device == Id).ToDictionaryAsync(x => x.Id, x => new LiveShockerPermission()
+            {
+                Paused = x.Paused,
+                PermsAndLimits = OwnerPermsAndLimitsLive
+            });
             return;
         }
+
         
-        Logger.LogDebug("Updating shared permissions for device [{Device}] for user [{User}]", Id, _currentUser.DbUser.Id);
-        
-        var updated = await db.ShockerShares
+
+        _sharedShockers = await db.ShockerShares
             .Where(x => x.Shocker.Device == Id && x.SharedWith == _currentUser.DbUser.Id).ToDictionaryAsync(
-                x => x.ShockerId, x => new SharePermsAndLimitsLive
+                x => x.ShockerId, x => new LiveShockerPermission()
                 {
-                    Shock = x.PermShock,
-                    Vibrate = x.PermVibrate,
-                    Sound = x.PermSound,
-                    Duration = x.LimitDuration,
-                    Intensity = x.LimitIntensity,
-                    Live = x.PermLive
+                    Paused = x.Paused || x.Shocker.Paused,
+                    PermsAndLimits = new SharePermsAndLimitsLive
+                    {
+                        Shock = x.PermShock,
+                        Vibrate = x.PermVibrate,
+                        Sound = x.PermSound,
+                        Duration = x.LimitDuration,
+                        Intensity = x.LimitIntensity,
+                        Live = x.PermLive
+                    }
                 });
-        
-        _sharedShockers = updated;
     }
 
     /// <summary>
@@ -344,7 +356,7 @@ public sealed class LiveControlController : WebsocketBaseController<IBaseRespons
             });
             return;
         }
-        
+
         Logger.LogTrace("Frame: {@Frame}", frame);
 
         var permCheck = CheckFramePermissions(frame.Shocker, frame.Type);
@@ -374,8 +386,8 @@ public sealed class LiveControlController : WebsocketBaseController<IBaseRespons
             });
             return;
         }
-        
-        
+
+
         var perms = permCheck.AsT0.Value;
         // Clamp to limits
         var intensityMax = perms.Intensity ?? 100;
@@ -406,21 +418,21 @@ public sealed class LiveControlController : WebsocketBaseController<IBaseRespons
         }
     }
 
-    private OneOf<Success<SharePermsAndLimitsLive>, NotFound, LiveNotEnabled, NoPermission> CheckFramePermissions(Guid shocker, ControlType controlType)
+    private OneOf<Success<SharePermsAndLimitsLive>, NotFound, LiveNotEnabled, NoPermission, ShockerPaused> CheckFramePermissions(
+        Guid shocker, ControlType controlType)
     {
-        if (_device!.Owner == _currentUser.DbUser.Id)
-            return new Success<SharePermsAndLimitsLive>(OwnerPermsAndLimitsLive);
-        
-        if (!_sharedShockers.TryGetValue(shocker, out var shockerShare) || !shockerShare.Live) return new NotFound();
+        if (!_sharedShockers.TryGetValue(shocker, out var shockerShare)) return new NotFound();
 
-        if (!IsAllowed(controlType, shockerShare)) return new NoPermission();
+        if (shockerShare.Paused) return new ShockerPaused();
+        if (!IsAllowed(controlType, shockerShare.PermsAndLimits)) return new NoPermission();
 
-        return new Success<SharePermsAndLimitsLive>(shockerShare);
+        return new Success<SharePermsAndLimitsLive>(shockerShare.PermsAndLimits);
     }
 
-    private static bool IsAllowed(ControlType type, SharePermsAndLimits? perms)
+    private static bool IsAllowed(ControlType type, SharePermsAndLimitsLive? perms)
     {
         if (perms == null) return true;
+        if (!perms.Live) return false;
         return type switch
         {
             ControlType.Shock => perms.Shock,
@@ -452,7 +464,7 @@ public sealed class LiveControlController : WebsocketBaseController<IBaseRespons
             }
         });
     }
-    
+
     /// <inheritdoc />
     public override ValueTask DisposeControllerAsync()
     {
@@ -463,4 +475,6 @@ public sealed class LiveControlController : WebsocketBaseController<IBaseRespons
 }
 
 public struct LiveNotEnabled;
+
 public struct NoPermission;
+public struct ShockerPaused;

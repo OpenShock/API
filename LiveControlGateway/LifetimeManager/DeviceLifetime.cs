@@ -15,6 +15,9 @@ using ShockerModelType = OpenShock.Serialization.Types.ShockerModelType;
 
 namespace OpenShock.LiveControlGateway.LifetimeManager;
 
+/// <summary>
+/// Handles all Business Logic for a single device
+/// </summary>
 public sealed class DeviceLifetime : IAsyncDisposable
 {
     private static readonly TimeSpan WaitBetweenTicks = TimeSpan.FromMilliseconds(100); // 10 TPS
@@ -28,6 +31,12 @@ public sealed class DeviceLifetime : IAsyncDisposable
 
     private readonly IDbContextFactory<OpenShockContext> _dbContextFactory;
 
+    /// <summary>
+    /// DI Constructor
+    /// </summary>
+    /// <param name="deviceController"></param>
+    /// <param name="dbContextFactory"></param>
+    /// <param name="cancellationToken"></param>
     public DeviceLifetime(DeviceController deviceController, IDbContextFactory<OpenShockContext> dbContextFactory,
         CancellationToken cancellationToken = default)
     {
