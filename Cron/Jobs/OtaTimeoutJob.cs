@@ -24,6 +24,8 @@ public sealed class OtaTimeoutJob : IJob
         await _db.DeviceOtaUpdates
             .Where(x => (x.Status == OtaUpdateStatus.Started || x.Status == OtaUpdateStatus.Running) &&
                         x.CreatedOn < time)
-            .ExecuteUpdateAsync(calls => calls.SetProperty(x => x.Status, OtaUpdateStatus.Timeout));
+            .ExecuteUpdateAsync(calls =>
+                calls.SetProperty(x => x.Status, OtaUpdateStatus.Timeout)
+                    .SetProperty(x => x.Message, "Timeout reached"));
     }
 }
