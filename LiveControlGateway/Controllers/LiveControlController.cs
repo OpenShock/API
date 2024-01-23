@@ -387,6 +387,15 @@ public sealed class LiveControlController : WebsocketBaseController<IBaseRespons
             return;
         }
 
+        if (permCheck.IsT4)
+        {
+            await QueueMessage(new Common.Models.WebSocket.BaseResponse<LiveResponseType>()
+            {
+                ResponseType = LiveResponseType.ShockerPaused
+            });
+            return;
+        }
+
 
         var perms = permCheck.AsT0.Value;
         // Clamp to limits
