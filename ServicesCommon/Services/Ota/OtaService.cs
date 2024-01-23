@@ -53,6 +53,7 @@ public class OtaService : IOtaService
             .FirstOrDefaultAsync();
         if (updateTask == null) return;
         updateTask.Status = OtaUpdateStatus.Error;
+        updateTask.Message = message;
 
         await _db.SaveChangesAsync();
     }
