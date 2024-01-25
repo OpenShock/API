@@ -37,11 +37,6 @@ public partial class OpenShockContext : DbContext
 
     public virtual DbSet<User> Users { get; set; }
 
-    protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
-    {
-        //optionsBuilder.UseNpgsql("Host=docker-node;Port=1337;Database=root;Username=root;Password=root;Search Path=openshock-new");
-    }
-
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder

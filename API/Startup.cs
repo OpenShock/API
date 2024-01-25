@@ -1,4 +1,5 @@
-﻿using System.Net;
+﻿using System.ComponentModel.DataAnnotations;
+using System.Net;
 using System.Net.Http.Headers;
 using System.Text;
 using Asp.Versioning;
@@ -58,6 +59,9 @@ public class Startup
                                    .First(x => x.Key.Equals("openshock", StringComparison.InvariantCultureIgnoreCase))
                                    .Get<ApiConfig>() ??
                                throw new Exception("Couldn't bind config, check config file");
+        
+        var validator = new ValidationContext(APIGlobals.ApiConfig);
+        Validator.ValidateObject(APIGlobals.ApiConfig, validator, true);
     }
 
     public void ConfigureServices(IServiceCollection services)
@@ -74,16 +78,22 @@ public class Startup
 #pragma warning restore CS0618
         services.AddDbContextPool<OpenShockContext>(builder =>
         {
-            builder.UseNpgsql(APIGlobals.ApiConfig.Db);
-            builder.EnableSensitiveDataLogging();
-            builder.EnableDetailedErrors();
+            builder.UseNpgsql(APIGlobals.ApiConfig.Db.Conn);
+            if (APIGlobals.ApiConfig.Db.Debug)
+            {
+                builder.EnableSensitiveDataLogging();
+                builder.EnableDetailedErrors();
+            }
         });
-
-        services.AddDbContextFactory<OpenShockContext>(builder =>
+        
+        services.AddPooledDbContextFactory<OpenShockContext>(builder =>
         {
-            builder.UseNpgsql(APIGlobals.ApiConfig.Db);
-            builder.EnableSensitiveDataLogging();
-            builder.EnableDetailedErrors();
+            builder.UseNpgsql(APIGlobals.ApiConfig.Db.Conn);
+            if (APIGlobals.ApiConfig.Db.Debug)
+            {
+                builder.EnableSensitiveDataLogging();
+                builder.EnableDetailedErrors();
+            }
         });
 
 
@@ -244,6 +254,23 @@ public class Startup
         redisConnection.CreateIndex(typeof(DevicePair));
         redisConnection.CreateIndex(typeof(LcgNode));
 
+
+        if (!APIGlobals.ApiConfig.Db.SkipMigration)
+        {
+            logger.LogInformation("Running database migrations...");
+            using var scope = app.ApplicationServices.CreateScope();
+            var openShockContext = scope.ServiceProvider.GetRequiredService<OpenShockContext>();
+            var pendingMigrations = openShockContext.Database.GetPendingMigrations().ToList();
+
+            if (pendingMigrations.Count > 0)
+            {
+                logger.LogInformation("Found pending migrations, applying [{@Migrations}]", pendingMigrations);
+                openShockContext.Database.Migrate();
+                logger.LogInformation("Applied database migrations... proceeding with startup");
+            }
+            else logger.LogInformation("No pending migrations found, proceeding with startup");
+        }
+        else logger.LogWarning("Skipping possible database migrations...");
 
         app.UseSwagger();
         var provider = app.ApplicationServices.GetRequiredService<IApiVersionDescriptionProvider>();
