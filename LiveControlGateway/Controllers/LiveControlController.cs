@@ -97,14 +97,14 @@ public sealed class LiveControlController : WebsocketBaseController<IBaseRespons
             });
             return;
         }
-
         
-
         _sharedShockers = await db.ShockerShares
-            .Where(x => x.Shocker.Device == Id && x.SharedWith == _currentUser.DbUser.Id).ToDictionaryAsync(
-                x => x.ShockerId, x => new LiveShockerPermission()
+            .Where(x => x.Shocker.Device == Id && x.SharedWith == _currentUser.DbUser.Id).Select(x => new
+            {
+                x.ShockerId,
+                Lsp = new LiveShockerPermission
                 {
-                    Paused = x.Paused || x.Shocker.Paused,
+                    Paused = x.Paused,
                     PermsAndLimits = new SharePermsAndLimitsLive
                     {
                         Shock = x.PermShock,
@@ -114,7 +114,8 @@ public sealed class LiveControlController : WebsocketBaseController<IBaseRespons
                         Intensity = x.LimitIntensity,
                         Live = x.PermLive
                     }
-                });
+                }
+            }).ToDictionaryAsync(x => x.ShockerId, x => x.Lsp);
     }
 
     /// <summary>
