@@ -1,7 +1,5 @@
 ﻿using System.ComponentModel.DataAnnotations;
 using System.Net;
-using System.Net.Http.Headers;
-using System.Text;
 using Asp.Versioning;
 using Asp.Versioning.ApiExplorer;
 using Microsoft.AspNetCore.Authentication;
@@ -11,10 +9,10 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.OpenApi.Models;
 using Npgsql;
-using OpenShock.API.Mailjet;
 using OpenShock.API.Realtime;
 using OpenShock.API.Services;
-using OpenShock.API.Utils;
+using OpenShock.API.Services.Email.Mailjet;
+using OpenShock.API.Services.Email.Smtp;
 using OpenShock.Common;
 using OpenShock.Common.JsonSerialization;
 using OpenShock.Common.Models;
@@ -59,7 +57,7 @@ public class Startup
                                    .First(x => x.Key.Equals("openshock", StringComparison.InvariantCultureIgnoreCase))
                                    .Get<ApiConfig>() ??
                                throw new Exception("Couldn't bind config, check config file");
-        
+
         var validator = new ValidationContext(APIGlobals.ApiConfig);
         Validator.ValidateObject(APIGlobals.ApiConfig, validator, true);
     }
@@ -85,7 +83,7 @@ public class Startup
                 builder.EnableDetailedErrors();
             }
         });
-        
+
         services.AddPooledDbContextFactory<OpenShockContext>(builder =>
         {
             builder.UseNpgsql(APIGlobals.ApiConfig.Db.Conn);
@@ -122,14 +120,24 @@ public class Startup
         services.AddScoped<IClientAuthService<Device>, ClientAuthService<Device>>();
         services.AddSingleton<IGeoLocation, GeoLocation>();
 
-        services.AddHttpClient<IMailjetClient, MailjetClient>(client =>
+
+        // ----------------- MAIL SETUP -----------------
+        var emailConfig = APIGlobals.ApiConfig.Mail;
+        switch (emailConfig.Type)
         {
-            client.BaseAddress = new Uri("https://api.mailjet.com/v3.1/");
-            client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Basic",
-                Convert.ToBase64String(
-                    Encoding.UTF8.GetBytes(
-                        $"{APIGlobals.ApiConfig.Mailjet.Key}:{APIGlobals.ApiConfig.Mailjet.Secret}")));
-        });
+            case ApiConfig.MailConfig.MailType.Mailjet:
+                if (emailConfig.Mailjet == null)
+                    throw new Exception("Mailjet config is null but mailjet is selected as mail type");
+                services.AddMailjetEmailService(emailConfig.Mailjet, emailConfig.Sender);
+                break;
+            case ApiConfig.MailConfig.MailType.Smtp:
+                if (emailConfig.Smtp == null)
+                    throw new Exception("SMTP config is null but SMTP is selected as mail type");
+                services.AddSmtpEmailService(emailConfig.Smtp, emailConfig.Sender);
+                break;
+            default:
+                throw new Exception("Unknown mail type");
+        }
 
         services.AddWebEncoders();
         services.TryAddSingleton<TimeProvider>(provider => TimeProvider.System);

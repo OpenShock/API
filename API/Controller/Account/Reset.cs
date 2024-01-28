@@ -1,11 +1,11 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using OpenShock.API.Mailjet;
-using OpenShock.API.Mailjet.Mail;
 using OpenShock.API.Utils;
 using OpenShock.Common.Models;
 using OpenShock.Common.OpenShockDb;
 using System.Net;
+using OpenShock.API.Services.Email;
+using OpenShock.API.Services.Email.Mailjet.Mail;
 
 namespace OpenShock.API.Controller.Account;
 
@@ -18,7 +18,7 @@ public sealed partial class AccountController
     /// <response code="200">Password reset email sent if the email is associated to an registered account</response>
     [HttpPost("reset", Name = "ResetPassword")]
     [ProducesResponseType((int)HttpStatusCode.OK)]
-    public async Task<BaseResponse<object>> ResetAction([FromBody] ResetRequest data, [FromServices] IMailjetClient mailjetClient)
+    public async Task<BaseResponse<object>> ResetAction([FromBody] ResetRequest data, [FromServices] IEmailService emailService)
     {
         var user = await _db.Users.Where(x => x.Email == data.Email.ToLowerInvariant()).Select(x => new
         {
@@ -38,32 +38,15 @@ public sealed partial class AccountController
         _db.PasswordResets.Add(passwordReset);
         await _db.SaveChangesAsync();
 
-        await mailjetClient.SendMail(new TemplateMail
-        {
-            From = Contact.AccountManagement,
-            Subject = "Password reset request",
-            To = new[]
-            {
-                new Contact
-                {
-                    Email = user.User.Email,
-                    Name = user.User.Name
-                }
-            },
-            TemplateId = 4903722,
-            Variables = new Dictionary<string, string>
-            {
-                {"link", new Uri(APIGlobals.ApiConfig.FrontendBaseUrl, $"/#/account/password/recover/{passwordReset.Id}/{secret}").ToString() },
-            }
-
-        });
+        await emailService.PasswordReset(new Contact(user.User.Email, user.User.Name),
+            new Uri(APIGlobals.ApiConfig.FrontendBaseUrl, $"/#/account/password/recover/{passwordReset.Id}/{secret}"));
 
         return SendResponse();
     }
 
     private static BaseResponse<object> SendResponse() => new("Password reset has been sent via email if the email is associated to an registered account");
 
-    public class ResetRequest
+    public sealed class ResetRequest
     {
         public required string Email { get; set; }
     }

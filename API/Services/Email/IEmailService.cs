@@ -1,4 +1,6 @@
-﻿namespace OpenShock.API.Services.Email;
+﻿using OpenShock.API.Services.Email.Mailjet.Mail;
+
+namespace OpenShock.API.Services.Email;
 
 public interface IEmailService
 {
@@ -9,5 +11,5 @@ public interface IEmailService
     /// <param name="name"></param>
     /// <param name="resetLink"></param>
     /// <returns></returns>
-    public Task PasswordReset(string email, string name, Uri resetLink);
+    public Task PasswordReset(Contact to, Uri resetLink);
 }
