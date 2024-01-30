@@ -1,6 +1,7 @@
 ﻿using System.Net.WebSockets;
 using System.Threading.Channels;
 using Microsoft.AspNetCore.Mvc;
+using OpenShock.Common.Models;
 using OpenShock.Common.Utils;
 using OpenShock.ServicesCommon.Utils;
 
@@ -90,12 +91,14 @@ namespace OpenShock.ServicesCommon.Websocket
         /// <summary>
         /// Initial get request to the websocket route - rewrite to websocket connection
         /// </summary>
+        [ApiExplorerSettings(IgnoreApi = true)]
         [HttpGet]
         public async Task Get()
         {
             if (!HttpContext.WebSockets.IsWebSocketRequest)
             {
                 HttpContext.Response.StatusCode = StatusCodes.Status400BadRequest;
+                await HttpContext.Response.WriteAsJsonAsync(new BaseResponse<object>("This is a websocket endpoint"));
                 return;
             }
 
