@@ -12,24 +12,24 @@ namespace OpenShock.API.Controller.Shockers;
 public sealed partial class ShockerController
 {
     /// <summary>
-    /// Gets the logs for a shocker.
+    /// Get the logs for a shocker
     /// </summary>
-    /// <param name="id"></param>
+    /// <param name="shockerId"></param>
     /// <param name="offset"></param>
     /// <param name="limit"></param>
     /// <response code="200">The logs</response>
     /// <response code="404">Shocker does not exist</response>
-    [HttpGet("{id}/logs", Name = "GetShockerLogs")]
+    [HttpGet("{shockerId}/logs")]
     [ProducesResponseType((int)HttpStatusCode.OK)]
     [ProducesResponseType((int)HttpStatusCode.NotFound)]
     [MapToApiVersion("1")]
-    public async Task<BaseResponse<IEnumerable<LogEntry>>> GetShockerLogs([FromRoute] Guid id, [FromQuery] uint offset = 0,
+    public async Task<BaseResponse<IEnumerable<LogEntry>>> GetShockerLogs([FromRoute] Guid shockerId, [FromQuery] uint offset = 0,
         [FromQuery] [Range(1, 500)] uint limit = 100)
     {
-        var exists = await _db.Shockers.AnyAsync(x => x.DeviceNavigation.Owner == CurrentUser.DbUser.Id && x.Id == id);
+        var exists = await _db.Shockers.AnyAsync(x => x.DeviceNavigation.Owner == CurrentUser.DbUser.Id && x.Id == shockerId);
         if (!exists) return EBaseResponse<IEnumerable<LogEntry>>("Shocker does not exist", HttpStatusCode.NotFound);
 
-        var logs = await _db.ShockerControlLogs.Where(x => x.ShockerId == id)
+        var logs = await _db.ShockerControlLogs.Where(x => x.ShockerId == shockerId)
             .OrderByDescending(x => x.CreatedOn).Skip((int)offset).Take((int)limit).Select(x => new LogEntry
             {
                 Id = x.Id,

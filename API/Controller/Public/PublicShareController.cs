@@ -12,15 +12,15 @@ public sealed partial class PublicController
     /// <summary>
     /// Gets information about a public share link.
     /// </summary>
-    /// <param name="id"></param>
+    /// <param name="shareLinkId"></param>
     /// <response code="200">The share link information was successfully retrieved.</response>
     /// <response code="404">The share link does not exist.</response>
-    [HttpGet("shares/links/{id}", Name = "GetShareLink")]
+    [HttpGet("shares/links/{shareLinkId}")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<BaseResponse<PublicShareLinkResponse>> Get([FromRoute] Guid id)
+    public async Task<BaseResponse<PublicShareLinkResponse>> GetShareLink([FromRoute] Guid shareLinkId)
     {
-        var shareLink = await _db.ShockerSharesLinks.Where(x => x.Id == id).Select(x => new
+        var shareLink = await _db.ShockerSharesLinks.Where(x => x.Id == shareLinkId).Select(x => new
         {
             Author = new GenericIni
             {

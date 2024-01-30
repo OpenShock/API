@@ -15,17 +15,14 @@ public sealed partial class ShockerController
     private static readonly IDictionary<string, object> EmptyDic = new Dictionary<string, object>();
 
     /// <summary>
-    /// Controls the shockers
+    /// Send a control message to shockers
     /// </summary>
-    /// <param name="data"></param>
-    /// <param name="userHub"></param>
-    /// <param name="redisPubService"></param>
     /// <response code="200">The control messages were successfully sent.</response>
     [MapToApiVersion("2")]
-    [HttpPost("control", Name = "ControlShockerV2")]
+    [HttpPost("control")]
     [ProducesResponseType(StatusCodes.Status200OK)]
-    public async Task<BaseResponse<object>> ControlShockerV2(
-        [FromBody] ControlRequest data,
+    public async Task<BaseResponse<object>> SendControl(
+        [FromBody] ControlRequest body,
         [FromServices] IHubContext<UserHub, IUserHub> userHub,
         [FromServices] IRedisPubService redisPubService)
     {
@@ -36,10 +33,10 @@ public sealed partial class ShockerController
             Image = GravatarUtils.GetImageUrl(CurrentUser.DbUser.Email),
             ConnectionId = HttpContext.Connection.Id,
             AdditionalItems = EmptyDic,
-            CustomName = data.CustomName
+            CustomName = body.CustomName
         };
 
-        await ControlLogic.ControlByUser(data.Shocks, _db, sender, userHub.Clients, redisPubService);
+        await ControlLogic.ControlByUser(body.Shocks, _db, sender, userHub.Clients, redisPubService);
 
         return new BaseResponse<object>
         {
@@ -48,23 +45,20 @@ public sealed partial class ShockerController
     }
 
     /// <summary>
-    /// Controls the shockers (Deprecated)
+    /// Send a control message to shockers (Deprecated)
     /// </summary>
-    /// <param name="data"></param>
-    /// <param name="userHub"></param>
-    /// <param name="redisPubService"></param>
     /// <response code="200">The control messages were successfully sent.</response>
     [MapToApiVersion("1")]
-    [HttpPost("control", Name = "ControlShockerV1")]
+    [HttpPost("control")]
     [ProducesResponseType(StatusCodes.Status200OK)]
-    public Task<BaseResponse<object>> ControlShockerV1(
-        [FromBody] IEnumerable<Common.Models.WebSocket.User.Control> data,
+    public Task<BaseResponse<object>> SendControl_DEPRECATED(
+        [FromBody] IEnumerable<Common.Models.WebSocket.User.Control> body,
         [FromServices] IHubContext<UserHub, IUserHub> userHub,
         [FromServices] IRedisPubService redisPubService)
     {
-        return ControlShockerV2(new ControlRequest
+        return SendControl(new ControlRequest
         {
-            Shocks = data,
+            Shocks = body,
             CustomName = null
         }, userHub, redisPubService);
     }

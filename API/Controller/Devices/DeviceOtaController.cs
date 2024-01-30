@@ -10,20 +10,27 @@ namespace OpenShock.API.Controller.Devices;
 
 public sealed partial class DevicesController
 {
-    [HttpGet("{id}/ota", Name = "GetOtaUpdates")]
+    /// <summary>
+    /// Gets the OTA update history for a device
+    /// </summary>
+    /// <param name="deviceId">Id of the device</param>
+    /// <param name="otaService"></param>
+    /// <response code="200">OK</response>
+    /// <response code="404">Could not find device or you do not have access to it</response>
+    [HttpGet("{deviceId}/ota")]
     [MapToApiVersion("1")]
-    public async Task<BaseResponse<IReadOnlyCollection<OtaItem>>> GetOtaUpdates([FromRoute] Guid id, [FromServices] IOtaService otaService)
+    public async Task<BaseResponse<IReadOnlyCollection<OtaItem>>> GetOtaUpdateHistory([FromRoute] Guid deviceId, [FromServices] IOtaService otaService)
     {
         // Check if user owns device or has a share
         var deviceExistsAndYouHaveAccess = await _db.Devices.AnyAsync(x =>
-            x.Id == id && x.Owner == CurrentUser.DbUser.Id);
+            x.Id == deviceId && x.Owner == CurrentUser.DbUser.Id);
         if (!deviceExistsAndYouHaveAccess)
             return EBaseResponse<IReadOnlyCollection<OtaItem>>("Device does not exists or does not belong to you",
                 HttpStatusCode.NotFound);
 
         return new BaseResponse<IReadOnlyCollection<OtaItem>>
         {
-            Data = await otaService.GetUpdates(id)
+            Data = await otaService.GetUpdates(deviceId)
         };
     }
     

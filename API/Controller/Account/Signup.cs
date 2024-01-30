@@ -12,23 +12,23 @@ namespace OpenShock.API.Controller.Account;
 public sealed partial class AccountController
 {
     /// <summary>
-    /// Signs up a user
+    /// Signs up a new user
     /// </summary>
-    /// <param name="data"></param>
+    /// <param name="body"></param>
     /// <response code="200">User successfully signed up</response>
     /// <response code="400">Username or email already exists</response>
-    [HttpPost("signup", Name = "Signup")]
+    [HttpPost("signup")]
     [ProducesResponseType((int)HttpStatusCode.OK)]
     [ProducesResponseType((int)HttpStatusCode.BadRequest)]
-    public async Task<BaseResponse<object>> Signup([FromBody] Signup data)
+    public async Task<BaseResponse<object>> SignUp([FromBody] SignUp body)
     {
         var newGuid = Guid.NewGuid();
         _db.Users.Add(new User
         {
             Id = newGuid,
-            Name = data.Username,
-            Email = data.Email.ToLowerInvariant(),
-            Password = SecurePasswordHasher.Hash(data.Password),
+            Name = body.Username,
+            Email = body.Email.ToLowerInvariant(),
+            Password = SecurePasswordHasher.Hash(body.Password),
             EmailActived = true
         });
         try

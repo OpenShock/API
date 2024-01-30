@@ -2,7 +2,7 @@
 
 namespace OpenShock.API.Models.Response;
 
-public class ApiTokenResponse
+public class TokenResponse
 {
     public required Guid Id { get; set; }
 

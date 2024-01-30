@@ -18,8 +18,8 @@ public sealed partial class DeviceController
     /// <response code="200">Successfully assigned LCG node</response>
     /// <response code="404">No such pair code exists</response>
     [AllowAnonymous]
-    [HttpGet("pair/{pairCode}", Name = "PairDevice")]
-    [HttpGet("~/{version:apiVersion}/pair/{pairCode}", Name = "PairDeviceLegacy")] // Backwards compatibility
+    [HttpGet("pair/{pairCode}", Name = "Pair")]
+    [HttpGet("~/{version:apiVersion}/pair/{pairCode}", Name = "Pair_DEPRECATED")] // Backwards compatibility
     [ProducesResponseType((int)HttpStatusCode.OK)]
     public async Task<BaseResponse<string>> Pair([FromRoute] string pairCode)
     {

@@ -12,15 +12,14 @@ namespace OpenShock.API.Controller.Account;
 public sealed partial class AccountController
 {
     /// <summary>
-    /// Sends a password reset email
+    /// Initiate a password reset
     /// </summary>
-    /// <param name="data"></param>
     /// <response code="200">Password reset email sent if the email is associated to an registered account</response>
-    [HttpPost("reset", Name = "ResetPassword")]
+    [HttpPost("reset")]
     [ProducesResponseType((int)HttpStatusCode.OK)]
-    public async Task<BaseResponse<object>> ResetAction([FromBody] ResetRequest data, [FromServices] IMailjetClient mailjetClient)
+    public async Task<BaseResponse<object>> PasswordResetInitiate([FromBody] ResetRequest body, [FromServices] IMailjetClient mailjetClient)
     {
-        var user = await _db.Users.Where(x => x.Email == data.Email.ToLowerInvariant()).Select(x => new
+        var user = await _db.Users.Where(x => x.Email == body.Email.ToLowerInvariant()).Select(x => new
         {
             User = x,
             PasswordResetCount = x.PasswordResets.Count(y => y.UsedOn == null && y.CreatedOn.AddDays(7) > DateTime.UtcNow)

@@ -9,20 +9,19 @@ namespace OpenShock.API.Controller.Shares.Links;
 public sealed partial class ShareLinksController
 {
     /// <summary>
-    /// Creates a new share link
+    /// Create a new share link
     /// </summary>
-    /// <param name="data"></param>
     /// <response code="200">The created share link</response>
     [HttpPost(Name = "CreateShareLink")]
     [ProducesResponseType((int)HttpStatusCode.OK)]
-    public async Task<BaseResponse<Guid>> CreateShareLink([FromBody] ShareLinkCreate data)
+    public async Task<BaseResponse<Guid>> CreateShareLink([FromBody] ShareLinkCreate body)
     {
         var entity = new ShockerSharesLink
         {
             Id = Guid.NewGuid(),
             Owner = CurrentUser.DbUser,
-            ExpiresOn = data.ExpiresOn == null ? null : DateTime.SpecifyKind(data.ExpiresOn.Value, DateTimeKind.Utc),
-            Name = data.Name
+            ExpiresOn = body.ExpiresOn == null ? null : DateTime.SpecifyKind(body.ExpiresOn.Value, DateTimeKind.Utc),
+            Name = body.Name
         };
         _db.ShockerSharesLinks.Add(entity);
         await _db.SaveChangesAsync();

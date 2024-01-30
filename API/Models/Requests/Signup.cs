@@ -3,7 +3,7 @@ using OpenShock.ServicesCommon.DataAnnotations;
 
 namespace OpenShock.API.Models.Requests;
 
-public class Signup
+public class SignUp
 {
     [Username(true)]
     public required string Username { get; set; }

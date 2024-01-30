@@ -17,10 +17,10 @@ public sealed partial class AdminController
     /// </summary>
     /// <response code="200">All online devices</response>
     /// <response code="401">Unauthorized</response>
-    [HttpGet("monitoring/onlineDevices", Name = "GetOnlineDevices")]
+    [HttpGet("monitoring/onlineDevices")]
     [ProducesResponseType((int)HttpStatusCode.OK)]
     [ProducesResponseType((int)HttpStatusCode.Unauthorized)]
-    public async Task<BaseResponse<object>> Get()
+    public async Task<BaseResponse<object>> GetOnlineDevices()
     {
         var devicesOnline = _redis.RedisCollection<DeviceOnline>(false);
 

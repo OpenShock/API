@@ -11,9 +11,9 @@ public sealed partial class PublicController
     /// Gets online devices statistics
     /// </summary>
     /// <response code="200">The statistics were successfully retrieved.</response>
-    [HttpGet("stats", Name = "GetStats")]
+    [HttpGet("stats")]
     [ProducesResponseType(StatusCodes.Status200OK)]
-    public async Task<BaseResponse<StatsResponse>> GetStats([FromServices] IRedisConnectionProvider redisConnectionProvider)
+    public async Task<BaseResponse<StatsResponse>> GetOnlineDevicesStatistics([FromServices] IRedisConnectionProvider redisConnectionProvider)
     {
         var deviceOnlines = redisConnectionProvider.RedisCollection<DeviceOnline>(false);
 

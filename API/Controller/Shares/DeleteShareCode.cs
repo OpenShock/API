@@ -12,18 +12,18 @@ public sealed partial class SharesController
     /// <summary>
     /// Delete a share code
     /// </summary>
-    /// <param name="id"></param>
+    /// <param name="shareCodeId"></param>
     /// <response code="200">Deleted share code</response>
     /// <response code="404">Share code not found or does not belong to you</response>
-    [HttpDelete("code/{id}", Name = "DeleteShareCode")]
+    [HttpDelete("code/{shareCodeId}")]
     [ProducesResponseType((int) HttpStatusCode.OK)]
     [ProducesResponseType((int) HttpStatusCode.NotFound)]
-    public async Task<BaseResponse<object>> DeleteCode([FromRoute] Guid id)
+    public async Task<BaseResponse<object>> DeleteShareCode([FromRoute] Guid shareCodeId)
     {
         var yes = await _db.ShockerShareCodes
-            .Where(x => x.Id == id && x.Shocker.DeviceNavigation.Owner == CurrentUser.DbUser.Id).SingleOrDefaultAsync();
+            .Where(x => x.Id == shareCodeId && x.Shocker.DeviceNavigation.Owner == CurrentUser.DbUser.Id).SingleOrDefaultAsync();
         var affected = await _db.ShockerShareCodes.Where(x =>
-            x.Id == id && x.Shocker.DeviceNavigation.Owner == CurrentUser.DbUser.Id).ExecuteDeleteAsync();
+            x.Id == shareCodeId && x.Shocker.DeviceNavigation.Owner == CurrentUser.DbUser.Id).ExecuteDeleteAsync();
         if (affected <= 0)
             return EBaseResponse<object>("Share code does not exists or device/shocker does not belong to you",
                 HttpStatusCode.NotFound);
