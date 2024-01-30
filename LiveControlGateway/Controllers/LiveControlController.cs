@@ -209,7 +209,7 @@ public sealed class LiveControlController : WebsocketBaseController<IBaseRespons
         Logger.LogDebug("Starting ping timer...");
         _pingTimer.Start();
 
-        while (!Close.IsCancellationRequested)
+        while (!Linked.IsCancellationRequested)
         {
             try
             {

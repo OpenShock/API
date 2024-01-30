@@ -1,5 +1,6 @@
 ﻿using System.ComponentModel.DataAnnotations;
 using System.Net;
+using System.Text;
 using Asp.Versioning;
 using Asp.Versioning.ApiExplorer;
 using Microsoft.AspNetCore.Authentication;
@@ -48,18 +49,26 @@ public class Startup
 
     public Startup(IConfiguration configuration)
     {
-#if DEBUG
-        var root = (IConfigurationRoot)configuration;
-        var debugView = root.GetDebugView();
-        Console.WriteLine(debugView);
-#endif
         APIGlobals.ApiConfig = configuration.GetChildren()
                                    .First(x => x.Key.Equals("openshock", StringComparison.InvariantCultureIgnoreCase))
                                    .Get<ApiConfig>() ??
                                throw new Exception("Couldn't bind config, check config file");
+        
+        var startupLogger = new LoggerConfiguration().ReadFrom.Configuration(configuration).CreateLogger();
+        
+        MiniValidation.MiniValidator.TryValidate(APIGlobals.ApiConfig, true, true, out var errors);
+        if (errors.Count > 0)
+        {
+            var sb = new StringBuilder();
 
-        var validator = new ValidationContext(APIGlobals.ApiConfig);
-        Validator.ValidateObject(APIGlobals.ApiConfig, validator, true);
+            foreach (var error in errors)
+            {
+                sb.AppendLine($"Error on field [{error.Key}] reason: {string.Join(", ", error.Value)}");
+            }
+            
+            startupLogger.Error("Error validating config, please fix your configuration / environment variables\nFound the following errors:\n{Errors}", sb.ToString());
+            Environment.Exit(-10);
+        }
     }
 
     public void ConfigureServices(IServiceCollection services)
@@ -133,7 +142,10 @@ public class Startup
             case ApiConfig.MailConfig.MailType.Smtp:
                 if (emailConfig.Smtp == null)
                     throw new Exception("SMTP config is null but SMTP is selected as mail type");
-                services.AddSmtpEmailService(emailConfig.Smtp, emailConfig.Sender);
+                services.AddSmtpEmailService(emailConfig.Smtp, emailConfig.Sender, new SmtpServiceTemplates
+                {
+                    PasswordReset = SmtpTemplate.ParseFromFileThrow("SmtpTemplates/PasswordReset.liquid").Result
+                });
                 break;
             default:
                 throw new Exception("Unknown mail type");
@@ -235,10 +247,9 @@ public class Startup
         services.AddHostedService<RedisSubscriberService>();
     }
 
-    public void Configure(IApplicationBuilder app, IWebHostEnvironment env, ILoggerFactory loggerFactory)
+    public void Configure(IApplicationBuilder app, IWebHostEnvironment env, ILoggerFactory loggerFactory, ILogger<Startup> logger)
     {
         ApplicationLogging.LoggerFactory = loggerFactory;
-        var logger = ApplicationLogging.CreateLogger<Startup>();
         foreach (var proxy in OpenShockConstants.TrustedProxies)
         {
             var split = proxy.Split('/');

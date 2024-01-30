@@ -8,14 +8,13 @@ public class ApiConfig
     [Required] public required Uri FrontendBaseUrl { get; init; }
     [Required(AllowEmptyStrings = false)] public required string CookieDomain { get; init; }
     [Required] public required DbConfig Db { get; init; }
-    public required RedisConfig Redis { get; init; }
-    public required MailConfig Mail { get; init; }
+    [Required] public required RedisConfig Redis { get; init; }
+    [Required] public required MailConfig Mail { get; init; }
 
     public sealed class MailConfig
     {
         [Required] public required MailType Type { get; init; }
         [Required] public required Contact Sender { get; init; }
-
         public required MailjetConfig? Mailjet { get; init; }
         public required SmtpConfig? Smtp { get; init; }
 
@@ -27,7 +26,7 @@ public class ApiConfig
 
         public sealed class SmtpConfig
         {
-            [Required(AllowEmptyStrings = false)] public required string Server { get; init; }
+            [Required(AllowEmptyStrings = false)] public required string Host { get; init; }
             public required int Port { get; init; } = 587;
             public required string Username { get; init; } = string.Empty;
             public required string Password { get; init; } = string.Empty;

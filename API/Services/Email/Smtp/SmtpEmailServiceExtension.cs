@@ -6,10 +6,10 @@ public static class SmtpEmailServiceExtension
 {
     public static IServiceCollection AddSmtpEmailService(this IServiceCollection services,
         ApiConfig.MailConfig.SmtpConfig smtpConfig,
-        Contact sender)
+        Contact sender, SmtpServiceTemplates templates)
     {
         services.AddSingleton<IEmailService, SmtpEmailService>(provider =>
-            new SmtpEmailService(provider.GetRequiredService<ILogger<SmtpEmailService>>(), smtpConfig, sender));
+            new SmtpEmailService(provider.GetRequiredService<ILogger<SmtpEmailService>>(), smtpConfig, sender, templates));
         return services;
     }
 }

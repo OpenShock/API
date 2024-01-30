@@ -89,7 +89,7 @@ public sealed class DeviceController : FlatbuffersWebsocketBaseController<Gatewa
     /// <inheritdoc />
     protected override async Task Logic()
     {
-        while (true)
+        while (!Linked.IsCancellationRequested)
         {
             try
             {
