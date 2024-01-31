@@ -217,6 +217,8 @@ public class Startup
                 options.AddServer(new OpenApiServer { Url = "https://api.shocklink.net" });
                 options.AddServer(new OpenApiServer { Url = "https://dev-api.shocklink.net" });
                 options.AddServer(new OpenApiServer { Url = "https://localhost" });
+                options.SwaggerDoc("v1", new OpenApiInfo { Title = "OpenShock", Version = "1" });
+                options.SwaggerDoc("v2", new OpenApiInfo { Title = "OpenShock", Version = "2" });
             }
         );
 
