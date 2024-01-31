@@ -186,6 +186,8 @@ public class Startup
 
         services.AddSwaggerGen(options =>
             {
+                options.CustomOperationIds(e =>
+                    e.ActionDescriptor.AttributeRouteInfo?.Name ?? e.ActionDescriptor.RouteValues["action"]);
                 options.SchemaFilter<AttributeFilter>();
                 options.ParameterFilter<AttributeFilter>();
                 options.OperationFilter<AttributeFilter>();
