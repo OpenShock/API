@@ -19,7 +19,7 @@ public sealed partial class ShareLinksController
     [HttpDelete("{shareLinkId}/{shockerId}")]
     [ProducesResponseType((int)HttpStatusCode.OK)]
     [ProducesResponseType((int)HttpStatusCode.NotFound)]
-    public async Task<BaseResponse<ShareLinkResponse>> ShareLinkShockerRemove([FromRoute] Guid shareLinkId, [FromRoute] Guid shockerId)
+    public async Task<BaseResponse<ShareLinkResponse>> RemoveShocker([FromRoute] Guid shareLinkId, [FromRoute] Guid shockerId)
     {
         var exists = await _db.ShockerSharesLinks.AnyAsync(x => x.OwnerId == CurrentUser.DbUser.Id && x.Id == shareLinkId);
         if (!exists) return EBaseResponse<ShareLinkResponse>("Share link could not be found", HttpStatusCode.NotFound);

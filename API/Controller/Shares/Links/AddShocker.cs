@@ -20,7 +20,7 @@ public sealed partial class ShareLinksController
     [ProducesResponseType((int)HttpStatusCode.OK)]
     [ProducesResponseType((int)HttpStatusCode.NotFound)]
     [ProducesResponseType((int)HttpStatusCode.Conflict)]
-    public async Task<BaseResponse<object>> ShareLinkShockerAdd([FromRoute] Guid shareLinkId, [FromRoute] Guid shockerId)
+    public async Task<BaseResponse<object>> AddShocker([FromRoute] Guid shareLinkId, [FromRoute] Guid shockerId)
     {
         var exists = await _db.ShockerSharesLinks.AnyAsync(x => x.OwnerId == CurrentUser.DbUser.Id && x.Id == shareLinkId);
         if (!exists)
