@@ -68,15 +68,19 @@ public sealed class MailjetEmailService : IEmailService, IDisposable
     {
         if (_logger.IsEnabled(LogLevel.Debug)) _logger.LogDebug("Sending mails {@Mails}", mails);
 
+        var json = JsonSerializer.Serialize(new MailsWrap
+        {
+            Messages = mails
+        }, Options);
+        
+        Console.WriteLine(json);
+        
         var response = await _httpClient.PostAsync("send",
-            new StringContent(JsonSerializer.Serialize(new MailsWrap
-            {
-                Messages = mails
-            }, Options), Encoding.UTF8, MediaTypeNames.Application.Json), cancellationToken);
+            new StringContent(json, Encoding.UTF8, MediaTypeNames.Application.Json), cancellationToken);
         if (!response.IsSuccessStatusCode)
         {
             _logger.LogError("Error sending mails. Got unsuccessful status code {StatusCode} for mails {@Mails} with error body {Body}",
-                response.StatusCode, mails, await response.Content.ReadAsStringAsync());
+                response.StatusCode, mails, await response.Content.ReadAsStringAsync(cancellationToken));
         }
         else _logger.LogDebug("Successfully sent mail");
     }
