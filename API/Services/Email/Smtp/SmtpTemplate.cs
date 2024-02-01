@@ -28,7 +28,7 @@ public sealed class SmtpTemplate
         if (!FluidParser.TryParse(subject, out var subjectTemplate, out var errorSubject)) return errorSubject;
         var body = await streamReader.ReadToEndAsync();
         if (!FluidParser.TryParse(body, out var bodyTemplate, out var errorBody)) return errorBody;
-
+        
         return new SmtpTemplate
         {
             Subject = subjectTemplate,

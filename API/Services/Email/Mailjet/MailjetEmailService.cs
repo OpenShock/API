@@ -40,7 +40,7 @@ public sealed class MailjetEmailService : IEmailService, IDisposable
     #region Interface methods
 
     /// <inheritdoc />
-    public async Task PasswordReset(Contact to, Uri resetLink)
+    public async Task PasswordReset(Contact to, Uri resetLink, CancellationToken cancellationToken = default)
     {
         await SendMail(new TemplateMail
         {
@@ -52,14 +52,14 @@ public sealed class MailjetEmailService : IEmailService, IDisposable
             {
                 {"link", resetLink.ToString() },
             }
-        });
+        }, cancellationToken);
     }
 
     #endregion
     
-    private Task SendMail(MailBase templateMail) => SendMails(new[] { templateMail });
+    private Task SendMail(MailBase templateMail, CancellationToken cancellationToken = default) => SendMails(new[] { templateMail }, cancellationToken);
 
-    private async Task SendMails(IEnumerable<MailBase> mails)
+    private async Task SendMails(IEnumerable<MailBase> mails, CancellationToken cancellationToken = default)
     {
         if (_logger.IsEnabled(LogLevel.Debug)) _logger.LogDebug("Sending mails {@Mails}", mails);
 
@@ -67,7 +67,7 @@ public sealed class MailjetEmailService : IEmailService, IDisposable
             new StringContent(JsonSerializer.Serialize(new MailsWrap
             {
                 Messages = mails
-            }), Encoding.UTF8, MediaTypeNames.Application.Json));
+            }), Encoding.UTF8, MediaTypeNames.Application.Json), cancellationToken);
         if (!response.IsSuccessStatusCode)
         {
             _logger.LogError("Error sending mails. Got unsuccessful status code {StatusCode} for mails {@Mails} with error body {Body}",

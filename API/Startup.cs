@@ -1,5 +1,4 @@
-﻿using System.ComponentModel.DataAnnotations;
-using System.Net;
+﻿using System.Net;
 using System.Text;
 using Asp.Versioning;
 using Asp.Versioning.ApiExplorer;

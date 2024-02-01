@@ -31,6 +31,7 @@ public class ApiConfig
             public required string Username { get; init; } = string.Empty;
             public required string Password { get; init; } = string.Empty;
             public required bool EnableSsl { get; init; } = true;
+            public required bool VerifyCertificate { get; init; } = true;
         }
 
         public sealed class MailjetConfig
