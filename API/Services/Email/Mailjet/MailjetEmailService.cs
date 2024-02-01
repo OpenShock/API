@@ -59,6 +59,11 @@ public sealed class MailjetEmailService : IEmailService, IDisposable
     
     private Task SendMail(MailBase templateMail, CancellationToken cancellationToken = default) => SendMails(new[] { templateMail }, cancellationToken);
 
+    private static readonly JsonSerializerOptions Options = new JsonSerializerOptions {
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+    };
+
+    
     private async Task SendMails(IEnumerable<MailBase> mails, CancellationToken cancellationToken = default)
     {
         if (_logger.IsEnabled(LogLevel.Debug)) _logger.LogDebug("Sending mails {@Mails}", mails);
@@ -67,7 +72,7 @@ public sealed class MailjetEmailService : IEmailService, IDisposable
             new StringContent(JsonSerializer.Serialize(new MailsWrap
             {
                 Messages = mails
-            }), Encoding.UTF8, MediaTypeNames.Application.Json), cancellationToken);
+            }, Options), Encoding.UTF8, MediaTypeNames.Application.Json), cancellationToken);
         if (!response.IsSuccessStatusCode)
         {
             _logger.LogError("Error sending mails. Got unsuccessful status code {StatusCode} for mails {@Mails} with error body {Body}",
