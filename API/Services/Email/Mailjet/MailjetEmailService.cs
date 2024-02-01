@@ -73,8 +73,6 @@ public sealed class MailjetEmailService : IEmailService, IDisposable
             Messages = mails
         }, Options);
         
-        Console.WriteLine(json);
-        
         var response = await _httpClient.PostAsync("send",
             new StringContent(json, Encoding.UTF8, MediaTypeNames.Application.Json), cancellationToken);
         if (!response.IsSuccessStatusCode)
