@@ -6,7 +6,7 @@
         <ImplicitUsings>enable</ImplicitUsings>
         <AssemblyName>OpenShock.API</AssemblyName>
         <RootNamespace>OpenShock.API</RootNamespace>
-        <AssemblyVersion>2.2.0</AssemblyVersion>
+        <AssemblyVersion>2.3.0</AssemblyVersion>
         <GenerateDocumentationFile>true</GenerateDocumentationFile>
         <Company>OpenShock</Company>
         <Product>API</Product>
