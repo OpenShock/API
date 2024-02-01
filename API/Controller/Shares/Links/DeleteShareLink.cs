@@ -10,15 +10,15 @@ public sealed partial class ShareLinksController
     /// <summary>
     /// Deletes a share link
     /// </summary>
-    /// <param name="id"></param>
+    /// <param name="shareLinkId"></param>
     /// <response code="200">Deleted share link</response>
     /// <response code="404">Share link not found or does not belong to you</response>
-    [HttpDelete("{id}", Name = "DeleteShareLink")]
+    [HttpDelete("{shareLinkId}")]
     [ProducesResponseType((int)HttpStatusCode.OK)]
     [ProducesResponseType((int)HttpStatusCode.NotFound)]
-    public async Task<BaseResponse<object>> DeleteShareLink([FromRoute] Guid id)
+    public async Task<BaseResponse<object>> DeleteShareLink([FromRoute] Guid shareLinkId)
     {
-        var result = await _db.ShockerSharesLinks.Where(x => x.Id == id && x.OwnerId == CurrentUser.DbUser.Id)
+        var result = await _db.ShockerSharesLinks.Where(x => x.Id == shareLinkId && x.OwnerId == CurrentUser.DbUser.Id)
             .ExecuteDeleteAsync();
 
         return result > 0

@@ -15,30 +15,30 @@ public sealed partial class SharesController
     /// <summary>
     /// Link a share code to your account
     /// </summary>
-    /// <param name="id"></param>
+    /// <param name="shareCodeId"></param>
     /// <param name="deviceUpdateService"></param>
     /// <response code="200">Linked share code</response>
     /// <response code="404">Share code not found or does not belong to you</response>
     /// <response code="400">You cannot link your own shocker code / You already have this shocker linked to your account</response>
     /// <response code="500">Error while linking share code to your account</response>
-    [HttpPost("code/{id}", Name = "LinkShareCode")]
+    [HttpPost("code/{shareCodeId}")]
     [ProducesResponseType((int)HttpStatusCode.OK)]
     [ProducesResponseType((int)HttpStatusCode.NotFound)]
     [ProducesResponseType((int)HttpStatusCode.BadRequest)]
     [ProducesResponseType((int)HttpStatusCode.InternalServerError)]
-    public async Task<BaseResponse<object>> LinkCode(
-        [FromRoute] Guid id,
+    public async Task<BaseResponse<object>> LinkShareCode(
+        [FromRoute] Guid shareCodeId,
         [FromServices] IDeviceUpdateService deviceUpdateService
     )
     {
-        var shareCode = await _db.ShockerShareCodes.Where(x => x.Id == id).Select(x => new
+        var shareCode = await _db.ShockerShareCodes.Where(x => x.Id == shareCodeId).Select(x => new
         {
             Share = x, x.Shocker.DeviceNavigation.Owner, x.Shocker.Device
         }).SingleOrDefaultAsync();
         if (shareCode == null) return EBaseResponse<object>("Share code does not exist", HttpStatusCode.NotFound);
         if (shareCode.Owner == CurrentUser.DbUser.Id)
             return EBaseResponse<object>("You cannot link your own shocker code");
-        if (await _db.ShockerShares.AnyAsync(x => x.ShockerId == id && x.SharedWith == CurrentUser.DbUser.Id))
+        if (await _db.ShockerShares.AnyAsync(x => x.ShockerId == shareCodeId && x.SharedWith == CurrentUser.DbUser.Id))
             return EBaseResponse<object>("You already have this shocker linked to your account");
 
 

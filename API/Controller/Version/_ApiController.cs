@@ -24,9 +24,9 @@ public sealed partial class VersionController : OpenShockControllerBase
     /// Gets the version of the OpenShock backend.
     /// </summary>
     /// <response code="200">The version was successfully retrieved.</response>
-    [HttpGet(Name = "Version")]
+    [HttpGet]
     [ProducesResponseType(StatusCodes.Status200OK)]
-    public BaseResponse<RootResponse> Get()
+    public BaseResponse<RootResponse> GetBackendVersion()
     {
         
         return new BaseResponse<RootResponse>

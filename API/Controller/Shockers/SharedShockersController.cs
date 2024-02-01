@@ -9,13 +9,13 @@ namespace OpenShock.API.Controller.Shockers;
 public partial class ShockerController
 {
     /// <summary>
-    /// Gets all shockers shared with the authenticated user.
+    /// List all shockers shared with the authenticated user.
     /// </summary>
     /// <response code="200">The shockers were successfully retrieved.</response>
-    [HttpGet("shared", Name = "GetSharedShockers")]
+    [HttpGet("shared")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [MapToApiVersion("1")]
-    public async Task<BaseResponse<IEnumerable<OwnerShockerResponse>>> GetSharedShockers()
+    public async Task<BaseResponse<IEnumerable<OwnerShockerResponse>>> ListSharedShockers()
     {
         var sharedShockersRaw = await _db.ShockerShares.Where(x => x.SharedWith == CurrentUser.DbUser.Id).Select(x =>
             new

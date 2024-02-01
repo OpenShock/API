@@ -206,7 +206,7 @@ public class Startup
         services.AddSwaggerGen(options =>
             {
                 options.CustomOperationIds(e =>
-                    $"{e.ActionDescriptor.RouteValues["controller"]}_{e.ActionDescriptor.RouteValues["action"]}_{e.HttpMethod}");
+                    $"{e.ActionDescriptor.RouteValues["controller"]}_{e.ActionDescriptor.AttributeRouteInfo?.Name ?? e.ActionDescriptor.RouteValues["action"]}");
                 options.SchemaFilter<AttributeFilter>();
                 options.ParameterFilter<AttributeFilter>();
                 options.OperationFilter<AttributeFilter>();
@@ -236,6 +236,8 @@ public class Startup
                 options.AddServer(new OpenApiServer { Url = "https://api.shocklink.net" });
                 options.AddServer(new OpenApiServer { Url = "https://dev-api.shocklink.net" });
                 options.AddServer(new OpenApiServer { Url = "https://localhost" });
+                options.SwaggerDoc("v1", new OpenApiInfo { Title = "OpenShock", Version = "1" });
+                options.SwaggerDoc("v2", new OpenApiInfo { Title = "OpenShock", Version = "2" });
             }
         );
 

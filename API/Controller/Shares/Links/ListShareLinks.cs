@@ -12,7 +12,7 @@ public sealed partial class ShareLinksController
     /// Get all share links for the current user
     /// </summary>
     /// <response code="200">All share links for the current user</response>
-    [HttpGet(Name = "ListShareLinks")]
+    [HttpGet]
     [ProducesResponseType((int)HttpStatusCode.OK)]
     public async Task<BaseResponse<IEnumerable<ShareLinkResponse>>> List()
     {
