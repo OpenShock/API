@@ -30,12 +30,13 @@ services:
     ports:
       - "5001:80/tcp"
     environment:
-    environment:
-      OPENSHOCK__DB=Host: db;Port=5432;Database=shocklink;Username=shocklink;Password=someSuperSecurePassword
+      OPENSHOCK__DB__CONN: Host=docker-node;Port=1337;Database=openshock;Username=root;Password=root
       OPENSHOCK__REDIS__HOST: redis
       OPENSHOCK__FRONTENDBASEURL: https://shocklink.net
-      OPENSHOCK__MAILJET__KEY: mailjetkey
-      OPENSHOCK__MAILJET__SECRET: mailjetsecret
+      OPENSHOCK__MAIL__TYPE: MAILJET # MAILJET or SMTP, check Documentation
+      OPENSHOCK__MAIL__MAILJET__KEY: mailjetkey
+      OPENSHOCK__MAIL__MAILJET__SECRET: mailjetsecret
+      OPENSHOCK__MAIL__MAILJET__TEMPLATE__PASSWORDRESET: 9999999
   
   webui:
     image: ghcr.io/openshock/webui:latest

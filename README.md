@@ -6,18 +6,42 @@ OpenShock backend.
 
 The API can be configured using the following environment variables:
 
-| Variable                           | Required | Default value | Example value                                                                                |
-|------------------------------------|----------|---------------|----------------------------------------------------------------------------------------------|
-| `OPENSHOCK__DB`                    | x        |               | `Host=docker-node;Port=1337;Database=root;Username=root;Password=root;Search Path=openshock` |
-| `OPENSHOCK__FRONTENDBASEURL`       | x        |               | `https://shocklink.net`                                                                      |
-| `OPENSHOCK__COOKIEDOMAIN`          | x        |               | `shocklink.net`                                                                              |
-| `OPENSHOCK__REDIS__HOST`           | x        |               | `redis`                                                                                      |
-| `OPENSHOCK__REDIS__PORT`           |          | `6379`        |                                                                                              |   
-| `OPENSHOCK__REDIS__USER`           |          |               |                                                                                              |  
-| `OPENSHOCK__REDIS__PASSWORD`       |          |               |                                                                                              |  
-| `OPENSHOCK__MAIL__TYPE`            | x        |               | `MAILJET`, `SMTP`                                                                            |
-| `OPENSHOCK__MAIL__MAILJET__KEY`    |          |               |                                                                                              |
-| `OPENSHOCK__MAIL__MAILJET__SECRET` |          |               |                                                                                              |
+| Variable                         | Required | Default value | Allowed / Example value                                                                                  |
+|----------------------------------|----------|---------------|----------------------------------------------------------------------------------------------------------|
+| `OPENSHOCK__DB`                  | x        |               | `Host=postgres-server-host;Port=5432;Database=openshock;Username=openshock;Password=superSecurePassword` |
+| `OPENSHOCK__FRONTENDBASEURL`     | x        |               | `https://my-openshock-instance.net`                                                                      |
+| `OPENSHOCK__COOKIEDOMAIN`        | x        |               | `my-openshock-instance.net`                                                                              |
+| `OPENSHOCK__REDIS__HOST`         | x        |               | `redis-server-host`                                                                                      |
+| `OPENSHOCK__REDIS__PORT`         |          | `6379`        |                                                                                                          |   
+| `OPENSHOCK__REDIS__USER`         |          |               |                                                                                                          |  
+| `OPENSHOCK__REDIS__PASSWORD`     |          |               |                                                                                                          |  
+| `OPENSHOCK__MAIL__SENDER__EMAIL` | x        |               | `system@my-openshock-instance.net`                                                                       |
+| `OPENSHOCK__MAIL__SENDER__NAME`  | x        |               | `MyOpenShockInstance System`                                                                             |
+| `OPENSHOCK__MAIL__TYPE`          | x        |               | `MAILJET`, `SMTP`                                                                                        |
+
+## EMail
+
+### MAILJET
+
+You need these environment variables to use [Mailjet](https://www.mailjet.com/):
+
+| Variable                                            | Required | Default value | Allowed / Example value |
+|-----------------------------------------------------|----------|---------------|-------------------------|
+| `OPENSHOCK__MAIL__MAILJET__KEY`                     | x        |               |                         |
+| `OPENSHOCK__MAIL__MAILJET__SECRET`                  | x        |               |                         |
+| `OPENSHOCK__MAIL__MAILJET__TEMPLATE__PASSWORDRESET` | x        |               |                         |
+
+### SMTP
+
+You need these environment variables to use SMTP:
+
+| Variable                                   | Required | Default value | Allowed / Example value            |
+|--------------------------------------------|----------|---------------|------------------------------------|
+| `OPENSHOCK__MAIL__SMTP__HOST`              | x        |               | `mail.my-openshock-instance.net`   |
+| `OPENSHOCK__MAIL__SMTP__USERNAME`          | x        |               | `system@my-openshock-instance.net` |
+| `OPENSHOCK__MAIL__SMTP__PASSWORD`          | x        |               | `superSecurePassword`              |
+| `OPENSHOCK__MAIL__SMTP__ENABLESSL`         |          | `true`        | `true` or `false`                  |
+| `OPENSHOCK__MAIL__SMTP__VERIFYCERTIFICATE` |          | `true`        | `true` or `false`                  |
 
 # Deployment
 
