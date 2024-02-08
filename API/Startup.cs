@@ -196,13 +196,13 @@ public class Startup
             x.JsonSerializerOptions.PropertyNameCaseInsensitive = true;
             x.JsonSerializerOptions.Converters.Add(new CustomJsonStringEnumConverter());
         });
-
+        
         apiVersioningBuilder.AddApiExplorer(setup =>
         {
             setup.GroupNameFormat = "VVV";
             setup.SubstituteApiVersionInUrl = true;
         });
-
+        
         services.AddSwaggerGen(options =>
             {
                 options.CustomOperationIds(e =>

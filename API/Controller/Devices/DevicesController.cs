@@ -2,10 +2,10 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using OpenShock.API.Models.Requests;
+using OpenShock.API.Services;
 using OpenShock.API.Utils;
 using OpenShock.Common.Models;
 using OpenShock.Common.Redis;
-using OpenShock.ServicesCommon.Services.RedisPubSub;
 
 namespace OpenShock.API.Controller.Devices;
 
@@ -63,13 +63,13 @@ public sealed partial class DevicesController
     /// </summary>
     /// <param name="deviceId"></param>
     /// <param name="body"></param>
-    /// <param name="redisPubService"></param>
+    /// <param name="updateService"></param>
     /// <response code="200">Successfully updated device</response>
     /// <response code="404">Device does not exist</response>
     [HttpPatch("{deviceId}")]
     [ProducesResponseType((int)HttpStatusCode.OK)]
     [ProducesResponseType((int)HttpStatusCode.NotFound)]
-    public async Task<BaseResponse<object>> EditDevice([FromRoute] Guid deviceId, [FromBody] DeviceEdit body, [FromServices] IRedisPubService redisPubService)
+    public async Task<BaseResponse<object>> EditDevice([FromRoute] Guid deviceId, [FromBody] DeviceEdit body, [FromServices] IDeviceUpdateService updateService)
     {
         var device = await _db.Devices.Where(x => x.Owner == CurrentUser.DbUser.Id && x.Id == deviceId)
             .SingleOrDefaultAsync();
@@ -79,7 +79,7 @@ public sealed partial class DevicesController
         device.Name = body.Name;
         await _db.SaveChangesAsync();
 
-        await redisPubService.SendDeviceUpdate(device.Id);
+        await updateService.UpdateDeviceForAllShared(CurrentUser.DbUser.Id, device.Id, DeviceUpdateType.Updated);
         
         return new BaseResponse<object>
         {
@@ -121,20 +121,20 @@ public sealed partial class DevicesController
     /// Remove a device from current user's account
     /// </summary>
     /// <param name="deviceId">The id of the device to delete</param>
-    /// <param name="redisPubService"></param>
+    /// <param name="updateService"></param>
     /// <response code="200">Successfully deleted device</response>
     /// <response code="404">Device does not exist</response>
     [HttpDelete("{deviceId}")]
     [ProducesResponseType((int)HttpStatusCode.OK)]
     [ProducesResponseType((int)HttpStatusCode.NotFound)]
-    public async Task<BaseResponse<object>> RemoveDevice([FromRoute] Guid deviceId, [FromServices] IRedisPubService redisPubService)
+    public async Task<BaseResponse<object>> RemoveDevice([FromRoute] Guid deviceId, [FromServices] IDeviceUpdateService updateService)
     {
         var affected = await _db.Devices.Where(x => x.Owner == CurrentUser.DbUser.Id && x.Id == deviceId)
             .ExecuteDeleteAsync();
         if (affected <= 0)
             return EBaseResponse<object>("Device does not exist", HttpStatusCode.NotFound);
         
-        await redisPubService.SendDeviceUpdate(deviceId);
+        await updateService.UpdateDeviceForAllShared(CurrentUser.DbUser.Id, deviceId, DeviceUpdateType.Deleted);
         
         return new BaseResponse<object>
         {
@@ -148,7 +148,7 @@ public sealed partial class DevicesController
     /// <response code="201">Successfully created device</response>
     [HttpPost]
     [ProducesResponseType((int)HttpStatusCode.Created)]
-    public async Task<BaseResponse<Guid>> CreateDevice([FromServices] IRedisPubService redisPubService)
+    public async Task<BaseResponse<Guid>> CreateDevice([FromServices] IDeviceUpdateService updateService)
     {
         var device = new Common.OpenShockDb.Device
         {
@@ -160,7 +160,7 @@ public sealed partial class DevicesController
         _db.Devices.Add(device);
         await _db.SaveChangesAsync();
         
-        await redisPubService.SendDeviceUpdate(device.Id);
+        await updateService.UpdateDevice(CurrentUser.DbUser.Id, device.Id, DeviceUpdateType.Created);
         
         Response.StatusCode = (int)HttpStatusCode.Created;
         return new BaseResponse<Guid>

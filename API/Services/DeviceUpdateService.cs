@@ -38,6 +38,15 @@ public class DeviceUpdateService : IDeviceUpdateService
     }
 
     /// <inheritdoc />
+    public async Task UpdateDevice(Guid ownerId, Guid deviceId, DeviceUpdateType type)
+    {
+        var task1 = _redisPubService.SendDeviceUpdate(deviceId);
+        var task2 = _hubContext.Clients.Users(ownerId.ToString())
+            .DeviceUpdate(deviceId, type);
+        await Task.WhenAll(task1, task2);
+    }
+
+    /// <inheritdoc />
     public async Task UpdateDeviceForAllShared(Guid ownerId, Guid deviceId, DeviceUpdateType type)
     {
         var task1 = _redisPubService.SendDeviceUpdate(deviceId);
