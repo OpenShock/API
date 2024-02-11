@@ -50,7 +50,8 @@ public sealed partial class SharesController
             PermVibrate = shareCode.Share.PermVibrate,
             PermShock = shareCode.Share.PermShock,
             LimitDuration = shareCode.Share.LimitDuration,
-            LimitIntensity = shareCode.Share.LimitIntensity
+            LimitIntensity = shareCode.Share.LimitIntensity,
+            PermLive = true
         });
         _db.ShockerShareCodes.Remove(shareCode.Share);
 
