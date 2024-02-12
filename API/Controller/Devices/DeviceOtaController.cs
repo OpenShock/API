@@ -18,7 +18,6 @@ public sealed partial class DevicesController
     /// <response code="200">OK</response>
     /// <response code="404">Could not find device or you do not have access to it</response>
     [HttpGet("{deviceId}/ota")]
-    [MapToApiVersion("1")]
     public async Task<BaseResponse<IReadOnlyCollection<OtaItem>>> GetOtaUpdateHistory([FromRoute] Guid deviceId, [FromServices] IOtaService otaService)
     {
         // Check if user owns device or has a share
