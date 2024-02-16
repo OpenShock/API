@@ -45,7 +45,7 @@ public sealed partial class ShockerController
     }
 
     /// <summary>
-    /// Send a control message to shockers (Deprecated)
+    /// Send a control message to shockers (Deprecated in favor of the /2/shockers/control endpoint)
     /// </summary>
     /// <response code="200">The control messages were successfully sent.</response>
     [MapToApiVersion("1")]
