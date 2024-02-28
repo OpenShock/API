@@ -20,7 +20,7 @@ public sealed partial class AdminController
     [HttpGet("monitoring/onlineDevices")]
     [ProducesResponseType((int)HttpStatusCode.OK)]
     [ProducesResponseType((int)HttpStatusCode.Unauthorized)]
-    public async Task<BaseResponse<object>> GetOnlineDevices()
+    public async Task<BaseResponse<IEnumerable<AdminOnlineDeviceResponse>>> GetOnlineDevices()
     {
         var devicesOnline = _redis.RedisCollection<DeviceOnline>(false);
 
@@ -40,7 +40,7 @@ public sealed partial class AdminController
                     }
                 }).ToListAsync();
 
-        return new BaseResponse<object>
+        return new BaseResponse<IEnumerable<AdminOnlineDeviceResponse>>
         {
             Data = allOnlineDevices.Select(x =>
             {
