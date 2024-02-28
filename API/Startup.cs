@@ -242,7 +242,6 @@ public class Startup
         );
 
         services.ConfigureOptions<ConfigureSwaggerOptions>();
-        services.AddSwaggerGenNewtonsoftSupport();
         //services.AddHealthChecks().AddCheck<DatabaseHealthCheck>("database");
 
         services.AddHostedService<RedisSubscriberService>();
