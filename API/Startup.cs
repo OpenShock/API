@@ -29,6 +29,7 @@ using OpenShock.ServicesCommon.Services.RedisPubSub;
 using OpenShock.ServicesCommon.Utils;
 using Redis.OM;
 using Redis.OM.Contracts;
+using Semver;
 using Serilog;
 using StackExchange.Redis;
 using IPNetwork = Microsoft.AspNetCore.HttpOverrides.IPNetwork;
@@ -238,6 +239,7 @@ public class Startup
                 options.AddServer(new OpenApiServer { Url = "https://localhost" });
                 options.SwaggerDoc("v1", new OpenApiInfo { Title = "OpenShock", Version = "1" });
                 options.SwaggerDoc("v2", new OpenApiInfo { Title = "OpenShock", Version = "2" });
+                options.MapType<SemVersion>(() => new OpenApiSchema { Type = typeof(string).Name } );
             }
         );
 
