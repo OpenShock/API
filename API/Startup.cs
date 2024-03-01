@@ -20,6 +20,7 @@ using OpenShock.Common.OpenShockDb;
 using OpenShock.Common.Redis;
 using OpenShock.ServicesCommon;
 using OpenShock.ServicesCommon.Authentication;
+using OpenShock.ServicesCommon.DataAnnotations;
 using OpenShock.ServicesCommon.ExceptionHandle;
 using OpenShock.ServicesCommon.Geo;
 using OpenShock.ServicesCommon.Hubs;
@@ -239,7 +240,8 @@ public class Startup
                 options.AddServer(new OpenApiServer { Url = "https://localhost" });
                 options.SwaggerDoc("v1", new OpenApiInfo { Title = "OpenShock", Version = "1" });
                 options.SwaggerDoc("v2", new OpenApiInfo { Title = "OpenShock", Version = "2" });
-                options.MapType<SemVersion>(() => new OpenApiSchema { Type = typeof(string).Name } );
+                options.MapType<SemVersion>(() => OpenApiSchemas.SemVerSchema);
+                options.MapType<PauseReason>(() => OpenApiSchemas.PauseReasonEnumSchema);
             }
         );
 
