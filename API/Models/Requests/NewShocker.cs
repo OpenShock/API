@@ -3,7 +3,7 @@ using OpenShock.Common.Models;
 
 namespace OpenShock.API.Models.Requests;
 
-public class NewShocker
+public sealed class NewShocker
 {
     [StringLength(48, MinimumLength = 1)] public required string Name { get; set; }
     public required ushort RfId { get; set; }

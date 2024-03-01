@@ -7,6 +7,7 @@ using OpenShock.Common.Redis;
 using Redis.OM.Contracts;
 using System.Net;
 using Asp.Versioning;
+using OpenShock.ServicesCommon.Services.Turnstile;
 
 namespace OpenShock.API.Controller.Account;
 
@@ -25,11 +26,11 @@ public sealed partial class AccountController
     [ProducesResponseType((int)HttpStatusCode.Forbidden)]
     [ProducesResponseType((int)HttpStatusCode.Unauthorized)]
     [MapToApiVersion("1")]
-    public async Task<BaseResponse<object>> Login([FromBody] Login body)
+    public async Task<BaseResponse<object>> Login([FromBody] Login body, CancellationToken cancellationToken)
     {
         var loginSessions = _redis.RedisCollection<LoginSession>(false);
 
-        var user = await _db.Users.SingleOrDefaultAsync(x => x.Email == body.Email.ToLowerInvariant());
+        var user = await _db.Users.SingleOrDefaultAsync(x => x.Email == body.Email.ToLowerInvariant(), cancellationToken: cancellationToken);
         if (user == null || !SecurePasswordHasher.Verify(body.Password, user.Password))
         {
             _logger.LogInformation("Failed to authenticate with email [{Email}]", body.Email);

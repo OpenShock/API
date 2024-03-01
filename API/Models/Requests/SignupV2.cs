@@ -3,7 +3,7 @@ using OpenShock.ServicesCommon.DataAnnotations;
 
 namespace OpenShock.API.Models.Requests;
 
-public sealed class SignUp
+public sealed class SignUpV2
 {
     [Username(true)]
     public required string Username { get; set; }
@@ -11,4 +11,5 @@ public sealed class SignUp
     public required string Password { get; set; }
     [EmailAddress]
     public required string Email { get; set; }
+    [Required(AllowEmptyStrings = false)] public required string TurnstileResponse { get; set; }
 }

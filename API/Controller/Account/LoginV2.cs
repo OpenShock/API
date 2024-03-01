@@ -24,14 +24,14 @@ public sealed partial class AccountController
     [ProducesResponseType((int)HttpStatusCode.Forbidden)]
     [ProducesResponseType((int)HttpStatusCode.Unauthorized)]
     [MapToApiVersion("2")]
-    public async Task<BaseResponse<object>> LoginV2([FromBody] LoginV2 body, [FromServices] ICloudflareTurnstileService turnstileService, [FromServices] CancellationToken cancellationToken)
+    public async Task<BaseResponse<object>> LoginV2([FromBody] LoginV2 body, [FromServices] ICloudflareTurnstileService turnstileService, CancellationToken cancellationToken)
     {
         var turnStile = await turnstileService.VerifyUserResponseToken(body.TurnstileResponse, HttpContext.Connection.RemoteIpAddress, cancellationToken);
         if (!turnStile.IsT0) return EBaseResponse<object>("Invalid turnstile response", HttpStatusCode.Forbidden);
             
         var loginSessions = _redis.RedisCollection<LoginSession>(false);
 
-        var user = await _db.Users.SingleOrDefaultAsync(x => x.Email == body.Email.ToLowerInvariant());
+        var user = await _db.Users.SingleOrDefaultAsync(x => x.Email == body.Email.ToLowerInvariant(), cancellationToken: cancellationToken);
         if (user == null || !SecurePasswordHasher.Verify(body.Password, user.Password))
         {
             _logger.LogInformation("Failed to authenticate with email [{Email}]", body.Email);
