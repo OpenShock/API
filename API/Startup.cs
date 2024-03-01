@@ -239,7 +239,8 @@ public class Startup
                 options.AddServer(new OpenApiServer { Url = "https://localhost" });
                 options.SwaggerDoc("v1", new OpenApiInfo { Title = "OpenShock", Version = "1" });
                 options.SwaggerDoc("v2", new OpenApiInfo { Title = "OpenShock", Version = "2" });
-                options.MapType<SemVersion>(() => new OpenApiSchema { Type = typeof(string).Name } );
+                options.MapType<SemVersion>(() => OpenApiSchemas.SemVerSchema);
+                options.MapType<PauseReason>(() => OpenApiSchemas.PauseReasonEnumSchema);
             }
         );
 
