@@ -20,6 +20,7 @@ using OpenShock.Common.OpenShockDb;
 using OpenShock.Common.Redis;
 using OpenShock.ServicesCommon;
 using OpenShock.ServicesCommon.Authentication;
+using OpenShock.ServicesCommon.DataAnnotations;
 using OpenShock.ServicesCommon.ExceptionHandle;
 using OpenShock.ServicesCommon.Geo;
 using OpenShock.ServicesCommon.Hubs;
