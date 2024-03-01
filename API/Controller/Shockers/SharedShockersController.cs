@@ -44,7 +44,7 @@ public partial class ShockerController
                 }
             }).ToListAsync();
 
-        var shared = new Dictionary<Guid, OwnerShockerResponse>();
+        Dictionary<Guid, OwnerShockerResponse> shared = [];
         foreach (var shocker in sharedShockersRaw)
         {
             // No I dont want unnecessary alloc

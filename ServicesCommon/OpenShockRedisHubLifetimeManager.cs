@@ -44,8 +44,8 @@ public class OpenShockRedisHubLifetimeManager<THub> : RedisHubLifetimeManager<TH
 
         var message = new SerializedHubMessage(new InvocationMessage(methodName, args));
 
-        var localUsers = new List<string>();
-        var remoteUsers = new List<string>();
+        List<string> localUsers = [];
+        List<string> remoteUsers = [];
 
         foreach (var userId in userIds)
             if (userId.StartsWith("local#")) localUsers.Add(userId);

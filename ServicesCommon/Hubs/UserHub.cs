@@ -43,7 +43,7 @@ public class UserHub : Hub<IUserHub>
         var shared = devicesOnline.FindByIdsAsync(sharedDevices);
         await Task.WhenAll(own, shared);
 
-        var final = new List<DeviceOnlineState>();
+        List<DeviceOnlineState> final = [];
         final.AddRange(own.Result.Select(x =>
             new DeviceOnlineState
             {
@@ -68,7 +68,7 @@ public class UserHub : Hub<IUserHub>
 
     public async Task ControlV2(IEnumerable<Common.Models.WebSocket.User.Control> shocks, string? customName)
     {
-        var additionalItems = new Dictionary<string, object>();
+        Dictionary<string, object> additionalItems = [];
         var apiTokenId = Context.User?.FindFirst(ControlLogAdditionalItem.ApiTokenId);
         if (apiTokenId != null) additionalItems[ControlLogAdditionalItem.ApiTokenId] = apiTokenId.Value;
 

@@ -29,7 +29,7 @@ public static class PermissionTypeBindings
     private static IReadOnlyCollection<string> InitDatabaseNames()
     {
         var fields = typeof(PermissionType).GetFields();
-        var names = new List<string>();
+        List<string> names = [];
         foreach (var fieldInfo in fields)
             names.AddRange(fieldInfo.GetCustomAttributes(typeof(PgNameAttribute), false)
                 .Select(attribute => ((PgNameAttribute)attribute).PgName));

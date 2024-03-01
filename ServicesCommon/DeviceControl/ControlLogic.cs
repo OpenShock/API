@@ -160,7 +160,7 @@ public static class ControlLogic
 
         await Task.WhenAll(listOfTasks);
 
-        return new OneOf<Success>();
+        return new Success();
     }
 
     private static bool IsAllowed(ControlType type, SharePermsAndLimits? perms)

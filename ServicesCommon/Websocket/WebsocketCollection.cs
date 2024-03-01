@@ -34,7 +34,7 @@ namespace OpenShock.ServicesCommon.Websocket
         {
             if (_websockets.TryGetValue(id, out var list))
                 return list;
-            return Array.Empty<IWebsocketController<T>>();
+            return [];
         }
 
         public async ValueTask SendMessageTo(Guid id, T msg)

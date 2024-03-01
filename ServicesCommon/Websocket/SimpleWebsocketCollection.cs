@@ -34,7 +34,7 @@ public class SimpleWebsocketCollection<T, TR> where T : class, IWebsocketControl
     {
         if (_websockets.TryGetValue(id, out var list))
             return list;
-        return Array.Empty<T>();
+        return [];
     }
 
     public async ValueTask SendMessageTo(Guid id, TR msg)
@@ -68,7 +68,7 @@ public class SimpleWebsocketCollection<T, TR> where T : class, IWebsocketControl
 
     public IEnumerable<T> GetConnectedById(IEnumerable<Guid> ids)
     {
-        var found = new List<T>();
+        List<T> found = [];
         foreach (var id in ids) found.AddRange(GetConnections(id));
         return found;
     }

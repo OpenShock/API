@@ -231,7 +231,7 @@ public class Startup
                                 Id = "OpenShockToken"
                             }
                         },
-                        Array.Empty<string>()
+                        []
                     }
                 });
                 options.AddServer(new OpenApiServer { Url = "https://api.shocklink.net" });
