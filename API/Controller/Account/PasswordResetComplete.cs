@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using OpenShock.API.Utils;
 using OpenShock.Common.Models;
 using System.Net;
+using Asp.Versioning;
 
 namespace OpenShock.API.Controller.Account;
 
@@ -19,6 +20,7 @@ public sealed partial class AccountController
     [HttpPost("recover/{passwordResetId}/{secret}")]
     [ProducesResponseType((int)HttpStatusCode.OK)]
     [ProducesResponseType((int)HttpStatusCode.NotFound)]
+    [MapToApiVersion("1")]
     public async Task<BaseResponse<object>> PasswordResetComplete([FromRoute] Guid passwordResetId, [FromRoute] string secret, [FromBody] PasswordResetProcessData body)
     {
         var reset = await _db.PasswordResets.Include(x => x.User).SingleOrDefaultAsync(x =>

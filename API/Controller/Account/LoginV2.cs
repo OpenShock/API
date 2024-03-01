@@ -7,13 +7,12 @@ using OpenShock.Common.Redis;
 using Redis.OM.Contracts;
 using System.Net;
 using Asp.Versioning;
+using OpenShock.ServicesCommon.Services.Turnstile;
 
 namespace OpenShock.API.Controller.Account;
 
 public sealed partial class AccountController
 {
-    public static readonly TimeSpan SessionLifetime = TimeSpan.FromDays(30);
-
     /// <summary>
     /// Authenticate a user
     /// </summary>
@@ -24,9 +23,12 @@ public sealed partial class AccountController
     [ProducesResponseType((int)HttpStatusCode.OK)]
     [ProducesResponseType((int)HttpStatusCode.Forbidden)]
     [ProducesResponseType((int)HttpStatusCode.Unauthorized)]
-    [MapToApiVersion("1")]
-    public async Task<BaseResponse<object>> Login([FromBody] Login body)
+    [MapToApiVersion("2")]
+    public async Task<BaseResponse<object>> LoginV2([FromBody] LoginV2 body, [FromServices] ICloudflareTurnstileService turnstileService, [FromServices] CancellationToken cancellationToken)
     {
+        var turnStile = await turnstileService.VerifyUserResponseToken(body.TurnstileResponse, HttpContext.Connection.RemoteIpAddress, cancellationToken);
+        if (!turnStile.IsT0) return EBaseResponse<object>("Invalid turnstile response", HttpStatusCode.Forbidden);
+            
         var loginSessions = _redis.RedisCollection<LoginSession>(false);
 
         var user = await _db.Users.SingleOrDefaultAsync(x => x.Email == body.Email.ToLowerInvariant());

@@ -4,6 +4,7 @@ using OpenShock.API.Utils;
 using OpenShock.Common.Models;
 using OpenShock.Common.OpenShockDb;
 using System.Net;
+using Asp.Versioning;
 using OpenShock.API.Services.Email;
 using OpenShock.API.Services.Email.Mailjet.Mail;
 
@@ -17,6 +18,7 @@ public sealed partial class AccountController
     /// <response code="200">Password reset email sent if the email is associated to an registered account</response>
     [HttpPost("reset")]
     [ProducesResponseType((int)HttpStatusCode.OK)]
+    [MapToApiVersion("1")]
     public async Task<BaseResponse<object>> PasswordResetInitiate([FromBody] ResetRequest body, [FromServices] IEmailService emailService)
     {
         var user = await _db.Users.Where(x => x.Email == body.Email.ToLowerInvariant()).Select(x => new

@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Authorization;
+﻿using Asp.Versioning;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using OpenShock.Common.OpenShockDb;
 using OpenShock.ServicesCommon;
@@ -11,6 +12,8 @@ namespace OpenShock.API.Controller.Account;
 /// </summary>
 [ApiController]
 [AllowAnonymous]
+[ApiVersion("1")]
+[ApiVersion("2")]
 [Route("/{version:apiVersion}/account")]
 public sealed partial class AccountController : OpenShockControllerBase
 {

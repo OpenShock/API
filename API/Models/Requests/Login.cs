@@ -2,7 +2,7 @@
 
 namespace OpenShock.API.Models.Requests;
 
-public class Login
+public sealed class Login
 {
     [MinLength(1)]
     public required string Password { get; set; }

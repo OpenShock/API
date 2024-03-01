@@ -6,6 +6,7 @@ using OpenShock.API.Utils;
 using OpenShock.Common.Models;
 using OpenShock.Common.OpenShockDb;
 using System.Net;
+using Asp.Versioning;
 
 namespace OpenShock.API.Controller.Account;
 
@@ -20,6 +21,7 @@ public sealed partial class AccountController
     [HttpPost("signup")]
     [ProducesResponseType((int)HttpStatusCode.OK)]
     [ProducesResponseType((int)HttpStatusCode.BadRequest)]
+    [MapToApiVersion("1")]
     public async Task<BaseResponse<object>> SignUp([FromBody] SignUp body)
     {
         var newGuid = Guid.NewGuid();
