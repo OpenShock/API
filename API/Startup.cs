@@ -145,7 +145,8 @@ public class Startup
                     throw new Exception("SMTP config is null but SMTP is selected as mail type");
                 services.AddSmtpEmailService(emailConfig.Smtp, emailConfig.Sender, new SmtpServiceTemplates
                 {
-                    PasswordReset = SmtpTemplate.ParseFromFileThrow("SmtpTemplates/PasswordReset.liquid").Result
+                    PasswordReset = SmtpTemplate.ParseFromFileThrow("SmtpTemplates/PasswordReset.liquid").Result,
+                    AccountActivation = SmtpTemplate.ParseFromFileThrow("SmtpTemplates/AccountActivation.liquid").Result
                 });
                 break;
             default:

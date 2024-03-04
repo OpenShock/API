@@ -40,6 +40,7 @@ public sealed class SmtpEmailService : IEmailService
         _sender = sender.ToMailAddress();
     }
 
+    /// <inheritdoc />
     public Task PasswordReset(Contact to, Uri resetLink, CancellationToken cancellationToken = default)
     {
         var data = new
@@ -49,6 +50,19 @@ public sealed class SmtpEmailService : IEmailService
         };
 
         SendMailAndForget(to, _templates.PasswordReset, data, cancellationToken);
+        return Task.CompletedTask;
+    }
+
+    /// <inheritdoc />
+    public Task ActivateAccountEmail(Contact to, Uri activationLink, CancellationToken cancellationToken = default)
+    {
+        var data = new
+        {
+            To = to,
+            ActivationLink = activationLink
+        };
+
+        SendMailAndForget(to, _templates.AccountActivation, data, cancellationToken);
         return Task.CompletedTask;
     }
 

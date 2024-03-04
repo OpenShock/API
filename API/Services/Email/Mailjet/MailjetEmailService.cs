@@ -55,6 +55,22 @@ public sealed class MailjetEmailService : IEmailService, IDisposable
         }, cancellationToken);
     }
 
+    /// <inheritdoc />
+    public async Task ActivateAccountEmail(Contact to, Uri activationLink, CancellationToken cancellationToken = default)
+    {
+        await SendMail(new TemplateMail
+        {
+            From = _sender,
+            Subject = "Activate your account",
+            To = [to],
+            TemplateId = _mailjetConfig.Template.ActivateAccount,
+            Variables = new Dictionary<string, string>
+            {
+                {"link", activationLink.ToString() },
+            }
+        }, cancellationToken);
+    }
+
     #endregion
     
     private Task SendMail(MailBase templateMail, CancellationToken cancellationToken = default) => SendMails(new[] { templateMail }, cancellationToken);

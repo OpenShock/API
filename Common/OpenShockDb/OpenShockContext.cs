@@ -373,5 +373,28 @@ public partial class OpenShockContext : DbContext
                 .HasColumnType("rank_type")
                 .HasColumnName("rank");
         });
+
+        modelBuilder.Entity<UsersActivation>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("users_activation_pkey");
+
+            entity.ToTable("users_activation");
+
+            entity.Property(e => e.Id)
+                .ValueGeneratedNever()
+                .HasColumnName("id");
+            entity.Property(e => e.CreatedOn)
+                .HasDefaultValueSql("CURRENT_TIMESTAMP")
+                .HasColumnName("created_on");
+            entity.Property(e => e.Secret)
+                .HasColumnType("character varying")
+                .HasColumnName("secret");
+            entity.Property(e => e.UsedOn).HasColumnName("used_on");
+            entity.Property(e => e.UserId).HasColumnName("user_id");
+
+            entity.HasOne(d => d.User).WithMany(p => p.UsersActivations)
+                .HasForeignKey(d => d.UserId)
+                .HasConstraintName("user_id");
+        });
     }
 }

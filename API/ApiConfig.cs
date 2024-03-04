@@ -44,6 +44,7 @@ public class ApiConfig
             public sealed class TemplateConfig
             {
                 [Required] public required ulong PasswordReset { get; init; }
+                [Required] public required ulong ActivateAccount { get; init; }
             }
         }
     }
