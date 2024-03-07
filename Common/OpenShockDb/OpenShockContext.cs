@@ -37,11 +37,14 @@ public partial class OpenShockContext : DbContext
 
     public virtual DbSet<User> Users { get; set; }
 
+    public virtual DbSet<UsersActivation> UsersActivations { get; set; }
+    
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder
             .HasPostgresEnum("control_type", new[] { "sound", "vibrate", "shock", "stop" })
             .HasPostgresEnum("ota_update_status", new[] { "started", "running", "finished", "error", "timeout" })
+            .HasPostgresEnum("password_encryption_type", new[] { "pbkdf2", "bcrypt_enhanced" })
             .HasPostgresEnum("permission_type", new[] { "shockers.use" })
             .HasPostgresEnum("rank_type", new[] { "user", "support", "staff", "admin", "system" })
             .HasPostgresEnum("shocker_model_type", new[] { "caiXianlin", "petTrainer" });
@@ -372,6 +375,9 @@ public partial class OpenShockContext : DbContext
             entity.Property(e => e.Rank)
                 .HasColumnType("rank_type")
                 .HasColumnName("rank");
+            entity.Property(e => e.PasswordEncryption)
+                .HasColumnType("password_encryption_type")
+                .HasColumnName("password_encryption");
         });
 
         modelBuilder.Entity<UsersActivation>(entity =>
