@@ -10,6 +10,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ServicesCommon", "ServicesC
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Cron", "Cron\Cron.csproj", "{1A5D3B84-AF07-4884-B317-50BC600F33A8}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MigrationHelper", "MigrationHelper\MigrationHelper.csproj", "{7396B01D-5463-4794-B2ED-4A5AE3B89320}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -36,5 +38,9 @@ Global
 		{1A5D3B84-AF07-4884-B317-50BC600F33A8}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{1A5D3B84-AF07-4884-B317-50BC600F33A8}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{1A5D3B84-AF07-4884-B317-50BC600F33A8}.Release|Any CPU.Build.0 = Release|Any CPU
+		{7396B01D-5463-4794-B2ED-4A5AE3B89320}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{7396B01D-5463-4794-B2ED-4A5AE3B89320}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{7396B01D-5463-4794-B2ED-4A5AE3B89320}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{7396B01D-5463-4794-B2ED-4A5AE3B89320}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal
