@@ -13,11 +13,7 @@ using Redis.OM.Searching;
 
 namespace OpenShock.ServicesCommon.Authentication;
 
-public class LoginSessionAuthenticationSchemeOptions : AuthenticationSchemeOptions
-{
-}
-
-public class LoginSessionAuthentication : AuthenticationHandler<LoginSessionAuthenticationSchemeOptions>
+public class LoginSessionAuthentication : AuthenticationHandler<AuthenticationSchemeOptions>
 {
     private readonly IClientAuthService<LinkUser> _authService;
     private readonly IMemoryCache _memoryCache;
@@ -25,10 +21,10 @@ public class LoginSessionAuthentication : AuthenticationHandler<LoginSessionAuth
     private readonly IRedisCollection<LoginSession> _userSessions;
     private string _failReason = "Internal server error";
 
-    public LoginSessionAuthentication(IOptionsMonitor<LoginSessionAuthenticationSchemeOptions> options,
-        ILoggerFactory logger, UrlEncoder encoder, ISystemClock clock, IClientAuthService<LinkUser> clientAuth,
+    public LoginSessionAuthentication(IOptionsMonitor<AuthenticationSchemeOptions> options,
+        ILoggerFactory logger, UrlEncoder encoder, IClientAuthService<LinkUser> clientAuth,
         IMemoryCache memoryCache, OpenShockContext db, IRedisConnectionProvider provider)
-        : base(options, logger, encoder, clock)
+        : base(options, logger, encoder)
     {
         _authService = clientAuth;
         _memoryCache = memoryCache;

@@ -38,7 +38,14 @@ public partial class OpenShockContext : DbContext
     public virtual DbSet<User> Users { get; set; }
 
     public virtual DbSet<UsersActivation> UsersActivations { get; set; }
-    
+
+    protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
+    {
+        if (!optionsBuilder.IsConfigured)
+        {
+            optionsBuilder.UseNpgsql("Host=localhost;Database=openshock;Username=openshock;Password=openshock");
+        }
+    }
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder
@@ -47,7 +54,8 @@ public partial class OpenShockContext : DbContext
             .HasPostgresEnum("password_encryption_type", new[] { "pbkdf2", "bcrypt_enhanced" })
             .HasPostgresEnum("permission_type", new[] { "shockers.use" })
             .HasPostgresEnum("rank_type", new[] { "user", "support", "staff", "admin", "system" })
-            .HasPostgresEnum("shocker_model_type", new[] { "caiXianlin", "petTrainer" });
+            .HasPostgresEnum("shocker_model_type", new[] { "caiXianlin", "petTrainer" })
+            .HasAnnotation("Npgsql:CollationDefinition:public.ndcoll", "und-u-ks-level2,und-u-ks-level2,icu,False");
 
         modelBuilder.Entity<ApiToken>(entity =>
         {
@@ -350,7 +358,7 @@ public partial class OpenShockContext : DbContext
 
             entity.HasIndex(e => e.Email, "idx_email");
 
-            entity.HasIndex(e => e.Name, "idx_name");
+            entity.HasIndex(e => e.Name, "idx_name").UseCollation(new[] { "ndcoll" });
 
             entity.HasIndex(e => e.Name, "username").IsUnique();
 
@@ -367,6 +375,7 @@ public partial class OpenShockContext : DbContext
                 .HasDefaultValue(false)
                 .HasColumnName("email_actived");
             entity.Property(e => e.Name)
+                .UseCollation("ndcoll")
                 .HasColumnType("character varying")
                 .HasColumnName("name");
             entity.Property(e => e.Password)

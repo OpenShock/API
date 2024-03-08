@@ -1,9 +1,8 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using OpenShock.API.Utils;
 using OpenShock.Common.Models;
 using System.Net;
 using Asp.Versioning;
+using OpenShock.API.Services.Account;
 
 namespace OpenShock.API.Controller.Account;
 
@@ -15,32 +14,30 @@ public sealed partial class AccountController
     /// <param name="passwordResetId">The id of the password reset</param>
     /// <param name="secret">The secret of the password reset</param>
     /// <param name="body"></param>
+    /// <param name="accountService"></param>
     /// <response code="200">Password successfully changed</response>
     /// <response code="404">Password reset process not found</response>
     [HttpPost("recover/{passwordResetId}/{secret}")]
     [ProducesResponseType((int)HttpStatusCode.OK)]
     [ProducesResponseType((int)HttpStatusCode.NotFound)]
     [MapToApiVersion("1")]
-    public async Task<BaseResponse<object>> PasswordResetComplete([FromRoute] Guid passwordResetId, [FromRoute] string secret, [FromBody] PasswordResetProcessData body)
+    public async Task<BaseResponse<object>> PasswordResetComplete([FromRoute] Guid passwordResetId,
+        [FromRoute] string secret, [FromBody] PasswordResetProcessData body,
+        [FromServices] IAccountService accountService)
     {
-        var reset = await _db.PasswordResets.Include(x => x.User).SingleOrDefaultAsync(x =>
-            x.Id == passwordResetId && x.UsedOn == null && x.CreatedOn.AddDays(7) > DateTime.UtcNow);
+        var passwordResetComplete = await accountService.PasswordResetComplete(passwordResetId, secret, body.Password);
 
-        if (reset == null || !SecurePasswordHasher.Verify(secret, reset.Secret, customName: "PWRESET"))
-            return EBaseResponse<object>("Password reset process not found", HttpStatusCode.NotFound);
-
-        reset.UsedOn = DateTime.UtcNow;
-        reset.User.Password = SecurePasswordHasher.Hash(body.Password);
-        await _db.SaveChangesAsync();
-
-        return new BaseResponse<object>
-        {
-            Message = "Successfully changed password"
-        };
+        return passwordResetComplete.Match(
+            success => new BaseResponse<object>("Successfully changed password"),
+            notFound => NotFoundPasswordReset(),
+            invalid => NotFoundPasswordReset());
     }
 
-    public class PasswordResetProcessData
+    private BaseResponse<object> NotFoundPasswordReset() =>
+        EBaseResponse<object>("Password reset process not found", HttpStatusCode.NotFound);
+
+    public sealed class PasswordResetProcessData
     {
-        public required string Password { get; set; }
+        public required string Password { get; init; }
     }
 }

@@ -7,6 +7,7 @@ using OpenShock.Common.Redis;
 using Redis.OM.Contracts;
 using System.Net;
 using Asp.Versioning;
+using OpenShock.API.Services.Account;
 using OpenShock.ServicesCommon.Services.Turnstile;
 
 namespace OpenShock.API.Controller.Account;
@@ -24,37 +25,26 @@ public sealed partial class AccountController
     [ProducesResponseType((int)HttpStatusCode.Forbidden)]
     [ProducesResponseType((int)HttpStatusCode.Unauthorized)]
     [MapToApiVersion("2")]
-    public async Task<BaseResponse<object>> LoginV2([FromBody] LoginV2 body, [FromServices] ICloudflareTurnstileService turnstileService, CancellationToken cancellationToken)
+    public async Task<BaseResponse<object>> LoginV2([FromBody] LoginV2 body, [FromServices] IAccountService accountService, [FromServices] ICloudflareTurnstileService turnstileService, CancellationToken cancellationToken)
     {
         var turnStile = await turnstileService.VerifyUserResponseToken(body.TurnstileResponse, HttpContext.Connection.RemoteIpAddress, cancellationToken);
         if (!turnStile.IsT0) return EBaseResponse<object>("Invalid turnstile response", HttpStatusCode.Forbidden);
             
-        var loginSessions = _redis.RedisCollection<LoginSession>(false);
-
-        var user = await _db.Users.SingleOrDefaultAsync(x => x.Email == body.Email.ToLowerInvariant(), cancellationToken: cancellationToken);
-        if (user == null || !SecurePasswordHasher.Verify(body.Password, user.Password))
+        var loginAction = await accountService.Login(body.Email, body.Password, new LoginContext
         {
-            _logger.LogInformation("Failed to authenticate with email [{Email}]", body.Email);
+            Ip = HttpContext.Connection.RemoteIpAddress?.MapToIPv4().ToString() ?? string.Empty,
+            UserAgent = HttpContext.Request.Headers.UserAgent.ToString()
+        }, cancellationToken);
+
+        if (loginAction.IsT1)
+        {
             return EBaseResponse<object>("The provided credentials do not match any account",
                 HttpStatusCode.Unauthorized);
         }
-
-        if (!user.EmailActived) return EBaseResponse<object>("You must activate your account first, before you can login",
-                HttpStatusCode.Forbidden);
-
-        var randomSessionId = CryptoUtils.RandomString(64);
-
-        await loginSessions.InsertAsync(new LoginSession
+        
+        HttpContext.Response.Cookies.Append("openShockSession", loginAction.AsT0.Value, new CookieOptions
         {
-            Id = randomSessionId,
-            UserId = user.Id,
-            UserAgent = HttpContext.Request.Headers.UserAgent.ToString(),
-            Ip = HttpContext.Connection.RemoteIpAddress?.MapToIPv4().ToString() ?? string.Empty,
-        }, SessionLifetime);
-
-        HttpContext.Response.Cookies.Append("openShockSession", randomSessionId, new CookieOptions
-        {
-            Expires = new DateTimeOffset(DateTime.UtcNow.Add(SessionLifetime)),
+            Expires = new DateTimeOffset(DateTime.UtcNow.Add(accountService.SessionLifetime)),
             Secure = true,
             HttpOnly = true,
             SameSite = SameSiteMode.Strict,

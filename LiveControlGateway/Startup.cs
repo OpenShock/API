@@ -74,6 +74,7 @@ public class Startup
         NpgsqlConnection.GlobalTypeMapper.MapEnum<ShockerModelType>();
         NpgsqlConnection.GlobalTypeMapper.MapEnum<RankType>();
         NpgsqlConnection.GlobalTypeMapper.MapEnum<OtaUpdateStatus>();
+        NpgsqlConnection.GlobalTypeMapper.MapEnum<PasswordEncryptionType>();
 #pragma warning restore CS0618
         services.AddDbContextPool<OpenShockContext>(builder =>
         {
@@ -116,13 +117,10 @@ public class Startup
 
         services.AddWebEncoders();
         services.TryAddSingleton<TimeProvider>(provider => TimeProvider.System);
-#pragma warning disable CS0618 // Type or member is obsolete
-        services.TryAddSingleton<ISystemClock, SystemClock>();
-#pragma warning restore CS0618 // Type or member is obsolete
         new AuthenticationBuilder(services)
-            .AddScheme<LoginSessionAuthenticationSchemeOptions, LoginSessionAuthentication>(
+            .AddScheme<AuthenticationSchemeOptions, LoginSessionAuthentication>(
                 OpenShockAuthSchemas.SessionTokenCombo, _ => { })
-            .AddScheme<DeviceAuthenticationSchemeOptions, DeviceAuthentication>(
+            .AddScheme<AuthenticationSchemeOptions, DeviceAuthentication>(
                 OpenShockAuthSchemas.DeviceToken, _ => { });
         services.AddAuthenticationCore();
         services.AddAuthorization();

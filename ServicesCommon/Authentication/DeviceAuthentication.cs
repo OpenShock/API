@@ -9,19 +9,19 @@ using OpenShock.Common.OpenShockDb;
 
 namespace OpenShock.ServicesCommon.Authentication;
 
-public class DeviceAuthenticationSchemeOptions : AuthenticationSchemeOptions
-{
-}
-
-public class DeviceAuthentication : AuthenticationHandler<DeviceAuthenticationSchemeOptions>
+/// <summary>
+/// Device / Box / The Thing / ESP32 authentication with DeviceToken header
+/// </summary>
+public class DeviceAuthentication : AuthenticationHandler<AuthenticationSchemeOptions>
 {
     private readonly IClientAuthService<Device> _authService;
     private readonly OpenShockContext _db;
     private string _failReason = "Internal server error";
 
-    public DeviceAuthentication(IOptionsMonitor<DeviceAuthenticationSchemeOptions> options,
-        ILoggerFactory logger, UrlEncoder encoder, ISystemClock clock, IClientAuthService<Device> clientAuth, OpenShockContext db)
-        : base(options, logger, encoder, clock)
+
+    public DeviceAuthentication(IOptionsMonitor<AuthenticationSchemeOptions> options,
+        ILoggerFactory logger, UrlEncoder encoder, IClientAuthService<Device> clientAuth, OpenShockContext db)
+        : base(options, logger, encoder)
     {
         _authService = clientAuth;
         _db = db;
