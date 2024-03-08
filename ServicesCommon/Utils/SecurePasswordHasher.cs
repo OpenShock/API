@@ -17,36 +17,6 @@ public static class SecurePasswordHasher
     private const string DefaultName = "USER";
 
     /// <summary>
-    ///     Creates a hash from a password.
-    /// </summary>
-    /// <param name="password">The password.</param>
-    /// <param name="iterations">Number of iterations.</param>
-    /// <param name="version">Version of the hash</param>
-    /// <param name="customName">Custom hash prefix</param>
-    /// <returns>The hash.</returns>
-    public static string Hash(string password, int iterations = 10000, uint version = 1,
-        string customName = DefaultName)
-    {
-        // Create salt
-        var salt = RandomNumberGenerator.GetBytes(SaltSize);
-
-        // Create hash
-        using var pbkdf2 = new Rfc2898DeriveBytes(password, salt, iterations, HashAlgorithmName.SHA512);
-        var hash = pbkdf2.GetBytes(HashSize);
-
-        // Combine salt and hash
-        var hashBytes = new byte[SaltSize + HashSize];
-        Array.Copy(salt, 0, hashBytes, 0, SaltSize);
-        Array.Copy(hash, 0, hashBytes, SaltSize, HashSize);
-
-        // Convert to base64
-        var base64Hash = Convert.ToBase64String(hashBytes);
-
-        // Format hash with extra information
-        return $"{customName}${version}${iterations}${base64Hash}";
-    }
-
-    /// <summary>
     ///     Checks if hash is supported.
     /// </summary>
     /// <param name="hashString">The hash.</param>
