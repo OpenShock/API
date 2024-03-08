@@ -14,27 +14,27 @@
     </PropertyGroup>
 
     <ItemGroup>
-      <PackageReference Include="FlatSharp.Compiler" Version="7.4.0">
+      <PackageReference Include="FlatSharp.Compiler" Version="7.5.1">
         <PrivateAssets>all</PrivateAssets>
         <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
       </PackageReference>
-      <PackageReference Include="FlatSharp.Runtime" Version="7.4.0" />
-      <PackageReference Include="Microsoft.EntityFrameworkCore" Version="8.0.1" />
-      <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="8.0.1">
+      <PackageReference Include="FlatSharp.Runtime" Version="7.5.1" />
+      <PackageReference Include="Microsoft.EntityFrameworkCore" Version="8.0.2" />
+      <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="8.0.2">
         <PrivateAssets>all</PrivateAssets>
         <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
       </PackageReference>
-      <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" Version="8.0.1" />
-      <PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="8.0.1">
+      <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" Version="8.0.2" />
+      <PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="8.0.2">
         <PrivateAssets>all</PrivateAssets>
         <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
       </PackageReference>
       <PackageReference Include="Microsoft.IO.RecyclableMemoryStream" Version="3.0.0" />
       <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
-      <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="8.0.0" />
+      <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="8.0.2" />
       <PackageReference Include="Redis.OM" Version="0.6.1" />
       <PackageReference Include="Semver" Version="2.3.0" />
-      <PackageReference Include="Serilog.Sinks.Grafana.Loki" Version="8.2.0" />
+      <PackageReference Include="Serilog.Sinks.Grafana.Loki" Version="8.3.0" />
     </ItemGroup>
 
     <ItemGroup>
