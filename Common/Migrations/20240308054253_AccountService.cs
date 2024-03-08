@@ -1,4 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore.Migrations;
+using OpenShock.Common.Models;
 
 #nullable disable
 
@@ -37,12 +38,12 @@ namespace OpenShock.Common.Migrations
                 oldClrType: typeof(string),
                 oldType: "character varying");
 
-            migrationBuilder.AddColumn<int>(
+            migrationBuilder.AddColumn<PasswordEncryptionType>(
                 name: "password_encryption",
                 table: "users",
                 type: "password_encryption_type",
                 nullable: false,
-                defaultValue: 0);
+                defaultValue: PasswordEncryptionType.Pbkdf2);
 
             migrationBuilder.CreateIndex(
                 name: "idx_name",
