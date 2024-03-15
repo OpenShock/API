@@ -63,7 +63,6 @@ public sealed class AccountService : IAccountService
             Name = username,
             Email = email.ToLowerInvariant(),
             Password = BCrypt.Net.BCrypt.EnhancedHashPassword(password, HashAlgo),
-            PasswordEncryption = PasswordEncryptionType.BcryptEnhanced,
             EmailActived = emailActivated
         });
 
@@ -178,7 +177,7 @@ public sealed class AccountService : IAccountService
     private async Task<bool> CheckPassword(string emailOrUsername, string password, User user)
     {
         // LEGACY PBKDF2
-        if (user.PasswordEncryption == PasswordEncryptionType.Pbkdf2)
+        if (user.Password.StartsWith("USER$")) // Old user hashes started with "USER$", new hashes are guaranteed to not do this
         {
             if (!SecurePasswordHasher.Verify(password, user.Password))
             {
@@ -188,10 +187,8 @@ public sealed class AccountService : IAccountService
                 return false;
             }
 
-            // Upgrade encryption
-            var newHash = BCrypt.Net.BCrypt.EnhancedHashPassword(password, HashAlgo);
-            user.PasswordEncryption = PasswordEncryptionType.BcryptEnhanced;
-            user.Password = newHash;
+            // Generate new hash using BCrypt
+            user.Password = BCrypt.Net.BCrypt.EnhancedHashPassword(password, HashAlgo);
             await _db.SaveChangesAsync();
             return true;
         }

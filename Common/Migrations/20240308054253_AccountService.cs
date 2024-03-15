@@ -38,12 +38,12 @@ namespace OpenShock.Common.Migrations
                 oldClrType: typeof(string),
                 oldType: "character varying");
 
-            migrationBuilder.AddColumn<PasswordEncryptionType>(
+            migrationBuilder.AddColumn<string>(
                 name: "password_encryption",
                 table: "users",
                 type: "password_encryption_type",
                 nullable: false,
-                defaultValue: PasswordEncryptionType.Pbkdf2);
+                defaultValue: "pbkdf2");
 
             migrationBuilder.CreateIndex(
                 name: "idx_name",
