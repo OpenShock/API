@@ -28,6 +28,7 @@ using OpenShock.ServicesCommon.Hubs;
 using OpenShock.ServicesCommon.Services.Device;
 using OpenShock.ServicesCommon.Services.Ota;
 using OpenShock.ServicesCommon.Services.RedisPubSub;
+using OpenShock.ServicesCommon.Services.Turnstile;
 using OpenShock.ServicesCommon.Utils;
 using Redis.OM;
 using Redis.OM.Contracts;
@@ -55,9 +56,9 @@ public class Startup
                                    .First(x => x.Key.Equals("openshock", StringComparison.InvariantCultureIgnoreCase))
                                    .Get<ApiConfig>() ??
                                throw new Exception("Couldn't bind config, check config file");
-        
+
         var startupLogger = new LoggerConfiguration().ReadFrom.Configuration(configuration).CreateLogger();
-        
+
         MiniValidation.MiniValidator.TryValidate(APIGlobals.ApiConfig, true, true, out var errors);
         if (errors.Count > 0)
         {
@@ -67,8 +68,10 @@ public class Startup
             {
                 sb.AppendLine($"Error on field [{error.Key}] reason: {string.Join(", ", error.Value)}");
             }
-            
-            startupLogger.Error("Error validating config, please fix your configuration / environment variables\nFound the following errors:\n{Errors}", sb.ToString());
+
+            startupLogger.Error(
+                "Error validating config, please fix your configuration / environment variables\nFound the following errors:\n{Errors}",
+                sb.ToString());
             Environment.Exit(-10);
         }
     }
@@ -131,6 +134,15 @@ public class Startup
         services.AddScoped<IClientAuthService<Device>, ClientAuthService<Device>>();
         services.AddSingleton<IGeoLocation, GeoLocation>();
 
+        var turnStileConfig = APIGlobals.ApiConfig.Turnstile;
+
+        services.AddSingleton(new CloudflareTurnstileOptions
+        {
+            SecretKey = turnStileConfig.SecretKey ?? string.Empty,
+            SiteKey = turnStileConfig.SiteKey ?? string.Empty
+        });
+        services.AddHttpClient<ICloudflareTurnstileService, CloudflareTurnstileService>();
+
 
         // ----------------- MAIL SETUP -----------------
         var emailConfig = APIGlobals.ApiConfig.Mail;
@@ -147,7 +159,7 @@ public class Startup
                 services.AddSmtpEmailService(emailConfig.Smtp, emailConfig.Sender, new SmtpServiceTemplates
                 {
                     PasswordReset = SmtpTemplate.ParseFromFileThrow("SmtpTemplates/PasswordReset.liquid").Result,
-                    AccountActivation = SmtpTemplate.ParseFromFileThrow("SmtpTemplates/AccountActivation.liquid").Result
+                    EmailVerification = SmtpTemplate.ParseFromFileThrow("SmtpTemplates/EmailVerification.liquid").Result
                 });
                 break;
             default:
@@ -198,13 +210,13 @@ public class Startup
             x.JsonSerializerOptions.PropertyNameCaseInsensitive = true;
             x.JsonSerializerOptions.Converters.Add(new CustomJsonStringEnumConverter());
         });
-        
+
         apiVersioningBuilder.AddApiExplorer(setup =>
         {
             setup.GroupNameFormat = "VVV";
             setup.SubstituteApiVersionInUrl = true;
         });
-        
+
         services.AddSwaggerGen(options =>
             {
                 options.CustomOperationIds(e =>
@@ -251,7 +263,8 @@ public class Startup
         services.AddHostedService<RedisSubscriberService>();
     }
 
-    public void Configure(IApplicationBuilder app, IWebHostEnvironment env, ILoggerFactory loggerFactory, ILogger<Startup> logger)
+    public void Configure(IApplicationBuilder app, IWebHostEnvironment env, ILoggerFactory loggerFactory,
+        ILogger<Startup> logger)
     {
         ApplicationLogging.LoggerFactory = loggerFactory;
         foreach (var proxy in OpenShockConstants.TrustedProxies)

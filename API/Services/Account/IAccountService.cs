@@ -1,5 +1,6 @@
 ﻿using OneOf;
 using OneOf.Types;
+using OpenShock.Common.OpenShockDb;
 
 namespace OpenShock.API.Services.Account;
 
@@ -17,7 +18,7 @@ public interface IAccountService
     /// <param name="username"></param>
     /// <param name="password"></param>
     /// <returns></returns>
-    public Task<OneOf<Success, AccountWithEmailOrUsernameExists>> CreateAccount(string email, string username, string password);
+    public Task<OneOf<Success<User>, AccountWithEmailOrUsernameExists>> CreateAccount(string email, string username, string password);
 
     /// <summary>
     /// When a user uses the signup form, this also handles email verification mail
@@ -26,7 +27,7 @@ public interface IAccountService
     /// <param name="username"></param>
     /// <param name="password"></param>
     /// <returns></returns>
-    public Task<OneOf<Success, AccountWithEmailOrUsernameExists>> Signup(string email, string username, string password);
+    public Task<OneOf<Success<User>, AccountWithEmailOrUsernameExists>> Signup(string email, string username, string password);
 
     /// <summary>
     /// Login a user into his user session

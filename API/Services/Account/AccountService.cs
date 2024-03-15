@@ -45,44 +45,58 @@ public sealed class AccountService : IAccountService
     public TimeSpan SessionLifetime { get; } = TimeSpan.FromDays(30);
 
     /// <inheritdoc />
-    public Task<OneOf<Success, AccountWithEmailOrUsernameExists>> CreateAccount(string email, string username,
+    public Task<OneOf<Success<User>, AccountWithEmailOrUsernameExists>> CreateAccount(string email, string username,
         string password)
     {
         return CreateAccount(email, username, password, true);
     }
 
-    private async Task<OneOf<Success, AccountWithEmailOrUsernameExists>> CreateAccount(string email, string username,
+    private async Task<OneOf<Success<User>, AccountWithEmailOrUsernameExists>> CreateAccount(string email, string username,
         string password, bool emailActivated)
     {
         if(await _db.Users.AnyAsync(x => x.Email == email.ToLowerInvariant() || x.Name == username)) return new AccountWithEmailOrUsernameExists();
         
         var newGuid = Guid.NewGuid();
-        _db.Users.Add(new User
+        var user = new User
         {
             Id = newGuid,
             Name = username,
             Email = email.ToLowerInvariant(),
             PasswordHash = BCrypt.Net.BCrypt.EnhancedHashPassword(password, HashAlgo),
             EmailActived = emailActivated
-        });
+        };
+        _db.Users.Add(user);
 
         await _db.SaveChangesAsync();
 
-        return new Success();
+        return new Success<User>(user);
     }
 
     /// <inheritdoc />
-    public async Task<OneOf<Success, AccountWithEmailOrUsernameExists>> Signup(string email, string username,
+    public async Task<OneOf<Success<User>, AccountWithEmailOrUsernameExists>> Signup(string email, string username,
         string password)
     {
         var accountCreate = await CreateAccount(email, username, password, false);
         if (accountCreate.IsT1) return accountCreate;
 
-        // TODO: Probably make a account activation table? And have a unique id there with an encrypted secret so no one can grab it from the db
+        var user = accountCreate.AsT0.Value;
+        
+        var id = Guid.NewGuid();
+        var secret = CryptoUtils.RandomString(32);
+        var secretHash = BCrypt.Net.BCrypt.EnhancedHashPassword(secret, HashAlgo);
 
-        await _emailService.ActivateAccountEmail(new Contact(email, username),
-            new Uri(APIGlobals.ApiConfig.FrontendBaseUrl, $"/#/account/activate/{Guid.NewGuid()}"));
-        return new Success();
+        _db.UsersActivations.Add(new UsersActivation()
+        {
+            Id = id,
+            UserId = user.Id,
+            Secret = secretHash
+        });
+
+        await _db.SaveChangesAsync();
+
+        await _emailService.VerifyEmail(new Contact(email, username),
+            new Uri(APIGlobals.ApiConfig.FrontendBaseUrl, $"/#/account/activate/{id}/{secret}"));
+        return new Success<User>(user);
     }
 
     /// <inheritdoc />
