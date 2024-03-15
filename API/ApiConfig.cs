@@ -15,8 +15,8 @@ public class ApiConfig
     public sealed class TurnstileConfig
     {
         [Required] public required bool Enabled { get; init; }
-        [Required] public required string? SecretKey { get; init; }
-        [Required] public required string? SiteKey { get; init; }
+        public required string? SecretKey { get; init; }
+        public required string? SiteKey { get; init; }
     }
 
     public sealed class MailConfig
