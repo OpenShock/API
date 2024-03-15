@@ -1,10 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using Npgsql;
 using OpenShock.API.Models.Requests;
-using OpenShock.API.Utils;
 using OpenShock.Common.Models;
-using OpenShock.Common.OpenShockDb;
 using System.Net;
 using Asp.Versioning;
 using OpenShock.API.Services.Account;
@@ -31,9 +27,12 @@ public sealed partial class AccountController
         [FromServices] IAccountService accountService, [FromServices] ICloudflareTurnstileService turnstileService,
         CancellationToken cancellationToken)
     {
-        var turnStile = await turnstileService.VerifyUserResponseToken(body.TurnstileResponse,
-            HttpContext.Connection.RemoteIpAddress, cancellationToken);
-        if (!turnStile.IsT0) return EBaseResponse<object>("Invalid turnstile response", HttpStatusCode.Forbidden);
+        if (APIGlobals.ApiConfig.Turnstile.Enabled)
+        {
+            var turnStile = await turnstileService.VerifyUserResponseToken(body.TurnstileResponse,
+                HttpContext.Connection.RemoteIpAddress, cancellationToken);
+            if (!turnStile.IsT0) return EBaseResponse<object>("Invalid turnstile response", HttpStatusCode.Forbidden);
+        }
 
         var creationAction = await accountService.Signup(body.Email, body.Username, body.Password);
         if (creationAction.IsT1)

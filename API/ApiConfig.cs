@@ -10,6 +10,14 @@ public class ApiConfig
     [Required] public required DbConfig Db { get; init; }
     [Required] public required RedisConfig Redis { get; init; }
     [Required] public required MailConfig Mail { get; init; }
+    [Required] public required TurnstileConfig Turnstile { get; init; }
+    
+    public sealed class TurnstileConfig
+    {
+        [Required] public required bool Enabled { get; init; }
+        [Required] public required string? SecretKey { get; init; }
+        [Required] public required string? SiteKey { get; init; }
+    }
 
     public sealed class MailConfig
     {
