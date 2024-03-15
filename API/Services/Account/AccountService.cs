@@ -170,6 +170,7 @@ public sealed class AccountService : IAccountService
 
         reset.UsedOn = DateTime.UtcNow;
         reset.User.Password = BCrypt.Net.BCrypt.EnhancedHashPassword(newPassword, HashAlgo);
+        reset.User.PasswordEncryption = PasswordEncryptionType.BcryptEnhanced;
         await _db.SaveChangesAsync();
         return new Success();
     }
