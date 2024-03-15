@@ -378,7 +378,7 @@ public partial class OpenShockContext : DbContext
                 .UseCollation("ndcoll")
                 .HasColumnType("character varying")
                 .HasColumnName("name");
-            entity.Property(e => e.Password)
+            entity.Property(e => e.PasswordHash)
                 .HasColumnType("character varying")
                 .HasColumnName("password");
             entity.Property(e => e.Rank)
