@@ -22,5 +22,5 @@ public interface IEmailService
     /// <param name="activationLink"></param>
     /// <param name="cancellationToken"></param>
     /// <returns></returns>
-    public Task ActivateAccountEmail(Contact to, Uri activationLink, CancellationToken cancellationToken = default);
+    public Task VerifyEmail(Contact to, Uri activationLink, CancellationToken cancellationToken = default);
 }

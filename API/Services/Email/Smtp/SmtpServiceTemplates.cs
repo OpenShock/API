@@ -3,5 +3,5 @@
 public sealed class SmtpServiceTemplates
 {
     public required SmtpTemplate PasswordReset { get; set; }
-    public required SmtpTemplate AccountActivation { get; set; }
+    public required SmtpTemplate EmailVerification { get; set; }
 }

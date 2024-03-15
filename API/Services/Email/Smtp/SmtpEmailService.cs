@@ -54,7 +54,7 @@ public sealed class SmtpEmailService : IEmailService
     }
 
     /// <inheritdoc />
-    public Task ActivateAccountEmail(Contact to, Uri activationLink, CancellationToken cancellationToken = default)
+    public Task VerifyEmail(Contact to, Uri activationLink, CancellationToken cancellationToken = default)
     {
         var data = new
         {
@@ -62,7 +62,7 @@ public sealed class SmtpEmailService : IEmailService
             ActivationLink = activationLink
         };
 
-        SendMailAndForget(to, _templates.AccountActivation, data, cancellationToken);
+        SendMailAndForget(to, _templates.EmailVerification, data, cancellationToken);
         return Task.CompletedTask;
     }
 

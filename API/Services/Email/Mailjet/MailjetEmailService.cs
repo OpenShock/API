@@ -56,14 +56,14 @@ public sealed class MailjetEmailService : IEmailService, IDisposable
     }
 
     /// <inheritdoc />
-    public async Task ActivateAccountEmail(Contact to, Uri activationLink, CancellationToken cancellationToken = default)
+    public async Task VerifyEmail(Contact to, Uri activationLink, CancellationToken cancellationToken = default)
     {
         await SendMail(new TemplateMail
         {
             From = _sender,
-            Subject = "Activate your account",
+            Subject = "Verify your Email Address",
             To = [to],
-            TemplateId = _mailjetConfig.Template.ActivateAccount,
+            TemplateId = _mailjetConfig.Template.VerifyEmail,
             Variables = new Dictionary<string, string>
             {
                 {"link", activationLink.ToString() },

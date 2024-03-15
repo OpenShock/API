@@ -53,8 +53,8 @@ public class ApiConfig
             {
                 [Required] public required ulong PasswordReset { get; init; }
                 [Required] public required ulong PasswordResetComplete { get; init; }
-                [Required] public required ulong ActivateAccount { get; init; }
-                [Required] public required ulong ActivateAccountComplete { get; init; }
+                [Required] public required ulong VerifyEmail { get; init; }
+                [Required] public required ulong VerifyEmailComplete { get; init; }
             }
         }
     }
