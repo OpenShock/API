@@ -53,7 +53,7 @@ public class Startup
     public Startup(IConfiguration configuration)
     {
         APIGlobals.ApiConfig = configuration.GetChildren()
-                                   .First(x => x.Key.Equals("openshock", StringComparison.InvariantCultureIgnoreCase))
+                                   .FirstOrDefault(x => x.Key.Equals("openshock", StringComparison.InvariantCultureIgnoreCase))?
                                    .Get<ApiConfig>() ??
                                throw new Exception("Couldn't bind config, check config file");
 
