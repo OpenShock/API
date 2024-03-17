@@ -384,9 +384,6 @@ public partial class OpenShockContext : DbContext
             entity.Property(e => e.Rank)
                 .HasColumnType("rank_type")
                 .HasColumnName("rank");
-            entity.Property(typeof(string), "PasswordEncryption")
-                .HasColumnType("password_encryption_type")
-                .HasColumnName("password_encryption");
         });
 
         modelBuilder.Entity<UsersActivation>(entity =>
