@@ -24,16 +24,16 @@
     <ItemGroup>
         <PackageReference Include="Asp.Versioning.Mvc.ApiExplorer" Version="8.0.0" />
         <PackageReference Include="BCrypt.Net-Next" Version="4.0.3" />
-        <PackageReference Include="Fluid.Core" Version="2.5.0" />
+        <PackageReference Include="Fluid.Core" Version="2.6.0" />
         <PackageReference Include="MailKit" Version="4.4.0" />
-        <PackageReference Include="Microsoft.AspNetCore.SignalR.StackExchangeRedis" Version="8.0.2" />
-        <PackageReference Include="Microsoft.EntityFrameworkCore" Version="8.0.2" />
-        <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="8.0.2">
+        <PackageReference Include="Microsoft.AspNetCore.SignalR.StackExchangeRedis" Version="8.0.3" />
+        <PackageReference Include="Microsoft.EntityFrameworkCore" Version="8.0.3" />
+        <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="8.0.3">
             <PrivateAssets>all</PrivateAssets>
             <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
         </PackageReference>
-        <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" Version="8.0.2" />
-        <PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="8.0.2">
+        <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" Version="8.0.3" />
+        <PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="8.0.3">
             <PrivateAssets>all</PrivateAssets>
             <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
         </PackageReference>
@@ -46,7 +46,7 @@
         <PackageReference Include="Serilog.Enrichers.CorrelationId" Version="3.0.1" />
         <PackageReference Include="Serilog.Sinks.Console" Version="5.0.1" />
         <PackageReference Include="Serilog.Sinks.Grafana.Loki" Version="8.3.0" />
-        <PackageReference Include="StackExchange.Redis" Version="2.7.27" />
+        <PackageReference Include="StackExchange.Redis" Version="2.7.33" />
         <PackageReference Include="Swashbuckle.AspNetCore" Version="6.5.0" />
         <PackageReference Include="Swashbuckle.AspNetCore.Swagger" Version="6.5.0" />
         <PackageReference Include="Swashbuckle.AspNetCore.SwaggerGen" Version="6.5.0" />
