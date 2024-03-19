@@ -23,7 +23,6 @@
 
     <ItemGroup>
         <PackageReference Include="Asp.Versioning.Mvc.ApiExplorer" Version="8.0.0" />
-        <PackageReference Include="BCrypt.Net-Next" Version="4.0.3" />
         <PackageReference Include="Fluid.Core" Version="2.5.0" />
         <PackageReference Include="MailKit" Version="4.4.0" />
         <PackageReference Include="Microsoft.AspNetCore.SignalR.StackExchangeRedis" Version="8.0.2" />

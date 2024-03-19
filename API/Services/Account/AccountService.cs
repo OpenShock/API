@@ -8,6 +8,7 @@ using OpenShock.API.Utils;
 using OpenShock.Common.Models;
 using OpenShock.Common.OpenShockDb;
 using OpenShock.Common.Redis;
+using OpenShock.Common.Utils;
 using Redis.OM.Contracts;
 using Redis.OM.Searching;
 
@@ -62,7 +63,7 @@ public sealed class AccountService : IAccountService
             Id = newGuid,
             Name = username,
             Email = email.ToLowerInvariant(),
-            PasswordHash = "bcrypt:" + BCrypt.Net.BCrypt.EnhancedHashPassword(password, HashAlgo),
+            PasswordHash = PasswordHashingHelpers.HashPassword(password),
             EmailActived = emailActivated
         };
         _db.Users.Add(user);
@@ -182,7 +183,7 @@ public sealed class AccountService : IAccountService
         if(!BCrypt.Net.BCrypt.EnhancedVerify(secret, reset.Secret, HashAlgo)) return new SecretInvalid();
 
         reset.UsedOn = DateTime.UtcNow;
-        reset.User.PasswordHash = BCrypt.Net.BCrypt.EnhancedHashPassword(newPassword, HashAlgo);
+        reset.User.PasswordHash = PasswordHashingHelpers.HashPassword(newPassword);
         await _db.SaveChangesAsync();
         return new Success();
     }
@@ -190,40 +191,21 @@ public sealed class AccountService : IAccountService
 
     private async Task<bool> CheckPassword(string emailOrUsername, string password, User user)
     {
-        if (user.PasswordHash.StartsWith("bcrypt:"))
+        var result = PasswordHashingHelpers.VerifyPassword(password, user.PasswordHash);
+
+        if (!result.Verified)
         {
-            var hash = user.PasswordHash[7..];
-
-            if (!BCrypt.Net.BCrypt.EnhancedVerify(password, hash, HashAlgo))
-            {
-                _logger.LogInformation("Failed to verify BCrypt hash, EmailOrUsername [{EmailOrUsername}]",
-                    emailOrUsername);
-            }
-
-            return true;
+            _logger.LogInformation("Failed to verify password, EmailOrUsername [{EmailOrUsername}]", emailOrUsername);
+            return false;
         }
 
-        // LEGACY PBKDF2
-        if (user.PasswordHash.StartsWith("pbkdf2:")) // Legacy PBKDF2
+        if (result.NeedsRehash)
         {
-            var hash = user.PasswordHash[7..];
-
-            if (!SecurePasswordHasher.Verify(password, hash))
-            {
-                _logger.LogInformation("Failed verify hash PBKDF2, EmailOrUsername: [{EmailOrUsername}]",
-                    emailOrUsername);
-
-                return false;
-            }
-
-            // Generate new hash using BCrypt
-            user.PasswordHash = "bcrypt:" + BCrypt.Net.BCrypt.EnhancedHashPassword(password, HashAlgo);
+            _logger.LogInformation("Password needs rehashing, EmailOrUsername [{EmailOrUsername}]", emailOrUsername);
+            user.PasswordHash = PasswordHashingHelpers.HashPassword(password);
             await _db.SaveChangesAsync();
-            return true;
         }
 
-        _logger.LogInformation("Unknown password hash type, EmailOrUsername [{EmailOrUsername}]", emailOrUsername);
-
-        return false;
+        return true;
     }
 }
