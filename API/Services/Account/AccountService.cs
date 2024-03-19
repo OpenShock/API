@@ -62,7 +62,7 @@ public sealed class AccountService : IAccountService
             Id = newGuid,
             Name = username,
             Email = email.ToLowerInvariant(),
-            PasswordHash = BCrypt.Net.BCrypt.EnhancedHashPassword(password, HashAlgo),
+            PasswordHash = "bcrypt:" + BCrypt.Net.BCrypt.EnhancedHashPassword(password, HashAlgo),
             EmailActived = emailActivated
         };
         _db.Users.Add(user);
@@ -190,10 +190,25 @@ public sealed class AccountService : IAccountService
 
     private async Task<bool> CheckPassword(string emailOrUsername, string password, User user)
     {
-        // LEGACY PBKDF2
-        if (user.PasswordHash.StartsWith("USER$")) // Old user hashes started with "USER$", new hashes are guaranteed to not do this
+        if (user.PasswordHash.StartsWith("bcrypt:"))
         {
-            if (!SecurePasswordHasher.Verify(password, user.PasswordHash))
+            var hash = user.PasswordHash[7..];
+
+            if (!BCrypt.Net.BCrypt.EnhancedVerify(password, hash, HashAlgo))
+            {
+                _logger.LogInformation("Failed to verify BCrypt hash, EmailOrUsername [{EmailOrUsername}]",
+                    emailOrUsername);
+            }
+
+            return true;
+        }
+
+        // LEGACY PBKDF2
+        if (user.PasswordHash.StartsWith("pbkdf2:")) // Legacy PBKDF2
+        {
+            var hash = user.PasswordHash[7..];
+
+            if (!SecurePasswordHasher.Verify(password, hash))
             {
                 _logger.LogInformation("Failed verify hash PBKDF2, EmailOrUsername: [{EmailOrUsername}]",
                     emailOrUsername);
@@ -202,18 +217,13 @@ public sealed class AccountService : IAccountService
             }
 
             // Generate new hash using BCrypt
-            user.PasswordHash = BCrypt.Net.BCrypt.EnhancedHashPassword(password, HashAlgo);
+            user.PasswordHash = "bcrypt:" + BCrypt.Net.BCrypt.EnhancedHashPassword(password, HashAlgo);
             await _db.SaveChangesAsync();
             return true;
         }
 
-        if (!BCrypt.Net.BCrypt.EnhancedVerify(password, user.PasswordHash, HashAlgo))
-        {
-            _logger.LogInformation("Failed to verify BCrypt hash, EmailOrUsername [{EmailOrUsername}]",
-                emailOrUsername);
-        }
+        _logger.LogInformation("Unknown password hash type, EmailOrUsername [{EmailOrUsername}]", emailOrUsername);
 
-
-        return true;
+        return false;
     }
 }
