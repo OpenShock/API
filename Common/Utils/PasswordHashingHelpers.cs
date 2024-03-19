@@ -21,7 +21,7 @@ public static class PasswordHashingHelpers
         {
             return new VerifyPasswordResult
             {
-                Verified = BCrypt.Net.BCrypt.EnhancedVerify(password, combinedHash[BCryptPrefix.Length..]),
+                Verified = BCrypt.Net.BCrypt.EnhancedVerify(password, combinedHash[BCryptPrefix.Length..], HashAlgo),
                 NeedsRehash = false
             };
         }
