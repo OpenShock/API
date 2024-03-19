@@ -51,21 +51,23 @@ public sealed partial class AdminController
                     FirmwareVersion = x.FirmwareVersion,
                     Gateway = x.Gateway,
                     Owner = dbItem.Owner,
-                    Name = dbItem.Name
+                    Name = dbItem.Name,
+                    ConnectedAt = x.ConnectedAt
                 };
             })
         };
     }
 
-    public class AdminOnlineDeviceResponse
+    public sealed class AdminOnlineDeviceResponse
     {
-        public required Guid Id { get; set; }
-        public required string Name { get; set; }
-        public required GenericIni Owner { get; set; }
+        public required Guid Id { get; init; }
+        public required string Name { get; init; }
+        public required GenericIni Owner { get; init; }
 
         [JsonConverter(typeof(SemVersionJsonConverter))]
-        public SemVersion? FirmwareVersion { get; set; }
+        public required SemVersion? FirmwareVersion { get; init; }
 
-        public string? Gateway { get; set; }
+        public required string? Gateway { get; init; }
+        public required DateTimeOffset ConnectedAt { get; init; }
     }
 }

@@ -40,6 +40,7 @@ public sealed class DeviceController : FlatbuffersWebsocketBaseController<Gatewa
     private static readonly TimeSpan KeepAliveTimeout = TimeSpan.FromSeconds(35);
     private static readonly object KeepAliveTimeoutInt = (int)KeepAliveTimeout.TotalSeconds;
     private readonly Timer _keepAliveTimer = new(InitialTimeout);
+    private DateTimeOffset _connected = DateTimeOffset.UtcNow;
 
     /// <summary>
     /// Authentication context
@@ -285,15 +286,17 @@ public sealed class DeviceController : FlatbuffersWebsocketBaseController<Gatewa
                 Id = _currentDevice.Id,
                 Owner = _currentDevice.Owner,
                 FirmwareVersion = FirmwareVersion,
-                Gateway = LCGGlobals.LCGConfig.Fqdn
+                Gateway = LCGGlobals.LCGConfig.Fqdn,
+                ConnectedAt = _connected
             }, KeepAliveTimeout);
             return;
         }
 
-        if (online.FirmwareVersion != FirmwareVersion || online.Gateway != LCGGlobals.LCGConfig.Fqdn)
+        if (online.FirmwareVersion != FirmwareVersion || online.Gateway != LCGGlobals.LCGConfig.Fqdn || online.ConnectedAt != _connected)
         {
             online.Gateway = LCGGlobals.LCGConfig.Fqdn;
             online.FirmwareVersion = FirmwareVersion;
+            online.ConnectedAt = _connected;
             await deviceOnline.SaveAsync();
             Logger.LogInformation("Updated details of online device");
         }
@@ -307,6 +310,8 @@ public sealed class DeviceController : FlatbuffersWebsocketBaseController<Gatewa
     /// <inheritdoc />
     protected override async Task RegisterConnection()
     {
+        _connected = DateTimeOffset.UtcNow;
+        
         if (HttpContext.Request.Headers.TryGetValue("Firmware-Version", out var header) &&
             SemVersion.TryParse(header, SemVersionStyles.Strict, out var version)) FirmwareVersion = version;
 

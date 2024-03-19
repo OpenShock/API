@@ -13,4 +13,5 @@ public class DeviceOnline
     [JsonConverter(typeof(SemVersionJsonConverter))]
     public SemVersion? FirmwareVersion { get; set; }
     public string? Gateway { get; set; }
+    public DateTimeOffset ConnectedAt { get; set; }
 }

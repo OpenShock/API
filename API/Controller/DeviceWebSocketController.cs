@@ -20,6 +20,7 @@ namespace OpenShock.API.Controller;
 [Route("/{version:apiVersion}/ws/device")]
 public sealed class DeviceWebSocketController : WebsocketBaseController<IBaseResponse<ResponseType>>
 {
+    private DateTimeOffset _connected = DateTimeOffset.UtcNow;
     private readonly IRedisCollection<DeviceOnline> _devicesOnline;
     private readonly IRedisConnectionProvider _redis;
 
@@ -45,6 +46,8 @@ public sealed class DeviceWebSocketController : WebsocketBaseController<IBaseRes
 
     protected override Task RegisterConnection()
     {
+        _connected = DateTimeOffset.UtcNow;
+        
         if (HttpContext.Request.Headers.TryGetValue("FirmwareVersion", out var header) &&
             SemVersion.TryParse(header, SemVersionStyles.Strict, out var version)) FirmwareVersion = version;
 
@@ -140,18 +143,20 @@ public sealed class DeviceWebSocketController : WebsocketBaseController<IBaseRes
                 Id = _currentDevice.Id,
                 Owner = _currentDevice.Owner,
                 FirmwareVersion = FirmwareVersion,
-                Gateway = null
+                Gateway = null,
+                ConnectedAt = _connected
             }, TimeSpan.FromSeconds(65));
             return;
         }
 
-        if (online.FirmwareVersion != FirmwareVersion)
+        if (online.FirmwareVersion != FirmwareVersion || online.ConnectedAt != _connected)
         {
             var changeTracker = _redis.RedisCollection<DeviceOnline>();
             var trackedDevice = await changeTracker.FindByIdAsync(deviceId);
             if (trackedDevice != null)
             {
                 trackedDevice.FirmwareVersion = FirmwareVersion;
+                trackedDevice.ConnectedAt = _connected;
                 await changeTracker.SaveAsync();
                 Logger.LogInformation("Updated firmware version of online device");
             }
