@@ -18,6 +18,16 @@ The API can be configured using the following environment variables:
 | `OPENSHOCK__MAIL__SENDER__EMAIL` | x        |               | `system@my-openshock-instance.net`                                                                       |
 | `OPENSHOCK__MAIL__SENDER__NAME`  | x        |               | `MyOpenShockInstance System`                                                                             |
 | `OPENSHOCK__MAIL__TYPE`          | x        |               | `MAILJET`, `SMTP`                                                                                        |
+| `OPENSHOCK__TURNSTILE__ENABLE`   | x        |               | `true`, `false`                                                                                          |
+
+## Turnstile
+
+When Turnstile enable is set to `true`, the following environment variable is required:
+
+| Variable                          | Required | Default value | Allowed / Example value |
+|-----------------------------------|----------|---------------|-------------------------|
+| `OPENSHOCK__TURNSTILE__SITEKEY`   | x        |               |                         |
+| `OPENSHOCK__TURNSTILE__SECRETKEY` | x        |               |                         |  
 
 ## EMail
 
