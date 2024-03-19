@@ -18,12 +18,11 @@ namespace OpenShock.Common.Migrations
 #pragma warning disable 612, 618
             modelBuilder
                 .HasAnnotation("Npgsql:CollationDefinition:public.ndcoll", "und-u-ks-level2,und-u-ks-level2,icu,False")
-                .HasAnnotation("ProductVersion", "8.0.1")
+                .HasAnnotation("ProductVersion", "8.0.2")
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "control_type", new[] { "sound", "vibrate", "shock", "stop" });
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "ota_update_status", new[] { "started", "running", "finished", "error", "timeout" });
-            NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "password_encryption_type", new[] { "pbkdf2", "bcrypt_enhanced" });
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "permission_type", new[] { "shockers.use" });
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "rank_type", new[] { "user", "support", "staff", "admin", "system" });
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "shocker_model_type", new[] { "caiXianlin", "petTrainer" });
@@ -509,14 +508,10 @@ namespace OpenShock.Common.Migrations
                         .HasColumnName("name")
                         .UseCollation("ndcoll");
 
-                    b.Property<string>("Password")
+                    b.Property<string>("PasswordHash")
                         .IsRequired()
                         .HasColumnType("character varying")
-                        .HasColumnName("password");
-
-                    b.Property<int>("PasswordEncryption")
-                        .HasColumnType("password_encryption_type")
-                        .HasColumnName("password_encryption");
+                        .HasColumnName("password_hash");
 
                     b.Property<int>("Rank")
                         .HasColumnType("rank_type")
