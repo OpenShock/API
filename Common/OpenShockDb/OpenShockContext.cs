@@ -378,15 +378,12 @@ public partial class OpenShockContext : DbContext
                 .UseCollation("ndcoll")
                 .HasColumnType("character varying")
                 .HasColumnName("name");
-            entity.Property(e => e.Password)
+            entity.Property(e => e.PasswordHash)
                 .HasColumnType("character varying")
-                .HasColumnName("password");
+                .HasColumnName("password_hash");
             entity.Property(e => e.Rank)
                 .HasColumnType("rank_type")
                 .HasColumnName("rank");
-            entity.Property(e => e.PasswordEncryption)
-                .HasColumnType("password_encryption_type")
-                .HasColumnName("password_encryption");
         });
 
         modelBuilder.Entity<UsersActivation>(entity =>

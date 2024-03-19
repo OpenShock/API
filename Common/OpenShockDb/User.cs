@@ -12,13 +12,13 @@ public partial class User
 
     public string Email { get; set; } = null!;
 
-    public string Password { get; set; } = null!;
+    public string PasswordHash { get; set; } = null!;
 
     public DateTime CreatedAt { get; set; }
 
     public bool EmailActived { get; set; }
+
     public RankType Rank { get; set; }
-    public PasswordEncryptionType PasswordEncryption { get; set; }
 
     public virtual ICollection<ApiToken> ApiTokens { get; set; } = new List<ApiToken>();
 

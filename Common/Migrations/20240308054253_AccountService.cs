@@ -38,12 +38,12 @@ namespace OpenShock.Common.Migrations
                 oldClrType: typeof(string),
                 oldType: "character varying");
 
-            migrationBuilder.AddColumn<PasswordEncryptionType>(
+            migrationBuilder.AddColumn<string>(
                 name: "password_encryption",
                 table: "users",
                 type: "password_encryption_type",
                 nullable: false,
-                defaultValue: PasswordEncryptionType.Pbkdf2);
+                defaultValue: "pbkdf2");
 
             migrationBuilder.CreateIndex(
                 name: "idx_name",
@@ -55,41 +55,7 @@ namespace OpenShock.Common.Migrations
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.DropIndex(
-                name: "idx_name",
-                table: "users");
-
-            migrationBuilder.DropColumn(
-                name: "password_encryption",
-                table: "users");
-
-            migrationBuilder.AlterDatabase()
-                .Annotation("Npgsql:Enum:control_type", "sound,vibrate,shock,stop")
-                .Annotation("Npgsql:Enum:ota_update_status", "started,running,finished,error,timeout")
-                .Annotation("Npgsql:Enum:permission_type", "shockers.use")
-                .Annotation("Npgsql:Enum:rank_type", "user,support,staff,admin,system")
-                .Annotation("Npgsql:Enum:shocker_model_type", "caiXianlin,petTrainer")
-                .OldAnnotation("Npgsql:CollationDefinition:public.ndcoll", "und-u-ks-level2,und-u-ks-level2,icu,False")
-                .OldAnnotation("Npgsql:Enum:control_type", "sound,vibrate,shock,stop")
-                .OldAnnotation("Npgsql:Enum:ota_update_status", "started,running,finished,error,timeout")
-                .OldAnnotation("Npgsql:Enum:password_encryption_type", "pbkdf2,bcrypt_enhanced")
-                .OldAnnotation("Npgsql:Enum:permission_type", "shockers.use")
-                .OldAnnotation("Npgsql:Enum:rank_type", "user,support,staff,admin,system")
-                .OldAnnotation("Npgsql:Enum:shocker_model_type", "caiXianlin,petTrainer");
-
-            migrationBuilder.AlterColumn<string>(
-                name: "name",
-                table: "users",
-                type: "character varying",
-                nullable: false,
-                oldClrType: typeof(string),
-                oldType: "character varying",
-                oldCollation: "ndcoll");
-
-            migrationBuilder.CreateIndex(
-                name: "idx_name",
-                table: "users",
-                column: "name");
+            throw new NotSupportedException("Rolling back this migration will brick user accounts that are using the new password hashing algorithm. This is not supported.");
         }
     }
 }
