@@ -380,7 +380,7 @@ public partial class OpenShockContext : DbContext
                 .HasColumnName("name");
             entity.Property(e => e.PasswordHash)
                 .HasColumnType("character varying")
-                .HasColumnName("password");
+                .HasColumnName("password_hash");
             entity.Property(e => e.Rank)
                 .HasColumnType("rank_type")
                 .HasColumnName("rank");

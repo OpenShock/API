@@ -14,8 +14,8 @@ namespace OpenShock.Common.Migrations
             // ### CUSTOM SQL BEGIN ###
 
             // Update the password hashes prefix BEFORE dropping the column
-            migrationBuilder.Sql("UPDATE users SET password_hash = CONCAT('pbkdf2:', substring(password_hash from 4)) WHERE password_hash LIKE 'USER$%'");
-            migrationBuilder.Sql("UPDATE users SET password_hash = CONCAT('bcrypt:', password_hash) WHERE password_hash NOT LIKE 'pbkdf2:%'");
+            migrationBuilder.Sql("UPDATE users SET password = CONCAT('pbkdf2:', substring(password from 5)) WHERE password LIKE 'USER$%'");
+            migrationBuilder.Sql("UPDATE users SET password = CONCAT('bcrypt:', password) WHERE password NOT LIKE 'pbkdf2:%'");
 
             // #### CUSTOM SQL END ####
 
@@ -81,8 +81,8 @@ namespace OpenShock.Common.Migrations
             migrationBuilder.Sql("UPDATE users SET password_encryption = 'bcrypt_enhanced' WHERE password_hash LIKE 'bcrypt:%'");
 
             // Update the password hashes prefix AFTER updating the password_encryption column
-            migrationBuilder.Sql("UPDATE users SET password_hash = SUBSTRING(password_hash FROM 7) WHERE password_hash LIKE 'pbkdf2:%'");
-            migrationBuilder.Sql("UPDATE users SET password_hash = SUBSTRING(password_hash FROM 7) WHERE password_hash LIKE 'bcrypt:%'");
+            migrationBuilder.Sql("UPDATE users SET password_hash = SUBSTRING(password_hash FROM 8) WHERE password_hash LIKE 'pbkdf2:%'");
+            migrationBuilder.Sql("UPDATE users SET password_hash = SUBSTRING(password_hash FROM 8) WHERE password_hash LIKE 'bcrypt:%'");
 
             // #### CUSTOM SQL END ####
         }
