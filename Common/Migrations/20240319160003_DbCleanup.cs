@@ -77,12 +77,12 @@ namespace OpenShock.Common.Migrations
             // ### CUSTOM SQL BEGIN ###
 
             // Populate the password_encryption column BEFORE updating the password hashes prefix
-            migrationBuilder.Sql("UPDATE users SET password_encryption = 'pbkdf2' WHERE password_hash LIKE 'pbkdf2:%'");
-            migrationBuilder.Sql("UPDATE users SET password_encryption = 'bcrypt_enhanced' WHERE password_hash LIKE 'bcrypt:%'");
+            migrationBuilder.Sql("UPDATE users SET password_encryption = 'pbkdf2' WHERE password LIKE 'pbkdf2:%'");
+            migrationBuilder.Sql("UPDATE users SET password_encryption = 'bcrypt_enhanced' WHERE password LIKE 'bcrypt:%'");
 
             // Update the password hashes prefix AFTER updating the password_encryption column
-            migrationBuilder.Sql("UPDATE users SET password_hash = SUBSTRING(password_hash FROM 8) WHERE password_hash LIKE 'pbkdf2:%'");
-            migrationBuilder.Sql("UPDATE users SET password_hash = SUBSTRING(password_hash FROM 8) WHERE password_hash LIKE 'bcrypt:%'");
+            migrationBuilder.Sql("UPDATE users SET password = SUBSTRING(password FROM 8) WHERE password LIKE 'pbkdf2:%'");
+            migrationBuilder.Sql("UPDATE users SET password = SUBSTRING(password FROM 8) WHERE password LIKE 'bcrypt:%'");
 
             // #### CUSTOM SQL END ####
         }
