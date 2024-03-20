@@ -73,6 +73,9 @@
         <None Update="SmtpTemplates\PasswordReset.liquid">
           <CopyToOutputDirectory>Always</CopyToOutputDirectory>
         </None>
+        <None Update="SmtpTemplates\EmailVerification.liquid">
+            <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+        </None>
     </ItemGroup>
 
 </Project>
