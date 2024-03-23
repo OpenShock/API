@@ -31,7 +31,7 @@ public static class PasswordHashingHelpers
 #pragma warning disable CS0618 // Type or member is obsolete
             return new VerifyPasswordResult
             {
-                Verified = SecurePasswordHasher.Verify(password, combinedHash[PBKDF2Prefix.Length..]),
+                Verified = SecurePasswordHasher.Verify(password, combinedHash, customName: PBKDF2Prefix),
                 NeedsRehash = true
             };
 #pragma warning restore CS0618 // Type or member is obsolete
