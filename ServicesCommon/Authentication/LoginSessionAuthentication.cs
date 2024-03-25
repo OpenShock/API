@@ -1,13 +1,17 @@
 ﻿using System.Net;
 using System.Security.Claims;
 using System.Text.Encodings.Web;
+using System.Text.Json;
 using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Http.Json;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Options;
 using OpenShock.Common.Models;
 using OpenShock.Common.OpenShockDb;
 using OpenShock.Common.Redis;
+using OpenShock.ServicesCommon.Errors;
+using OpenShock.ServicesCommon.Problems;
 using Redis.OM.Contracts;
 using Redis.OM.Searching;
 
@@ -16,20 +20,25 @@ namespace OpenShock.ServicesCommon.Authentication;
 public class LoginSessionAuthentication : AuthenticationHandler<AuthenticationSchemeOptions>
 {
     private readonly IClientAuthService<LinkUser> _authService;
-    private readonly IMemoryCache _memoryCache;
     private readonly OpenShockContext _db;
     private readonly IRedisCollection<LoginSession> _userSessions;
-    private string _failReason = "Internal server error";
+    private readonly JsonSerializerOptions _serializerOptions;
+    private OpenShockProblem? _authResultError = null;
 
-    public LoginSessionAuthentication(IOptionsMonitor<AuthenticationSchemeOptions> options,
-        ILoggerFactory logger, UrlEncoder encoder, IClientAuthService<LinkUser> clientAuth,
-        IMemoryCache memoryCache, OpenShockContext db, IRedisConnectionProvider provider)
+    public LoginSessionAuthentication(
+        IOptionsMonitor<AuthenticationSchemeOptions> options,
+        ILoggerFactory logger,
+        UrlEncoder encoder,
+        IClientAuthService<LinkUser> clientAuth,
+        OpenShockContext db,
+        IRedisConnectionProvider provider,
+        IOptions<JsonOptions> jsonOptions)
         : base(options, logger, encoder)
     {
         _authService = clientAuth;
-        _memoryCache = memoryCache;
         _db = db;
         _userSessions = provider.RedisCollection<LoginSession>(false);
+        _serializerOptions = jsonOptions.Value.SerializerOptions;
     }
 
     protected override Task<AuthenticateResult> HandleAuthenticateAsync()
@@ -47,14 +56,14 @@ public class LoginSessionAuthentication : AuthenticationHandler<AuthenticationSc
         if (Context.Request.Headers.TryGetValue("OpenShockToken", out var tokenHeaderO) &&
             !string.IsNullOrEmpty(tokenHeaderO)) return TokenAuth(tokenHeaderO!);
 
-        return Task.FromResult(Fail("OpenShockSession/OpenShockToken header/cookie was not found"));
+        return Task.FromResult(Fail(AuthResultError.HeaderMissingOrInvalid));
     }
 
     private async Task<AuthenticateResult> TokenAuth(string token)
     {
         var tokenDto = await _db.ApiTokens.Include(x => x.User).SingleOrDefaultAsync(x => x.Token == token &&
             (x.ValidUntil == null || x.ValidUntil >= DateOnly.FromDateTime(DateTime.UtcNow)));
-        if (tokenDto == null) return Fail("Token is not valid");
+        if (tokenDto == null) return Fail(AuthResultError.TokenInvalid);
 
         _authService.CurrentClient = new LinkUser
         {
@@ -80,7 +89,7 @@ public class LoginSessionAuthentication : AuthenticationHandler<AuthenticationSc
     private async Task<AuthenticateResult> SessionAuth(string sessionKey)
     {
         var session = await _userSessions.FindByIdAsync(sessionKey);
-        if (session == null) return Fail("Session was not found");
+        if (session == null) return Fail(AuthResultError.SessionInvalid);
 
         var retrievedUser = await _db.Users.FirstAsync(user => user.Id == session.UserId);
 
@@ -103,18 +112,18 @@ public class LoginSessionAuthentication : AuthenticationHandler<AuthenticationSc
         return AuthenticateResult.Success(ticket);
     }
 
-    private AuthenticateResult Fail(string reason)
+    private AuthenticateResult Fail(OpenShockProblem reason)
     {
-        _failReason = reason;
-        return AuthenticateResult.Fail(reason);
+        _authResultError = reason;
+        return AuthenticateResult.Fail(reason.Type!);
     }
 
+    /// <inheritdoc />
     protected override Task HandleChallengeAsync(AuthenticationProperties properties)
     {
-        Response.StatusCode = (int)HttpStatusCode.Unauthorized;
-        return Context.Response.WriteAsJsonAsync(new BaseResponse<object>
-        {
-            Message = _failReason
-        });
+        _authResultError ??= AuthResultError.UnknownError;
+        Response.StatusCode = _authResultError.Status!.Value;
+        _authResultError.AddContext(Context);
+        return Context.Response.WriteAsJsonAsync(_authResultError, _serializerOptions, contentType: "application/problem+json");
     }
 }

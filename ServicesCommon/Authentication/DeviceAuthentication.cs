@@ -1,11 +1,15 @@
 ﻿using System.Net;
 using System.Security.Claims;
 using System.Text.Encodings.Web;
+using System.Text.Json;
 using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Http.Json;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using OpenShock.Common.Models;
 using OpenShock.Common.OpenShockDb;
+using OpenShock.ServicesCommon.Errors;
+using OpenShock.ServicesCommon.Problems;
 
 namespace OpenShock.ServicesCommon.Authentication;
 
@@ -16,15 +20,23 @@ public class DeviceAuthentication : AuthenticationHandler<AuthenticationSchemeOp
 {
     private readonly IClientAuthService<Device> _authService;
     private readonly OpenShockContext _db;
-    private string _failReason = "Internal server error";
+    
+    private readonly JsonSerializerOptions _serializerOptions;
+    private OpenShockProblem? _authResultError = null;
 
 
-    public DeviceAuthentication(IOptionsMonitor<AuthenticationSchemeOptions> options,
-        ILoggerFactory logger, UrlEncoder encoder, IClientAuthService<Device> clientAuth, OpenShockContext db)
+    public DeviceAuthentication(
+        IOptionsMonitor<AuthenticationSchemeOptions> options,
+        ILoggerFactory logger,
+        UrlEncoder encoder,
+        IClientAuthService<Device> clientAuth,
+        OpenShockContext db,
+        IOptions<JsonOptions> jsonOptions)
         : base(options, logger, encoder)
     {
         _authService = clientAuth;
         _db = db;
+        _serializerOptions = jsonOptions.Value.SerializerOptions;
     }
 
     protected override async Task<AuthenticateResult> HandleAuthenticateAsync()
@@ -41,10 +53,10 @@ public class DeviceAuthentication : AuthenticationHandler<AuthenticationSchemeOp
         {
             sessionKey = sessionKeyHeader2!;
         }
-        else return Fail("DeviceToken header was not found");
+        else return Fail(AuthResultError.HeaderMissingOrInvalid);
 
         var device = await _db.Devices.Where(x => x.Token == sessionKey).SingleOrDefaultAsync();
-        if (device == null) return Fail("No device associated with device token");
+        if (device == null) return Fail(AuthResultError.TokenInvalid);
 
         _authService.CurrentClient = device;
         Context.Items["Device"] = _authService.CurrentClient.Id;
@@ -59,18 +71,18 @@ public class DeviceAuthentication : AuthenticationHandler<AuthenticationSchemeOp
         return AuthenticateResult.Success(ticket);
     }
 
-    private AuthenticateResult Fail(string reason)
+    private AuthenticateResult Fail(OpenShockProblem reason)
     {
-        _failReason = reason;
-        return AuthenticateResult.Fail(reason);
+        _authResultError = reason;
+        return AuthenticateResult.Fail(reason.Type!);
     }
 
+    /// <inheritdoc />
     protected override Task HandleChallengeAsync(AuthenticationProperties properties)
     {
-        Response.StatusCode = (int)HttpStatusCode.Unauthorized;
-        return Context.Response.WriteAsJsonAsync(new BaseResponse<object>
-        {
-            Message = _failReason
-        });
+        _authResultError ??= AuthResultError.UnknownError;
+        Response.StatusCode = _authResultError.Status!.Value;
+        _authResultError.AddContext(Context);
+        return Context.Response.WriteAsJsonAsync(_authResultError, _serializerOptions, contentType: "application/problem+json");
     }
 }

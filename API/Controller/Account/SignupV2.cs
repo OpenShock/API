@@ -4,6 +4,8 @@ using OpenShock.Common.Models;
 using System.Net;
 using Asp.Versioning;
 using OpenShock.API.Services.Account;
+using OpenShock.ServicesCommon.Errors;
+using OpenShock.ServicesCommon.Problems;
 using OpenShock.ServicesCommon.Services.Turnstile;
 
 namespace OpenShock.API.Controller.Account;
@@ -20,10 +22,11 @@ public sealed partial class AccountController
     /// <response code="200">User successfully signed up</response>
     /// <response code="400">Username or email already exists</response>
     [HttpPost("signup")]
-    [ProducesResponseType((int)HttpStatusCode.OK)]
-    [ProducesResponseType((int)HttpStatusCode.BadRequest)]
+    [ProducesSuccess]
+    [ProducesProblem(HttpStatusCode.Conflict, "EmailOrUsernameAlreadyExists")]
+    [ProducesProblem(HttpStatusCode.Forbidden, "InvalidTurnstileResponse")]
     [MapToApiVersion("2")]
-    public async Task<BaseResponse<object>> SignUpV2([FromBody] SignUpV2 body,
+    public async Task<IActionResult> SignUpV2([FromBody] SignUpV2 body,
         [FromServices] IAccountService accountService, [FromServices] ICloudflareTurnstileService turnstileService,
         CancellationToken cancellationToken)
     {
@@ -31,14 +34,13 @@ public sealed partial class AccountController
         {
             var turnStile = await turnstileService.VerifyUserResponseToken(body.TurnstileResponse,
                 HttpContext.Connection.RemoteIpAddress, cancellationToken);
-            if (!turnStile.IsT0) return EBaseResponse<object>("Invalid turnstile response", HttpStatusCode.Forbidden);
+            if (!turnStile.IsT0) return Problem(TurnstileError.InvalidTurnstile);
         }
 
         var creationAction = await accountService.Signup(body.Email, body.Username, body.Password);
         if (creationAction.IsT1)
-            return EBaseResponse<object>(
-                "Account with same username or email already exists. Please choose a different username or reset your password.");
+            return Problem(SignupError.EmailAlreadyExists);
 
-        return new BaseResponse<object>("Successfully created account");
+        return RespondSuccessSimple("Successfully signed up");
     }
 }

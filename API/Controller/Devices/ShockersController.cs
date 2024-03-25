@@ -3,6 +3,8 @@ using Microsoft.EntityFrameworkCore;
 using OpenShock.API.Models.Response;
 using OpenShock.Common.Models;
 using System.Net;
+using OpenShock.ServicesCommon.Errors;
+using OpenShock.ServicesCommon.Problems;
 
 namespace OpenShock.API.Controller.Devices;
 
@@ -15,12 +17,12 @@ public sealed partial class DevicesController
     /// <response code="200">All shockers for the device</response>
     /// <response code="404">Device does not exists or you do not have access to it.</response>
     [HttpGet("{deviceId}/shockers")]
-    [ProducesResponseType((int)HttpStatusCode.OK)]
-    [ProducesResponseType((int)HttpStatusCode.NotFound)]
-    public async Task<BaseResponse<IEnumerable<ShockerResponse>>> GetShockers([FromRoute] Guid deviceId)
+    [ProducesSuccess<IEnumerable<ShockerResponse>>]
+    [ProducesProblem(HttpStatusCode.NotFound, "DeviceNotFound")]
+    public async Task<IActionResult> GetShockers([FromRoute] Guid deviceId)
     {
         var deviceExists = await _db.Devices.AnyAsync(x => x.Owner == CurrentUser.DbUser.Id && x.Id == deviceId);
-        if (!deviceExists) return EBaseResponse<IEnumerable<ShockerResponse>>("Device does not exists or you do not have access to it.", HttpStatusCode.NotFound);
+        if (!deviceExists) return Problem(DeviceError.DeviceNotFound);
         var shockers = await _db.Shockers.Where(x => x.Device == deviceId).Select(x => new ShockerResponse
         {
             Id = x.Id,
@@ -30,10 +32,7 @@ public sealed partial class DevicesController
             Model = x.Model,
             IsPaused = x.Paused
         }).ToListAsync();
-        return new BaseResponse<IEnumerable<ShockerResponse>>
-        {
-            Message = "Successfully created shocker",
-            Data = shockers
-        };
+
+        return RespondSuccess(shockers);
     }
 }

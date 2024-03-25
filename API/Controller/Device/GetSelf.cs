@@ -6,7 +6,7 @@ using OpenShock.ServicesCommon.Authentication;
 
 namespace OpenShock.API.Controller.Device;
 
-public sealed partial class DeviceController : AuthenticatedDeviceControllerBase
+public sealed partial class DeviceController
 {
     /// <summary>
     /// Gets information about the authenticated device.

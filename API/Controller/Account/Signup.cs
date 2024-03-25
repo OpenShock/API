@@ -4,6 +4,8 @@ using OpenShock.Common.Models;
 using System.Net;
 using Asp.Versioning;
 using OpenShock.API.Services.Account;
+using OpenShock.ServicesCommon.Errors;
+using OpenShock.ServicesCommon.Problems;
 
 namespace OpenShock.API.Controller.Account;
 
@@ -15,20 +17,18 @@ public sealed partial class AccountController
     /// <param name="body"></param>
     /// <param name="accountService"></param>
     /// <response code="200">User successfully signed up</response>
-    /// <response code="400">Username or email already exists</response>
+    /// <response code="409">Username or email already exists</response>
     [HttpPost("signup")]
-    [ProducesResponseType((int)HttpStatusCode.OK)]
-    [ProducesResponseType((int)HttpStatusCode.BadRequest)]
+    [ProducesSuccess]
+    [ProducesProblem(HttpStatusCode.Conflict, "EmailOrUsernameAlreadyExists")]
     [MapToApiVersion("1")]
-    public async Task<BaseResponse<object>> SignUp([FromBody] SignUp body,
+    public async Task<IActionResult> SignUp([FromBody] SignUp body,
         [FromServices] IAccountService accountService)
     {
         var creationAction = await accountService.CreateAccount(body.Email, body.Username, body.Password);
-        if (creationAction.IsT1)
-            return EBaseResponse<object>(
-                "Account with same username or email already exists. Please choose a different username or reset your password.");
+        if (creationAction.IsT1) Problem(SignupError.EmailAlreadyExists);
 
 
-        return new BaseResponse<object>("Successfully created account");
+        return RespondSuccessSimple("Successfully signed up");
     }
 }

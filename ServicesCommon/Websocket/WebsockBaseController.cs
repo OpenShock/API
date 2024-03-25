@@ -1,9 +1,12 @@
 ﻿using System.Net.WebSockets;
 using System.Threading.Channels;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Options;
 using OpenShock.Common.Models;
 using OpenShock.Common.Utils;
+using OpenShock.ServicesCommon.Errors;
 using OpenShock.ServicesCommon.Utils;
+using JsonOptions = Microsoft.AspNetCore.Http.Json.JsonOptions;
 
 namespace OpenShock.ServicesCommon.Websocket
 {
@@ -97,8 +100,11 @@ namespace OpenShock.ServicesCommon.Websocket
         {
             if (!HttpContext.WebSockets.IsWebSocketRequest)
             {
+                var jsonOptions = HttpContext.RequestServices.GetRequiredService<IOptions<JsonOptions>>();
                 HttpContext.Response.StatusCode = StatusCodes.Status400BadRequest;
-                await HttpContext.Response.WriteAsJsonAsync(new BaseResponse<object>("This is a websocket endpoint"));
+                var response = WebsocketError.NonWebsocketRequest;
+                response.AddContext(HttpContext);
+                await HttpContext.Response.WriteAsJsonAsync(response, jsonOptions.Value.SerializerOptions, contentType: "application/problem+json");
                 return;
             }
 

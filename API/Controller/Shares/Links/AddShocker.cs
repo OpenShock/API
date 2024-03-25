@@ -3,6 +3,8 @@ using Microsoft.EntityFrameworkCore;
 using OpenShock.Common.Models;
 using OpenShock.Common.OpenShockDb;
 using System.Net;
+using OpenShock.ServicesCommon.Errors;
+using OpenShock.ServicesCommon.Problems;
 
 namespace OpenShock.API.Controller.Shares.Links;
 
@@ -17,21 +19,21 @@ public sealed partial class ShareLinksController
     /// <response code="404">Share link or shocker does not exist</response>
     /// <response code="409">Shocker already exists in share link</response>
     [HttpPost("{shareLinkId}/{shockerId}")]
-    [ProducesResponseType((int)HttpStatusCode.OK)]
-    [ProducesResponseType((int)HttpStatusCode.NotFound)]
-    [ProducesResponseType((int)HttpStatusCode.Conflict)]
-    public async Task<BaseResponse<object>> AddShocker([FromRoute] Guid shareLinkId, [FromRoute] Guid shockerId)
+    [ProducesSuccess]
+    [ProducesProblem(HttpStatusCode.NotFound, "ShareLinkNotFound")]
+    [ProducesProblem(HttpStatusCode.NotFound, "ShockerNotFound")]
+    [ProducesProblem(HttpStatusCode.Conflict, "ShockerAlreadyInShareLink")]
+    public async Task<IActionResult> AddShocker([FromRoute] Guid shareLinkId, [FromRoute] Guid shockerId)
     {
         var exists = await _db.ShockerSharesLinks.AnyAsync(x => x.OwnerId == CurrentUser.DbUser.Id && x.Id == shareLinkId);
-        if (!exists)
-            return EBaseResponse<object>("Share link could not be found", HttpStatusCode.NotFound);
+        if (!exists) return Problem(ShareLinkError.ShareLinkNotFound);
 
         var ownShocker =
             await _db.Shockers.AnyAsync(x => x.Id == shockerId && x.DeviceNavigation.Owner == CurrentUser.DbUser.Id);
-        if (!ownShocker) return EBaseResponse<object>("Shocker does not exist", HttpStatusCode.NotFound);
+        if (!ownShocker) return Problem(ShockerError.ShockerNotFound);
 
         if (await _db.ShockerSharesLinksShockers.AnyAsync(x => x.ShareLinkId == shareLinkId && x.ShockerId == shockerId))
-            return EBaseResponse<object>("Shocker already exists in share link", HttpStatusCode.Conflict);
+            return Problem(ShareLinkError.ShockerAlreadyInShareLink);
 
         _db.ShockerSharesLinksShockers.Add(new ShockerSharesLinksShocker
         {
@@ -43,9 +45,7 @@ public sealed partial class ShareLinksController
         });
 
         await _db.SaveChangesAsync();
-        return new BaseResponse<object>
-        {
-            Message = "Successfully added shocker"
-        };
+        
+        return RespondSuccessSimple("Successfully added shocker");
     }
 }

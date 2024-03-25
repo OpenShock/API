@@ -2,6 +2,8 @@
 using Microsoft.EntityFrameworkCore;
 using OpenShock.Common.Models;
 using System.Net;
+using OpenShock.ServicesCommon.Errors;
+using OpenShock.ServicesCommon.Problems;
 
 namespace OpenShock.API.Controller.Shares.Links;
 
@@ -14,15 +16,15 @@ public sealed partial class ShareLinksController
     /// <response code="200">Deleted share link</response>
     /// <response code="404">Share link not found or does not belong to you</response>
     [HttpDelete("{shareLinkId}")]
-    [ProducesResponseType((int)HttpStatusCode.OK)]
-    [ProducesResponseType((int)HttpStatusCode.NotFound)]
-    public async Task<BaseResponse<object>> DeleteShareLink([FromRoute] Guid shareLinkId)
+    [ProducesSuccess]
+    [ProducesProblem(HttpStatusCode.NotFound, "ShareLinkNotFound")]
+    public async Task<IActionResult> DeleteShareLink([FromRoute] Guid shareLinkId)
     {
         var result = await _db.ShockerSharesLinks.Where(x => x.Id == shareLinkId && x.OwnerId == CurrentUser.DbUser.Id)
             .ExecuteDeleteAsync();
 
         return result > 0
-            ? new BaseResponse<object>("Successfully deleted share link")
-            : EBaseResponse<object>("Share link not found or does not belong to you", HttpStatusCode.NotFound);
+            ? RespondSuccessSimple("Deleted share link")
+            : Problem(ShareLinkError.ShareLinkNotFound);
     }
 }

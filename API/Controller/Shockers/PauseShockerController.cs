@@ -8,6 +8,8 @@ using OpenShock.API.Realtime;
 using OpenShock.API.Services;
 using OpenShock.Common.Models;
 using OpenShock.Common.Redis.PubSub;
+using OpenShock.ServicesCommon.Errors;
+using OpenShock.ServicesCommon.Problems;
 using OpenShock.ServicesCommon.Services.Device;
 
 namespace OpenShock.API.Controller.Shockers;
@@ -23,21 +25,20 @@ public sealed partial class ShockerController
     /// <response code="200">Successfully set pause state</response>
     /// <response code="404">Shocker not found or does not belong to you</response>
     [HttpPost("{shockerId}/pause")]
-    [ProducesResponseType((int)HttpStatusCode.OK)]
-    [ProducesResponseType((int)HttpStatusCode.NotFound)]
+    [ProducesSuccess<bool?>]
+    [ProducesProblem(HttpStatusCode.NotFound, "ShockerNotFound")]    
     [MapToApiVersion("1")]
-    public async Task<BaseResponse<bool?>> PauseShocker([FromRoute] Guid shockerId, [FromBody] PauseRequest body,
+    public async Task<IActionResult> PauseShocker([FromRoute] Guid shockerId, [FromBody] PauseRequest body,
         [FromServices] IDeviceUpdateService deviceUpdateService)
     {
         var shocker = await _db.Shockers.Where(x => x.Id == shockerId && x.DeviceNavigation.Owner == CurrentUser.DbUser.Id)
             .SingleOrDefaultAsync();
-        if (shocker == null)
-            return EBaseResponse<bool?>("Shocker not found or does not belong to you", HttpStatusCode.NotFound);
+        if (shocker == null) return Problem(ShockerError.ShockerNotFound);
         shocker.Paused = body.Pause;
         await _db.SaveChangesAsync();
 
         await deviceUpdateService.UpdateDeviceForAllShared(CurrentUser.DbUser.Id, shocker.Device, DeviceUpdateType.ShockerUpdated);
 
-        return new BaseResponse<bool?>("Successfully set pause state", body.Pause);
+        return RespondSuccess(body.Pause);
     }
 }

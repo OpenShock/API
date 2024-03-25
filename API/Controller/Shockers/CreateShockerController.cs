@@ -9,6 +9,8 @@ using OpenShock.API.Services;
 using OpenShock.Common.Models;
 using OpenShock.Common.OpenShockDb;
 using OpenShock.Common.Redis.PubSub;
+using OpenShock.ServicesCommon.Errors;
+using OpenShock.ServicesCommon.Problems;
 using OpenShock.ServicesCommon.Services.Device;
 
 namespace OpenShock.API.Controller.Shockers;
@@ -22,19 +24,19 @@ public sealed partial class ShockerController
     /// <response code="400">You can have a maximum of 11 Shockers per Device.</response>
     /// <response code="404">Device does not exist</response>
     [HttpPost]
-    [ProducesResponseType((int)HttpStatusCode.Created)]
-    [ProducesResponseType((int)HttpStatusCode.BadRequest)]
-    [ProducesResponseType((int)HttpStatusCode.NotFound)]
+    [ProducesSuccess<Guid>(statusCode: HttpStatusCode.Created)]
+    [ProducesProblem(HttpStatusCode.NotFound, "DeviceNotFound")]
+    [ProducesProblem(HttpStatusCode.BadRequest, "TooManyShockers")]
     [MapToApiVersion("1")]
-    public async Task<BaseResponse<Guid>> RegisterShocker(
+    public async Task<IActionResult> RegisterShocker(
         [FromBody] NewShocker body,
         [FromServices] IDeviceUpdateService deviceUpdateService)
     {
         var device = await _db.Devices.Where(x => x.Owner == CurrentUser.DbUser.Id && x.Id == body.Device).Select(x => x.Id).SingleOrDefaultAsync();
-        if(device == Guid.Empty) return EBaseResponse<Guid>("Device does not exist", HttpStatusCode.NotFound);
+        if(device == Guid.Empty) return Problem(DeviceError.DeviceNotFound);
         var shockerCount = await _db.Shockers.CountAsync(x => x.Device == body.Device);
 
-        if (shockerCount >= 11) return EBaseResponse<Guid>("You can have a maximum of 11 Shockers per Device.");
+        if (shockerCount >= 11) return Problem(DeviceError.TooManyShockers);
         
         var shocker = new Shocker
         {
@@ -50,9 +52,6 @@ public sealed partial class ShockerController
         await deviceUpdateService.UpdateDeviceForAllShared(CurrentUser.DbUser.Id, device, DeviceUpdateType.ShockerUpdated);
 
         Response.StatusCode = (int)HttpStatusCode.Created;
-        return new BaseResponse<Guid>
-        {
-            Data = shocker.Id
-        };
+        return RespondSuccess(shocker.Id);
     }
 }

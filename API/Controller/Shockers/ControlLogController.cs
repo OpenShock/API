@@ -5,6 +5,8 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using OpenShock.API.Models.Response;
 using OpenShock.Common.Models;
+using OpenShock.ServicesCommon.Errors;
+using OpenShock.ServicesCommon.Problems;
 using OpenShock.ServicesCommon.Utils;
 
 namespace OpenShock.API.Controller.Shockers;
@@ -20,14 +22,14 @@ public sealed partial class ShockerController
     /// <response code="200">The logs</response>
     /// <response code="404">Shocker does not exist</response>
     [HttpGet("{shockerId}/logs")]
-    [ProducesResponseType((int)HttpStatusCode.OK)]
-    [ProducesResponseType((int)HttpStatusCode.NotFound)]
+    [ProducesSuccess<IEnumerable<LogEntry>>]
+    [ProducesProblem(HttpStatusCode.NotFound, "ShockerNotFound")]
     [MapToApiVersion("1")]
-    public async Task<BaseResponse<IEnumerable<LogEntry>>> GetShockerLogs([FromRoute] Guid shockerId, [FromQuery] uint offset = 0,
+    public async Task<IActionResult> GetShockerLogs([FromRoute] Guid shockerId, [FromQuery] uint offset = 0,
         [FromQuery] [Range(1, 500)] uint limit = 100)
     {
         var exists = await _db.Shockers.AnyAsync(x => x.DeviceNavigation.Owner == CurrentUser.DbUser.Id && x.Id == shockerId);
-        if (!exists) return EBaseResponse<IEnumerable<LogEntry>>("Shocker does not exist", HttpStatusCode.NotFound);
+        if (!exists) return Problem(ShockerError.ShockerNotFound);
 
         var logs = await _db.ShockerControlLogs.Where(x => x.ShockerId == shockerId)
             .OrderByDescending(x => x.CreatedOn).Skip((int)offset).Take((int)limit).Select(x => new LogEntry
@@ -54,9 +56,6 @@ public sealed partial class ShockerController
                     }
             }).ToListAsync();
 
-        return new BaseResponse<IEnumerable<LogEntry>>
-        {
-            Data = logs
-        };
+        return RespondSuccess(logs);
     }
 }
