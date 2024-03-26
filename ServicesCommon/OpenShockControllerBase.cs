@@ -8,8 +8,7 @@ using OpenShock.ServicesCommon.Problems;
 namespace OpenShock.ServicesCommon;
 
 [Consumes(MediaTypeNames.Application.Json)]
-[Produces(MediaTypeNames.Application.Json)]
-[ProducesErrorResponseType(typeof(BaseResponse<object>))]
+[Produces(MediaTypeNames.Application.Json, ["application/problem+json"])]
 public class OpenShockControllerBase : Microsoft.AspNetCore.Mvc.Controller
 {
     [NonAction]
