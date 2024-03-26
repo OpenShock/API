@@ -1,6 +1,9 @@
 ﻿using System.Net;
 using Microsoft.AspNetCore.Diagnostics;
+using Microsoft.AspNetCore.Http.Json;
+using Microsoft.Extensions.Options;
 using OpenShock.Common;
+using OpenShock.ServicesCommon.Errors;
 
 namespace OpenShock.ServicesCommon.ExceptionHandle;
 
@@ -46,15 +49,14 @@ public static class ExceptionHandler
                 
                 context.Response.StatusCode = (int)HttpStatusCode.InternalServerError;
                 await PrintRequestInfo(context, correlationId);
-                await context.Response.WriteAsJsonAsync(new ErrorResponse
-                {
-                    Message =
-                        "Internal error, see log for more details. Please report this to administrators, make sure to include the correlation id of this request.",
-                    Error = new ErrorResponse.ErrorObj
-                    {
-                        CorrelationId = correlationId
-                    }
-                });
+                
+                
+                var jsonOptions = context.RequestServices.GetRequiredService<IOptions<JsonOptions>>();
+                
+                var responseObject = ExceptionError.Exception;
+                responseObject.AddContext(context);
+                
+                await context.Response.WriteAsJsonAsync(responseObject, jsonOptions.Value.SerializerOptions, contentType: "application/problem+json");
             });
         });
     }
