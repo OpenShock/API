@@ -2,17 +2,18 @@
 using OpenShock.Common.Models;
 using OpenShock.Common.OpenShockDb;
 using OpenShock.ServicesCommon.Authentication;
+using OpenShock.ServicesCommon.Problems;
 
 namespace OpenShock.API.Controller.Users;
 
-public sealed partial class UsersController : AuthenticatedSessionControllerBase
+public sealed partial class UsersController
 {
     /// <summary>
     /// Get the current user's information.
     /// </summary>
     /// <response code="200">The user's information was successfully retrieved.</response>
     [HttpGet("self")]
-    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesSuccess<IEnumerable<SelfResponse>>]
     public BaseResponse<SelfResponse> GetSelf() => new()
     {
         Data = new SelfResponse

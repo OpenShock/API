@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using OpenShock.Common.Models;
 using OpenShock.Common.Redis;
+using OpenShock.ServicesCommon.Problems;
 using Redis.OM.Contracts;
 
 namespace OpenShock.API.Controller.Public;
@@ -12,8 +13,9 @@ public sealed partial class PublicController
     /// </summary>
     /// <response code="200">The statistics were successfully retrieved.</response>
     [HttpGet("stats")]
-    [ProducesResponseType(StatusCodes.Status200OK)]
-    public async Task<BaseResponse<StatsResponse>> GetOnlineDevicesStatistics([FromServices] IRedisConnectionProvider redisConnectionProvider)
+    [ProducesSuccess<StatsResponse>]
+    public async Task<BaseResponse<StatsResponse>> GetOnlineDevicesStatistics(
+        [FromServices] IRedisConnectionProvider redisConnectionProvider)
     {
         var deviceOnlines = redisConnectionProvider.RedisCollection<DeviceOnline>(false);
 

@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using OpenShock.API.Models.Response;
 using OpenShock.Common.Models;
+using OpenShock.ServicesCommon.Problems;
 
 namespace OpenShock.API.Controller.Shockers;
 
@@ -13,7 +14,7 @@ public sealed partial class ShockerController
     /// </summary>
     /// <response code="200">The shockers were successfully retrieved.</response>
     [HttpGet("own")]
-    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesSuccess<IEnumerable<ResponseDeviceWithShockers>>]
     [MapToApiVersion("1")]
     public async Task<BaseResponse<IEnumerable<ResponseDeviceWithShockers>>> ListShockers()
     {

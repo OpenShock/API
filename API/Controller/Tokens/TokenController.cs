@@ -18,7 +18,7 @@ public sealed partial class TokensController
     /// </summary>
     /// <response code="200">All tokens for the current user</response>
     [HttpGet]
-    [ProducesResponseType((int)HttpStatusCode.OK)]
+    [ProducesSuccess<IEnumerable<TokenResponse>>]
     public async Task<BaseResponse<IEnumerable<TokenResponse>>> ListTokens()
     {
         var apiTokens = await _db.ApiTokens.Where(x => x.UserId == CurrentUser.DbUser.Id).OrderBy(x => x.CreatedOn).Select(x => new TokenResponse
