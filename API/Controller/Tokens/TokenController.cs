@@ -6,6 +6,8 @@ using OpenShock.API.Utils;
 using OpenShock.Common.Models;
 using OpenShock.Common.OpenShockDb;
 using OpenShock.ServicesCommon.Authentication;
+using OpenShock.ServicesCommon.Errors;
+using OpenShock.ServicesCommon.Problems;
 
 namespace OpenShock.API.Controller.Tokens;
 
@@ -16,7 +18,7 @@ public sealed partial class TokensController
     /// </summary>
     /// <response code="200">All tokens for the current user</response>
     [HttpGet]
-    [ProducesResponseType((int)HttpStatusCode.OK)]
+    [ProducesSuccess<IEnumerable<TokenResponse>>]
     public async Task<BaseResponse<IEnumerable<TokenResponse>>> ListTokens()
     {
         var apiTokens = await _db.ApiTokens.Where(x => x.UserId == CurrentUser.DbUser.Id).OrderBy(x => x.CreatedOn).Select(x => new TokenResponse
@@ -42,9 +44,9 @@ public sealed partial class TokensController
     /// <response code="200">The token</response>
     /// <response code="404">The token does not exist or you do not have access to it.</response>
     [HttpGet("{tokenId}")]
-    [ProducesResponseType((int)HttpStatusCode.OK)]
-    [ProducesResponseType((int)HttpStatusCode.NotFound)]
-    public async Task<BaseResponse<TokenResponse>> GetTokenById([FromRoute] Guid tokenId)
+    [ProducesSuccess<TokenResponse>]
+    [ProducesProblem(HttpStatusCode.NotFound, "ApiTokenNotFound")]    
+    public async Task<IActionResult> GetTokenById([FromRoute] Guid tokenId)
     {
         var apiToken = await _db.ApiTokens.Where(x => x.UserId == CurrentUser.DbUser.Id && x.Id == tokenId).Select(x => new TokenResponse
         {
@@ -55,12 +57,10 @@ public sealed partial class TokensController
             Name = x.Name,
             Id = x.Id
         }).FirstOrDefaultAsync();
-        if (apiToken == null)
-            return EBaseResponse<TokenResponse>("Api Token could not be found", HttpStatusCode.NotFound);
-        return new BaseResponse<TokenResponse>
-        {
-            Data = apiToken
-        };
+        
+        if (apiToken == null) return Problem(ApiTokenError.ApiTokenNotFound);
+        
+        return RespondSuccess(apiToken);
     }
 
     /// <summary>
@@ -70,17 +70,14 @@ public sealed partial class TokensController
     /// <response code="200">Successfully deleted token</response>
     /// <response code="404">The token does not exist or you do not have access to it.</response>
     [HttpDelete("{tokenId}")]
-    [ProducesResponseType((int)HttpStatusCode.OK)]
-    [ProducesResponseType((int)HttpStatusCode.NotFound)]
-    public async Task<BaseResponse<TokenResponse>> DeleteToken([FromRoute] Guid tokenId)
+    [ProducesSuccess]
+    [ProducesProblem(HttpStatusCode.NotFound, "ApiTokenNotFound")]    
+    public async Task<IActionResult> DeleteToken([FromRoute] Guid tokenId)
     {
         var apiToken = await _db.ApiTokens.Where(x => x.UserId == CurrentUser.DbUser.Id && x.Id == tokenId)
             .ExecuteDeleteAsync();
-        if (apiToken <= 0) return EBaseResponse<TokenResponse>("Api Token could not be found", HttpStatusCode.NotFound);
-        return new BaseResponse<TokenResponse>
-        {
-            Message = "Successfully deleted api token"
-        };
+        if (apiToken <= 0) return Problem(ApiTokenError.ApiTokenNotFound);
+        return RespondSuccessSimple("Successfully deleted api token");
     }
 
     /// <summary>
@@ -89,7 +86,7 @@ public sealed partial class TokensController
     /// <param name="body"></param>
     /// <response code="200">The created token</response>
     [HttpPost]
-    [ProducesResponseType((int)HttpStatusCode.OK)]
+    [ProducesSuccess<string>]
     public async Task<BaseResponse<string>> CreateToken([FromBody] CreateTokenRequest body)
     {
         var token = new ApiToken
@@ -119,27 +116,27 @@ public sealed partial class TokensController
     /// <response code="200">The edited token</response>
     /// <response code="404">The token does not exist or you do not have access to it.</response>
     [HttpPatch("{tokenId}")]
-    [ProducesResponseType((int)HttpStatusCode.OK)]
-    [ProducesResponseType((int)HttpStatusCode.NotFound)]
-    public async Task<BaseResponse<object>> EditToken([FromRoute] Guid tokenId, [FromBody] EditTokenRequest body)
+    [ProducesSuccess]
+    [ProducesProblem(HttpStatusCode.NotFound, "ApiTokenNotFound")]    
+    public async Task<IActionResult> EditToken([FromRoute] Guid tokenId, [FromBody] EditTokenRequest body)
     {
         var token = await _db.ApiTokens.FirstOrDefaultAsync(x => x.UserId == CurrentUser.DbUser.Id && x.Id == tokenId);
-        if (token == null) return EBaseResponse<object>("API token does not exist", HttpStatusCode.NotFound);
+        if (token == null) return Problem(ApiTokenError.ApiTokenNotFound);
 
         token.Name = body.Name;
         token.Permissions = body.Permissions;
         await _db.SaveChangesAsync();
 
-        return new BaseResponse<object>("Successfully updated api token");
+        return RespondSuccessSimple("Successfully updated api token");
     }
 
-    public class EditTokenRequest
+    public sealed class EditTokenRequest
     {
         public required string Name { get; set; }
         public List<PermissionType> Permissions { get; set; } = PermissionTypeBindings.AllPermissionTypes;
     }
 
-    public class CreateTokenRequest
+    public sealed class CreateTokenRequest
     {
         public required string Name { get; set; }
         public List<PermissionType> Permissions { get; set; } = PermissionTypeBindings.AllPermissionTypes;

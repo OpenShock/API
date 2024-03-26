@@ -3,6 +3,8 @@ using Microsoft.EntityFrameworkCore;
 using OpenShock.API.Models.Response;
 using OpenShock.Common.Models;
 using System.Net;
+using OpenShock.ServicesCommon.Errors;
+using OpenShock.ServicesCommon.Problems;
 
 namespace OpenShock.API.Controller.Shares.Links;
 
@@ -17,21 +19,18 @@ public sealed partial class ShareLinksController
     /// <response code="404">Share link or shocker does not exist</response>
     /// <response code="400">Shocker does not exist in share link</response>
     [HttpDelete("{shareLinkId}/{shockerId}")]
-    [ProducesResponseType((int)HttpStatusCode.OK)]
-    [ProducesResponseType((int)HttpStatusCode.NotFound)]
-    public async Task<BaseResponse<ShareLinkResponse>> RemoveShocker([FromRoute] Guid shareLinkId, [FromRoute] Guid shockerId)
+    [ProducesSuccess]
+    [ProducesProblem(HttpStatusCode.NotFound, "ShareLinkNotFound")]
+    [ProducesProblem(HttpStatusCode.NotFound, "ShockerNotInShareLink")]
+    public async Task<IActionResult> RemoveShocker([FromRoute] Guid shareLinkId, [FromRoute] Guid shockerId)
     {
         var exists = await _db.ShockerSharesLinks.AnyAsync(x => x.OwnerId == CurrentUser.DbUser.Id && x.Id == shareLinkId);
-        if (!exists) return EBaseResponse<ShareLinkResponse>("Share link could not be found", HttpStatusCode.NotFound);
+        if (!exists) return Problem(ShareLinkError.ShareLinkNotFound);
 
         var affected = await _db.ShockerSharesLinksShockers.Where(x => x.ShareLinkId == shareLinkId && x.ShockerId == shockerId)
             .ExecuteDeleteAsync();
-        if (affected > 0)
-            return new BaseResponse<ShareLinkResponse>
-            {
-                Message = "Successfully removed shocker"
-            };
-
-        return EBaseResponse<ShareLinkResponse>("Shocker does not exist in share link, consider adding a new one");
+        if (affected > 0) return RespondSuccessSimple("Successfully removed shocker");
+        
+        return Problem(ShareLinkError.ShockerNotInShareLink);
     }
 }

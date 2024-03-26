@@ -6,6 +6,8 @@ using OpenShock.API.Services;
 using OpenShock.API.Utils;
 using OpenShock.Common.Models;
 using OpenShock.Common.Redis;
+using OpenShock.ServicesCommon.Errors;
+using OpenShock.ServicesCommon.Problems;
 
 namespace OpenShock.API.Controller.Devices;
 
@@ -16,7 +18,7 @@ public sealed partial class DevicesController
     /// </summary>
     /// <response code="200">All devices for the current user</response>
     [HttpGet]
-    [ProducesResponseType((int)HttpStatusCode.OK)]
+    [ProducesSuccess<IEnumerable<Models.Response.ResponseDevice>>]
     public async Task<BaseResponse<IEnumerable<Models.Response.ResponseDevice>>> ListDevices()
     {
         var devices = await _db.Devices.Where(x => x.Owner == CurrentUser.DbUser.Id)
@@ -38,8 +40,9 @@ public sealed partial class DevicesController
     /// <param name="deviceId"></param>
     /// <response code="200">The device</response>
     [HttpGet("{deviceId}")]
-    [ProducesResponseType((int)HttpStatusCode.OK)]
-    public async Task<BaseResponse<Models.Response.ResponseDeviceWithToken>> GetDeviceById([FromRoute] Guid deviceId)
+    [ProducesSuccess<Models.Response.ResponseDeviceWithToken>]
+    [ProducesProblem(HttpStatusCode.NotFound, "DeviceNotFound")]
+    public async Task<IActionResult> GetDeviceById([FromRoute] Guid deviceId)
     {
         var device = await _db.Devices.Where(x => x.Owner == CurrentUser.DbUser.Id && x.Id == deviceId)
             .Select(x => new Models.Response.ResponseDeviceWithToken
@@ -49,13 +52,9 @@ public sealed partial class DevicesController
                 CreatedOn = x.CreatedOn,
                 Token = x.Token
             }).SingleOrDefaultAsync();
-        if (device == null)
-            return EBaseResponse<Models.Response.ResponseDeviceWithToken>("Device does not exist",
-                HttpStatusCode.NotFound);
-        return new BaseResponse<Models.Response.ResponseDeviceWithToken>
-        {
-            Data = device
-        };
+        if (device == null) return Problem(DeviceError.DeviceNotFound);
+
+        return RespondSuccess(device);
     }
 
     /// <summary>
@@ -67,24 +66,20 @@ public sealed partial class DevicesController
     /// <response code="200">Successfully updated device</response>
     /// <response code="404">Device does not exist</response>
     [HttpPatch("{deviceId}")]
-    [ProducesResponseType((int)HttpStatusCode.OK)]
-    [ProducesResponseType((int)HttpStatusCode.NotFound)]
-    public async Task<BaseResponse<object>> EditDevice([FromRoute] Guid deviceId, [FromBody] DeviceEdit body, [FromServices] IDeviceUpdateService updateService)
+    [ProducesSuccess]
+    [ProducesProblem(HttpStatusCode.NotFound, "DeviceNotFound")]
+    public async Task<IActionResult> EditDevice([FromRoute] Guid deviceId, [FromBody] DeviceEdit body, [FromServices] IDeviceUpdateService updateService)
     {
         var device = await _db.Devices.Where(x => x.Owner == CurrentUser.DbUser.Id && x.Id == deviceId)
             .SingleOrDefaultAsync();
-        if (device == null)
-            return EBaseResponse<object>("Device does not exist", HttpStatusCode.NotFound);
+        if (device == null) return Problem(DeviceError.DeviceNotFound);
 
         device.Name = body.Name;
         await _db.SaveChangesAsync();
 
         await updateService.UpdateDeviceForAllShared(CurrentUser.DbUser.Id, device.Id, DeviceUpdateType.Updated);
-        
-        return new BaseResponse<object>
-        {
-            Message = "Successfully updated device"
-        };
+
+        return RespondSuccessSimple("Successfully updated device");
     }
 
     /// <summary>
@@ -95,26 +90,20 @@ public sealed partial class DevicesController
     /// <response code="404">Device does not exist</response>
     /// <response code="500">Failed to save regenerated token</response>
     [HttpPut("{deviceId}")]
-    [ProducesResponseType((int)HttpStatusCode.OK)]
-    [ProducesResponseType((int)HttpStatusCode.NotFound)]
-    [ProducesResponseType((int)HttpStatusCode.InternalServerError)]
-    public async Task<BaseResponse<object>> RegenerateDeviceToken([FromRoute] Guid deviceId)
+    [ProducesSuccess]
+    [ProducesProblem(HttpStatusCode.NotFound, "DeviceNotFound")]
+    public async Task<IActionResult> RegenerateDeviceToken([FromRoute] Guid deviceId)
     {
         var device = await _db.Devices.Where(x => x.Owner == CurrentUser.DbUser.Id && x.Id == deviceId)
             .SingleOrDefaultAsync();
-        if (device == null)
-            return EBaseResponse<object>("Device does not exist", HttpStatusCode.NotFound);
+        if (device == null) return Problem(DeviceError.DeviceNotFound);
 
         device.Token = CryptoUtils.RandomString(256);
 
         var affected = await _db.SaveChangesAsync();
-        if (affected <= 0)
-            return EBaseResponse<object>("Failed to save regenerated token", HttpStatusCode.InternalServerError);
+        if (affected <= 0) throw new Exception("Failed to save regenerated token");
 
-        return new BaseResponse<object>
-        {
-            Message = "Successfully regenerated device token"
-        };
+        return RespondSuccessSimple("Successfully regenerated device token");
     }
 
     /// <summary>
@@ -125,21 +114,17 @@ public sealed partial class DevicesController
     /// <response code="200">Successfully deleted device</response>
     /// <response code="404">Device does not exist</response>
     [HttpDelete("{deviceId}")]
-    [ProducesResponseType((int)HttpStatusCode.OK)]
-    [ProducesResponseType((int)HttpStatusCode.NotFound)]
-    public async Task<BaseResponse<object>> RemoveDevice([FromRoute] Guid deviceId, [FromServices] IDeviceUpdateService updateService)
+    [ProducesSuccess]
+    [ProducesProblem(HttpStatusCode.NotFound, "DeviceNotFound")]
+    public async Task<IActionResult> RemoveDevice([FromRoute] Guid deviceId, [FromServices] IDeviceUpdateService updateService)
     {
         var affected = await _db.Devices.Where(x => x.Owner == CurrentUser.DbUser.Id && x.Id == deviceId)
             .ExecuteDeleteAsync();
-        if (affected <= 0)
-            return EBaseResponse<object>("Device does not exist", HttpStatusCode.NotFound);
+        if (affected <= 0) return Problem(DeviceError.DeviceNotFound);
         
         await updateService.UpdateDeviceForAllShared(CurrentUser.DbUser.Id, deviceId, DeviceUpdateType.Deleted);
         
-        return new BaseResponse<object>
-        {
-            Message = "Successfully deleted device"
-        };
+        return RespondSuccessSimple("Successfully deleted device");
     }
 
     /// <summary>
@@ -147,7 +132,7 @@ public sealed partial class DevicesController
     /// </summary>
     /// <response code="201">Successfully created device</response>
     [HttpPost]
-    [ProducesResponseType((int)HttpStatusCode.Created)]
+    [ProducesSuccess<Guid>(statusCode: HttpStatusCode.Created)]
     public async Task<BaseResponse<Guid>> CreateDevice([FromServices] IDeviceUpdateService updateService)
     {
         var device = new Common.OpenShockDb.Device
@@ -177,15 +162,14 @@ public sealed partial class DevicesController
     /// <response code="200">The pair code</response>
     /// <response code="404">Device does not exist or does not belong to you</response>
     [HttpGet("{deviceId}/pair")]
-    [ProducesResponseType((int)HttpStatusCode.OK)]
-    [ProducesResponseType((int)HttpStatusCode.NotFound)]
-    public async Task<BaseResponse<string>> GetPairCode([FromRoute] Guid deviceId)
+    [ProducesSuccess<string>]
+    [ProducesProblem(HttpStatusCode.NotFound, "DeviceNotFound")]
+    public async Task<IActionResult> GetPairCode([FromRoute] Guid deviceId)
     {
         var devicePairs = _redis.RedisCollection<DevicePair>();
 
         var deviceExists = await _db.Devices.AnyAsync(x => x.Id == deviceId && x.Owner == CurrentUser.DbUser.Id);
-        if (!deviceExists)
-            return EBaseResponse<string>("Device does not exists or does not belong to you", HttpStatusCode.NotFound);
+        if (!deviceExists) Problem(DeviceError.DeviceNotFound);
         // replace with unlink?
         var existing = await devicePairs.FindByIdAsync(deviceId.ToString());
         if (existing != null) await devicePairs.DeleteAsync(existing);
@@ -198,10 +182,7 @@ public sealed partial class DevicesController
         };
         await devicePairs.InsertAsync(pairCode, TimeSpan.FromMinutes(15));
 
-        return new BaseResponse<string>
-        {
-            Data = pairCode.PairCode
-        };
+        return RespondSuccess(pairCode.PairCode);
     }
 
     /// <summary>
@@ -214,42 +195,33 @@ public sealed partial class DevicesController
     /// <response code="412">Device is online but not connected to a LCG node, you might need to upgrade your firmware to use this feature</response>
     /// <response code="500">Internal server error, lcg node could not be found</response>
     [HttpGet("{deviceId}/lcg")]
-    public async Task<BaseResponse<LcgResponse>> GetLiveControlGatewayInfo(Guid deviceId)
+    [ProducesSuccess<LcgResponse>]
+    [ProducesProblem(HttpStatusCode.NotFound, "DeviceNotFound")]
+    public async Task<IActionResult> GetLiveControlGatewayInfo(Guid deviceId)
     {
         // Check if user owns device or has a share
         var deviceExistsAndYouHaveAccess = await _db.Devices.AnyAsync(x =>
             x.Id == deviceId && (x.Owner == CurrentUser.DbUser.Id || x.Shockers.Any(y => y.ShockerShares.Any(
                 z => z.SharedWith == CurrentUser.DbUser.Id))));
-        if (!deviceExistsAndYouHaveAccess)
-            return EBaseResponse<LcgResponse>("Device does not exists or does not belong to you",
-                HttpStatusCode.NotFound);
+        if (!deviceExistsAndYouHaveAccess) return Problem(DeviceError.DeviceNotFound);
 
         // Check if device is online
         var devicesOnline = _redis.RedisCollection<DeviceOnline>();
         var online = await devicesOnline.FindByIdAsync(deviceId.ToString());
-        if (online == null) return EBaseResponse<LcgResponse>("Device is not online", HttpStatusCode.NotFound);
+        if (online == null) return Problem(DeviceError.DeviceIsNotOnline);
 
         // Check if device is connected to a LCG node
-        if (online.Gateway == null)
-            return EBaseResponse<LcgResponse>(
-                "Device is online but not connected to a LCG node, you might need to upgrade your firmware to use this feature",
-                HttpStatusCode.PreconditionFailed);
+        if (online.Gateway == null) return Problem(DeviceError.DeviceNotConnectedToGateway);
 
         // Get LCG node info
         var lcgNodes = _redis.RedisCollection<LcgNode>();
         var gateway = await lcgNodes.FindByIdAsync(online.Gateway);
-        if (gateway == null)
-            return EBaseResponse<LcgResponse>("Internal server error, lcg node could not be found",
-                HttpStatusCode.InternalServerError);
+        if (gateway == null) throw new Exception("Internal server error, lcg node could not be found");
 
-
-        return new BaseResponse<LcgResponse>
+        return RespondSuccess(new LcgResponse
         {
-            Data = new LcgResponse
-            {
-                Gateway = gateway.Fqdn,
-                Country = gateway.Country
-            }
-        };
+            Gateway = gateway.Fqdn,
+            Country = gateway.Country
+        });
     }
 }

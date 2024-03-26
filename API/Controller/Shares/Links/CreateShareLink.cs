@@ -3,6 +3,7 @@ using OpenShock.API.Models.Requests;
 using OpenShock.Common.Models;
 using OpenShock.Common.OpenShockDb;
 using System.Net;
+using OpenShock.ServicesCommon.Problems;
 
 namespace OpenShock.API.Controller.Shares.Links;
 
@@ -13,7 +14,7 @@ public sealed partial class ShareLinksController
     /// </summary>
     /// <response code="200">The created share link</response>
     [HttpPost(Name = "CreateShareLink")]
-    [ProducesResponseType((int)HttpStatusCode.OK)]
+    [ProducesSuccess<Guid>]
     public async Task<BaseResponse<Guid>> CreateShareLink([FromBody] ShareLinkCreate body)
     {
         var entity = new ShockerSharesLink

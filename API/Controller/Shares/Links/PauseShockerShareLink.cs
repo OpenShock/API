@@ -4,6 +4,8 @@ using OpenShock.API.Models.Requests;
 using OpenShock.API.Utils;
 using OpenShock.Common.Models;
 using System.Net;
+using OpenShock.ServicesCommon.Errors;
+using OpenShock.ServicesCommon.Problems;
 
 namespace OpenShock.API.Controller.Shares.Links;
 
@@ -19,28 +21,22 @@ public sealed partial class ShareLinksController
     /// <response code="404">Share link or shocker does not exist</response>
     /// <response code="400">Shocker does not exist in share link</response>
     [HttpPost("{shareLinkId}/{shockerId}/pause")]
-    [ProducesResponseType((int)HttpStatusCode.OK)]
-    [ProducesResponseType((int)HttpStatusCode.NotFound)]
-    [ProducesResponseType((int)HttpStatusCode.BadRequest)]
-    public async Task<BaseResponse<PauseReason>> PauseShocker([FromRoute] Guid shareLinkId, [FromRoute] Guid shockerId, [FromBody] PauseRequest body)
+    [ProducesSuccess<PauseReason>]
+    [ProducesProblem(HttpStatusCode.NotFound, "ShareLinkNotFound")]
+    [ProducesProblem(HttpStatusCode.NotFound, "ShockerNotInShareLink")]
+    public async Task<IActionResult> PauseShocker([FromRoute] Guid shareLinkId, [FromRoute] Guid shockerId, [FromBody] PauseRequest body)
     {
         var exists = await _db.ShockerSharesLinks.AnyAsync(x => x.OwnerId == CurrentUser.DbUser.Id && x.Id == shareLinkId);
-        if (!exists)
-            return EBaseResponse<PauseReason>("Share link could not be found", HttpStatusCode.NotFound);
+        if (!exists) return Problem(ShareLinkError.ShareLinkNotFound);
 
         var shocker =
             await _db.ShockerSharesLinksShockers.Where(x =>
                 x.ShareLinkId == shareLinkId && x.ShockerId == shockerId).Include(x => x.Shocker).FirstOrDefaultAsync();
-        if (shocker == null)
-            return EBaseResponse<PauseReason>("Shocker does not exist in share link");
+        if (shocker == null) return Problem(ShareLinkError.ShockerNotInShareLink);
 
         shocker.Paused = body.Pause;
         await _db.SaveChangesAsync();
 
-        return new BaseResponse<PauseReason>
-        {
-            Message = "Successfully updated paused state shocker",
-            Data = ShareLinkUtils.GetPausedReason(shocker.Paused, shocker.Shocker.Paused)
-        };
+        return RespondSuccess(ShareLinkUtils.GetPausedReason(shocker.Paused, shocker.Shocker.Paused));
     }
 }

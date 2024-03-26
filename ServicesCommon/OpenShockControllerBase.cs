@@ -3,31 +3,35 @@ using System.Net.Mime;
 using Microsoft.AspNetCore.Mvc;
 using OpenShock.Common.JsonSerialization;
 using OpenShock.Common.Models;
+using OpenShock.ServicesCommon.Problems;
 
 namespace OpenShock.ServicesCommon;
 
 [Consumes(MediaTypeNames.Application.Json)]
-[Produces(MediaTypeNames.Application.Json)]
-[ProducesErrorResponseType(typeof(BaseResponse<object>))]
+[Produces(MediaTypeNames.Application.Json, ["application/problem+json"])]
 public class OpenShockControllerBase : Microsoft.AspNetCore.Mvc.Controller
 {
-
     [NonAction]
-    protected BaseResponse<T> EBaseResponse<T>(string message = "An unknown error occurred.",
-        HttpStatusCode statusCode = HttpStatusCode.BadRequest)
+    public ObjectResult Problem(OpenShockProblem problem) => problem.ToObjectResult(HttpContext);
+    
+    [NonAction]
+    public ObjectResult RespondSuccess<T>(T data, string message = "", HttpStatusCode statusCode = HttpStatusCode.OK)
     {
         Response.StatusCode = (int)statusCode;
-        return new BaseResponse<T> { Message = message };
+        return new ObjectResult(new BaseResponse<T>
+        {
+            Data = data,
+            Message = message
+        });
     }
 
     [NonAction]
-    protected IActionResult EaBaseResponse(string message = "An unknown error occurred.",
-        HttpStatusCode statusCode = HttpStatusCode.BadRequest)
+    public ObjectResult RespondSuccessSimple(string message = "", HttpStatusCode statusCode = HttpStatusCode.OK)
     {
         Response.StatusCode = (int)statusCode;
-        return new JsonResult(new BaseResponse<object>
+        return new ObjectResult(new BaseResponse<object>
         {
             Message = message
-        }, Options.Default);
+        });
     }
 }

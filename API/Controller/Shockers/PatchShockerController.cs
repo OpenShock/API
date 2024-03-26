@@ -8,6 +8,8 @@ using OpenShock.API.Realtime;
 using OpenShock.API.Services;
 using OpenShock.Common.Models;
 using OpenShock.Common.Redis.PubSub;
+using OpenShock.ServicesCommon.Errors;
+using OpenShock.ServicesCommon.Problems;
 using OpenShock.ServicesCommon.Services.Device;
 
 namespace OpenShock.API.Controller.Shockers;
@@ -23,22 +25,21 @@ public sealed partial class ShockerController
     /// <response code="200">Successfully updated shocker</response>
     /// <response code="404">Shocker does not exist</response>
     [HttpPatch("{shockerId}")]
-    [ProducesResponseType((int)HttpStatusCode.OK)]
-    [ProducesResponseType((int)HttpStatusCode.NotFound)]
+    [ProducesSuccess]
+    [ProducesProblem(HttpStatusCode.NotFound, "DeviceNotFound")]
+    [ProducesProblem(HttpStatusCode.NotFound, "ShockerNotFound")]
     [MapToApiVersion("1")]
-    public async Task<BaseResponse<object>> EditShocker(
+    public async Task<IActionResult> EditShocker(
         [FromRoute] Guid shockerId,
         [FromBody] NewShocker body, 
         [FromServices] IDeviceUpdateService deviceUpdateService)
     {
         var device = await _db.Devices.AnyAsync(x => x.Owner == CurrentUser.DbUser.Id && x.Id == body.Device);
-        if (!device)
-            return EBaseResponse<object>("Device does not exists or you do not have access to it",
-                HttpStatusCode.NotFound);
+        if (!device) return Problem(DeviceError.DeviceNotFound);
 
         var shocker = await _db.Shockers.Where(x => x.DeviceNavigation.Owner == CurrentUser.DbUser.Id && x.Id == shockerId)
             .SingleOrDefaultAsync();
-        if (shocker == null) return EBaseResponse<object>("Shocker does not exist", HttpStatusCode.NotFound);
+        if (shocker == null) return Problem(ShockerError.ShockerNotFound);
         var oldDevice = shocker.Device;
 
         shocker.Device = body.Device;
@@ -53,9 +54,6 @@ public sealed partial class ShockerController
         
         await deviceUpdateService.UpdateDeviceForAllShared(CurrentUser.DbUser.Id, body.Device, DeviceUpdateType.ShockerUpdated);
         
-        return new BaseResponse<object>
-        {
-            Message = "Successfully updated shocker"
-        };
+        return RespondSuccessSimple("Shocker updated successfully");
     }
 }

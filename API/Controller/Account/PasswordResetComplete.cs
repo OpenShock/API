@@ -3,6 +3,8 @@ using OpenShock.Common.Models;
 using System.Net;
 using Asp.Versioning;
 using OpenShock.API.Services.Account;
+using OpenShock.ServicesCommon.Errors;
+using OpenShock.ServicesCommon.Problems;
 
 namespace OpenShock.API.Controller.Account;
 
@@ -18,23 +20,21 @@ public sealed partial class AccountController
     /// <response code="200">Password successfully changed</response>
     /// <response code="404">Password reset process not found</response>
     [HttpPost("recover/{passwordResetId}/{secret}")]
-    [ProducesResponseType((int)HttpStatusCode.OK)]
-    [ProducesResponseType((int)HttpStatusCode.NotFound)]
+    [ProducesSuccess]
+    [ProducesProblem(HttpStatusCode.NotFound, "PasswordResetNotFound")]
     [MapToApiVersion("1")]
-    public async Task<BaseResponse<object>> PasswordResetComplete([FromRoute] Guid passwordResetId,
+    public async Task<IActionResult> PasswordResetComplete([FromRoute] Guid passwordResetId,
         [FromRoute] string secret, [FromBody] PasswordResetProcessData body,
         [FromServices] IAccountService accountService)
     {
         var passwordResetComplete = await accountService.PasswordResetComplete(passwordResetId, secret, body.Password);
 
         return passwordResetComplete.Match(
-            success => new BaseResponse<object>("Successfully changed password"),
-            notFound => NotFoundPasswordReset(),
-            invalid => NotFoundPasswordReset());
+            success => RespondSuccessSimple("Password successfully changed"),
+            notFound => Problem(PasswordResetError.PasswordResetNotFound),
+            invalid => Problem(PasswordResetError.PasswordResetNotFound));
     }
-
-    private BaseResponse<object> NotFoundPasswordReset() =>
-        EBaseResponse<object>("Password reset process not found", HttpStatusCode.NotFound);
+    
 
     public sealed class PasswordResetProcessData
     {

@@ -6,6 +6,8 @@ using OpenShock.API.Services;
 using OpenShock.Common.Models;
 using OpenShock.Common.OpenShockDb;
 using OpenShock.ServicesCommon.Authentication;
+using OpenShock.ServicesCommon.Errors;
+using OpenShock.ServicesCommon.Problems;
 using OpenShock.ServicesCommon.Services.Device;
 
 namespace OpenShock.API.Controller.Shares;
@@ -22,11 +24,11 @@ public sealed partial class SharesController
     /// <response code="400">You cannot link your own shocker code / You already have this shocker linked to your account</response>
     /// <response code="500">Error while linking share code to your account</response>
     [HttpPost("code/{shareCodeId}")]
-    [ProducesResponseType((int)HttpStatusCode.OK)]
-    [ProducesResponseType((int)HttpStatusCode.NotFound)]
-    [ProducesResponseType((int)HttpStatusCode.BadRequest)]
-    [ProducesResponseType((int)HttpStatusCode.InternalServerError)]
-    public async Task<BaseResponse<object>> LinkShareCode(
+    [ProducesSuccess]
+    [ProducesProblem(HttpStatusCode.NotFound, "ShareCodeNotFound")]
+    [ProducesProblem(HttpStatusCode.BadRequest, "CantLinkOwnShareCode")]
+    [ProducesProblem(HttpStatusCode.BadRequest, "ShockerAlreadyLinked")]
+    public async Task<IActionResult> LinkShareCode(
         [FromRoute] Guid shareCodeId,
         [FromServices] IDeviceUpdateService deviceUpdateService
     )
@@ -35,11 +37,10 @@ public sealed partial class SharesController
         {
             Share = x, x.Shocker.DeviceNavigation.Owner, x.Shocker.Device
         }).SingleOrDefaultAsync();
-        if (shareCode == null) return EBaseResponse<object>("Share code does not exist", HttpStatusCode.NotFound);
-        if (shareCode.Owner == CurrentUser.DbUser.Id)
-            return EBaseResponse<object>("You cannot link your own shocker code");
+        if (shareCode == null) return Problem(ShareCodeError.ShareCodeNotFound);
+        if (shareCode.Owner == CurrentUser.DbUser.Id) return Problem(ShareCodeError.CantLinkOwnShareCode);
         if (await _db.ShockerShares.AnyAsync(x => x.ShockerId == shareCodeId && x.SharedWith == CurrentUser.DbUser.Id))
-            return EBaseResponse<object>("You already have this shocker linked to your account");
+            return Problem(ShareCodeError.ShockerAlreadyLinked);
 
 
         _db.ShockerShares.Add(new ShockerShare
@@ -55,12 +56,10 @@ public sealed partial class SharesController
         });
         _db.ShockerShareCodes.Remove(shareCode.Share);
 
-        if (await _db.SaveChangesAsync() <= 1)
-            return EBaseResponse<object>("Error while linking share code to your account",
-                HttpStatusCode.InternalServerError);
+        if (await _db.SaveChangesAsync() <= 1) throw new Exception("Error while linking share code to your account");
 
         await deviceUpdateService.UpdateDevice(shareCode.Owner, shareCode.Device, DeviceUpdateType.ShockerUpdated, CurrentUser.DbUser.Id);
 
-        return new BaseResponse<object>("Successfully linked share code");
+        return RespondSuccessSimple("Successfully linked share code");
     }
 }

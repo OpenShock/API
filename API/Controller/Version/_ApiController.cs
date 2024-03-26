@@ -5,6 +5,7 @@ using Microsoft.Extensions.Primitives;
 using OpenShock.API.Utils;
 using OpenShock.Common.Models;
 using OpenShock.ServicesCommon;
+using OpenShock.ServicesCommon.Problems;
 
 namespace OpenShock.API.Controller.Version;
 
@@ -25,7 +26,7 @@ public sealed partial class VersionController : OpenShockControllerBase
     /// </summary>
     /// <response code="200">The version was successfully retrieved.</response>
     [HttpGet]
-    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesSuccess<RootResponse>]
     public BaseResponse<RootResponse> GetBackendVersion()
     {
         

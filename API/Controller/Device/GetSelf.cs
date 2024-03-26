@@ -3,17 +3,18 @@ using Microsoft.EntityFrameworkCore;
 using OpenShock.API.Models.Response;
 using OpenShock.Common.Models;
 using OpenShock.ServicesCommon.Authentication;
+using OpenShock.ServicesCommon.Problems;
 
 namespace OpenShock.API.Controller.Device;
 
-public sealed partial class DeviceController : AuthenticatedDeviceControllerBase
+public sealed partial class DeviceController
 {
     /// <summary>
     /// Gets information about the authenticated device.
     /// </summary>
     /// <response code="200">The device information was successfully retrieved.</response>
     [HttpGet("self")]
-    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesSuccess<DeviceSelfResponse>]
     public async Task<BaseResponse<DeviceSelfResponse>> GetSelf()
     {
         var shockers = await _db.Shockers.Where(x => x.Device == CurrentDevice.Id).Select(x => new MinimalShocker

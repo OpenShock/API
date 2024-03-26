@@ -4,6 +4,8 @@ using OpenShock.API.Models.Requests;
 using OpenShock.API.Models.Response;
 using OpenShock.Common.Models;
 using System.Net;
+using OpenShock.ServicesCommon.Errors;
+using OpenShock.ServicesCommon.Problems;
 
 namespace OpenShock.API.Controller.Shares.Links;
 
@@ -19,20 +21,18 @@ public sealed partial class ShareLinksController
     /// <response code="404">Share link or shocker does not exist</response>
     /// <response code="400">Shocker does not exist in share link</response>
     [HttpPatch("{shareLinkId}/{shockerId}")]
-    [ProducesResponseType((int)HttpStatusCode.OK)]
-    [ProducesResponseType((int)HttpStatusCode.NotFound)]
-    [ProducesResponseType((int)HttpStatusCode.BadRequest)]
-    public async Task<BaseResponse<ShareLinkResponse>> EditShocker([FromRoute] Guid shareLinkId, [FromRoute] Guid shockerId, [FromBody] ShareLinkEditShocker body)
+    [ProducesSuccess<ShareLinkResponse>]
+    [ProducesProblem(HttpStatusCode.NotFound, "ShareLinkNotFound")]
+    [ProducesProblem(HttpStatusCode.NotFound, "ShockerNotInShareLink")]
+    public async Task<IActionResult> EditShocker([FromRoute] Guid shareLinkId, [FromRoute] Guid shockerId, [FromBody] ShareLinkEditShocker body)
     {
         var exists = await _db.ShockerSharesLinks.AnyAsync(x => x.OwnerId == CurrentUser.DbUser.Id && x.Id == shareLinkId);
-        if (!exists)
-            return EBaseResponse<ShareLinkResponse>("Share link could not be found", HttpStatusCode.NotFound);
+        if (!exists) return Problem(ShareLinkError.ShareLinkNotFound);
 
         var shocker =
             await _db.ShockerSharesLinksShockers.FirstOrDefaultAsync(x =>
                 x.ShareLinkId == shareLinkId && x.ShockerId == shockerId);
-        if (shocker == null)
-            return EBaseResponse<ShareLinkResponse>("Shocker does not exist in share link, consider adding a new one");
+        if (shocker == null) return Problem(ShareLinkError.ShockerNotInShareLink);
 
         shocker.PermSound = body.Permissions.Sound;
         shocker.PermVibrate = body.Permissions.Vibrate;
@@ -43,9 +43,6 @@ public sealed partial class ShareLinksController
         shocker.Cooldown = body.Cooldown;
 
         await _db.SaveChangesAsync();
-        return new BaseResponse<ShareLinkResponse>
-        {
-            Message = "Successfully updated shocker"
-        };
+        return RespondSuccessSimple("Successfully updated shocker");
     }
 }

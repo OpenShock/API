@@ -5,6 +5,8 @@ using OpenShock.Common.Utils;
 using OpenShock.ServicesCommon.Geo;
 using System.Net;
 using System.Text;
+using OpenShock.ServicesCommon.Errors;
+using OpenShock.ServicesCommon.Problems;
 
 namespace OpenShock.API.Controller.Device;
 
@@ -16,9 +18,9 @@ public sealed partial class DeviceController
     /// <response code="200">Successfully assigned LCG node</response>
     /// <response code="503">Unable to find suitable LCG node</response>
     [HttpGet("assignLCG")]
-    [ProducesResponseType((int)HttpStatusCode.OK)]
-    [ProducesResponseType((int)HttpStatusCode.ServiceUnavailable)]
-    public async Task<BaseResponse<LcgNodeResponse>> GetLiveControlGateway([FromServices] IGeoLocation geoLocation)
+    [ProducesSuccess<LcgNodeResponse>]
+    [ProducesProblem(HttpStatusCode.ServiceUnavailable, "NoLcgNodesAvailable")]
+    public async Task<IActionResult> GetLiveControlGateway([FromServices] IGeoLocation geoLocation)
     {
         var messageBuilder = new StringBuilder();
         var countryCode = CountryCodeMapper.CountryInfo.Alpha2CountryCode.DefaultAlphaCode;
@@ -53,17 +55,12 @@ public sealed partial class DeviceController
 
         var closestNode = await geoLocation.GetClosestNode(country);
 
-        if (closestNode == null)
-            return EBaseResponse<LcgNodeResponse>("No LCG nodes available", HttpStatusCode.ServiceUnavailable);
+        if (closestNode == null) return Problem(AssignLcgError.NoLcgNodesAvailable);
 
-        return new BaseResponse<LcgNodeResponse>
+        return RespondSuccess(new LcgNodeResponse
         {
-            Message = messageBuilder.ToString(),
-            Data = new LcgNodeResponse
-            {
-                Fqdn = closestNode.Fqdn,
-                Country = closestNode.Country
-            }
-        };
+            Fqdn = closestNode.Fqdn,
+            Country = closestNode.Country
+        }, messageBuilder.ToString());
     }
 }

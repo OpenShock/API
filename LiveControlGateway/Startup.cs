@@ -1,6 +1,7 @@
 ﻿using System.ComponentModel.DataAnnotations;
 using System.Net;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using Asp.Versioning;
 using Asp.Versioning.ApiExplorer;
 using Microsoft.AspNetCore.Authentication;
@@ -165,6 +166,15 @@ public class Startup
             setup.GroupNameFormat = "VVV";
             setup.SubstituteApiVersionInUrl = true;
         });
+        
+        services.ConfigureHttpJsonOptions(options =>
+        {
+            options.SerializerOptions.PropertyNameCaseInsensitive = true;
+            options.SerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
+            options.SerializerOptions.Converters.Add(new JsonStringEnumConverter());
+        });
+        
+        services.AddProblemDetails();
 
         services.AddSwaggerGen(options =>
             {

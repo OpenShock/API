@@ -41,8 +41,8 @@ namespace OpenShock.ServicesCommon.Utils
         {
             var user = ctx.Items[name];
             if (user == null) return;
-            var correlationIdProperty = new LogEventProperty(name, new ScalarValue(user));
-            logEvent.AddOrUpdateProperty(correlationIdProperty);
+            var propertyId = new LogEventProperty(name, new ScalarValue(user));
+            logEvent.AddOrUpdateProperty(propertyId);
         }
     }
 

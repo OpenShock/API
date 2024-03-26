@@ -1,8 +1,11 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using System.Net;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using OpenShock.API.Models.Response;
 using OpenShock.API.Utils;
 using OpenShock.Common.Models;
+using OpenShock.ServicesCommon.Errors;
+using OpenShock.ServicesCommon.Problems;
 using OpenShock.ServicesCommon.Utils;
 
 namespace OpenShock.API.Controller.Public;
@@ -16,9 +19,9 @@ public sealed partial class PublicController
     /// <response code="200">The share link information was successfully retrieved.</response>
     /// <response code="404">The share link does not exist.</response>
     [HttpGet("shares/links/{shareLinkId}")]
-    [ProducesResponseType(StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<BaseResponse<PublicShareLinkResponse>> GetShareLink([FromRoute] Guid shareLinkId)
+    [ProducesSuccess<PublicShareLinkResponse>]
+    [ProducesProblem(HttpStatusCode.NotFound, "ShareLinkNotFound")]
+    public async Task<IActionResult> GetShareLink([FromRoute] Guid shareLinkId)
     {
         var shareLink = await _db.ShockerSharesLinks.Where(x => x.Id == shareLinkId).Select(x => new
         {
@@ -57,9 +60,9 @@ public sealed partial class PublicController
             })
         }).SingleOrDefaultAsync();
 
-        if (shareLink == null) return EBaseResponse<PublicShareLinkResponse>("Share link does not exist");
-
-
+        if (shareLink == null) return RespondSuccess(ShareLinkError.ShareLinkNotFound);
+        
+        
         var final = new PublicShareLinkResponse
         {
             Id = shareLink.Id,
@@ -80,9 +83,6 @@ public sealed partial class PublicController
             final.Devices.Single(x => x.Id == shocker.DeviceId).Shockers.Add(shocker.Shocker);
         }
 
-        return new BaseResponse<PublicShareLinkResponse>
-        {
-            Data = final
-        };
+        return RespondSuccess(final);
     }
 }

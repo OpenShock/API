@@ -5,6 +5,7 @@ using OpenShock.API.DeviceControl;
 using OpenShock.Common.Models;
 using OpenShock.ServicesCommon.DeviceControl;
 using OpenShock.ServicesCommon.Hubs;
+using OpenShock.ServicesCommon.Problems;
 using OpenShock.ServicesCommon.Services.RedisPubSub;
 using OpenShock.ServicesCommon.Utils;
 
@@ -20,7 +21,7 @@ public sealed partial class ShockerController
     /// <response code="200">The control messages were successfully sent.</response>
     [MapToApiVersion("2")]
     [HttpPost("control")]
-    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesSuccess]
     public async Task<BaseResponse<object>> SendControl(
         [FromBody] ControlRequest body,
         [FromServices] IHubContext<UserHub, IUserHub> userHub,
@@ -50,7 +51,7 @@ public sealed partial class ShockerController
     /// <response code="200">The control messages were successfully sent.</response>
     [MapToApiVersion("1")]
     [HttpPost("control")]
-    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesSuccess]
     public Task<BaseResponse<object>> SendControl_DEPRECATED(
         [FromBody] IEnumerable<Common.Models.WebSocket.User.Control> body,
         [FromServices] IHubContext<UserHub, IUserHub> userHub,
