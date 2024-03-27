@@ -6,6 +6,7 @@ using Asp.Versioning;
 using Asp.Versioning.ApiExplorer;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.HttpOverrides;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.OpenApi.Models;
@@ -20,6 +21,7 @@ using OpenShock.ServicesCommon;
 using OpenShock.ServicesCommon.Authentication;
 using OpenShock.ServicesCommon.ExceptionHandle;
 using OpenShock.ServicesCommon.Geo;
+using OpenShock.ServicesCommon.Problems;
 using OpenShock.ServicesCommon.Services.Device;
 using OpenShock.ServicesCommon.Services.Ota;
 using OpenShock.ServicesCommon.Services.RedisPubSub;
@@ -175,7 +177,16 @@ public class Startup
         });
         
         services.AddProblemDetails();
-
+        
+        services.Configure<ApiBehaviorOptions>(options =>
+        {
+            options.InvalidModelStateResponseFactory = context =>
+            {
+                var problemDetails = new ValidationProblem(context.ModelState);
+                return problemDetails.ToObjectResult(context.HttpContext);
+            };
+        });
+        
         services.AddSwaggerGen(options =>
             {
                 options.CustomOperationIds(e =>
