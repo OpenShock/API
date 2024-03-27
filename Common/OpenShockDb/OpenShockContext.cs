@@ -54,7 +54,7 @@ public partial class OpenShockContext : DbContext
             .HasPostgresEnum("password_encryption_type", new[] { "pbkdf2", "bcrypt_enhanced" })
             .HasPostgresEnum("permission_type", new[] { "shockers.use" })
             .HasPostgresEnum("rank_type", new[] { "user", "support", "staff", "admin", "system" })
-            .HasPostgresEnum("shocker_model_type", new[] { "caiXianlin", "petTrainer" })
+            .HasPostgresEnum("shocker_model_type", new[] { "caiXianlin", "petTrainer", "petrainer998DR" })
             .HasAnnotation("Npgsql:CollationDefinition:public.ndcoll", "und-u-ks-level2,und-u-ks-level2,icu,False");
 
         modelBuilder.Entity<ApiToken>(entity =>
