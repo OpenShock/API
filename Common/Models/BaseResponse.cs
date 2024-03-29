@@ -1,6 +1,6 @@
-﻿using Newtonsoft.Json;
+﻿// ReSharper disable UnusedAutoPropertyAccessor.Global
 
-// ReSharper disable UnusedAutoPropertyAccessor.Global
+using System.Text.Json;
 
 namespace OpenShock.Common.Models;
 
@@ -8,7 +8,6 @@ public class BaseResponse<T>
 {
     public string? Message { get; set; }
     public T? Data { get; set; }
-    //public TError Error { get; set; }
 
     public BaseResponse(string? message = null, T? data = default)
     {
@@ -16,8 +15,5 @@ public class BaseResponse<T>
         Data = data;
     }
     
-    public override string ToString()
-    {
-        return JsonConvert.SerializeObject(this);
-    }
+    public override string ToString() => JsonSerializer.Serialize(this);
 }
