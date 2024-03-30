@@ -154,7 +154,7 @@ public sealed partial class ShockerController
             .ExecuteDeleteAsync();
         if (affected <= 0) return Problem(ShockerError.ShockerNotFound);
 
-        var device = await _db.Shockers.Where(x => x.DeviceNavigation.Owner == CurrentUser.DbUser.Id && x.Id == shockerId)
+        var device = await _db.Shockers.Where(x => x.Id == shockerId)
             .Select(x => new { x.Device, x.DeviceNavigation.Owner }).SingleAsync();
 
         await deviceUpdateService.UpdateDevice(device.Owner, device.Device, DeviceUpdateType.ShockerUpdated, sharedWithUserId);
