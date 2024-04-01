@@ -32,12 +32,13 @@ public sealed partial class ShockerController
         [FromBody] NewShocker body,
         [FromServices] IDeviceUpdateService deviceUpdateService)
     {
-        var device = await _db.Devices.Where(x => x.Owner == CurrentUser.DbUser.Id && x.Id == body.Device).Select(x => x.Id).SingleOrDefaultAsync();
-        if(device == Guid.Empty) return Problem(DeviceError.DeviceNotFound);
+        var device = await _db.Devices.Where(x => x.Owner == CurrentUser.DbUser.Id && x.Id == body.Device)
+            .Select(x => x.Id).SingleOrDefaultAsync();
+        if (device == Guid.Empty) return Problem(DeviceError.DeviceNotFound);
         var shockerCount = await _db.Shockers.CountAsync(x => x.Device == body.Device);
 
         if (shockerCount >= 11) return Problem(DeviceError.TooManyShockers);
-        
+
         var shocker = new Shocker
         {
             Id = Guid.NewGuid(),
@@ -49,9 +50,9 @@ public sealed partial class ShockerController
         _db.Shockers.Add(shocker);
         await _db.SaveChangesAsync();
 
-        await deviceUpdateService.UpdateDeviceForAllShared(CurrentUser.DbUser.Id, device, DeviceUpdateType.ShockerUpdated);
-
-        Response.StatusCode = (int)HttpStatusCode.Created;
-        return RespondSuccess(shocker.Id);
+        await deviceUpdateService.UpdateDeviceForAllShared(CurrentUser.DbUser.Id, device,
+            DeviceUpdateType.ShockerUpdated);
+        
+        return RespondSuccess(shocker.Id, statusCode: HttpStatusCode.Created);
     }
 }
