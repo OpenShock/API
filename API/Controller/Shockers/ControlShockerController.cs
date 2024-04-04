@@ -1,9 +1,11 @@
-﻿using Asp.Versioning;
+﻿using System.Net;
+using Asp.Versioning;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.SignalR;
 using OpenShock.API.DeviceControl;
 using OpenShock.Common.Models;
 using OpenShock.ServicesCommon.DeviceControl;
+using OpenShock.ServicesCommon.Errors;
 using OpenShock.ServicesCommon.Hubs;
 using OpenShock.ServicesCommon.Problems;
 using OpenShock.ServicesCommon.Services.RedisPubSub;
@@ -22,7 +24,10 @@ public sealed partial class ShockerController
     [MapToApiVersion("2")]
     [HttpPost("control")]
     [ProducesSuccess]
-    public async Task<BaseResponse<object>> SendControl(
+    [ProducesProblem(HttpStatusCode.NotFound, "Shocker not found")]
+    [ProducesProblem(HttpStatusCode.PreconditionFailed, "Shocker is paused")]
+    [ProducesProblem(HttpStatusCode.Forbidden, "You don't have permission to control this shocker")]
+    public async Task<IActionResult> SendControl(
         [FromBody] ControlRequest body,
         [FromServices] IHubContext<UserHub, IUserHub> userHub,
         [FromServices] IRedisPubService redisPubService)
@@ -37,12 +42,12 @@ public sealed partial class ShockerController
             CustomName = body.CustomName
         };
 
-        await ControlLogic.ControlByUser(body.Shocks, _db, sender, userHub.Clients, redisPubService);
-
-        return new BaseResponse<object>
-        {
-            Message = "Successfully sent control messages"
-        };
+        var controlAction = await ControlLogic.ControlByUser(body.Shocks, _db, sender, userHub.Clients, redisPubService);
+        return controlAction.Match(
+            success => RespondSuccessSimple("Successfully sent control messages"),
+            notFound => Problem(ShockerControlError.ShockerControlNotFound(notFound.Value)),
+            paused => Problem(ShockerControlError.ShockerControlPaused(paused.Value)),
+            noPermission => Problem(ShockerControlError.ShockerControlNoPermission(noPermission.Value)));
     }
 
     /// <summary>
@@ -52,7 +57,10 @@ public sealed partial class ShockerController
     [MapToApiVersion("1")]
     [HttpPost("control")]
     [ProducesSuccess]
-    public Task<BaseResponse<object>> SendControl_DEPRECATED(
+    [ProducesProblem(HttpStatusCode.NotFound, "Shocker not found")]
+    [ProducesProblem(HttpStatusCode.PreconditionFailed, "Shocker is paused")]
+    [ProducesProblem(HttpStatusCode.Forbidden, "You don't have permission to control this shocker")]
+    public Task<IActionResult> SendControl_DEPRECATED(
         [FromBody] IEnumerable<Common.Models.WebSocket.User.Control> body,
         [FromServices] IHubContext<UserHub, IUserHub> userHub,
         [FromServices] IRedisPubService redisPubService)

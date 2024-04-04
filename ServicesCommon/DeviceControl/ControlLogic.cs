@@ -15,7 +15,7 @@ namespace OpenShock.ServicesCommon.DeviceControl;
 
 public static class ControlLogic
 {
-    public static async Task<OneOf<Success>> ControlByUser(IEnumerable<Control> shocks, OpenShockContext db, ControlLogSender sender,
+    public static async Task<OneOf<Success, ShockerNotFoundOrNoAccess, ShockerPaused, ShockerNoPermission>> ControlByUser(IEnumerable<Control> shocks, OpenShockContext db, ControlLogSender sender,
         IHubClients<IUserHub> hubClients, IRedisPubService redisPubService)
     {
         var ownShockers = await db.Shockers.Where(x => x.DeviceNavigation.Owner == sender.Id).Select(x =>
@@ -56,7 +56,7 @@ public static class ControlLogic
         return await ControlInternal(shocks, db, sender, hubClients, ownShockers, redisPubService);
     }
 
-    public static async Task<OneOf<Success>> ControlShareLink(IEnumerable<Control> shocks, OpenShockContext db,
+    public static async Task<OneOf<Success, ShockerNotFoundOrNoAccess, ShockerPaused, ShockerNoPermission>> ControlShareLink(IEnumerable<Control> shocks, OpenShockContext db,
         ControlLogSender sender,
         IHubClients<IUserHub> hubClients, Guid shareLinkId, IRedisPubService redisPubService)
     {
@@ -82,7 +82,7 @@ public static class ControlLogic
         return await ControlInternal(shocks, db, sender, hubClients, shareLinkShockers, redisPubService);
     }
     
-    private static async Task<OneOf<Success>> ControlInternal(IEnumerable<Control> shocks, OpenShockContext db, ControlLogSender sender,
+    private static async Task<OneOf<Success, ShockerNotFoundOrNoAccess, ShockerPaused, ShockerNoPermission>> ControlInternal(IEnumerable<Control> shocks, OpenShockContext db, ControlLogSender sender,
         IHubClients<IUserHub> hubClients, IReadOnlyCollection<ControlShockerObj> allowedShockers, IRedisPubService redisPubService)
     {
         var finalMessages = new Dictionary<Guid, IList<ControlMessage.ShockerControlInfo>>();
@@ -93,15 +93,12 @@ public static class ControlLogic
         foreach (var shock in distinctShocks)
         {
             var shockerInfo = allowedShockers.FirstOrDefault(x => x.Id == shock.Id);
-            if (shockerInfo == null)
-            {
-                // TODO: Return denied
-                continue;
-            }
+            
+            if (shockerInfo == null) return new ShockerNotFoundOrNoAccess(shock.Id);
+            
+            if (shockerInfo.Paused) return new ShockerPaused(shock.Id);
 
-            if (shockerInfo.Paused) continue;
-
-            if (!IsAllowed(shock.Type, shockerInfo.PermsAndLimits)) continue;
+            if (!IsAllowed(shock.Type, shockerInfo.PermsAndLimits)) return new ShockerNoPermission(shock.Id);
             var durationMax = shockerInfo.PermsAndLimits?.Duration ?? 30000;
             var intensityMax = shockerInfo.PermsAndLimits?.Intensity ?? 100;
 
@@ -160,7 +157,7 @@ public static class ControlLogic
 
         await Task.WhenAll(listOfTasks);
 
-        return new OneOf<Success>();
+        return new Success();
     }
 
     private static bool IsAllowed(ControlType type, SharePermsAndLimits? perms)
@@ -175,4 +172,19 @@ public static class ControlLogic
             _ => false
         };
     }
+}
+
+public struct ShockerNotFoundOrNoAccess(Guid value)
+{
+    public Guid Value { get; } = value;
+}
+
+public struct ShockerPaused(Guid value)
+{
+    public Guid Value { get; } = value;
+}
+
+public struct ShockerNoPermission(Guid value)
+{
+    public Guid Value { get; } = value;
 }
