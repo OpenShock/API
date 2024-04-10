@@ -197,6 +197,8 @@ public sealed partial class DevicesController
     [HttpGet("{deviceId}/lcg")]
     [ProducesSuccess<LcgResponse>]
     [ProducesProblem(HttpStatusCode.NotFound, "DeviceNotFound")]
+    [ProducesProblem(HttpStatusCode.NotFound, "DeviceIsNotOnline")]
+    [ProducesProblem(HttpStatusCode.PreconditionFailed, "DeviceNotConnectedToGateway")]
     public async Task<IActionResult> GetLiveControlGatewayInfo(Guid deviceId)
     {
         // Check if user owns device or has a share

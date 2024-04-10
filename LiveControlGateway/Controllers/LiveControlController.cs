@@ -47,11 +47,16 @@ public sealed class LiveControlController : WebsocketBaseController<IBaseRespons
     private Guid? _deviceId;
     private Device? _device;
     private Dictionary<Guid, LiveShockerPermission> _sharedShockers;
+    
+    /// <summary>
+    /// Connection Id for this connection, unique and random per connection
+    /// </summary>
+    public Guid ConnectionId => Guid.NewGuid();
 
     /// <summary>
     /// Last latency in milliseconds, 0 initially
     /// </summary>
-    public long LastLatency { get; private set; } = 0;
+    public ulong LastLatency { get; private set; } = 0;
 
     private readonly Timer _pingTimer = new(PingInterval);
 
@@ -59,7 +64,6 @@ public sealed class LiveControlController : WebsocketBaseController<IBaseRespons
         ILogger<LiveControlController> logger, IHostApplicationLifetime lifetime) : base(logger, lifetime)
     {
         _db = db;
-
         _pingTimer.Elapsed += (_, _) => LucTask.Run(SendPing);
     }
 
@@ -314,7 +318,7 @@ public sealed class LiveControlController : WebsocketBaseController<IBaseRespons
         }
 
         var latency = currentTimestamp - pong.Timestamp;
-        LastLatency = Math.Max(0, latency);
+        LastLatency = Convert.ToUInt64(Math.Max(0, latency));
 
         if (Logger.IsEnabled(LogLevel.Trace))
             Logger.LogTrace("Latency: {Latency}ms (raw: {RawLatency}ms)", LastLatency, latency);
@@ -322,9 +326,10 @@ public sealed class LiveControlController : WebsocketBaseController<IBaseRespons
         await QueueMessage(new Common.Models.WebSocket.BaseResponse<LiveResponseType>
         {
             ResponseType = LiveResponseType.LatencyAnnounce,
-            Data = new Dictionary<Guid, long>
+            Data = new LatencyAnnounceData
             {
-                { _currentUser.DbUser.Id, LastLatency }
+                DeviceLatency = 0, // TODO: Implement device latency calculation
+                OwnLatency = LastLatency
             }
         });
     }
