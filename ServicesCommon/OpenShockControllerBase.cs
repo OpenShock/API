@@ -1,14 +1,13 @@
 ﻿using System.Net;
 using System.Net.Mime;
 using Microsoft.AspNetCore.Mvc;
-using OpenShock.Common.JsonSerialization;
 using OpenShock.Common.Models;
 using OpenShock.ServicesCommon.Problems;
 
 namespace OpenShock.ServicesCommon;
 
 [Consumes(MediaTypeNames.Application.Json)]
-[Produces(MediaTypeNames.Application.Json, ["application/problem+json"])]
+[ProducesDoc]
 public class OpenShockControllerBase : Microsoft.AspNetCore.Mvc.Controller
 {
     [NonAction]
