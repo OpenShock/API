@@ -2,7 +2,6 @@
 using System.Threading.Channels;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
-using OpenShock.Common.Models;
 using OpenShock.Common.Utils;
 using OpenShock.ServicesCommon.Errors;
 using OpenShock.ServicesCommon.Utils;
@@ -14,7 +13,7 @@ namespace OpenShock.ServicesCommon.Websocket
     /// Base for json serialized websocket controller, you can override the SendMessageMethod to implement a different serializer
     /// </summary>
     /// <typeparam name="T"></typeparam>
-    public abstract class WebsocketBaseController<T> : OpenShockControllerBase, IAsyncDisposable, IWebsocketController<T> where T : class
+    public abstract class WebsocketBaseController<T> : OpenShockControllerBase, IAsyncDisposable, IDisposable, IWebsocketController<T> where T : class
     {
         /// <inheritdoc />
         public abstract Guid Id { get; }
@@ -63,7 +62,7 @@ namespace OpenShock.ServicesCommon.Websocket
     
         /// <inheritdoc />
         [NonAction]
-        protected override void Dispose(bool disposing)
+        public void Dispose()
         {
             DisposeAsync().AsTask().Wait();
         }
@@ -109,7 +108,7 @@ namespace OpenShock.ServicesCommon.Websocket
             }
 
             if (!await ConnectionPrecondition())
-            { 
+            {
                 await Close.CancelAsync();
                 return;
             }
@@ -202,7 +201,7 @@ namespace OpenShock.ServicesCommon.Websocket
         
         ~WebsocketBaseController()
         {
-            Console.WriteLine("Finalized");
+            DisposeAsync().AsTask().Wait();
         }
     }
 }

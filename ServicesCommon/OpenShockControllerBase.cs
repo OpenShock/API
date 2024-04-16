@@ -8,7 +8,7 @@ namespace OpenShock.ServicesCommon;
 
 [Consumes(MediaTypeNames.Application.Json)]
 [ProducesDoc]
-public class OpenShockControllerBase : Microsoft.AspNetCore.Mvc.Controller
+public class OpenShockControllerBase : ControllerBase
 {
     [NonAction]
     public ObjectResult Problem(OpenShockProblem problem) => problem.ToObjectResult(HttpContext);
