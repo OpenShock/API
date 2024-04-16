@@ -27,7 +27,7 @@ namespace OpenShock.LiveControlGateway.Controllers;
 [ApiController]
 [Route("/{version:apiVersion}/ws/live/{deviceId:guid}")]
 [Authorize(AuthenticationSchemes = OpenShockAuthSchemas.SessionTokenCombo)]
-public sealed class LiveControlController : WebsocketBaseController<IBaseResponse<LiveResponseType>>
+public sealed class LiveControlController : WebsocketBaseController<IBaseResponse<LiveResponseType>>, IActionFilter
 {
     private readonly OpenShockContext _db;
 
@@ -161,11 +161,16 @@ public sealed class LiveControlController : WebsocketBaseController<IBaseRespons
     /// Authentication context
     /// </summary>
     /// <param name="context"></param>
-    public override void OnActionExecuting(ActionExecutingContext context)
+    [NonAction]
+    public void OnActionExecuting(ActionExecutingContext context)
     {
         _currentUser = ControllerContext.HttpContext.RequestServices.GetRequiredService<IClientAuthService<LinkUser>>()
             .CurrentClient;
-        base.OnActionExecuting(context);
+    }
+
+    [NonAction]
+    public void OnActionExecuted(ActionExecutedContext context)
+    {
     }
 
     /// <inheritdoc />

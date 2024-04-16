@@ -18,7 +18,7 @@ namespace OpenShock.API.Controller;
 [ApiController]
 [Authorize(AuthenticationSchemes = OpenShockAuthSchemas.DeviceToken)]
 [Route("/{version:apiVersion}/ws/device")]
-public sealed class DeviceWebSocketController : WebsocketBaseController<IBaseResponse<ResponseType>>
+public sealed class DeviceWebSocketController : WebsocketBaseController<IBaseResponse<ResponseType>>, IActionFilter
 {
     private DateTimeOffset _connected = DateTimeOffset.UtcNow;
     private readonly IRedisCollection<DeviceOnline> _devicesOnline;
@@ -28,11 +28,16 @@ public sealed class DeviceWebSocketController : WebsocketBaseController<IBaseRes
     
     private Common.OpenShockDb.Device _currentDevice = null!;
 
-    public override void OnActionExecuting(ActionExecutingContext context)
+    [NonAction]
+    public void OnActionExecuting(ActionExecutingContext context)
     {
         _currentDevice = ControllerContext.HttpContext.RequestServices.GetRequiredService<IClientAuthService<Common.OpenShockDb.Device>>()
             .CurrentClient;
-        base.OnActionExecuting(context);
+    }
+
+    [NonAction]
+    public void OnActionExecuted(ActionExecutedContext context)
+    {
     }
 
     public override Guid Id => _currentDevice.Id;
@@ -43,7 +48,7 @@ public sealed class DeviceWebSocketController : WebsocketBaseController<IBaseRes
         _redis = redisConnectionProvider;
         _devicesOnline = redisConnectionProvider.RedisCollection<DeviceOnline>(false);
     }
-
+    
     protected override Task RegisterConnection()
     {
         _connected = DateTimeOffset.UtcNow;
@@ -55,7 +60,7 @@ public sealed class DeviceWebSocketController : WebsocketBaseController<IBaseRes
         
         return Task.CompletedTask;
     }
-
+    
     protected override Task UnregisterConnection()
     {
         WebsocketManager.DeviceWebSockets.UnregisterConnection(this);
