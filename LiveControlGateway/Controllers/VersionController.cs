@@ -1,5 +1,4 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using OpenShock.Common.Models;
 using OpenShock.ServicesCommon.Problems;
 using System.Reflection;
 using Asp.Versioning;
@@ -15,34 +14,32 @@ namespace OpenShock.LiveControlGateway.Controllers;
 [ApiVersion("1")]
 public sealed class VersionController : OpenShockControllerBase
 {
-    private static readonly string OpenShockBackendVersion =
-        typeof(VersionController).Assembly.GetName().Version?.ToString() ?? "error";
+    private static readonly AssemblyName AssemblyName = typeof(VersionController).Assembly.GetName();
+    private static readonly string AssemblyVersion = AssemblyName.Version?.ToString() ?? "error";
+    private static readonly string AssemblyNameString = AssemblyName.Name ?? "error";
 
     /// <summary>
     /// Gets the version of the OpenShock backend.
     /// </summary>
     /// <response code="200">The version was successfully retrieved.</response>
     [HttpGet]
-    [ProducesSuccess<RootResponse>]
+    [ProducesSlimSuccess<RootResponse>]
     [MapToApiVersion("1")]
-    public BaseResponse<RootResponse> GetBackendVersion()
+    public RootResponse GetBackendVersion()
     {
-
-        return new BaseResponse<RootResponse>
+        return new RootResponse
         {
-            Message = "OpenShock",
-            Data = new RootResponse
-            {
-                Version = OpenShockBackendVersion,
-                CurrentTime = DateTimeOffset.UtcNow,
-                Fqdn = LCGGlobals.LCGConfig.Fqdn,
-                CountryCode = LCGGlobals.LCGConfig.CountryCode
-            }
+            Name = AssemblyNameString,
+            Version = AssemblyVersion,
+            CurrentTime = DateTimeOffset.UtcNow,
+            Fqdn = LCGGlobals.LCGConfig.Fqdn,
+            CountryCode = LCGGlobals.LCGConfig.CountryCode
         };
     }
 
-    public class RootResponse
+    public sealed class RootResponse
     {
+        public required string Name { get; set; }
         public required string Version { get; set; }
         public required DateTimeOffset CurrentTime { get; set; }
         public required string CountryCode { get; set; }

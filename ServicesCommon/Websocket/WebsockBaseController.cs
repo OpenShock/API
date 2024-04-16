@@ -2,7 +2,6 @@
 using System.Threading.Channels;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
-using OpenShock.Common.Models;
 using OpenShock.Common.Utils;
 using OpenShock.ServicesCommon.Errors;
 using OpenShock.ServicesCommon.Utils;
@@ -109,7 +108,7 @@ namespace OpenShock.ServicesCommon.Websocket
             }
 
             if (!await ConnectionPrecondition())
-            { 
+            {
                 await Close.CancelAsync();
                 return;
             }
