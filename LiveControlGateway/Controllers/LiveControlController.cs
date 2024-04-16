@@ -174,6 +174,15 @@ public sealed class LiveControlController : WebsocketBaseController<IBaseRespons
     /// <inheritdoc />
     protected override async Task SendInitialData()
     {
+        await QueueMessage(new Common.Models.WebSocket.BaseResponse<LiveResponseType>()
+        {
+            ResponseType = LiveResponseType.TPS,
+            Data = new TpsData
+            {
+                Client = 10f,
+                Server = 10f
+            }
+        });
         await UpdateConnectedState(DeviceLifetimeManager.IsConnected(Id), true);
     }
 

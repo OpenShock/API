@@ -13,7 +13,7 @@ namespace OpenShock.LiveControlGateway.PubSub;
 /// <summary>
 /// Redis subscription service, which handles listening to pub sub on redis
 /// </summary>
-public class RedisSubscriberService : IHostedService, IAsyncDisposable
+public sealed class RedisSubscriberService : IHostedService, IAsyncDisposable
 {
     private readonly ISubscriber _subscriber;
 

@@ -21,5 +21,6 @@ public class ControlMessage
         public required ushort Duration { get; set; }
         public required ControlType Type { get; set; }
         public required ShockerModelType Model { get; set; }
+        public bool Exclusive { get; set; } = false;
     }
 }

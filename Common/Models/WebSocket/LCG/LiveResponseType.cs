@@ -5,10 +5,11 @@ namespace OpenShock.Common.Models.WebSocket.LCG;
 [JsonConverter(typeof(JsonStringEnumConverter))]
 public enum LiveResponseType
 {
-    Welcome = 0,
+    Frame = 0,
     
-    
-    Frame = 10,
+    // TPS for the client to send
+    // ReSharper disable once InconsistentNaming
+    TPS = 50,
     
     DeviceNotConnected = 100,
     DeviceConnected = 101,
