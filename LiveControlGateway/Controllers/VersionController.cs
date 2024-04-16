@@ -2,6 +2,8 @@
 using OpenShock.Common.Models;
 using OpenShock.ServicesCommon.Problems;
 using System.Reflection;
+using Asp.Versioning;
+using OpenShock.ServicesCommon;
 
 namespace OpenShock.LiveControlGateway.Controllers;
 
@@ -9,11 +11,12 @@ namespace OpenShock.LiveControlGateway.Controllers;
 /// 
 /// </summary>
 [ApiController]
-[Route("/version")]
-public sealed class VersionController : ControllerBase
+[Route("/{version:apiVersion}")]
+[ApiVersion("1")]
+public sealed class VersionController : OpenShockControllerBase
 {
     private static readonly string OpenShockBackendVersion =
-        Assembly.GetEntryAssembly()?.GetName().Version?.ToString() ?? "error";
+        typeof(VersionController).Assembly.GetName().Version?.ToString() ?? "error";
 
     /// <summary>
     /// Gets the version of the OpenShock backend.
@@ -21,6 +24,7 @@ public sealed class VersionController : ControllerBase
     /// <response code="200">The version was successfully retrieved.</response>
     [HttpGet]
     [ProducesSuccess<RootResponse>]
+    [MapToApiVersion("1")]
     public BaseResponse<RootResponse> GetBackendVersion()
     {
 
@@ -30,7 +34,9 @@ public sealed class VersionController : ControllerBase
             Data = new RootResponse
             {
                 Version = OpenShockBackendVersion,
-                CurrentTime = DateTimeOffset.UtcNow
+                CurrentTime = DateTimeOffset.UtcNow,
+                Fqdn = LCGGlobals.LCGConfig.Fqdn,
+                CountryCode = LCGGlobals.LCGConfig.CountryCode
             }
         };
     }
@@ -39,5 +45,7 @@ public sealed class VersionController : ControllerBase
     {
         public required string Version { get; set; }
         public required DateTimeOffset CurrentTime { get; set; }
+        public required string CountryCode { get; set; }
+        public required string Fqdn { get; set; }
     }
 }

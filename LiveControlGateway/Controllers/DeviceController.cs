@@ -29,7 +29,7 @@ namespace OpenShock.LiveControlGateway.Controllers;
 [ApiController]
 [Authorize(AuthenticationSchemes = OpenShockAuthSchemas.DeviceToken)]
 [Route("/{version:apiVersion}/ws/device")]
-public sealed class DeviceController : FlatbuffersWebsocketBaseController<GatewayToDeviceMessage>
+public sealed class DeviceController : FlatbuffersWebsocketBaseController<GatewayToDeviceMessage>, IActionFilter
 {
     private Device _currentDevice = null!;
     private readonly IRedisConnectionProvider _redisConnectionProvider;
@@ -46,12 +46,17 @@ public sealed class DeviceController : FlatbuffersWebsocketBaseController<Gatewa
     /// Authentication context
     /// </summary>
     /// <param name="context"></param>
-    public override void OnActionExecuting(ActionExecutingContext context)
+    [NonAction]
+    public void OnActionExecuting(ActionExecutingContext context)
     {
         _currentDevice = ControllerContext.HttpContext.RequestServices
             .GetRequiredService<IClientAuthService<Device>>()
             .CurrentClient;
-        base.OnActionExecuting(context);
+    }
+
+    [NonAction]
+    public void OnActionExecuted(ActionExecutedContext context)
+    {
     }
 
     /// <inheritdoc />
