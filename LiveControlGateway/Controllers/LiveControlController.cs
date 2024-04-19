@@ -47,6 +47,7 @@ public sealed class LiveControlController : WebsocketBaseController<IBaseRespons
     private Guid? _deviceId;
     private Device? _device;
     private Dictionary<Guid, LiveShockerPermission> _sharedShockers;
+    private byte _tps = 10;
     
     /// <summary>
     /// Connection Id for this connection, unique and random per connection
@@ -140,21 +141,33 @@ public sealed class LiveControlController : WebsocketBaseController<IBaseRespons
             x.Id == _deviceId && (x.Owner == _currentUser.DbUser.Id || x.Shockers.Any(y => y.ShockerShares.Any(
                 z => z.SharedWith == _currentUser.DbUser.Id && z.PermLive))));
 
-        if (deviceExistsAndYouHaveAccess)
+        if (!deviceExistsAndYouHaveAccess)
         {
-            _device = await _db.Devices.FirstOrDefaultAsync(x => x.Id == _deviceId);
+            HttpContext.Response.StatusCode = (int)HttpStatusCode.NotFound;
+            await HttpContext.Response.WriteAsJsonAsync(new Common.Models.BaseResponse<object>
+            {
+                Message = "Device does not exist or you do not have access to it"
+            });
+            return false;
+        }
+        
+        _device = await _db.Devices.FirstOrDefaultAsync(x => x.Id == _deviceId);
 
-            await UpdatePermissions(_db);
-
-            return true;
+        await UpdatePermissions(_db);
+        
+        if(HttpContext.Request.Query.TryGetValue("tps", out var requestedTps))
+        {
+            if (requestedTps.Count == 1)
+            {
+                var firstElement = requestedTps[0];
+                if (byte.TryParse(firstElement, out var tps))
+                {
+                    _tps = Math.Clamp(tps, (byte)1, (byte)10);
+                }
+            }
         }
 
-        HttpContext.Response.StatusCode = (int)HttpStatusCode.NotFound;
-        await HttpContext.Response.WriteAsJsonAsync(new Common.Models.BaseResponse<object>
-        {
-            Message = "Device does not exist or you do not have access to it"
-        });
-        return false;
+        return true;
     }
 
     /// <summary>
@@ -168,6 +181,10 @@ public sealed class LiveControlController : WebsocketBaseController<IBaseRespons
             .CurrentClient;
     }
 
+    /// <summary>
+    /// Post action context
+    /// </summary>
+    /// <param name="context"></param>
     [NonAction]
     public void OnActionExecuted(ActionExecutedContext context)
     {
@@ -179,13 +196,13 @@ public sealed class LiveControlController : WebsocketBaseController<IBaseRespons
     /// <inheritdoc />
     protected override async Task SendInitialData()
     {
-        await QueueMessage(new Common.Models.WebSocket.BaseResponse<LiveResponseType>()
+        await QueueMessage(new Common.Models.WebSocket.BaseResponse<LiveResponseType>
         {
             ResponseType = LiveResponseType.TPS,
             Data = new TpsData
             {
-                Client = 10f,
-                Server = 10f
+                Client = _tps,
+                Server = 10
             }
         });
         await UpdateConnectedState(DeviceLifetimeManager.IsConnected(Id), true);
