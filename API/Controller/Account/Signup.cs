@@ -26,7 +26,7 @@ public sealed partial class AccountController
         [FromServices] IAccountService accountService)
     {
         var creationAction = await accountService.CreateAccount(body.Email, body.Username, body.Password);
-        if (creationAction.IsT1) Problem(SignupError.EmailAlreadyExists);
+        if (creationAction.IsT1) return Problem(SignupError.EmailAlreadyExists);
 
 
         return RespondSuccessSimple("Successfully signed up");
