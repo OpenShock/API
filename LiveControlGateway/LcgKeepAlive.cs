@@ -11,6 +11,7 @@ namespace OpenShock.LiveControlGateway;
 public class LcgKeepAlive : IHostedService
 {
     private readonly ILogger<LcgKeepAlive> _logger;
+    private readonly IWebHostEnvironment _env;
     private readonly IRedisConnectionProvider _redisConnectionProvider;
     private readonly IRedisCollection<LcgNode> _lcgNodes;
     
@@ -21,10 +22,11 @@ public class LcgKeepAlive : IHostedService
     /// </summary>
     /// <param name="redisConnectionProvider"></param>
     /// <param name="logger"></param>
-    public LcgKeepAlive(IRedisConnectionProvider redisConnectionProvider, ILogger<LcgKeepAlive> logger)
+    public LcgKeepAlive(IRedisConnectionProvider redisConnectionProvider, ILogger<LcgKeepAlive> logger, IWebHostEnvironment env)
     {
         _redisConnectionProvider = redisConnectionProvider;
         _logger = logger;
+        _env = env;
         _lcgNodes = redisConnectionProvider.RedisCollection<LcgNode>(false);
     }
 
@@ -37,7 +39,8 @@ public class LcgKeepAlive : IHostedService
             {
                 Fqdn = LCGGlobals.LCGConfig.Fqdn,
                 Country = LCGGlobals.LCGConfig.CountryCode,
-                Load = 0
+                Load = 0,
+                Environment = _env.EnvironmentName
             }, TimeSpan.FromSeconds(35));
             return;
         }

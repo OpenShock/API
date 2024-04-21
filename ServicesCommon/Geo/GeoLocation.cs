@@ -1,5 +1,6 @@
 ﻿using OpenShock.Common.Redis;
 using OpenShock.Common.Utils;
+using Redis.OM;
 using Redis.OM.Contracts;
 using Redis.OM.Searching;
 
@@ -16,9 +17,9 @@ public class GeoLocation : IGeoLocation
         _lcgNodes = redisConnectionProvider.RedisCollection<LcgNode>(false);
     }
     
-    public async Task<LcgNode?> GetClosestNode(CountryCodeMapper.CountryInfo country)
+    public async Task<LcgNode?> GetClosestNode(CountryCodeMapper.CountryInfo country, string environment = "Production")
     {
-        var nodes = await _lcgNodes.ToListAsync();
+        var nodes = await _lcgNodes.Where(x => x.Environment == environment).ToListAsync();
         var orderedNodes = nodes
             .OrderBy(x => CountryCodeMapper.GetCountryOrDefault(x.Country).DistanceTo(country))
             .ThenBy(x => x.Load);

@@ -199,7 +199,7 @@ public sealed partial class DevicesController
     [ProducesProblem(HttpStatusCode.NotFound, "DeviceNotFound")]
     [ProducesProblem(HttpStatusCode.NotFound, "DeviceIsNotOnline")]
     [ProducesProblem(HttpStatusCode.PreconditionFailed, "DeviceNotConnectedToGateway")]
-    public async Task<IActionResult> GetLiveControlGatewayInfo(Guid deviceId)
+    public async Task<IActionResult> GetLiveControlGatewayInfo([FromRoute] Guid deviceId)
     {
         // Check if user owns device or has a share
         var deviceExistsAndYouHaveAccess = await _db.Devices.AnyAsync(x =>

@@ -5,5 +5,5 @@ namespace OpenShock.ServicesCommon.Geo;
 
 public interface IGeoLocation
 {
-    public Task<LcgNode?> GetClosestNode(CountryCodeMapper.CountryInfo country);
+    public Task<LcgNode?> GetClosestNode(CountryCodeMapper.CountryInfo country, string environment = "Production");
 }
