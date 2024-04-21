@@ -1,5 +1,8 @@
-﻿using System.Diagnostics;
+﻿using System.ComponentModel.DataAnnotations;
+using System.Diagnostics;
 using Microsoft.EntityFrameworkCore;
+using OneOf;
+using OneOf.Types;
 using OpenShock.Common;
 using OpenShock.Common.Models;
 using OpenShock.Common.OpenShockDb;
@@ -26,6 +29,7 @@ public sealed class DeviceLifetime : IAsyncDisposable
     private static readonly ILogger<DeviceLifetime> Logger = ApplicationLogging.CreateLogger<DeviceLifetime>();
 
     private Dictionary<Guid, ShockerState> _shockerStates = new();
+    private readonly byte _tps;
     private readonly DeviceController _deviceController;
     private readonly CancellationToken _cancellationToken;
 
@@ -34,12 +38,15 @@ public sealed class DeviceLifetime : IAsyncDisposable
     /// <summary>
     /// DI Constructor
     /// </summary>
+    /// <param name="tps"></param>
     /// <param name="deviceController"></param>
     /// <param name="dbContextFactory"></param>
     /// <param name="cancellationToken"></param>
-    public DeviceLifetime(DeviceController deviceController, IDbContextFactory<OpenShockContext> dbContextFactory,
+    public DeviceLifetime([Range(1, 10)] byte tps, DeviceController deviceController,
+        IDbContextFactory<OpenShockContext> dbContextFactory,
         CancellationToken cancellationToken = default)
     {
+        _tps = tps;
         _deviceController = deviceController;
         _cancellationToken = cancellationToken;
         _dbContextFactory = dbContextFactory;
@@ -87,11 +94,10 @@ public sealed class DeviceLifetime : IAsyncDisposable
 
     private async Task Update()
     {
-        var acceptedTimestamp = DateTimeOffset.UtcNow.Subtract(AcceptanceStateAge);
         List<ShockerCommand>? commandList = null;
         foreach (var (id, state) in _shockerStates)
         {
-            if (state.LastReceive < acceptedTimestamp) continue;
+            if (state.ActiveUntil < DateTimeOffset.UtcNow) continue;
             commandList ??= [];
 
             commandList.Add(new ShockerCommand
@@ -148,16 +154,26 @@ public sealed class DeviceLifetime : IAsyncDisposable
     /// <param name="shocker"></param>
     /// <param name="type"></param>
     /// <param name="intensity"></param>
+    /// <param name="tps"></param>
     /// <returns></returns>
-    public bool ReceiveFrame(Guid shocker, ControlType type, byte intensity)
+    public OneOf<Success, NotFound, ShockerExclusive> ReceiveFrame(Guid shocker, ControlType type, byte intensity,
+        byte tps)
     {
-        if (!_shockerStates.TryGetValue(shocker, out var state)) return false;
+        if (!_shockerStates.TryGetValue(shocker, out var state)) return new NotFound();
+        if (state.ExclusiveUntil > DateTimeOffset.UtcNow)
+            return new ShockerExclusive
+            {
+                Until = state.ExclusiveUntil
+            };
 
         state.LastType = type;
         state.LastIntensity = intensity;
-        state.LastReceive = DateTimeOffset.UtcNow;
-        return true;
+        state.ActiveUntil = CalculateActiveUntil(tps);
+        return new Success();
     }
+
+    private static DateTimeOffset CalculateActiveUntil(byte tps) =>
+        DateTimeOffset.UtcNow.AddMilliseconds(Math.Max(1000 / (float)tps * 2.5, 250));
 
     /// <summary>
     /// Control from redis, aka a regular command
@@ -166,13 +182,23 @@ public sealed class DeviceLifetime : IAsyncDisposable
     /// <returns></returns>
     public ValueTask Control(IEnumerable<ControlMessage.ShockerControlInfo> shocks)
     {
-        var shocksTransformed = shocks.Select(shock => new ShockerCommand
+        var shocksTransformed = new List<ShockerCommand>();
+        foreach (var shock in shocks)
         {
-            Id = shock.RfId, Duration = shock.Duration, Intensity = shock.Intensity,
-            Type = (ShockerCommandType)shock.Type,
-            Model = (ShockerModelType)shock.Model
-        }).ToList();
-        
+            if (!_shockerStates.TryGetValue(shock.Id, out var state)) continue;
+            
+            state.ExclusiveUntil = shock.Exclusive && shock.Type != ControlType.Stop ?
+                DateTimeOffset.UtcNow.AddMilliseconds(shock.Duration) 
+                : DateTimeOffset.MinValue;
+
+            shocksTransformed.Add(new ShockerCommand
+            {
+                Id = shock.RfId, Duration = shock.Duration, Intensity = shock.Intensity,
+                Type = (ShockerCommandType)shock.Type,
+                Model = (ShockerModelType)shock.Model
+            });
+        }
+
         return _deviceController.QueueMessage(new GatewayToDeviceMessage
         {
             Payload = new GatewayToDeviceMessagePayload(new ShockerCommandList { Commands = shocksTransformed })

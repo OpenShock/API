@@ -439,7 +439,7 @@ public sealed class LiveControlController : WebsocketBaseController<IBaseRespons
         var intensityMax = perms.Intensity ?? 100;
         var intensity = Math.Clamp(frame.Intensity, (byte)0, intensityMax);
 
-        var result = DeviceLifetimeManager.ReceiveFrame(Id, frame.Shocker, frame.Type, intensity);
+        var result = DeviceLifetimeManager.ReceiveFrame(Id, frame.Shocker, frame.Type, intensity, _tps);
         if (result.IsT0)
         {
             Logger.LogTrace("Successfully received frame");
@@ -459,6 +459,16 @@ public sealed class LiveControlController : WebsocketBaseController<IBaseRespons
             await QueueMessage(new Common.Models.WebSocket.BaseResponse<LiveResponseType>
             {
                 ResponseType = LiveResponseType.ShockerNotFound
+            });
+            return;
+        }
+        
+        if (result.IsT3)
+        {
+            await QueueMessage(new Common.Models.WebSocket.BaseResponse<LiveResponseType>
+            {
+                ResponseType = LiveResponseType.ShockerExclusive,
+                Data = result.AsT3.Until
             });
             return;
         }

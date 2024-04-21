@@ -20,12 +20,13 @@ public static class DeviceLifetimeManager
     /// <summary>
     /// Add device to lifetime manager, called on successful connect of device
     /// </summary>
+    /// <param name="tps"></param>
     /// <param name="deviceController"></param>
     /// <param name="db"></param>
     /// <param name="dbContextFactory"></param>
     /// <param name="cancellationToken"></param>
     /// <returns></returns>
-    public static async Task<DeviceLifetime> AddDeviceConnection(DeviceController deviceController,
+    public static async Task<DeviceLifetime> AddDeviceConnection(byte tps, DeviceController deviceController,
         OpenShockContext db, IDbContextFactory<OpenShockContext> dbContextFactory, CancellationToken cancellationToken)
     {
             if (Managers.TryGetValue(deviceController.Id, out var oldController))
@@ -35,7 +36,7 @@ public static class DeviceLifetimeManager
             }
             Logger.LogInformation("New device connected, creating lifetime [{DeviceId}]", deviceController.Id);
             
-            var deviceLifetime = new DeviceLifetime(deviceController, dbContextFactory, cancellationToken);
+            var deviceLifetime = new DeviceLifetime(tps, deviceController, dbContextFactory, cancellationToken);
             await deviceLifetime.InitAsync(db);
             Managers[deviceController.Id] = deviceLifetime;
             
@@ -72,11 +73,14 @@ public static class DeviceLifetimeManager
     /// <param name="type"></param>
     /// <param name="intensity"></param>
     /// <returns></returns>
-    public static OneOf<Success, DeviceNotFound, ShockerNotFound> ReceiveFrame(Guid device, Guid shocker,
-        ControlType type, byte intensity)
+    public static OneOf<Success, DeviceNotFound, ShockerNotFound, ShockerExclusive> ReceiveFrame(Guid device, Guid shocker,
+        ControlType type, byte intensity, byte tps)
     {
         if (!Managers.TryGetValue(device, out var deviceLifetime)) return new DeviceNotFound();
-        return deviceLifetime.ReceiveFrame(shocker, type, intensity) ? new Success() : new ShockerNotFound();
+        var receiveFrameAction = deviceLifetime.ReceiveFrame(shocker, type, intensity, tps);
+        if(receiveFrameAction.IsT0) return new Success();
+        if(receiveFrameAction.IsT1) return new ShockerNotFound();
+        return receiveFrameAction.AsT2;
     }
 
     /// <summary>
@@ -134,3 +138,8 @@ public static class DeviceLifetimeManager
 public struct DeviceNotFound;
 
 public struct ShockerNotFound;
+
+public struct ShockerExclusive
+{
+    public required DateTimeOffset Until { get; init; }
+}

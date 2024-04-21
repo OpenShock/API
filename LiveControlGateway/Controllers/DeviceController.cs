@@ -321,7 +321,7 @@ public sealed class DeviceController : FlatbuffersWebsocketBaseController<Gatewa
             SemVersion.TryParse(header, SemVersionStyles.Strict, out var version)) FirmwareVersion = version;
 
         await using var db = await _dbContextFactory.CreateDbContextAsync();
-        await DeviceLifetimeManager.AddDeviceConnection(this, db, _dbContextFactory, Linked.Token);
+        await DeviceLifetimeManager.AddDeviceConnection(10, this, db, _dbContextFactory, Linked.Token);
     }
 
     /// <inheritdoc />
