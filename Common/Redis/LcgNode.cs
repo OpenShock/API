@@ -2,7 +2,7 @@
 
 namespace OpenShock.Common.Redis;
 
-[Document(StorageType = StorageType.Json, IndexName = "lcg-online")]
+[Document(StorageType = StorageType.Json, IndexName = "lcg-online-v2")]
 public class LcgNode
 {
     [RedisIdField] [Indexed] public required string Fqdn { get; set; }
