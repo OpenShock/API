@@ -20,7 +20,7 @@ public sealed partial class DeviceController
     [HttpGet("assignLCG")]
     [ProducesSuccess<LcgNodeResponse>]
     [ProducesProblem(HttpStatusCode.ServiceUnavailable, "NoLcgNodesAvailable")]
-    public async Task<IActionResult> GetLiveControlGateway([FromServices] IGeoLocation geoLocation, [FromQuery] string environment = "Production")
+    public async Task<IActionResult> GetLiveControlGateway([FromServices] IGeoLocation geoLocation, [FromServices] IWebHostEnvironment env)
     {
         var messageBuilder = new StringBuilder();
         var countryCode = CountryCodeMapper.CountryInfo.Alpha2CountryCode.DefaultAlphaCode;
@@ -53,7 +53,7 @@ public sealed partial class DeviceController
             messageBuilder.AppendLine("Country not found in mapping, default country used.");
         }
 
-        var closestNode = await geoLocation.GetClosestNode(country, environment);
+        var closestNode = await geoLocation.GetClosestNode(country, env.EnvironmentName);
 
         if (closestNode == null) return Problem(AssignLcgError.NoLcgNodesAvailable);
 
