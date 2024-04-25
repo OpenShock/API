@@ -97,7 +97,8 @@ public sealed class DeviceLifetime : IAsyncDisposable
         List<ShockerCommand>? commandList = null;
         foreach (var (id, state) in _shockerStates)
         {
-            if (state.ActiveUntil < DateTimeOffset.UtcNow) continue;
+            var cur = DateTimeOffset.UtcNow;
+            if (state.ActiveUntil < cur || state.ExclusiveUntil >= cur) continue;
             commandList ??= [];
 
             commandList.Add(new ShockerCommand
@@ -187,6 +188,8 @@ public sealed class DeviceLifetime : IAsyncDisposable
         {
             if (!_shockerStates.TryGetValue(shock.Id, out var state)) continue;
             
+            Logger.LogTrace("Control exclusive: {Exclusive}, type: {Type}, duration: {Duration}, intensity: {Intensity}",
+                shock.Exclusive, shock.Type, shock.Duration, shock.Intensity);
             state.ExclusiveUntil = shock.Exclusive && shock.Type != ControlType.Stop ?
                 DateTimeOffset.UtcNow.AddMilliseconds(shock.Duration) 
                 : DateTimeOffset.MinValue;
