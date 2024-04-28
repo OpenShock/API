@@ -23,9 +23,8 @@ namespace OpenShock.LiveControlGateway.LifetimeManager;
 /// </summary>
 public sealed class DeviceLifetime : IAsyncDisposable
 {
-    private static readonly TimeSpan WaitBetweenTicks = TimeSpan.FromMilliseconds(100); // 10 TPS
-    private static readonly TimeSpan AcceptanceStateAge = TimeSpan.FromMilliseconds(200);
-    private const ushort CommandDuration = 250;
+    private readonly TimeSpan _waitBetweenTicks;
+    private readonly ushort _commandDuration;
     private static readonly ILogger<DeviceLifetime> Logger = ApplicationLogging.CreateLogger<DeviceLifetime>();
 
     private Dictionary<Guid, ShockerState> _shockerStates = new();
@@ -50,6 +49,9 @@ public sealed class DeviceLifetime : IAsyncDisposable
         _deviceController = deviceController;
         _cancellationToken = cancellationToken;
         _dbContextFactory = dbContextFactory;
+        
+        _waitBetweenTicks = TimeSpan.FromMilliseconds(Math.Floor((float)1000 / tps));
+        _commandDuration = (ushort)(_waitBetweenTicks.TotalMilliseconds * 2.5);
     }
 
     /// <summary>
@@ -81,7 +83,7 @@ public sealed class DeviceLifetime : IAsyncDisposable
             }
 
             var elapsed = stopwatch.Elapsed;
-            var waitTime = WaitBetweenTicks - elapsed;
+            var waitTime = _waitBetweenTicks - elapsed;
             if (waitTime.TotalMilliseconds < 1)
             {
                 Logger.LogWarning("Update loop running behind for device [{DeviceId}]", _deviceController.Id);
@@ -106,7 +108,7 @@ public sealed class DeviceLifetime : IAsyncDisposable
                 Id = state.RfId,
                 Model = (ShockerModelType)state.Model,
                 Type = (ShockerCommandType)state.LastType,
-                Duration = CommandDuration,
+                Duration = _commandDuration,
                 Intensity = state.LastIntensity
             });
         }
