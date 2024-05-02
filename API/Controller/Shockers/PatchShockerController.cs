@@ -1,16 +1,12 @@
 ﻿using System.Net;
 using Asp.Versioning;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using OpenShock.API.Models.Requests;
-using OpenShock.API.Realtime;
 using OpenShock.API.Services;
 using OpenShock.Common.Models;
-using OpenShock.Common.Redis.PubSub;
 using OpenShock.ServicesCommon.Errors;
 using OpenShock.ServicesCommon.Problems;
-using OpenShock.ServicesCommon.Services.Device;
 
 namespace OpenShock.API.Controller.Shockers;
 

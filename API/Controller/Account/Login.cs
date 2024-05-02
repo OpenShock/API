@@ -1,16 +1,10 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 using OpenShock.API.Models.Requests;
-using OpenShock.API.Utils;
-using OpenShock.Common.Models;
-using OpenShock.Common.Redis;
-using Redis.OM.Contracts;
 using System.Net;
 using Asp.Versioning;
 using OpenShock.API.Services.Account;
 using OpenShock.ServicesCommon.Errors;
 using OpenShock.ServicesCommon.Problems;
-using OpenShock.ServicesCommon.Services.Turnstile;
 
 namespace OpenShock.API.Controller.Account;
 

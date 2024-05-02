@@ -19,6 +19,8 @@ using OpenShock.Common.Redis;
 using OpenShock.LiveControlGateway.PubSub;
 using OpenShock.ServicesCommon;
 using OpenShock.ServicesCommon.Authentication;
+using OpenShock.ServicesCommon.Authentication.Handlers;
+using OpenShock.ServicesCommon.Authentication.Services;
 using OpenShock.ServicesCommon.ExceptionHandle;
 using OpenShock.ServicesCommon.Geo;
 using OpenShock.ServicesCommon.Problems;
@@ -115,6 +117,8 @@ public class Startup
 
         services.AddScoped<IClientAuthService<LinkUser>, ClientAuthService<LinkUser>>();
         services.AddScoped<IClientAuthService<Device>, ClientAuthService<Device>>();
+        services.AddScoped<ITokenReferenceService<ApiToken>, TokenReferenceService<ApiToken>>();
+        
         services.AddSingleton<IGeoLocation, GeoLocation>();
 
         services.AddWebEncoders();
@@ -159,6 +163,7 @@ public class Startup
         services.AddControllers().AddJsonOptions(x =>
         {
             x.JsonSerializerOptions.PropertyNameCaseInsensitive = true;
+            x.JsonSerializerOptions.Converters.Add(new PermissionTypeConverter());
             x.JsonSerializerOptions.Converters.Add(new CustomJsonStringEnumConverter());
         });
 
@@ -173,6 +178,7 @@ public class Startup
         {
             options.SerializerOptions.PropertyNameCaseInsensitive = true;
             options.SerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
+            options.SerializerOptions.Converters.Add(new PermissionTypeConverter());
             options.SerializerOptions.Converters.Add(new JsonStringEnumConverter());
         });
         

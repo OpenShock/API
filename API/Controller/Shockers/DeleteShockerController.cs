@@ -6,7 +6,6 @@ using OpenShock.API.Services;
 using OpenShock.Common.Models;
 using OpenShock.ServicesCommon.Errors;
 using OpenShock.ServicesCommon.Problems;
-using OpenShock.ServicesCommon.Services.Device;
 
 namespace OpenShock.API.Controller.Shockers;
 

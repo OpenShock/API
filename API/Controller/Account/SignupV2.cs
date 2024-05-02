@@ -1,6 +1,5 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using OpenShock.API.Models.Requests;
-using OpenShock.Common.Models;
 using System.Net;
 using Asp.Versioning;
 using OpenShock.API.Services.Account;

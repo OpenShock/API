@@ -24,6 +24,8 @@ using OpenShock.Common.OpenShockDb;
 using OpenShock.Common.Redis;
 using OpenShock.ServicesCommon;
 using OpenShock.ServicesCommon.Authentication;
+using OpenShock.ServicesCommon.Authentication.Handlers;
+using OpenShock.ServicesCommon.Authentication.Services;
 using OpenShock.ServicesCommon.DataAnnotations;
 using OpenShock.ServicesCommon.ExceptionHandle;
 using OpenShock.ServicesCommon.Geo;
@@ -136,6 +138,8 @@ public class Startup
 
         services.AddScoped<IClientAuthService<LinkUser>, ClientAuthService<LinkUser>>();
         services.AddScoped<IClientAuthService<Device>, ClientAuthService<Device>>();
+        services.AddScoped<ITokenReferenceService<ApiToken>, TokenReferenceService<ApiToken>>();
+        
         services.AddSingleton<IGeoLocation, GeoLocation>();
 
         var turnStileConfig = APIGlobals.ApiConfig.Turnstile;
@@ -212,6 +216,8 @@ public class Startup
         services.AddControllers().AddJsonOptions(x =>
         {
             x.JsonSerializerOptions.PropertyNameCaseInsensitive = true;
+            x.JsonSerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
+            x.JsonSerializerOptions.Converters.Add(new PermissionTypeConverter());
             x.JsonSerializerOptions.Converters.Add(new CustomJsonStringEnumConverter());
         });
 
@@ -225,6 +231,7 @@ public class Startup
         {
             options.SerializerOptions.PropertyNameCaseInsensitive = true;
             options.SerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
+            options.SerializerOptions.Converters.Add(new PermissionTypeConverter());
             options.SerializerOptions.Converters.Add(new JsonStringEnumConverter());
         });
         

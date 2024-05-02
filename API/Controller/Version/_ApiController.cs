@@ -1,7 +1,6 @@
 ﻿using System.Reflection;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Primitives;
 using OpenShock.API.Utils;
 using OpenShock.Common.Models;
 using OpenShock.ServicesCommon;

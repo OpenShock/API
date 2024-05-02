@@ -1,17 +1,16 @@
-﻿using System.Net;
-using System.Security.Claims;
+﻿using System.Security.Claims;
 using System.Text.Encodings.Web;
 using System.Text.Json;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Http.Json;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
-using OpenShock.Common.Models;
 using OpenShock.Common.OpenShockDb;
+using OpenShock.ServicesCommon.Authentication.Services;
 using OpenShock.ServicesCommon.Errors;
 using OpenShock.ServicesCommon.Problems;
 
-namespace OpenShock.ServicesCommon.Authentication;
+namespace OpenShock.ServicesCommon.Authentication.Handlers;
 
 /// <summary>
 /// Device / Box / The Thing / ESP32 authentication with DeviceToken header

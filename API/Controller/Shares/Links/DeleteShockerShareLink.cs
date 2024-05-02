@@ -1,7 +1,5 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using OpenShock.API.Models.Response;
-using OpenShock.Common.Models;
 using System.Net;
 using OpenShock.ServicesCommon.Errors;
 using OpenShock.ServicesCommon.Problems;

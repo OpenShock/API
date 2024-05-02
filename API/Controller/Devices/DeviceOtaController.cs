@@ -1,8 +1,6 @@
 ﻿using System.Net;
-using Asp.Versioning;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using OpenShock.Common.Models;
 using OpenShock.Common.Models.Services.Ota;
 using OpenShock.ServicesCommon.Errors;
 using OpenShock.ServicesCommon.Problems;

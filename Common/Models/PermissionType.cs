@@ -1,38 +1,36 @@
-﻿using System.Security.Claims;
+﻿using System.Reflection;
+using System.Text.Json.Serialization;
 using NpgsqlTypes;
+using OpenShock.Common.JsonSerialization;
 
 // ReSharper disable InconsistentNaming
 
 namespace OpenShock.Common.Models;
 
+[JsonConverter(typeof(PermissionTypeConverter))]
 public enum PermissionType
 {
-    [PgName("shockers.use")] Shockers_Use
+    [PgName("shockers.use")] Shockers_Use,
+    [PgName("shockers.edit")] Shockers_Edit
 }
 
 public static class PermissionTypeBindings
 {
-    public static readonly IReadOnlyCollection<string> DatabaseNames = InitDatabaseNames();
-    public static readonly IReadOnlyCollection<Claim> RoleClaimNames = ConvertToRoleClaims(DatabaseNames).ToArray();
-    public static readonly List<PermissionType> AllPermissionTypes = new(Enum.GetValues<PermissionType>());
+    public static readonly IReadOnlyDictionary<PermissionType, string> PermissionTypeToName = Init();
 
-    public static readonly IReadOnlyDictionary<PermissionType, Claim> TypeToName =
-        new Dictionary<PermissionType, Claim>
-        {
-            { PermissionType.Shockers_Use, new Claim(ClaimTypes.Role, "shockers.use") }
-        };
+    public static readonly IReadOnlyDictionary<string, PermissionType> NameToPermissionType =
+        ReverseDic(PermissionTypeToName);
 
-    private static IEnumerable<Claim> ConvertToRoleClaims(IReadOnlyCollection<string> input) =>
-        input.Select(s => new Claim(ClaimTypes.Role, s));
-
-
-    private static IReadOnlyCollection<string> InitDatabaseNames()
+    public static IReadOnlyDictionary<PermissionType, string> Init()
     {
+        var enumValues = Enum.GetValues<PermissionType>();
         var fields = typeof(PermissionType).GetFields();
-        var names = new List<string>();
-        foreach (var fieldInfo in fields)
-            names.AddRange(fieldInfo.GetCustomAttributes(typeof(PgNameAttribute), false)
-                .Select(attribute => ((PgNameAttribute)attribute).PgName));
-        return names;
+
+        return enumValues.ToDictionary(x => x,
+            x => fields.First(y => y.Name == x.ToString()).GetCustomAttribute<PgNameAttribute>()!.PgName);
     }
+
+    public static IReadOnlyDictionary<T0, T1> ReverseDic<T1, T0>(this IReadOnlyDictionary<T1, T0> dic)
+        where T0 : notnull where T1 : notnull =>
+        dic.ToDictionary(x => x.Value, x => x.Key);
 }

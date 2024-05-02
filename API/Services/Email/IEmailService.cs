@@ -1,6 +1,4 @@
-﻿using OneOf;
-using OneOf.Types;
-using OpenShock.API.Services.Email.Mailjet.Mail;
+﻿using OpenShock.API.Services.Email.Mailjet.Mail;
 
 namespace OpenShock.API.Services.Email;
 

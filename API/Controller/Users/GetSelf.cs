@@ -1,7 +1,5 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using OpenShock.Common.Models;
-using OpenShock.Common.OpenShockDb;
-using OpenShock.ServicesCommon.Authentication;
 using OpenShock.ServicesCommon.Problems;
 
 namespace OpenShock.API.Controller.Users;

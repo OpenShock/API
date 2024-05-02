@@ -1,9 +1,6 @@
 ﻿using System.Net;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using OpenShock.Common.Models;
-using OpenShock.Common.OpenShockDb;
-using OpenShock.ServicesCommon.Authentication;
 using OpenShock.ServicesCommon.Errors;
 using OpenShock.ServicesCommon.Problems;
 

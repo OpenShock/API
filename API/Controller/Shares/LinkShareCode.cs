@@ -1,14 +1,11 @@
 ﻿using System.Net;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using OpenShock.API.Services;
 using OpenShock.Common.Models;
 using OpenShock.Common.OpenShockDb;
-using OpenShock.ServicesCommon.Authentication;
 using OpenShock.ServicesCommon.Errors;
 using OpenShock.ServicesCommon.Problems;
-using OpenShock.ServicesCommon.Services.Device;
 
 namespace OpenShock.API.Controller.Shares;
 

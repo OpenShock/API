@@ -5,7 +5,6 @@ using OneOf.Types;
 using OpenShock.API.Services.Email;
 using OpenShock.API.Services.Email.Mailjet.Mail;
 using OpenShock.API.Utils;
-using OpenShock.Common.Models;
 using OpenShock.Common.OpenShockDb;
 using OpenShock.Common.Redis;
 using OpenShock.Common.Utils;

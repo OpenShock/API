@@ -2,7 +2,6 @@
 using Microsoft.EntityFrameworkCore;
 using OpenShock.API.Models.Response;
 using OpenShock.Common.Models;
-using OpenShock.ServicesCommon.Authentication;
 using OpenShock.ServicesCommon.Problems;
 
 namespace OpenShock.API.Controller.Device;

@@ -14,6 +14,7 @@ using OpenShock.LiveControlGateway.Websocket;
 using OpenShock.Serialization.Gateway;
 using OpenShock.Serialization.Types;
 using OpenShock.ServicesCommon.Authentication;
+using OpenShock.ServicesCommon.Authentication.Services;
 using OpenShock.ServicesCommon.Hubs;
 using OpenShock.ServicesCommon.Services.Ota;
 using Redis.OM.Contracts;

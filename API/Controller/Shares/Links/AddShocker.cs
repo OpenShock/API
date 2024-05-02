@@ -1,6 +1,5 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using OpenShock.Common.Models;
 using OpenShock.Common.OpenShockDb;
 using System.Net;
 using OpenShock.ServicesCommon.Errors;

@@ -1,10 +1,8 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using OpenShock.Common.Models;
 using OpenShock.Common.Redis;
 using Redis.OM;
-using Redis.OM.Contracts;
 using System.Net;
 using OpenShock.ServicesCommon.Errors;
 using OpenShock.ServicesCommon.Problems;

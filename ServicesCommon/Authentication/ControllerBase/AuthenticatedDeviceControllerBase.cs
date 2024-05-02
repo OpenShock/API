@@ -2,8 +2,9 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
 using OpenShock.Common.OpenShockDb;
+using OpenShock.ServicesCommon.Authentication.Services;
 
-namespace OpenShock.ServicesCommon.Authentication;
+namespace OpenShock.ServicesCommon.Authentication.ControllerBase;
 
 [Authorize(AuthenticationSchemes = OpenShockAuthSchemas.DeviceToken)]
 public class AuthenticatedDeviceControllerBase : OpenShockControllerBase, IActionFilter

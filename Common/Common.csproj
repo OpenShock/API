@@ -31,7 +31,6 @@
         <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
       </PackageReference>
       <PackageReference Include="Microsoft.IO.RecyclableMemoryStream" Version="3.0.0" />
-      <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
       <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="8.0.2" />
       <PackageReference Include="Redis.OM" Version="0.7.0" />
       <PackageReference Include="Semver" Version="2.3.0" />

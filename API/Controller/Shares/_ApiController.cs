@@ -1,6 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using OpenShock.Common.OpenShockDb;
-using OpenShock.ServicesCommon.Authentication;
+using OpenShock.ServicesCommon.Authentication.ControllerBase;
 
 namespace OpenShock.API.Controller.Shares;
 

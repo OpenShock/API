@@ -2,7 +2,6 @@
 using Asp.Versioning;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.SignalR;
-using OpenShock.API.DeviceControl;
 using OpenShock.Common.Models;
 using OpenShock.ServicesCommon.DeviceControl;
 using OpenShock.ServicesCommon.Errors;

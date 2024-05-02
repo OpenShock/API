@@ -5,7 +5,6 @@ using OpenShock.API.Models.Response;
 using OpenShock.API.Utils;
 using OpenShock.Common.Models;
 using OpenShock.Common.OpenShockDb;
-using OpenShock.ServicesCommon.Authentication;
 using OpenShock.ServicesCommon.Errors;
 using OpenShock.ServicesCommon.Problems;
 
@@ -133,13 +132,13 @@ public sealed partial class TokensController
     public sealed class EditTokenRequest
     {
         public required string Name { get; set; }
-        public List<PermissionType> Permissions { get; set; } = PermissionTypeBindings.AllPermissionTypes;
+        public List<PermissionType> Permissions { get; set; } = [PermissionType.Shockers_Use];
     }
 
     public sealed class CreateTokenRequest
     {
         public required string Name { get; set; }
-        public List<PermissionType> Permissions { get; set; } = PermissionTypeBindings.AllPermissionTypes;
+        public List<PermissionType> Permissions { get; set; } = [PermissionType.Shockers_Use];
         public DateOnly? ValidUntil { get; set; }
     }
 }

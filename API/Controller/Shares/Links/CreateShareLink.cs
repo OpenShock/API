@@ -2,7 +2,6 @@
 using OpenShock.API.Models.Requests;
 using OpenShock.Common.Models;
 using OpenShock.Common.OpenShockDb;
-using System.Net;
 using OpenShock.ServicesCommon.Problems;
 
 namespace OpenShock.API.Controller.Shares.Links;

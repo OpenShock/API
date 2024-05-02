@@ -17,6 +17,7 @@ using OpenShock.LiveControlGateway.LifetimeManager;
 using OpenShock.LiveControlGateway.Models;
 using OpenShock.LiveControlGateway.Websocket;
 using OpenShock.ServicesCommon.Authentication;
+using OpenShock.ServicesCommon.Authentication.Services;
 using OpenShock.ServicesCommon.Models;
 using OpenShock.ServicesCommon.Utils;
 using OpenShock.ServicesCommon.Websocket;

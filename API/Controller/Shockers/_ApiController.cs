@@ -1,9 +1,7 @@
 ﻿using Asp.Versioning;
 using Microsoft.AspNetCore.Mvc;
 using OpenShock.Common.OpenShockDb;
-using OpenShock.ServicesCommon.Authentication;
-using Redis.OM.Contracts;
-using StackExchange.Redis;
+using OpenShock.ServicesCommon.Authentication.ControllerBase;
 
 namespace OpenShock.API.Controller.Shockers;
 
