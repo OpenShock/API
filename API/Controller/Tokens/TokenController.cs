@@ -107,7 +107,7 @@ public sealed partial class TokensController
             Permissions = body.Permissions,
             Id = Guid.NewGuid(),
             Name = body.Name,
-            ValidUntil = body.ValidUntil
+            ValidUntil = body.ValidUntil?.ToUniversalTime()
         };
         _db.ApiTokens.Add(token);
         await _db.SaveChangesAsync();
