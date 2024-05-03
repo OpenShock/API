@@ -5,6 +5,7 @@ using OpenShock.API.Models.Response;
 using OpenShock.API.Utils;
 using OpenShock.Common.Models;
 using OpenShock.Common.OpenShockDb;
+using OpenShock.ServicesCommon.Authentication.Attributes;
 using OpenShock.ServicesCommon.Errors;
 using OpenShock.ServicesCommon.Problems;
 
@@ -17,10 +18,14 @@ public sealed partial class TokensController
     /// </summary>
     /// <response code="200">All tokens for the current user</response>
     [HttpGet]
+    [UserSessionOnly]
     [ProducesSuccess<IEnumerable<TokenResponse>>]
     public async Task<BaseResponse<IEnumerable<TokenResponse>>> ListTokens()
     {
-        var apiTokens = await _db.ApiTokens.Where(x => x.UserId == CurrentUser.DbUser.Id).OrderBy(x => x.CreatedOn).Select(x => new TokenResponse
+        var apiTokens = await _db.ApiTokens
+            .Where(x => x.UserId == CurrentUser.DbUser.Id && (x.ValidUntil == null || x.ValidUntil > DateTime.UtcNow))
+            .OrderBy(x => x.CreatedOn)
+            .Select(x => new TokenResponse
         {
             CreatedByIp = x.CreatedByIp,
             CreatedOn = x.CreatedOn,
@@ -43,11 +48,14 @@ public sealed partial class TokensController
     /// <response code="200">The token</response>
     /// <response code="404">The token does not exist or you do not have access to it.</response>
     [HttpGet("{tokenId}")]
+    [UserSessionOnly]
     [ProducesSuccess<TokenResponse>]
     [ProducesProblem(HttpStatusCode.NotFound, "ApiTokenNotFound")]    
     public async Task<IActionResult> GetTokenById([FromRoute] Guid tokenId)
     {
-        var apiToken = await _db.ApiTokens.Where(x => x.UserId == CurrentUser.DbUser.Id && x.Id == tokenId).Select(x => new TokenResponse
+        var apiToken = await _db.ApiTokens
+            .Where(x => x.UserId == CurrentUser.DbUser.Id && x.Id == tokenId && (x.ValidUntil == null || x.ValidUntil > DateTime.UtcNow))
+            .Select(x => new TokenResponse
         {
             CreatedByIp = x.CreatedByIp,
             CreatedOn = x.CreatedOn,
@@ -69,11 +77,13 @@ public sealed partial class TokensController
     /// <response code="200">Successfully deleted token</response>
     /// <response code="404">The token does not exist or you do not have access to it.</response>
     [HttpDelete("{tokenId}")]
+    [UserSessionOnly]
     [ProducesSuccess]
     [ProducesProblem(HttpStatusCode.NotFound, "ApiTokenNotFound")]    
     public async Task<IActionResult> DeleteToken([FromRoute] Guid tokenId)
     {
-        var apiToken = await _db.ApiTokens.Where(x => x.UserId == CurrentUser.DbUser.Id && x.Id == tokenId)
+        var apiToken = await _db.ApiTokens
+            .Where(x => x.UserId == CurrentUser.DbUser.Id && x.Id == tokenId)
             .ExecuteDeleteAsync();
         if (apiToken <= 0) return Problem(ApiTokenError.ApiTokenNotFound);
         return RespondSuccessSimple("Successfully deleted api token");
@@ -85,6 +95,7 @@ public sealed partial class TokensController
     /// <param name="body"></param>
     /// <response code="200">The created token</response>
     [HttpPost]
+    [UserSessionOnly]
     [ProducesSuccess<string>]
     public async Task<BaseResponse<string>> CreateToken([FromBody] CreateTokenRequest body)
     {
@@ -115,11 +126,13 @@ public sealed partial class TokensController
     /// <response code="200">The edited token</response>
     /// <response code="404">The token does not exist or you do not have access to it.</response>
     [HttpPatch("{tokenId}")]
+    [UserSessionOnly]
     [ProducesSuccess]
     [ProducesProblem(HttpStatusCode.NotFound, "ApiTokenNotFound")]    
     public async Task<IActionResult> EditToken([FromRoute] Guid tokenId, [FromBody] EditTokenRequest body)
     {
-        var token = await _db.ApiTokens.FirstOrDefaultAsync(x => x.UserId == CurrentUser.DbUser.Id && x.Id == tokenId);
+        var token = await _db.ApiTokens
+            .FirstOrDefaultAsync(x => x.UserId == CurrentUser.DbUser.Id && x.Id == tokenId && (x.ValidUntil == null || x.ValidUntil > DateTime.UtcNow));
         if (token == null) return Problem(ApiTokenError.ApiTokenNotFound);
 
         token.Name = body.Name;
@@ -139,6 +152,6 @@ public sealed partial class TokensController
     {
         public required string Name { get; set; }
         public List<PermissionType> Permissions { get; set; } = [PermissionType.Shockers_Use];
-        public DateOnly? ValidUntil { get; set; }
+        public DateTime? ValidUntil { get; set; }
     }
 }

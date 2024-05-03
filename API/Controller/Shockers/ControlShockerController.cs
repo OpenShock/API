@@ -3,6 +3,7 @@ using Asp.Versioning;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.SignalR;
 using OpenShock.Common.Models;
+using OpenShock.ServicesCommon.Authentication.Attributes;
 using OpenShock.ServicesCommon.DeviceControl;
 using OpenShock.ServicesCommon.Errors;
 using OpenShock.ServicesCommon.Hubs;
@@ -22,6 +23,7 @@ public sealed partial class ShockerController
     /// <response code="200">The control messages were successfully sent.</response>
     [MapToApiVersion("2")]
     [HttpPost("control")]
+    [TokenPermission(PermissionType.Shockers_Use)]
     [ProducesSuccess]
     [ProducesProblem(HttpStatusCode.NotFound, "Shocker not found")]
     [ProducesProblem(HttpStatusCode.PreconditionFailed, "Shocker is paused")]
@@ -55,6 +57,7 @@ public sealed partial class ShockerController
     /// <response code="200">The control messages were successfully sent.</response>
     [MapToApiVersion("1")]
     [HttpPost("control")]
+    [TokenPermission(PermissionType.Shockers_Use)]
     [ProducesSuccess]
     [ProducesProblem(HttpStatusCode.NotFound, "Shocker not found")]
     [ProducesProblem(HttpStatusCode.PreconditionFailed, "Shocker is paused")]

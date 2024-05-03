@@ -6,6 +6,7 @@ using OpenShock.API.Services;
 using OpenShock.API.Utils;
 using OpenShock.Common.Models;
 using OpenShock.Common.Redis;
+using OpenShock.ServicesCommon.Authentication.Attributes;
 using OpenShock.ServicesCommon.Errors;
 using OpenShock.ServicesCommon.Problems;
 
@@ -66,6 +67,7 @@ public sealed partial class DevicesController
     /// <response code="200">Successfully updated device</response>
     /// <response code="404">Device does not exist</response>
     [HttpPatch("{deviceId}")]
+    [TokenPermission(PermissionType.Devices_Edit)]
     [ProducesSuccess]
     [ProducesProblem(HttpStatusCode.NotFound, "DeviceNotFound")]
     public async Task<IActionResult> EditDevice([FromRoute] Guid deviceId, [FromBody] DeviceEdit body, [FromServices] IDeviceUpdateService updateService)
@@ -90,6 +92,7 @@ public sealed partial class DevicesController
     /// <response code="404">Device does not exist</response>
     /// <response code="500">Failed to save regenerated token</response>
     [HttpPut("{deviceId}")]
+    [TokenPermission(PermissionType.Devices_Edit)]
     [ProducesSuccess]
     [ProducesProblem(HttpStatusCode.NotFound, "DeviceNotFound")]
     public async Task<IActionResult> RegenerateDeviceToken([FromRoute] Guid deviceId)
@@ -114,6 +117,7 @@ public sealed partial class DevicesController
     /// <response code="200">Successfully deleted device</response>
     /// <response code="404">Device does not exist</response>
     [HttpDelete("{deviceId}")]
+    [TokenPermission(PermissionType.Devices_Edit)]
     [ProducesSuccess]
     [ProducesProblem(HttpStatusCode.NotFound, "DeviceNotFound")]
     public async Task<IActionResult> RemoveDevice([FromRoute] Guid deviceId, [FromServices] IDeviceUpdateService updateService)
@@ -132,6 +136,7 @@ public sealed partial class DevicesController
     /// </summary>
     /// <response code="201">Successfully created device</response>
     [HttpPost]
+    [TokenPermission(PermissionType.Devices_Edit)]
     [ProducesSuccess<Guid>(statusCode: HttpStatusCode.Created)]
     public async Task<BaseResponse<Guid>> CreateDevice([FromServices] IDeviceUpdateService updateService)
     {
@@ -162,6 +167,7 @@ public sealed partial class DevicesController
     /// <response code="200">The pair code</response>
     /// <response code="404">Device does not exist or does not belong to you</response>
     [HttpGet("{deviceId}/pair")]
+    [TokenPermission(PermissionType.Devices_Edit)]
     [ProducesSuccess<string>]
     [ProducesProblem(HttpStatusCode.NotFound, "DeviceNotFound")]
     public async Task<IActionResult> GetPairCode([FromRoute] Guid deviceId)

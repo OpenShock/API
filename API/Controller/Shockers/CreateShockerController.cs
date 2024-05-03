@@ -6,6 +6,7 @@ using OpenShock.API.Models.Requests;
 using OpenShock.API.Services;
 using OpenShock.Common.Models;
 using OpenShock.Common.OpenShockDb;
+using OpenShock.ServicesCommon.Authentication.Attributes;
 using OpenShock.ServicesCommon.Errors;
 using OpenShock.ServicesCommon.Problems;
 
@@ -21,6 +22,7 @@ public sealed partial class ShockerController
     /// <response code="404">Device does not exist</response>
     [HttpPost]
     [ProducesSuccess<Guid>(statusCode: HttpStatusCode.Created)]
+    [TokenPermission(PermissionType.Shockers_Edit)]
     [ProducesProblem(HttpStatusCode.NotFound, "DeviceNotFound")]
     [ProducesProblem(HttpStatusCode.BadRequest, "TooManyShockers")]
     [MapToApiVersion("1")]

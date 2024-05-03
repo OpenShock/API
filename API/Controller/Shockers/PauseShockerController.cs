@@ -5,6 +5,7 @@ using Microsoft.EntityFrameworkCore;
 using OpenShock.API.Models.Requests;
 using OpenShock.API.Services;
 using OpenShock.Common.Models;
+using OpenShock.ServicesCommon.Authentication.Attributes;
 using OpenShock.ServicesCommon.Errors;
 using OpenShock.ServicesCommon.Problems;
 
@@ -21,6 +22,7 @@ public sealed partial class ShockerController
     /// <response code="200">Successfully set pause state</response>
     /// <response code="404">Shocker not found or does not belong to you</response>
     [HttpPost("{shockerId}/pause")]
+    [TokenPermission(PermissionType.Shockers_Pause)]
     [ProducesSuccess<bool?>]
     [ProducesProblem(HttpStatusCode.NotFound, "ShockerNotFound")]    
     [MapToApiVersion("1")]

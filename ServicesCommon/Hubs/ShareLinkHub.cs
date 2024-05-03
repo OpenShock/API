@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using OpenShock.Common.Models;
 using OpenShock.Common.OpenShockDb;
 using OpenShock.Common.Redis;
+using OpenShock.ServicesCommon.Authentication.Services;
 using OpenShock.ServicesCommon.DeviceControl;
 using OpenShock.ServicesCommon.Services.RedisPubSub;
 using OpenShock.ServicesCommon.Utils;
@@ -18,19 +19,24 @@ public sealed class ShareLinkHub : Hub<IShareLinkHub>
     private readonly IHubContext<UserHub, IUserHub> _userHub;
     private readonly ILogger<ShareLinkHub> _logger;
     private readonly IRedisPubService _redisPubService;
+    private readonly ITokenReferenceService<ApiToken> _tokenReferenceService;
+    private IReadOnlyCollection<PermissionType>? _tokenPermissions = null;
 
     public ShareLinkHub(OpenShockContext db, IHubContext<UserHub, IUserHub> userHub, ILogger<ShareLinkHub> logger,
-        IRedisConnectionProvider provider, IRedisPubService redisPubService)
+        IRedisConnectionProvider provider, IRedisPubService redisPubService, ITokenReferenceService<ApiToken> tokenReferenceService)
     {
         _db = db;
         _userHub = userHub;
         _logger = logger;
         _redisPubService = redisPubService;
+        _tokenReferenceService = tokenReferenceService;
         _userSessions = provider.RedisCollection<LoginSession>(false);
     }
 
     public override async Task OnConnectedAsync()
     {
+        _tokenPermissions = _tokenReferenceService.Token?.Permissions;
+        
         var httpContext = Context.GetHttpContext();
         if (httpContext?.GetRouteValue("Id") is not string param || !Guid.TryParse(param, out var id))
         {
@@ -107,6 +113,8 @@ public sealed class ShareLinkHub : Hub<IShareLinkHub>
 
     public Task Control(IEnumerable<Common.Models.WebSocket.User.Control> shocks)
     {
+        if (!_tokenPermissions.IsAllowedAllowOnNull(PermissionType.Shockers_Use)) return Task.CompletedTask;
+        
         return ControlLogic.ControlShareLink(shocks, _db, CustomData.CachedControlLogSender, _userHub.Clients,
             CustomData.ShareLinkId, _redisPubService);
     }

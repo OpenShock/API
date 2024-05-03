@@ -8,6 +8,7 @@ using OpenShock.Common.Models;
 using OpenShock.Common.OpenShockDb;
 using OpenShock.ServicesCommon.Utils;
 using System.Net;
+using OpenShock.ServicesCommon.Authentication.Attributes;
 using OpenShock.ServicesCommon.Errors;
 using OpenShock.ServicesCommon.Problems;
 
@@ -100,6 +101,7 @@ public sealed partial class ShockerController
     /// <response code="404">Shocker does not exists or you do not have access to it.</response>
     /// <returns></returns>
     [HttpPost("{shockerId}/shares")]
+    [TokenPermission(PermissionType.Shockers_Edit)]
     [ProducesSuccess<Guid>]
     [ProducesProblem(HttpStatusCode.NotFound, "ShockerNotFound")]    
     [MapToApiVersion("1")]
@@ -140,6 +142,7 @@ public sealed partial class ShockerController
     /// <response code="200">Successfully removed share code</response>
     /// <response code="404">Share does not exists or device/shocker does not belong to you nor is shared with you</response>
     [HttpDelete("{shockerId}/shares/{sharedWithUserId}")]
+    [TokenPermission(PermissionType.Shockers_Edit)]
     [ProducesSuccess]
     [ProducesProblem(HttpStatusCode.NotFound, "ShockerNotFound")]    
     [MapToApiVersion("1")]
@@ -172,6 +175,7 @@ public sealed partial class ShockerController
     /// <response code="200">Successfully updated share code</response>
     /// <response code="404">The share code does not exist or you do not have access to it.</response>
     [HttpPatch("{shockerId}/shares/{sharedWithUserId}")]
+    [TokenPermission(PermissionType.Shockers_Edit)]
     [ProducesSuccess]
     [ProducesProblem(HttpStatusCode.NotFound, "ShockerNotFound")]
     [MapToApiVersion("1")]
@@ -214,6 +218,7 @@ public sealed partial class ShockerController
     /// <response code="200">Successfully updated pause status share</response>
     /// <response code="404">The share code does not exist or you do not have access to it.</response>
     [HttpPost("{shockerId}/shares/{sharedWithUserId}/pause")]
+    [TokenPermission(PermissionType.Shockers_Pause)]
     [ProducesSuccess]
     [ProducesProblem(HttpStatusCode.NotFound, "ShockerNotFound")]    
     [MapToApiVersion("1")]

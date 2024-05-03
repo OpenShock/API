@@ -9,6 +9,7 @@ namespace OpenShock.API.Controller.Admin;
 
 [ApiController]
 [Rank(RankType.Admin)]
+[UserSessionOnly]
 [Route("/{version:apiVersion}/admin")]
 public sealed partial class AdminController : AuthenticatedSessionControllerBase
 {

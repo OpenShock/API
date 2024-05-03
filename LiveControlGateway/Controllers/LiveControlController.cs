@@ -17,6 +17,7 @@ using OpenShock.LiveControlGateway.LifetimeManager;
 using OpenShock.LiveControlGateway.Models;
 using OpenShock.LiveControlGateway.Websocket;
 using OpenShock.ServicesCommon.Authentication;
+using OpenShock.ServicesCommon.Authentication.Attributes;
 using OpenShock.ServicesCommon.Authentication.Services;
 using OpenShock.ServicesCommon.Models;
 using OpenShock.ServicesCommon.Utils;
@@ -27,6 +28,7 @@ namespace OpenShock.LiveControlGateway.Controllers;
 
 [ApiController]
 [Route("/{version:apiVersion}/ws/live/{deviceId:guid}")]
+[TokenPermission(PermissionType.Shockers_Use)]
 [Authorize(AuthenticationSchemes = OpenShockAuthSchemas.SessionTokenCombo)]
 public sealed class LiveControlController : WebsocketBaseController<IBaseResponse<LiveResponseType>>, IActionFilter
 {

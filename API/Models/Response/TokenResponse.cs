@@ -2,7 +2,7 @@
 
 namespace OpenShock.API.Models.Response;
 
-public class TokenResponse
+public sealed class TokenResponse
 {
     public required Guid Id { get; set; }
 
@@ -12,7 +12,7 @@ public class TokenResponse
 
     public required string CreatedByIp { get; set; } = null!;
 
-    public required DateOnly? ValidUntil { get; set; }
+    public required DateTime? ValidUntil { get; set; }
     
     public required List<PermissionType> Permissions { get; set; }
 }

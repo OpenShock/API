@@ -5,6 +5,7 @@ using Microsoft.EntityFrameworkCore;
 using OpenShock.API.Models.Requests;
 using OpenShock.API.Services;
 using OpenShock.Common.Models;
+using OpenShock.ServicesCommon.Authentication.Attributes;
 using OpenShock.ServicesCommon.Errors;
 using OpenShock.ServicesCommon.Problems;
 
@@ -21,6 +22,7 @@ public sealed partial class ShockerController
     /// <response code="200">Successfully updated shocker</response>
     /// <response code="404">Shocker does not exist</response>
     [HttpPatch("{shockerId}")]
+    [TokenPermission(PermissionType.Shockers_Edit)]
     [ProducesSuccess]
     [ProducesProblem(HttpStatusCode.NotFound, "DeviceNotFound")]
     [ProducesProblem(HttpStatusCode.NotFound, "ShockerNotFound")]

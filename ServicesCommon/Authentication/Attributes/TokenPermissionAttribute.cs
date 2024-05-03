@@ -15,7 +15,7 @@ public class TokenPermissionAttribute : Attribute, IAuthorizationFilter
     {
         _type = type;
     }
-    
+
     public void OnAuthorization(AuthorizationFilterContext context)
     {
         var tokenService = context.HttpContext.RequestServices.GetService<ITokenReferenceService<ApiToken>>();
@@ -27,10 +27,10 @@ public class TokenPermissionAttribute : Attribute, IAuthorizationFilter
         }
 
         if (tokenService.Token == null) return;
-
-        var a = PermissionTypeBindings.PermissionTypeToName;
-        if (tokenService.Token.Permissions.Contains(_type)) return;
-        var missingPermissionError =
+        
+        if(_type.IsAllowed(tokenService.Token.Permissions)) return;
+        
+    var missingPermissionError =
             AuthorizationError.TokenPermissionMissing(_type, tokenService.Token.Permissions);
         context.Result = missingPermissionError.ToObjectResult(context.HttpContext);
     }
