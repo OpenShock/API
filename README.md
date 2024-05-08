@@ -5,20 +5,26 @@ OpenShock backend.
 # Configuration
 
 The API can be configured using the following environment variables:
+Preferred way is a .env file.
 
-| Variable                         | Required | Default value | Allowed / Example value                                                                                  |
-|----------------------------------|----------|---------------|----------------------------------------------------------------------------------------------------------|
-| `OPENSHOCK__DB`                  | x        |               | `Host=postgres-server-host;Port=5432;Database=openshock;Username=openshock;Password=superSecurePassword` |
-| `OPENSHOCK__FRONTENDBASEURL`     | x        |               | `https://my-openshock-instance.net`                                                                      |
-| `OPENSHOCK__COOKIEDOMAIN`        | x        |               | `my-openshock-instance.net`                                                                              |
-| `OPENSHOCK__REDIS__HOST`         | x        |               | `redis-server-host`                                                                                      |
-| `OPENSHOCK__REDIS__PORT`         |          | `6379`        |                                                                                                          |   
-| `OPENSHOCK__REDIS__USER`         |          |               |                                                                                                          |  
-| `OPENSHOCK__REDIS__PASSWORD`     |          |               |                                                                                                          |  
-| `OPENSHOCK__MAIL__SENDER__EMAIL` | x        |               | `system@my-openshock-instance.net`                                                                       |
-| `OPENSHOCK__MAIL__SENDER__NAME`  | x        |               | `MyOpenShockInstance System`                                                                             |
-| `OPENSHOCK__MAIL__TYPE`          | x        |               | `MAILJET`, `SMTP`                                                                                        |
-| `OPENSHOCK__TURNSTILE__ENABLE`   | x        |               | `true`, `false`                                                                                          |
+| Variable                            | Required | Default value | Allowed / Example value                                                                                  |
+|-------------------------------------|----------|---------------|----------------------------------------------------------------------------------------------------------|
+| `OPENSHOCK__DB__CONN`               | x        |               | `Host=postgres-server-host;Port=5432;Database=openshock;Username=openshock;Password=superSecurePassword` |
+| `OPENSHOCK__DB__SKIPMIGRATION`      |          | `false`       | `true`, `false`                                                                                          |
+| `OPENSHOCK__DB__DEBUG`              |          | `false`       | `true`, `false`                                                                                          |
+| `OPENSHOCK__FRONTEND__BASEURL`      | x        |               | `https://my-openshock-instance.net` or `https://shocklink.net`                                           |
+| `OPENSHOCK__FRONTEND__SHORTURL`     | x        |               | `https://myoi.net` or `https://shockl.ink`                                                               |
+| `OPENSHOCK__FRONTEND__COOKIEDOMAIN` | x        |               | `my-openshock-instance.net`                                                                              |
+| `OPENSHOCK__REDIS__HOST`            | x        |               | `redis-server-host`                                                                                      |
+| `OPENSHOCK__REDIS__PORT`            |          | `6379`        |                                                                                                          |   
+| `OPENSHOCK__REDIS__USER`            |          |               |                                                                                                          |  
+| `OPENSHOCK__REDIS__PASSWORD`        |          |               |                                                                                                          |  
+| `OPENSHOCK__MAIL__SENDER__EMAIL`    | x        |               | `system@my-openshock-instance.net`                                                                       |
+| `OPENSHOCK__MAIL__SENDER__NAME`     | x        |               | `MyOpenShockInstance System`                                                                             |
+| `OPENSHOCK__MAIL__TYPE`             | x        |               | `MAILJET`, `SMTP`                                                                                        |
+| `OPENSHOCK__TURNSTILE__ENABLE`      | x        |               | `true`, `false`                                                                                          |
+| `OPENSHOCK__LCG__FQDN`              | x        |               | `de1-gateway.my-openshock-instance.net` `de1-gateway.shocklink.net`                                      |
+| `OPENSHOCK__LCG__COUNTRYCODE`       | x        |               | `DE`                                                                                                     |
 
 ## Turnstile
 
