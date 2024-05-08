@@ -60,14 +60,14 @@ builder.UseContentRoot(Directory.GetCurrentDirectory())
 #pragma warning restore CS0618
         services.AddDbContextPool<OpenShockContext>(builder =>
         {
-            builder.UseNpgsql(config.Db);
+            builder.UseNpgsql(config.Db.Conn);
             builder.EnableSensitiveDataLogging();
             builder.EnableDetailedErrors();
         });
 
         services.AddDbContextFactory<OpenShockContext>(builder =>
         {
-            builder.UseNpgsql(config.Db);
+            builder.UseNpgsql(config.Db.Conn);
             builder.EnableSensitiveDataLogging();
             builder.EnableDetailedErrors();
         });

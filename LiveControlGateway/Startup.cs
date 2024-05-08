@@ -84,6 +84,8 @@ public class Startup
     /// <param name="services"></param>
     public void ConfigureServices(IServiceCollection services)
     {
+        services.AddSingleton(_lcgConfig);
+        
         // ----------------- DATABASE -----------------
         
         // How do I do this now with EFCore?!
