@@ -38,6 +38,9 @@ using WebSocketOptions = Microsoft.AspNetCore.Builder.WebSocketOptions;
 
 namespace OpenShock.LiveControlGateway;
 
+/// <summary>
+/// Startup class for the LCG
+/// </summary>
 public class Startup
 {
     private readonly ForwardedHeadersOptions _forwardedSettings = new()
@@ -48,6 +51,13 @@ public class Startup
         ForwardedForHeaderName = "CF-Connecting-IP"
     };
 
+    private LCGConfig _lcgConfig;
+
+    /// <summary>
+    /// Setup the LCG, configure config and validate
+    /// </summary>
+    /// <param name="configuration"></param>
+    /// <exception cref="Exception"></exception>
     public Startup(IConfiguration configuration)
     {
 #if DEBUG
@@ -55,19 +65,23 @@ public class Startup
         var debugView = root.GetDebugView();
         Console.WriteLine(debugView);
 #endif
-        LCGGlobals.LCGConfig = configuration.GetChildren().First(x => x.Key.Equals("openshock", StringComparison.InvariantCultureIgnoreCase))
-                                   .Get<LCGConfig>() ??
-                               throw new Exception("Couldn't bind config, check config file");
+        _lcgConfig = configuration.GetChildren().First(x => x.Key.Equals("openshock", StringComparison.InvariantCultureIgnoreCase))
+                         .Get<LCGConfig>() ??
+                     throw new Exception("Couldn't bind config, check config file");
 
-        var validator = new ValidationContext(LCGGlobals.LCGConfig);
-        Validator.ValidateObject(LCGGlobals.LCGConfig, validator, true);
+        var validator = new ValidationContext(_lcgConfig);
+        Validator.ValidateObject(_lcgConfig, validator, true);
 
 #if DEBUG
-        Console.WriteLine(JsonSerializer.Serialize(LCGGlobals.LCGConfig,
+        Console.WriteLine(JsonSerializer.Serialize(_lcgConfig,
             new JsonSerializerOptions { WriteIndented = true }));
 #endif
     }
 
+    /// <summary>
+    /// Configures the services for the LCG
+    /// </summary>
+    /// <param name="services"></param>
     public void ConfigureServices(IServiceCollection services)
     {
         // ----------------- DATABASE -----------------
@@ -82,14 +96,14 @@ public class Startup
 #pragma warning restore CS0618
         services.AddDbContextPool<OpenShockContext>(builder =>
         {
-            builder.UseNpgsql(LCGGlobals.LCGConfig.Db);
+            builder.UseNpgsql(_lcgConfig.Db.Conn);
             builder.EnableSensitiveDataLogging();
             builder.EnableDetailedErrors();
         });
         
         services.AddDbContextFactory<OpenShockContext>(builder =>
         {
-            builder.UseNpgsql(LCGGlobals.LCGConfig.Db);
+            builder.UseNpgsql(_lcgConfig.Db.Conn);
             builder.EnableSensitiveDataLogging();
             builder.EnableDetailedErrors();
         });
@@ -99,12 +113,12 @@ public class Startup
         var redisConfig = new ConfigurationOptions
         {
             AbortOnConnectFail = true,
-            Password = LCGGlobals.LCGConfig.Redis.Password,
-            User = LCGGlobals.LCGConfig.Redis.User,
+            Password = _lcgConfig.Redis.Password,
+            User = _lcgConfig.Redis.User,
             Ssl = false,
             EndPoints = new EndPointCollection
             {
-                { LCGGlobals.LCGConfig.Redis.Host, LCGGlobals.LCGConfig.Redis.Port }
+                { _lcgConfig.Redis.Host, _lcgConfig.Redis.Port }
             }
         };
         
@@ -122,7 +136,7 @@ public class Startup
         services.AddSingleton<IGeoLocation, GeoLocation>();
 
         services.AddWebEncoders();
-        services.TryAddSingleton<TimeProvider>(provider => TimeProvider.System);
+        services.TryAddSingleton<TimeProvider>(_ => TimeProvider.System);
         new AuthenticationBuilder(services)
             .AddScheme<AuthenticationSchemeOptions, LoginSessionAuthentication>(
                 OpenShockAuthSchemas.SessionTokenCombo, _ => { })
@@ -135,7 +149,7 @@ public class Startup
         {
             options.AddDefaultPolicy(builder =>
             {
-                builder.SetIsOriginAllowed(s => true);
+                builder.SetIsOriginAllowed(_ => true);
                 builder.AllowAnyHeader();
                 builder.AllowCredentials();
                 builder.AllowAnyMethod();
@@ -236,10 +250,15 @@ public class Startup
         services.AddHostedService<LcgKeepAlive>();
     }
 
+    /// <summary>
+    /// Register middleware and co.
+    /// </summary>
+    /// <param name="app"></param>
+    /// <param name="env"></param>
+    /// <param name="loggerFactory"></param>
     public void Configure(IApplicationBuilder app, IWebHostEnvironment env, ILoggerFactory loggerFactory)
     {
         ApplicationLogging.LoggerFactory = loggerFactory;
-        var logger = ApplicationLogging.CreateLogger<Startup>();
         foreach (var proxy in OpenShockConstants.TrustedProxies)
         {
             var split = proxy.Split('/');

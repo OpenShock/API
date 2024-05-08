@@ -20,7 +20,12 @@ public sealed partial class AccountController
     [ProducesSuccess]
     [ProducesProblem(HttpStatusCode.Unauthorized, "InvalidCredentials")]
     [MapToApiVersion("2")]
-    public async Task<IActionResult> LoginV2([FromBody] LoginV2 body, [FromServices] IAccountService accountService, [FromServices] ICloudflareTurnstileService turnstileService, CancellationToken cancellationToken)
+    public async Task<IActionResult> LoginV2(
+        [FromBody] LoginV2 body,
+        [FromServices] IAccountService accountService,
+        [FromServices] ICloudflareTurnstileService turnstileService,
+        [FromServices] ApiConfig apiConfig,
+        CancellationToken cancellationToken)
     {
         var turnStile = await turnstileService.VerifyUserResponseToken(body.TurnstileResponse, HttpContext.Connection.RemoteIpAddress, cancellationToken);
         if (!turnStile.IsT0) return Problem(TurnstileError.InvalidTurnstile);
@@ -39,7 +44,7 @@ public sealed partial class AccountController
             Secure = true,
             HttpOnly = true,
             SameSite = SameSiteMode.Strict,
-            Domain = "." + APIGlobals.ApiConfig.CookieDomain
+            Domain = "." + apiConfig.Frontend.CookieDomain
         });
 
         return RespondSuccessSimple("Successfully logged in");

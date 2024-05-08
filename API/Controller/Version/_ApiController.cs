@@ -26,7 +26,7 @@ public sealed partial class VersionController : OpenShockControllerBase
     /// <response code="200">The version was successfully retrieved.</response>
     [HttpGet]
     [ProducesSuccess<RootResponse>]
-    public BaseResponse<RootResponse> GetBackendVersion()
+    public BaseResponse<RootResponse> GetBackendVersion([FromServices] ApiConfig apiConfig)
     {
         
         return new BaseResponse<RootResponse>
@@ -36,7 +36,9 @@ public sealed partial class VersionController : OpenShockControllerBase
             {
                 Version = OpenShockBackendVersion,
                 Commit = GitHashAttribute.FullHash,
-                CurrentTime = DateTimeOffset.UtcNow
+                CurrentTime = DateTimeOffset.UtcNow,
+                FrontendUrl = apiConfig.Frontend.BaseUrl,
+                ShortLinkUrl = apiConfig.Frontend.ShortUrl
             }
         };
     }
@@ -46,5 +48,7 @@ public sealed partial class VersionController : OpenShockControllerBase
         public required string Version { get; set; }
         public required string Commit { get; set; }
         public required DateTimeOffset CurrentTime { get; set; }
+        public required Uri FrontendUrl { get; set; }
+        public required Uri ShortLinkUrl { get; set; }
     }
 }

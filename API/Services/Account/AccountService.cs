@@ -25,6 +25,7 @@ public sealed class AccountService : IAccountService
     private readonly IEmailService _emailService;
     private readonly IRedisCollection<LoginSession> _loginSessions;
     private readonly ILogger<AccountService> _logger;
+    private readonly ApiConfig _apiConfig;
 
     /// <summary>
     /// DI Constructor
@@ -33,12 +34,14 @@ public sealed class AccountService : IAccountService
     /// <param name="emailService"></param>
     /// <param name="redisConnectionProvider"></param>
     /// <param name="logger"></param>
+    /// <param name="apiConfig"></param>
     public AccountService(OpenShockContext db, IEmailService emailService,
-        IRedisConnectionProvider redisConnectionProvider, ILogger<AccountService> logger)
+        IRedisConnectionProvider redisConnectionProvider, ILogger<AccountService> logger, ApiConfig apiConfig)
     {
         _db = db;
         _emailService = emailService;
         _logger = logger;
+        _apiConfig = apiConfig;
         _loginSessions = redisConnectionProvider.RedisCollection<LoginSession>(false);
     }
 
@@ -95,7 +98,7 @@ public sealed class AccountService : IAccountService
         await _db.SaveChangesAsync();
 
         await _emailService.VerifyEmail(new Contact(email, username),
-            new Uri(APIGlobals.ApiConfig.FrontendBaseUrl, $"/#/account/activate/{id}/{secret}"));
+            new Uri(_apiConfig.Frontend.BaseUrl, $"/#/account/activate/{id}/{secret}"));
         return new Success<User>(user);
     }
 
@@ -165,7 +168,7 @@ public sealed class AccountService : IAccountService
         await _db.SaveChangesAsync();
 
         await _emailService.PasswordReset(new Contact(user.User.Email, user.User.Name),
-            new Uri(APIGlobals.ApiConfig.FrontendBaseUrl, $"/#/account/password/recover/{passwordReset.Id}/{secret}"));
+            new Uri(_apiConfig.Frontend.BaseUrl, $"/#/account/password/recover/{passwordReset.Id}/{secret}"));
         
         return new Success();
     }

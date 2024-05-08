@@ -6,7 +6,13 @@ using OpenShock.ServicesCommon.Websocket;
 
 namespace OpenShock.LiveControlGateway.Websocket;
 
+/// <summary>
+/// Websocket connection manager
+/// </summary>
 public static class WebsocketManager
 {
+    /// <summary>
+    /// Live control users
+    /// </summary>
     public static readonly SimpleWebsocketCollection<LiveControlController, IBaseResponse<LiveResponseType>> LiveControlUsers = new();
 }

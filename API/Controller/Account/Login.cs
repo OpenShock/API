@@ -19,7 +19,11 @@ public sealed partial class AccountController
     [ProducesSuccess]
     [ProducesProblem(HttpStatusCode.Unauthorized, "InvalidCredentials")]
     [MapToApiVersion("1")]
-    public async Task<IActionResult> Login([FromBody] Login body, [FromServices] IAccountService accountService, CancellationToken cancellationToken)
+    public async Task<IActionResult> Login(
+        [FromBody] Login body,
+        [FromServices] IAccountService accountService,
+        [FromServices] ApiConfig apiConfig,
+        CancellationToken cancellationToken)
     {
         var loginAction = await accountService.Login(body.Email, body.Password, new LoginContext
         {
@@ -36,7 +40,7 @@ public sealed partial class AccountController
             Secure = true,
             HttpOnly = true,
             SameSite = SameSiteMode.Strict,
-            Domain = "." + APIGlobals.ApiConfig.CookieDomain
+            Domain = "." + apiConfig.Frontend.CookieDomain
         });
 
         return RespondSuccessSimple("Successfully logged in");

@@ -9,4 +9,4 @@ builder.ConfigureServices(collection =>
 });
 
 var host = builder.Build();
-host.RunAsync();
+await host.RunAsync();

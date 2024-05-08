@@ -12,6 +12,9 @@ using Semver;
 
 namespace OpenShock.LiveControlGateway.LifetimeManager;
 
+/// <summary>
+/// Lifetime manager for devices, this class is responsible for managing the lifetime of devices
+/// </summary>
 public static class DeviceLifetimeManager
 {
     private static readonly ILogger Logger = ApplicationLogging.CreateLogger(typeof(DeviceLifetimeManager));
@@ -72,6 +75,7 @@ public static class DeviceLifetimeManager
     /// <param name="shocker"></param>
     /// <param name="type"></param>
     /// <param name="intensity"></param>
+    /// <param name="tps"></param>
     /// <returns></returns>
     public static OneOf<Success, DeviceNotFound, ShockerNotFound, ShockerExclusive> ReceiveFrame(Guid device, Guid shocker,
         ControlType type, byte intensity, byte tps)
@@ -135,11 +139,23 @@ public static class DeviceLifetimeManager
     }
 }
 
+/// <summary>
+/// OneOf
+/// </summary>
 public struct DeviceNotFound;
 
+/// <summary>
+/// OneOf
+/// </summary>
 public struct ShockerNotFound;
 
+/// <summary>
+/// OneOf
+/// </summary>
 public struct ShockerExclusive
 {
+    /// <summary>
+    /// How long the exclusive lock is valid
+    /// </summary>
     public required DateTimeOffset Until { get; init; }
 }

@@ -37,6 +37,7 @@ public sealed class DeviceController : FlatbuffersWebsocketBaseController<Gatewa
     private readonly IDbContextFactory<OpenShockContext> _dbContextFactory;
     private readonly IHubContext<UserHub, IUserHub> _userHubContext;
     private readonly IServiceProvider _serviceProvider;
+    private readonly LCGConfig _lcgConfig;
     private static readonly TimeSpan InitialTimeout = TimeSpan.FromSeconds(65);
     private static readonly TimeSpan KeepAliveTimeout = TimeSpan.FromSeconds(35);
     private static readonly object KeepAliveTimeoutInt = (int)KeepAliveTimeout.TotalSeconds;
@@ -55,6 +56,10 @@ public sealed class DeviceController : FlatbuffersWebsocketBaseController<Gatewa
             .CurrentClient;
     }
 
+    /// <summary>
+    /// Authentication context
+    /// </summary>
+    /// <param name="context"></param>
     [NonAction]
     public void OnActionExecuted(ActionExecutedContext context)
     {
@@ -72,19 +77,21 @@ public sealed class DeviceController : FlatbuffersWebsocketBaseController<Gatewa
     /// <param name="dbContextFactory"></param>
     /// <param name="userHubContext"></param>
     /// <param name="serviceProvider"></param>
+    /// <param name="lcgConfig"></param>
     public DeviceController(
         ILogger<DeviceController> logger,
         IHostApplicationLifetime lifetime,
         IRedisConnectionProvider redisConnectionProvider,
         IDbContextFactory<OpenShockContext> dbContextFactory,
         IHubContext<UserHub, IUserHub> userHubContext,
-        IServiceProvider serviceProvider)
+        IServiceProvider serviceProvider, LCGConfig lcgConfig)
         : base(logger, lifetime, GatewayToDeviceMessage.Serializer)
     {
         _redisConnectionProvider = redisConnectionProvider;
         _dbContextFactory = dbContextFactory;
         _userHubContext = userHubContext;
         _serviceProvider = serviceProvider;
+        _lcgConfig = lcgConfig;
         _keepAliveTimer.Elapsed += async (sender, args) =>
         {
             Logger.LogWarning("Keep alive timeout reached, closing websocket connection");
@@ -292,15 +299,15 @@ public sealed class DeviceController : FlatbuffersWebsocketBaseController<Gatewa
                 Id = _currentDevice.Id,
                 Owner = _currentDevice.Owner,
                 FirmwareVersion = FirmwareVersion,
-                Gateway = LCGGlobals.LCGConfig.Fqdn,
+                Gateway = _lcgConfig.Lcg.Fqdn,
                 ConnectedAt = _connected
             }, KeepAliveTimeout);
             return;
         }
 
-        if (online.FirmwareVersion != FirmwareVersion || online.Gateway != LCGGlobals.LCGConfig.Fqdn || online.ConnectedAt != _connected)
+        if (online.FirmwareVersion != FirmwareVersion || online.Gateway != _lcgConfig.Lcg.Fqdn || online.ConnectedAt != _connected)
         {
-            online.Gateway = LCGGlobals.LCGConfig.Fqdn;
+            online.Gateway = _lcgConfig.Lcg.Fqdn;
             online.FirmwareVersion = FirmwareVersion;
             online.ConnectedAt = _connected;
             await deviceOnline.SaveAsync();

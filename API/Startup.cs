@@ -56,16 +56,18 @@ public class Startup
         ForwardedForHeaderName = "CF-Connecting-IP"
     };
 
+    private ApiConfig _apiConfig;
+
     public Startup(IConfiguration configuration)
     {
-        APIGlobals.ApiConfig = configuration.GetChildren()
-                                   .FirstOrDefault(x => x.Key.Equals("openshock", StringComparison.InvariantCultureIgnoreCase))?
-                                   .Get<ApiConfig>() ??
-                               throw new Exception("Couldn't bind config, check config file");
+        _apiConfig = configuration.GetChildren()
+                         .FirstOrDefault(x => x.Key.Equals("openshock", StringComparison.InvariantCultureIgnoreCase))?
+                         .Get<ApiConfig>() ??
+                     throw new Exception("Couldn't bind config, check config file");
 
         var startupLogger = new LoggerConfiguration().ReadFrom.Configuration(configuration).CreateLogger();
 
-        MiniValidation.MiniValidator.TryValidate(APIGlobals.ApiConfig, true, true, out var errors);
+        MiniValidation.MiniValidator.TryValidate(_apiConfig, true, true, out var errors);
         if (errors.Count > 0)
         {
             var sb = new StringBuilder();
@@ -84,6 +86,8 @@ public class Startup
 
     public void ConfigureServices(IServiceCollection services)
     {
+        services.AddSingleton<ApiConfig>(_apiConfig);
+
         // ----------------- DATABASE -----------------
 
         // How do I do this now with EFCore?!
@@ -96,8 +100,8 @@ public class Startup
 #pragma warning restore CS0618
         services.AddDbContextPool<OpenShockContext>(builder =>
         {
-            builder.UseNpgsql(APIGlobals.ApiConfig.Db.Conn);
-            if (APIGlobals.ApiConfig.Db.Debug)
+            builder.UseNpgsql(_apiConfig.Db.Conn);
+            if (_apiConfig.Db.Debug)
             {
                 builder.EnableSensitiveDataLogging();
                 builder.EnableDetailedErrors();
@@ -106,8 +110,8 @@ public class Startup
 
         services.AddPooledDbContextFactory<OpenShockContext>(builder =>
         {
-            builder.UseNpgsql(APIGlobals.ApiConfig.Db.Conn);
-            if (APIGlobals.ApiConfig.Db.Debug)
+            builder.UseNpgsql(_apiConfig.Db.Conn);
+            if (_apiConfig.Db.Debug)
             {
                 builder.EnableSensitiveDataLogging();
                 builder.EnableDetailedErrors();
@@ -117,18 +121,18 @@ public class Startup
 
         // ----------------- REDIS -----------------
 
+
         var redisConfig = new ConfigurationOptions
         {
             AbortOnConnectFail = true,
-            Password = APIGlobals.ApiConfig.Redis.Password,
-            User = APIGlobals.ApiConfig.Redis.User,
+            Password = _apiConfig.Redis.Password,
+            User = _apiConfig.Redis.User,
             Ssl = false,
             EndPoints = new EndPointCollection
             {
-                { APIGlobals.ApiConfig.Redis.Host, APIGlobals.ApiConfig.Redis.Port }
+                { _apiConfig.Redis.Host, _apiConfig.Redis.Port }
             }
         };
-
         services.AddSingleton<IConnectionMultiplexer>(ConnectionMultiplexer.Connect(redisConfig));
         services.AddSingleton<IRedisConnectionProvider, RedisConnectionProvider>();
         services.AddSingleton<IRedisPubService, RedisPubService>();
@@ -139,21 +143,24 @@ public class Startup
         services.AddScoped<IClientAuthService<LinkUser>, ClientAuthService<LinkUser>>();
         services.AddScoped<IClientAuthService<Device>, ClientAuthService<Device>>();
         services.AddScoped<ITokenReferenceService<ApiToken>, TokenReferenceService<ApiToken>>();
-        
+
         services.AddSingleton<IGeoLocation, GeoLocation>();
 
-        var turnStileConfig = APIGlobals.ApiConfig.Turnstile;
 
-        services.AddSingleton(new CloudflareTurnstileOptions
+        services.AddSingleton(x =>
         {
-            SecretKey = turnStileConfig.SecretKey ?? string.Empty,
-            SiteKey = turnStileConfig.SiteKey ?? string.Empty
+            var config = x.GetRequiredService<ApiConfig>();
+            return new CloudflareTurnstileOptions
+            {
+                SecretKey = config.Turnstile.SecretKey ?? string.Empty,
+                SiteKey = config.Turnstile.SiteKey ?? string.Empty
+            };
         });
         services.AddHttpClient<ICloudflareTurnstileService, CloudflareTurnstileService>();
 
 
         // ----------------- MAIL SETUP -----------------
-        var emailConfig = APIGlobals.ApiConfig.Mail;
+        var emailConfig = _apiConfig.Mail;
         switch (emailConfig.Type)
         {
             case ApiConfig.MailConfig.MailType.Mailjet:
@@ -226,7 +233,7 @@ public class Startup
             setup.GroupNameFormat = "VVV";
             setup.SubstituteApiVersionInUrl = true;
         });
-        
+
         services.ConfigureHttpJsonOptions(options =>
         {
             options.SerializerOptions.PropertyNameCaseInsensitive = true;
@@ -234,9 +241,9 @@ public class Startup
             options.SerializerOptions.Converters.Add(new PermissionTypeConverter());
             options.SerializerOptions.Converters.Add(new JsonStringEnumConverter());
         });
-        
+
         services.AddProblemDetails();
-        
+
         services.Configure<ApiBehaviorOptions>(options =>
         {
             options.InvalidModelStateResponseFactory = context =>
@@ -320,7 +327,7 @@ public class Startup
         redisConnection.CreateIndex(typeof(LcgNode));
 
 
-        if (!APIGlobals.ApiConfig.Db.SkipMigration)
+        if (!_apiConfig.Db.SkipMigration)
         {
             logger.LogInformation("Running database migrations...");
             using var scope = app.ApplicationServices.CreateScope();

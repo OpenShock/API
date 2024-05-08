@@ -6,6 +6,9 @@ using OpenShock.ServicesCommon.Utils;
 
 namespace OpenShock.LiveControlGateway.Websocket;
 
+/// <summary>
+/// Flatbuffers websocket utilities
+/// </summary>
 public static class FlatbufferWebSocketUtils
 {
     private const uint MaxMessageSize = 512_000; // 512 000 bytes
@@ -110,6 +113,9 @@ public static class FlatbufferWebSocketUtils
 /// </summary>
 public readonly struct DeserializeFailed
 {
+    /// <summary>
+    /// Exception that caused the failure
+    /// </summary>
     public required Exception Exception { get; init; }
 }
 

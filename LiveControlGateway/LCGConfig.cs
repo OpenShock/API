@@ -2,23 +2,34 @@
 
 using System.ComponentModel.DataAnnotations;
 using OpenShock.Common.Utils;
+using OpenShock.ServicesCommon.Config;
 
 namespace OpenShock.LiveControlGateway;
 
-public class LCGConfig
+/// <summary>
+/// Config for the LCG
+/// </summary>
+public class LCGConfig : BaseConfig
 {
-    [Required(AllowEmptyStrings = false)] public required string Fqdn { get; set; }
+    /// <summary>
+    /// LCG specific config instance
+    /// </summary>
+    [Required] public required LCGPartConfig Lcg { get; init; }
     
-    [Alpha2CountryCode]
-    public required string CountryCode { get; set; }
-    [Required(AllowEmptyStrings = false)] public required string Db { get; init; }
-    public required RedisConfig Redis { get; init; }
-
-    public class RedisConfig
+    /// <summary>
+    /// LCG specific config
+    /// </summary>
+    public sealed class LCGPartConfig
     {
-        [Required(AllowEmptyStrings = false)] public required string Host { get; init; }
-        [Required(AllowEmptyStrings = false)] public required string User { get; init; }
-        [Required(AllowEmptyStrings = false)] public required string Password { get; init; }
-        public required ushort Port { get; init; }
+        /// <summary>
+        /// FQDN of the LCG
+        /// </summary>
+        [Required(AllowEmptyStrings = false)] public required string Fqdn { get; set; }
+    
+        /// <summary>
+        /// A valid country code by ISO 3166-1 alpha-2 https://en.wikipedia.org/wiki/ISO_3166-1_alpha-2
+        /// </summary>
+        [Alpha2CountryCode]
+        public required string CountryCode { get; set; }
     }
 }

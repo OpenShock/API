@@ -25,15 +25,15 @@ public sealed class InstanceDetailsController : OpenShockControllerBase
     [HttpGet]
     [ProducesSlimSuccess<InstanceDetailsResponse>]
     [MapToApiVersion("1")]
-    public InstanceDetailsResponse GetNodeInfo()
+    public InstanceDetailsResponse GetNodeInfo([FromServices] LCGConfig lcgConfig)
     {
         return new InstanceDetailsResponse
         {
             Name = AssemblyNameString,
             Version = AssemblyVersion,
             CurrentTime = DateTimeOffset.UtcNow,
-            Fqdn = LCGGlobals.LCGConfig.Fqdn,
-            CountryCode = LCGGlobals.LCGConfig.CountryCode
+            Fqdn = lcgConfig.Lcg.Fqdn,
+            CountryCode = lcgConfig.Lcg.CountryCode
         };
     }
 

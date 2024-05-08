@@ -17,6 +17,7 @@ public sealed partial class AccountController
     /// <param name="body"></param>
     /// <param name="accountService"></param>
     /// <param name="turnstileService"></param>
+    /// <param name="apiConfig"></param>
     /// <param name="cancellationToken"></param>
     /// <response code="200">User successfully signed up</response>
     /// <response code="400">Username or email already exists</response>
@@ -25,11 +26,14 @@ public sealed partial class AccountController
     [ProducesProblem(HttpStatusCode.Conflict, "EmailOrUsernameAlreadyExists")]
     [ProducesProblem(HttpStatusCode.Forbidden, "InvalidTurnstileResponse")]
     [MapToApiVersion("2")]
-    public async Task<IActionResult> SignUpV2([FromBody] SignUpV2 body,
-        [FromServices] IAccountService accountService, [FromServices] ICloudflareTurnstileService turnstileService,
+    public async Task<IActionResult> SignUpV2(
+        [FromBody] SignUpV2 body,
+        [FromServices] IAccountService accountService,
+        [FromServices] ICloudflareTurnstileService turnstileService,
+        [FromServices] ApiConfig apiConfig,
         CancellationToken cancellationToken)
     {
-        if (APIGlobals.ApiConfig.Turnstile.Enabled)
+        if (apiConfig.Turnstile.Enabled)
         {
             var turnStile = await turnstileService.VerifyUserResponseToken(body.TurnstileResponse,
                 HttpContext.Connection.RemoteIpAddress, cancellationToken);

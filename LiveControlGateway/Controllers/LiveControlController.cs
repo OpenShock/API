@@ -26,6 +26,9 @@ using Timer = System.Timers.Timer;
 
 namespace OpenShock.LiveControlGateway.Controllers;
 
+/// <summary>
+/// Live control controller
+/// </summary>
 [ApiController]
 [Route("/{version:apiVersion}/ws/live/{deviceId:guid}")]
 [TokenPermission(PermissionType.Shockers_Use)]
@@ -46,10 +49,10 @@ public sealed class LiveControlController : WebsocketBaseController<IBaseRespons
         Live = true
     };
 
-    private LinkUser _currentUser;
+    private LinkUser _currentUser = null!;
     private Guid? _deviceId;
     private Device? _device;
-    private Dictionary<Guid, LiveShockerPermission> _sharedShockers;
+    private Dictionary<Guid, LiveShockerPermission> _sharedShockers = new();
     private byte _tps = 10;
     
     /// <summary>
@@ -64,6 +67,12 @@ public sealed class LiveControlController : WebsocketBaseController<IBaseRespons
 
     private readonly Timer _pingTimer = new(PingInterval);
 
+    /// <summary>
+    /// DI Constructor
+    /// </summary>
+    /// <param name="db"></param>
+    /// <param name="logger"></param>
+    /// <param name="lifetime"></param>
     public LiveControlController(OpenShockContext db,
         ILogger<LiveControlController> logger, IHostApplicationLifetime lifetime) : base(logger, lifetime)
     {
@@ -533,7 +542,17 @@ public sealed class LiveControlController : WebsocketBaseController<IBaseRespons
     }
 }
 
+/// <summary>
+/// OneOf
+/// </summary>
 public struct LiveNotEnabled;
 
+/// <summary>
+/// OneOf
+/// </summary>
 public struct NoPermission;
+
+/// <summary>
+/// OneOf
+/// </summary>
 public struct ShockerPaused;
