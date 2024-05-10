@@ -80,7 +80,3 @@ LCG: https://de1-gateway.shocklink.net
 ## Using Docker
 
 See [docker-compose.yml](docker-compose.yml).
-
-# Current struggles
-
-+ Dependency with Mailjet templates
