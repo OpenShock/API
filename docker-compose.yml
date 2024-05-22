@@ -32,7 +32,9 @@ services:
     environment:
       OPENSHOCK__DB__CONN: Host=docker-node;Port=1337;Database=openshock;Username=root;Password=root
       OPENSHOCK__REDIS__HOST: redis
-      OPENSHOCK__FRONTENDBASEURL: https://shocklink.net
+      OPENSHOCK__FRONTEND__BASEURL: https://shocklink.net
+      OPENSHOCK__FRONTEND__SHORTURL: https://shockl.ink
+      OPENSHOCK__FRONTEND__COOKIEDOMAIN: shocklink.net
       OPENSHOCK__MAIL__TYPE: MAILJET # MAILJET or SMTP, check Documentation
       OPENSHOCK__MAIL__MAILJET__KEY: mailjetkey
       OPENSHOCK__MAIL__MAILJET__SECRET: mailjetsecret
@@ -55,10 +57,10 @@ services:
     networks:
      - openshock
     environment:
-      OPENSHOCK__DB=Host: db;Port=5432;Database=shocklink;Username=shocklink;Password=someSuperSecurePassword
+      OPENSHOCK__DB__CONN=Host: db;Port=5432;Database=shocklink;Username=shocklink;Password=someSuperSecurePassword
       OPENSHOCK__REDIS__HOST: redis
-      OPENSHOCK__COUNTRYCODE: DE
-      OPENSHOCK__FQDN: de1-gateway.shocklink.net
+      OPENSHOCK__LCG__COUNTRYCODE: DE
+      OPENSHOCK__LCG__FQDN: de1-gateway.shocklink.net
 
   cron:
     image: ghcr.io/openshock/cron:master
@@ -66,7 +68,7 @@ services:
     networks:
      - openshock
     environment:
-      OPENSHOCK__DB=Host: db;Port=5432;Database=shocklink;Username=shocklink;Password=someSuperSecurePassword
+      OPENSHOCK__DB__CONN=Host: db;Port=5432;Database=shocklink;Username=shocklink;Password=someSuperSecurePassword
       OPENSHOCK__REDIS__HOST: redis
 
 
