@@ -19,15 +19,19 @@ public sealed partial class DeviceController
     [HttpGet("assignLCG")]
     [ProducesSuccess<LcgNodeResponse>]
     [ProducesProblem(HttpStatusCode.ServiceUnavailable, "NoLcgNodesAvailable")]
-    public async Task<IActionResult> GetLiveControlGateway([FromServices] IGeoLocation geoLocation, [FromServices] IWebHostEnvironment env)
+    public async Task<IActionResult> GetLiveControlGateway([FromServices] IGeoLocation geoLocation,
+        [FromServices] IWebHostEnvironment env)
     {
         var messageBuilder = new StringBuilder();
         var countryCode = CountryCodeMapper.CountryInfo.Alpha2CountryCode.DefaultAlphaCode;
-        if (HttpContext.Request.Headers.TryGetValue("CF-IPCountry", out var countryHeader) && !string.IsNullOrEmpty(countryHeader))
+        if (HttpContext.Request.Headers.TryGetValue("CF-IPCountry", out var countryHeader) &&
+            !string.IsNullOrEmpty(countryHeader))
         {
             var countryHeaderString = countryHeader.ToString();
             if (CountryCodeMapper.CountryInfo.Alpha2CountryCode.TryParseAndValidate(countryHeaderString, out var code))
+            {
                 countryCode = code;
+            }
             else
             {
                 _logger.LogWarning("Country alpha2 code could not be parsed [{CountryHeader}]", countryHeaderString);
