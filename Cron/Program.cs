@@ -1,15 +1,7 @@
-using Microsoft.EntityFrameworkCore;
-using Npgsql;
-using OpenShock.Common.Models;
-using OpenShock.Common.OpenShockDb;
+using Hangfire;
 using OpenShock.Cron;
 using OpenShock.Cron.Jobs;
-using OpenShock.ServicesCommon.Services.RedisPubSub;
-using Quartz;
-using Redis.OM;
-using Redis.OM.Contracts;
 using Serilog;
-using StackExchange.Redis;
 
 HostBuilder builder = new();
 builder.UseContentRoot(Directory.GetCurrentDirectory())
@@ -24,6 +16,7 @@ builder.UseContentRoot(Directory.GetCurrentDirectory())
             .AddJsonFile($"appsettings.{context.HostingEnvironment.EnvironmentName}.json", optional: true,
                 reloadOnChange: false);
 
+        config.AddUserSecrets(typeof(Program).Assembly);
         config.AddEnvironmentVariables();
         if (args is { Length: > 0 }) config.AddCommandLine(args);
     })
@@ -34,73 +27,29 @@ builder.UseContentRoot(Directory.GetCurrentDirectory())
         options.ValidateOnBuild = isDevelopment;
     })
     .UseSerilog((context, _, config) => { config.ReadFrom.Configuration(context.Configuration); })
-    .ConfigureServices((context, services) =>
+    .ConfigureWebHostDefaults(webBuilder =>
     {
-        
-        
+        webBuilder.UseKestrel();
+        webBuilder.ConfigureKestrel(serverOptions =>
+        {
+            serverOptions.ListenAnyIP(780);
 #if DEBUG
-        var root = (IConfigurationRoot)context.Configuration;
-        var debugView = root.GetDebugView();
-        Console.WriteLine(debugView);
+            serverOptions.ListenAnyIP(7443, options => { options.UseHttps("devcert.pfx"); });
 #endif
-        var config = context.Configuration.GetChildren()
-                                   .First(x => x.Key.Equals("openshock", StringComparison.InvariantCultureIgnoreCase))
-                                   .Get<CronConf>() ??
-                               throw new Exception("Couldn't bind config, check config file");
-        
-        // ----------------- DATABASE -----------------
-
-        // How do I do this now with EFCore?!
-#pragma warning disable CS0618
-        NpgsqlConnection.GlobalTypeMapper.MapEnum<ControlType>();
-        NpgsqlConnection.GlobalTypeMapper.MapEnum<PermissionType>();
-        NpgsqlConnection.GlobalTypeMapper.MapEnum<ShockerModelType>();
-        NpgsqlConnection.GlobalTypeMapper.MapEnum<RankType>();
-        NpgsqlConnection.GlobalTypeMapper.MapEnum<OtaUpdateStatus>();
-#pragma warning restore CS0618
-        services.AddDbContextPool<OpenShockContext>(builder =>
-        {
-            builder.UseNpgsql(config.Db.Conn);
-            builder.EnableSensitiveDataLogging();
-            builder.EnableDetailedErrors();
+            serverOptions.Limits.RequestHeadersTimeout = TimeSpan.FromMilliseconds(3000);
         });
-
-        services.AddDbContextFactory<OpenShockContext>(builder =>
-        {
-            builder.UseNpgsql(config.Db.Conn);
-            builder.EnableSensitiveDataLogging();
-            builder.EnableDetailedErrors();
-        });
-
-        // ----------------- REDIS -----------------
-
-        var redisConfig = new ConfigurationOptions
-        {
-            AbortOnConnectFail = true,
-            Password = config.Redis.Password,
-            User = config.Redis.User,
-            Ssl = false,
-            EndPoints = new EndPointCollection
-            {
-                { config.Redis.Host, config.Redis.Port }
-            }
-        };
-
-        services.AddSingleton<IConnectionMultiplexer>(ConnectionMultiplexer.Connect(redisConfig));
-        services.AddSingleton<IRedisConnectionProvider, RedisConnectionProvider>();
-        services.AddSingleton<IRedisPubService, RedisPubService>();
-
-        services.AddMemoryCache();
-        
-        services.AddQuartz(q =>
-        {
-            q.ScheduleJob<OtaTimeoutJob>(t => t.WithCronSchedule("0 */1 * * * ?"));
-        });
-        services.AddQuartzHostedService(options => { options.WaitForJobsToComplete = true; });
+        webBuilder.UseStartup<Startup>();
     });
 try
 {
-    await builder.Build().RunAsync();
+    var app = builder.Build();
+
+    var jobManagerV2 = app.Services.GetRequiredService<IRecurringJobManagerV2>();
+    jobManagerV2.AddOrUpdate<OtaTimeoutJob>(
+        "otaTimeoutJob", job => job.Execute(), "0 */1 * * * ?");
+    
+    await app.RunAsync();
+
 }
 catch (Exception e)
 {

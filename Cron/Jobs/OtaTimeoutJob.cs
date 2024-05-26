@@ -1,11 +1,10 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using OpenShock.Common.Models;
 using OpenShock.Common.OpenShockDb;
-using Quartz;
 
 namespace OpenShock.Cron.Jobs;
 
-public sealed class OtaTimeoutJob : IJob
+public sealed class OtaTimeoutJob
 {
     private readonly OpenShockContext _db;
 
@@ -18,7 +17,7 @@ public sealed class OtaTimeoutJob : IJob
         _db = db;
     }
 
-    public async Task Execute(IJobExecutionContext context)
+    public async Task Execute()
     {
         var time = DateTime.UtcNow.Subtract(TimeSpan.FromMinutes(10));
         await _db.DeviceOtaUpdates

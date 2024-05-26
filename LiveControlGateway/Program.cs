@@ -14,6 +14,7 @@ builder.UseContentRoot(Directory.GetCurrentDirectory())
             .AddJsonFile("appsettings.Custom.json", optional: true, reloadOnChange: false)
             .AddJsonFile($"appsettings.{context.HostingEnvironment.EnvironmentName}.json", optional: true, reloadOnChange: false);
 
+        config.AddUserSecrets(typeof(Program).Assembly);
         config.AddEnvironmentVariables();
         if (args is { Length: > 0 }) config.AddCommandLine(args);
     })
