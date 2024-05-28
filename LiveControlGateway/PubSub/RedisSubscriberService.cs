@@ -102,6 +102,9 @@ public sealed class RedisSubscriberService : IHostedService, IAsyncDisposable
         GC.SuppressFinalize(this);
     }
 
+    /// <summary>
+    /// Destructor, just in case
+    /// </summary>
     ~RedisSubscriberService()
     {
         DisposeAsync().AsTask().Wait();

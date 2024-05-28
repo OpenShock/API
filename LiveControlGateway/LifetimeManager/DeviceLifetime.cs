@@ -115,9 +115,9 @@ public sealed class DeviceLifetime : IAsyncDisposable
 
         if (commandList == null) return;
 
-        await _deviceController.QueueMessage(new GatewayToDeviceMessage
+        await _deviceController.QueueMessage(new GatewayToHubMessage
         {
-            Payload = new GatewayToDeviceMessagePayload(new ShockerCommandList
+            Payload = new GatewayToHubMessagePayload(new ShockerCommandList
             {
                 Commands = commandList
             })
@@ -204,9 +204,9 @@ public sealed class DeviceLifetime : IAsyncDisposable
             });
         }
 
-        return _deviceController.QueueMessage(new GatewayToDeviceMessage
+        return _deviceController.QueueMessage(new GatewayToHubMessage
         {
-            Payload = new GatewayToDeviceMessagePayload(new ShockerCommandList { Commands = shocksTransformed })
+            Payload = new GatewayToHubMessagePayload(new ShockerCommandList { Commands = shocksTransformed })
         });
     }
 
@@ -216,9 +216,9 @@ public sealed class DeviceLifetime : IAsyncDisposable
     /// <param name="enabled"></param>
     /// <returns></returns>
     public ValueTask ControlCaptive(bool enabled) =>
-        _deviceController.QueueMessage(new GatewayToDeviceMessage
+        _deviceController.QueueMessage(new GatewayToHubMessage
         {
-            Payload = new GatewayToDeviceMessagePayload(new CaptivePortalConfig
+            Payload = new GatewayToHubMessagePayload(new CaptivePortalConfig
             {
                 Enabled = enabled
             })
@@ -229,9 +229,9 @@ public sealed class DeviceLifetime : IAsyncDisposable
     /// </summary>
     /// <returns></returns>
     public ValueTask OtaInstall(SemVersion semVersion) =>
-        _deviceController.QueueMessage(new GatewayToDeviceMessage
+        _deviceController.QueueMessage(new GatewayToHubMessage
         {
-            Payload = new GatewayToDeviceMessagePayload(new OtaInstall
+            Payload = new GatewayToHubMessagePayload(new OtaInstall
             {
                 Version = semVersion.ToSemVer()
             })

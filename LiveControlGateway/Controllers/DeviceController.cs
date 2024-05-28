@@ -30,7 +30,7 @@ namespace OpenShock.LiveControlGateway.Controllers;
 [ApiController]
 [Authorize(AuthenticationSchemes = OpenShockAuthSchemas.DeviceToken)]
 [Route("/{version:apiVersion}/ws/device")]
-public sealed class DeviceController : FlatbuffersWebsocketBaseController<GatewayToDeviceMessage>, IActionFilter
+public sealed class DeviceController : FlatbuffersWebsocketBaseController<GatewayToHubMessage>, IActionFilter
 {
     private Device _currentDevice = null!;
     private readonly IRedisConnectionProvider _redisConnectionProvider;
@@ -85,7 +85,7 @@ public sealed class DeviceController : FlatbuffersWebsocketBaseController<Gatewa
         IDbContextFactory<OpenShockContext> dbContextFactory,
         IHubContext<UserHub, IUserHub> userHubContext,
         IServiceProvider serviceProvider, LCGConfig lcgConfig)
-        : base(logger, lifetime, GatewayToDeviceMessage.Serializer)
+        : base(logger, lifetime, GatewayToHubMessage.Serializer)
     {
         _redisConnectionProvider = redisConnectionProvider;
         _dbContextFactory = dbContextFactory;
@@ -110,7 +110,7 @@ public sealed class DeviceController : FlatbuffersWebsocketBaseController<Gatewa
                 if (WebSocket?.State == WebSocketState.Aborted) return;
                 var message =
                     await FlatbufferWebSocketUtils.ReceiveFullMessageAsyncNonAlloc(WebSocket!,
-                        DeviceToGatewayMessage.Serializer,
+                        HubToGatewayMessage.Serializer,
                         Linked.Token);
 
                 // All is good, normal message, deserialize and handle
@@ -181,7 +181,7 @@ public sealed class DeviceController : FlatbuffersWebsocketBaseController<Gatewa
 
     private OtaUpdateStatus? _lastStatus;
 
-    private async Task Handle(DeviceToGatewayMessagePayload payload)
+    private async Task Handle(HubToGatewayMessagePayload payload)
     {
         await using var scope = _serviceProvider.CreateAsyncScope();
         var otaService = scope.ServiceProvider.GetRequiredService<IOtaService>();
@@ -189,11 +189,11 @@ public sealed class DeviceController : FlatbuffersWebsocketBaseController<Gatewa
         Logger.LogTrace("Received payload [{Kind}] from device [{DeviceId}]", payload.Kind, _currentDevice.Id);
         switch (payload.Kind)
         {
-            case DeviceToGatewayMessagePayload.ItemKind.KeepAlive:
+            case HubToGatewayMessagePayload.ItemKind.KeepAlive:
                 await SelfOnline();
                 break;
 
-            case DeviceToGatewayMessagePayload.ItemKind.OtaInstallStarted:
+            case HubToGatewayMessagePayload.ItemKind.OtaInstallStarted:
                 _lastStatus = OtaUpdateStatus.Started;
                 await HcOwner.OtaInstallStarted(
                     _currentDevice.Id,
@@ -205,7 +205,7 @@ public sealed class DeviceController : FlatbuffersWebsocketBaseController<Gatewa
                     payload.OtaInstallStarted.Version!.ToSemVersion());
                 break;
 
-            case DeviceToGatewayMessagePayload.ItemKind.OtaInstallProgress:
+            case HubToGatewayMessagePayload.ItemKind.OtaInstallProgress:
                 await HcOwner.OtaInstallProgress(
                     _currentDevice.Id,
                     payload.OtaInstallProgress.UpdateId,
@@ -220,7 +220,7 @@ public sealed class DeviceController : FlatbuffersWebsocketBaseController<Gatewa
 
                 break;
 
-            case DeviceToGatewayMessagePayload.ItemKind.OtaInstallFailed:
+            case HubToGatewayMessagePayload.ItemKind.OtaInstallFailed:
                 await HcOwner.OtaInstallFailed(
                     _currentDevice.Id,
                     payload.OtaInstallFailed.UpdateId,
@@ -233,7 +233,7 @@ public sealed class DeviceController : FlatbuffersWebsocketBaseController<Gatewa
                 _lastStatus = OtaUpdateStatus.Error;
                 break;
 
-            case DeviceToGatewayMessagePayload.ItemKind.BootStatus:
+            case HubToGatewayMessagePayload.ItemKind.BootStatus:
                 if (payload.BootStatus.BootType == FirmwareBootType.NewFirmware)
                 {
                     await HcOwner.OtaInstallSucceeded(
@@ -274,7 +274,7 @@ public sealed class DeviceController : FlatbuffersWebsocketBaseController<Gatewa
 
                 break;
 
-            case DeviceToGatewayMessagePayload.ItemKind.NONE:
+            case HubToGatewayMessagePayload.ItemKind.NONE:
             default:
                 Logger.LogWarning("Payload kind not defined [{Kind}]", payload.Kind);
                 break;
