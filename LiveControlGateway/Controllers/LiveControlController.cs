@@ -319,6 +319,7 @@ public sealed class LiveControlController : WebsocketBaseController<IBaseRespons
         {
             LiveRequestType.Pong => IntakePong(request.Data),
             LiveRequestType.Frame => IntakeFrame(request.Data),
+            LiveRequestType.BulkFrame => IntakeBulkFrame(request.Data),
             _ => QueueMessage(new Common.Models.WebSocket.BaseResponse<LiveResponseType>()
             {
                 ResponseType = LiveResponseType.RequestTypeNotFound
@@ -377,7 +378,54 @@ public sealed class LiveControlController : WebsocketBaseController<IBaseRespons
         });
     }
 
+    /// <summary>
+    /// Intake bulk frame
+    /// </summary>
+    /// <param name="requestData"></param>
+    /// <returns></returns>
+    private async Task IntakeBulkFrame(JsonDocument? requestData)
+    {
+        ClientLiveFrame[]? frames;
+        try
+        {
+            frames = requestData.NewSlDeserialize<ClientLiveFrame[]>();
 
+            if (frames is not { Length: > 0 })
+            {
+                Logger.LogWarning("Error while deserializing bulk frame");
+                await QueueMessage(new Common.Models.WebSocket.BaseResponse<LiveResponseType>
+                {
+                    ResponseType = LiveResponseType.InvalidData
+                });
+                return;
+            }
+        }
+        catch (Exception e)
+        {
+            Logger.LogWarning(e, "Error while deserializing frame");
+            await QueueMessage(new Common.Models.WebSocket.BaseResponse<LiveResponseType>
+            {
+                ResponseType = LiveResponseType.InvalidData
+            });
+            return;
+        }
+
+        var task = Task.WhenAll(frames.Select(ProcessFrameInternal));
+
+        try
+        {
+            await task;
+        }
+        catch (Exception e)
+        {
+            Logger.LogError(e, "Exception while processing bulk frame. One or more intake frame tasks failed");
+        }
+    }
+
+    /// <summary>
+    /// Intake frame
+    /// </summary>
+    /// <param name="requestData"></param>
     private async Task IntakeFrame(JsonDocument? requestData)
     {
         Logger.LogTrace("Intake frame");
@@ -408,6 +456,11 @@ public sealed class LiveControlController : WebsocketBaseController<IBaseRespons
 
         Logger.LogTrace("Frame: {@Frame}", frame);
 
+        await ProcessFrameInternal(frame);
+    }
+
+    private async Task ProcessFrameInternal(ClientLiveFrame frame)
+    {
         var permCheck = CheckFramePermissions(frame.Shocker, frame.Type);
         if (permCheck.IsT1)
         {
