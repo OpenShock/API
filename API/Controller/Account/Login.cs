@@ -18,6 +18,7 @@ public sealed partial class AccountController
     [HttpPost("login")]
     [ProducesSuccess]
     [ProducesProblem(HttpStatusCode.Unauthorized, "InvalidCredentials")]
+    [ProducesProblem(HttpStatusCode.Forbidden, "InvalidDomain")]
     [MapToApiVersion("1")]
     public async Task<IActionResult> Login(
         [FromBody] Login body,
@@ -25,6 +26,9 @@ public sealed partial class AccountController
         [FromServices] ApiConfig apiConfig,
         CancellationToken cancellationToken)
     {
+        var cookieDomainToUse = apiConfig.Frontend.CookieDomain.Split(',').FirstOrDefault(domain => Request.Headers.Host.ToString().EndsWith(domain, StringComparison.OrdinalIgnoreCase));
+        if (cookieDomainToUse == null) return Problem(LoginError.InvalidDomain);
+        
         var loginAction = await accountService.Login(body.Email, body.Password, new LoginContext
         {
             Ip = HttpContext.Connection.RemoteIpAddress?.MapToIPv4().ToString() ?? string.Empty,
@@ -40,7 +44,7 @@ public sealed partial class AccountController
             Secure = true,
             HttpOnly = true,
             SameSite = SameSiteMode.Strict,
-            Domain = "." + apiConfig.Frontend.CookieDomain
+            Domain = "." + cookieDomainToUse
         });
 
         return RespondSuccessSimple("Successfully logged in");

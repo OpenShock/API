@@ -19,6 +19,7 @@ public sealed partial class AccountController
     [HttpPost("login")]
     [ProducesSuccess]
     [ProducesProblem(HttpStatusCode.Unauthorized, "InvalidCredentials")]
+    [ProducesProblem(HttpStatusCode.Forbidden, "InvalidDomain")]
     [MapToApiVersion("2")]
     public async Task<IActionResult> LoginV2(
         [FromBody] LoginV2 body,
@@ -27,6 +28,9 @@ public sealed partial class AccountController
         [FromServices] ApiConfig apiConfig,
         CancellationToken cancellationToken)
     {
+        var cookieDomainToUse = apiConfig.Frontend.CookieDomain.Split(',').FirstOrDefault(domain => Request.Headers.Host.ToString().EndsWith(domain, StringComparison.OrdinalIgnoreCase));
+        if (cookieDomainToUse == null) return Problem(LoginError.InvalidDomain);
+
         var turnStile = await turnstileService.VerifyUserResponseToken(body.TurnstileResponse, HttpContext.Connection.RemoteIpAddress, cancellationToken);
         if (!turnStile.IsT0) return Problem(TurnstileError.InvalidTurnstile);
             
@@ -38,13 +42,14 @@ public sealed partial class AccountController
 
         if (loginAction.IsT1) return Problem(LoginError.InvalidCredentials);
         
+        
         HttpContext.Response.Cookies.Append("openShockSession", loginAction.AsT0.Value, new CookieOptions
         {
             Expires = new DateTimeOffset(DateTime.UtcNow.Add(accountService.SessionLifetime)),
             Secure = true,
             HttpOnly = true,
             SameSite = SameSiteMode.Strict,
-            Domain = "." + apiConfig.Frontend.CookieDomain
+            Domain = "." + cookieDomainToUse
         });
 
         return RespondSuccessSimple("Successfully logged in");
