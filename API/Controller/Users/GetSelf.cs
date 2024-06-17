@@ -23,7 +23,7 @@ public sealed partial class UsersController
             Rank = CurrentUser.DbUser.Rank
         }
     };
-    public class SelfResponse
+    public sealed class SelfResponse
     {
         public required Guid Id { get; set; }
         public required string Name { get; set; }
