@@ -43,7 +43,7 @@ public sealed partial class VersionController : OpenShockControllerBase
         };
     }
 
-    public class RootResponse
+    public sealed class RootResponse
     {
         public required string Version { get; set; }
         public required string Commit { get; set; }
