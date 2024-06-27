@@ -2,6 +2,9 @@
 
 OpenShock backend.
 
+### API Documentation 
+https://api.shocklink.net/swagger/
+
 # Configuration
 
 The API can be configured using the following environment variables:
