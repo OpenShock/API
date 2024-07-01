@@ -25,7 +25,7 @@
     <ItemGroup>
         <PackageReference Include="Asp.Versioning.Mvc.ApiExplorer" Version="8.1.0" />
         <PackageReference Include="Fluid.Core" Version="2.10.0" />
-        <PackageReference Include="MailKit" Version="4.6.0" />
+        <PackageReference Include="MailKit" Version="4.7.0" />
         <PackageReference Include="Microsoft.AspNetCore.SignalR.StackExchangeRedis" Version="8.0.6" />
         <PackageReference Include="Microsoft.EntityFrameworkCore" Version="8.0.6" />
         <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="8.0.6">
@@ -45,7 +45,7 @@
         <PackageReference Include="Serilog.AspNetCore" Version="8.0.1" />
         <PackageReference Include="Serilog.Sinks.Console" Version="6.0.0" />
         <PackageReference Include="Serilog.Sinks.Grafana.Loki" Version="8.3.0" />
-        <PackageReference Include="StackExchange.Redis" Version="2.7.33" />
+        <PackageReference Include="StackExchange.Redis" Version="2.8.0" />
         <PackageReference Include="Swashbuckle.AspNetCore" Version="6.6.2" />
         <PackageReference Include="Swashbuckle.AspNetCore.Swagger" Version="6.6.2" />
         <PackageReference Include="Swashbuckle.AspNetCore.SwaggerGen" Version="6.6.2" />
