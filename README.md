@@ -80,3 +80,7 @@ LCG: https://de1-gateway.shocklink.net
 ## Using Docker
 
 See [docker-compose.yml](docker-compose.yml).
+
+## Support
+
+You can support the openshock dev team here: [Sponsor OpenShock](https://github.com/sponsors/OpenShock)
