@@ -8,13 +8,13 @@ namespace OpenShock.ServicesCommon.Services.BatchUpdate;
 
 public sealed class BatchUpdateService : IHostedService, IBatchUpdateService
 {
-    private static readonly TimeSpan Interval = TimeSpan.FromSeconds(15);
+    private static readonly TimeSpan Interval = TimeSpan.FromSeconds(10);
 
     private readonly IDbContextFactory<OpenShockContext> _dbFactory;
     private readonly ILogger<BatchUpdateService> _logger;
     private readonly Timer _updateTimer;
 
-    private readonly ConcurrentDictionary<Guid, DateTime> _tokenLastUpdated = new();
+    private readonly ConcurrentDictionary<Guid, bool> _tokenLastUpdated = new();
 
     public BatchUpdateService(IDbContextFactory<OpenShockContext> dbFactory, ILogger<BatchUpdateService> logger)
     {
@@ -30,23 +30,16 @@ public sealed class BatchUpdateService : IHostedService, IBatchUpdateService
         try
         {
             var keys = _tokenLastUpdated.Keys.ToArray();
-            
+
             // Skip if there is nothing
-            if(keys.Length < 1) return;
+            if (keys.Length < 1) return;
+
+            // Yeah
+            foreach (var guid in keys) _tokenLastUpdated.TryRemove(guid, out _);
             
             await using var db = await _dbFactory.CreateDbContextAsync();
-            
-            foreach (var guid in keys)
-            {
-                if (!_tokenLastUpdated.TryRemove(guid, out var tokenUpdateTime)) continue;
-                
-                var token = new ApiToken
-                {
-                    Id = guid,
-                };
-                token.LastUsed = tokenUpdateTime;
-                
-            }
+            await db.ApiTokens.Where(x => keys.Contains(x.Id))
+                .ExecuteUpdateAsync(x => x.SetProperty(y => y.LastUsed, DateTime.UtcNow));
 
             var rows = await db.SaveChangesAsync();
             if (rows > 0)
@@ -54,7 +47,7 @@ public sealed class BatchUpdateService : IHostedService, IBatchUpdateService
                 _logger.LogTrace("Batch update executed {Rows}", rows);
                 return;
             }
-            
+
             _logger.LogWarning("Batch update loop did not modify any rows");
         }
         catch (Exception e)
@@ -63,10 +56,9 @@ public sealed class BatchUpdateService : IHostedService, IBatchUpdateService
         }
     }
 
-    public void UpdateTokenLastUsed(Guid tokenId, DateTime? lastUsed = null)
+    public void UpdateTokenLastUsed(Guid tokenId)
     {
-        lastUsed ??= DateTime.UtcNow;
-        _tokenLastUpdated.AddOrUpdate(tokenId, lastUsed.Value, (_, _) => lastUsed.Value);
+        _tokenLastUpdated[tokenId] = false;
     }
 
     public Task StartAsync(CancellationToken cancellationToken)
