@@ -1,8 +1,7 @@
-﻿namespace OpenShock.ServicesCommon.Validation
+﻿namespace OpenShock.ServicesCommon.Validation;
+
+public static class ValidationConstants
 {
-    public static class ValidationConstants
-    {
-        public static uint UsernameMinLength = 3;
-        public static uint UsernameMaxLength = 32;
-    }
+    public const uint UsernameMinLength = 3;
+    public const uint UsernameMaxLength = 32;
 }

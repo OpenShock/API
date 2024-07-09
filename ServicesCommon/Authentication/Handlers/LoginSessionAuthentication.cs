@@ -1,4 +1,5 @@
-﻿using System.Security.Claims;
+﻿using System.Collections.Concurrent;
+using System.Security.Claims;
 using System.Text.Encodings.Web;
 using System.Text.Json;
 using Microsoft.AspNetCore.Authentication;
@@ -12,6 +13,7 @@ using OpenShock.Common.Redis;
 using OpenShock.ServicesCommon.Authentication.Services;
 using OpenShock.ServicesCommon.Errors;
 using OpenShock.ServicesCommon.Problems;
+using OpenShock.ServicesCommon.Services.BatchUpdate;
 using Redis.OM.Contracts;
 using Redis.OM.Searching;
 
@@ -21,6 +23,7 @@ public class LoginSessionAuthentication : AuthenticationHandler<AuthenticationSc
 {
     private readonly IClientAuthService<LinkUser> _authService;
     private readonly ITokenReferenceService<ApiToken> _tokenReferenceService;
+    private readonly IBatchUpdateService _batchUpdateService;
     private readonly OpenShockContext _db;
     private readonly IRedisCollection<LoginSession> _userSessions;
     private readonly JsonSerializerOptions _serializerOptions;
@@ -33,12 +36,13 @@ public class LoginSessionAuthentication : AuthenticationHandler<AuthenticationSc
         IClientAuthService<LinkUser> clientAuth,
         OpenShockContext db,
         IRedisConnectionProvider provider,
-        IOptions<JsonOptions> jsonOptions, ITokenReferenceService<ApiToken> tokenReferenceService)
+        IOptions<JsonOptions> jsonOptions, ITokenReferenceService<ApiToken> tokenReferenceService, IBatchUpdateService batchUpdateService)
         : base(options, logger, encoder)
     {
         _authService = clientAuth;
         _db = db;
         _tokenReferenceService = tokenReferenceService;
+        _batchUpdateService = batchUpdateService;
         _userSessions = provider.RedisCollection<LoginSession>(false);
         _serializerOptions = jsonOptions.Value.SerializerOptions;
     }
@@ -67,6 +71,7 @@ public class LoginSessionAuthentication : AuthenticationHandler<AuthenticationSc
             (x.ValidUntil == null || x.ValidUntil >= DateTime.UtcNow));
         if (tokenDto == null) return Fail(AuthResultError.TokenInvalid);
 
+        _batchUpdateService.UpdateTokenLastUsed(tokenDto.Id);
         _authService.CurrentClient = new LinkUser
         {
             DbUser = tokenDto.User

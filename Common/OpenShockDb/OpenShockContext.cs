@@ -80,6 +80,9 @@ public partial class OpenShockContext : DbContext
                 .HasColumnName("token");
             entity.Property(e => e.UserId).HasColumnName("user_id");
             entity.Property(e => e.ValidUntil).HasColumnName("valid_until");
+            entity.Property(e => e.ValidUntil)
+                .HasDefaultValueSql("CURRENT_TIMESTAMP")
+                .HasColumnName("valid_until");
 
             entity.Property(e => e.Permissions).HasColumnType("permission_type[]").HasColumnName("permissions");
 

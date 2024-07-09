@@ -31,6 +31,7 @@ using OpenShock.ServicesCommon.ExceptionHandle;
 using OpenShock.ServicesCommon.Geo;
 using OpenShock.ServicesCommon.Hubs;
 using OpenShock.ServicesCommon.Problems;
+using OpenShock.ServicesCommon.Services.BatchUpdate;
 using OpenShock.ServicesCommon.Services.Device;
 using OpenShock.ServicesCommon.Services.Ota;
 using OpenShock.ServicesCommon.Services.RedisPubSub;
@@ -296,6 +297,7 @@ public class Startup
         services.ConfigureOptions<ConfigureSwaggerOptions>();
         //services.AddHealthChecks().AddCheck<DatabaseHealthCheck>("database");
 
+        services.AddOpenShockServices();
         services.AddHostedService<RedisSubscriberService>();
     }
 
