@@ -13,7 +13,6 @@ public sealed class PermissionTypeConverter : JsonConverter<PermissionType>
 
     public override void Write(Utf8JsonWriter writer, PermissionType value, JsonSerializerOptions options)
     {
-        Console.WriteLine("dfgfdgfd");
         writer.WriteStringValue(PermissionTypeBindings.PermissionTypeToName[value].Name);
     }
 }

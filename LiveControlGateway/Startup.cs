@@ -250,6 +250,8 @@ public class Startup
 
         services.AddHostedService<RedisSubscriberService>(); 
         services.AddHostedService<LcgKeepAlive>();
+        
+        services.AddOpenShockServices();
     }
 
     /// <summary>

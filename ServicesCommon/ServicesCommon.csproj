@@ -28,6 +28,7 @@
       <PackageReference Include="Swashbuckle.AspNetCore.Swagger" Version="6.6.2" />
       <PackageReference Include="Swashbuckle.AspNetCore.SwaggerGen" Version="6.6.2" />
       <PackageReference Include="Swashbuckle.AspNetCore.SwaggerUI" Version="6.6.2" />
+      <PackageReference Include="Z.EntityFramework.Plus.EFCore" Version="8.103.0" />
     </ItemGroup>
 
     <ItemGroup>
