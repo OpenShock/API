@@ -27,9 +27,9 @@ public sealed partial class TokensController
             .OrderBy(x => x.CreatedOn)
             .Select(x => new TokenResponse
         {
-            CreatedByIp = x.CreatedByIp,
             CreatedOn = x.CreatedOn,
             ValidUntil = x.ValidUntil,
+            LastUsed = x.LastUsed,
             Permissions = x.Permissions,
             Name = x.Name,
             Id = x.Id
@@ -57,10 +57,10 @@ public sealed partial class TokensController
             .Where(x => x.UserId == CurrentUser.DbUser.Id && x.Id == tokenId && (x.ValidUntil == null || x.ValidUntil > DateTime.UtcNow))
             .Select(x => new TokenResponse
         {
-            CreatedByIp = x.CreatedByIp,
             CreatedOn = x.CreatedOn,
             ValidUntil = x.ValidUntil,
             Permissions = x.Permissions,
+            LastUsed = x.LastUsed,
             Name = x.Name,
             Id = x.Id
         }).FirstOrDefaultAsync();

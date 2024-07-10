@@ -24,9 +24,9 @@ public sealed partial class TokensController
         if (x?.Token == null) throw new Exception("This should not be reachable due to the [TokenOnly] attribute");
         return new TokenResponse
         {
-            CreatedByIp = x.CreatedByIp,
             CreatedOn = x.CreatedOn,
             ValidUntil = x.ValidUntil,
+            LastUsed = x.LastUsed,
             Permissions = x.Permissions,
             Name = x.Name,
             Id = x.Id

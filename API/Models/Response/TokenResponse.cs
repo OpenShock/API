@@ -9,10 +9,10 @@ public sealed class TokenResponse
     public required string Name { get; set; } = null!;
 
     public required DateTime CreatedOn { get; set; }
-
-    public required string CreatedByIp { get; set; } = null!;
-
+    
     public required DateTime? ValidUntil { get; set; }
+    
+    public required DateTime LastUsed { get; set; }
     
     public required List<PermissionType> Permissions { get; set; }
 }
