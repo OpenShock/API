@@ -72,6 +72,9 @@ public partial class OpenShockContext : DbContext
             entity.Property(e => e.CreatedOn)
                 .HasDefaultValueSql("CURRENT_TIMESTAMP")
                 .HasColumnName("created_on");
+            entity.Property(e => e.LastUsed)
+                .HasDefaultValueSql("'-infinity'::timestamp without time zone")
+                .HasColumnName("last_used");
             entity.Property(e => e.Name)
                 .HasMaxLength(64)
                 .HasColumnName("name");
@@ -80,9 +83,6 @@ public partial class OpenShockContext : DbContext
                 .HasColumnName("token");
             entity.Property(e => e.UserId).HasColumnName("user_id");
             entity.Property(e => e.ValidUntil).HasColumnName("valid_until");
-            entity.Property(e => e.LastUsed)
-                .HasDefaultValueSql("CURRENT_TIMESTAMP")
-                .HasColumnName("last_used");
 
             entity.Property(e => e.Permissions).HasColumnType("permission_type[]").HasColumnName("permissions");
 
