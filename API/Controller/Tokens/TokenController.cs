@@ -152,6 +152,6 @@ public sealed partial class TokensController
     {
         public required string Name { get; set; }
         public List<PermissionType> Permissions { get; set; } = [PermissionType.Shockers_Use];
-        public DateTime? ValidUntil { get; set; }
+        public DateTime? ValidUntil { get; set; } = null;
     }
 }

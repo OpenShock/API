@@ -6,7 +6,7 @@ using OpenShock.ServicesCommon.Errors;
 
 namespace OpenShock.ServicesCommon.Authentication.Attributes;
 
-[AttributeUsage(AttributeTargets.Class | AttributeTargets.Method)]
+[AttributeUsage(AttributeTargets.Class | AttributeTargets.Method, AllowMultiple = true)]
 public class TokenPermissionAttribute : Attribute, IAuthorizationFilter
 {
     private readonly PermissionType _type;
