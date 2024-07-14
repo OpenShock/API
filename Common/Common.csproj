@@ -8,8 +8,8 @@
         <RootNamespace>OpenShock.Common</RootNamespace>
         <Company>OpenShock</Company>
         <Product>OpenShock.Common</Product>
-        <AssemblyVersion>1.6.1</AssemblyVersion>
-        <FileVersion>1.6.1</FileVersion>
+        <AssemblyVersion>3.1.0</AssemblyVersion>
+        <FileVersion>3.1.0</FileVersion>
         <LangVersion>12</LangVersion>
     </PropertyGroup>
 
