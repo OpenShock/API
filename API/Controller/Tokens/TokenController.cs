@@ -1,4 +1,5 @@
-﻿using System.Net;
+﻿using System.ComponentModel.DataAnnotations;
+using System.Net;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using OpenShock.API.Models.Response;
@@ -104,7 +105,7 @@ public sealed partial class TokensController
             UserId = CurrentUser.DbUser.Id,
             Token = CryptoUtils.RandomString(64),
             CreatedByIp = HttpContext.Connection.RemoteIpAddress?.ToString() ?? "error",
-            Permissions = body.Permissions,
+            Permissions = body.Permissions.Distinct().ToList(),
             Id = Guid.NewGuid(),
             Name = body.Name,
             ValidUntil = body.ValidUntil?.ToUniversalTime()
@@ -136,22 +137,22 @@ public sealed partial class TokensController
         if (token == null) return Problem(ApiTokenError.ApiTokenNotFound);
 
         token.Name = body.Name;
-        token.Permissions = body.Permissions;
+        token.Permissions = body.Permissions.Distinct().ToList();
         await _db.SaveChangesAsync();
 
         return RespondSuccessSimple("Successfully updated api token");
     }
 
-    public sealed class EditTokenRequest
+    public class EditTokenRequest
     {
+        [StringLength(64, ErrorMessage = "Name must be less than 64 characters")]
         public required string Name { get; set; }
+        [MaxLength(256, ErrorMessage = "You can only have 256 permissions, this is a hard limit")]
         public List<PermissionType> Permissions { get; set; } = [PermissionType.Shockers_Use];
     }
 
-    public sealed class CreateTokenRequest
+    public sealed class CreateTokenRequest : EditTokenRequest
     {
-        public required string Name { get; set; }
-        public List<PermissionType> Permissions { get; set; } = [PermissionType.Shockers_Use];
         public DateTime? ValidUntil { get; set; } = null;
     }
 }
