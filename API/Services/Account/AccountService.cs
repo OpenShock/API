@@ -2,6 +2,7 @@
 using Microsoft.EntityFrameworkCore;
 using OneOf;
 using OneOf.Types;
+using OpenShock.API.Models.Response;
 using OpenShock.API.Services.Email;
 using OpenShock.API.Services.Email.Mailjet.Mail;
 using OpenShock.API.Utils;
@@ -186,6 +187,27 @@ public sealed class AccountService : IAccountService
 
         reset.UsedOn = DateTime.UtcNow;
         reset.User.PasswordHash = PasswordHashingHelpers.HashPassword(newPassword);
+        await _db.SaveChangesAsync();
+        return new Success();
+    }
+
+    /// <inheritdoc />
+    public async Task<UsernameCheckResult> CheckUsernameAvailability(string username, CancellationToken cancellationToken = default)
+    {
+        var isTaken = await _db.Users.AnyAsync(x => x.Name == username, cancellationToken: cancellationToken);
+        return isTaken ? UsernameCheckResult.Taken : UsernameCheckResult.Available;
+    }
+
+    /// <inheritdoc />
+    public async Task<OneOf<Success, Error<UsernameCheckResult>, NotFound>> ChangeUsername(Guid userId, string username)
+    {
+        var availability = await CheckUsernameAvailability(username);
+        if (availability != UsernameCheckResult.Available) return new Error<UsernameCheckResult>(availability);
+        
+        var user = await _db.Users.FirstOrDefaultAsync(x => x.Id == userId);
+        if (user == null) return new NotFound();
+        
+        user.Name = username;
         await _db.SaveChangesAsync();
         return new Success();
     }

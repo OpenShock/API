@@ -1,5 +1,6 @@
 ﻿using OneOf;
 using OneOf.Types;
+using OpenShock.API.Models.Response;
 using OpenShock.Common.OpenShockDb;
 
 namespace OpenShock.API.Services.Account;
@@ -63,6 +64,22 @@ public interface IAccountService
     /// <param name="newPassword"></param>
     /// <returns></returns>
     public Task<OneOf<Success, NotFound, SecretInvalid>> PasswordResetComplete(Guid passwordResetId, string secret, string newPassword);
+    
+    /// <summary>
+    /// Check the availability of a username
+    /// </summary>
+    /// <param name="username"></param>
+    /// <param name="cancellationToken"></param>
+    /// <returns></returns>
+    public Task<UsernameCheckResult> CheckUsernameAvailability(string username, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Change the username of a user
+    /// </summary>
+    /// <param name="userId"></param>
+    /// <param name="username"></param>
+    /// <returns><see cref="Error{UsernameCheckResult}"/> only returns when the result is != Available</returns>
+    public Task<OneOf<Success, Error<UsernameCheckResult>, NotFound>> ChangeUsername(Guid userId, string username);
 }
 
 public struct AccountWithEmailOrUsernameExists;

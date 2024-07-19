@@ -15,9 +15,9 @@ public sealed partial class AccountController
     [HttpPost("reset")]
     [ProducesSuccess]
     [MapToApiVersion("1")]
-    public async Task<BaseResponse<object>> PasswordResetInitiate([FromBody] ResetRequest body, [FromServices] IAccountService accountService)
+    public async Task<BaseResponse<object>> PasswordResetInitiate([FromBody] ResetRequest body)
     {
-        await accountService.CreatePasswordReset(body.Email);
+        await _accountService.CreatePasswordReset(body.Email);
         return SendResponse();
     }
 
