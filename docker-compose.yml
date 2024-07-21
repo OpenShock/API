@@ -32,7 +32,7 @@ services:
       - "5001:80/tcp"
     env_file: 
       - "env/global.env"
-      - "env/api.env
+      - "env/api.env"
   
   webui:
     image: ghcr.io/openshock/webui:latest
