@@ -30,7 +30,7 @@ services:
       - redis
     ports:
       - "5001:80/tcp"
-    env_files: 
+    env_file: 
       - "env/global.env"
       - "env/api.env
   
@@ -48,7 +48,7 @@ services:
       - "5003:80/tcp"
     networks:
      - openshock
-    env_files: 
+    env_file: 
      - "env/global.env"
      - "env/lcg.env"
 
@@ -57,7 +57,7 @@ services:
     restart: unless-stopped
     networks:
      - openshock
-    env_file: "global.env"
+    env_file: "env/global.env"
 
 networks:
   openshock:
