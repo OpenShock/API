@@ -85,7 +85,7 @@ Edit the enviroment files in the env folder
 
 Change the postgres data storage location in docker-compose.yml from `/path/to/postgres-data` to the location you want
 
-Run with docker compose [-p openshock] up -d
+Run with `docker compose [-p openshock] up -d`
 
 the service needs https to work, setup a reverse proxy
 
