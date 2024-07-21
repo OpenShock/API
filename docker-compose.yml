@@ -39,9 +39,7 @@ services:
     restart: unless-stopped
     ports:
       - "5002:80/tcp"
-    env_files:
-      - "env/global.env"
-      - "env/webui.env"
+    env_file: "env/webui.env"
 
   lcg:
     image: ghcr.io/openshock/live-control-gateway:latest
