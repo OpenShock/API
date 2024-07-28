@@ -83,4 +83,4 @@ See [docker-compose.yml](docker-compose.yml).
 
 ## Support
 
-You can support the openshock dev team here: [Sponsor OpenShock](https://github.com/sponsors/OpenShock)
+You can support the OpenShock Dev Team here: [Sponsor OpenShock](https://github.com/sponsors/OpenShock)
