@@ -48,7 +48,7 @@ public sealed class BatchUpdateService : IHostedService, IBatchUpdateService
                 return;
             }
 
-            _logger.LogWarning("Batch update loop did not modify any rows");
+            _logger.LogWarning("Batch update loop did not modify any rows, ids {@Ids}", keys);
         }
         catch (Exception e)
         {
