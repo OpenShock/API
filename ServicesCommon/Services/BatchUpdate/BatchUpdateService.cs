@@ -41,14 +41,7 @@ public sealed class BatchUpdateService : IHostedService, IBatchUpdateService
             await db.ApiTokens.Where(x => keys.Contains(x.Id))
                 .ExecuteUpdateAsync(x => x.SetProperty(y => y.LastUsed, DateTime.UtcNow));
 
-            var rows = await db.SaveChangesAsync();
-            if (rows > 0)
-            {
-                _logger.LogTrace("Batch update executed {Rows}", rows);
-                return;
-            }
-
-            _logger.LogWarning("Batch update loop did not modify any rows, ids {@Ids}", keys);
+            await db.SaveChangesAsync();
         }
         catch (Exception e)
         {
