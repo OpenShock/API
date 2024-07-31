@@ -45,13 +45,16 @@ public sealed partial class DevicesController
     [ProducesProblem(HttpStatusCode.NotFound, "DeviceNotFound")]
     public async Task<IActionResult> GetDeviceById([FromRoute] Guid deviceId)
     {
+        var hasAuthPerms = IsAllowed(PermissionType.Devices_Auth);
+        
+        
         var device = await _db.Devices.Where(x => x.Owner == CurrentUser.DbUser.Id && x.Id == deviceId)
             .Select(x => new Models.Response.ResponseDeviceWithToken
             {
                 Id = x.Id,
                 Name = x.Name,
                 CreatedOn = x.CreatedOn,
-                Token = x.Token
+                Token = hasAuthPerms ? x.Token : null
             }).SingleOrDefaultAsync();
         if (device == null) return Problem(DeviceError.DeviceNotFound);
 

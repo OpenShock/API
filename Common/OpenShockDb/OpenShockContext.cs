@@ -52,7 +52,7 @@ public partial class OpenShockContext : DbContext
             .HasPostgresEnum("control_type", new[] { "sound", "vibrate", "shock", "stop" })
             .HasPostgresEnum("ota_update_status", new[] { "started", "running", "finished", "error", "timeout" })
             .HasPostgresEnum("password_encryption_type", new[] { "pbkdf2", "bcrypt_enhanced" })
-            .HasPostgresEnum("permission_type", new[] { "shockers.use", "shockers.edit", "shockers.pause", "devices.edit" })
+            .HasPostgresEnum("permission_type", new[] { "shockers.use", "shockers.edit", "shockers.pause", "devices.edit", "devices.auth" })
             .HasPostgresEnum("rank_type", new[] { "user", "support", "staff", "admin", "system" })
             .HasPostgresEnum("shocker_model_type", new[] { "caiXianlin", "petTrainer", "petrainer998DR" })
             .HasAnnotation("Npgsql:CollationDefinition:public.ndcoll", "und-u-ks-level2,und-u-ks-level2,icu,False");
