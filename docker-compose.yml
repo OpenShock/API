@@ -1,4 +1,4 @@
-# This file is a minimal example of a runnable ShockLink stack.
+# This file is a minimal plug and play working example of a runnable ShockLink stack.
 
 version: '3.9'
 
@@ -10,8 +10,9 @@ services:
     container_name: openshock-pg
     networks:
      - openshock
-    environment:
-      - POSTGRES_PASSWORD=postgres
+    env_file: "env/postgres.env"
+    volumes:
+      - /path/to/postgres-data:/var/lib/postgresql/data
   
   redis:
     restart: unless-stopped
@@ -29,48 +30,34 @@ services:
       - redis
     ports:
       - "5001:80/tcp"
-    environment:
-      OPENSHOCK__DB__CONN: Host=docker-node;Port=1337;Database=openshock;Username=root;Password=root
-      OPENSHOCK__REDIS__HOST: redis
-      OPENSHOCK__FRONTEND__BASEURL: https://shocklink.net
-      OPENSHOCK__FRONTEND__SHORTURL: https://shockl.ink
-      OPENSHOCK__FRONTEND__COOKIEDOMAIN: shocklink.net
-      OPENSHOCK__MAIL__TYPE: MAILJET # MAILJET or SMTP, check Documentation
-      OPENSHOCK__MAIL__MAILJET__KEY: mailjetkey
-      OPENSHOCK__MAIL__MAILJET__SECRET: mailjetsecret
-      OPENSHOCK__MAIL__MAILJET__TEMPLATE__PASSWORDRESET: 9999999
+    env_file: 
+      - "env/global.env"
+      - "env/api.env"
   
   webui:
     image: ghcr.io/openshock/webui:latest
     restart: unless-stopped
     ports:
       - "5002:80/tcp"
-    environment:
-      - OPENSHOCK_NAME=ShockLink
-      - OPENSHOCK_URL=https://shocklink.net
-      - OPENSHOCK_SHARE_URL=https://shockl.ink
-      - OPENSHOCK_API_URL=https://api.shocklink.net
+    env_file: "env/webui.env"
 
   lcg:
     image: ghcr.io/openshock/live-control-gateway:latest
     restart: unless-stopped
+    ports:
+      - "5003:80/tcp"
     networks:
      - openshock
-    environment:
-      OPENSHOCK__DB__CONN=Host: db;Port=5432;Database=shocklink;Username=shocklink;Password=someSuperSecurePassword
-      OPENSHOCK__REDIS__HOST: redis
-      OPENSHOCK__LCG__COUNTRYCODE: DE
-      OPENSHOCK__LCG__FQDN: de1-gateway.shocklink.net
+    env_file: 
+     - "env/global.env"
+     - "env/lcg.env"
 
   cron:
     image: ghcr.io/openshock/cron:master
     restart: unless-stopped
     networks:
      - openshock
-    environment:
-      OPENSHOCK__DB__CONN=Host: db;Port=5432;Database=shocklink;Username=shocklink;Password=someSuperSecurePassword
-      OPENSHOCK__REDIS__HOST: redis
-
+    env_file: "env/global.env"
 
 networks:
   openshock:
