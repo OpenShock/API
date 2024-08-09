@@ -9,6 +9,7 @@ using OpenShock.API.Utils;
 using OpenShock.Common.OpenShockDb;
 using OpenShock.Common.Redis;
 using OpenShock.Common.Utils;
+using OpenShock.ServicesCommon.Validation;
 using Redis.OM.Contracts;
 using Redis.OM.Searching;
 
@@ -192,17 +193,24 @@ public sealed class AccountService : IAccountService
     }
 
     /// <inheritdoc />
-    public async Task<UsernameCheckResult> CheckUsernameAvailability(string username, CancellationToken cancellationToken = default)
+    public async Task<OneOf<Success, UsernameTaken, UsernameError>> CheckUsernameAvailability(string username, CancellationToken cancellationToken = default)
     {
+        var validationResult = UsernameValidator.Validate(username);
+        if (validationResult.IsT1)
+            return validationResult.AsT1;
+        
         var isTaken = await _db.Users.AnyAsync(x => x.Name == username, cancellationToken: cancellationToken);
-        return isTaken ? UsernameCheckResult.Taken : UsernameCheckResult.Available;
+        if (isTaken) return new UsernameTaken();
+
+        return new Success();
     }
 
     /// <inheritdoc />
-    public async Task<OneOf<Success, Error<UsernameCheckResult>, NotFound>> ChangeUsername(Guid userId, string username)
+    public async Task<OneOf<Success, Error<OneOf<UsernameTaken, UsernameError>>, NotFound>> ChangeUsername(Guid userId, string username)
     {
         var availability = await CheckUsernameAvailability(username);
-        if (availability != UsernameCheckResult.Available) return new Error<UsernameCheckResult>(availability);
+        if (availability.IsT1) return new Error<OneOf<UsernameTaken, UsernameError>>(availability.AsT1);
+        if (availability.IsT2) return new Error<OneOf<UsernameTaken, UsernameError>>(availability.AsT2);
         
         var user = await _db.Users.FirstOrDefaultAsync(x => x.Id == userId);
         if (user == null) return new NotFound();

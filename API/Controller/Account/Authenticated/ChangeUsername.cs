@@ -20,10 +20,8 @@ public sealed partial class AuthenticatedAccountController
     {
         var result = await _accountService.ChangeUsername(CurrentUser.DbUser.Id, data.Username);
 
-        return result.Match(success => RespondSuccessSimple(),
-            error => Problem(error.Value == UsernameCheckResult.Taken
-                ? AccountError.UsernameTaken
-                : AccountError.UsernameUnavailable),
+        return result.Match(success => RespondSuccessSimple("Successfully changed username"),
+            error => Problem(error.Value.IsT0 ? AccountError.UsernameTaken : AccountError.UsernameInvalid(error.Value.AsT1)),
             found => throw new Exception("Unexpected result, apparently our current user does not exist..."));
     }
 }
