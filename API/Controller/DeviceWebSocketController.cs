@@ -74,7 +74,7 @@ public sealed class DeviceWebSocketController : WebsocketBaseController<IBaseRes
         {
             try
             {
-                if (WebSocket!.State == WebSocketState.Aborted) return;
+                if (WebSocket!.State == WebSocketState.Aborted) break;
                 var message =
                     await JsonWebSocketUtils.ReceiveFullMessageAsyncNonAlloc<BaseRequest<RequestType>>(WebSocket,
                         Linked.Token);
@@ -83,7 +83,7 @@ public sealed class DeviceWebSocketController : WebsocketBaseController<IBaseRes
                 {
                     if (WebSocket.State != WebSocketState.Open)
                     {
-                        Logger.LogWarning("Client sent closure, but connection state is not open");
+                        Logger.LogTrace("Client sent closure, but connection state is not open");
                         break;
                     }
 

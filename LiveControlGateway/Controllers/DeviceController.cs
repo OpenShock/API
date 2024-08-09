@@ -94,7 +94,7 @@ public sealed class DeviceController : FlatbuffersWebsocketBaseController<Gatewa
         _lcgConfig = lcgConfig;
         _keepAliveTimer.Elapsed += async (sender, args) =>
         {
-            Logger.LogWarning("Keep alive timeout reached, closing websocket connection");
+            Logger.LogInformation("Keep alive timeout reached, closing websocket connection");
             await Close.CancelAsync();
         };
         _keepAliveTimer.Start();

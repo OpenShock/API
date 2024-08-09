@@ -260,7 +260,7 @@ public sealed class LiveControlController : WebsocketBaseController<IBaseRespons
         {
             try
             {
-                if (WebSocket!.State == WebSocketState.Aborted) return;
+                if (WebSocket!.State == WebSocketState.Aborted) break;
                 var message =
                     await JsonWebSocketUtils.ReceiveFullMessageAsyncNonAlloc<BaseRequest<LiveRequestType>>(WebSocket,
                         Linked.Token);
@@ -269,7 +269,7 @@ public sealed class LiveControlController : WebsocketBaseController<IBaseRespons
                 {
                     if (WebSocket.State != WebSocketState.Open)
                     {
-                        Logger.LogWarning("Client sent closure, but connection state is not open");
+                        Logger.LogDebug("Client sent closure, but connection state is not open");
                         break;
                     }
 

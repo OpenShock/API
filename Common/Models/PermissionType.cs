@@ -16,7 +16,9 @@ public enum PermissionType
 
     [PgName("shockers.pause")] Shockers_Pause,
 
-    [PgName("devices.edit")] Devices_Edit
+    [PgName("devices.edit")] Devices_Edit,
+    
+    [PgName("devices.auth")] Devices_Auth
 }
 
 public static class PermissionTypeExtensions
