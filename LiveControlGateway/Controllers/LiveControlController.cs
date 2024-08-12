@@ -213,8 +213,7 @@ public sealed class LiveControlController : WebsocketBaseController<IBaseRespons
             ResponseType = LiveResponseType.TPS,
             Data = new TpsData
             {
-                Client = _tps,
-                Server = 10
+                Client = _tps
             }
         });
         await UpdateConnectedState(DeviceLifetimeManager.IsConnected(Id), true);
