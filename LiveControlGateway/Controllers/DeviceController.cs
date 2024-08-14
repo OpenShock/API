@@ -142,7 +142,7 @@ public sealed class DeviceController : FlatbuffersWebsocketBaseController<Gatewa
                 {
                     if (WebSocket!.State != WebSocketState.Open)
                     {
-                        Logger.LogWarning("Client sent closure, but connection state is not open");
+                        Logger.LogTrace("Client sent closure, but connection state is not open");
                         break;
                     }
 
