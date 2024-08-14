@@ -268,7 +268,7 @@ public sealed class LiveControlController : WebsocketBaseController<IBaseRespons
                 {
                     if (WebSocket.State != WebSocketState.Open)
                     {
-                        Logger.LogDebug("Client sent closure, but connection state is not open");
+                        Logger.LogTrace("Client sent closure, but connection state is not open");
                         break;
                     }
 
