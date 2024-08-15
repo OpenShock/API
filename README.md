@@ -3,7 +3,9 @@
 OpenShock backend.
 
 ### API Documentation 
-https://api.shocklink.net/swagger/
+You can access our Open API Doc here:
+
+https://api.openshock.app/swagger
 
 # Configuration
 
