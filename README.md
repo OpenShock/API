@@ -78,9 +78,9 @@ The OpenShock stack consists of the following components:
 OpenShock instance needs to be under the same domain name to work correctly. This is due to cookie limitations in
 browsers.
 E.g.
-Fontend: https://ShockLink.net
-API: https://api.ShockLink.net
-LCG: https://de1-gateway.shocklink.net
+Fontend: https://openshock.app
+API: https://api.openshock.app
+LCG: https://de1-gateway.openshock.app
 
 ## Using Docker
 
