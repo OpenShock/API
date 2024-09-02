@@ -46,10 +46,10 @@
         <PackageReference Include="Serilog.Sinks.Console" Version="6.0.0" />
         <PackageReference Include="Serilog.Sinks.Grafana.Loki" Version="8.3.0" />
         <PackageReference Include="StackExchange.Redis" Version="2.8.0" />
-        <PackageReference Include="Swashbuckle.AspNetCore" Version="6.7.2" />
-        <PackageReference Include="Swashbuckle.AspNetCore.Swagger" Version="6.7.2" />
-        <PackageReference Include="Swashbuckle.AspNetCore.SwaggerGen" Version="6.7.2" />
-        <PackageReference Include="Swashbuckle.AspNetCore.SwaggerUI" Version="6.7.2" />
+        <PackageReference Include="Swashbuckle.AspNetCore" Version="6.7.3" />
+        <PackageReference Include="Swashbuckle.AspNetCore.Swagger" Version="6.7.3" />
+        <PackageReference Include="Swashbuckle.AspNetCore.SwaggerGen" Version="6.7.3" />
+        <PackageReference Include="Swashbuckle.AspNetCore.SwaggerUI" Version="6.7.3" />
     </ItemGroup>
 
     <Target Name="SetSourceRevisionId" BeforeTargets="InitializeSourceControlInformation">
