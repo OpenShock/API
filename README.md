@@ -1,6 +1,6 @@
 # OpenShock API
 
-OpenShock backend.
+OpenShock backend
 
 ### API Documentation 
 You can access our Open API Doc here:
