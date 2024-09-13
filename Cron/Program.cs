@@ -47,6 +47,8 @@ try
     var jobManagerV2 = app.Services.GetRequiredService<IRecurringJobManagerV2>();
     jobManagerV2.AddOrUpdate<OtaTimeoutJob>(
         "otaTimeoutJob", job => job.Execute(), "0 */1 * * * ?");
+    jobManagerV2.AddOrUpdate<ClearOldPasswordResetsJob>(
+        "clearOldPasswordResetsJob", job => job.Execute(), "0 */1 * * * ?");
     
     await app.RunAsync();
 
