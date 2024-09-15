@@ -71,7 +71,7 @@ The OpenShock stack consists of the following components:
 - Postgres as database
 - Redis-Stack (with keyspace events KEA)
 - The API (this repository)
-- [The WebUI](https://github.com/OpemShock/WebUI)
+- [The WebUI](https://github.com/OpenShock/WebUI)
 
 ## Important
 
