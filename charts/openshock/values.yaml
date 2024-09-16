@@ -1,0 +1,256 @@
+# Open shock is made up of 4 apps. The API, Gateway, WebUI and Cron. 
+# Each of them is configured in their own section here.
+
+# The WebUI is a static web app. Its likely best to host it elsewhere. E.g. Github pages. 
+# But I've added it here anyway for your convenience. However its disabled by default.
+
+
+# Any appConfig that ends in "SecretName" wants the name of a Kubernetes opaque secret. "SecretKey" is the name of the key in this Kubernetes secret.
+appConfig:
+  database:
+    connectionSecretName: # Required. Secret containing postgresql database connection string
+    connectionSecretKey: # Required
+    skipmigration: "false"
+    debug: "false"
+  redis:
+    host: # Required
+    port: "6379"
+    user:
+    passwordSecretName:
+    passwordSecretKey:
+  frontend:
+    name: Openshock # Name of the OpenShock instance.
+    baseUrl:  # Required. URL of the OpenShock WebUI. (NO trailing slash!)
+    shortUrl: # Required. URL to prefix share links with. (NO trailing slash!). Can be the same as frontendBaseUrl
+    cookieDomain: # Required
+  apiUrl: # Required
+  mail:
+    senderEmail: # Required
+    senderName: # Required
+    type: MAILJET # MAILJET or SMTP, check Documentation
+    mailjet: # All of the following is required of mailType is MAILJET
+      key: 
+      secretSecretName: # Name of the Kubernetes Secret containing the Mailjet secret
+      secretSecretKey: # Key of the Kubernetes Secret
+      templatePasswordRest:
+    smtp: # All of the following is required of mailType is SMTP
+      host:
+      username:
+      passwordSecretName: 
+      passwordSecretKey: 
+      enableSsl: "true"
+      verifyCertificate: "true"
+  liveControllerGateway:
+    fqdn: # Required
+    countryCodes: # Required
+  turnstile:
+    enabled: "false" # All the other turnstile values are required if this is true
+    sitekey: # Required if enabled is true
+    secretKeySecretName: 
+    secretKeySecretKey: 
+
+api:
+  enabled: true
+  replicaCount: 1
+
+  image:
+    repository: ghcr.io/openshock/api
+    pullPolicy: IfNotPresent
+    tag: ""
+  
+  imagePullSecrets: []
+  nameOverride: ""
+  fullnameOverride: ""
+  podAnnotations: {}
+  podLabels: {}
+  podSelectorLabels: 
+
+  podSecurityContext: 
+    fsGroup: 2000
+    sysctls: # API listens on port 80 and there is no way to configure that
+      - name: net.ipv4.ip_unprivileged_port_start
+        value: "79"
+  securityContext: 
+    capabilities:
+      drop:
+        - ALL
+    readOnlyRootFilesystem: true
+    runAsNonRoot: true
+    runAsUser: 1000
+    allowPrivilegeEscalation: false
+    seccompProfile:
+      type: RuntimeDefault
+  service:
+    type: ClusterIP
+    port: 80
+  
+  ingress:
+    enabled: false
+    className: ""
+    annotations: {}
+    hosts:
+      - host: chart-example.local
+        paths:
+          - path: /
+            pathType: Prefix
+    tls: []
+  
+  resources: {}
+  livenessProbe:
+    httpGet:
+      path: /1/
+      port: http
+  readinessProbe:
+    httpGet:
+      path: /1/
+      port: http
+  volumes: []
+  volumeMounts: []
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+
+
+cron:
+  enabled: true
+
+  image:
+    repository: ghcr.io/openshock/cron
+    pullPolicy: IfNotPresent
+    tag: ""
+  imagePullSecrets: []
+  nameOverride: ""
+  fullnameOverride: ""
+
+  podAnnotations: {}
+  podLabels: {}
+  podSecurityContext: 
+    fsGroup: 2000
+    sysctls:  # Cron listens on port 730 and there is no way to configure that
+      - name: net.ipv4.ip_unprivileged_port_start
+        value: "729"
+  securityContext: 
+    capabilities:
+      drop:
+        - ALL
+    readOnlyRootFilesystem: true
+    runAsNonRoot: true
+    runAsUser: 1000
+    allowPrivilegeEscalation: false
+    seccompProfile:
+      type: RuntimeDefault
+  service:
+    type: ClusterIP
+    port: 780
+  ingress:
+    enabled: false
+    className: ""
+    annotations: {}
+    hosts:
+      - host: chart-example.local
+        paths:
+          - path: /
+            pathType: Prefix
+    tls: []
+  resources: {}
+  volumes: []
+  volumeMounts: []
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+
+
+liveControllerGateway:
+  enabled: true
+
+  image:
+    repository: ghcr.io/openshock/live-control-gateway
+    pullPolicy: IfNotPresent
+    tag: ""
+  imagePullSecrets: []
+  nameOverride: ""
+  fullnameOverride: ""
+
+  podAnnotations: {}
+  podLabels: {}
+  podSecurityContext: 
+    fsGroup: 2000
+    sysctls:
+      - name: net.ipv4.ip_unprivileged_port_start
+        value: "79"
+  securityContext: 
+    capabilities:
+      drop:
+        - ALL
+    readOnlyRootFilesystem: true
+    runAsNonRoot: true
+    runAsUser: 1000
+    allowPrivilegeEscalation: false
+    seccompProfile:
+      type: RuntimeDefault
+  service:
+    type: ClusterIP
+    port: 80
+  ingress:  # Only used for a Hangfire Dashboard
+    enabled: false
+    className: ""
+    annotations: {}
+    hosts:
+      - host: chart-example.local
+        paths:
+          - path: /
+            pathType: Prefix
+    tls: []
+  resources: {}
+  volumes: []
+  volumeMounts: []
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+
+
+webUi:
+  enabled: false
+  replicaCount: 1
+
+  image:
+    repository: ghcr.io/openshock/webui
+    pullPolicy: IfNotPresent
+    tag: latest # Uses different versioning from the rest of the APIs
+  imagePullSecrets: []
+  nameOverride: ""
+  fullnameOverride: ""
+
+  podAnnotations: {}
+  podLabels: {}
+  podSecurityContext: 
+    fsGroup: 2000
+  securityContext: 
+    capabilities:
+      drop:
+        - ALL
+    readOnlyRootFilesystem: true
+    runAsNonRoot: true
+    runAsUser: 1000
+    allowPrivilegeEscalation: false
+    seccompProfile:
+      type: RuntimeDefault
+  service:
+    type: ClusterIP
+    port: 8080
+  ingress:
+    enabled: false
+    className: ""
+    annotations: {}
+    hosts:
+      - host: chart-example.local
+        paths:
+          - path: /
+            pathType: Prefix
+    tls: []
+  resources: {}
+  volumes: []
+  volumeMounts: []
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
