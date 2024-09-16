@@ -1,12 +1,14 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using OpenShock.Common;
 using OpenShock.Common.OpenShockDb;
+using OpenShock.Cron.Attributes;
 
 namespace OpenShock.Cron.Jobs;
 
 /// <summary>
 /// Deletes old password requests if they have expired their lifetime and havent been used
 /// </summary>
+[CronJob("0 0 * * *")] // Every day at midnight (https://crontab.guru/)
 public sealed class ClearOldPasswordResetsJob
 {
     private readonly OpenShockContext _db;
