@@ -1,6 +1,7 @@
 using Hangfire;
 using OpenShock.Cron;
 using OpenShock.Cron.Jobs;
+using OpenShock.Cron.Utils;
 using Serilog;
 
 HostBuilder builder = new();
@@ -45,11 +46,11 @@ try
     var app = builder.Build();
 
     var jobManagerV2 = app.Services.GetRequiredService<IRecurringJobManagerV2>();
-    jobManagerV2.AddOrUpdate<OtaTimeoutJob>(
-        "otaTimeoutJob", job => job.Execute(), "0 */1 * * * ?");
-    jobManagerV2.AddOrUpdate<ClearOldPasswordResetsJob>(
-        "clearOldPasswordResetsJob", job => job.Execute(), "0 */1 * * * ?");
-    
+    foreach (var cronJob in CronJobCollector.GetAllCronJobs())
+    {
+        jobManagerV2.AddOrUpdate(cronJob.Name, cronJob.Job, cronJob.Schedule);
+    }
+
     await app.RunAsync();
 
 }

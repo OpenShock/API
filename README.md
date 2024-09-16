@@ -69,9 +69,9 @@ You need these environment variables to use SMTP:
 The OpenShock stack consists of the following components:
 
 - Postgres as database
-- Redis
+- Redis-Stack (with keyspace events KEA)
 - The API (this repository)
-- [The WebUI](https://github.com/Shock-Link/WebUI)
+- [The WebUI](https://github.com/OpenShock/WebUI)
 
 ## Important
 
@@ -84,8 +84,20 @@ LCG: https://de1-gateway.openshock.app
 
 ## Using Docker
 
-See [docker-compose.yml](docker-compose.yml).
+Grab the docker-compose.yml
 
-## Support
+Edit the enviroment files in the env folder
+
+Change the postgres data storage location in docker-compose.yml from `/path/to/postgres-data` to the location you want
+
+Run with `docker compose up -d`
+
+the service needs https to work, setup a reverse proxy
+
+- webui/frontend/share domain -> 5002
+- api -> 5001
+- lcg -> 5003
+
+## Support development!
 
 You can support the OpenShock Dev Team here: [Sponsor OpenShock](https://github.com/sponsors/OpenShock)
