@@ -1,0 +1,203 @@
+{{- range $name, $values := dict "api" .Values.api "cron" .Values.cron "lcg" .Values.liveControllerGateway -}}
+{{- if $values.enabled -}}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: '{{ include "openshock.fullname" $ }}-{{ $name }}'
+  labels:
+    {{- include "openshock.labels" $ | nindent 4 }}
+    app.kubernetes.io/component: {{ $name }}
+spec:
+  {{ if eq $name "api" }}replicas: {{ $values.replicaCount }}
+  {{ else if eq $name "cron" }}replicas: 1 # Can scale but theres no point because short outages don't matter.
+  {{ else if eq $name "lcg" }}replicas: 1 # Can't scale.
+  {{ else if eq $name "webui" }}replicas: {{ $values.replicaCount }}
+  {{- end }}
+  selector:
+    matchLabels:
+      {{- include "openshock.selectorLabels" $ | nindent 6 }}
+      app.kubernetes.io/component: {{ $name }}
+  template:
+    metadata:
+      {{- with $values.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      labels:
+        {{- include "openshock.labels" $ | nindent 8 }}
+        {{- with $values.podLabels }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+        app.kubernetes.io/component: {{ $name }}
+    spec:
+      {{- with $values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      securityContext:
+        {{- toYaml $values.podSecurityContext | nindent 8 }}
+      automountServiceAccountToken: false
+      containers:
+        - name: {{ $name }}
+          securityContext:
+            {{- toYaml $values.securityContext | nindent 12 }}
+          image: "{{ $values.image.repository }}:{{ $values.image.tag | default $.Chart.AppVersion }}"
+          imagePullPolicy: {{ $values.image.pullPolicy }}
+          {{ if eq $name "webui" }}command: ["./docker-entrypoint.sh", "nginx", "-g", "daemon off;"]{{ end }}  # bipass startup script that edits files. Using init container instead.
+          env:
+            {{- if eq $name "api" }}  # --- API
+              - name: OPENSHOCK__DB__CONN
+                valueFrom:
+                  secretKeyRef:
+                    name: {{ $.Values.appConfig.database.connectionSecretName }}
+                    key: {{ $.Values.appConfig.database.connectionSecretKey }}
+              - name: OPENSHOCK__DB__SKIPMIGRATION
+                value: "{{ $.Values.appConfig.database.skipmigration }}"
+              - name: OPENSHOCK__DB__DEBUG
+                value: "{{ $.Values.appConfig.database.debug }}"
+              - name: OPENSHOCK__REDIS__HOST
+                value: {{ $.Values.appConfig.redis.host }}
+              - name: OPENSHOCK__REDIS__PORT
+                value: "{{ $.Values.appConfig.redis.port }}"
+              - name: OPENSHOCK__REDIS__USER
+                value: {{ $.Values.appConfig.redis.user }}
+              {{- if $.Values.appConfig.redis.passwordSecretName }}
+              - name: OPENSHOCK__REDIS__PASSWORD
+                valueFrom:
+                  secretKeyRef:
+                    name: {{ $.Values.appConfig.redis.passwordSecretName }}
+                    key: {{ $.Values.appConfig.redis.passwordSecretKey }}
+              {{- end }}
+              - name: OPENSHOCK__FRONTEND__BASEURL
+                value: {{ $.Values.appConfig.frontend.baseUrl }}
+              - name: OPENSHOCK__FRONTEND__SHORTURL
+                value: {{ $.Values.appConfig.frontend.shortUrl }}
+              - name: OPENSHOCK__FRONTEND__COOKIEDOMAIN
+                value: {{ $.Values.appConfig.frontend.cookieDomain }}
+              - name: OPENSHOCK__MAIL__SENDER__EMAIL
+                value: {{ $.Values.appConfig.mail.senderEmail }}
+              - name: OPENSHOCK__MAIL__SENDER__NAME
+                value: {{ $.Values.appConfig.mail.senderName }}
+              - name: OPENSHOCK__MAIL__TYPE
+                value: {{ $.Values.appConfig.mail.type }}
+              {{- if eq (upper $.Values.appConfig.mail.type) "MAILJET" }}
+              - name: OPENSHOCK__MAIL__MAILJET__KEY
+                value: {{ $.Values.appConfig.mail.mailjet.key }}
+              - name: OPENSHOCK__MAIL__MAILJET__SECRET
+                valueFrom:
+                  secretKeyRef:
+                    name: {{ $.Values.appConfig.mail.mailjet.secretSecretName }}
+                    key: {{ $.Values.appConfig.mail.mailjet.secretSecretKey }}
+              - name: OPENSHOCK__MAIL__MAILJET__TEMPLATE__PASSWORDRESET
+                value: "{{ $.Values.appConfig.mail.mailjet.templatePasswordRest }}"
+              {{- end }}
+              {{- if eq (upper $.Values.appConfig.mail.type) "SMTP" }}
+              - name: OPENSHOCK__MAIL__SMTP__HOST
+                value: {{ $.Values.appConfig.mail.smtp.host }}
+              - name: OPENSHOCK__MAIL__SMTP__USERNAME
+                value: {{ $.Values.appConfig.mail.smtp.username }}
+              - name: OPENSHOCK__MAIL__SMTP__ENABLESSL
+                value: "{{ $.Values.appConfig.mail.smtp.enableSsl }}"
+              - name: OPENSHOCK__MAIL__SMTP__VERIFYCERTIFICATE
+                value: "{{ $.Values.appConfig.mail.smtp.verifyCertificate }}"
+              - name: OPENSHOCK__MAIL__SMTP__PASSWORD
+                valueFrom:
+                  secretKeyRef:
+                    name: {{ $.Values.appConfig.mail.smtp.passwordSecretName }}
+                    key: {{ $.Values.appConfig.mail.smtp.passwordSecretKey }}
+              {{- end }}
+              - name: OPENSHOCK__TURNSTILE__ENABLE
+                value: "{{ $.Values.appConfig.turnstile.enabled }}"
+              {{- if eq (lower $.Values.appConfig.turnstile.enabled) "true" }}
+              - name: OPENSHOCK__TURNSTILE__SITEKEY
+                value: {{ $.Values.appConfig.turnstile.siteKey }}
+              - name: OPENSHOCK__TURNSTILE__SECRETKEY
+                valueFrom:
+                  secretKeyRef:
+                    name: {{ $.Values.appConfig.mail.turnstile.secretKeySecretName }}
+                    key: {{ $.Values.appConfig.mail.turnstile.secretKeySecretKey }}
+              {{- end }}
+            {{- else if eq $name "cron" }} # --- Cron
+              - name: OPENSHOCK__DB__CONN
+                valueFrom:
+                  secretKeyRef:
+                    name: {{ $.Values.appConfig.database.connectionSecretName }}
+                    key: {{ $.Values.appConfig.database.connectionSecretKey }}
+              - name: OPENSHOCK__DB__SKIPMIGRATION
+                value: "{{ $.Values.appConfig.database.skipmigration }}"
+              - name: OPENSHOCK__DB__DEBUG
+                value: "{{ $.Values.appConfig.database.debug }}"
+              - name: OPENSHOCK__REDIS__HOST
+                value: {{ $.Values.appConfig.redis.host }}
+              - name: OPENSHOCK__REDIS__PORT
+                value: "{{ $.Values.appConfig.redis.port }}"
+              - name: OPENSHOCK__REDIS__USER
+                value: {{ $.Values.appConfig.redis.user }}
+              {{- if $.Values.appConfig.redis.passwordSecretName }}
+              - name: OPENSHOCK__REDIS__PASSWORD
+                valueFrom:
+                  secretKeyRef:
+                    name: {{ $.Values.appConfig.redis.passwordSecretName }}
+                    key: {{ $.Values.appConfig.redis.passwordSecretKey }}
+              {{- end }}
+            {{- else if eq $name "lcg" }} # --- Live Controller Gateway
+              - name: OPENSHOCK__DB__CONN
+                valueFrom:
+                  secretKeyRef:
+                    name: {{ $.Values.appConfig.database.connectionSecretName }}
+                    key: {{ $.Values.appConfig.database.connectionSecretKey }}
+              - name: OPENSHOCK__DB__SKIPMIGRATION
+                value: "{{ $.Values.appConfig.database.skipmigration }}"
+              - name: OPENSHOCK__DB__DEBUG
+                value: "{{ $.Values.appConfig.database.debug }}"
+              - name: OPENSHOCK__REDIS__HOST
+                value: {{ $.Values.appConfig.redis.host }}
+              - name: OPENSHOCK__REDIS__PORT
+                value: "{{ $.Values.appConfig.redis.port }}"
+              - name: OPENSHOCK__REDIS__USER
+                value: {{ $.Values.appConfig.redis.user }}
+              {{- if $.Values.appConfig.redis.passwordSecretName }}
+              - name: OPENSHOCK__REDIS__PASSWORD
+                valueFrom:
+                  secretKeyRef:
+                    name: {{ $.Values.appConfig.redis.passwordSecretName }}
+                    key: {{ $.Values.appConfig.redis.passwordSecretKey }}
+              {{- end }}
+              - name: OPENSHOCK__LCG__COUNTRYCODE
+                value: "{{ $.Values.appConfig.liveControllerGateway.countryCode }}"
+              - name: OPENSHOCK__LCG__FQDN
+                value: "{{ $.Values.appConfig.liveControllerGateway.fcdn }}"
+            {{- end }}
+          ports:
+            - name: http
+              containerPort: {{ $values.service.port }}
+              protocol: TCP
+          livenessProbe:
+            {{- toYaml $values.livenessProbe | nindent 12 }}
+          readinessProbe:
+            {{- toYaml $values.readinessProbe | nindent 12 }}
+          resources:
+            {{- toYaml $values.resources | nindent 12 }}
+          {{- with $values.volumeMounts }}
+          volumeMounts:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+      {{- with $values.volumes }}
+      volumes:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with $values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with $values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with $values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+---
+{{- end }}
+{{- end }}
