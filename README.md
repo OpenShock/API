@@ -64,16 +64,18 @@ You need these environment variables to use SMTP:
 | `OPENSHOCK__MAIL__SMTP__ENABLESSL`         |          | `true`        | `true` or `false`                  |
 | `OPENSHOCK__MAIL__SMTP__VERIFYCERTIFICATE` |          | `true`        | `true` or `false`                  |
 
-# Deployment
+# Deployment / Self Hosting
 
 The OpenShock stack consists of the following components:
 
 - Postgres as database
 - Redis-Stack (with keyspace events KEA)
-- The API (this repository)
+- The API (container, API)
+- One or multiple gateways (container, LCG)
+- One or multiple cron daemons (container, CRON)
 - [The WebUI](https://github.com/OpenShock/WebUI)
 
-## Important
+## Requirements
 
 OpenShock instance needs to be under the same domain name to work correctly. This is due to cookie limitations in
 browsers.
@@ -82,21 +84,18 @@ Fontend: https://openshock.app
 API: https://api.openshock.app
 LCG: https://de1-gateway.openshock.app
 
-## Using Docker
+## Using Docker (provided docker-compose.yml)
 
-Grab the docker-compose.yml
-
-Edit the enviroment files in the env folder
-
-Change the postgres data storage location in docker-compose.yml from `/path/to/postgres-data` to the location you want
+1. Grab the `docker-compose.yml` and `.env` file from the repository
+2. Change the values in the `.env` file
+3. Adjust traefik to your needs (e.g. add SSL certificates)
 
 Run with `docker compose up -d`
 
-the service needs https to work, setup a reverse proxy
+---
 
-- webui/frontend/share domain -> 5002
-- api -> 5001
-- lcg -> 5003
+You could also bring your own reverse proxy.  
+You would need to remove traefik from the `docker-compose.yml` and route the traffic in your reverse proxy.
 
 ## Support development!
 
