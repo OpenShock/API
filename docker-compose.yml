@@ -67,8 +67,8 @@ services:
     environment:
       OPENSHOCK_NAME: OpenShock
       OPENSHOCK_URL: ${OPENSHOCK_DOMAIN:-openshock.local}
-      OPENSHOCK_SHARE_URL: ${OPENSHOCK_DOMAIN:-openshock.local}
-      OPENSHOCK_API_URL: ${OPENSHOCK_API_SUBDOMAIN:-api}.${OPENSHOCK_DOMAIN:-openshock.local}
+      OPENSHOCK_SHARE_URL: https://${OPENSHOCK_DOMAIN:-openshock.local}
+      OPENSHOCK_API_URL: https://${OPENSHOCK_API_SUBDOMAIN:-api}.${OPENSHOCK_DOMAIN:-openshock.local}
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.openshock-webui.rule=Host(`${OPENSHOCK_DOMAIN:-openshock.local}`)"
