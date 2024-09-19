@@ -76,7 +76,14 @@ services:
       - "traefik.http.routers.openshock-webui.entrypoints=https"
       - "traefik.http.routers.openshock-webui.tls=true"
       - "traefik.http.routers.openshock-webui.service=openshock-webui"
+      - "traefik.http.routers.openshock-webui.middlewares=osr-s,osr-c,osr-t"
       - "traefik.http.services.openshock-webui.loadbalancer.server.port=80"
+      - "traefik.http.middlewares.osr-s.redirectregex.regex=^https://${OPENSHOCK_DOMAIN:-openshock.local}/s/(.*)"
+      - "traefik.http.middlewares.osr-s.redirectregex.replacement=https://${OPENSHOCK_DOMAIN:-openshock.local}/#/public/proxy/shares/link/$$1"
+      - "traefik.http.middlewares.osr-c.redirectregex.regex=^https://${OPENSHOCK_DOMAIN:-openshock.local}/c/(.*)"
+      - "traefik.http.middlewares.osr-c.redirectregex.replacement=https://${OPENSHOCK_DOMAIN:-openshock.local}/#/public/proxy/shares/code/$$1"
+      - "traefik.http.middlewares.osr-t.redirectregex.regex=^https://${OPENSHOCK_DOMAIN:-openshock.local}/t/(.*)"
+      - "traefik.http.middlewares.osr-t.redirectregex.replacement=https://${OPENSHOCK_DOMAIN:-openshock.local}/#/public/proxy/shares/token/$$1"
 
   lcg:
     image: ghcr.io/openshock/live-control-gateway:latest
@@ -126,12 +133,14 @@ services:
       - "--providers.docker=true"
       - "--providers.docker.exposedbydefault=false"
       - "--entryPoints.https.address=:443"
+      #- "--api.insecure=true"
     restart: unless-stopped
     networks:
       - openshock
     ports:
       - 80:80
       - 443:443
+      #- 8080:8080 # Traefik Web UI (enabled by --api.insecure=true)
     volumes:
       - /etc/localtime:/etc/localtime:ro
       - /var/run/docker.sock:/var/run/docker.sock:ro
