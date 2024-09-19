@@ -51,6 +51,7 @@ services:
       OPENSHOCK__FRONTEND__COOKIEDOMAIN: ${OPENSHOCK_DOMAIN:-openshock.local}
       OPENSHOCK__DB__CONN: Host=db;Port=5432;Database=${PG_USER:-openshock};Username=${PG_USER:-openshock};Password=${PG_PASS}
       OPENSHOCK__REDIS__HOST: redis
+      OPENSHOCK__TURNSTILE__ENABLE: false
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.openshock-api.rule=Host(`${OPENSHOCK_API_SUBDOMAIN:-api}.${OPENSHOCK_DOMAIN:-openshock.local}`)"
