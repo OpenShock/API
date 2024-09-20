@@ -286,7 +286,9 @@ public class Startup
                 });
                 options.AddServer(new OpenApiServer { Url = "https://api.openshock.app" });
                 options.AddServer(new OpenApiServer { Url = "https://staging-api.openshock.app" });
+#if DEBUG
                 options.AddServer(new OpenApiServer { Url = "https://localhost" });
+#endif
                 options.SwaggerDoc("v1", new OpenApiInfo { Title = "OpenShock", Version = "1" });
                 options.SwaggerDoc("v2", new OpenApiInfo { Title = "OpenShock", Version = "2" });
                 options.MapType<SemVersion>(() => OpenApiSchemas.SemVerSchema);
