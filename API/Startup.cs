@@ -120,23 +120,7 @@ public class Startup
         });
 
 
-        // ----------------- REDIS -----------------
-
-
-        var redisConfig = new ConfigurationOptions
-        {
-            AbortOnConnectFail = true,
-            Password = _apiConfig.Redis.Password,
-            User = _apiConfig.Redis.User,
-            Ssl = false,
-            EndPoints = new EndPointCollection
-            {
-                { _apiConfig.Redis.Host, _apiConfig.Redis.Port }
-            }
-        };
-        services.AddSingleton<IConnectionMultiplexer>(ConnectionMultiplexer.Connect(redisConfig));
-        services.AddSingleton<IRedisConnectionProvider, RedisConnectionProvider>();
-        services.AddSingleton<IRedisPubService, RedisPubService>();
+        var commonServices = services.AddOpenShockServices(_apiConfig);
 
         services.AddMemoryCache();
         services.AddHttpContextAccessor();
@@ -204,7 +188,7 @@ public class Startup
             });
         });
         services.AddSignalR()
-            .AddOpenShockStackExchangeRedis(options => { options.Configuration = redisConfig; })
+            .AddOpenShockStackExchangeRedis(options => { options.Configuration = commonServices.RedisConfig; })
             .AddJsonProtocol(options =>
             {
                 options.PayloadSerializerOptions.PropertyNameCaseInsensitive = true;
@@ -298,8 +282,7 @@ public class Startup
 
         services.ConfigureOptions<ConfigureSwaggerOptions>();
         //services.AddHealthChecks().AddCheck<DatabaseHealthCheck>("database");
-
-        services.AddOpenShockServices();
+        
         services.AddHostedService<RedisSubscriberService>();
     }
 

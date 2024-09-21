@@ -122,26 +122,8 @@ public class Startup
             builder.EnableSensitiveDataLogging();
             builder.EnableDetailedErrors();
         });
-
-        // ----------------- REDIS -----------------
-
-        var redisConfig = new ConfigurationOptions
-        {
-            AbortOnConnectFail = true,
-            Password = _config.Redis.Password,
-            User = _config.Redis.User,
-            Ssl = false,
-            EndPoints = new EndPointCollection
-            {
-                { _config.Redis.Host, _config.Redis.Port }
-            }
-        };
-
-        services.AddSingleton<IConnectionMultiplexer>(ConnectionMultiplexer.Connect(redisConfig));
-        services.AddSingleton<IRedisConnectionProvider, RedisConnectionProvider>();
-        services.AddSingleton<IRedisPubService, RedisPubService>();
         
-        services.AddOpenShockServices();
+        services.AddOpenShockServices(_config);
     }
 
     public void Configure(IApplicationBuilder app, IWebHostEnvironment env, ILoggerFactory loggerFactory,
