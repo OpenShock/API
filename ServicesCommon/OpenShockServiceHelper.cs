@@ -18,9 +18,12 @@ public static class OpenShockServiceHelper
     public static ServicesResult AddOpenShockServices(this IServiceCollection services, BaseConfig config)
     {
         ConfigurationOptions configurationOptions;
-        
+
         if (string.IsNullOrWhiteSpace(config.Redis.Conn))
         {
+            if (string.IsNullOrWhiteSpace(config.Redis.Host))
+                throw new Exception("You need to specify either OPENSHOCK__REDIS__CONN or OPENSHOCK__REDIS__HOST");
+
             configurationOptions = new ConfigurationOptions
             {
                 AbortOnConnectFail = true,
@@ -37,25 +40,26 @@ public static class OpenShockServiceHelper
         {
             configurationOptions = ConfigurationOptions.Parse(config.Redis.Conn);
         }
-        
+
         configurationOptions.AbortOnConnectFail = true;
 
         services.AddSingleton<IConnectionMultiplexer>(ConnectionMultiplexer.Connect(configurationOptions));
         services.AddSingleton<IRedisConnectionProvider, RedisConnectionProvider>();
         services.AddSingleton<IRedisPubService, RedisPubService>();
-        
+
         services.AddSingleton<IBatchUpdateService, BatchUpdateService>();
-        services.AddHostedService<BatchUpdateService>(provider => (BatchUpdateService)provider.GetRequiredService<IBatchUpdateService>());
-        
+        services.AddHostedService<BatchUpdateService>(provider =>
+            (BatchUpdateService)provider.GetRequiredService<IBatchUpdateService>());
+
 
         return new ServicesResult
         {
             RedisConfig = configurationOptions
         };
     }
-    
+
     public readonly struct ServicesResult
     {
-        public ConfigurationOptions RedisConfig  { get; init; }
+        public ConfigurationOptions RedisConfig { get; init; }
     }
 }
