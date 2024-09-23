@@ -98,9 +98,9 @@ You could also bring your own reverse proxy.
 You would need to remove traefik from the `docker-compose.yml` and route the traffic in your reverse proxy.
 
 ## Using Kubernetes and Helm
-Kubernetes and Helm is very powerful but they are not a beginner method. Use docker compose if you want something easy.
+Kubernetes and Helm are very powerful and well liked but they are not beginner friendly. Use docker compose if you want something easy.
 
-Openshock has some dependencies. It's not Openshocks place to tell you how to install them. 
+Openshock has some dependencies. It's not Openshock's place to tell you how to install them. 
 Dependencies are:
 - A Postgres database. This is used for storing user data including passwords. The Openshock API needs a connection string.
 - A Redis cluster. This is used for storing session data and as a messaging bus. It needs ReJson, RediSearch
