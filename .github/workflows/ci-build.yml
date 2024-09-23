@@ -38,7 +38,7 @@ jobs:
         run: helm package ./charts/openshock/ --app-version ${{ steps.latest-tag.outputs.tag }}
 
       - name: Helm registry login
-        run: echo $GITHUB_TOKEN_REGISTRY | helm registry login $REGISTRY/${{ github.actor }} --username ${{ github.actor }} --password-stdin
+        run: echo ${{ github.token }} | helm registry login $REGISTRY/${{ github.actor }} --username ${{ github.actor }} --password-stdin
 
       - name: Push Helm chart
         run: helm push ./openshock-0.1.0.tgz oci://$REGISTRY/${{ github.actor }}
