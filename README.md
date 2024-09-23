@@ -20,16 +20,16 @@ Preferred way is a .env file.
 | `OPENSHOCK__FRONTEND__BASEURL`      | x        |               | `https://my-openshock-instance.net` or `https://shocklink.net`                                           |
 | `OPENSHOCK__FRONTEND__SHORTURL`     | x        |               | `https://myoi.net` or `https://shockl.ink`                                                               |
 | `OPENSHOCK__FRONTEND__COOKIEDOMAIN` | x        |               | `my-openshock-instance.net`                                                                              |
-| `OPENSHOCK__REDIS__HOST`            | x        |               | `redis-server-host`                                                                                      |
-| `OPENSHOCK__REDIS__PORT`            |          | `6379`        |                                                                                                          |   
-| `OPENSHOCK__REDIS__USER`            |          |               |                                                                                                          |  
-| `OPENSHOCK__REDIS__PASSWORD`        |          |               |                                                                                                          |  
+| `OPENSHOCK__REDIS__CONN`            | x        |               | `redis-server-host:6379`                                                                                 |                                            
 | `OPENSHOCK__MAIL__SENDER__EMAIL`    | x        |               | `system@my-openshock-instance.net`                                                                       |
 | `OPENSHOCK__MAIL__SENDER__NAME`     | x        |               | `MyOpenShockInstance System`                                                                             |
 | `OPENSHOCK__MAIL__TYPE`             | x        |               | `MAILJET`, `SMTP`                                                                                        |
 | `OPENSHOCK__TURNSTILE__ENABLE`      | x        |               | `true`, `false`                                                                                          |
 | `OPENSHOCK__LCG__FQDN`              | x        |               | `de1-gateway.my-openshock-instance.net` `de1-gateway.shocklink.net`                                      |
 | `OPENSHOCK__LCG__COUNTRYCODE`       | x        |               | `DE`                                                                                                     |
+
+Reffer to the [Npgsql Connection String](https://www.npgsql.org/doc/connection-string-parameters.html) documentation page for details about `OPENSHOCK__DB_CONN`.  
+Reffer to [StackExchange.Redis Configuration](https://stackexchange.github.io/StackExchange.Redis/Configuration.html) documention page for details about `OPENSHOCK__REDIS__CONN`.
 
 ## Turnstile
 
