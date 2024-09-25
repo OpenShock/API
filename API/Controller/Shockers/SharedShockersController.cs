@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using OpenShock.API.Models.Response;
 using OpenShock.Common.Models;
 using OpenShock.ServicesCommon.Problems;
+using OpenShock.ServicesCommon.Utils;
 
 namespace OpenShock.API.Controller.Shockers;
 
@@ -23,6 +24,7 @@ public partial class ShockerController
             {
                 OwnerId = x.Shocker.DeviceNavigation.OwnerNavigation.Id,
                 OwnerName = x.Shocker.DeviceNavigation.OwnerNavigation.Name,
+                OwnerEmail = x.Shocker.DeviceNavigation.OwnerNavigation.Email,
                 DeviceId = x.Shocker.DeviceNavigation.Id,
                 DeviceName = x.Shocker.DeviceNavigation.Name,
                 Shocker = new OwnerShockerResponse.SharedDevice.SharedShocker
@@ -54,7 +56,8 @@ public partial class ShockerController
                 shared[shocker.OwnerId] = new OwnerShockerResponse
                 {
                     Id = shocker.OwnerId,
-                    Name = shocker.OwnerName
+                    Name = shocker.OwnerName,
+                    Image = GravatarUtils.GetImageUrl(shocker.OwnerEmail)
                 };
 
             var sharedUser = shared[shocker.OwnerId];

@@ -1,9 +1,9 @@
-﻿namespace OpenShock.API.Models.Response;
+﻿using OpenShock.Common.Models;
 
-public class OwnerShockerResponse
+namespace OpenShock.API.Models.Response;
+
+public class OwnerShockerResponse : GenericIni
 {
-    public required Guid Id { get; set; }
-    public required string Name { get; set; }
     public IList<SharedDevice> Devices { get; set; } = new List<SharedDevice>();
 
     public class SharedDevice
