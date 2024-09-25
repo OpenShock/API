@@ -27,10 +27,11 @@ public sealed class ClearOldPasswordResetsJob
         // Delete all password reset requests that have not been used and are older than the lifetime.
         // Leave expired requests that have been used for 14 days for moderation purposes.
         var earliestCreatedOn = DateTime.Now - (Constants.PasswordResetRequestLifetime + TimeSpan.FromDays(14));
+        var earliestCreatedOnUtc = DateTime.SpecifyKind(earliestCreatedOn, DateTimeKind.Utc);
 
         // Run the delete query
         await _db.PasswordResets
-            .Where(x => x.UsedOn == null && x.CreatedOn < earliestCreatedOn)
+            .Where(x => x.UsedOn == null && x.CreatedOn < earliestCreatedOnUtc)
             .ExecuteDeleteAsync();
     }
 }
