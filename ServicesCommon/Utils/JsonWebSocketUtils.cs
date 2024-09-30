@@ -74,14 +74,9 @@ public static class JsonWebSocketUtils
 /// <summary>
 /// When json deserialization fails
 /// </summary>
-public readonly struct DeserializeFailed
-{
-    public required Exception Exception { get; init; }
-}
+public readonly record struct DeserializeFailed(Exception Exception);
 
 /// <summary>
 /// When the websocket sent a close frame
 /// </summary>
-public readonly struct WebsocketClosure
-{
-}
+public readonly struct WebsocketClosure;

@@ -181,17 +181,8 @@ public static class ControlLogic
     }
 }
 
-public readonly struct ShockerNotFoundOrNoAccess(Guid value)
-{
-    public Guid Value { get; init; } = value;
-}
+public readonly record struct ShockerNotFoundOrNoAccess(Guid Value);
 
-public readonly struct ShockerPaused(Guid value)
-{
-    public Guid Value { get; init; } = value;
-}
+public readonly record struct ShockerPaused(Guid Value);
 
-public readonly struct ShockerNoPermission(Guid value)
-{
-    public Guid Value { get; init; } = value;
-}
+public readonly record struct ShockerNoPermission(Guid Value);
