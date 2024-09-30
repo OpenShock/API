@@ -1,9 +1,9 @@
-﻿using Microsoft.AspNetCore.Mvc;
-using System.Net;
-using Asp.Versioning;
+﻿using Asp.Versioning;
+using Microsoft.AspNetCore.Mvc;
 using OpenShock.API.Services.Account;
 using OpenShock.ServicesCommon.Errors;
 using OpenShock.ServicesCommon.Problems;
+using System.Net;
 
 namespace OpenShock.API.Controller.Account;
 
@@ -33,7 +33,7 @@ public sealed partial class AccountController
             notFound => Problem(PasswordResetError.PasswordResetNotFound),
             invalid => Problem(PasswordResetError.PasswordResetNotFound));
     }
-    
+
 
     public sealed class PasswordResetProcessData
     {

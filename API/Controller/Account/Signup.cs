@@ -1,10 +1,10 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Asp.Versioning;
+using Microsoft.AspNetCore.Mvc;
 using OpenShock.API.Models.Requests;
-using System.Net;
-using Asp.Versioning;
 using OpenShock.API.Services.Account;
 using OpenShock.ServicesCommon.Errors;
 using OpenShock.ServicesCommon.Problems;
+using System.Net;
 
 namespace OpenShock.API.Controller.Account;
 

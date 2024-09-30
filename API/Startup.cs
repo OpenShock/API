@@ -1,8 +1,4 @@
-﻿using System.Net;
-using System.Text;
-using System.Text.Json;
-using System.Text.Json.Serialization;
-using Asp.Versioning;
+﻿using Asp.Versioning;
 using Asp.Versioning.ApiExplorer;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Http.Connections;
@@ -31,17 +27,18 @@ using OpenShock.ServicesCommon.ExceptionHandle;
 using OpenShock.ServicesCommon.Geo;
 using OpenShock.ServicesCommon.Hubs;
 using OpenShock.ServicesCommon.Problems;
-using OpenShock.ServicesCommon.Services.BatchUpdate;
 using OpenShock.ServicesCommon.Services.Device;
 using OpenShock.ServicesCommon.Services.Ota;
-using OpenShock.ServicesCommon.Services.RedisPubSub;
 using OpenShock.ServicesCommon.Services.Turnstile;
 using OpenShock.ServicesCommon.Utils;
 using Redis.OM;
 using Redis.OM.Contracts;
 using Semver;
 using Serilog;
-using StackExchange.Redis;
+using System.Net;
+using System.Text;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using IPNetwork = Microsoft.AspNetCore.HttpOverrides.IPNetwork;
 using WebSocketOptions = Microsoft.AspNetCore.Builder.WebSocketOptions;
 
@@ -282,7 +279,7 @@ public sealed class Startup
 
         services.ConfigureOptions<ConfigureSwaggerOptions>();
         //services.AddHealthChecks().AddCheck<DatabaseHealthCheck>("database");
-        
+
         services.AddHostedService<RedisSubscriberService>();
     }
 

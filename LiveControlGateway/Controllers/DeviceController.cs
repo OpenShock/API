@@ -1,6 +1,4 @@
-﻿using System.Globalization;
-using System.Net.WebSockets;
-using Microsoft.AspNetCore.Authorization;
+﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
 using Microsoft.AspNetCore.SignalR;
@@ -20,6 +18,7 @@ using OpenShock.ServicesCommon.Services.Ota;
 using Redis.OM.Contracts;
 using Semver;
 using Serilog;
+using System.Net.WebSockets;
 using Timer = System.Timers.Timer;
 
 namespace OpenShock.LiveControlGateway.Controllers;
@@ -324,7 +323,7 @@ public sealed class DeviceController : FlatbuffersWebsocketBaseController<Gatewa
     protected override async Task RegisterConnection()
     {
         _connected = DateTimeOffset.UtcNow;
-        
+
         if (HttpContext.Request.Headers.TryGetValue("Firmware-Version", out var header) &&
             SemVersion.TryParse(header, SemVersionStyles.Strict, out var version)) FirmwareVersion = version;
 

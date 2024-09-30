@@ -1,5 +1,4 @@
-﻿using System.Net;
-using Asp.Versioning;
+﻿using Asp.Versioning;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.SignalR;
 using OpenShock.Common.Models;
@@ -10,6 +9,7 @@ using OpenShock.ServicesCommon.Hubs;
 using OpenShock.ServicesCommon.Problems;
 using OpenShock.ServicesCommon.Services.RedisPubSub;
 using OpenShock.ServicesCommon.Utils;
+using System.Net;
 
 namespace OpenShock.API.Controller.Shockers;
 

@@ -13,7 +13,7 @@ public interface IOtaService
     /// <param name="version"></param>
     /// <returns></returns>
     public Task Started(Guid deviceId, int updateId, SemVersion version);
-    
+
     /// <summary>
     /// When the first progress is reported, set the state to running
     /// </summary>
@@ -21,7 +21,7 @@ public interface IOtaService
     /// <param name="updateId"></param>
     /// <returns></returns>
     public Task Progress(Guid deviceId, int updateId);
-    
+
     /// <summary>
     /// When an error or rollback occured during the update
     /// </summary>
@@ -29,7 +29,7 @@ public interface IOtaService
     /// <param name="updateId"></param>
     /// <returns></returns>
     public Task Error(Guid deviceId, int updateId, bool fatal, string message);
-    
+
     /// <summary>
     /// Updated succeeded
     /// </summary>
@@ -37,7 +37,7 @@ public interface IOtaService
     /// <param name="updateId"></param>
     /// <returns></returns>
     public Task<bool> Success(Guid deviceId, int updateId);
-    
+
     /// <summary>
     /// Check for an unfinished update
     /// </summary>

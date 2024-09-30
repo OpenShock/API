@@ -1,8 +1,8 @@
-﻿using System.Net;
-using System.Net.Mime;
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using OpenShock.Common.Models;
 using OpenShock.ServicesCommon.Problems;
+using System.Net;
+using System.Net.Mime;
 
 namespace OpenShock.ServicesCommon;
 
@@ -12,7 +12,7 @@ public class OpenShockControllerBase : ControllerBase
 {
     [NonAction]
     public ObjectResult Problem(OpenShockProblem problem) => problem.ToObjectResult(HttpContext);
-    
+
     [NonAction]
     public ObjectResult RespondSuccess<T>(T data, string message = "", HttpStatusCode statusCode = HttpStatusCode.OK)
     {

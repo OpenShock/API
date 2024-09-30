@@ -1,11 +1,11 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using OpenShock.API.Models.Response;
 using OpenShock.Common.Utils;
+using OpenShock.ServicesCommon.Errors;
 using OpenShock.ServicesCommon.Geo;
+using OpenShock.ServicesCommon.Problems;
 using System.Net;
 using System.Text;
-using OpenShock.ServicesCommon.Errors;
-using OpenShock.ServicesCommon.Problems;
 
 namespace OpenShock.API.Controller.Device;
 

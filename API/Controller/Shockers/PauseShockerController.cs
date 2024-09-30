@@ -1,5 +1,4 @@
-﻿using System.Net;
-using Asp.Versioning;
+﻿using Asp.Versioning;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using OpenShock.API.Models.Requests;
@@ -8,6 +7,7 @@ using OpenShock.Common.Models;
 using OpenShock.ServicesCommon.Authentication.Attributes;
 using OpenShock.ServicesCommon.Errors;
 using OpenShock.ServicesCommon.Problems;
+using System.Net;
 
 namespace OpenShock.API.Controller.Shockers;
 
@@ -24,7 +24,7 @@ public sealed partial class ShockerController
     [HttpPost("{shockerId}/pause")]
     [TokenPermission(PermissionType.Shockers_Pause)]
     [ProducesSuccess<bool?>]
-    [ProducesProblem(HttpStatusCode.NotFound, "ShockerNotFound")]    
+    [ProducesProblem(HttpStatusCode.NotFound, "ShockerNotFound")]
     [MapToApiVersion("1")]
     public async Task<IActionResult> PauseShocker([FromRoute] Guid shockerId, [FromBody] PauseRequest body,
         [FromServices] IDeviceUpdateService deviceUpdateService)

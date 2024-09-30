@@ -1,5 +1,4 @@
-﻿using System.Net;
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using OpenShock.API.Models.Requests;
 using OpenShock.API.Services;
@@ -9,6 +8,7 @@ using OpenShock.Common.Redis;
 using OpenShock.ServicesCommon.Authentication.Attributes;
 using OpenShock.ServicesCommon.Errors;
 using OpenShock.ServicesCommon.Problems;
+using System.Net;
 
 namespace OpenShock.API.Controller.Devices;
 
@@ -46,8 +46,8 @@ public sealed partial class DevicesController
     public async Task<IActionResult> GetDeviceById([FromRoute] Guid deviceId)
     {
         var hasAuthPerms = IsAllowed(PermissionType.Devices_Auth);
-        
-        
+
+
         var device = await _db.Devices.Where(x => x.Owner == CurrentUser.DbUser.Id && x.Id == deviceId)
             .Select(x => new Models.Response.ResponseDeviceWithToken
             {
@@ -128,9 +128,9 @@ public sealed partial class DevicesController
         var affected = await _db.Devices.Where(x => x.Owner == CurrentUser.DbUser.Id && x.Id == deviceId)
             .ExecuteDeleteAsync();
         if (affected <= 0) return Problem(DeviceError.DeviceNotFound);
-        
+
         await updateService.UpdateDeviceForAllShared(CurrentUser.DbUser.Id, deviceId, DeviceUpdateType.Deleted);
-        
+
         return RespondSuccessSimple("Successfully deleted device");
     }
 
@@ -152,9 +152,9 @@ public sealed partial class DevicesController
         };
         _db.Devices.Add(device);
         await _db.SaveChangesAsync();
-        
+
         await updateService.UpdateDevice(CurrentUser.DbUser.Id, device.Id, DeviceUpdateType.Created);
-        
+
         Response.StatusCode = (int)HttpStatusCode.Created;
         return new BaseResponse<Guid>
         {

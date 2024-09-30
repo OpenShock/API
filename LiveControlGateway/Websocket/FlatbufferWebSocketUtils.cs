@@ -1,8 +1,8 @@
-﻿using System.Buffers;
-using System.Net.WebSockets;
-using FlatSharp;
+﻿using FlatSharp;
 using OneOf;
 using OpenShock.ServicesCommon.Utils;
+using System.Buffers;
+using System.Net.WebSockets;
 
 namespace OpenShock.LiveControlGateway.Websocket;
 
@@ -12,7 +12,7 @@ namespace OpenShock.LiveControlGateway.Websocket;
 public static class FlatbufferWebSocketUtils
 {
     private const uint MaxMessageSize = 512_000; // 512 000 bytes
-    
+
     /// <summary>
     /// Receive a websocket message with the given FlatBuffer type
     /// </summary>

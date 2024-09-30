@@ -1,6 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using OpenShock.Common.Models;
+﻿using OpenShock.Common.Models;
 
 namespace OpenShock.Common.OpenShockDb;
 
@@ -17,7 +15,7 @@ public partial class Shocker
     public DateTime CreatedOn { get; set; }
 
     public bool Paused { get; set; }
-    
+
     public ShockerModelType Model { get; set; }
 
     public virtual Device DeviceNavigation { get; set; } = null!;

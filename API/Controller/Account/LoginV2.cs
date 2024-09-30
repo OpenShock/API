@@ -1,11 +1,11 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Asp.Versioning;
+using Microsoft.AspNetCore.Mvc;
 using OpenShock.API.Models.Requests;
-using System.Net;
-using Asp.Versioning;
 using OpenShock.API.Services.Account;
 using OpenShock.ServicesCommon.Errors;
 using OpenShock.ServicesCommon.Problems;
 using OpenShock.ServicesCommon.Services.Turnstile;
+using System.Net;
 
 namespace OpenShock.API.Controller.Account;
 
@@ -33,7 +33,7 @@ public sealed partial class AccountController
 
         var turnStile = await turnstileService.VerifyUserResponseToken(body.TurnstileResponse, HttpContext.Connection.RemoteIpAddress, cancellationToken);
         if (!turnStile.IsT0) return Problem(TurnstileError.InvalidTurnstile);
-            
+
         var loginAction = await accountService.Login(body.Email, body.Password, new LoginContext
         {
             Ip = HttpContext.Connection.RemoteIpAddress?.MapToIPv4().ToString() ?? string.Empty,
@@ -41,8 +41,8 @@ public sealed partial class AccountController
         }, cancellationToken);
 
         if (loginAction.IsT1) return Problem(LoginError.InvalidCredentials);
-        
-        
+
+
         HttpContext.Response.Cookies.Append("openShockSession", loginAction.AsT0.Value, new CookieOptions
         {
             Expires = new DateTimeOffset(DateTime.UtcNow.Add(accountService.SessionLifetime)),

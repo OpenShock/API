@@ -1,8 +1,8 @@
-﻿using System.ComponentModel.DataAnnotations;
-using Microsoft.OpenApi.Any;
+﻿using Microsoft.OpenApi.Any;
 using Microsoft.OpenApi.Models;
 using OpenShock.ServicesCommon.DataAnnotations.Interfaces;
 using OpenShock.ServicesCommon.Validation;
+using System.ComponentModel.DataAnnotations;
 
 namespace OpenShock.ServicesCommon.DataAnnotations;
 
@@ -44,13 +44,13 @@ public sealed class UsernameAttribute : ValidationAttribute, IParameterAttribute
         if (!ShouldValidate) return ValidationResult.Success;
 
         if (value is null) return new ValidationResult("Username cannot be null");
-        
+
         if (value is not string displayname) return new ValidationResult(_ErrMsgMustBeString);
-        
+
         var result = UsernameValidator.Validate(displayname);
 
         if (!result.Ok) return new ValidationResult(result.ErrorMessage);
-        
+
         return ValidationResult.Success;
     }
 
@@ -58,7 +58,7 @@ public sealed class UsernameAttribute : ValidationAttribute, IParameterAttribute
     public void Apply(OpenApiSchema schema)
     {
         if (ShouldValidate) schema.Pattern = DisplaynameRegex;
-        
+
         schema.Example = new OpenApiString(ExampleDisplayname);
     }
 

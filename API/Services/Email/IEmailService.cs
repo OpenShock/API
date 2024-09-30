@@ -12,7 +12,7 @@ public interface IEmailService
     /// <param name="cancellationToken"></param>
     /// <returns></returns>
     public Task PasswordReset(Contact to, Uri resetLink, CancellationToken cancellationToken = default);
-    
+
     /// <summary>
     /// When a user uses the signup form we send this email to let them activate their email
     /// </summary>

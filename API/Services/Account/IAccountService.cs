@@ -10,7 +10,7 @@ namespace OpenShock.API.Services.Account;
 public interface IAccountService
 {
     public TimeSpan SessionLifetime { get; }
-    
+
     /// <summary>
     /// Creates an account 
     /// </summary>
@@ -38,7 +38,7 @@ public interface IAccountService
     /// <param name="cancellationToken"></param>
     /// <returns></returns>
     public Task<OneOf<Success<string>, NotFound>> Login(string emailOrUsername, string password, LoginContext loginContext, CancellationToken cancellationToken = default);
-    
+
     /// <summary>
     /// Check if a password reset request exists and the secret is valid
     /// </summary>
@@ -54,7 +54,7 @@ public interface IAccountService
     /// <param name="email"></param>
     /// <returns></returns>
     public Task<OneOf<Success, TooManyPasswordResets, NotFound>> CreatePasswordReset(string email);
-    
+
     /// <summary>
     /// Completes a password reset process, sets a new password
     /// </summary>

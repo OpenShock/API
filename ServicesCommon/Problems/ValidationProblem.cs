@@ -1,5 +1,5 @@
-﻿using System.Net;
-using Microsoft.AspNetCore.Mvc.ModelBinding;
+﻿using Microsoft.AspNetCore.Mvc.ModelBinding;
+using System.Net;
 
 namespace OpenShock.ServicesCommon.Problems;
 

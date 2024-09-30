@@ -62,8 +62,8 @@ public sealed class SimpleWebsocketCollection<T, TR> where T : class, IWebsocket
         // Im cloning a moment-in-time snapshot on purpose here, so we dont miss any connections.
         // This is fine since this is not regularly called, and does not need to be realtime.
         foreach (var (_, list) in _websockets.ToArray())
-        foreach (var websocketController in list)
-            await websocketController.QueueMessage(msg);
+            foreach (var websocketController in list)
+                await websocketController.QueueMessage(msg);
     }
 
     public IEnumerable<T> GetConnectedById(IEnumerable<Guid> ids)

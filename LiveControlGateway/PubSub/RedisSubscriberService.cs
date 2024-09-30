@@ -1,12 +1,9 @@
-﻿using System.Text.Json;
-using OpenShock.Common.Redis.PubSub;
+﻿using OpenShock.Common.Redis.PubSub;
 using OpenShock.Common.Utils;
 using OpenShock.LiveControlGateway.LifetimeManager;
-using OpenShock.LiveControlGateway.Websocket;
-using OpenShock.Serialization;
-using OpenShock.Serialization.Types;
 using OpenShock.ServicesCommon.Services.RedisPubSub;
 using StackExchange.Redis;
+using System.Text.Json;
 
 namespace OpenShock.LiveControlGateway.PubSub;
 
@@ -70,7 +67,7 @@ public sealed class RedisSubscriberService : IHostedService, IAsyncDisposable
         if (!value.HasValue) return;
         var data = JsonSerializer.Deserialize<DeviceUpdatedMessage>(value.ToString());
         if (data == null) return;
-        
+
         await DeviceLifetimeManager.UpdateDevice(data.Id);
     }
 
@@ -84,7 +81,7 @@ public sealed class RedisSubscriberService : IHostedService, IAsyncDisposable
         if (!value.HasValue) return;
         var data = JsonSerializer.Deserialize<DeviceOtaInstallMessage>(value.ToString());
         if (data == null) return;
-        
+
         await DeviceLifetimeManager.OtaInstall(data.Id, data.Version);
     }
 

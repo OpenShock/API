@@ -2,9 +2,9 @@
 using Microsoft.EntityFrameworkCore;
 using OpenShock.API.Models.Requests;
 using OpenShock.API.Models.Response;
-using System.Net;
 using OpenShock.ServicesCommon.Errors;
 using OpenShock.ServicesCommon.Problems;
+using System.Net;
 
 namespace OpenShock.API.Controller.Shares.Links;
 

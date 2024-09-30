@@ -1,12 +1,12 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using OpenShock.Common.JsonSerialization;
 using OpenShock.Common.Models;
 using OpenShock.Common.Redis;
+using OpenShock.ServicesCommon.Problems;
 using OpenShock.ServicesCommon.Utils;
 using Semver;
 using System.Text.Json.Serialization;
-using OpenShock.Common.JsonSerialization;
-using OpenShock.ServicesCommon.Problems;
 
 namespace OpenShock.API.Controller.Admin;
 

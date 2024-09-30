@@ -1,10 +1,10 @@
-﻿using System.Reflection;
-using Microsoft.AspNetCore.Authorization;
+﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using OpenShock.API.Utils;
 using OpenShock.Common.Models;
 using OpenShock.ServicesCommon;
 using OpenShock.ServicesCommon.Problems;
+using System.Reflection;
 
 namespace OpenShock.API.Controller.Version;
 
@@ -28,7 +28,7 @@ public sealed partial class VersionController : OpenShockControllerBase
     [ProducesSuccess<RootResponse>]
     public BaseResponse<RootResponse> GetBackendVersion([FromServices] ApiConfig apiConfig)
     {
-        
+
         return new BaseResponse<RootResponse>
         {
             Message = "OpenShock",

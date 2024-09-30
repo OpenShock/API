@@ -1,11 +1,11 @@
-﻿using System.Net;
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using OpenShock.API.Services;
 using OpenShock.Common.Models;
 using OpenShock.Common.OpenShockDb;
 using OpenShock.ServicesCommon.Errors;
 using OpenShock.ServicesCommon.Problems;
+using System.Net;
 
 namespace OpenShock.API.Controller.Shares;
 
@@ -32,7 +32,9 @@ public sealed partial class SharesController
     {
         var shareCode = await _db.ShockerShareCodes.Where(x => x.Id == shareCodeId).Select(x => new
         {
-            Share = x, x.Shocker.DeviceNavigation.Owner, x.Shocker.Device
+            Share = x,
+            x.Shocker.DeviceNavigation.Owner,
+            x.Shocker.Device
         }).SingleOrDefaultAsync();
         if (shareCode == null) return Problem(ShareCodeError.ShareCodeNotFound);
         if (shareCode.Owner == CurrentUser.DbUser.Id) return Problem(ShareCodeError.CantLinkOwnShareCode);

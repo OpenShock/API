@@ -1,14 +1,14 @@
-﻿using System.Text.Json;
-using OpenShock.Common.Redis.PubSub;
+﻿using OpenShock.Common.Redis.PubSub;
 using Semver;
 using StackExchange.Redis;
+using System.Text.Json;
 
 namespace OpenShock.ServicesCommon.Services.RedisPubSub;
 
 public sealed class RedisPubService : IRedisPubService
 {
     private readonly ISubscriber _subscriber;
-    
+
     /// <summary>
     /// DI Constructor
     /// </summary>
@@ -17,7 +17,7 @@ public sealed class RedisPubService : IRedisPubService
     {
         _subscriber = connectionMultiplexer.GetSubscriber();
     }
-    
+
     /// <inheritdoc />
     public Task SendDeviceControl(Guid sender, IDictionary<Guid, IList<ControlMessage.ShockerControlInfo>> controlMessages)
     {
@@ -61,7 +61,7 @@ public sealed class RedisPubService : IRedisPubService
             Id = deviceId,
             Version = version
         };
-        
+
         return _subscriber.PublishAsync(RedisChannels.DeviceOtaInstall, JsonSerializer.Serialize(redisMessage));
     }
 }

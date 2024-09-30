@@ -2,10 +2,10 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using OpenShock.Common.Redis;
-using Redis.OM;
-using System.Net;
 using OpenShock.ServicesCommon.Errors;
 using OpenShock.ServicesCommon.Problems;
+using Redis.OM;
+using System.Net;
 
 namespace OpenShock.API.Controller.Device;
 

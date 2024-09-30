@@ -15,7 +15,7 @@ public static class CountryCodeMapper
         Latitude = 0.0,
         Longitude = 0.0
     };
-    
+
     public readonly struct CountryInfo : IEquatable<CountryInfo>
     {
         public required Alpha2CountryCode CountryCode { get; init; }
@@ -23,13 +23,13 @@ public static class CountryCodeMapper
         public required double Latitude { get; init; }
         public required double Longitude { get; init; }
         public required string? CfRegion { get; init; }
-        
+
         public readonly struct Alpha2CountryCode : IEquatable<Alpha2CountryCode>
         {
-            
+
             public static readonly Alpha2CountryCode DefaultAlphaCode = new() { Char1 = 'X', Char2 = 'X' };
-            
-            
+
+
             public required char Char1 { get; init; }
             public required char Char2 { get; init; }
 
@@ -52,12 +52,12 @@ public static class CountryCodeMapper
             }
 
             public static Alpha2CountryCode ParseOrDefault(string stringIn) => TryParseAndValidate(stringIn, out var code) ? code : DefaultAlphaCode;
-            
+
             public static implicit operator Alpha2CountryCode(string stringIn)
             {
                 if (stringIn.Length != 2) throw new ArgumentOutOfRangeException(nameof(stringIn), "String input must be exactly 2 chars");
                 if (!char.IsAsciiLetterUpper(stringIn[0]) || !char.IsAsciiLetterUpper(stringIn[1])) throw new ArgumentOutOfRangeException(nameof(stringIn), "String input must be upper characters only");
-                
+
                 return new Alpha2CountryCode
                 {
                     Char1 = stringIn[0],
@@ -70,9 +70,9 @@ public static class CountryCodeMapper
             public override int GetHashCode() => HashCode.Combine(Char1, Char2);
             public static bool operator ==(Alpha2CountryCode left, Alpha2CountryCode right) => left.Equals(right);
             public static bool operator !=(Alpha2CountryCode left, Alpha2CountryCode right) => !(left == right);
-            
+
         }
-        
+
         public bool Equals(CountryInfo other) => CountryCode == other.CountryCode;
         public override bool Equals(object? obj) => obj is CountryInfo other && Equals(other);
         public override int GetHashCode() => CountryCode.GetHashCode();
@@ -82,7 +82,7 @@ public static class CountryCodeMapper
         public double DistanceTo(double longitude, double latitude) => CountryCodeMapper.GetDistance(Longitude, Latitude, longitude, latitude);
         public double DistanceTo(CountryInfo otherCountry) => DistanceTo(otherCountry.Longitude, otherCountry.Latitude);
     }
-    
+
     private static double GetDistance(double longitude, double latitude, double otherLongitude, double otherLatitude)
     {
         var d1 = latitude * (Math.PI / 180.0);
@@ -90,7 +90,7 @@ public static class CountryCodeMapper
         var d2 = otherLatitude * (Math.PI / 180.0);
         var num2 = otherLongitude * (Math.PI / 180.0) - num1;
         var d3 = Math.Pow(Math.Sin((d2 - d1) / 2.0), 2.0) + Math.Cos(d1) * Math.Cos(d2) * Math.Pow(Math.Sin(num2 / 2.0), 2.0);
-    
+
         return 6376500.0 * (2.0 * Math.Atan2(Math.Sqrt(d3), Math.Sqrt(1.0 - d3)));
     }
 
@@ -344,15 +344,15 @@ public static class CountryCodeMapper
             new() { CountryCode = "ZM", Name = "Zambia", Latitude = -13.133897, Longitude = 27.849332, CfRegion = "apac" },
             new() { CountryCode = "ZW", Name = "Zimbabwe", Latitude = -19.015438, Longitude = 29.154857, CfRegion = "apac" },
         };
-        
+
         CountryCodeToCountryInfo = Countries.ToDictionary(x => x.CountryCode, x => x);
     }
 
     public static readonly CountryInfo[] Countries;
     public static readonly IReadOnlyDictionary<CountryInfo.Alpha2CountryCode, CountryInfo> CountryCodeToCountryInfo;
 
-    public static CountryInfo GetCountryOrDefault(CountryInfo.Alpha2CountryCode alpha2Country) => 
+    public static CountryInfo GetCountryOrDefault(CountryInfo.Alpha2CountryCode alpha2Country) =>
         CountryCodeToCountryInfo.TryGetValue(alpha2Country, out var countryInfo) ?
             countryInfo : DefaultCountry;
-    
+
 }

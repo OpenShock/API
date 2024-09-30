@@ -4,7 +4,6 @@ using Microsoft.AspNetCore.Mvc.Filters;
 using OpenShock.Common.Models;
 using OpenShock.Common.OpenShockDb;
 using OpenShock.ServicesCommon.Authentication.Services;
-using OpenShock.ServicesCommon.Errors;
 
 namespace OpenShock.ServicesCommon.Authentication.ControllerBase;
 
@@ -23,15 +22,15 @@ public class AuthenticatedSessionControllerBase : OpenShockControllerBase, IActi
     public void OnActionExecuted(ActionExecutedContext context)
     {
     }
-    
+
     [NonAction]
     public bool IsAllowed(PermissionType requiredType)
     {
         var tokenService = HttpContext.RequestServices.GetService<ITokenReferenceService<ApiToken>>();
-        
+
         // We are in a session
         if (tokenService?.Token == null) return true;
-        
+
         return requiredType.IsAllowed(tokenService.Token.Permissions);
     }
 }

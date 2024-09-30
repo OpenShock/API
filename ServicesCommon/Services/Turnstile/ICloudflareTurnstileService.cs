@@ -1,5 +1,5 @@
-﻿using System.Net;
-using OneOf.Types;
+﻿using OneOf.Types;
+using System.Net;
 
 namespace OpenShock.ServicesCommon.Services.Turnstile;
 

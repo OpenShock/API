@@ -1,10 +1,10 @@
-﻿using System.Net.WebSockets;
-using System.Threading.Channels;
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
 using OpenShock.Common.Utils;
 using OpenShock.ServicesCommon.Errors;
 using OpenShock.ServicesCommon.Utils;
+using System.Net.WebSockets;
+using System.Threading.Channels;
 using JsonOptions = Microsoft.AspNetCore.Http.Json.JsonOptions;
 
 namespace OpenShock.ServicesCommon.Websocket;
@@ -66,23 +66,23 @@ public abstract class WebsocketBaseController<T> : OpenShockControllerBase, IAsy
     {
         DisposeAsync().AsTask().Wait();
     }
-    
+
     /// <inheritdoc />
     [NonAction]
     public virtual async ValueTask DisposeAsync()
     {
-        if(_disposed) return;
+        if (_disposed) return;
         Logger.LogTrace("Disposing websocket controller..");
         _disposed = true;
         await DisposeControllerAsync();
         await UnregisterConnection();
-        
+
         _channel.Writer.Complete();
         await Close.CancelAsync();
         WebSocket?.Dispose();
         Logger.LogTrace("Disposed websocket controller");
     }
-    
+
     /// <summary>
     /// Dispose function for any inheriting controller
     /// </summary>
@@ -123,9 +123,9 @@ public abstract class WebsocketBaseController<T> : OpenShockControllerBase, IAsy
 #pragma warning restore CS4014
 
         await SendInitialData();
-        
+
         await Logic();
-        
+
         await UnregisterConnection();
 
         await Close.CancelAsync();
@@ -173,7 +173,7 @@ public abstract class WebsocketBaseController<T> : OpenShockControllerBase, IAsy
     /// <returns></returns>
     [NonAction]
     protected abstract Task Logic();
-    
+
     /// <summary>
     /// Send initial data to the client
     /// </summary>
@@ -192,13 +192,13 @@ public abstract class WebsocketBaseController<T> : OpenShockControllerBase, IAsy
     /// </summary>
     [NonAction]
     protected virtual Task UnregisterConnection() => Task.CompletedTask;
-    
+
     /// <summary>
     /// Action when the websocket connection is destroyed to unregister the connection to a websocket manager
     /// </summary>
     [NonAction]
     protected virtual Task<bool> ConnectionPrecondition() => Task.FromResult(true);
-    
+
     ~WebsocketBaseController()
     {
         DisposeAsync().AsTask().Wait();

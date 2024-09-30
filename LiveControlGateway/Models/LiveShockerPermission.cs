@@ -11,7 +11,7 @@ public sealed class LiveShockerPermission
     /// Is the live shocker paused
     /// </summary>
     public required bool Paused { get; set; }
-    
+
     /// <summary>
     /// Perms and limits for the live shocker
     /// </summary>

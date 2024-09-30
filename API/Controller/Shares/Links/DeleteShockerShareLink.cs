@@ -1,8 +1,8 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using System.Net;
 using OpenShock.ServicesCommon.Errors;
 using OpenShock.ServicesCommon.Problems;
+using System.Net;
 
 namespace OpenShock.API.Controller.Shares.Links;
 
@@ -28,7 +28,7 @@ public sealed partial class ShareLinksController
         var affected = await _db.ShockerSharesLinksShockers.Where(x => x.ShareLinkId == shareLinkId && x.ShockerId == shockerId)
             .ExecuteDeleteAsync();
         if (affected > 0) return RespondSuccessSimple("Successfully removed shocker");
-        
+
         return Problem(ShareLinkError.ShockerNotInShareLink);
     }
 }

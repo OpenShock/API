@@ -1,5 +1,5 @@
-﻿using System.Net;
-using OpenShock.ServicesCommon.Problems;
+﻿using OpenShock.ServicesCommon.Problems;
+using System.Net;
 
 namespace OpenShock.ServicesCommon.Errors;
 

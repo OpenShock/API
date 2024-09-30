@@ -6,5 +6,5 @@ public enum DeviceUpdateType
     Updated, // Whenever name or something else directly related to the device is updated
     ShockerUpdated, // Whenever a shocker is updated, name or limits for a person
     Deleted // Whenever a device is deleted
-    
+
 }

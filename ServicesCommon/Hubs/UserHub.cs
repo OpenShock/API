@@ -6,7 +6,6 @@ using OpenShock.Common.Models.WebSocket;
 using OpenShock.Common.OpenShockDb;
 using OpenShock.Common.Redis;
 using OpenShock.ServicesCommon.Authentication;
-using OpenShock.ServicesCommon.Authentication.Attributes;
 using OpenShock.ServicesCommon.Authentication.Services;
 using OpenShock.ServicesCommon.DeviceControl;
 using OpenShock.ServicesCommon.Services.RedisPubSub;

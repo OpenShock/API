@@ -1,9 +1,9 @@
-﻿using System.Collections.Concurrent;
-using System.Reflection;
-using Microsoft.AspNetCore.SignalR;
+﻿using Microsoft.AspNetCore.SignalR;
 using Microsoft.AspNetCore.SignalR.Protocol;
 using Microsoft.AspNetCore.SignalR.StackExchangeRedis;
 using Microsoft.Extensions.Options;
+using System.Collections.Concurrent;
+using System.Reflection;
 
 namespace OpenShock.ServicesCommon;
 
@@ -17,7 +17,7 @@ public sealed class OpenShockRedisHubLifetimeManager<THub> : RedisHubLifetimeMan
     private readonly FieldInfo _usersField;
     private readonly FieldInfo _subscriptionsField;
     private readonly string _redisPrefix = typeof(THub).FullName!;
-    
+
     /// <summary>
     /// Constructs the <see cref="OpenShockRedisHubLifetimeManager{THub}"/> with types from Dependency Injection.
     /// </summary>
@@ -66,7 +66,7 @@ public sealed class OpenShockRedisHubLifetimeManager<THub> : RedisHubLifetimeMan
             ? base.SendUserAsync(userId, methodName, args, cancellationToken)
             : SendLocalMessageToUser(userId, methodName, args, cancellationToken);
     }
-    
+
     /// <summary>
     /// Composes a new hub message and sends it to the locally connected user
     /// </summary>

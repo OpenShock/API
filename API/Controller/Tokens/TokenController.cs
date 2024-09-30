@@ -1,6 +1,4 @@
-﻿using System.ComponentModel.DataAnnotations;
-using System.Net;
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using OpenShock.API.Models.Response;
 using OpenShock.API.Utils;
@@ -9,6 +7,8 @@ using OpenShock.Common.OpenShockDb;
 using OpenShock.ServicesCommon.Authentication.Attributes;
 using OpenShock.ServicesCommon.Errors;
 using OpenShock.ServicesCommon.Problems;
+using System.ComponentModel.DataAnnotations;
+using System.Net;
 
 namespace OpenShock.API.Controller.Tokens;
 
@@ -27,14 +27,14 @@ public sealed partial class TokensController
             .Where(x => x.UserId == CurrentUser.DbUser.Id && (x.ValidUntil == null || x.ValidUntil > DateTime.UtcNow))
             .OrderBy(x => x.CreatedOn)
             .Select(x => new TokenResponse
-        {
-            CreatedOn = x.CreatedOn,
-            ValidUntil = x.ValidUntil,
-            LastUsed = x.LastUsed,
-            Permissions = x.Permissions,
-            Name = x.Name,
-            Id = x.Id
-        }).ToListAsync();
+            {
+                CreatedOn = x.CreatedOn,
+                ValidUntil = x.ValidUntil,
+                LastUsed = x.LastUsed,
+                Permissions = x.Permissions,
+                Name = x.Name,
+                Id = x.Id
+            }).ToListAsync();
 
         return new BaseResponse<IEnumerable<TokenResponse>>
         {
@@ -51,23 +51,23 @@ public sealed partial class TokensController
     [HttpGet("{tokenId}")]
     [UserSessionOnly]
     [ProducesSuccess<TokenResponse>]
-    [ProducesProblem(HttpStatusCode.NotFound, "ApiTokenNotFound")]    
+    [ProducesProblem(HttpStatusCode.NotFound, "ApiTokenNotFound")]
     public async Task<IActionResult> GetTokenById([FromRoute] Guid tokenId)
     {
         var apiToken = await _db.ApiTokens
             .Where(x => x.UserId == CurrentUser.DbUser.Id && x.Id == tokenId && (x.ValidUntil == null || x.ValidUntil > DateTime.UtcNow))
             .Select(x => new TokenResponse
-        {
-            CreatedOn = x.CreatedOn,
-            ValidUntil = x.ValidUntil,
-            Permissions = x.Permissions,
-            LastUsed = x.LastUsed,
-            Name = x.Name,
-            Id = x.Id
-        }).FirstOrDefaultAsync();
-        
+            {
+                CreatedOn = x.CreatedOn,
+                ValidUntil = x.ValidUntil,
+                Permissions = x.Permissions,
+                LastUsed = x.LastUsed,
+                Name = x.Name,
+                Id = x.Id
+            }).FirstOrDefaultAsync();
+
         if (apiToken == null) return Problem(ApiTokenError.ApiTokenNotFound);
-        
+
         return RespondSuccess(apiToken);
     }
 
@@ -80,7 +80,7 @@ public sealed partial class TokensController
     [HttpDelete("{tokenId}")]
     [UserSessionOnly]
     [ProducesSuccess]
-    [ProducesProblem(HttpStatusCode.NotFound, "ApiTokenNotFound")]    
+    [ProducesProblem(HttpStatusCode.NotFound, "ApiTokenNotFound")]
     public async Task<IActionResult> DeleteToken([FromRoute] Guid tokenId)
     {
         var apiToken = await _db.ApiTokens
@@ -129,7 +129,7 @@ public sealed partial class TokensController
     [HttpPatch("{tokenId}")]
     [UserSessionOnly]
     [ProducesSuccess]
-    [ProducesProblem(HttpStatusCode.NotFound, "ApiTokenNotFound")]    
+    [ProducesProblem(HttpStatusCode.NotFound, "ApiTokenNotFound")]
     public async Task<IActionResult> EditToken([FromRoute] Guid tokenId, [FromBody] EditTokenRequest body)
     {
         var token = await _db.ApiTokens

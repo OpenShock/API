@@ -1,6 +1,4 @@
-﻿using System.ComponentModel.DataAnnotations;
-using System.Diagnostics;
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using OneOf;
 using OneOf.Types;
 using OpenShock.Common;
@@ -10,10 +8,11 @@ using OpenShock.Common.Redis.PubSub;
 using OpenShock.Common.Utils;
 using OpenShock.LiveControlGateway.Controllers;
 using OpenShock.LiveControlGateway.Websocket;
-using OpenShock.Serialization;
 using OpenShock.Serialization.Gateway;
 using OpenShock.Serialization.Types;
 using Semver;
+using System.ComponentModel.DataAnnotations;
+using System.Diagnostics;
 using ShockerModelType = OpenShock.Serialization.Types.ShockerModelType;
 
 namespace OpenShock.LiveControlGateway.LifetimeManager;
@@ -49,7 +48,7 @@ public sealed class DeviceLifetime : IAsyncDisposable
         _deviceController = deviceController;
         _cancellationToken = cancellationToken;
         _dbContextFactory = dbContextFactory;
-        
+
         _waitBetweenTicks = TimeSpan.FromMilliseconds(Math.Floor((float)1000 / tps));
         _commandDuration = (ushort)(_waitBetweenTicks.TotalMilliseconds * 2.5);
     }
@@ -189,16 +188,18 @@ public sealed class DeviceLifetime : IAsyncDisposable
         foreach (var shock in shocks)
         {
             if (!_shockerStates.TryGetValue(shock.Id, out var state)) continue;
-            
+
             Logger.LogTrace("Control exclusive: {Exclusive}, type: {Type}, duration: {Duration}, intensity: {Intensity}",
                 shock.Exclusive, shock.Type, shock.Duration, shock.Intensity);
             state.ExclusiveUntil = shock.Exclusive && shock.Type != ControlType.Stop ?
-                DateTimeOffset.UtcNow.AddMilliseconds(shock.Duration) 
+                DateTimeOffset.UtcNow.AddMilliseconds(shock.Duration)
                 : DateTimeOffset.MinValue;
 
             shocksTransformed.Add(new ShockerCommand
             {
-                Id = shock.RfId, Duration = shock.Duration, Intensity = shock.Intensity,
+                Id = shock.RfId,
+                Duration = shock.Duration,
+                Intensity = shock.Intensity,
                 Type = (ShockerCommandType)shock.Type,
                 Model = (ShockerModelType)shock.Model
             });

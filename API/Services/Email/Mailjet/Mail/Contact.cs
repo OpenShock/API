@@ -11,14 +11,14 @@ public sealed class Contact
     public required string Name { get; set; }
 
     public Contact() { }
-    
+
     [SetsRequiredMembers]
     public Contact(string email, string name)
     {
         Email = email;
         Name = name;
     }
-    
+
     // public static readonly Contact AccountManagement = new()
     // {
     //     Email = "system@shocklink.net",

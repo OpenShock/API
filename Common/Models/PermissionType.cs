@@ -1,7 +1,7 @@
-﻿using System.Reflection;
-using System.Text.Json.Serialization;
-using NpgsqlTypes;
+﻿using NpgsqlTypes;
 using OpenShock.Common.JsonSerialization;
+using System.Reflection;
+using System.Text.Json.Serialization;
 
 // ReSharper disable InconsistentNaming
 
@@ -17,7 +17,7 @@ public enum PermissionType
     [PgName("shockers.pause")] Shockers_Pause,
 
     [PgName("devices.edit")] Devices_Edit,
-    
+
     [PgName("devices.auth")] Devices_Auth
 }
 
@@ -28,10 +28,10 @@ public static class PermissionTypeExtensions
 
     public static bool IsAllowed(this IEnumerable<PermissionType> permissions, PermissionType permissionType) =>
         IsAllowedInternal(permissions, permissionType);
-    
+
     public static bool IsAllowedAllowOnNull(this IReadOnlyCollection<PermissionType>? permissions,
         PermissionType permissionType) => permissions == null || IsAllowedInternal(permissions, permissionType);
-    
+
     private static bool IsAllowedInternal(IEnumerable<PermissionType> permissions, PermissionType permissionType)
     {
         // ReSharper disable once PossibleMultipleEnumeration

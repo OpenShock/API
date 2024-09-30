@@ -1,6 +1,6 @@
-﻿using System.ComponentModel.DataAnnotations;
-using OpenShock.API.Models.Response;
+﻿using OpenShock.API.Models.Response;
 using OpenShock.Common;
+using System.ComponentModel.DataAnnotations;
 
 namespace OpenShock.API.Models.Requests;
 

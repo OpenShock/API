@@ -1,12 +1,7 @@
-﻿using System.Collections.Concurrent;
-using System.Security.Claims;
-using System.Text.Encodings.Web;
-using System.Text.Json;
-using Microsoft.AspNetCore.Authentication;
+﻿using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Http.Json;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
-using Microsoft.Extensions.Primitives;
 using OpenShock.Common.Models;
 using OpenShock.Common.OpenShockDb;
 using OpenShock.Common.Redis;
@@ -16,6 +11,9 @@ using OpenShock.ServicesCommon.Problems;
 using OpenShock.ServicesCommon.Services.BatchUpdate;
 using Redis.OM.Contracts;
 using Redis.OM.Searching;
+using System.Security.Claims;
+using System.Text.Encodings.Web;
+using System.Text.Json;
 
 namespace OpenShock.ServicesCommon.Authentication.Handlers;
 
@@ -51,13 +49,13 @@ public sealed class LoginSessionAuthentication : AuthenticationHandler<Authentic
     {
         if ((Context.Request.Headers.TryGetValue("OpenShockToken", out var tokenHeaderO) || Context.Request.Headers.TryGetValue("Open-Shock-Token", out tokenHeaderO)) &&
             !string.IsNullOrEmpty(tokenHeaderO)) return TokenAuth(tokenHeaderO!);
-        
+
         if (Context.Request.Headers.TryGetValue("OpenShockSession", out var sessionKeyHeader) &&
             !string.IsNullOrEmpty(sessionKeyHeader)) return SessionAuth(sessionKeyHeader!);
-        
+
         if (Context.Request.Cookies.TryGetValue("openShockSession", out var accessKeyCookie) &&
             !string.IsNullOrEmpty(accessKeyCookie)) return SessionAuth(accessKeyCookie);
-        
+
         // Legacy to not break current applications
         if (Context.Request.Headers.TryGetValue("ShockLinkToken", out var tokenHeader) &&
             !string.IsNullOrEmpty(tokenHeader)) return TokenAuth(tokenHeader!);

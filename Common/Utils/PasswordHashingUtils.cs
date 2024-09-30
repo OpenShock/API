@@ -1,6 +1,4 @@
 ﻿using BCrypt.Net;
-using System.Security.Cryptography;
-using System.Text;
 
 namespace OpenShock.Common.Utils;
 

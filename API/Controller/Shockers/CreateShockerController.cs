@@ -1,5 +1,4 @@
-﻿using System.Net;
-using Asp.Versioning;
+﻿using Asp.Versioning;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using OpenShock.API.Models.Requests;
@@ -9,6 +8,7 @@ using OpenShock.Common.OpenShockDb;
 using OpenShock.ServicesCommon.Authentication.Attributes;
 using OpenShock.ServicesCommon.Errors;
 using OpenShock.ServicesCommon.Problems;
+using System.Net;
 
 namespace OpenShock.API.Controller.Shockers;
 
@@ -50,7 +50,7 @@ public sealed partial class ShockerController
 
         await deviceUpdateService.UpdateDeviceForAllShared(CurrentUser.DbUser.Id, device,
             DeviceUpdateType.ShockerUpdated);
-        
+
         return RespondSuccess(shocker.Id, statusCode: HttpStatusCode.Created);
     }
 }

@@ -1,7 +1,4 @@
-﻿using System.Net;
-using System.Text.Json;
-using System.Text.Json.Serialization;
-using Hangfire;
+﻿using Hangfire;
 using Hangfire.PostgreSql;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Mvc;
@@ -13,11 +10,11 @@ using OpenShock.Common.OpenShockDb;
 using OpenShock.ServicesCommon;
 using OpenShock.ServicesCommon.ExceptionHandle;
 using OpenShock.ServicesCommon.Problems;
-using OpenShock.ServicesCommon.Services.RedisPubSub;
 using Redis.OM;
-using Redis.OM.Contracts;
 using Serilog;
-using StackExchange.Redis;
+using System.Net;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using IPNetwork = Microsoft.AspNetCore.HttpOverrides.IPNetwork;
 
 namespace OpenShock.Cron;
@@ -31,7 +28,7 @@ public sealed class Startup
         ForwardLimit = null,
         ForwardedForHeaderName = "CF-Connecting-IP"
     };
-    
+
     private CronConf _config;
 
     public Startup(IConfiguration configuration)
@@ -52,13 +49,13 @@ public sealed class Startup
 
         services.AddAuthenticationCore();
         services.AddAuthorization();
-        
+
         services.AddHangfire(hangfire =>
             hangfire.UsePostgreSqlStorage(c =>
                 c.UseNpgsqlConnection(_config.Db.Conn)));
 
         services.AddHangfireServer();
-        
+
         services.AddCors(options =>
         {
             options.AddDefaultPolicy(builder =>
@@ -70,7 +67,7 @@ public sealed class Startup
                 builder.SetPreflightMaxAge(TimeSpan.FromHours(24));
             });
         });
-        
+
         services.AddControllers().AddJsonOptions(x =>
         {
             x.JsonSerializerOptions.PropertyNameCaseInsensitive = true;
@@ -78,7 +75,7 @@ public sealed class Startup
             x.JsonSerializerOptions.Converters.Add(new PermissionTypeConverter());
             x.JsonSerializerOptions.Converters.Add(new CustomJsonStringEnumConverter());
         });
-        
+
         services.AddProblemDetails();
 
         services.Configure<ApiBehaviorOptions>(options =>
@@ -89,7 +86,7 @@ public sealed class Startup
                 return problemDetails.ToObjectResult(context.HttpContext);
             };
         });
-        
+
         services.ConfigureHttpJsonOptions(options =>
         {
             options.SerializerOptions.PropertyNameCaseInsensitive = true;
@@ -98,7 +95,7 @@ public sealed class Startup
             options.SerializerOptions.Converters.Add(new JsonStringEnumConverter());
         });
 
-        
+
         // ----------------- DATABASE -----------------
 
         // How do I do this now with EFCore?!
@@ -122,7 +119,7 @@ public sealed class Startup
             builder.EnableSensitiveDataLogging();
             builder.EnableDetailedErrors();
         });
-        
+
         services.AddOpenShockServices(_config);
     }
 
@@ -134,7 +131,7 @@ public sealed class Startup
             var split = proxy.Split('/');
             _forwardedSettings.KnownNetworks.Add(new IPNetwork(IPAddress.Parse(split[0]), int.Parse(split[1])));
         }
-        
+
         app.UseForwardedHeaders(_forwardedSettings);
         app.UseSerilogRequestLogging();
 
@@ -142,7 +139,7 @@ public sealed class Startup
 
         // global cors policy
         app.UseCors();
-        
+
         app.UseWebSockets(new WebSocketOptions
         {
             KeepAliveInterval = TimeSpan.FromMinutes(1)
@@ -150,14 +147,14 @@ public sealed class Startup
         app.UseRouting();
         app.UseAuthentication();
         app.UseAuthorization();
-        
+
         app.UseHangfireDashboard(options: new DashboardOptions
         {
             AsyncAuthorization = [
                 new DashboardAdminAuth()
             ]
         });
-        
+
         app.UseEndpoints(endpoints =>
         {
             endpoints.MapControllers();

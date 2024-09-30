@@ -15,7 +15,7 @@ public sealed class LcgKeepAlive : IHostedService
     private readonly LCGConfig _lcgConfig;
     private readonly IRedisConnectionProvider _redisConnectionProvider;
     private readonly IRedisCollection<LcgNode> _lcgNodes;
-    
+
     private const uint KeepAliveInterval = 35; // 35 seconds
 
     /// <summary>

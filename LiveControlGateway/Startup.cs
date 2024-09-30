@@ -1,8 +1,4 @@
-﻿using System.ComponentModel.DataAnnotations;
-using System.Net;
-using System.Text.Json;
-using System.Text.Json.Serialization;
-using Asp.Versioning;
+﻿using Asp.Versioning;
 using Asp.Versioning.ApiExplorer;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.HttpOverrides;
@@ -26,12 +22,14 @@ using OpenShock.ServicesCommon.Geo;
 using OpenShock.ServicesCommon.Problems;
 using OpenShock.ServicesCommon.Services.Device;
 using OpenShock.ServicesCommon.Services.Ota;
-using OpenShock.ServicesCommon.Services.RedisPubSub;
 using OpenShock.ServicesCommon.Utils;
 using Redis.OM;
 using Redis.OM.Contracts;
 using Serilog;
-using StackExchange.Redis;
+using System.ComponentModel.DataAnnotations;
+using System.Net;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using IPNetwork = Microsoft.AspNetCore.HttpOverrides.IPNetwork;
 using JsonSerializer = System.Text.Json.JsonSerializer;
 using WebSocketOptions = Microsoft.AspNetCore.Builder.WebSocketOptions;
@@ -85,9 +83,9 @@ public sealed class Startup
     public void ConfigureServices(IServiceCollection services)
     {
         services.AddSingleton(_lcgConfig);
-        
+
         // ----------------- DATABASE -----------------
-        
+
         // How do I do this now with EFCore?!
 #pragma warning disable CS0618
         NpgsqlConnection.GlobalTypeMapper.MapEnum<ControlType>();
@@ -102,16 +100,16 @@ public sealed class Startup
             builder.EnableSensitiveDataLogging();
             builder.EnableDetailedErrors();
         });
-        
+
         services.AddDbContextFactory<OpenShockContext>(builder =>
         {
             builder.UseNpgsql(_lcgConfig.Db.Conn);
             builder.EnableSensitiveDataLogging();
             builder.EnableDetailedErrors();
         });
-        
+
         // ----------------- REDIS -----------------
-        
+
         var commonService = services.AddOpenShockServices(_lcgConfig);
 
         services.AddMemoryCache();
@@ -120,7 +118,7 @@ public sealed class Startup
         services.AddScoped<IClientAuthService<LinkUser>, ClientAuthService<LinkUser>>();
         services.AddScoped<IClientAuthService<Device>, ClientAuthService<Device>>();
         services.AddScoped<ITokenReferenceService<ApiToken>, TokenReferenceService<ApiToken>>();
-        
+
         services.AddSingleton<IGeoLocation, GeoLocation>();
 
         services.AddWebEncoders();
@@ -144,8 +142,8 @@ public sealed class Startup
                 builder.SetPreflightMaxAge(TimeSpan.FromHours(24));
             });
         });
-        
-        
+
+
         services.AddSignalR()
             .AddOpenShockStackExchangeRedis(options => { options.Configuration = commonService.RedisConfig; })
             .AddJsonProtocol(options =>
@@ -156,7 +154,7 @@ public sealed class Startup
 
         services.AddScoped<IDeviceService, DeviceService>();
         services.AddScoped<IOtaService, OtaService>();
-        
+
 
         var apiVersioningBuilder = services.AddApiVersioning(options =>
         {
@@ -176,7 +174,7 @@ public sealed class Startup
             setup.GroupNameFormat = "VVV";
             setup.SubstituteApiVersionInUrl = true;
         });
-        
+
         services.ConfigureHttpJsonOptions(options =>
         {
             options.SerializerOptions.PropertyNameCaseInsensitive = true;
@@ -184,9 +182,9 @@ public sealed class Startup
             options.SerializerOptions.Converters.Add(new PermissionTypeConverter());
             options.SerializerOptions.Converters.Add(new JsonStringEnumConverter());
         });
-        
+
         services.AddProblemDetails();
-        
+
         services.Configure<ApiBehaviorOptions>(options =>
         {
             options.InvalidModelStateResponseFactory = context =>
@@ -195,7 +193,7 @@ public sealed class Startup
                 return problemDetails.ToObjectResult(context.HttpContext);
             };
         });
-        
+
         services.AddSwaggerGen(options =>
             {
                 options.CustomOperationIds(e =>
@@ -235,9 +233,9 @@ public sealed class Startup
         services.ConfigureOptions<ConfigureSwaggerOptions>();
         //services.AddHealthChecks().AddCheck<DatabaseHealthCheck>("database");
 
-        services.AddHostedService<RedisSubscriberService>(); 
+        services.AddHostedService<RedisSubscriberService>();
         services.AddHostedService<LcgKeepAlive>();
-        
+
     }
 
     /// <summary>
@@ -262,16 +260,16 @@ public sealed class Startup
 
         // global cors policy
         app.UseCors();
-        
+
         // Redis
-        
+
         var redisConnection = app.ApplicationServices.GetRequiredService<IRedisConnectionProvider>().Connection;
-        
+
         redisConnection.CreateIndex(typeof(LoginSession));
         redisConnection.CreateIndex(typeof(DeviceOnline));
         redisConnection.CreateIndex(typeof(DevicePair));
         redisConnection.CreateIndex(typeof(LcgNode));
-        
+
 
         app.UseSwagger();
         var provider = app.ApplicationServices.GetRequiredService<IApiVersionDescriptionProvider>();

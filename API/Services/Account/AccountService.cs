@@ -57,8 +57,8 @@ public sealed class AccountService : IAccountService
     private async Task<OneOf<Success<User>, AccountWithEmailOrUsernameExists>> CreateAccount(string email, string username,
         string password, bool emailActivated)
     {
-        if(await _db.Users.AnyAsync(x => x.Email == email.ToLowerInvariant() || x.Name == username)) return new AccountWithEmailOrUsernameExists();
-        
+        if (await _db.Users.AnyAsync(x => x.Email == email.ToLowerInvariant() || x.Name == username)) return new AccountWithEmailOrUsernameExists();
+
         var newGuid = Guid.NewGuid();
         var user = new User
         {
@@ -83,7 +83,7 @@ public sealed class AccountService : IAccountService
         if (accountCreate.IsT1) return accountCreate;
 
         var user = accountCreate.AsT0.Value;
-        
+
         var id = Guid.NewGuid();
         var secret = CryptoUtils.RandomString(32);
         var secretHash = BCrypt.Net.BCrypt.EnhancedHashPassword(secret, HashAlgo);
@@ -139,7 +139,7 @@ public sealed class AccountService : IAccountService
             x.Id == passwordResetId && x.UsedOn == null && x.CreatedOn < validUntil, cancellationToken: cancellationToken);
 
         if (reset == null) return new NotFound();
-        if(!BCrypt.Net.BCrypt.EnhancedVerify(secret, reset.Secret, HashAlgo)) return new SecretInvalid();
+        if (!BCrypt.Net.BCrypt.EnhancedVerify(secret, reset.Secret, HashAlgo)) return new SecretInvalid();
         return new Success();
     }
 
@@ -155,7 +155,7 @@ public sealed class AccountService : IAccountService
         }).FirstOrDefaultAsync();
         if (user == null) return new NotFound();
         if (user.PasswordResetCount >= 3) return new TooManyPasswordResets();
-        
+
         var secret = CryptoUtils.RandomString(32);
         var hash = BCrypt.Net.BCrypt.EnhancedHashPassword(secret, HashAlgo);
         var passwordReset = new PasswordReset
@@ -169,7 +169,7 @@ public sealed class AccountService : IAccountService
 
         await _emailService.PasswordReset(new Contact(user.User.Email, user.User.Name),
             new Uri(_apiConfig.Frontend.BaseUrl, $"/#/account/password/recover/{passwordReset.Id}/{secret}"));
-        
+
         return new Success();
     }
 
@@ -177,12 +177,12 @@ public sealed class AccountService : IAccountService
     public async Task<OneOf<Success, NotFound, SecretInvalid>> PasswordResetComplete(Guid passwordResetId, string secret, string newPassword)
     {
         var validUntil = DateTime.UtcNow.Add(Constants.PasswordResetRequestLifetime);
-        
+
         var reset = await _db.PasswordResets.Include(x => x.User).SingleOrDefaultAsync(x =>
             x.Id == passwordResetId && x.UsedOn == null && x.CreatedOn < validUntil);
 
         if (reset == null) return new NotFound();
-        if(!BCrypt.Net.BCrypt.EnhancedVerify(secret, reset.Secret, HashAlgo)) return new SecretInvalid();
+        if (!BCrypt.Net.BCrypt.EnhancedVerify(secret, reset.Secret, HashAlgo)) return new SecretInvalid();
 
         reset.UsedOn = DateTime.UtcNow;
         reset.User.PasswordHash = PasswordHashingUtils.HashPassword(newPassword);

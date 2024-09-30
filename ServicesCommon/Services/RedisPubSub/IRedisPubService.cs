@@ -12,7 +12,7 @@ public interface IRedisPubService
     /// <param name="controlMessages"></param>
     /// <returns></returns>
     Task SendDeviceControl(Guid sender, IDictionary<Guid, IList<ControlMessage.ShockerControlInfo>> controlMessages);
-    
+
     /// <summary>
     /// Toggle captive portal
     /// </summary>
@@ -20,7 +20,7 @@ public interface IRedisPubService
     /// <param name="enabled"></param>
     /// <returns></returns>
     Task SendDeviceCaptivePortal(Guid deviceId, bool enabled);
-    
+
     /// <summary>
     /// Something about the device or its shockers updated
     /// </summary>

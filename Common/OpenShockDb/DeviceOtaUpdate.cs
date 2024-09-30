@@ -1,6 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using OpenShock.Common.Models;
+﻿using OpenShock.Common.Models;
 
 namespace OpenShock.Common.OpenShockDb;
 
@@ -13,7 +11,7 @@ public partial class DeviceOtaUpdate
     public string Version { get; set; } = null!;
 
     public int UpdateId { get; set; }
-    
+
     public OtaUpdateStatus Status { get; set; }
 
     public string? Message { get; set; }

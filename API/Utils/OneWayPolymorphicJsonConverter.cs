@@ -9,7 +9,7 @@ public sealed class OneWayPolymorphicJsonConverter<T> : JsonConverter<T>
     {
         return typeof(T) == typeToConvert; //.IsAssignableFrom(typeToConvert);
     }
-    
+
     public override T Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options) =>
         throw new NotSupportedException();
 
