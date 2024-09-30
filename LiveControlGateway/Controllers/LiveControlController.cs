@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Mvc.Filters;
 using Microsoft.EntityFrameworkCore;
 using OneOf;
 using OneOf.Types;
+using OpenShock.Common;
 using OpenShock.Common.JsonSerialization;
 using OpenShock.Common.Models;
 using OpenShock.Common.Models.WebSocket;
@@ -499,9 +500,9 @@ public sealed class LiveControlController : WebsocketBaseController<IBaseRespons
 
 
         var perms = permCheck.AsT0.Value;
+
         // Clamp to limits
-        var intensityMax = perms.Intensity ?? 100;
-        var intensity = Math.Clamp(frame.Intensity, (byte)0, intensityMax);
+        var intensity = Math.Clamp(frame.Intensity, Constants.MinControlIntensity, perms.Intensity ?? Constants.MaxControlIntensity);
 
         var result = DeviceLifetimeManager.ReceiveFrame(Id, frame.Shocker, frame.Type, intensity, _tps);
         if (result.IsT0)

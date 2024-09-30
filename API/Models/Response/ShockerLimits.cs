@@ -1,11 +1,13 @@
-﻿using System.ComponentModel.DataAnnotations;
+﻿using OpenShock.Common;
+using System.ComponentModel.DataAnnotations;
 
 namespace OpenShock.API.Models.Response;
 
 public class ShockerLimits
 {
-    [Range(1, 100)]
+    [Range(Constants.MinControlIntensity, Constants.MaxControlIntensity)]
     public required byte? Intensity { get; set; }
-    [Range(300, 30000)]
+
+    [Range(Constants.MinControlDuration, Constants.MaxControlDuration)]
     public required ushort? Duration { get; set; }
 }
