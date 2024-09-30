@@ -3,7 +3,7 @@ using Microsoft.AspNetCore.Mvc.Formatters;
 
 namespace OpenShock.ServicesCommon.Problems;
 
-public class ProducesDocAttribute : Attribute, IApiResponseMetadataProvider
+public sealed class ProducesDocAttribute : Attribute, IApiResponseMetadataProvider
 {
     public void SetContentTypes(MediaTypeCollection contentTypes)
     {

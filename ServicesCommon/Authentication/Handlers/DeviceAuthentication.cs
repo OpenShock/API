@@ -15,7 +15,7 @@ namespace OpenShock.ServicesCommon.Authentication.Handlers;
 /// <summary>
 /// Device / Box / The Thing / ESP32 authentication with DeviceToken header
 /// </summary>
-public class DeviceAuthentication : AuthenticationHandler<AuthenticationSchemeOptions>
+public sealed class DeviceAuthentication : AuthenticationHandler<AuthenticationSchemeOptions>
 {
     private readonly IClientAuthService<Device> _authService;
     private readonly OpenShockContext _db;

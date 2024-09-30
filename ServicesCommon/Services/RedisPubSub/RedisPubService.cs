@@ -5,7 +5,7 @@ using StackExchange.Redis;
 
 namespace OpenShock.ServicesCommon.Services.RedisPubSub;
 
-public class RedisPubService : IRedisPubService
+public sealed class RedisPubService : IRedisPubService
 {
     private readonly ISubscriber _subscriber;
     

@@ -18,7 +18,7 @@ namespace OpenShock.API.Realtime;
 /// <summary>
 /// Redis subscription service, which handles listening to pub sub on redis
 /// </summary>
-public class RedisSubscriberService : IHostedService, IAsyncDisposable
+public sealed class RedisSubscriberService : IHostedService, IAsyncDisposable
 {
     private readonly IHubContext<UserHub, IUserHub> _hubContext;
     private readonly IDbContextFactory<OpenShockContext> _dbContextFactory;

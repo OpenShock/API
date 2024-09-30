@@ -8,7 +8,7 @@ using OpenShock.ServicesCommon.Utils;
 
 namespace OpenShock.API.Controller.Shockers;
 
-public partial class ShockerController
+public sealed partial class ShockerController
 {
     /// <summary>
     /// List all shockers shared with the authenticated user.

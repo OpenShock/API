@@ -6,7 +6,7 @@ using OpenShock.ServicesCommon.Services.RedisPubSub;
 
 namespace OpenShock.API.Services;
 
-public class DeviceUpdateService : IDeviceUpdateService
+public sealed class DeviceUpdateService : IDeviceUpdateService
 {
     private readonly IRedisPubService _redisPubService;
     private readonly IHubContext<UserHub, IUserHub> _hubContext;

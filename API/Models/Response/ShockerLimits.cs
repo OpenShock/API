@@ -3,7 +3,7 @@ using System.ComponentModel.DataAnnotations;
 
 namespace OpenShock.API.Models.Response;
 
-public class ShockerLimits
+public sealed class ShockerLimits
 {
     [Range(Constants.MinControlIntensity, Constants.MaxControlIntensity)]
     public required byte? Intensity { get; set; }

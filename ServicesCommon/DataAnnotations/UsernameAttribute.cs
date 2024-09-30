@@ -13,7 +13,7 @@ namespace OpenShock.ServicesCommon.DataAnnotations;
 /// Inherits from <see cref="ValidationAttribute"/>.
 /// </remarks>
 [AttributeUsage(AttributeTargets.Property | AttributeTargets.Field, AllowMultiple = false)]
-public class UsernameAttribute : ValidationAttribute, IParameterAttribute
+public sealed class UsernameAttribute : ValidationAttribute, IParameterAttribute
 {
     /// <summary>
     /// Regular expression for username validation.

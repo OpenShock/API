@@ -3,7 +3,7 @@
 namespace OpenShock.Common.Utils;
 
 [AttributeUsage(AttributeTargets.Property | AttributeTargets.Field, AllowMultiple = false)]
-public class Alpha2CountryCodeAttribute : ValidationAttribute
+public sealed class Alpha2CountryCodeAttribute : ValidationAttribute
 {
     /// <inheritdoc/>
     protected override ValidationResult? IsValid(object? value, ValidationContext validationContext)

@@ -4,7 +4,7 @@
 
 namespace OpenShock.Common.Redis.PubSub;
 
-public class ControlMessage
+public sealed class ControlMessage
 {
     public required Guid Sender { get; set; }
     
@@ -13,7 +13,7 @@ public class ControlMessage
     /// </summary>
     public required IDictionary<Guid, IList<ShockerControlInfo>> ControlMessages { get; set; }
 
-    public class ShockerControlInfo
+    public sealed class ShockerControlInfo
     {
         public required Guid Id { get; set; }
         public required ushort RfId { get; set; }

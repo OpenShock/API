@@ -6,7 +6,7 @@ using Semver;
 
 namespace OpenShock.ServicesCommon.Services.Ota;
 
-public class OtaService : IOtaService
+public sealed class OtaService : IOtaService
 {
     private readonly OpenShockContext _db;
 

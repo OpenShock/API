@@ -9,7 +9,7 @@ namespace OpenShock.LiveControlGateway;
 /// <summary>
 /// Config for the LCG
 /// </summary>
-public class LCGConfig : BaseConfig
+public sealed class LCGConfig : BaseConfig
 {
     /// <summary>
     /// LCG specific config instance

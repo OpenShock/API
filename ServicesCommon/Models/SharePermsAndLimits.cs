@@ -9,7 +9,7 @@ public class SharePermsAndLimits
     public required byte? Intensity { get; set; }
 }
 
-public class SharePermsAndLimitsLive : SharePermsAndLimits
+public sealed class SharePermsAndLimitsLive : SharePermsAndLimits
 {
     public required bool Live { get; set; }
 }

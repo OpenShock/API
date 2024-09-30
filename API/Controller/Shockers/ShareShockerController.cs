@@ -85,7 +85,7 @@ public sealed partial class ShockerController
         return RespondSuccess(shares);
     }
 
-    public class ShareCodeInfo
+    public sealed class ShareCodeInfo
     {
         public required Guid Id { get; set; }
         public required DateTime CreatedOn { get; set; }

@@ -3,7 +3,7 @@ using OpenShock.ServicesCommon.Models;
 
 namespace OpenShock.API.DeviceControl;
 
-public class ControlShockerObj
+public sealed class ControlShockerObj
 {
     public required Guid Id { get; set; }
     public required string Name { get; set; }

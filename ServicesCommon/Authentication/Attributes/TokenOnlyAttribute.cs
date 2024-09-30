@@ -7,7 +7,7 @@ using OpenShock.ServicesCommon.Errors;
 namespace OpenShock.ServicesCommon.Authentication.Attributes;
 
 [AttributeUsage(AttributeTargets.Class | AttributeTargets.Method)]
-public class TokenOnlyAttribute : Attribute, IAuthorizationFilter
+public sealed class TokenOnlyAttribute : Attribute, IAuthorizationFilter
 {
     public void OnAuthorization(AuthorizationFilterContext context)
     {

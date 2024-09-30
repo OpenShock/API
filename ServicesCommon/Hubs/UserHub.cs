@@ -18,7 +18,7 @@ using Semver;
 namespace OpenShock.ServicesCommon.Hubs;
 
 [Authorize(AuthenticationSchemes = OpenShockAuthSchemas.SessionTokenCombo)]
-public class UserHub : Hub<IUserHub>
+public sealed class UserHub : Hub<IUserHub>
 {
     private readonly ILogger<UserHub> _logger;
     private readonly OpenShockContext _db;

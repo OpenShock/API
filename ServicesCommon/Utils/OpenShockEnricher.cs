@@ -6,7 +6,7 @@ using Serilog.Events;
 
 namespace OpenShock.ServicesCommon.Utils;
 
-public class OpenShockEnricher : ILogEventEnricher
+public sealed class OpenShockEnricher : ILogEventEnricher
 {
     private readonly IHttpContextAccessor _contextAccessor;
 

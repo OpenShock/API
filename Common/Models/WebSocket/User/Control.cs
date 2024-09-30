@@ -3,7 +3,7 @@
 namespace OpenShock.Common.Models.WebSocket.User;
 
 // ReSharper disable once ClassNeverInstantiated.Global
-public class Control
+public sealed class Control
 {
     public required Guid Id { get; set; }
 

@@ -3,7 +3,7 @@ using OpenShock.ServicesCommon.Utils;
 
 namespace OpenShock.ServicesCommon.Authentication;
 
-public class LinkUser
+public sealed class LinkUser
 {
     public required User DbUser { get; set; }
 

@@ -2,7 +2,7 @@
 
 namespace OpenShock.API.Models.Response;
 
-public class LogEntry
+public sealed class LogEntry
 {
     public required Guid Id { get; set; }
 

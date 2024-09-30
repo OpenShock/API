@@ -2,7 +2,7 @@
 
 namespace OpenShock.Common.Models.WebSocket;
 
-public class BaseRequest<T>
+public sealed class BaseRequest<T>
 {
     public required T RequestType { get; set; }
     public JsonDocument? Data { get; set; }

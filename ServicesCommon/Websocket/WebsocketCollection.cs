@@ -2,7 +2,7 @@
 
 namespace OpenShock.ServicesCommon.Websocket;
 
-public class WebsocketCollection<T> where T : class
+public sealed class WebsocketCollection<T> where T : class
 {
     private readonly ConcurrentDictionary<Guid, List<IWebsocketController<T>>> _websockets = new();
 

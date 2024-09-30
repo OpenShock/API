@@ -6,7 +6,7 @@ using Redis.OM.Searching;
 
 namespace OpenShock.ServicesCommon.Geo;
 
-public class GeoLocation : IGeoLocation
+public sealed class GeoLocation : IGeoLocation
 {
     private readonly ILogger<GeoLocation> _logger;
     private readonly IRedisCollection<LcgNode> _lcgNodes;

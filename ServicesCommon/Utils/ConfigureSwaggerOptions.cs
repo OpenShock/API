@@ -5,7 +5,7 @@ using Swashbuckle.AspNetCore.SwaggerGen;
 
 namespace OpenShock.ServicesCommon.Utils;
 
-public class ConfigureSwaggerOptions : IConfigureNamedOptions<SwaggerGenOptions>
+public sealed class ConfigureSwaggerOptions : IConfigureNamedOptions<SwaggerGenOptions>
 {
     private readonly IApiVersionDescriptionProvider provider;
 
