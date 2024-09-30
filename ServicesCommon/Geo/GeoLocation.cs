@@ -1,9 +1,11 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using OpenShock.Common;
 using OpenShock.Common.Redis;
 using OpenShock.Common.Utils;
 using Redis.OM;
 using Redis.OM.Contracts;
 using Redis.OM.Searching;
+using System.Linq;
 
 namespace OpenShock.ServicesCommon.Geo;
 
@@ -20,22 +22,37 @@ public sealed class GeoLocation : IGeoLocation
 
     public async Task<LcgNode?> GetClosestNode(CountryCodeMapper.Alpha2CountryCode countryCode, string environment = "Production")
     {
-        var nodes = await _lcgNodes.Where(x => x.Environment == environment).ToArrayAsync();
+        LcgNode? node = null;
 
-        LcgNode? node;
-
-        // Don't bother ordering by distance if we dont know the position of the countryCode
         if (countryCode.IsUnknown())
         {
-            node = nodes.OrderBy(x => x.Load).FirstOrDefault();
+            node = await _lcgNodes
+                .Where(x => x.Environment == environment)
+                .OrderBy(x => x.Load)
+                .FirstOrDefaultAsync();
         }
         else
         {
-            node = nodes.OrderBy(x => CountryCodeMapper.TryGetDistanceBetween(x.Country, countryCode, out double distance) ? distance : double.PositiveInfinity).ThenBy(x => x.Load).FirstOrDefault();
+            var nodes = await _lcgNodes
+                .Where(x => x.Environment == environment)
+                .ToArrayAsync();
+
+            node = nodes
+                .OrderBy(x => CountryCodeMapper.TryGetDistanceBetween(x.Country, countryCode, out double distance) ? distance : Constants.DistanceToAndromedaGalaxyInKm) // Just a large number :3
+                .ThenBy(x => x.Load)
+                .FirstOrDefault();
         }
 
-        if (node == null) _logger.LogWarning("No LCG nodes available!");
-        else if (_logger.IsEnabled(LogLevel.Debug)) _logger.LogDebug("LCG node provisioned: {@LcgNode}", node);
+        if (node == null)
+        {
+            _logger.LogWarning("No LCG nodes available!");
+            return null;
+        }
+        
+        if (_logger.IsEnabled(LogLevel.Debug))
+        {
+            _logger.LogDebug("LCG node provisioned: {@LcgNode}", node);
+        }
 
         return node;
     }
