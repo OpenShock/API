@@ -28,11 +28,11 @@ using OpenShock.ServicesCommon.Authentication.Handlers;
 using OpenShock.ServicesCommon.Authentication.Services;
 using OpenShock.ServicesCommon.DataAnnotations;
 using OpenShock.ServicesCommon.ExceptionHandle;
-using OpenShock.ServicesCommon.Geo;
 using OpenShock.ServicesCommon.Hubs;
 using OpenShock.ServicesCommon.Problems;
 using OpenShock.ServicesCommon.Services.BatchUpdate;
 using OpenShock.ServicesCommon.Services.Device;
+using OpenShock.ServicesCommon.Services.LCGNodeProvisioner;
 using OpenShock.ServicesCommon.Services.Ota;
 using OpenShock.ServicesCommon.Services.RedisPubSub;
 using OpenShock.ServicesCommon.Services.Turnstile;
@@ -129,7 +129,7 @@ public sealed class Startup
         services.AddScoped<IClientAuthService<Device>, ClientAuthService<Device>>();
         services.AddScoped<ITokenReferenceService<ApiToken>, TokenReferenceService<ApiToken>>();
 
-        services.AddSingleton<IGeoLocation, GeoLocation>();
+        services.AddSingleton<ILCGNodeProvisioner, LCGNodeProvisioner>();
 
 
         services.AddSingleton(x =>

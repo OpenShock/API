@@ -8,12 +8,12 @@ namespace OpenShock.Common.Utils;
 /// </summary>
 public static class CountryCodeMapper
 {
-    public static readonly CountryInfo DefaultCountry = new(Alpha2CountryCode.DefaultAlphaCode, "Unknown", 0.0, 0.0, null);
+    public static readonly CountryInfo UnknownCountry = new(Alpha2CountryCode.UnknownCountryCode, "Unknown", 0.0, 0.0, null);
 
     public readonly record struct Alpha2CountryCode(char Char1, char Char2) : IEquatable<Alpha2CountryCode>
     {
 
-        public static readonly Alpha2CountryCode DefaultAlphaCode = new('X', 'X');
+        public static readonly Alpha2CountryCode UnknownCountryCode = new('X', 'X');
 
         public static bool TryParseAndValidate(string stringIn, [MaybeNullWhen(false)] out Alpha2CountryCode code)
         {
@@ -31,7 +31,7 @@ public static class CountryCodeMapper
             return true;
         }
 
-        public static Alpha2CountryCode ParseOrDefault(string stringIn) => TryParseAndValidate(stringIn, out var code) ? code : DefaultAlphaCode;
+        public static Alpha2CountryCode ParseOrDefault(string stringIn) => TryParseAndValidate(stringIn, out var code) ? code : UnknownCountryCode;
 
         public static implicit operator Alpha2CountryCode(string stringIn)
         {
@@ -41,7 +41,7 @@ public static class CountryCodeMapper
             return new Alpha2CountryCode(stringIn[0], stringIn[1]);
         }
 
-        public bool IsUnknown() => this == DefaultAlphaCode;
+        public bool IsUnknown() => this == UnknownCountryCode;
 
         public override string ToString() => $"{Char1}{Char2}";
     }
@@ -357,7 +357,7 @@ public static class CountryCodeMapper
 
     public static CountryInfo GetCountryOrDefault(Alpha2CountryCode alpha2Country) =>
         CountryCodeToCountryInfo.TryGetValue(alpha2Country, out var countryInfo) ?
-            countryInfo : DefaultCountry;
+            countryInfo : UnknownCountry;
 
     public static bool TryGetDistanceBetween(Alpha2CountryCode alpha2CountryA, Alpha2CountryCode alpha2CountryB, out double distance) =>
         Distances.TryGetValue(CreateId(alpha2CountryA, alpha2CountryB), out distance);
