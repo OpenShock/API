@@ -1,6 +1,3 @@
 ﻿namespace OpenShock.API.DeviceControl;
 
-public struct NotAllShockersSucceeded
-{
-
-}
+public readonly struct NotAllShockersSucceeded;

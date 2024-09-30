@@ -62,4 +62,4 @@ public sealed class CloudflareTurnstileService : ICloudflareTurnstileService
     }
 }
 
-public struct MissingInput;
+public readonly struct MissingInput;

@@ -598,14 +598,14 @@ public sealed class LiveControlController : WebsocketBaseController<IBaseRespons
 /// <summary>
 /// OneOf
 /// </summary>
-public struct LiveNotEnabled;
+public readonly struct LiveNotEnabled;
 
 /// <summary>
 /// OneOf
 /// </summary>
-public struct NoPermission;
+public readonly struct NoPermission;
 
 /// <summary>
 /// OneOf
 /// </summary>
-public struct ShockerPaused;
+public readonly struct ShockerPaused;

@@ -142,17 +142,17 @@ public static class DeviceLifetimeManager
 /// <summary>
 /// OneOf
 /// </summary>
-public struct DeviceNotFound;
+public readonly struct DeviceNotFound;
 
 /// <summary>
 /// OneOf
 /// </summary>
-public struct ShockerNotFound;
+public readonly struct ShockerNotFound;
 
 /// <summary>
 /// OneOf
 /// </summary>
-public struct ShockerExclusive
+public readonly struct ShockerExclusive
 {
     /// <summary>
     /// How long the exclusive lock is valid

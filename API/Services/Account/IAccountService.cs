@@ -65,6 +65,6 @@ public interface IAccountService
     public Task<OneOf<Success, NotFound, SecretInvalid>> PasswordResetComplete(Guid passwordResetId, string secret, string newPassword);
 }
 
-public struct AccountWithEmailOrUsernameExists;
-public struct TooManyPasswordResets;
-public struct SecretInvalid;
+public readonly struct AccountWithEmailOrUsernameExists;
+public readonly struct TooManyPasswordResets;
+public readonly struct SecretInvalid;
