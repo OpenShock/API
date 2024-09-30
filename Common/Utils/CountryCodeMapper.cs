@@ -328,7 +328,7 @@ public static class CountryCodeMapper
             new("ZW", "Zimbabwe", -19.015438, 29.154857, "apac"),
         ];
 
-        CountryCodeToCountryInfo = Countries.ToDictionary(x => x.CountryCode, x => x);
+        CountryCodeToCountryInfo = Countries.ToFrozenDictionary(x => x.CountryCode, x => x); // Create a frozen dictionary for fast lookups
 
         // Calculate all distances (43k+ entries, allows for really fast lookups tho)
         Distances = Countries
