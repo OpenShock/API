@@ -3,12 +3,12 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using OpenShock.API.Models.Response;
 using OpenShock.Common.Models;
+using OpenShock.Common.Utils;
 using OpenShock.ServicesCommon.Problems;
-using OpenShock.ServicesCommon.Utils;
 
 namespace OpenShock.API.Controller.Shockers;
 
-public partial class ShockerController
+public sealed partial class ShockerController
 {
     /// <summary>
     /// List all shockers shared with the authenticated user.

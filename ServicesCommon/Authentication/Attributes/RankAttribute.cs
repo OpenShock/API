@@ -7,7 +7,7 @@ using OpenShock.ServicesCommon.Authentication.Services;
 namespace OpenShock.ServicesCommon.Authentication.Attributes;
 
 [AttributeUsage(AttributeTargets.Class | AttributeTargets.Method)]
-public class RankAttribute : Attribute, IAuthorizationFilter
+public sealed class RankAttribute : Attribute, IAuthorizationFilter
 {
     private readonly RankType _requiredRank;
     

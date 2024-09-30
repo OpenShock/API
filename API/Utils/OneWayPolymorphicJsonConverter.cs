@@ -3,7 +3,7 @@ using System.Text.Json.Serialization;
 
 namespace OpenShock.API.Utils;
 
-public class OneWayPolymorphicJsonConverter<T> : JsonConverter<T>
+public sealed class OneWayPolymorphicJsonConverter<T> : JsonConverter<T>
 {
     public override bool CanConvert(Type typeToConvert)
     {

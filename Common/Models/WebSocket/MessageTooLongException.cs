@@ -3,7 +3,7 @@
 /// <summary>
 /// Indicates that the websocket message received or to be sent is larger than the defined limit.
 /// </summary>
-public class MessageTooLongException : Exception
+public sealed class MessageTooLongException : Exception
 {
     /// <inheritdoc />
     public MessageTooLongException()

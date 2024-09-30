@@ -4,7 +4,7 @@ using Semver;
 
 namespace OpenShock.Common.JsonSerialization;
 
-public class SemVersionJsonConverter : JsonConverter<SemVersion>
+public sealed class SemVersionJsonConverter : JsonConverter<SemVersion>
 {
     public override SemVersion Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
         => SemVersion.Parse(reader.GetString(), SemVersionStyles.Strict);

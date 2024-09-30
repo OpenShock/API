@@ -1,9 +1,9 @@
 ﻿using OpenShock.Common.OpenShockDb;
-using OpenShock.ServicesCommon.Utils;
+using OpenShock.Common.Utils;
 
 namespace OpenShock.ServicesCommon.Authentication;
 
-public class LinkUser
+public sealed class LinkUser
 {
     public required User DbUser { get; set; }
 

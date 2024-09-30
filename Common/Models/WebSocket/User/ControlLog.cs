@@ -3,7 +3,7 @@
 namespace OpenShock.Common.Models.WebSocket.User;
 
 // ReSharper disable once ClassNeverInstantiated.Global
-public class ControlLog
+public sealed class ControlLog
 {
     public required GenericIn Shocker { get; set; }
 

@@ -58,8 +58,5 @@ public static class OpenShockServiceHelper
         };
     }
 
-    public readonly struct ServicesResult
-    {
-        public ConfigurationOptions RedisConfig { get; init; }
-    }
+    public readonly record struct ServicesResult(ConfigurationOptions RedisConfig);
 }

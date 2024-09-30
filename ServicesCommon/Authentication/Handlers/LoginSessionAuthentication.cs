@@ -19,7 +19,7 @@ using Redis.OM.Searching;
 
 namespace OpenShock.ServicesCommon.Authentication.Handlers;
 
-public class LoginSessionAuthentication : AuthenticationHandler<AuthenticationSchemeOptions>
+public sealed class LoginSessionAuthentication : AuthenticationHandler<AuthenticationSchemeOptions>
 {
     private readonly IClientAuthService<LinkUser> _authService;
     private readonly ITokenReferenceService<ApiToken> _tokenReferenceService;

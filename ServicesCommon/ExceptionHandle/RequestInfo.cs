@@ -1,7 +1,7 @@
 ﻿// ReSharper disable UnusedAutoPropertyAccessor.Global
 namespace OpenShock.ServicesCommon.ExceptionHandle;
 
-public class RequestInfo
+public sealed class RequestInfo
 {
     public required string? Path { get; set; }
     public required IDictionary<string, string> Query { get; set; }

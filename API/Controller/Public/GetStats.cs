@@ -29,7 +29,7 @@ public sealed partial class PublicController
     }
 }
 
-public class StatsResponse
+public sealed class StatsResponse
 {
     public required int DevicesOnline { get; set; }
 }

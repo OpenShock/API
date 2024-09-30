@@ -22,9 +22,9 @@ using OpenShock.ServicesCommon.Authentication;
 using OpenShock.ServicesCommon.Authentication.Handlers;
 using OpenShock.ServicesCommon.Authentication.Services;
 using OpenShock.ServicesCommon.ExceptionHandle;
-using OpenShock.ServicesCommon.Geo;
 using OpenShock.ServicesCommon.Problems;
 using OpenShock.ServicesCommon.Services.Device;
+using OpenShock.ServicesCommon.Services.LCGNodeProvisioner;
 using OpenShock.ServicesCommon.Services.Ota;
 using OpenShock.ServicesCommon.Services.RedisPubSub;
 using OpenShock.ServicesCommon.Utils;
@@ -41,7 +41,7 @@ namespace OpenShock.LiveControlGateway;
 /// <summary>
 /// Startup class for the LCG
 /// </summary>
-public class Startup
+public sealed class Startup
 {
     private readonly ForwardedHeadersOptions _forwardedSettings = new()
     {
@@ -121,7 +121,7 @@ public class Startup
         services.AddScoped<IClientAuthService<Device>, ClientAuthService<Device>>();
         services.AddScoped<ITokenReferenceService<ApiToken>, TokenReferenceService<ApiToken>>();
         
-        services.AddSingleton<IGeoLocation, GeoLocation>();
+        services.AddSingleton<ILCGNodeProvisioner, LCGNodeProvisioner>();
 
         services.AddWebEncoders();
         services.TryAddSingleton<TimeProvider>(_ => TimeProvider.System);

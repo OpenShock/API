@@ -12,7 +12,7 @@ public class ProducesProblem<T> : SwaggerResponseAttribute where T : OpenShockPr
     }
 }
 
-public class ProducesProblem : ProducesProblem<OpenShockProblem>
+public sealed class ProducesProblem : ProducesProblem<OpenShockProblem>
 {
     public ProducesProblem(HttpStatusCode statusCode, string title) : base(statusCode, title)
     {

@@ -12,7 +12,7 @@ namespace OpenShock.ServicesCommon;
 /// Use #local in front of user id's to target only locally connected clients.
 /// </summary>
 /// <typeparam name="THub"></typeparam>
-public class OpenShockRedisHubLifetimeManager<THub> : RedisHubLifetimeManager<THub> where THub : Hub
+public sealed class OpenShockRedisHubLifetimeManager<THub> : RedisHubLifetimeManager<THub> where THub : Hub
 {
     private readonly FieldInfo _usersField;
     private readonly FieldInfo _subscriptionsField;

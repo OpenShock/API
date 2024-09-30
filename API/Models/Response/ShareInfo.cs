@@ -2,7 +2,7 @@
 
 namespace OpenShock.API.Models.Response;
 
-public class ShareInfo
+public sealed class ShareInfo
 {
     public required GenericIni SharedWith { get; set; }
     public required DateTime CreatedOn { get; set; }

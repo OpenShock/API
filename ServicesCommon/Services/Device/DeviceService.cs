@@ -3,7 +3,7 @@ using OpenShock.Common.OpenShockDb;
 
 namespace OpenShock.ServicesCommon.Services.Device;
 
-public class DeviceService : IDeviceService
+public sealed class DeviceService : IDeviceService
 {
     private readonly OpenShockContext _db;
 

@@ -1,6 +1,6 @@
 ﻿namespace OpenShock.API.Models.Response;
 
-public class ShareLinkDevice
+public sealed class ShareLinkDevice
 {
     public required Guid Id { get; set; }
     public required string Name { get; set; }

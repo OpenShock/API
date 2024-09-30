@@ -3,7 +3,7 @@ using System.Text.Json.Serialization;
 
 namespace OpenShock.Common.JsonSerialization;
 
-public class CustomJsonStringEnumConverter : JsonConverterFactory
+public sealed class CustomJsonStringEnumConverter : JsonConverterFactory
 {
     private static readonly JsonStringEnumConverter JsonStringEnumConverter = new();
 

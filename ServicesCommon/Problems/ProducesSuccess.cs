@@ -14,7 +14,7 @@ public class ProducesSuccess<T> : SwaggerResponseAttribute
     
 }
 
-public class ProducesSuccess : ProducesSuccess<object>
+public sealed class ProducesSuccess : ProducesSuccess<object>
 {
     public ProducesSuccess(string title = "", HttpStatusCode statusCode = HttpStatusCode.OK) : base(title, statusCode)
     {

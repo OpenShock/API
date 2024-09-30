@@ -3,10 +3,10 @@ using Microsoft.EntityFrameworkCore;
 using OpenShock.Common.Models;
 using OpenShock.Common.OpenShockDb;
 using OpenShock.Common.Redis;
+using OpenShock.Common.Utils;
 using OpenShock.ServicesCommon.Authentication.Services;
 using OpenShock.ServicesCommon.DeviceControl;
 using OpenShock.ServicesCommon.Services.RedisPubSub;
-using OpenShock.ServicesCommon.Utils;
 using Redis.OM.Contracts;
 using Redis.OM.Searching;
 

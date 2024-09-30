@@ -5,12 +5,11 @@ using OpenShock.Common.Models;
 using OpenShock.Common.Models.WebSocket;
 using OpenShock.Common.OpenShockDb;
 using OpenShock.Common.Redis;
+using OpenShock.Common.Utils;
 using OpenShock.ServicesCommon.Authentication;
-using OpenShock.ServicesCommon.Authentication.Attributes;
 using OpenShock.ServicesCommon.Authentication.Services;
 using OpenShock.ServicesCommon.DeviceControl;
 using OpenShock.ServicesCommon.Services.RedisPubSub;
-using OpenShock.ServicesCommon.Utils;
 using Redis.OM;
 using Redis.OM.Contracts;
 using Semver;
@@ -18,7 +17,7 @@ using Semver;
 namespace OpenShock.ServicesCommon.Hubs;
 
 [Authorize(AuthenticationSchemes = OpenShockAuthSchemas.SessionTokenCombo)]
-public class UserHub : Hub<IUserHub>
+public sealed class UserHub : Hub<IUserHub>
 {
     private readonly ILogger<UserHub> _logger;
     private readonly OpenShockContext _db;

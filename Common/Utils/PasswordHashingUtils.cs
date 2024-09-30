@@ -11,11 +11,7 @@ public static class PasswordHashingUtils
 
     private const HashType HashAlgo = HashType.SHA512;
 
-    public struct VerifyPasswordResult
-    {
-        public bool Verified;
-        public bool NeedsRehash;
-    }
+    public readonly record struct VerifyPasswordResult(bool Verified, bool NeedsRehash);
 
     public static VerifyPasswordResult VerifyPassword(string password, string combinedHash)
     {

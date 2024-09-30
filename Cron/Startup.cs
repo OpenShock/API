@@ -22,7 +22,7 @@ using IPNetwork = Microsoft.AspNetCore.HttpOverrides.IPNetwork;
 
 namespace OpenShock.Cron;
 
-public class Startup
+public sealed class Startup
 {
     private readonly ForwardedHeadersOptions _forwardedSettings = new()
     {

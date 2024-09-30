@@ -2,7 +2,7 @@
 
 namespace OpenShock.API.Models.Response;
 
-public class ShareLinkShocker
+public sealed class ShareLinkShocker
 {
     public required Guid Id { get; set; }
     public required string Name { get; set; }
