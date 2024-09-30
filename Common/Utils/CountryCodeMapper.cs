@@ -48,6 +48,12 @@ public static class CountryCodeMapper
 
     public sealed record CountryInfo(Alpha2CountryCode CountryCode, string Name, double Latitude, double Longitude, string? CfRegion);
 
+    /// <summary>
+    /// Sorts the codes and concatenates them to create a unique ID that represents the distance between two countries
+    /// </summary>
+    /// <param name="code1"></param>
+    /// <param name="code2"></param>
+    /// <returns></returns>
     private static string CreateId(Alpha2CountryCode code1, Alpha2CountryCode code2)
     {
         if (code1.Char1 > code2.Char1 || code1.Char2 > code2.Char2) (code2, code1) = (code1, code2);
@@ -55,6 +61,14 @@ public static class CountryCodeMapper
         return new string([code1.Char1, code1.Char2, code2.Char1, code2.Char2]);
     }
 
+    /// <summary>
+    /// Calculates the distance between two countries using the Haversine formula
+    /// </summary>
+    /// <param name="lat1"></param>
+    /// <param name="lon1"></param>
+    /// <param name="lat2"></param>
+    /// <param name="lon2"></param>
+    /// <returns></returns>
     private static double GetDistance(double lat1, double lon1, double lat2, double lon2)
     {
         const double EarthRadius = 6371.0;
