@@ -1,13 +1,13 @@
-﻿using OpenShock.Common.Models;
-using System.Text.Json;
+﻿using System.Text.Json;
 using System.Text.Json.Serialization;
+using OpenShock.Common.Models;
 
 namespace OpenShock.Common.JsonSerialization;
 
 public sealed class PermissionTypeConverter : JsonConverter<PermissionType>
 {
     public override PermissionType Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
-    {
+    { 
         return PermissionTypeBindings.NameToPermissionType[reader.GetString()!].PermissionType;
     }
 

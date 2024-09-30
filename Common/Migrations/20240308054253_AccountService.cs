@@ -1,4 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore.Migrations;
+using OpenShock.Common.Models;
 
 #nullable disable
 

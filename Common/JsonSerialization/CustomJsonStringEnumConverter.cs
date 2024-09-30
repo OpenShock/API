@@ -10,7 +10,7 @@ public sealed class CustomJsonStringEnumConverter : JsonConverterFactory
     public override bool CanConvert(Type typeToConvert) =>
         !typeToConvert.IsDefined(typeof(FlagsAttribute), false) &&
         JsonStringEnumConverter.CanConvert(typeToConvert);
-
+    
     public override JsonConverter CreateConverter(Type typeToConvert, JsonSerializerOptions options) =>
         JsonStringEnumConverter.CreateConverter(typeToConvert, options);
 }

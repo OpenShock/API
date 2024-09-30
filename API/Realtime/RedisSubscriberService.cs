@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.SignalR;
+﻿using System.Text.Json;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using OpenShock.Common.Models.WebSocket;
 using OpenShock.Common.Models.WebSocket.Device;
@@ -11,7 +12,6 @@ using OpenShock.ServicesCommon.Services.RedisPubSub;
 using Redis.OM.Contracts;
 using Redis.OM.Searching;
 using StackExchange.Redis;
-using System.Text.Json;
 
 namespace OpenShock.API.Realtime;
 
@@ -43,14 +43,14 @@ public sealed class RedisSubscriberService : IHostedService, IAsyncDisposable
         _subscriber = connectionMultiplexer.GetSubscriber();
         _devicesOnline = redisConnectionProvider.RedisCollection<DeviceOnline>(false);
     }
-
+    
     /// <inheritdoc />
     public async Task StartAsync(CancellationToken cancellationToken)
     {
         await _subscriber.SubscribeAsync(RedisChannels.KeyEventExpired, (_, message) => { LucTask.Run(() => RunLogic(message, false)); });
         await _subscriber.SubscribeAsync(RedisChannels.KeyEventJsonSet, (_, message) => { LucTask.Run(() => RunLogic(message, true)); });
         await _subscriber.SubscribeAsync(RedisChannels.KeyEventDel, (_, message) => { LucTask.Run(() => RunLogic(message, false)); });
-
+        
         await _subscriber.SubscribeAsync(RedisChannels.DeviceControl, (_, message) => { LucTask.Run(() => DeviceControl(message)); });
         await _subscriber.SubscribeAsync(RedisChannels.DeviceCaptive, (_, message) => { LucTask.Run(() => DeviceControlCaptive(message)); });
     }
@@ -65,10 +65,7 @@ public sealed class RedisSubscriberService : IHostedService, IAsyncDisposable
         {
             var shocks = controlMessage.Value.Select(shock => new ControlResponse
             {
-                Id = shock.RfId,
-                Duration = shock.Duration,
-                Intensity = shock.Intensity,
-                Type = shock.Type,
+                Id = shock.RfId, Duration = shock.Duration, Intensity = shock.Intensity, Type = shock.Type,
                 Model = shock.Model
             });
 
@@ -79,7 +76,7 @@ public sealed class RedisSubscriberService : IHostedService, IAsyncDisposable
             });
         }
     }
-
+    
     private static async Task DeviceControlCaptive(RedisValue value)
     {
         if (!value.HasValue) return;
@@ -92,7 +89,7 @@ public sealed class RedisSubscriberService : IHostedService, IAsyncDisposable
             Data = data.Enabled
         });
     }
-
+    
     private async Task RunLogic(RedisValue message, bool set)
     {
         if (!message.HasValue) return;

@@ -21,18 +21,18 @@ public sealed class OpenShockEnricher : ILogEventEnricher
 
     public void Enrich(LogEvent logEvent, ILogEventPropertyFactory propertyFactory)
     {
-        if (_contextAccessor.HttpContext == null) return;
+        if(_contextAccessor.HttpContext == null) return;
 
         var ctx = _contextAccessor.HttpContext;
-
+    
         logEvent.AddOrUpdateProperty(new LogEventProperty("UserIp", new ScalarValue(ctx.Connection.RemoteIpAddress)));
         logEvent.AddOrUpdateProperty(new LogEventProperty("UserAgent", new ScalarValue(ctx.Request.Headers[HeaderNames.UserAgent].FirstOrDefault())));
         logEvent.AddOrUpdateProperty(new LogEventProperty("RequestHost", new ScalarValue(ctx.Request.Headers[HeaderNames.Host].FirstOrDefault())));
         logEvent.AddOrUpdateProperty(new LogEventProperty("RequestReferer", new ScalarValue(ctx.Request.Headers[HeaderNames.Referer].FirstOrDefault())));
         logEvent.AddOrUpdateProperty(new LogEventProperty("CF-Country", new ScalarValue(ctx.Request.Headers["CF-IPCountry"].FirstOrDefault())));
-
+    
         //logEvent.AddOrUpdateProperty(new LogEventProperty("Headers", new DictionaryValue(ctx.Request.Headers.Select(x => new KeyValuePair<ScalarValue, LogEventPropertyValue>(new ScalarValue(x.Key), new ScalarValue(x.Value))))));
-
+    
         TryAddVar(logEvent, ctx, "User");
         TryAddVar(logEvent, ctx, "Device");
     }

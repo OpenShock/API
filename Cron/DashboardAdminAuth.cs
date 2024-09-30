@@ -10,24 +10,24 @@ namespace OpenShock.Cron;
 
 public sealed class DashboardAdminAuth : IDashboardAsyncAuthorizationFilter
 {
-
+    
     public async Task<bool> AuthorizeAsync(DashboardContext context)
     {
         var httpContext = context.GetHttpContext();
         var redis = httpContext.RequestServices.GetRequiredService<IRedisConnectionProvider>();
         var userSessions = redis.RedisCollection<LoginSession>(false);
         var db = httpContext.RequestServices.GetRequiredService<OpenShockContext>();
-
+        
         if (httpContext.Request.Cookies.TryGetValue("openShockSession", out var sessionKeyCookie) &&
             !string.IsNullOrEmpty(sessionKeyCookie))
             if (await SessionAuthAdmin(sessionKeyCookie!, userSessions, db))
                 return true;
 
         await context.Response.WriteAsync("Unauthorized, you need to be authenticated as admin to access this page.");
-
+        
         return false;
     }
-
+    
     private static async Task<bool> SessionAuthAdmin(string sessionKey, IRedisCollection<LoginSession> loginSessions, OpenShockContext db)
     {
         var session = await loginSessions.FindByIdAsync(sessionKey);

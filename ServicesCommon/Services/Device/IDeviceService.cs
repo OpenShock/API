@@ -1,4 +1,6 @@
-﻿namespace OpenShock.ServicesCommon.Services.Device;
+﻿using OpenShock.Common.Models;
+
+namespace OpenShock.ServicesCommon.Services.Device;
 
 public interface IDeviceService
 {

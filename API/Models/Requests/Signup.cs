@@ -1,5 +1,5 @@
-﻿using OpenShock.ServicesCommon.DataAnnotations;
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
+using OpenShock.ServicesCommon.DataAnnotations;
 
 namespace OpenShock.API.Models.Requests;
 

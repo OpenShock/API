@@ -7,7 +7,7 @@ namespace OpenShock.Common.Redis.PubSub;
 public sealed class ControlMessage
 {
     public required Guid Sender { get; set; }
-
+    
     /// <summary>
     /// Guid is the device id
     /// </summary>

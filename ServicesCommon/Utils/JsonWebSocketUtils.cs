@@ -1,16 +1,16 @@
-﻿using Microsoft.IO;
-using OpenShock.Common.JsonSerialization;
-using OpenShock.Common.Models.WebSocket;
-using System.Buffers;
+﻿using System.Buffers;
 using System.Net.WebSockets;
 using System.Text.Json;
+using Microsoft.IO;
+using OpenShock.Common.JsonSerialization;
+using OpenShock.Common.Models.WebSocket;
 
 namespace OpenShock.ServicesCommon.Utils;
 
 public static class JsonWebSocketUtils
 {
     private const uint MaxMessageSize = 512_000; // 512 000 bytes
-
+    
     public static readonly RecyclableMemoryStreamManager RecyclableMemory = new();
 
     public static async Task<OneOf.OneOf<T?, DeserializeFailed, WebsocketClosure>> ReceiveFullMessageAsyncNonAlloc<T>(
@@ -34,7 +34,7 @@ public static class JsonWebSocketUtils
                 }
 
                 if (buffer.Length + result.Count > MaxMessageSize) throw new MessageTooLongException();
-
+                
                 message.Write(buffer, 0, result.Count);
             } while (!result.EndOfMessage);
 

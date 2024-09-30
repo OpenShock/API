@@ -1,10 +1,10 @@
-﻿using Fluid;
+﻿using System.Text.Encodings.Web;
+using Fluid;
 using MailKit.Net.Smtp;
 using MimeKit;
 using MimeKit.Text;
 using OpenShock.API.Services.Email.Mailjet.Mail;
 using OpenShock.Common.Utils;
-using System.Text.Encodings.Web;
 
 namespace OpenShock.API.Services.Email.Smtp;
 
@@ -81,7 +81,7 @@ public sealed class SmtpEmailService : IEmailService
         await using var buffer = new MemoryStream();
         await using (var textStreamWriter = new StreamWriter(buffer, leaveOpen: true))
             await template.Body.RenderAsync(textStreamWriter, HtmlEncoder.Default, context);
-
+        
         var message = new MimeMessage
         {
             From = { _sender },

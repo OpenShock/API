@@ -1,4 +1,6 @@
-﻿using OpenShock.Common.Models;
+﻿using System;
+using System.Collections.Generic;
+using OpenShock.Common.Models;
 
 namespace OpenShock.Common.OpenShockDb;
 
@@ -17,9 +19,9 @@ public partial class ApiToken
     public string CreatedByIp { get; set; } = null!;
 
     public DateTime? ValidUntil { get; set; }
-
+    
     public List<PermissionType> Permissions { get; set; }
-
+    
     public DateTime LastUsed { get; set; }
 
     public virtual User User { get; set; } = null!;

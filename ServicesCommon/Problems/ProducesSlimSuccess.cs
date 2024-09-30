@@ -1,6 +1,6 @@
-﻿using Swashbuckle.AspNetCore.Annotations;
-using System.Net;
+﻿using System.Net;
 using System.Net.Mime;
+using Swashbuckle.AspNetCore.Annotations;
 
 namespace OpenShock.ServicesCommon.Problems;
 

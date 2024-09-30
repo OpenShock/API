@@ -68,7 +68,7 @@ public sealed partial class ShockerController
                     Id = shocker.DeviceId,
                     Name = shocker.DeviceName
                 });
-
+            
             sharedUser.Devices.Single(x => x.Id == shocker.DeviceId).Shockers.Add(shocker.Shocker);
         }
 

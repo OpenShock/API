@@ -11,7 +11,7 @@ public sealed class GeoLocation : IGeoLocation
 {
     private readonly ILogger<GeoLocation> _logger;
     private readonly IRedisCollection<LcgNode> _lcgNodes;
-
+    
     public GeoLocation(IRedisConnectionProvider redisConnectionProvider, ILogger<GeoLocation> logger)
     {
         _logger = logger;

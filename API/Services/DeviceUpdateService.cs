@@ -27,7 +27,7 @@ public sealed class DeviceUpdateService : IDeviceUpdateService
         _hubContext = hubContext;
         _deviceService = deviceService;
     }
-
+    
     /// <inheritdoc />
     public async Task UpdateDevice(Guid ownerId, Guid deviceId, DeviceUpdateType type, Guid affectedUser)
     {
@@ -50,12 +50,12 @@ public sealed class DeviceUpdateService : IDeviceUpdateService
     public async Task UpdateDeviceForAllShared(Guid ownerId, Guid deviceId, DeviceUpdateType type)
     {
         var task1 = _redisPubService.SendDeviceUpdate(deviceId);
-
+        
         var sharedWith = await _deviceService.GetSharedUsers(deviceId);
         sharedWith.Add(ownerId); // Add the owner to the list of users to send to
         var task2 = _hubContext.Clients.Users(sharedWith.Select(x => x.ToString()))
             .DeviceUpdate(deviceId, type);
-
+        
         await Task.WhenAll(task1, task2);
     }
 }

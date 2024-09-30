@@ -1,6 +1,6 @@
-﻿using OpenShock.API.Services.Email.Mailjet.Mail;
+﻿using System.ComponentModel.DataAnnotations;
+using OpenShock.API.Services.Email.Mailjet.Mail;
 using OpenShock.ServicesCommon.Config;
-using System.ComponentModel.DataAnnotations;
 
 namespace OpenShock.API;
 
@@ -9,7 +9,7 @@ public sealed class ApiConfig : BaseConfig
     [Required] public required FrontendConfig Frontend { get; init; }
     [Required] public required MailConfig Mail { get; init; }
     [Required] public required TurnstileConfig Turnstile { get; init; }
-
+    
     public sealed class TurnstileConfig
     {
         [Required] public required bool Enabled { get; init; }
@@ -58,5 +58,5 @@ public sealed class ApiConfig : BaseConfig
     }
 
 
-
+    
 }

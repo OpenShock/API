@@ -1,4 +1,7 @@
-﻿using Microsoft.AspNetCore.Authentication;
+﻿using System.Security.Claims;
+using System.Text.Encodings.Web;
+using System.Text.Json;
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Http.Json;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
@@ -6,9 +9,6 @@ using OpenShock.Common.OpenShockDb;
 using OpenShock.ServicesCommon.Authentication.Services;
 using OpenShock.ServicesCommon.Errors;
 using OpenShock.ServicesCommon.Problems;
-using System.Security.Claims;
-using System.Text.Encodings.Web;
-using System.Text.Json;
 
 namespace OpenShock.ServicesCommon.Authentication.Handlers;
 
@@ -19,7 +19,7 @@ public sealed class DeviceAuthentication : AuthenticationHandler<AuthenticationS
 {
     private readonly IClientAuthService<Device> _authService;
     private readonly OpenShockContext _db;
-
+    
     private readonly JsonSerializerOptions _serializerOptions;
     private OpenShockProblem? _authResultError = null;
 

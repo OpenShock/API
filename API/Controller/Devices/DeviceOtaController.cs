@@ -1,11 +1,11 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using System.Net;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using OpenShock.Common.Models.Services.Ota;
 using OpenShock.ServicesCommon.Authentication.Attributes;
 using OpenShock.ServicesCommon.Errors;
 using OpenShock.ServicesCommon.Problems;
 using OpenShock.ServicesCommon.Services.Ota;
-using System.Net;
 
 namespace OpenShock.API.Controller.Devices;
 
@@ -31,5 +31,5 @@ public sealed partial class DevicesController
 
         return RespondSuccess(await otaService.GetUpdates(deviceId));
     }
-
+    
 }

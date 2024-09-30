@@ -1,6 +1,6 @@
-﻿using OpenShock.Common.JsonSerialization;
+﻿using System.Text.Json.Serialization;
+using OpenShock.Common.JsonSerialization;
 using Semver;
-using System.Text.Json.Serialization;
 
 namespace OpenShock.Common.Models.Services.Ota;
 

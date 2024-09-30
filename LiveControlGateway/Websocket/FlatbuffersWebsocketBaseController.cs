@@ -1,6 +1,6 @@
-﻿using FlatSharp;
+﻿using System.Net.WebSockets;
+using FlatSharp;
 using OpenShock.ServicesCommon.Websocket;
-using System.Net.WebSockets;
 
 namespace OpenShock.LiveControlGateway.Websocket;
 
@@ -30,5 +30,5 @@ public abstract class FlatbuffersWebsocketBaseController<T> : WebsocketBaseContr
     /// <inheritdoc />
     protected override Task SendWebSocketMessage(T message, WebSocket websocket, CancellationToken cancellationToken) =>
         FlatbufferWebSocketUtils.SendFullMessage(message, _flatBuffersSerializer, websocket, cancellationToken);
-
+    
 }

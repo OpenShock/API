@@ -31,7 +31,7 @@ public static class ControlLogic
                 Paused = x.Paused,
                 PermsAndLimits = null
             }).ToListAsync();
-
+        
         var sharedShockers = await db.ShockerShares.Where(x => x.SharedWith == sender.Id).Select(x =>
             new ControlShockerObj
             {
@@ -63,26 +63,26 @@ public static class ControlLogic
     {
         var shareLinkShockers = await db.ShockerSharesLinksShockers.Where(x => x.ShareLinkId == shareLinkId && (x.ShareLink.ExpiresOn > DateTime.UtcNow || x.ShareLink.ExpiresOn == null))
             .Select(x => new ControlShockerObj
+        {
+            Id = x.Shocker.Id,
+            Name = x.Shocker.Name,
+            RfId = x.Shocker.RfId,
+            Device = x.Shocker.Device,
+            Model = x.Shocker.Model,
+            Owner = x.Shocker.DeviceNavigation.Owner,
+            Paused = x.Shocker.Paused || x.Paused,
+            PermsAndLimits = new SharePermsAndLimits
             {
-                Id = x.Shocker.Id,
-                Name = x.Shocker.Name,
-                RfId = x.Shocker.RfId,
-                Device = x.Shocker.Device,
-                Model = x.Shocker.Model,
-                Owner = x.Shocker.DeviceNavigation.Owner,
-                Paused = x.Shocker.Paused || x.Paused,
-                PermsAndLimits = new SharePermsAndLimits
-                {
-                    Shock = x.PermShock,
-                    Vibrate = x.PermVibrate,
-                    Sound = x.PermSound,
-                    Duration = x.LimitDuration,
-                    Intensity = x.LimitIntensity
-                }
-            }).ToListAsync();
+                Shock = x.PermShock,
+                Vibrate = x.PermVibrate,
+                Sound = x.PermSound,
+                Duration = x.LimitDuration,
+                Intensity = x.LimitIntensity
+            }
+        }).ToListAsync();
         return await ControlInternal(shocks, db, sender, hubClients, shareLinkShockers, redisPubService);
     }
-
+    
     private static async Task<OneOf<Success, ShockerNotFoundOrNoAccess, ShockerPaused, ShockerNoPermission>> ControlInternal(IEnumerable<Control> shocks, OpenShockContext db, ControlLogSender sender,
         IHubClients<IUserHub> hubClients, IReadOnlyCollection<ControlShockerObj> allowedShockers, IRedisPubService redisPubService)
     {
@@ -94,9 +94,9 @@ public static class ControlLogic
         foreach (var shock in distinctShocks)
         {
             var shockerInfo = allowedShockers.FirstOrDefault(x => x.Id == shock.Id);
-
+            
             if (shockerInfo == null) return new ShockerNotFoundOrNoAccess(shock.Id);
-
+            
             if (shockerInfo.Paused) return new ShockerPaused(shock.Id);
 
             if (!IsAllowed(shock.Type, shockerInfo.PermsAndLimits)) return new ShockerNoPermission(shock.Id);
@@ -155,7 +155,7 @@ public static class ControlLogic
             });
         }
 
-        var redisTask = redisPubService.SendDeviceControl(sender.Id, finalMessages);
+        var redisTask =  redisPubService.SendDeviceControl(sender.Id, finalMessages);
         var logSends = logs.Select(x => hubClients.User(x.Key.ToString()).Log(sender, x.Value));
 
         await Task.WhenAll([

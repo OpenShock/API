@@ -1,6 +1,6 @@
-﻿using OpenShock.Common.Models;
+﻿using System.Net;
+using OpenShock.Common.Models;
 using OpenShock.ServicesCommon.Problems;
-using System.Net;
 
 namespace OpenShock.ServicesCommon.Errors;
 
@@ -11,7 +11,7 @@ public static class AuthorizationError
 
     public static OpenShockProblem UserSessionOnly => new("Authorization.UserSession.Only",
         "This endpoint is only available to use with a user sessions", HttpStatusCode.Forbidden);
-
+    
     public static OpenShockProblem TokenOnly => new("Authorization.Token.Only",
         "This endpoint is only available to use with api tokens", HttpStatusCode.Forbidden);
 

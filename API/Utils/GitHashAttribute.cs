@@ -10,6 +10,6 @@ public sealed class GitHashAttribute : Attribute
     {
         Hash = hsh;
     }
-
+    
     public static string FullHash = Assembly.GetEntryAssembly()?.GetCustomAttribute<GitHashAttribute>()?.Hash ?? "error";
 }

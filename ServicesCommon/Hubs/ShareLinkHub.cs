@@ -36,7 +36,7 @@ public sealed class ShareLinkHub : Hub<IShareLinkHub>
     public override async Task OnConnectedAsync()
     {
         _tokenPermissions = _tokenReferenceService.Token?.Permissions;
-
+        
         var httpContext = Context.GetHttpContext();
         if (httpContext?.GetRouteValue("Id") is not string param || !Guid.TryParse(param, out var id))
         {
@@ -54,19 +54,19 @@ public sealed class ShareLinkHub : Hub<IShareLinkHub>
         }
 
         GenericIni? user = null;
-
+        
         if (httpContext.Request.Cookies.TryGetValue("openShockSession", out var accessKeyCookie) &&
             !string.IsNullOrEmpty(accessKeyCookie))
         {
             user = await SessionAuth(accessKeyCookie);
         }
-
+        
         if (httpContext.Request.Headers.TryGetValue("OpenShockSession", out var sessionKeyHeader) &&
             !string.IsNullOrEmpty(sessionKeyHeader))
         {
             user = await SessionAuth(sessionKeyHeader!);
         }
-
+        
         // TODO: Add token auth
 
         var customName = httpContext.Request.Query["name"].FirstOrDefault();
@@ -114,7 +114,7 @@ public sealed class ShareLinkHub : Hub<IShareLinkHub>
     public Task Control(IEnumerable<Common.Models.WebSocket.User.Control> shocks)
     {
         if (!_tokenPermissions.IsAllowedAllowOnNull(PermissionType.Shockers_Use)) return Task.CompletedTask;
-
+        
         return ControlLogic.ControlShareLink(shocks, _db, CustomData.CachedControlLogSender, _userHub.Clients,
             CustomData.ShareLinkId, _redisPubService);
     }
@@ -141,7 +141,7 @@ public sealed class ShareLinkHub : Hub<IShareLinkHub>
         public required string? CustomName { get; init; }
         public required ControlLogSender CachedControlLogSender { get; set; }
     }
-
+    
     public enum AuthType
     {
         Authenticated,

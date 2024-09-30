@@ -1,7 +1,7 @@
-﻿using Microsoft.EntityFrameworkCore;
-using OpenShock.Common.OpenShockDb;
-using System.Collections.Concurrent;
+﻿using System.Collections.Concurrent;
 using System.Timers;
+using Microsoft.EntityFrameworkCore;
+using OpenShock.Common.OpenShockDb;
 using Timer = System.Timers.Timer;
 
 namespace OpenShock.ServicesCommon.Services.BatchUpdate;
@@ -36,7 +36,7 @@ public sealed class BatchUpdateService : IHostedService, IBatchUpdateService
 
             // Yeah
             foreach (var guid in keys) _tokenLastUpdated.TryRemove(guid, out _);
-
+            
             await using var db = await _dbFactory.CreateDbContextAsync();
             await db.ApiTokens.Where(x => keys.Contains(x.Id))
                 .ExecuteUpdateAsync(x => x.SetProperty(y => y.LastUsed, DateTime.UtcNow));

@@ -1,8 +1,8 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using System.Net;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
 using OpenShock.Common.Models;
 using OpenShock.ServicesCommon.Authentication.Services;
-using System.Net;
 
 namespace OpenShock.ServicesCommon.Authentication.Attributes;
 
@@ -10,12 +10,12 @@ namespace OpenShock.ServicesCommon.Authentication.Attributes;
 public sealed class RankAttribute : Attribute, IAuthorizationFilter
 {
     private readonly RankType _requiredRank;
-
+    
     public RankAttribute(RankType requiredRank)
     {
         _requiredRank = requiredRank;
     }
-
+    
     public void OnAuthorization(AuthorizationFilterContext context)
     {
         var user = context.HttpContext.RequestServices.GetService<IClientAuthService<LinkUser>>()?.CurrentClient;
@@ -28,8 +28,8 @@ public sealed class RankAttribute : Attribute, IAuthorizationFilter
             context.HttpContext.Response.StatusCode = (int)HttpStatusCode.InternalServerError;
             return;
         }
-        if (user.DbUser.Rank.IsAllowed(_requiredRank)) return;
-
+        if(user.DbUser.Rank.IsAllowed(_requiredRank)) return;
+        
         context.Result = new JsonResult(new BaseResponse<object>
         {
             Message = $"Required rank not met. Required rank is {_requiredRank} but you only have {user.DbUser.Rank}"

@@ -57,7 +57,7 @@ public sealed class OtaService : IOtaService
 
         await _db.SaveChangesAsync();
     }
-
+    
     /// <inheritdoc />
     public async Task<bool> Success(Guid deviceId, int updateId)
     {
@@ -78,13 +78,13 @@ public sealed class OtaService : IOtaService
             .Where(x => x.Device == deviceId)
             .OrderByDescending(x => x.CreatedOn)
             .Select(x => new OtaItem
-            {
-                Id = x.UpdateId,
-                StartedAt = x.CreatedOn,
-                Status = x.Status,
-                Version = SemVersion.Parse(x.Version, SemVersionStyles.Strict, 1024),
-                Message = x.Message
-            }).ToArrayAsync();
+        {
+            Id = x.UpdateId,
+            StartedAt = x.CreatedOn,
+            Status = x.Status,
+            Version = SemVersion.Parse(x.Version, SemVersionStyles.Strict, 1024),
+            Message = x.Message
+        }).ToArrayAsync();
     }
 
     /// <inheritdoc />

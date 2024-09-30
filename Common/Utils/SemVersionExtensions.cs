@@ -13,7 +13,7 @@ public static class SemVersionExtensions
         Prerelease = version.Prerelease,
         Build = version.Metadata
     };
-
-    public static SemVersion ToSemVersion(this SemVer version) =>
+    
+    public static SemVersion ToSemVersion(this SemVer version) => 
         SemVersion.ParsedFrom(version.Major, version.Minor, version.Patch, version.Prerelease, version.Build);
 }

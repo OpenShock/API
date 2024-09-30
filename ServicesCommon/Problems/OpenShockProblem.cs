@@ -1,5 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
-using System.Net;
+﻿using System.Net;
+using Microsoft.AspNetCore.Mvc;
 
 namespace OpenShock.ServicesCommon.Problems;
 
@@ -20,12 +20,12 @@ public class OpenShockProblem : ProblemDetails
         Detail = detail;
         Status = status;
     }
-
+    
     [Obsolete("This is the exact same as title or detail if present, refer to using title in the future")]
     public string Message => Detail ?? Title!;
-
-    public string? TraceId { get; set; }
-
+    
+    public string? TraceId { get; set; } 
+    
     public ObjectResult ToObjectResult(HttpContext httpContext)
     {
         AddContext(httpContext);
@@ -34,7 +34,7 @@ public class OpenShockProblem : ProblemDetails
             StatusCode = Status
         };
     }
-
+    
     public void AddContext(HttpContext httpContext)
     {
         TraceId = httpContext.TraceIdentifier;

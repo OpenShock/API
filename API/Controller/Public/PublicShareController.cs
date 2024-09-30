@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using System.Net;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using OpenShock.API.Models.Response;
 using OpenShock.API.Utils;
@@ -6,7 +7,6 @@ using OpenShock.Common.Models;
 using OpenShock.ServicesCommon.Errors;
 using OpenShock.ServicesCommon.Problems;
 using OpenShock.ServicesCommon.Utils;
-using System.Net;
 
 namespace OpenShock.API.Controller.Public;
 
@@ -61,8 +61,8 @@ public sealed partial class PublicController
         }).SingleOrDefaultAsync();
 
         if (shareLink == null) return RespondSuccess(ShareLinkError.ShareLinkNotFound);
-
-
+        
+        
         var final = new PublicShareLinkResponse
         {
             Id = shareLink.Id,

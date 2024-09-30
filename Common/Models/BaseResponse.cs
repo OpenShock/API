@@ -14,6 +14,6 @@ public sealed class BaseResponse<T>
         Message = message;
         Data = data;
     }
-
+    
     public override string ToString() => JsonSerializer.Serialize(this);
 }

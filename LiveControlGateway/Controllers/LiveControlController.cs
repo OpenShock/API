@@ -1,4 +1,7 @@
-﻿using Microsoft.AspNetCore.Authorization;
+﻿using System.Net;
+using System.Net.WebSockets;
+using System.Text.Json;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
 using Microsoft.EntityFrameworkCore;
@@ -20,9 +23,6 @@ using OpenShock.ServicesCommon.Authentication.Services;
 using OpenShock.ServicesCommon.Models;
 using OpenShock.ServicesCommon.Utils;
 using OpenShock.ServicesCommon.Websocket;
-using System.Net;
-using System.Net.WebSockets;
-using System.Text.Json;
 using Timer = System.Timers.Timer;
 
 namespace OpenShock.LiveControlGateway.Controllers;
@@ -55,7 +55,7 @@ public sealed class LiveControlController : WebsocketBaseController<IBaseRespons
     private Device? _device;
     private Dictionary<Guid, LiveShockerPermission> _sharedShockers = new();
     private byte _tps = 10;
-
+    
     /// <summary>
     /// Connection Id for this connection, unique and random per connection
     /// </summary>
@@ -104,7 +104,7 @@ public sealed class LiveControlController : WebsocketBaseController<IBaseRespons
     {
         Logger.LogDebug("Updating shared permissions for device [{Device}] for user [{User}]", Id,
             _currentUser.DbUser.Id);
-
+        
         if (_device!.Owner == _currentUser.DbUser.Id)
         {
             Logger.LogTrace("User is owner of device");
@@ -115,7 +115,7 @@ public sealed class LiveControlController : WebsocketBaseController<IBaseRespons
             });
             return;
         }
-
+        
         _sharedShockers = await db.ShockerShares
             .Where(x => x.Shocker.Device == Id && x.SharedWith == _currentUser.DbUser.Id).Select(x => new
             {
@@ -163,12 +163,12 @@ public sealed class LiveControlController : WebsocketBaseController<IBaseRespons
             });
             return false;
         }
-
+        
         _device = await _db.Devices.FirstOrDefaultAsync(x => x.Id == _deviceId);
 
         await UpdatePermissions(_db);
-
-        if (HttpContext.Request.Query.TryGetValue("tps", out var requestedTps))
+        
+        if(HttpContext.Request.Query.TryGetValue("tps", out var requestedTps))
         {
             if (requestedTps.Count == 1)
             {
@@ -527,7 +527,7 @@ public sealed class LiveControlController : WebsocketBaseController<IBaseRespons
             });
             return;
         }
-
+        
         if (result.IsT3)
         {
             await QueueMessage(new Common.Models.WebSocket.BaseResponse<LiveResponseType>

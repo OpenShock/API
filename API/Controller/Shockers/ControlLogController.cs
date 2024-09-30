@@ -1,4 +1,6 @@
-﻿using Asp.Versioning;
+﻿using System.ComponentModel.DataAnnotations;
+using System.Net;
+using Asp.Versioning;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using OpenShock.API.Models.Response;
@@ -6,8 +8,6 @@ using OpenShock.Common.Models;
 using OpenShock.ServicesCommon.Errors;
 using OpenShock.ServicesCommon.Problems;
 using OpenShock.ServicesCommon.Utils;
-using System.ComponentModel.DataAnnotations;
-using System.Net;
 
 namespace OpenShock.API.Controller.Shockers;
 
@@ -26,7 +26,7 @@ public sealed partial class ShockerController
     [ProducesProblem(HttpStatusCode.NotFound, "ShockerNotFound")]
     [MapToApiVersion("1")]
     public async Task<IActionResult> GetShockerLogs([FromRoute] Guid shockerId, [FromQuery] uint offset = 0,
-        [FromQuery][Range(1, 500)] uint limit = 100)
+        [FromQuery] [Range(1, 500)] uint limit = 100)
     {
         var exists = await _db.Shockers.AnyAsync(x => x.DeviceNavigation.Owner == CurrentUser.DbUser.Id && x.Id == shockerId);
         if (!exists) return Problem(ShockerError.ShockerNotFound);

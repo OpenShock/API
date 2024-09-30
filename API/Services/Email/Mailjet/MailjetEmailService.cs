@@ -1,8 +1,8 @@
-﻿using OpenShock.API.Services.Email.Mailjet.Mail;
-using System.Net.Http.Headers;
+﻿using System.Net.Http.Headers;
 using System.Net.Mime;
 using System.Text;
 using System.Text.Json;
+using OpenShock.API.Services.Email.Mailjet.Mail;
 
 namespace OpenShock.API.Services.Email.Mailjet;
 
@@ -72,15 +72,14 @@ public sealed class MailjetEmailService : IEmailService, IDisposable
     }
 
     #endregion
-
+    
     private Task SendMail(MailBase templateMail, CancellationToken cancellationToken = default) => SendMails(new[] { templateMail }, cancellationToken);
 
-    private static readonly JsonSerializerOptions Options = new JsonSerializerOptions
-    {
+    private static readonly JsonSerializerOptions Options = new JsonSerializerOptions {
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase
     };
 
-
+    
     private async Task SendMails(IEnumerable<MailBase> mails, CancellationToken cancellationToken = default)
     {
         if (_logger.IsEnabled(LogLevel.Debug)) _logger.LogDebug("Sending mails {@Mails}", mails);
@@ -89,7 +88,7 @@ public sealed class MailjetEmailService : IEmailService, IDisposable
         {
             Messages = mails
         }, Options);
-
+        
         var response = await _httpClient.PostAsync("send",
             new StringContent(json, Encoding.UTF8, MediaTypeNames.Application.Json), cancellationToken);
         if (!response.IsSuccessStatusCode)
@@ -99,7 +98,7 @@ public sealed class MailjetEmailService : IEmailService, IDisposable
         }
         else _logger.LogDebug("Successfully sent mail");
     }
-
+    
     public void Dispose()
     {
         _httpClient.Dispose();

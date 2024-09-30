@@ -6,11 +6,11 @@ using OpenShock.API.Models.Response;
 using OpenShock.API.Services;
 using OpenShock.Common.Models;
 using OpenShock.Common.OpenShockDb;
+using OpenShock.ServicesCommon.Utils;
+using System.Net;
 using OpenShock.ServicesCommon.Authentication.Attributes;
 using OpenShock.ServicesCommon.Errors;
 using OpenShock.ServicesCommon.Problems;
-using OpenShock.ServicesCommon.Utils;
-using System.Net;
 
 namespace OpenShock.API.Controller.Shockers;
 
@@ -24,7 +24,7 @@ public sealed partial class ShockerController
     /// <response code="404">The shocker does not exist or you do not have access to it.</response>
     [HttpGet("{shockerId}/shares")]
     [ProducesSuccess<IEnumerable<ShareInfo>>]
-    [ProducesProblem(HttpStatusCode.NotFound, "ShockerNotFound")]
+    [ProducesProblem(HttpStatusCode.NotFound, "ShockerNotFound")]    
     [MapToApiVersion("1")]
     public async Task<IActionResult> GetShockerShares([FromRoute] Guid shockerId)
     {
@@ -67,7 +67,7 @@ public sealed partial class ShockerController
     /// <response code="200">OK</response>
     [HttpGet("{shockerId}/shareCodes")]
     [ProducesSuccess<IEnumerable<ShareCodeInfo>>]
-    [ProducesProblem(HttpStatusCode.NotFound, "ShockerNotFound")]
+    [ProducesProblem(HttpStatusCode.NotFound, "ShockerNotFound")]    
     [MapToApiVersion("1")]
     public async Task<IActionResult> ShockerShareCodeList([FromRoute] Guid shockerId)
     {
@@ -103,7 +103,7 @@ public sealed partial class ShockerController
     [HttpPost("{shockerId}/shares")]
     [TokenPermission(PermissionType.Shockers_Edit)]
     [ProducesSuccess<Guid>]
-    [ProducesProblem(HttpStatusCode.NotFound, "ShockerNotFound")]
+    [ProducesProblem(HttpStatusCode.NotFound, "ShockerNotFound")]    
     [MapToApiVersion("1")]
     public async Task<IActionResult> ShockerShareCodeCreate(
         [FromRoute] Guid shockerId,
@@ -144,7 +144,7 @@ public sealed partial class ShockerController
     [HttpDelete("{shockerId}/shares/{sharedWithUserId}")]
     [TokenPermission(PermissionType.Shockers_Edit)]
     [ProducesSuccess]
-    [ProducesProblem(HttpStatusCode.NotFound, "ShockerNotFound")]
+    [ProducesProblem(HttpStatusCode.NotFound, "ShockerNotFound")]    
     [MapToApiVersion("1")]
     public async Task<IActionResult> ShockerShareCodeRemove(
         [FromRoute] Guid shockerId,
@@ -193,7 +193,7 @@ public sealed partial class ShockerController
         if (affected == null) return Problem(ShockerError.ShockerNotFound);
 
         var share = affected.Share;
-
+        
         share.PermShock = body.Permissions.Shock;
         share.PermSound = body.Permissions.Sound;
         share.PermVibrate = body.Permissions.Vibrate;
@@ -220,7 +220,7 @@ public sealed partial class ShockerController
     [HttpPost("{shockerId}/shares/{sharedWithUserId}/pause")]
     [TokenPermission(PermissionType.Shockers_Pause)]
     [ProducesSuccess]
-    [ProducesProblem(HttpStatusCode.NotFound, "ShockerNotFound")]
+    [ProducesProblem(HttpStatusCode.NotFound, "ShockerNotFound")]    
     [MapToApiVersion("1")]
     public async Task<IActionResult> ShockerShareCodePause(
         [FromRoute] Guid shockerId,

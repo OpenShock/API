@@ -27,11 +27,11 @@ public sealed class TokenPermissionAttribute : Attribute, IAuthorizationFilter
         }
 
         if (tokenService.Token == null) return;
-
-        if (_type.IsAllowed(tokenService.Token.Permissions)) return;
-
-        var missingPermissionError =
-                AuthorizationError.TokenPermissionMissing(_type, tokenService.Token.Permissions);
+        
+        if(_type.IsAllowed(tokenService.Token.Permissions)) return;
+        
+    var missingPermissionError =
+            AuthorizationError.TokenPermissionMissing(_type, tokenService.Token.Permissions);
         context.Result = missingPermissionError.ToObjectResult(context.HttpContext);
     }
 }

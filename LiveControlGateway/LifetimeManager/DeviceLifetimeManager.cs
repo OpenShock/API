@@ -1,4 +1,5 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using System.Collections.Concurrent;
+using Microsoft.EntityFrameworkCore;
 using OneOf;
 using OneOf.Types;
 using OpenShock.Common;
@@ -8,7 +9,6 @@ using OpenShock.Common.Redis.PubSub;
 using OpenShock.LiveControlGateway.Controllers;
 using OpenShock.LiveControlGateway.Websocket;
 using Semver;
-using System.Collections.Concurrent;
 
 namespace OpenShock.LiveControlGateway.LifetimeManager;
 
@@ -32,21 +32,21 @@ public static class DeviceLifetimeManager
     public static async Task<DeviceLifetime> AddDeviceConnection(byte tps, DeviceController deviceController,
         OpenShockContext db, IDbContextFactory<OpenShockContext> dbContextFactory, CancellationToken cancellationToken)
     {
-        if (Managers.TryGetValue(deviceController.Id, out var oldController))
-        {
-            Logger.LogDebug("Disposing old device controller");
-            await oldController.DisposeAsync();
-        }
-        Logger.LogInformation("New device connected, creating lifetime [{DeviceId}]", deviceController.Id);
-
-        var deviceLifetime = new DeviceLifetime(tps, deviceController, dbContextFactory, cancellationToken);
-        await deviceLifetime.InitAsync(db);
-        Managers[deviceController.Id] = deviceLifetime;
-
-        foreach (var websocketController in WebsocketManager.LiveControlUsers.GetConnections(deviceController.Id))
-            await websocketController.UpdateConnectedState(true);
-
-        return deviceLifetime;
+            if (Managers.TryGetValue(deviceController.Id, out var oldController))
+            {
+                Logger.LogDebug("Disposing old device controller");
+                await oldController.DisposeAsync();
+            }
+            Logger.LogInformation("New device connected, creating lifetime [{DeviceId}]", deviceController.Id);
+            
+            var deviceLifetime = new DeviceLifetime(tps, deviceController, dbContextFactory, cancellationToken);
+            await deviceLifetime.InitAsync(db);
+            Managers[deviceController.Id] = deviceLifetime;
+            
+            foreach (var websocketController in WebsocketManager.LiveControlUsers.GetConnections(deviceController.Id)) 
+                await websocketController.UpdateConnectedState(true);
+            
+            return deviceLifetime;
     }
 
     /// <summary>
@@ -55,9 +55,9 @@ public static class DeviceLifetimeManager
     /// <param name="deviceController"></param>
     public static async Task RemoveDeviceConnection(DeviceController deviceController)
     {
-        foreach (var websocketController in WebsocketManager.LiveControlUsers.GetConnections(deviceController.Id))
+        foreach (var websocketController in WebsocketManager.LiveControlUsers.GetConnections(deviceController.Id)) 
             await websocketController.UpdateConnectedState(false);
-
+        
         Managers.Remove(deviceController.Id, out _);
     }
 
@@ -82,8 +82,8 @@ public static class DeviceLifetimeManager
     {
         if (!Managers.TryGetValue(device, out var deviceLifetime)) return new DeviceNotFound();
         var receiveFrameAction = deviceLifetime.ReceiveFrame(shocker, type, intensity, tps);
-        if (receiveFrameAction.IsT0) return new Success();
-        if (receiveFrameAction.IsT1) return new ShockerNotFound();
+        if(receiveFrameAction.IsT0) return new Success();
+        if(receiveFrameAction.IsT1) return new ShockerNotFound();
         return receiveFrameAction.AsT2;
     }
 

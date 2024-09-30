@@ -1,9 +1,9 @@
-﻿using Microsoft.AspNetCore.Diagnostics;
+﻿using System.Net;
+using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Http.Json;
 using Microsoft.Extensions.Options;
 using OpenShock.Common;
 using OpenShock.ServicesCommon.Errors;
-using System.Net;
 
 namespace OpenShock.ServicesCommon.ExceptionHandle;
 
@@ -26,7 +26,7 @@ public static class ExceptionHandler
             context.Request.EnableBuffering();
             return next.Invoke();
         });
-
+        
         // Use the built in exception handler middleware, to capture unhandled exceptions.
         app.UseExceptionHandler(appError =>
         {
@@ -37,21 +37,21 @@ public static class ExceptionHandler
                 var contextFeature = context.Features.Get<IExceptionHandlerFeature>();
                 // This should not be null, otherwise no exception was thrown or some other error in ASP.NET occurred.
                 if (contextFeature == null) return;
-
+                
 
                 // Any other exception has been thrown, return a InternalServerError, always print full request infos.
                 // Side note: Exception logging is done by Microsoft Diagnostics middleware already, so no need to do
                 // it again manually.
-
+                
                 context.Response.StatusCode = (int)HttpStatusCode.InternalServerError;
                 await PrintRequestInfo(context);
-
-
+                
+                
                 var jsonOptions = context.RequestServices.GetRequiredService<IOptions<JsonOptions>>();
-
+                
                 var responseObject = ExceptionError.Exception;
                 responseObject.AddContext(context);
-
+                
                 await context.Response.WriteAsJsonAsync(responseObject, jsonOptions.Value.SerializerOptions, contentType: "application/problem+json");
             });
         });
@@ -72,7 +72,7 @@ public static class ExceptionHandler
         // Create Dictionaries to be logging in our RequestInfo object for both Header values and Query parameters.
         var headers = context.Request.Headers.ToDictionary(x => x.Key, x => x.Value.ToString());
         var queryParams = context.Request.Query.ToDictionary(x => x.Key, x => x.Value.ToString());
-
+        
         // Create our RequestInfo object.
         var requestInfo = new RequestInfo
         {
@@ -83,7 +83,7 @@ public static class ExceptionHandler
             Path = context.Request.Path.Value,
             Query = queryParams
         };
-
+        
         // Finally log this object on Information level. 
         LoggerRequestInfo.LogInformation("{@RequestInfo}", requestInfo);
     }

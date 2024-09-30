@@ -1,4 +1,5 @@
-﻿using Asp.Versioning;
+﻿using System.Net;
+using Asp.Versioning;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using OpenShock.API.Services;
@@ -6,7 +7,6 @@ using OpenShock.Common.Models;
 using OpenShock.ServicesCommon.Authentication.Attributes;
 using OpenShock.ServicesCommon.Errors;
 using OpenShock.ServicesCommon.Problems;
-using System.Net;
 
 namespace OpenShock.API.Controller.Shockers;
 

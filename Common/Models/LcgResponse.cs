@@ -1,4 +1,6 @@
-﻿namespace OpenShock.Common.Models;
+﻿using OpenShock.Common.Utils;
+
+namespace OpenShock.Common.Models;
 
 public sealed class LcgResponse
 {

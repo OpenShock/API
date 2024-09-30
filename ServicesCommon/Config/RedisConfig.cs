@@ -1,4 +1,6 @@
-﻿namespace OpenShock.ServicesCommon.Config;
+﻿using System.ComponentModel.DataAnnotations;
+
+namespace OpenShock.ServicesCommon.Config;
 
 public sealed class RedisConfig
 {

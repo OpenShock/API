@@ -1,9 +1,9 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using OpenShock.Common.OpenShockDb;
+using System.Net;
 using OpenShock.ServicesCommon.Errors;
 using OpenShock.ServicesCommon.Problems;
-using System.Net;
 
 namespace OpenShock.API.Controller.Shares.Links;
 
@@ -44,7 +44,7 @@ public sealed partial class ShareLinksController
         });
 
         await _db.SaveChangesAsync();
-
+        
         return RespondSuccessSimple("Successfully added shocker");
     }
 }

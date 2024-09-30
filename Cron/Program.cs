@@ -1,5 +1,6 @@
 using Hangfire;
 using OpenShock.Cron;
+using OpenShock.Cron.Jobs;
 using OpenShock.Cron.Utils;
 using Serilog;
 
