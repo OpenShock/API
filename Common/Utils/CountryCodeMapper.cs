@@ -1,4 +1,5 @@
-﻿using System.Diagnostics.CodeAnalysis;
+﻿using System.Collections.Frozen;
+using System.Diagnostics.CodeAnalysis;
 
 namespace OpenShock.Common.Utils;
 
@@ -329,8 +330,14 @@ public static class CountryCodeMapper
 
         CountryCodeToCountryInfo = Countries.ToDictionary(x => x.CountryCode, x => x);
 
-        // Calculate all distances (ALOT of entries, allows for really fast lookups tho)
-        Distances = CountryCodeToCountryInfo.Values.SelectMany(aVal => CountryCodeToCountryInfo.Values.Select(bVal => (CreateId(aVal.CountryCode, bVal.CountryCode), GetDistance(aVal, bVal)))).ToDictionary();
+        // Calculate all distances (43k+ entries, allows for really fast lookups tho)
+        Distances = Countries
+                .SelectMany((a, i) =>
+                    Countries
+                        .Skip(i) // Skip the countries we've already calculated
+                        .Select(b => new KeyValuePair<string, double>(CreateId(a.CountryCode, b.CountryCode), GetDistance(a, b)))
+                )
+                .ToFrozenDictionary(); // Create a frozen dictionary for fast lookups
     }
 
     public static readonly CountryInfo[] Countries;
