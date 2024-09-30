@@ -6,11 +6,11 @@ using OpenShock.API.Models.Response;
 using OpenShock.API.Services;
 using OpenShock.Common.Models;
 using OpenShock.Common.OpenShockDb;
-using OpenShock.ServicesCommon.Utils;
 using System.Net;
 using OpenShock.ServicesCommon.Authentication.Attributes;
 using OpenShock.ServicesCommon.Errors;
 using OpenShock.ServicesCommon.Problems;
+using OpenShock.Common.Utils;
 
 namespace OpenShock.API.Controller.Shockers;
 

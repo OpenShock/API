@@ -1,8 +1,7 @@
 ﻿using OpenShock.Common.OpenShockDb;
-using OpenShock.Common.Utils;
 using System.Web;
 
-namespace OpenShock.ServicesCommon.Utils;
+namespace OpenShock.Common.Utils;
 
 public static class GravatarUtils
 {

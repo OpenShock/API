@@ -3,13 +3,13 @@ using Asp.Versioning;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.SignalR;
 using OpenShock.Common.Models;
+using OpenShock.Common.Utils;
 using OpenShock.ServicesCommon.Authentication.Attributes;
 using OpenShock.ServicesCommon.DeviceControl;
 using OpenShock.ServicesCommon.Errors;
 using OpenShock.ServicesCommon.Hubs;
 using OpenShock.ServicesCommon.Problems;
 using OpenShock.ServicesCommon.Services.RedisPubSub;
-using OpenShock.ServicesCommon.Utils;
 
 namespace OpenShock.API.Controller.Shockers;
 
