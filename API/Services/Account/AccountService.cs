@@ -112,7 +112,6 @@ public sealed class AccountService : IAccountService
             cancellationToken: cancellationToken);
         if (user == null)
         {
-            _logger.LogInformation("Failed to find user with email or username [{EmailOrUsername}]", emailOrUsername);
             return new NotFound();
         }
 
@@ -197,13 +196,13 @@ public sealed class AccountService : IAccountService
 
         if (!result.Verified)
         {
-            _logger.LogInformation("Failed to verify password, EmailOrUsername [{EmailOrUsername}]", emailOrUsername);
+            _logger.LogInformation("Failed to verify password for user ID: [{Id}]", user.Id);
             return false;
         }
 
         if (result.NeedsRehash)
         {
-            _logger.LogInformation("Password needs rehashing, EmailOrUsername [{EmailOrUsername}]", emailOrUsername);
+            _logger.LogInformation("Rehashing password for user ID: [{Id}]", user.Id);
             user.PasswordHash = PasswordHashingHelpers.HashPassword(password);
             await _db.SaveChangesAsync();
         }
