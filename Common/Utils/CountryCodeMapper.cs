@@ -7,352 +7,341 @@ namespace OpenShock.Common.Utils;
 /// </summary>
 public static class CountryCodeMapper
 {
-    public static readonly CountryInfo DefaultCountry = new()
-    {
-        Name = "Unknown",
-        CfRegion = null,
-        CountryCode = CountryInfo.Alpha2CountryCode.DefaultAlphaCode,
-        Latitude = 0.0,
-        Longitude = 0.0
-    };
+    public static readonly CountryInfo DefaultCountry = new(Alpha2CountryCode.DefaultAlphaCode, "Unknown", 0.0, 0.0, null);
 
-    public readonly struct CountryInfo : IEquatable<CountryInfo>
+    public readonly record struct Alpha2CountryCode(char Char1, char Char2) : IEquatable<Alpha2CountryCode>
     {
-        public required Alpha2CountryCode CountryCode { get; init; }
-        public required string Name { get; init; }
-        public required double Latitude { get; init; }
-        public required double Longitude { get; init; }
-        public required string? CfRegion { get; init; }
 
-        public readonly struct Alpha2CountryCode : IEquatable<Alpha2CountryCode>
+        public static readonly Alpha2CountryCode DefaultAlphaCode = new('X', 'X');
+
+        public static bool TryParseAndValidate(string stringIn, [MaybeNullWhen(false)] out Alpha2CountryCode code)
         {
-
-            public static readonly Alpha2CountryCode DefaultAlphaCode = new() { Char1 = 'X', Char2 = 'X' };
-
-
-            public required char Char1 { get; init; }
-            public required char Char2 { get; init; }
-
-            public override string ToString() => $"{Char1}{Char2}";
-
-            public static bool TryParseAndValidate(string stringIn, [MaybeNullWhen(false)] out Alpha2CountryCode code)
+            if (stringIn.Length != 2 || !char.IsAsciiLetterUpper(stringIn[0]) || !char.IsAsciiLetterUpper(stringIn[1]))
             {
-                if (stringIn.Length != 2 || !char.IsAsciiLetterUpper(stringIn[0]) || !char.IsAsciiLetterUpper(stringIn[1]))
-                {
-                    code = default;
-                    return false;
-                }
-
-                code = new Alpha2CountryCode
-                {
-                    Char1 = stringIn[0],
-                    Char2 = stringIn[1]
-                };
-                return true;
+                code = default;
+                return false;
             }
 
-            public static Alpha2CountryCode ParseOrDefault(string stringIn) => TryParseAndValidate(stringIn, out var code) ? code : DefaultAlphaCode;
-
-            public static implicit operator Alpha2CountryCode(string stringIn)
+            code = new Alpha2CountryCode
             {
-                if (stringIn.Length != 2) throw new ArgumentOutOfRangeException(nameof(stringIn), "String input must be exactly 2 chars");
-                if (!char.IsAsciiLetterUpper(stringIn[0]) || !char.IsAsciiLetterUpper(stringIn[1])) throw new ArgumentOutOfRangeException(nameof(stringIn), "String input must be upper characters only");
-
-                return new Alpha2CountryCode
-                {
-                    Char1 = stringIn[0],
-                    Char2 = stringIn[1]
-                };
-            }
-
-            public bool Equals(Alpha2CountryCode other) => Char1 == other.Char1 && Char2 == other.Char2;
-            public override bool Equals(object? obj) => obj is Alpha2CountryCode other && Equals(other);
-            public override int GetHashCode() => HashCode.Combine(Char1, Char2);
-            public static bool operator ==(Alpha2CountryCode left, Alpha2CountryCode right) => left.Equals(right);
-            public static bool operator !=(Alpha2CountryCode left, Alpha2CountryCode right) => !(left == right);
-
+                Char1 = stringIn[0],
+                Char2 = stringIn[1]
+            };
+            return true;
         }
 
-        public bool Equals(CountryInfo other) => CountryCode == other.CountryCode;
-        public override bool Equals(object? obj) => obj is CountryInfo other && Equals(other);
-        public override int GetHashCode() => CountryCode.GetHashCode();
-        public static bool operator ==(CountryInfo left, CountryInfo right) => left.Equals(right);
-        public static bool operator !=(CountryInfo left, CountryInfo right) => !(left == right);
+        public static Alpha2CountryCode ParseOrDefault(string stringIn) => TryParseAndValidate(stringIn, out var code) ? code : DefaultAlphaCode;
 
-        public double DistanceTo(double longitude, double latitude) => CountryCodeMapper.GetDistance(Longitude, Latitude, longitude, latitude);
-        public double DistanceTo(CountryInfo otherCountry) => DistanceTo(otherCountry.Longitude, otherCountry.Latitude);
+        public static implicit operator Alpha2CountryCode(string stringIn)
+        {
+            if (stringIn.Length != 2) throw new ArgumentOutOfRangeException(nameof(stringIn), "String input must be exactly 2 chars");
+            if (!char.IsAsciiLetterUpper(stringIn[0]) || !char.IsAsciiLetterUpper(stringIn[1])) throw new ArgumentOutOfRangeException(nameof(stringIn), "String input must be upper characters only");
+
+            return new Alpha2CountryCode(stringIn[0], stringIn[1]);
+        }
+
+        public bool IsUnknown() => this == DefaultAlphaCode;
+
+        public override string ToString() => $"{Char1}{Char2}";
     }
 
-    private static double GetDistance(double longitude, double latitude, double otherLongitude, double otherLatitude)
+    public sealed record CountryInfo(Alpha2CountryCode CountryCode, string Name, double Latitude, double Longitude, string? CfRegion);
+
+    private static string CreateId(Alpha2CountryCode code1, Alpha2CountryCode code2)
     {
-        var d1 = latitude * (Math.PI / 180.0);
-        var num1 = longitude * (Math.PI / 180.0);
-        var d2 = otherLatitude * (Math.PI / 180.0);
-        var num2 = otherLongitude * (Math.PI / 180.0) - num1;
-        var d3 = Math.Pow(Math.Sin((d2 - d1) / 2.0), 2.0) + Math.Cos(d1) * Math.Cos(d2) * Math.Pow(Math.Sin(num2 / 2.0), 2.0);
+        if (code1.Char1 > code2.Char1 || code1.Char2 > code2.Char2)
+        {
+            return $"{code1.Char1}{code1.Char2}{code2.Char1}{code2.Char2}";
+        }
 
-        return 6376500.0 * (2.0 * Math.Atan2(Math.Sqrt(d3), Math.Sqrt(1.0 - d3)));
+        return $"{code2.Char1}{code2.Char2}{code1.Char1}{code1.Char2}";
     }
+
+    private static double GetDistance(double lat1, double lon1, double lat2, double lon2)
+    {
+        const double EarthRadius = 6371.0;
+        const double DegToRad = Math.PI / 180.0;
+
+        double latDist = (lat2 - lat1) * DegToRad;
+        double lonDist = (lon2 - lon1) * DegToRad;
+
+        double latVal = Math.Sin(latDist / 2.0);
+        double lonVal = Math.Sin(lonDist / 2.0);
+        double otherVal = Math.Cos(lat1 * DegToRad) * Math.Cos(lat2 * DegToRad);
+
+        double a = (latVal * latVal) + (otherVal * (lonVal * lonVal));
+        double b = 2.0 * Math.Atan2(Math.Sqrt(a), Math.Sqrt(1.0 - a));
+
+        return EarthRadius * b;
+    }
+    private static double GetDistance(CountryInfo country1, CountryInfo country2) => GetDistance(country1.Latitude, country1.Longitude, country2.Latitude, country2.Longitude);
 
     static CountryCodeMapper()
     {
-        Countries = new CountryInfo[]
-        {
-            new() { CountryCode = "AD", Name = "Andorra", Latitude = 42.546245, Longitude = 1.601554, CfRegion = "weur" },
-            new() { CountryCode = "AE", Name = "United Arab Emirates", Latitude = 23.424076, Longitude = 53.847818, CfRegion = "apac" },
-            new() { CountryCode = "AF", Name = "Afghanistan", Latitude = 33.93911, Longitude = 67.709953, CfRegion = "apac" },
-            new() { CountryCode = "AG", Name = "Antigua and Barbuda", Latitude = 17.060816, Longitude = -61.796428, CfRegion = "apac" },
-            new() { CountryCode = "AI", Name = "Anguilla", Latitude = 18.220554, Longitude = -63.068615, CfRegion = "apac" },
-            new() { CountryCode = "AL", Name = "Albania", Latitude = 41.153332, Longitude = 20.168331, CfRegion = "weur" },
-            new() { CountryCode = "AM", Name = "Armenia", Latitude = 40.069099, Longitude = 45.038189, CfRegion = "apac" },
-            new() { CountryCode = "AN", Name = "Netherlands Antilles", Latitude = 12.226079, Longitude = -69.060087, CfRegion = null },
-            new() { CountryCode = "AO", Name = "Angola", Latitude = -11.202692, Longitude = 17.873887, CfRegion = "apac" },
-            new() { CountryCode = "AQ", Name = "Antarctica", Latitude = -75.250973, Longitude = -0.071389, CfRegion = "weur" },
-            new() { CountryCode = "AR", Name = "Argentina", Latitude = -38.416097, Longitude = -63.616672, CfRegion = "apac" },
-            new() { CountryCode = "AS", Name = "American Samoa", Latitude = -14.270972, Longitude = -170.132217, CfRegion = "apac" },
-            new() { CountryCode = "AT", Name = "Austria", Latitude = 47.516231, Longitude = 14.550072, CfRegion = "weur" },
-            new() { CountryCode = "AU", Name = "Australia", Latitude = -25.274398, Longitude = 133.775136, CfRegion = "apac" },
-            new() { CountryCode = "AW", Name = "Aruba", Latitude = 12.52111, Longitude = -69.968338, CfRegion = "apac" },
-            new() { CountryCode = "AZ", Name = "Azerbaijan", Latitude = 40.143105, Longitude = 47.576927, CfRegion = "apac" },
-            new() { CountryCode = "BA", Name = "Bosnia and Herzegovina", Latitude = 43.915886, Longitude = 17.679076, CfRegion = "weur" },
-            new() { CountryCode = "BB", Name = "Barbados", Latitude = 13.193887, Longitude = -59.543198, CfRegion = "apac" },
-            new() { CountryCode = "BD", Name = "Bangladesh", Latitude = 23.684994, Longitude = 90.356331, CfRegion = "apac" },
-            new() { CountryCode = "BE", Name = "Belgium", Latitude = 50.503887, Longitude = 4.469936, CfRegion = "weur" },
-            new() { CountryCode = "BF", Name = "Burkina Faso", Latitude = 12.238333, Longitude = -1.561593, CfRegion = "apac" },
-            new() { CountryCode = "BG", Name = "Bulgaria", Latitude = 42.733883, Longitude = 25.48583, CfRegion = "eeur" },
-            new() { CountryCode = "BH", Name = "Bahrain", Latitude = 25.930414, Longitude = 50.637772, CfRegion = "apac" },
-            new() { CountryCode = "BI", Name = "Burundi", Latitude = -3.373056, Longitude = 29.918886, CfRegion = "apac" },
-            new() { CountryCode = "BJ", Name = "Benin", Latitude = 9.30769, Longitude = 2.315834, CfRegion = "apac" },
-            new() { CountryCode = "BM", Name = "Bermuda", Latitude = 32.321384, Longitude = -64.75737, CfRegion = "enam" },
-            new() { CountryCode = "BN", Name = "Brunei", Latitude = 4.535277, Longitude = 114.727669, CfRegion = "apac" },
-            new() { CountryCode = "BO", Name = "Bolivia", Latitude = -16.290154, Longitude = -63.588653, CfRegion = "apac" },
-            new() { CountryCode = "BR", Name = "Brazil", Latitude = -14.235004, Longitude = -51.92528, CfRegion = "apac" },
-            new() { CountryCode = "BS", Name = "Bahamas", Latitude = 25.03428, Longitude = -77.39628, CfRegion = "apac" },
-            new() { CountryCode = "BT", Name = "Bhutan", Latitude = 27.514162, Longitude = 90.433601, CfRegion = "apac" },
-            new() { CountryCode = "BV", Name = "Bouvet Island", Latitude = -54.423199, Longitude = 3.413194, CfRegion = "apac" },
-            new() { CountryCode = "BW", Name = "Botswana", Latitude = -22.328474, Longitude = 24.684866, CfRegion = "apac" },
-            new() { CountryCode = "BY", Name = "Belarus", Latitude = 53.709807, Longitude = 27.953389, CfRegion = "eeur" },
-            new() { CountryCode = "BZ", Name = "Belize", Latitude = 17.189877, Longitude = -88.49765, CfRegion = "apac" },
-            new() { CountryCode = "CA", Name = "Canada", Latitude = 56.130366, Longitude = -106.346771, CfRegion = "enam" },
-            new() { CountryCode = "CC", Name = "Cocos [Keeling] Islands", Latitude = -12.164165, Longitude = 96.870956, CfRegion = "apac" },
-            new() { CountryCode = "CD", Name = "Congo [DRC]", Latitude = -4.038333, Longitude = 21.758664, CfRegion = "apac" },
-            new() { CountryCode = "CF", Name = "Central African Republic", Latitude = 6.611111, Longitude = 20.939444, CfRegion = "apac" },
-            new() { CountryCode = "CG", Name = "Congo [Republic]", Latitude = -0.228021, Longitude = 15.827659, CfRegion = "apac" },
-            new() { CountryCode = "CH", Name = "Switzerland", Latitude = 46.818188, Longitude = 8.227512, CfRegion = "weur" },
-            new() { CountryCode = "CI", Name = "Côte d'Ivoire", Latitude = 7.539989, Longitude = -5.54708, CfRegion = "apac" },
-            new() { CountryCode = "CK", Name = "Cook Islands", Latitude = -21.236736, Longitude = -159.777671, CfRegion = "apac" },
-            new() { CountryCode = "CL", Name = "Chile", Latitude = -35.675147, Longitude = -71.542969, CfRegion = "apac" },
-            new() { CountryCode = "CM", Name = "Cameroon", Latitude = 7.369722, Longitude = 12.354722, CfRegion = "apac" },
-            new() { CountryCode = "CN", Name = "China", Latitude = 35.86166, Longitude = 104.195397, CfRegion = "apac" },
-            new() { CountryCode = "CO", Name = "Colombia", Latitude = 4.570868, Longitude = -74.297333, CfRegion = "apac" },
-            new() { CountryCode = "CR", Name = "Costa Rica", Latitude = 9.748917, Longitude = -83.753428, CfRegion = "apac" },
-            new() { CountryCode = "CU", Name = "Cuba", Latitude = 21.521757, Longitude = -77.781167, CfRegion = "apac" },
-            new() { CountryCode = "CV", Name = "Cape Verde", Latitude = 16.002082, Longitude = -24.013197, CfRegion = "apac" },
-            new() { CountryCode = "CX", Name = "Christmas Island", Latitude = -10.447525, Longitude = 105.690449, CfRegion = "apac" },
-            new() { CountryCode = "CY", Name = "Cyprus", Latitude = 35.126413, Longitude = 33.429859, CfRegion = "apac" },
-            new() { CountryCode = "CZ", Name = "Czech Republic", Latitude = 49.817492, Longitude = 15.472962, CfRegion = "eeur" },
-            new() { CountryCode = "DE", Name = "Germany", Latitude = 51.165691, Longitude = 10.451526, CfRegion = "weur" },
-            new() { CountryCode = "DJ", Name = "Djibouti", Latitude = 11.825138, Longitude = 42.590275, CfRegion = "apac" },
-            new() { CountryCode = "DK", Name = "Denmark", Latitude = 56.26392, Longitude = 9.501785, CfRegion = "weur" },
-            new() { CountryCode = "DM", Name = "Dominica", Latitude = 15.414999, Longitude = -61.370976, CfRegion = "apac" },
-            new() { CountryCode = "DO", Name = "Dominican Republic", Latitude = 18.735693, Longitude = -70.162651, CfRegion = "apac" },
-            new() { CountryCode = "DZ", Name = "Algeria", Latitude = 28.033886, Longitude = 1.659626, CfRegion = "apac" },
-            new() { CountryCode = "EC", Name = "Ecuador", Latitude = -1.831239, Longitude = -78.183406, CfRegion = "apac" },
-            new() { CountryCode = "EE", Name = "Estonia", Latitude = 58.595272, Longitude = 25.013607, CfRegion = "weur" },
-            new() { CountryCode = "EG", Name = "Egypt", Latitude = 26.820553, Longitude = 30.802498, CfRegion = "apac" },
-            new() { CountryCode = "EH", Name = "Western Sahara", Latitude = 24.215527, Longitude = -12.885834, CfRegion = "apac" },
-            new() { CountryCode = "ER", Name = "Eritrea", Latitude = 15.179384, Longitude = 39.782334, CfRegion = "apac" },
-            new() { CountryCode = "ES", Name = "Spain", Latitude = 40.463667, Longitude = -3.74922, CfRegion = "weur" },
-            new() { CountryCode = "ET", Name = "Ethiopia", Latitude = 9.145, Longitude = 40.489673, CfRegion = "apac" },
-            new() { CountryCode = "FI", Name = "Finland", Latitude = 61.92411, Longitude = 25.748151, CfRegion = "weur" },
-            new() { CountryCode = "FJ", Name = "Fiji", Latitude = -16.578193, Longitude = 179.414413, CfRegion = "apac" },
-            new() { CountryCode = "FK", Name = "Falkland Islands [Islas Malvinas]", Latitude = -51.796253, Longitude = -59.523613, CfRegion = "apac" },
-            new() { CountryCode = "FM", Name = "Micronesia", Latitude = 7.425554, Longitude = 150.550812, CfRegion = "apac" },
-            new() { CountryCode = "FO", Name = "Faroe Islands", Latitude = 61.892635, Longitude = -6.911806, CfRegion = "weur" },
-            new() { CountryCode = "FR", Name = "France", Latitude = 46.227638, Longitude = 2.213749, CfRegion = "weur" },
-            new() { CountryCode = "GA", Name = "Gabon", Latitude = -0.803689, Longitude = 11.609444, CfRegion = "apac" },
-            new() { CountryCode = "GB", Name = "United Kingdom", Latitude = 55.378051, Longitude = -3.435973, CfRegion = "weur" },
-            new() { CountryCode = "GD", Name = "Grenada", Latitude = 12.262776, Longitude = -61.604171, CfRegion = "apac" },
-            new() { CountryCode = "GE", Name = "Georgia", Latitude = 42.315407, Longitude = 43.356892, CfRegion = "apac" },
-            new() { CountryCode = "GF", Name = "French Guiana", Latitude = 3.933889, Longitude = -53.125782, CfRegion = "apac" },
-            new() { CountryCode = "GG", Name = "Guernsey", Latitude = 49.465691, Longitude = -2.585278, CfRegion = "weur" },
-            new() { CountryCode = "GH", Name = "Ghana", Latitude = 7.946527, Longitude = -1.023194, CfRegion = "apac" },
-            new() { CountryCode = "GI", Name = "Gibraltar", Latitude = 36.137741, Longitude = -5.345374, CfRegion = "weur" },
-            new() { CountryCode = "GL", Name = "Greenland", Latitude = 71.706936, Longitude = -42.604303, CfRegion = "enam" },
-            new() { CountryCode = "GM", Name = "Gambia", Latitude = 13.443182, Longitude = -15.310139, CfRegion = "apac" },
-            new() { CountryCode = "GN", Name = "Guinea", Latitude = 9.945587, Longitude = -9.696645, CfRegion = "apac" },
-            new() { CountryCode = "GP", Name = "Guadeloupe", Latitude = 16.995971, Longitude = -62.067641, CfRegion = "apac" },
-            new() { CountryCode = "GQ", Name = "Equatorial Guinea", Latitude = 1.650801, Longitude = 10.267895, CfRegion = "apac" },
-            new() { CountryCode = "GR", Name = "Greece", Latitude = 39.074208, Longitude = 21.824312, CfRegion = "weur" },
-            new() { CountryCode = "GS", Name = "South Georgia and the South Sandwich Islands", Latitude = -54.429579, Longitude = -36.587909, CfRegion = "apac" },
-            new() { CountryCode = "GT", Name = "Guatemala", Latitude = 15.783471, Longitude = -90.230759, CfRegion = "apac" },
-            new() { CountryCode = "GU", Name = "Guam", Latitude = 13.444304, Longitude = 144.793731, CfRegion = "apac" },
-            new() { CountryCode = "GW", Name = "Guinea-Bissau", Latitude = 11.803749, Longitude = -15.180413, CfRegion = "apac" },
-            new() { CountryCode = "GY", Name = "Guyana", Latitude = 4.860416, Longitude = -58.93018, CfRegion = "apac" },
-            new() { CountryCode = "GZ", Name = "Gaza Strip", Latitude = 31.354676, Longitude = 34.308825, CfRegion = null },
-            new() { CountryCode = "HK", Name = "Hong Kong", Latitude = 22.396428, Longitude = 114.109497, CfRegion = "apac" },
-            new() { CountryCode = "HM", Name = "Heard Island and McDonald Islands", Latitude = -53.08181, Longitude = 73.504158, CfRegion = "apac" },
-            new() { CountryCode = "HN", Name = "Honduras", Latitude = 15.199999, Longitude = -86.241905, CfRegion = "apac" },
-            new() { CountryCode = "HR", Name = "Croatia", Latitude = 45.1, Longitude = 15.2, CfRegion = "weur" },
-            new() { CountryCode = "HT", Name = "Haiti", Latitude = 18.971187, Longitude = -72.285215, CfRegion = "apac" },
-            new() { CountryCode = "HU", Name = "Hungary", Latitude = 47.162494, Longitude = 19.503304, CfRegion = "eeur" },
-            new() { CountryCode = "ID", Name = "Indonesia", Latitude = -0.789275, Longitude = 113.921327, CfRegion = "apac" },
-            new() { CountryCode = "IE", Name = "Ireland", Latitude = 53.41291, Longitude = -8.24389, CfRegion = "weur" },
-            new() { CountryCode = "IL", Name = "Israel", Latitude = 31.046051, Longitude = 34.851612, CfRegion = "apac" },
-            new() { CountryCode = "IM", Name = "Isle of Man", Latitude = 54.236107, Longitude = -4.548056, CfRegion = "weur" },
-            new() { CountryCode = "IN", Name = "India", Latitude = 20.593684, Longitude = 78.96288, CfRegion = "apac" },
-            new() { CountryCode = "IO", Name = "British Indian Ocean Territory", Latitude = -6.343194, Longitude = 71.876519, CfRegion = "apac" },
-            new() { CountryCode = "IQ", Name = "Iraq", Latitude = 33.223191, Longitude = 43.679291, CfRegion = "apac" },
-            new() { CountryCode = "IR", Name = "Iran", Latitude = 32.427908, Longitude = 53.688046, CfRegion = "apac" },
-            new() { CountryCode = "IS", Name = "Iceland", Latitude = 64.963051, Longitude = -19.020835, CfRegion = "weur" },
-            new() { CountryCode = "IT", Name = "Italy", Latitude = 41.87194, Longitude = 12.56738, CfRegion = "weur" },
-            new() { CountryCode = "JE", Name = "Jersey", Latitude = 49.214439, Longitude = -2.13125, CfRegion = "weur" },
-            new() { CountryCode = "JM", Name = "Jamaica", Latitude = 18.109581, Longitude = -77.297508, CfRegion = "apac" },
-            new() { CountryCode = "JO", Name = "Jordan", Latitude = 30.585164, Longitude = 36.238414, CfRegion = "apac" },
-            new() { CountryCode = "JP", Name = "Japan", Latitude = 36.204824, Longitude = 138.252924, CfRegion = "apac" },
-            new() { CountryCode = "KE", Name = "Kenya", Latitude = -0.023559, Longitude = 37.906193, CfRegion = "apac" },
-            new() { CountryCode = "KG", Name = "Kyrgyzstan", Latitude = 41.20438, Longitude = 74.766098, CfRegion = "apac" },
-            new() { CountryCode = "KH", Name = "Cambodia", Latitude = 12.565679, Longitude = 104.990963, CfRegion = "apac" },
-            new() { CountryCode = "KI", Name = "Kiribati", Latitude = -3.370417, Longitude = -168.734039, CfRegion = "apac" },
-            new() { CountryCode = "KM", Name = "Comoros", Latitude = -11.875001, Longitude = 43.872219, CfRegion = "apac" },
-            new() { CountryCode = "KN", Name = "Saint Kitts and Nevis", Latitude = 17.357822, Longitude = -62.782998, CfRegion = "apac" },
-            new() { CountryCode = "KP", Name = "North Korea", Latitude = 40.339852, Longitude = 127.510093, CfRegion = "apac" },
-            new() { CountryCode = "KR", Name = "South Korea", Latitude = 35.907757, Longitude = 127.766922, CfRegion = "apac" },
-            new() { CountryCode = "KW", Name = "Kuwait", Latitude = 29.31166, Longitude = 47.481766, CfRegion = "apac" },
-            new() { CountryCode = "KY", Name = "Cayman Islands", Latitude = 19.513469, Longitude = -80.566956, CfRegion = "apac" },
-            new() { CountryCode = "KZ", Name = "Kazakhstan", Latitude = 48.019573, Longitude = 66.923684, CfRegion = "apac" },
-            new() { CountryCode = "LA", Name = "Laos", Latitude = 19.85627, Longitude = 102.495496, CfRegion = "apac" },
-            new() { CountryCode = "LB", Name = "Lebanon", Latitude = 33.854721, Longitude = 35.862285, CfRegion = "apac" },
-            new() { CountryCode = "LC", Name = "Saint Lucia", Latitude = 13.909444, Longitude = -60.978893, CfRegion = "apac" },
-            new() { CountryCode = "LI", Name = "Liechtenstein", Latitude = 47.166, Longitude = 9.555373, CfRegion = "weur" },
-            new() { CountryCode = "LK", Name = "Sri Lanka", Latitude = 7.873054, Longitude = 80.771797, CfRegion = "apac" },
-            new() { CountryCode = "LR", Name = "Liberia", Latitude = 6.428055, Longitude = -9.429499, CfRegion = "apac" },
-            new() { CountryCode = "LS", Name = "Lesotho", Latitude = -29.609988, Longitude = 28.233608, CfRegion = "apac" },
-            new() { CountryCode = "LT", Name = "Lithuania", Latitude = 55.169438, Longitude = 23.881275, CfRegion = "weur" },
-            new() { CountryCode = "LU", Name = "Luxembourg", Latitude = 49.815273, Longitude = 6.129583, CfRegion = "weur" },
-            new() { CountryCode = "LV", Name = "Latvia", Latitude = 56.879635, Longitude = 24.603189, CfRegion = "weur" },
-            new() { CountryCode = "LY", Name = "Libya", Latitude = 26.3351, Longitude = 17.228331, CfRegion = "apac" },
-            new() { CountryCode = "MA", Name = "Morocco", Latitude = 31.791702, Longitude = -7.09262, CfRegion = "apac" },
-            new() { CountryCode = "MC", Name = "Monaco", Latitude = 43.750298, Longitude = 7.412841, CfRegion = "weur" },
-            new() { CountryCode = "MD", Name = "Moldova", Latitude = 47.411631, Longitude = 28.369885, CfRegion = "eeur" },
-            new() { CountryCode = "ME", Name = "Montenegro", Latitude = 42.708678, Longitude = 19.37439, CfRegion = "weur" },
-            new() { CountryCode = "MG", Name = "Madagascar", Latitude = -18.766947, Longitude = 46.869107, CfRegion = "apac" },
-            new() { CountryCode = "MH", Name = "Marshall Islands", Latitude = 7.131474, Longitude = 171.184478, CfRegion = "apac" },
-            new() { CountryCode = "MK", Name = "Macedonia [FYROM]", Latitude = 41.608635, Longitude = 21.745275, CfRegion = "weur" },
-            new() { CountryCode = "ML", Name = "Mali", Latitude = 17.570692, Longitude = -3.996166, CfRegion = "apac" },
-            new() { CountryCode = "MM", Name = "Myanmar [Burma]", Latitude = 21.913965, Longitude = 95.956223, CfRegion = "apac" },
-            new() { CountryCode = "MN", Name = "Mongolia", Latitude = 46.862496, Longitude = 103.846656, CfRegion = "apac" },
-            new() { CountryCode = "MO", Name = "Macau", Latitude = 22.198745, Longitude = 113.543873, CfRegion = "apac" },
-            new() { CountryCode = "MP", Name = "Northern Mariana Islands", Latitude = 17.33083, Longitude = 145.38469, CfRegion = "apac" },
-            new() { CountryCode = "MQ", Name = "Martinique", Latitude = 14.641528, Longitude = -61.024174, CfRegion = "apac" },
-            new() { CountryCode = "MR", Name = "Mauritania", Latitude = 21.00789, Longitude = -10.940835, CfRegion = "apac" },
-            new() { CountryCode = "MS", Name = "Montserrat", Latitude = 16.742498, Longitude = -62.187366, CfRegion = "apac" },
-            new() { CountryCode = "MT", Name = "Malta", Latitude = 35.937496, Longitude = 14.375416, CfRegion = "weur" },
-            new() { CountryCode = "MU", Name = "Mauritius", Latitude = -20.348404, Longitude = 57.552152, CfRegion = "apac" },
-            new() { CountryCode = "MV", Name = "Maldives", Latitude = 3.202778, Longitude = 73.22068, CfRegion = "apac" },
-            new() { CountryCode = "MW", Name = "Malawi", Latitude = -13.254308, Longitude = 34.301525, CfRegion = "apac" },
-            new() { CountryCode = "MX", Name = "Mexico", Latitude = 23.634501, Longitude = -102.552784, CfRegion = "apac" },
-            new() { CountryCode = "MY", Name = "Malaysia", Latitude = 4.210484, Longitude = 101.975766, CfRegion = "apac" },
-            new() { CountryCode = "MZ", Name = "Mozambique", Latitude = -18.665695, Longitude = 35.529562, CfRegion = "apac" },
-            new() { CountryCode = "NA", Name = "Namibia", Latitude = -22.95764, Longitude = 18.49041, CfRegion = "apac" },
-            new() { CountryCode = "NC", Name = "New Caledonia", Latitude = -20.904305, Longitude = 165.618042, CfRegion = "apac" },
-            new() { CountryCode = "NE", Name = "Niger", Latitude = 17.607789, Longitude = 8.081666, CfRegion = "apac" },
-            new() { CountryCode = "NF", Name = "Norfolk Island", Latitude = -29.040835, Longitude = 167.954712, CfRegion = "apac" },
-            new() { CountryCode = "NG", Name = "Nigeria", Latitude = 9.081999, Longitude = 8.675277, CfRegion = "apac" },
-            new() { CountryCode = "NI", Name = "Nicaragua", Latitude = 12.865416, Longitude = -85.207229, CfRegion = "apac" },
-            new() { CountryCode = "NL", Name = "Netherlands", Latitude = 52.132633, Longitude = 5.291266, CfRegion = "weur" },
-            new() { CountryCode = "NO", Name = "Norway", Latitude = 60.472024, Longitude = 8.468946, CfRegion = "weur" },
-            new() { CountryCode = "NP", Name = "Nepal", Latitude = 28.394857, Longitude = 84.124008, CfRegion = "apac" },
-            new() { CountryCode = "NR", Name = "Nauru", Latitude = -0.522778, Longitude = 166.931503, CfRegion = "apac" },
-            new() { CountryCode = "NU", Name = "Niue", Latitude = -19.054445, Longitude = -169.867233, CfRegion = "apac" },
-            new() { CountryCode = "NZ", Name = "New Zealand", Latitude = -40.900557, Longitude = 174.885971, CfRegion = "apac" },
-            new() { CountryCode = "OM", Name = "Oman", Latitude = 21.512583, Longitude = 55.923255, CfRegion = "apac" },
-            new() { CountryCode = "PA", Name = "Panama", Latitude = 8.537981, Longitude = -80.782127, CfRegion = "apac" },
-            new() { CountryCode = "PE", Name = "Peru", Latitude = -9.189967, Longitude = -75.015152, CfRegion = "apac" },
-            new() { CountryCode = "PF", Name = "French Polynesia", Latitude = -17.679742, Longitude = -149.406843, CfRegion = "apac" },
-            new() { CountryCode = "PG", Name = "Papua New Guinea", Latitude = -6.314993, Longitude = 143.95555, CfRegion = "apac" },
-            new() { CountryCode = "PH", Name = "Philippines", Latitude = 12.879721, Longitude = 121.774017, CfRegion = "apac" },
-            new() { CountryCode = "PK", Name = "Pakistan", Latitude = 30.375321, Longitude = 69.345116, CfRegion = "apac" },
-            new() { CountryCode = "PL", Name = "Poland", Latitude = 51.919438, Longitude = 19.145136, CfRegion = "eeur" },
-            new() { CountryCode = "PM", Name = "Saint Pierre and Miquelon", Latitude = 46.941936, Longitude = -56.27111, CfRegion = "enam" },
-            new() { CountryCode = "PN", Name = "Pitcairn Islands", Latitude = -24.703615, Longitude = -127.439308, CfRegion = "apac" },
-            new() { CountryCode = "PR", Name = "Puerto Rico", Latitude = 18.220833, Longitude = -66.590149, CfRegion = "apac" },
-            new() { CountryCode = "PS", Name = "Palestinian Territories", Latitude = 31.952162, Longitude = 35.233154, CfRegion = "apac" },
-            new() { CountryCode = "PT", Name = "Portugal", Latitude = 39.399872, Longitude = -8.224454, CfRegion = "weur" },
-            new() { CountryCode = "PW", Name = "Palau", Latitude = 7.51498, Longitude = 134.58252, CfRegion = "apac" },
-            new() { CountryCode = "PY", Name = "Paraguay", Latitude = -23.442503, Longitude = -58.443832, CfRegion = "apac" },
-            new() { CountryCode = "QA", Name = "Qatar", Latitude = 25.354826, Longitude = 51.183884, CfRegion = "apac" },
-            new() { CountryCode = "RE", Name = "Réunion", Latitude = -21.115141, Longitude = 55.536384, CfRegion = "apac" },
-            new() { CountryCode = "RO", Name = "Romania", Latitude = 45.943161, Longitude = 24.96676, CfRegion = "eeur" },
-            new() { CountryCode = "RS", Name = "Serbia", Latitude = 44.016521, Longitude = 21.005859, CfRegion = "weur" },
-            new() { CountryCode = "RU", Name = "Russia", Latitude = 61.52401, Longitude = 105.318756, CfRegion = "eeur" },
-            new() { CountryCode = "RW", Name = "Rwanda", Latitude = -1.940278, Longitude = 29.873888, CfRegion = "apac" },
-            new() { CountryCode = "SA", Name = "Saudi Arabia", Latitude = 23.885942, Longitude = 45.079162, CfRegion = "apac" },
-            new() { CountryCode = "SB", Name = "Solomon Islands", Latitude = -9.64571, Longitude = 160.156194, CfRegion = "apac" },
-            new() { CountryCode = "SC", Name = "Seychelles", Latitude = -4.679574, Longitude = 55.491977, CfRegion = "apac" },
-            new() { CountryCode = "SD", Name = "Sudan", Latitude = 12.862807, Longitude = 30.217636, CfRegion = "apac" },
-            new() { CountryCode = "SE", Name = "Sweden", Latitude = 60.128161, Longitude = 18.643501, CfRegion = "weur" },
-            new() { CountryCode = "SG", Name = "Singapore", Latitude = 1.352083, Longitude = 103.819836, CfRegion = "apac" },
-            new() { CountryCode = "SH", Name = "Saint Helena", Latitude = -24.143474, Longitude = -10.030696, CfRegion = "apac" },
-            new() { CountryCode = "SI", Name = "Slovenia", Latitude = 46.151241, Longitude = 14.995463, CfRegion = "weur" },
-            new() { CountryCode = "SJ", Name = "Svalbard and Jan Mayen", Latitude = 77.553604, Longitude = 23.670272, CfRegion = "weur" },
-            new() { CountryCode = "SK", Name = "Slovakia", Latitude = 48.669026, Longitude = 19.699024, CfRegion = "eeur" },
-            new() { CountryCode = "SL", Name = "Sierra Leone", Latitude = 8.460555, Longitude = -11.779889, CfRegion = "apac" },
-            new() { CountryCode = "SM", Name = "San Marino", Latitude = 43.94236, Longitude = 12.457777, CfRegion = "weur" },
-            new() { CountryCode = "SN", Name = "Senegal", Latitude = 14.497401, Longitude = -14.452362, CfRegion = "apac" },
-            new() { CountryCode = "SO", Name = "Somalia", Latitude = 5.152149, Longitude = 46.199616, CfRegion = "apac" },
-            new() { CountryCode = "SR", Name = "Suriname", Latitude = 3.919305, Longitude = -56.027783, CfRegion = "apac" },
-            new() { CountryCode = "ST", Name = "Sao Tomé and Príncipe", Latitude = 0.18636, Longitude = 6.613081, CfRegion = "apac" },
-            new() { CountryCode = "SV", Name = "El Salvador", Latitude = 13.794185, Longitude = -88.89653, CfRegion = "apac" },
-            new() { CountryCode = "SY", Name = "Syria", Latitude = 34.802075, Longitude = 38.996815, CfRegion = "apac" },
-            new() { CountryCode = "SZ", Name = "Swaziland", Latitude = -26.522503, Longitude = 31.465866, CfRegion = "apac" },
-            new() { CountryCode = "TC", Name = "Turks and Caicos Islands", Latitude = 21.694025, Longitude = -71.797928, CfRegion = "apac" },
-            new() { CountryCode = "TD", Name = "Chad", Latitude = 15.454166, Longitude = 18.732207, CfRegion = "apac" },
-            new() { CountryCode = "TF", Name = "French Southern Territories", Latitude = -49.280366, Longitude = 69.348557, CfRegion = "apac" },
-            new() { CountryCode = "TG", Name = "Togo", Latitude = 8.619543, Longitude = 0.824782, CfRegion = "apac" },
-            new() { CountryCode = "TH", Name = "Thailand", Latitude = 15.870032, Longitude = 100.992541, CfRegion = "apac" },
-            new() { CountryCode = "TJ", Name = "Tajikistan", Latitude = 38.861034, Longitude = 71.276093, CfRegion = "apac" },
-            new() { CountryCode = "TK", Name = "Tokelau", Latitude = -8.967363, Longitude = -171.855881, CfRegion = "apac" },
-            new() { CountryCode = "TL", Name = "Timor-Leste", Latitude = -8.874217, Longitude = 125.727539, CfRegion = "apac" },
-            new() { CountryCode = "TM", Name = "Turkmenistan", Latitude = 38.969719, Longitude = 59.556278, CfRegion = "apac" },
-            new() { CountryCode = "TN", Name = "Tunisia", Latitude = 33.886917, Longitude = 9.537499, CfRegion = "apac" },
-            new() { CountryCode = "TO", Name = "Tonga", Latitude = -21.178986, Longitude = -175.198242, CfRegion = "apac" },
-            new() { CountryCode = "TR", Name = "Turkey", Latitude = 38.963745, Longitude = 35.243322, CfRegion = "apac" },
-            new() { CountryCode = "TT", Name = "Trinidad and Tobago", Latitude = 10.691803, Longitude = -61.222503, CfRegion = "apac" },
-            new() { CountryCode = "TV", Name = "Tuvalu", Latitude = -7.109535, Longitude = 177.64933, CfRegion = "apac" },
-            new() { CountryCode = "TW", Name = "Taiwan", Latitude = 23.69781, Longitude = 120.960515, CfRegion = "apac" },
-            new() { CountryCode = "TZ", Name = "Tanzania", Latitude = -6.369028, Longitude = 34.888822, CfRegion = "apac" },
-            new() { CountryCode = "UA", Name = "Ukraine", Latitude = 48.379433, Longitude = 31.16558, CfRegion = "eeur" },
-            new() { CountryCode = "UG", Name = "Uganda", Latitude = 1.373333, Longitude = 32.290275, CfRegion = "apac" },
-            new() { CountryCode = "UM", Name = "U.S. Minor Outlying Islands", Latitude = 19.295374, Longitude = 166.6280441, CfRegion = "apac" },
-            new() { CountryCode = "US", Name = "United States", Latitude = 37.09024, Longitude = -95.712891, CfRegion = "enam" },
-            new() { CountryCode = "UY", Name = "Uruguay", Latitude = -32.522779, Longitude = -55.765835, CfRegion = "apac" },
-            new() { CountryCode = "UZ", Name = "Uzbekistan", Latitude = 41.377491, Longitude = 64.585262, CfRegion = "apac" },
-            new() { CountryCode = "VA", Name = "Vatican City", Latitude = 41.902916, Longitude = 12.453389, CfRegion = "weur" },
-            new() { CountryCode = "VC", Name = "Saint Vincent and the Grenadines", Latitude = 12.984305, Longitude = -61.287228, CfRegion = "apac" },
-            new() { CountryCode = "VE", Name = "Venezuela", Latitude = 6.42375, Longitude = -66.58973, CfRegion = "apac" },
-            new() { CountryCode = "VG", Name = "British Virgin Islands", Latitude = 18.420695, Longitude = -64.639968, CfRegion = "apac" },
-            new() { CountryCode = "VI", Name = "U.S. Virgin Islands", Latitude = 18.335765, Longitude = -64.896335, CfRegion = "apac" },
-            new() { CountryCode = "VN", Name = "Vietnam", Latitude = 14.058324, Longitude = 108.277199, CfRegion = "apac" },
-            new() { CountryCode = "VU", Name = "Vanuatu", Latitude = -15.376706, Longitude = 166.959158, CfRegion = "apac" },
-            new() { CountryCode = "WF", Name = "Wallis and Futuna", Latitude = -13.768752, Longitude = -177.156097, CfRegion = "apac" },
-            new() { CountryCode = "WS", Name = "Samoa", Latitude = -13.759029, Longitude = -172.104629, CfRegion = "apac" },
-            new() { CountryCode = "XK", Name = "Kosovo", Latitude = 42.602636, Longitude = 20.902977, CfRegion = null },
-            new() { CountryCode = "YE", Name = "Yemen", Latitude = 15.552727, Longitude = 48.516388, CfRegion = "apac" },
-            new() { CountryCode = "YT", Name = "Mayotte", Latitude = -12.8275, Longitude = 45.166244, CfRegion = "apac" },
-            new() { CountryCode = "ZA", Name = "South Africa", Latitude = -30.559482, Longitude = 22.937506, CfRegion = "apac" },
-            new() { CountryCode = "ZM", Name = "Zambia", Latitude = -13.133897, Longitude = 27.849332, CfRegion = "apac" },
-            new() { CountryCode = "ZW", Name = "Zimbabwe", Latitude = -19.015438, Longitude = 29.154857, CfRegion = "apac" },
-        };
+        Countries =
+        [
+            new("AD", "Andorra", 42.546245, 1.601554, "weur"),
+            new("AE", "United Arab Emirates", 23.424076, 53.847818, "apac"),
+            new("AF", "Afghanistan", 33.93911, 67.709953, "apac"),
+            new("AG", "Antigua and Barbuda", 17.060816, -61.796428, "apac"),
+            new("AI", "Anguilla", 18.220554, -63.068615, "apac"),
+            new("AL", "Albania", 41.153332, 20.168331, "weur"),
+            new("AM", "Armenia", 40.069099, 45.038189, "apac"),
+            new("AN", "Netherlands Antilles", 12.226079, -69.060087, null),
+            new("AO", "Angola", -11.202692, 17.873887, "apac"),
+            new("AQ", "Antarctica", -75.250973, -0.071389, "weur"),
+            new("AR", "Argentina", -38.416097, -63.616672, "apac"),
+            new("AS", "American Samoa", -14.270972, -170.132217, "apac"),
+            new("AT", "Austria", 47.516231, 14.550072, "weur"),
+            new("AU", "Australia", -25.274398, 133.775136, "apac"),
+            new("AW", "Aruba", 12.52111, -69.968338, "apac"),
+            new("AZ", "Azerbaijan", 40.143105, 47.576927, "apac"),
+            new("BA", "Bosnia and Herzegovina", 43.915886, 17.679076, "weur"),
+            new("BB", "Barbados", 13.193887, -59.543198, "apac"),
+            new("BD", "Bangladesh", 23.684994, 90.356331, "apac"),
+            new("BE", "Belgium", 50.503887, 4.469936, "weur"),
+            new("BF", "Burkina Faso", 12.238333, -1.561593, "apac"),
+            new("BG", "Bulgaria", 42.733883, 25.48583, "eeur"),
+            new("BH", "Bahrain", 25.930414, 50.637772, "apac"),
+            new("BI", "Burundi", -3.373056, 29.918886, "apac"),
+            new("BJ", "Benin", 9.30769, 2.315834, "apac"),
+            new("BM", "Bermuda", 32.321384, -64.75737, "enam"),
+            new("BN", "Brunei", 4.535277, 114.727669, "apac"),
+            new("BO", "Bolivia", -16.290154, -63.588653, "apac"),
+            new("BR", "Brazil", -14.235004, -51.92528, "apac"),
+            new("BS", "Bahamas", 25.03428, -77.39628, "apac"),
+            new("BT", "Bhutan", 27.514162, 90.433601, "apac"),
+            new("BV", "Bouvet Island", -54.423199, 3.413194, "apac"),
+            new("BW", "Botswana", -22.328474, 24.684866, "apac"),
+            new("BY", "Belarus", 53.709807, 27.953389, "eeur"),
+            new("BZ", "Belize", 17.189877, -88.49765, "apac"),
+            new("CA", "Canada", 56.130366, -106.346771, "enam"),
+            new("CC", "Cocos [Keeling] Islands", -12.164165, 96.870956, "apac"),
+            new("CD", "Congo [DRC]", -4.038333, 21.758664, "apac"),
+            new("CF", "Central African Republic", 6.611111, 20.939444, "apac"),
+            new("CG", "Congo [Republic]", -0.228021, 15.827659, "apac"),
+            new("CH", "Switzerland", 46.818188, 8.227512, "weur"),
+            new("CI", "Côte d'Ivoire", 7.539989, -5.54708, "apac"),
+            new("CK", "Cook Islands", -21.236736, -159.777671, "apac"),
+            new("CL", "Chile", -35.675147, -71.542969, "apac"),
+            new("CM", "Cameroon", 7.369722, 12.354722, "apac"),
+            new("CN", "China", 35.86166, 104.195397, "apac"),
+            new("CO", "Colombia", 4.570868, -74.297333, "apac"),
+            new("CR", "Costa Rica", 9.748917, -83.753428, "apac"),
+            new("CU", "Cuba", 21.521757, -77.781167, "apac"),
+            new("CV", "Cape Verde", 16.002082, -24.013197, "apac"),
+            new("CX", "Christmas Island", -10.447525, 105.690449, "apac"),
+            new("CY", "Cyprus", 35.126413, 33.429859, "apac"),
+            new("CZ", "Czech Republic", 49.817492, 15.472962, "eeur"),
+            new("DE", "Germany", 51.165691, 10.451526, "weur"),
+            new("DJ", "Djibouti", 11.825138, 42.590275, "apac"),
+            new("DK", "Denmark", 56.26392, 9.501785, "weur"),
+            new("DM", "Dominica", 15.414999, -61.370976, "apac"),
+            new("DO", "Dominican Republic", 18.735693, -70.162651, "apac"),
+            new("DZ", "Algeria", 28.033886, 1.659626, "apac"),
+            new("EC", "Ecuador", -1.831239, -78.183406, "apac"),
+            new("EE", "Estonia", 58.595272, 25.013607, "weur"),
+            new("EG", "Egypt", 26.820553, 30.802498, "apac"),
+            new("EH", "Western Sahara", 24.215527, -12.885834, "apac"),
+            new("ER", "Eritrea", 15.179384, 39.782334, "apac"),
+            new("ES", "Spain", 40.463667, -3.74922, "weur"),
+            new("ET", "Ethiopia", 9.145, 40.489673, "apac"),
+            new("FI", "Finland", 61.92411, 25.748151, "weur"),
+            new("FJ", "Fiji", -16.578193, 179.414413, "apac"),
+            new("FK", "Falkland Islands [Islas Malvinas]", -51.796253, -59.523613, "apac"),
+            new("FM", "Micronesia", 7.425554, 150.550812, "apac"),
+            new("FO", "Faroe Islands", 61.892635, -6.911806, "weur"),
+            new("FR", "France", 46.227638, 2.213749, "weur"),
+            new("GA", "Gabon", -0.803689, 11.609444, "apac"),
+            new("GB", "United Kingdom", 55.378051, -3.435973, "weur"),
+            new("GD", "Grenada", 12.262776, -61.604171, "apac"),
+            new("GE", "Georgia", 42.315407, 43.356892, "apac"),
+            new("GF", "French Guiana", 3.933889, -53.125782, "apac"),
+            new("GG", "Guernsey", 49.465691, -2.585278, "weur"),
+            new("GH", "Ghana", 7.946527, -1.023194, "apac"),
+            new("GI", "Gibraltar", 36.137741, -5.345374, "weur"),
+            new("GL", "Greenland", 71.706936, -42.604303, "enam"),
+            new("GM", "Gambia", 13.443182, -15.310139, "apac"),
+            new("GN", "Guinea", 9.945587, -9.696645, "apac"),
+            new("GP", "Guadeloupe", 16.995971, -62.067641, "apac"),
+            new("GQ", "Equatorial Guinea", 1.650801, 10.267895, "apac"),
+            new("GR", "Greece", 39.074208, 21.824312, "weur"),
+            new("GS", "South Georgia and the South Sandwich Islands", -54.429579, -36.587909, "apac"),
+            new("GT", "Guatemala", 15.783471, -90.230759, "apac"),
+            new("GU", "Guam", 13.444304, 144.793731, "apac"),
+            new("GW", "Guinea-Bissau", 11.803749, -15.180413, "apac"),
+            new("GY", "Guyana", 4.860416, -58.93018, "apac"),
+            new("GZ", "Gaza Strip", 31.354676, 34.308825, null),
+            new("HK", "Hong Kong", 22.396428, 114.109497, "apac"),
+            new("HM", "Heard Island and McDonald Islands", -53.08181, 73.504158, "apac"),
+            new("HN", "Honduras", 15.199999, -86.241905, "apac"),
+            new("HR", "Croatia", 45.1, 15.2, "weur"),
+            new("HT", "Haiti", 18.971187, -72.285215, "apac"),
+            new("HU", "Hungary", 47.162494, 19.503304, "eeur"),
+            new("ID", "Indonesia", -0.789275, 113.921327, "apac"),
+            new("IE", "Ireland", 53.41291, -8.24389, "weur"),
+            new("IL", "Israel", 31.046051, 34.851612, "apac"),
+            new("IM", "Isle of Man", 54.236107, -4.548056, "weur"),
+            new("IN", "India", 20.593684, 78.96288, "apac"),
+            new("IO", "British Indian Ocean Territory", -6.343194, 71.876519, "apac"),
+            new("IQ", "Iraq", 33.223191, 43.679291, "apac"),
+            new("IR", "Iran", 32.427908, 53.688046, "apac"),
+            new("IS", "Iceland", 64.963051, -19.020835, "weur"),
+            new("IT", "Italy", 41.87194, 12.56738, "weur"),
+            new("JE", "Jersey", 49.214439, -2.13125, "weur"),
+            new("JM", "Jamaica", 18.109581, -77.297508, "apac"),
+            new("JO", "Jordan", 30.585164, 36.238414, "apac"),
+            new("JP", "Japan", 36.204824, 138.252924, "apac"),
+            new("KE", "Kenya", -0.023559, 37.906193, "apac"),
+            new("KG", "Kyrgyzstan", 41.20438, 74.766098, "apac"),
+            new("KH", "Cambodia", 12.565679, 104.990963, "apac"),
+            new("KI", "Kiribati", -3.370417, -168.734039, "apac"),
+            new("KM", "Comoros", -11.875001, 43.872219, "apac"),
+            new("KN", "Saint Kitts and Nevis", 17.357822, -62.782998, "apac"),
+            new("KP", "North Korea", 40.339852, 127.510093, "apac"),
+            new("KR", "South Korea", 35.907757, 127.766922, "apac"),
+            new("KW", "Kuwait", 29.31166, 47.481766, "apac"),
+            new("KY", "Cayman Islands", 19.513469, -80.566956, "apac"),
+            new("KZ", "Kazakhstan", 48.019573, 66.923684, "apac"),
+            new("LA", "Laos", 19.85627, 102.495496, "apac"),
+            new("LB", "Lebanon", 33.854721, 35.862285, "apac"),
+            new("LC", "Saint Lucia", 13.909444, -60.978893, "apac"),
+            new("LI", "Liechtenstein", 47.166, 9.555373, "weur"),
+            new("LK", "Sri Lanka", 7.873054, 80.771797, "apac"),
+            new("LR", "Liberia", 6.428055, -9.429499, "apac"),
+            new("LS", "Lesotho", -29.609988, 28.233608, "apac"),
+            new("LT", "Lithuania", 55.169438, 23.881275, "weur"),
+            new("LU", "Luxembourg", 49.815273, 6.129583, "weur"),
+            new("LV", "Latvia", 56.879635, 24.603189, "weur"),
+            new("LY", "Libya", 26.3351, 17.228331, "apac"),
+            new("MA", "Morocco", 31.791702, -7.09262, "apac"),
+            new("MC", "Monaco", 43.750298, 7.412841, "weur"),
+            new("MD", "Moldova", 47.411631, 28.369885, "eeur"),
+            new("ME", "Montenegro", 42.708678, 19.37439, "weur"),
+            new("MG", "Madagascar", -18.766947, 46.869107, "apac"),
+            new("MH", "Marshall Islands", 7.131474, 171.184478, "apac"),
+            new("MK", "Macedonia [FYROM]", 41.608635, 21.745275, "weur"),
+            new("ML", "Mali", 17.570692, -3.996166, "apac"),
+            new("MM", "Myanmar [Burma]", 21.913965, 95.956223, "apac"),
+            new("MN", "Mongolia", 46.862496, 103.846656, "apac"),
+            new("MO", "Macau", 22.198745, 113.543873, "apac"),
+            new("MP", "Northern Mariana Islands", 17.33083, 145.38469, "apac"),
+            new("MQ", "Martinique", 14.641528, -61.024174, "apac"),
+            new("MR", "Mauritania", 21.00789, -10.940835, "apac"),
+            new("MS", "Montserrat", 16.742498, -62.187366, "apac"),
+            new("MT", "Malta", 35.937496, 14.375416, "weur"),
+            new("MU", "Mauritius", -20.348404, 57.552152, "apac"),
+            new("MV", "Maldives", 3.202778, 73.22068, "apac"),
+            new("MW", "Malawi", -13.254308, 34.301525, "apac"),
+            new("MX", "Mexico", 23.634501, -102.552784, "apac"),
+            new("MY", "Malaysia", 4.210484, 101.975766, "apac"),
+            new("MZ", "Mozambique", -18.665695, 35.529562, "apac"),
+            new("NA", "Namibia", -22.95764, 18.49041, "apac"),
+            new("NC", "New Caledonia", -20.904305, 165.618042, "apac"),
+            new("NE", "Niger", 17.607789, 8.081666, "apac"),
+            new("NF", "Norfolk Island", -29.040835, 167.954712, "apac"),
+            new("NG", "Nigeria", 9.081999, 8.675277, "apac"),
+            new("NI", "Nicaragua", 12.865416, -85.207229, "apac"),
+            new("NL", "Netherlands", 52.132633, 5.291266, "weur"),
+            new("NO", "Norway", 60.472024, 8.468946, "weur"),
+            new("NP", "Nepal", 28.394857, 84.124008, "apac"),
+            new("NR", "Nauru", -0.522778, 166.931503, "apac"),
+            new("NU", "Niue", -19.054445, -169.867233, "apac"),
+            new("NZ", "New Zealand", -40.900557, 174.885971, "apac"),
+            new("OM", "Oman", 21.512583, 55.923255, "apac"),
+            new("PA", "Panama", 8.537981, -80.782127, "apac"),
+            new("PE", "Peru", -9.189967, -75.015152, "apac"),
+            new("PF", "French Polynesia", -17.679742, -149.406843, "apac"),
+            new("PG", "Papua New Guinea", -6.314993, 143.95555, "apac"),
+            new("PH", "Philippines", 12.879721, 121.774017, "apac"),
+            new("PK", "Pakistan", 30.375321, 69.345116, "apac"),
+            new("PL", "Poland", 51.919438, 19.145136, "eeur"),
+            new("PM", "Saint Pierre and Miquelon", 46.941936, -56.27111, "enam"),
+            new("PN", "Pitcairn Islands", -24.703615, -127.439308, "apac"),
+            new("PR", "Puerto Rico", 18.220833, -66.590149, "apac"),
+            new("PS", "Palestinian Territories", 31.952162, 35.233154, "apac"),
+            new("PT", "Portugal", 39.399872, -8.224454, "weur"),
+            new("PW", "Palau", 7.51498, 134.58252, "apac"),
+            new("PY", "Paraguay", -23.442503, -58.443832, "apac"),
+            new("QA", "Qatar", 25.354826, 51.183884, "apac"),
+            new("RE", "Réunion", -21.115141, 55.536384, "apac"),
+            new("RO", "Romania", 45.943161, 24.96676, "eeur"),
+            new("RS", "Serbia", 44.016521, 21.005859, "weur"),
+            new("RU", "Russia", 61.52401, 105.318756, "eeur"),
+            new("RW", "Rwanda", -1.940278, 29.873888, "apac"),
+            new("SA", "Saudi Arabia", 23.885942, 45.079162, "apac"),
+            new("SB", "Solomon Islands", -9.64571, 160.156194, "apac"),
+            new("SC", "Seychelles", -4.679574, 55.491977, "apac"),
+            new("SD", "Sudan", 12.862807, 30.217636, "apac"),
+            new("SE", "Sweden", 60.128161, 18.643501, "weur"),
+            new("SG", "Singapore", 1.352083, 103.819836, "apac"),
+            new("SH", "Saint Helena", -24.143474, -10.030696, "apac"),
+            new("SI", "Slovenia", 46.151241, 14.995463, "weur"),
+            new("SJ", "Svalbard and Jan Mayen", 77.553604, 23.670272, "weur"),
+            new("SK", "Slovakia", 48.669026, 19.699024, "eeur"),
+            new("SL", "Sierra Leone", 8.460555, -11.779889, "apac"),
+            new("SM", "San Marino", 43.94236, 12.457777, "weur"),
+            new("SN", "Senegal", 14.497401, -14.452362, "apac"),
+            new("SO", "Somalia", 5.152149, 46.199616, "apac"),
+            new("SR", "Suriname", 3.919305, -56.027783, "apac"),
+            new("ST", "Sao Tomé and Príncipe", 0.18636, 6.613081, "apac"),
+            new("SV", "El Salvador", 13.794185, -88.89653, "apac"),
+            new("SY", "Syria", 34.802075, 38.996815, "apac"),
+            new("SZ", "Swaziland", -26.522503, 31.465866, "apac"),
+            new("TC", "Turks and Caicos Islands", 21.694025, -71.797928, "apac"),
+            new("TD", "Chad", 15.454166, 18.732207, "apac"),
+            new("TF", "French Southern Territories", -49.280366, 69.348557, "apac"),
+            new("TG", "Togo", 8.619543, 0.824782, "apac"),
+            new("TH", "Thailand", 15.870032, 100.992541, "apac"),
+            new("TJ", "Tajikistan", 38.861034, 71.276093, "apac"),
+            new("TK", "Tokelau", -8.967363, -171.855881, "apac"),
+            new("TL", "Timor-Leste", -8.874217, 125.727539, "apac"),
+            new("TM", "Turkmenistan", 38.969719, 59.556278, "apac"),
+            new("TN", "Tunisia", 33.886917, 9.537499, "apac"),
+            new("TO", "Tonga", -21.178986, -175.198242, "apac"),
+            new("TR", "Turkey", 38.963745, 35.243322, "apac"),
+            new("TT", "Trinidad and Tobago", 10.691803, -61.222503, "apac"),
+            new("TV", "Tuvalu", -7.109535, 177.64933, "apac"),
+            new("TW", "Taiwan", 23.69781, 120.960515, "apac"),
+            new("TZ", "Tanzania", -6.369028, 34.888822, "apac"),
+            new("UA", "Ukraine", 48.379433, 31.16558, "eeur"),
+            new("UG", "Uganda", 1.373333, 32.290275, "apac"),
+            new("UM", "U.S. Minor Outlying Islands", 19.295374, 166.6280441, "apac"),
+            new("US", "United States", 37.09024, -95.712891, "enam"),
+            new("UY", "Uruguay", -32.522779, -55.765835, "apac"),
+            new("UZ", "Uzbekistan", 41.377491, 64.585262, "apac"),
+            new("VA", "Vatican City", 41.902916, 12.453389, "weur"),
+            new("VC", "Saint Vincent and the Grenadines", 12.984305, -61.287228, "apac"),
+            new("VE", "Venezuela", 6.42375, -66.58973, "apac"),
+            new("VG", "British Virgin Islands", 18.420695, -64.639968, "apac"),
+            new("VI", "U.S. Virgin Islands", 18.335765, -64.896335, "apac"),
+            new("VN", "Vietnam", 14.058324, 108.277199, "apac"),
+            new("VU", "Vanuatu", -15.376706, 166.959158, "apac"),
+            new("WF", "Wallis and Futuna", -13.768752, -177.156097, "apac"),
+            new("WS", "Samoa", -13.759029, -172.104629, "apac"),
+            new("XK", "Kosovo", 42.602636, 20.902977, null),
+            new("YE", "Yemen", 15.552727, 48.516388, "apac"),
+            new("YT", "Mayotte", -12.8275, 45.166244, "apac"),
+            new("ZA", "South Africa", -30.559482, 22.937506, "apac"),
+            new("ZM", "Zambia", -13.133897, 27.849332, "apac"),
+            new("ZW", "Zimbabwe", -19.015438, 29.154857, "apac"),
+        ];
 
         CountryCodeToCountryInfo = Countries.ToDictionary(x => x.CountryCode, x => x);
+
+        // Calculate all distances (ALOT of entries, allows for really fast lookups tho)
+        Distances = CountryCodeToCountryInfo.Values.SelectMany(aVal => CountryCodeToCountryInfo.Values.Select(bVal => (CreateId(aVal.CountryCode, bVal.CountryCode), GetDistance(aVal, bVal)))).ToDictionary();
     }
 
     public static readonly CountryInfo[] Countries;
-    public static readonly IReadOnlyDictionary<CountryInfo.Alpha2CountryCode, CountryInfo> CountryCodeToCountryInfo;
+    public static readonly IReadOnlyDictionary<Alpha2CountryCode, CountryInfo> CountryCodeToCountryInfo;
+    private static readonly IReadOnlyDictionary<string, double> Distances;
 
-    public static CountryInfo GetCountryOrDefault(CountryInfo.Alpha2CountryCode alpha2Country) =>
+    public static CountryInfo GetCountryOrDefault(Alpha2CountryCode alpha2Country) =>
         CountryCodeToCountryInfo.TryGetValue(alpha2Country, out var countryInfo) ?
             countryInfo : DefaultCountry;
+
+    public static bool TryGetDistanceBetween(Alpha2CountryCode alpha2CountryA, Alpha2CountryCode alpha2CountryB, out double distance) =>
+        Distances.TryGetValue(CreateId(alpha2CountryA, alpha2CountryB), out distance);
 
 }
