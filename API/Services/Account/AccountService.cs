@@ -112,6 +112,7 @@ public sealed class AccountService : IAccountService
             cancellationToken: cancellationToken);
         if (user == null)
         {
+            await Task.Delay(100, cancellationToken); // TODO: Set appropriate time to match password hashing time, preventing timing attacks
             return new NotFound();
         }
 
