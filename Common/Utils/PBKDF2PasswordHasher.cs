@@ -2,7 +2,8 @@
 
 namespace OpenShock.Common.Utils;
 
-public static class SecurePasswordHasher
+[Obsolete("Use PasswordHashingHelpers instead")]
+public static class PBKDF2PasswordHasher
 {
     /// <summary>
     ///     Size of salt.

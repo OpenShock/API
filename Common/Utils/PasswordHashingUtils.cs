@@ -1,8 +1,10 @@
 ﻿using BCrypt.Net;
+using System.Security.Cryptography;
+using System.Text;
 
 namespace OpenShock.Common.Utils;
 
-public static class PasswordHashingHelpers
+public static class PasswordHashingUtils
 {
     private const string BCryptPrefix = "bcrypt:";
     private const string PBKDF2Prefix = "pbkdf2:";
@@ -31,7 +33,7 @@ public static class PasswordHashingHelpers
 #pragma warning disable CS0618 // Type or member is obsolete
             return new VerifyPasswordResult
             {
-                Verified = SecurePasswordHasher.Verify(password, combinedHash, customName: PBKDF2Prefix),
+                Verified = PBKDF2PasswordHasher.Verify(password, combinedHash, customName: PBKDF2Prefix),
                 NeedsRehash = true
             };
 #pragma warning restore CS0618 // Type or member is obsolete

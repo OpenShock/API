@@ -65,7 +65,7 @@ public sealed class AccountService : IAccountService
             Id = newGuid,
             Name = username,
             Email = email.ToLowerInvariant(),
-            PasswordHash = PasswordHashingHelpers.HashPassword(password),
+            PasswordHash = PasswordHashingUtils.HashPassword(password),
             EmailActived = emailActivated
         };
         _db.Users.Add(user);
@@ -185,7 +185,7 @@ public sealed class AccountService : IAccountService
         if(!BCrypt.Net.BCrypt.EnhancedVerify(secret, reset.Secret, HashAlgo)) return new SecretInvalid();
 
         reset.UsedOn = DateTime.UtcNow;
-        reset.User.PasswordHash = PasswordHashingHelpers.HashPassword(newPassword);
+        reset.User.PasswordHash = PasswordHashingUtils.HashPassword(newPassword);
         await _db.SaveChangesAsync();
         return new Success();
     }
@@ -193,7 +193,7 @@ public sealed class AccountService : IAccountService
 
     private async Task<bool> CheckPassword(string emailOrUsername, string password, User user)
     {
-        var result = PasswordHashingHelpers.VerifyPassword(password, user.PasswordHash);
+        var result = PasswordHashingUtils.VerifyPassword(password, user.PasswordHash);
 
         if (!result.Verified)
         {
@@ -204,7 +204,7 @@ public sealed class AccountService : IAccountService
         if (result.NeedsRehash)
         {
             _logger.LogInformation("Rehashing password for user ID: [{Id}]", user.Id);
-            user.PasswordHash = PasswordHashingHelpers.HashPassword(password);
+            user.PasswordHash = PasswordHashingUtils.HashPassword(password);
             await _db.SaveChangesAsync();
         }
 
