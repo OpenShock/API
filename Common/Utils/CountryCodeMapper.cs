@@ -50,12 +50,9 @@ public static class CountryCodeMapper
 
     private static string CreateId(Alpha2CountryCode code1, Alpha2CountryCode code2)
     {
-        if (code1.Char1 > code2.Char1 || code1.Char2 > code2.Char2)
-        {
-            return $"{code1.Char1}{code1.Char2}{code2.Char1}{code2.Char2}";
-        }
+        if (code1.Char1 > code2.Char1 || code1.Char2 > code2.Char2) (code2, code1) = (code1, code2);
 
-        return $"{code2.Char1}{code2.Char2}{code1.Char1}{code1.Char2}";
+        return new string([code1.Char1, code1.Char2, code2.Char1, code2.Char2]);
     }
 
     private static double GetDistance(double lat1, double lon1, double lat2, double lon2)
