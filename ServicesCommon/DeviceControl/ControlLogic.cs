@@ -103,21 +103,25 @@ public static class ControlLogic
             var durationMax = shockerInfo.PermsAndLimits?.Duration ?? Constants.MaxControlDuration;
             var intensityMax = shockerInfo.PermsAndLimits?.Intensity ?? Constants.MaxControlIntensity;
 
-            if (!finalMessages.ContainsKey(shockerInfo.Device))
-                finalMessages[shockerInfo.Device] = new List<ControlMessage.ShockerControlInfo>();
-            var deviceGroup = finalMessages[shockerInfo.Device];
+            if (!finalMessages.TryGetValue(shockerInfo.Device, out var deviceGroup))
+            {
+                deviceGroup = [];
+                finalMessages[shockerInfo.Device] = deviceGroup;
+            }
 
-            var deviceEntry = new ControlMessage.ShockerControlInfo
+            var intensity = Math.Clamp(shock.Intensity, Constants.MinControlIntensity, intensityMax);
+            var duration = Math.Clamp(shock.Duration, Constants.MinControlDuration, durationMax);
+
+            deviceGroup.Add(new ControlMessage.ShockerControlInfo
             {
                 Id = shockerInfo.Id,
                 RfId = shockerInfo.RfId,
-                Duration = Math.Clamp(shock.Duration, Constants.MinControlDuration, durationMax),
-                Intensity = Math.Clamp(shock.Intensity, Constants.MinControlIntensity, intensityMax),
+                Duration = duration,
+                Intensity = intensity,
                 Type = shock.Type,
                 Model = shockerInfo.Model,
                 Exclusive = shock.Exclusive
-            };
-            deviceGroup.Add(deviceEntry);
+            });
 
             db.ShockerControlLogs.Add(new ShockerControlLog
             {
@@ -125,24 +129,28 @@ public static class ControlLogic
                 ShockerId = shockerInfo.Id,
                 ControlledBy = sender.Id == Guid.Empty ? null : sender.Id,
                 CreatedOn = curTime,
-                Intensity = deviceEntry.Intensity,
-                Duration = deviceEntry.Duration,
-                Type = deviceEntry.Type,
+                Intensity = intensity,
+                Duration = duration,
+                Type = shock.Type,
                 CustomName = sender.CustomName
             });
 
-            if (!logs.ContainsKey(shockerInfo.Owner)) logs[shockerInfo.Owner] = new List<ControlLog>();
+            if (!logs.TryGetValue(shockerInfo.Owner, out var ownerLog))
+            {
+                ownerLog = [];
+                logs[shockerInfo.Owner] = ownerLog;
+            }
 
-            logs[shockerInfo.Owner].Add(new ControlLog
+            ownerLog.Add(new ControlLog
             {
                 Shocker = new GenericIn
                 {
                     Id = shockerInfo.Id,
                     Name = shockerInfo.Name
                 },
-                Type = deviceEntry.Type,
-                Duration = deviceEntry.Duration,
-                Intensity = deviceEntry.Intensity,
+                Type = shock.Type,
+                Duration = duration,
+                Intensity = intensity,
                 ExecutedAt = curTime
             });
         }
