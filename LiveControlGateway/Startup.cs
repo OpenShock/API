@@ -16,6 +16,7 @@ using OpenShock.Common.JsonSerialization;
 using OpenShock.Common.Models;
 using OpenShock.Common.OpenShockDb;
 using OpenShock.Common.Redis;
+using OpenShock.Common.Utils;
 using OpenShock.LiveControlGateway.PubSub;
 using OpenShock.ServicesCommon;
 using OpenShock.ServicesCommon.Authentication;
@@ -26,12 +27,10 @@ using OpenShock.ServicesCommon.Problems;
 using OpenShock.ServicesCommon.Services.Device;
 using OpenShock.ServicesCommon.Services.LCGNodeProvisioner;
 using OpenShock.ServicesCommon.Services.Ota;
-using OpenShock.ServicesCommon.Services.RedisPubSub;
 using OpenShock.ServicesCommon.Utils;
 using Redis.OM;
 using Redis.OM.Contracts;
 using Serilog;
-using StackExchange.Redis;
 using IPNetwork = Microsoft.AspNetCore.HttpOverrides.IPNetwork;
 using JsonSerializer = System.Text.Json.JsonSerializer;
 using WebSocketOptions = Microsoft.AspNetCore.Builder.WebSocketOptions;
@@ -249,7 +248,7 @@ public sealed class Startup
     public void Configure(IApplicationBuilder app, IWebHostEnvironment env, ILoggerFactory loggerFactory)
     {
         ApplicationLogging.LoggerFactory = loggerFactory;
-        foreach (var proxy in OpenShockConstants.TrustedProxies)
+        foreach (var proxy in TrustedProxiesFetcher.GetTrustedProxies().Result)
         {
             var split = proxy.Split('/');
             _forwardedSettings.KnownNetworks.Add(new IPNetwork(IPAddress.Parse(split[0]), int.Parse(split[1])));

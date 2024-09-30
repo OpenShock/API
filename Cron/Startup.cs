@@ -10,14 +10,12 @@ using Npgsql;
 using OpenShock.Common.JsonSerialization;
 using OpenShock.Common.Models;
 using OpenShock.Common.OpenShockDb;
+using OpenShock.Common.Utils;
 using OpenShock.ServicesCommon;
 using OpenShock.ServicesCommon.ExceptionHandle;
 using OpenShock.ServicesCommon.Problems;
-using OpenShock.ServicesCommon.Services.RedisPubSub;
 using Redis.OM;
-using Redis.OM.Contracts;
 using Serilog;
-using StackExchange.Redis;
 using IPNetwork = Microsoft.AspNetCore.HttpOverrides.IPNetwork;
 
 namespace OpenShock.Cron;
@@ -129,7 +127,7 @@ public sealed class Startup
     public void Configure(IApplicationBuilder app, IWebHostEnvironment env, ILoggerFactory loggerFactory,
         ILogger<Startup> logger)
     {
-        foreach (var proxy in OpenShockConstants.TrustedProxies)
+        foreach (var proxy in TrustedProxiesFetcher.GetTrustedProxies().Result)
         {
             var split = proxy.Split('/');
             _forwardedSettings.KnownNetworks.Add(new IPNetwork(IPAddress.Parse(split[0]), int.Parse(split[1])));
