@@ -38,26 +38,29 @@ public static class TrustedProxiesFetcher
         return content.Split([' ', '\r', '\n', '\t'], StringSplitOptions.RemoveEmptyEntries);
     }
 
-    private static async Task<string[]> FetchCloudflareIPsV4(HttpClient client)
+    private static async Task<string[]> FetchCloudflareIPsV4(HttpClient client, CancellationToken ct)
     {
-        using var response = await client.GetAsync("https://www.cloudflare.com/ips-v4");
-        return SplitNewLine(await response.Content.ReadAsStringAsync());
+        using var response = await client.GetAsync("https://www.cloudflare.com/ips-v4", ct);
+        return SplitNewLine(await response.Content.ReadAsStringAsync(ct));
     }
 
-    private static async Task<string[]> FetchCloudflareIPsV6(HttpClient client)
+    private static async Task<string[]> FetchCloudflareIPsV6(HttpClient client, CancellationToken ct)
     {
-        using var response = await client.GetAsync("https://www.cloudflare.com/ips-v6");
-        return SplitNewLine(await response.Content.ReadAsStringAsync());
+        using var response = await client.GetAsync("https://www.cloudflare.com/ips-v6", ct);
+        return SplitNewLine(await response.Content.ReadAsStringAsync(ct));
     }
 
     private static async Task<string[]> FetchCloudflareIPs()
     {
         try
         {
+            using CancellationTokenSource cts = new(TimeSpan.FromSeconds(2)); // Don't want to make application startup slow
+            CancellationToken ct = cts.Token;
+
             using var client = new HttpClient();
 
-            var v4Task = FetchCloudflareIPsV4(client);
-            var v6Task = FetchCloudflareIPsV6(client);
+            var v4Task = FetchCloudflareIPsV4(client, ct);
+            var v6Task = FetchCloudflareIPsV6(client, ct);
 
             await Task.WhenAll(v4Task, v6Task);
 
