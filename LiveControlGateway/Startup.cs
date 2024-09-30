@@ -248,7 +248,7 @@ public sealed class Startup
     public void Configure(IApplicationBuilder app, IWebHostEnvironment env, ILoggerFactory loggerFactory)
     {
         ApplicationLogging.LoggerFactory = loggerFactory;
-        foreach (var proxy in TrustedProxiesFetcher.GetTrustedProxies().Result)
+        foreach (var proxy in TrustedProxiesFetcher.GetTrustedProxies())
         {
             var split = proxy.Split('/');
             _forwardedSettings.KnownNetworks.Add(new IPNetwork(IPAddress.Parse(split[0]), int.Parse(split[1])));
