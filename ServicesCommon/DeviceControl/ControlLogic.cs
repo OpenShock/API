@@ -150,14 +150,11 @@ public static class ControlLogic
         var redisTask =  redisPubService.SendDeviceControl(sender.Id, finalMessages);
         var logSends = logs.Select(x => hubClients.User(x.Key.ToString()).Log(sender, x.Value));
 
-        var listOfTasks = new List<Task>
-        {
+        await Task.WhenAll([
             redisTask,
-            db.SaveChangesAsync()
-        };
-        listOfTasks.AddRange(logSends);
-
-        await Task.WhenAll(listOfTasks);
+            db.SaveChangesAsync(),
+            ..logSends
+            ]);
 
         return new Success();
     }
