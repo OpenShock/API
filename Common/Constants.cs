@@ -10,5 +10,5 @@ public static class Constants
 
     public static readonly TimeSpan PasswordResetRequestLifetime = TimeSpan.FromHours(1);
 
-    public const double DistanceToAndromedaGalaxyInKm = 2.401E19;
+    public const float DistanceToAndromedaGalaxyInKm = 2.401E19f;
 }
