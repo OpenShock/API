@@ -21,7 +21,7 @@ public sealed partial class DeviceController
     public async Task<IActionResult> GetLiveControlGateway([FromServices] ILCGNodeProvisioner geoLocation,
         [FromServices] IWebHostEnvironment env)
     {
-        var countryCode = Alpha2CountryCode.UnknownCountryCode;
+        var countryCode = Alpha2CountryCode.UnknownCountry;
         if (HttpContext.Request.Headers.TryGetValue("CF-IPCountry", out var countryHeader) &&
             !string.IsNullOrEmpty(countryHeader))
         {

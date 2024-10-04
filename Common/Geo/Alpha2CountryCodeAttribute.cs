@@ -23,7 +23,7 @@ public sealed class Alpha2CountryCodeAttribute : ValidationAttribute
         if (!Alpha2CountryCode.TryParseAndValidate(asString, out var countryCode))
             return new ValidationResult($"Failed to create {nameof(Alpha2CountryCode)}");
 
-        if (!CountryCodeMapper.DoesCountryExist(countryCode))
+        if (!CountryInfo.CodeDictionary.ContainsKey(countryCode))
             return new ValidationResult("Country does not exist in mapping");
 
         return ValidationResult.Success;

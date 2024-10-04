@@ -4,7 +4,7 @@ namespace OpenShock.Common.Geo;
 
 public readonly record struct Alpha2CountryCode(char Char1, char Char2)
 {
-    public static readonly Alpha2CountryCode UnknownCountryCode = new('X', 'X');
+    public static readonly Alpha2CountryCode UnknownCountry = "XX"; // Country code for unknown country
 
     public static bool TryParseAndValidate(string str, [MaybeNullWhen(false)] out Alpha2CountryCode code)
     {
@@ -30,7 +30,7 @@ public readonly record struct Alpha2CountryCode(char Char1, char Char2)
         return new Alpha2CountryCode(str[0], str[1]);
     }
 
-    public bool IsUnknown() => this == UnknownCountryCode;
+    public bool IsUnknown() => this == UnknownCountry;
 
     public override string ToString() => new([Char1, Char2]);
 }
