@@ -1,6 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using OpenShock.API.Models.Response;
-using OpenShock.Common.Utils;
+using OpenShock.Common.Geo;
 using OpenShock.ServicesCommon.Errors;
 using OpenShock.ServicesCommon.Problems;
 using OpenShock.ServicesCommon.Services.LCGNodeProvisioner;
@@ -21,12 +21,12 @@ public sealed partial class DeviceController
     public async Task<IActionResult> GetLiveControlGateway([FromServices] ILCGNodeProvisioner geoLocation,
         [FromServices] IWebHostEnvironment env)
     {
-        var countryCode = CountryCodeMapper.Alpha2CountryCode.UnknownCountryCode;
+        var countryCode = Alpha2CountryCode.UnknownCountryCode;
         if (HttpContext.Request.Headers.TryGetValue("CF-IPCountry", out var countryHeader) &&
             !string.IsNullOrEmpty(countryHeader))
         {
             var countryHeaderString = countryHeader.ToString();
-            if (CountryCodeMapper.Alpha2CountryCode.TryParseAndValidate(countryHeaderString, out var code))
+            if (Alpha2CountryCode.TryParseAndValidate(countryHeaderString, out var code))
             {
                 countryCode = code;
             }

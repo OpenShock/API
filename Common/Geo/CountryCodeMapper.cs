@@ -1,65 +1,33 @@
 ﻿using System.Collections.Frozen;
 using System.Diagnostics.CodeAnalysis;
 
-namespace OpenShock.Common.Utils;
+namespace OpenShock.Common.Geo;
 
 /// <summary>
 /// Country mapping for LCG node assignments
 /// </summary>
 public static class CountryCodeMapper
 {
-    public static readonly CountryInfo UnknownCountry = new(Alpha2CountryCode.UnknownCountryCode, "Unknown", 0f, 0f, null);
-
-    public readonly record struct Alpha2CountryCode(char Char1, char Char2) : IEquatable<Alpha2CountryCode>
-    {
-
-        public static readonly Alpha2CountryCode UnknownCountryCode = new('X', 'X');
-
-        public static bool TryParseAndValidate(string stringIn, [MaybeNullWhen(false)] out Alpha2CountryCode code)
-        {
-            if (stringIn.Length != 2 || !char.IsAsciiLetterUpper(stringIn[0]) || !char.IsAsciiLetterUpper(stringIn[1]))
-            {
-                code = default;
-                return false;
-            }
-
-            code = new Alpha2CountryCode
-            {
-                Char1 = stringIn[0],
-                Char2 = stringIn[1]
-            };
-            return true;
-        }
-
-        public static Alpha2CountryCode ParseOrDefault(string stringIn) => TryParseAndValidate(stringIn, out var code) ? code : UnknownCountryCode;
-
-        public static implicit operator Alpha2CountryCode(string stringIn)
-        {
-            if (stringIn.Length != 2) throw new ArgumentOutOfRangeException(nameof(stringIn), "String input must be exactly 2 chars");
-            if (!char.IsAsciiLetterUpper(stringIn[0]) || !char.IsAsciiLetterUpper(stringIn[1])) throw new ArgumentOutOfRangeException(nameof(stringIn), "String input must be upper characters only");
-
-            return new Alpha2CountryCode(stringIn[0], stringIn[1]);
-        }
-
-        public bool IsUnknown() => this == UnknownCountryCode;
-
-        public override string ToString() => $"{Char1}{Char2}";
-    }
-
-    public sealed record CountryInfo(Alpha2CountryCode CountryCode, string Name, float Latitude, float Longitude, string? CfRegion);
+    private static readonly CountryInfo[] Countries;
+    private static readonly FrozenDictionary<Alpha2CountryCode, CountryInfo> CountryCodeToCountryInfo;
+    private static readonly FrozenDictionary<int, float> Distances;
 
     /// <summary>
-    /// Sorts the codes and concatenates them to create a unique ID that represents the distance between two countries
+    /// Generates a unique ID for a pair of countries, regardless of order
     /// </summary>
     /// <param name="code1"></param>
     /// <param name="code2"></param>
     /// <returns></returns>
     private static int CreateId(Alpha2CountryCode code1, Alpha2CountryCode code2)
     {
-        int a = ((int)code1.Char1 << 8) | (int)code1.Char2;
-        int b = ((int)code2.Char1 << 8) | (int)code2.Char2;
+        int a = (code1.Char1 << 8) | code1.Char2;
+        int b = (code2.Char1 << 8) | code2.Char2;
 
-        return a < b ? (a << 16) | b : (b << 16) | a;
+        int v = (a << 16) | b;
+
+        if (a > b) v = int.RotateLeft(v, 16);
+
+        return v;
     }
 
     /// <summary>
@@ -82,11 +50,12 @@ public static class CountryCodeMapper
         float lonVal = MathF.Sin(lonDist / 2f);
         float otherVal = MathF.Cos(lat1 * DegToRad) * MathF.Cos(lat2 * DegToRad);
 
-        float a = (latVal * latVal) + (otherVal * (lonVal * lonVal));
+        float a = latVal * latVal + otherVal * (lonVal * lonVal);
         float b = 2f * MathF.Atan2(MathF.Sqrt(a), MathF.Sqrt(1f - a));
 
         return EarthRadius * b;
     }
+
     private static float GetDistance(CountryInfo country1, CountryInfo country2) => GetDistance(country1.Latitude, country1.Longitude, country2.Latitude, country2.Longitude);
 
     static CountryCodeMapper()
@@ -352,15 +321,12 @@ public static class CountryCodeMapper
                 .ToFrozenDictionary(); // Create a frozen dictionary for fast lookups
     }
 
-    public static readonly CountryInfo[] Countries;
-    public static readonly IReadOnlyDictionary<Alpha2CountryCode, CountryInfo> CountryCodeToCountryInfo;
-    private static readonly IReadOnlyDictionary<int, float> Distances;
+    public static bool DoesCountryExist(Alpha2CountryCode alpha2Country) =>
+        CountryCodeToCountryInfo.ContainsKey(alpha2Country);
 
-    public static CountryInfo GetCountryOrDefault(Alpha2CountryCode alpha2Country) =>
-        CountryCodeToCountryInfo.TryGetValue(alpha2Country, out var countryInfo) ?
-            countryInfo : UnknownCountry;
+    public static bool GetCountryOrDefault(Alpha2CountryCode alpha2Country, out CountryInfo? countryInfo) =>
+        CountryCodeToCountryInfo.TryGetValue(alpha2Country, out countryInfo);
 
     public static bool TryGetDistanceBetween(Alpha2CountryCode alpha2CountryA, Alpha2CountryCode alpha2CountryB, out float distance) =>
         Distances.TryGetValue(CreateId(alpha2CountryA, alpha2CountryB), out distance);
-
 }

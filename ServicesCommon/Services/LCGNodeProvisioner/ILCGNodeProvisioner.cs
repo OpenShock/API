@@ -1,10 +1,10 @@
-﻿using OpenShock.Common.Redis;
-using OpenShock.Common.Utils;
+﻿using OpenShock.Common.Geo;
+using OpenShock.Common.Redis;
 
 namespace OpenShock.ServicesCommon.Services.LCGNodeProvisioner;
 
 public interface ILCGNodeProvisioner
 {
     public Task<LcgNode?> GetOptimalNode(string environment = "Production");
-    public Task<LcgNode?> GetOptimalNode(CountryCodeMapper.Alpha2CountryCode countryCode, string environment = "Production");
+    public Task<LcgNode?> GetOptimalNode(Alpha2CountryCode countryCode, string environment = "Production");
 }

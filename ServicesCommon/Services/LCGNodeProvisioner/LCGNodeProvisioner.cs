@@ -1,7 +1,7 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using OpenShock.Common;
+using OpenShock.Common.Geo;
 using OpenShock.Common.Redis;
-using OpenShock.Common.Utils;
 using Redis.OM;
 using Redis.OM.Contracts;
 using Redis.OM.Searching;
@@ -32,7 +32,7 @@ public sealed class LCGNodeProvisioner : ILCGNodeProvisioner
         return node;
     }
 
-    public async Task<LcgNode?> GetOptimalNode(CountryCodeMapper.Alpha2CountryCode countryCode, string environment)
+    public async Task<LcgNode?> GetOptimalNode(Alpha2CountryCode countryCode, string environment)
     {
         if (countryCode.IsUnknown())
         {
