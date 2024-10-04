@@ -1,6 +1,7 @@
 ﻿// ReSharper disable InconsistentNaming
 
 using System.ComponentModel.DataAnnotations;
+using OpenShock.Common.Geo;
 using OpenShock.Common.Utils;
 using OpenShock.ServicesCommon.Config;
 
