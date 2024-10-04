@@ -45,7 +45,7 @@ public sealed class LCGNodeProvisioner : ILCGNodeProvisioner
             .ToArrayAsync();
 
         var node = nodes
-            .OrderBy(x => CountryCodeMapper.TryGetDistanceBetween(x.Country, countryCode, out double distance) ? distance : Constants.DistanceToAndromedaGalaxyInKm) // Just a large number :3
+            .OrderBy(x => CountryCodeMapper.TryGetDistanceBetween(x.Country, countryCode, out float distance) ? distance : Constants.DistanceToAndromedaGalaxyInKm) // Just a large number :3
             .ThenBy(x => x.Load)
             .FirstOrDefault();
 
