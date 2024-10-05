@@ -1,7 +1,7 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using OpenShock.Common;
 using OpenShock.Common.OpenShockDb;
-using OpenShock.ServicesCommon;
 using Redis.OM.Contracts;
 
 namespace OpenShock.API.Controller.Public;

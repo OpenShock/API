@@ -1,11 +1,11 @@
 ﻿using System.Net;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using OpenShock.Common.Authentication.Attributes;
+using OpenShock.Common.Errors;
 using OpenShock.Common.Models.Services.Ota;
-using OpenShock.ServicesCommon.Authentication.Attributes;
-using OpenShock.ServicesCommon.Errors;
-using OpenShock.ServicesCommon.Problems;
-using OpenShock.ServicesCommon.Services.Ota;
+using OpenShock.Common.Problems;
+using OpenShock.Common.Services.Ota;
 
 namespace OpenShock.API.Controller.Devices;
 

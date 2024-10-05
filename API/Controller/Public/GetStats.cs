@@ -1,7 +1,7 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using OpenShock.Common.Models;
+using OpenShock.Common.Problems;
 using OpenShock.Common.Redis;
-using OpenShock.ServicesCommon.Problems;
 using Redis.OM.Contracts;
 
 namespace OpenShock.API.Controller.Public;

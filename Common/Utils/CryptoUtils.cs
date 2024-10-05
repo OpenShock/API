@@ -1,6 +1,6 @@
 ﻿using System.Security.Cryptography;
 
-namespace OpenShock.API.Utils;
+namespace OpenShock.Common.Utils;
 
 public static class CryptoUtils
 {

@@ -1,8 +1,8 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using OpenShock.Common.Authentication.Attributes;
+using OpenShock.Common.Authentication.ControllerBase;
 using OpenShock.Common.Models;
 using OpenShock.Common.OpenShockDb;
-using OpenShock.ServicesCommon.Authentication.Attributes;
-using OpenShock.ServicesCommon.Authentication.ControllerBase;
 using Redis.OM.Contracts;
 
 namespace OpenShock.API.Controller.Admin;

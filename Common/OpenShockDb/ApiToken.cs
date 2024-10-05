@@ -20,8 +20,8 @@ public partial class ApiToken
 
     public DateTime? ValidUntil { get; set; }
     
-    public List<PermissionType> Permissions { get; set; }
-    
+    public List<PermissionType> Permissions { get; set; } = null!;
+
     public DateTime LastUsed { get; set; }
 
     public virtual User User { get; set; } = null!;

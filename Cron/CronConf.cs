@@ -1,4 +1,4 @@
-﻿using OpenShock.ServicesCommon.Config;
+﻿using OpenShock.Common.Config;
 
 namespace OpenShock.Cron;
 

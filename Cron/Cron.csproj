@@ -19,7 +19,6 @@
 
     <ItemGroup>
       <ProjectReference Include="..\Common\Common.csproj" />
-      <ProjectReference Include="..\ServicesCommon\ServicesCommon.csproj" />
     </ItemGroup>
 
     <ItemGroup>

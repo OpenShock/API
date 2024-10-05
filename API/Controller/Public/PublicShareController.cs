@@ -3,10 +3,10 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using OpenShock.API.Models.Response;
 using OpenShock.API.Utils;
+using OpenShock.Common.Errors;
 using OpenShock.Common.Models;
+using OpenShock.Common.Problems;
 using OpenShock.Common.Utils;
-using OpenShock.ServicesCommon.Errors;
-using OpenShock.ServicesCommon.Problems;
 
 namespace OpenShock.API.Controller.Public;
 

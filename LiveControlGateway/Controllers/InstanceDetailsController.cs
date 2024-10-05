@@ -1,8 +1,8 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using OpenShock.ServicesCommon.Problems;
 using System.Reflection;
 using Asp.Versioning;
-using OpenShock.ServicesCommon;
+using OpenShock.Common;
+using OpenShock.Common.Problems;
 
 namespace OpenShock.LiveControlGateway.Controllers;
 
