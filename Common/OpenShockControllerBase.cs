@@ -2,9 +2,9 @@
 using System.Net.Mime;
 using Microsoft.AspNetCore.Mvc;
 using OpenShock.Common.Models;
-using OpenShock.ServicesCommon.Problems;
+using OpenShock.Common.Problems;
 
-namespace OpenShock.ServicesCommon;
+namespace OpenShock.Common;
 
 [Consumes(MediaTypeNames.Application.Json)]
 [ProducesDoc]

@@ -1,4 +1,4 @@
-﻿namespace OpenShock.ServicesCommon.Authentication.Services;
+﻿namespace OpenShock.Common.Authentication.Services;
 
 public sealed class ClientAuthService<T> : IClientAuthService<T> where T : class
 {

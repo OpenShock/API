@@ -1,7 +1,7 @@
 ﻿
 using OpenShock.Common.Models.WebSocket;
 using OpenShock.Common.Models.WebSocket.Device;
-using OpenShock.ServicesCommon.Websocket;
+using OpenShock.Common.Websocket;
 
 namespace OpenShock.API.Realtime;
 

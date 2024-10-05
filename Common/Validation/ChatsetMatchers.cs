@@ -1,6 +1,6 @@
 ﻿using System.Text;
 
-namespace OpenShock.ServicesCommon.Validation;
+namespace OpenShock.Common.Validation;
 
 /// <summary>
 /// <para>Specialized character set matchers that match strings by unicode codepoints</para>

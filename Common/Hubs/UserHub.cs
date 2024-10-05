@@ -1,20 +1,20 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
+using OpenShock.Common.Authentication;
+using OpenShock.Common.Authentication.Services;
+using OpenShock.Common.DeviceControl;
 using OpenShock.Common.Models;
 using OpenShock.Common.Models.WebSocket;
 using OpenShock.Common.OpenShockDb;
 using OpenShock.Common.Redis;
+using OpenShock.Common.Services.RedisPubSub;
 using OpenShock.Common.Utils;
-using OpenShock.ServicesCommon.Authentication;
-using OpenShock.ServicesCommon.Authentication.Services;
-using OpenShock.ServicesCommon.DeviceControl;
-using OpenShock.ServicesCommon.Services.RedisPubSub;
 using Redis.OM;
 using Redis.OM.Contracts;
 using Semver;
 
-namespace OpenShock.ServicesCommon.Hubs;
+namespace OpenShock.Common.Hubs;
 
 [Authorize(AuthenticationSchemes = OpenShockAuthSchemas.SessionTokenCombo)]
 public sealed class UserHub : Hub<IUserHub>

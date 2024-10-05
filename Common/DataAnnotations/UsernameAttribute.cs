@@ -1,10 +1,10 @@
 ﻿using System.ComponentModel.DataAnnotations;
 using Microsoft.OpenApi.Any;
 using Microsoft.OpenApi.Models;
-using OpenShock.ServicesCommon.DataAnnotations.Interfaces;
-using OpenShock.ServicesCommon.Validation;
+using OpenShock.Common.DataAnnotations.Interfaces;
+using OpenShock.Common.Validation;
 
-namespace OpenShock.ServicesCommon.DataAnnotations;
+namespace OpenShock.Common.DataAnnotations;
 
 /// <summary>
 /// An attribute used to validate whether a display name is valid.

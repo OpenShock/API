@@ -7,9 +7,9 @@ using OpenShock.API.Services;
 using OpenShock.Common.Models;
 using OpenShock.Common.OpenShockDb;
 using System.Net;
-using OpenShock.ServicesCommon.Authentication.Attributes;
-using OpenShock.ServicesCommon.Errors;
-using OpenShock.ServicesCommon.Problems;
+using OpenShock.Common.Authentication.Attributes;
+using OpenShock.Common.Errors;
+using OpenShock.Common.Problems;
 using OpenShock.Common.Utils;
 
 namespace OpenShock.API.Controller.Shockers;

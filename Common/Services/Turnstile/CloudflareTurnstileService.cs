@@ -3,7 +3,7 @@ using Microsoft.Extensions.Options;
 using OneOf;
 using OneOf.Types;
 
-namespace OpenShock.ServicesCommon.Services.Turnstile;
+namespace OpenShock.Common.Services.Turnstile;
 
 public sealed class CloudflareTurnstileService : ICloudflareTurnstileService
 {

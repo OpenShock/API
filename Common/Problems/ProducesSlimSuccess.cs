@@ -2,7 +2,7 @@
 using System.Net.Mime;
 using Swashbuckle.AspNetCore.Annotations;
 
-namespace OpenShock.ServicesCommon.Problems;
+namespace OpenShock.Common.Problems;
 
 public sealed class ProducesSlimSuccess<T> : SwaggerResponseAttribute
 {

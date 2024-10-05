@@ -1,16 +1,16 @@
 ﻿using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
+using OpenShock.Common.Authentication.Services;
+using OpenShock.Common.DeviceControl;
 using OpenShock.Common.Models;
 using OpenShock.Common.OpenShockDb;
 using OpenShock.Common.Redis;
+using OpenShock.Common.Services.RedisPubSub;
 using OpenShock.Common.Utils;
-using OpenShock.ServicesCommon.Authentication.Services;
-using OpenShock.ServicesCommon.DeviceControl;
-using OpenShock.ServicesCommon.Services.RedisPubSub;
 using Redis.OM.Contracts;
 using Redis.OM.Searching;
 
-namespace OpenShock.ServicesCommon.Hubs;
+namespace OpenShock.Common.Hubs;
 
 public sealed class ShareLinkHub : Hub<IShareLinkHub>
 {

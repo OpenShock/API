@@ -2,10 +2,9 @@
 using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Http.Json;
 using Microsoft.Extensions.Options;
-using OpenShock.Common;
-using OpenShock.ServicesCommon.Errors;
+using OpenShock.Common.Errors;
 
-namespace OpenShock.ServicesCommon.ExceptionHandle;
+namespace OpenShock.Common.ExceptionHandle;
 
 public static class ExceptionHandler
 {

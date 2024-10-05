@@ -2,7 +2,7 @@
 using System.Net.WebSockets;
 using FlatSharp;
 using OneOf;
-using OpenShock.ServicesCommon.Utils;
+using OpenShock.Common.Utils;
 
 namespace OpenShock.LiveControlGateway.Websocket;
 

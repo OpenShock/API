@@ -1,7 +1,7 @@
 ﻿using OpenShock.Common.Redis.PubSub;
 using Semver;
 
-namespace OpenShock.ServicesCommon.Services.RedisPubSub;
+namespace OpenShock.Common.Services.RedisPubSub;
 
 public interface IRedisPubService
 {

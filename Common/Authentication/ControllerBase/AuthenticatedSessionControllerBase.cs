@@ -1,12 +1,11 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
+using OpenShock.Common.Authentication.Services;
 using OpenShock.Common.Models;
 using OpenShock.Common.OpenShockDb;
-using OpenShock.ServicesCommon.Authentication.Services;
-using OpenShock.ServicesCommon.Errors;
 
-namespace OpenShock.ServicesCommon.Authentication.ControllerBase;
+namespace OpenShock.Common.Authentication.ControllerBase;
 
 [Authorize(AuthenticationSchemes = OpenShockAuthSchemas.SessionTokenCombo)]
 public class AuthenticatedSessionControllerBase : OpenShockControllerBase, IActionFilter

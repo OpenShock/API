@@ -1,10 +1,10 @@
 ﻿using System.Net;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
+using OpenShock.Common.Authentication.Services;
 using OpenShock.Common.Models;
-using OpenShock.ServicesCommon.Authentication.Services;
 
-namespace OpenShock.ServicesCommon.Authentication.Attributes;
+namespace OpenShock.Common.Authentication.Attributes;
 
 [AttributeUsage(AttributeTargets.Class | AttributeTargets.Method)]
 public sealed class RankAttribute : Attribute, IAuthorizationFilter

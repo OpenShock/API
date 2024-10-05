@@ -1,4 +1,4 @@
-﻿namespace OpenShock.ServicesCommon.Authentication;
+﻿namespace OpenShock.Common.Authentication;
 
 public static class OpenShockAuthSchemas
 {

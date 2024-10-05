@@ -1,8 +1,7 @@
 ﻿using Microsoft.AspNetCore.SignalR;
 using Microsoft.AspNetCore.SignalR.StackExchangeRedis;
-using StackExchange.Redis;
 
-namespace OpenShock.ServicesCommon;
+namespace OpenShock.Common;
 
 public static class SignalRExtensions
 {

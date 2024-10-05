@@ -2,8 +2,8 @@
 using Microsoft.EntityFrameworkCore;
 using OpenShock.API.Models.Response;
 using System.Net;
-using OpenShock.ServicesCommon.Errors;
-using OpenShock.ServicesCommon.Problems;
+using OpenShock.Common.Errors;
+using OpenShock.Common.Problems;
 
 namespace OpenShock.API.Controller.Devices;
 

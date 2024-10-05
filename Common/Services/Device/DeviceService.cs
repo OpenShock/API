@@ -1,7 +1,7 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using OpenShock.Common.OpenShockDb;
 
-namespace OpenShock.ServicesCommon.Services.Device;
+namespace OpenShock.Common.Services.Device;
 
 public sealed class DeviceService : IDeviceService
 {

@@ -1,10 +1,9 @@
 ﻿using Microsoft.AspNetCore.Mvc.Filters;
-using OpenShock.Common.Models;
+using OpenShock.Common.Authentication.Services;
+using OpenShock.Common.Errors;
 using OpenShock.Common.OpenShockDb;
-using OpenShock.ServicesCommon.Authentication.Services;
-using OpenShock.ServicesCommon.Errors;
 
-namespace OpenShock.ServicesCommon.Authentication.Attributes;
+namespace OpenShock.Common.Authentication.Attributes;
 
 [AttributeUsage(AttributeTargets.Class | AttributeTargets.Method)]
 public sealed class TokenOnlyAttribute : Attribute, IAuthorizationFilter

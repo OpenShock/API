@@ -1,7 +1,6 @@
 ﻿using OpenShock.Common.Models;
-using OpenShock.ServicesCommon.Models;
 
-namespace OpenShock.API.DeviceControl;
+namespace OpenShock.Common.DeviceControl;
 
 public sealed class ControlShockerObj
 {

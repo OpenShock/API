@@ -1,6 +1,6 @@
 ﻿using StackExchange.Redis;
 
-namespace OpenShock.ServicesCommon.Services.RedisPubSub;
+namespace OpenShock.Common.Services.RedisPubSub;
 
 public static class RedisChannels
 {

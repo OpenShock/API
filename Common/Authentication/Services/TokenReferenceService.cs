@@ -1,4 +1,4 @@
-﻿namespace OpenShock.ServicesCommon.Authentication.Services;
+﻿namespace OpenShock.Common.Authentication.Services;
 
 public sealed class TokenReferenceService<T> : ITokenReferenceService<T> where T : class
 {

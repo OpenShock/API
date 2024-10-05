@@ -1,6 +1,6 @@
 ﻿using System.ComponentModel.DataAnnotations;
 using OpenShock.API.Services.Email.Mailjet.Mail;
-using OpenShock.ServicesCommon.Config;
+using OpenShock.Common.Config;
 
 namespace OpenShock.API;
 

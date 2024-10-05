@@ -4,7 +4,7 @@ using OpenShock.Common.Models.WebSocket.User;
 using OpenShock.Serialization.Gateway;
 using Semver;
 
-namespace OpenShock.ServicesCommon.Hubs;
+namespace OpenShock.Common.Hubs;
 
 public interface IUserHub
 {

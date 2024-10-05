@@ -1,4 +1,4 @@
-﻿namespace OpenShock.ServicesCommon.Authentication.Services;
+﻿namespace OpenShock.Common.Authentication.Services;
 
 public interface IClientAuthService<T>
 {

@@ -1,4 +1,4 @@
-﻿using OpenShock.ServicesCommon.Models;
+﻿using OpenShock.Common.Models;
 
 namespace OpenShock.LiveControlGateway.Models;
 

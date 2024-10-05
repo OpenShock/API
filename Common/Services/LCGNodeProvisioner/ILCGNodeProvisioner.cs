@@ -1,7 +1,7 @@
 ﻿using OpenShock.Common.Geo;
 using OpenShock.Common.Redis;
 
-namespace OpenShock.ServicesCommon.Services.LCGNodeProvisioner;
+namespace OpenShock.Common.Services.LCGNodeProvisioner;
 
 public interface ILCGNodeProvisioner
 {

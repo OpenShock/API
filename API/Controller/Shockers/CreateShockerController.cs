@@ -4,11 +4,11 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using OpenShock.API.Models.Requests;
 using OpenShock.API.Services;
+using OpenShock.Common.Authentication.Attributes;
+using OpenShock.Common.Errors;
 using OpenShock.Common.Models;
 using OpenShock.Common.OpenShockDb;
-using OpenShock.ServicesCommon.Authentication.Attributes;
-using OpenShock.ServicesCommon.Errors;
-using OpenShock.ServicesCommon.Problems;
+using OpenShock.Common.Problems;
 
 namespace OpenShock.API.Controller.Shockers;
 

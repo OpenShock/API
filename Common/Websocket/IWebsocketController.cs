@@ -1,6 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 
-namespace OpenShock.ServicesCommon.Websocket;
+namespace OpenShock.Common.Websocket;
 
 /// <summary>
 /// Interface description for a websocket controller with any type

@@ -1,6 +1,6 @@
 ﻿using System.Text.Json.Serialization;
 
-namespace OpenShock.ServicesCommon.Services.Turnstile;
+namespace OpenShock.Common.Services.Turnstile;
 
 public readonly struct CloudflareTurnstileVerifyResponseDto
 {

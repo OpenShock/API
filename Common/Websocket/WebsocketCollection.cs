@@ -1,6 +1,6 @@
 ﻿using System.Collections.Concurrent;
 
-namespace OpenShock.ServicesCommon.Websocket;
+namespace OpenShock.Common.Websocket;
 
 public sealed class WebsocketCollection<T> where T : class
 {

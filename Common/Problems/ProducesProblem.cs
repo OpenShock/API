@@ -1,7 +1,7 @@
 ﻿using System.Net;
 using Swashbuckle.AspNetCore.Annotations;
 
-namespace OpenShock.ServicesCommon.Problems;
+namespace OpenShock.Common.Problems;
 
 public class ProducesProblem<T> : SwaggerResponseAttribute where T : OpenShockProblem
 {

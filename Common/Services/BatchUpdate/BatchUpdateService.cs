@@ -4,7 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using OpenShock.Common.OpenShockDb;
 using Timer = System.Timers.Timer;
 
-namespace OpenShock.ServicesCommon.Services.BatchUpdate;
+namespace OpenShock.Common.Services.BatchUpdate;
 
 public sealed class BatchUpdateService : IHostedService, IBatchUpdateService
 {

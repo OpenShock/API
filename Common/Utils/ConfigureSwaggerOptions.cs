@@ -3,7 +3,7 @@ using Microsoft.Extensions.Options;
 using Microsoft.OpenApi.Models;
 using Swashbuckle.AspNetCore.SwaggerGen;
 
-namespace OpenShock.ServicesCommon.Utils;
+namespace OpenShock.Common.Utils;
 
 public sealed class ConfigureSwaggerOptions : IConfigureNamedOptions<SwaggerGenOptions>
 {

@@ -6,7 +6,7 @@ using OpenShock.Common.Utils;
 using Semver;
 using System.Text.Json.Serialization;
 using OpenShock.Common.JsonSerialization;
-using OpenShock.ServicesCommon.Problems;
+using OpenShock.Common.Problems;
 
 namespace OpenShock.API.Controller.Admin;
 

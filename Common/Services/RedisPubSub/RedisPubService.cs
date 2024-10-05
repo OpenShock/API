@@ -3,7 +3,7 @@ using OpenShock.Common.Redis.PubSub;
 using Semver;
 using StackExchange.Redis;
 
-namespace OpenShock.ServicesCommon.Services.RedisPubSub;
+namespace OpenShock.Common.Services.RedisPubSub;
 
 public sealed class RedisPubService : IRedisPubService
 {

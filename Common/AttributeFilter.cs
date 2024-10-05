@@ -1,8 +1,8 @@
 ﻿using Microsoft.OpenApi.Models;
-using OpenShock.ServicesCommon.DataAnnotations.Interfaces;
+using OpenShock.Common.DataAnnotations.Interfaces;
 using Swashbuckle.AspNetCore.SwaggerGen;
 
-namespace OpenShock.ServicesCommon;
+namespace OpenShock.Common;
 
 public sealed class AttributeFilter : ISchemaFilter, IParameterFilter, IOperationFilter
 {

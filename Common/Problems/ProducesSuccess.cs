@@ -1,10 +1,9 @@
 ﻿using System.Net;
 using System.Net.Mime;
-using Microsoft.AspNetCore.Mvc.ApiExplorer;
 using OpenShock.Common.Models;
 using Swashbuckle.AspNetCore.Annotations;
 
-namespace OpenShock.ServicesCommon.Problems;
+namespace OpenShock.Common.Problems;
 
 public class ProducesSuccess<T> : SwaggerResponseAttribute
 {

@@ -1,12 +1,11 @@
 ﻿using Microsoft.EntityFrameworkCore;
-using OpenShock.Common;
 using OpenShock.Common.Geo;
 using OpenShock.Common.Redis;
 using Redis.OM;
 using Redis.OM.Contracts;
 using Redis.OM.Searching;
 
-namespace OpenShock.ServicesCommon.Services.LCGNodeProvisioner;
+namespace OpenShock.Common.Services.LCGNodeProvisioner;
 
 public sealed class LCGNodeProvisioner : ILCGNodeProvisioner
 {

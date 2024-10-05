@@ -1,7 +1,7 @@
 ﻿using System.Net;
 using OneOf.Types;
 
-namespace OpenShock.ServicesCommon.Services.Turnstile;
+namespace OpenShock.Common.Services.Turnstile;
 
 public interface ICloudflareTurnstileService
 {

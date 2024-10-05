@@ -1,4 +1,4 @@
-﻿namespace OpenShock.ServicesCommon.Services.BatchUpdate;
+﻿namespace OpenShock.Common.Services.BatchUpdate;
 
 public interface IBatchUpdateService
 {

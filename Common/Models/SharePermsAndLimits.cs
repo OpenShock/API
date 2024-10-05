@@ -1,4 +1,4 @@
-﻿namespace OpenShock.ServicesCommon.Models;
+﻿namespace OpenShock.Common.Models;
 
 public class SharePermsAndLimits
 {

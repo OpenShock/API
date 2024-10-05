@@ -1,4 +1,4 @@
-﻿namespace OpenShock.ServicesCommon.Validation;
+﻿namespace OpenShock.Common.Validation;
 
 public static class ValidationConstants
 {

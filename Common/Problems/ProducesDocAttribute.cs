@@ -1,7 +1,7 @@
 ﻿using Microsoft.AspNetCore.Mvc.ApiExplorer;
 using Microsoft.AspNetCore.Mvc.Formatters;
 
-namespace OpenShock.ServicesCommon.Problems;
+namespace OpenShock.Common.Problems;
 
 public sealed class ProducesDocAttribute : Attribute, IApiResponseMetadataProvider
 {

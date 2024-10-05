@@ -1,6 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using OpenShock.Common.Models;
-using OpenShock.ServicesCommon.Problems;
+using OpenShock.Common.Problems;
 
 namespace OpenShock.API.Controller.Users;
 

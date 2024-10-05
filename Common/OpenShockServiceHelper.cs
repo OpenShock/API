@@ -1,11 +1,11 @@
-﻿using OpenShock.ServicesCommon.Config;
-using OpenShock.ServicesCommon.Services.BatchUpdate;
-using OpenShock.ServicesCommon.Services.RedisPubSub;
+﻿using OpenShock.Common.Config;
+using OpenShock.Common.Services.BatchUpdate;
+using OpenShock.Common.Services.RedisPubSub;
 using Redis.OM;
 using Redis.OM.Contracts;
 using StackExchange.Redis;
 
-namespace OpenShock.ServicesCommon;
+namespace OpenShock.Common;
 
 public static class OpenShockServiceHelper
 {

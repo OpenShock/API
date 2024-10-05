@@ -1,7 +1,7 @@
 ﻿using System.Net;
-using OpenShock.ServicesCommon.Problems;
+using OpenShock.Common.Problems;
 
-namespace OpenShock.ServicesCommon.Errors;
+namespace OpenShock.Common.Errors;
 
 public static class PasswordResetError
 {

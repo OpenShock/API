@@ -4,7 +4,7 @@ using Serilog.Configuration;
 using Serilog.Core;
 using Serilog.Events;
 
-namespace OpenShock.ServicesCommon.Utils;
+namespace OpenShock.Common.Utils;
 
 public sealed class OpenShockEnricher : ILogEventEnricher
 {

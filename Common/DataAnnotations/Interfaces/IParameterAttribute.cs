@@ -1,6 +1,6 @@
 ﻿using Microsoft.OpenApi.Models;
 
-namespace OpenShock.ServicesCommon.DataAnnotations.Interfaces;
+namespace OpenShock.Common.DataAnnotations.Interfaces;
 
 /// <summary>
 /// Represents an interface for parameter attributes that can be applied to an OpenApiSchema or OpenApiParameter instance.

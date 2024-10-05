@@ -1,6 +1,6 @@
 ﻿using System.ComponentModel.DataAnnotations;
 
-namespace OpenShock.ServicesCommon.Config;
+namespace OpenShock.Common.Config;
 
 public sealed class DbConfig
 {

@@ -2,7 +2,7 @@
 using Microsoft.OpenApi.Models;
 using OpenShock.Common.Models;
 
-namespace OpenShock.ServicesCommon.DataAnnotations;
+namespace OpenShock.Common.DataAnnotations;
 
 public static class OpenApiSchemas
 {

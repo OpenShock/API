@@ -1,7 +1,7 @@
 ﻿using OpenShock.Common.OpenShockDb;
 using OpenShock.Common.Utils;
 
-namespace OpenShock.ServicesCommon.Authentication;
+namespace OpenShock.Common.Authentication;
 
 public sealed class LinkUser
 {

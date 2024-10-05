@@ -4,7 +4,7 @@ using OpenShock.Common.Models.Services.Ota;
 using OpenShock.Common.OpenShockDb;
 using Semver;
 
-namespace OpenShock.ServicesCommon.Services.Ota;
+namespace OpenShock.Common.Services.Ota;
 
 public sealed class OtaService : IOtaService
 {

@@ -2,12 +2,11 @@
 using System.Threading.Channels;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
+using OpenShock.Common.Errors;
 using OpenShock.Common.Utils;
-using OpenShock.ServicesCommon.Errors;
-using OpenShock.ServicesCommon.Utils;
 using JsonOptions = Microsoft.AspNetCore.Http.Json.JsonOptions;
 
-namespace OpenShock.ServicesCommon.Websocket;
+namespace OpenShock.Common.Websocket;
 
 /// <summary>
 /// Base for json serialized websocket controller, you can override the SendMessageMethod to implement a different serializer

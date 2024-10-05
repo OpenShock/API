@@ -5,7 +5,7 @@ using Microsoft.IO;
 using OpenShock.Common.JsonSerialization;
 using OpenShock.Common.Models.WebSocket;
 
-namespace OpenShock.ServicesCommon.Utils;
+namespace OpenShock.Common.Utils;
 
 public static class JsonWebSocketUtils
 {

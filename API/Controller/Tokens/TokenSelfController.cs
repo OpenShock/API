@@ -1,9 +1,9 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using OpenShock.API.Models.Response;
+using OpenShock.Common.Authentication.Attributes;
+using OpenShock.Common.Authentication.Services;
 using OpenShock.Common.OpenShockDb;
-using OpenShock.ServicesCommon.Authentication.Attributes;
-using OpenShock.ServicesCommon.Authentication.Services;
-using OpenShock.ServicesCommon.Problems;
+using OpenShock.Common.Problems;
 
 namespace OpenShock.API.Controller.Tokens;
 

@@ -1,8 +1,8 @@
 ﻿using System.Net;
 using OpenShock.Common.Models;
-using OpenShock.ServicesCommon.Problems;
+using OpenShock.Common.Problems;
 
-namespace OpenShock.ServicesCommon.Errors;
+namespace OpenShock.Common.Errors;
 
 public static class AuthorizationError
 {

@@ -1,23 +1,21 @@
-﻿using System.Collections.Concurrent;
-using System.Security.Claims;
+﻿using System.Security.Claims;
 using System.Text.Encodings.Web;
 using System.Text.Json;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Http.Json;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
-using Microsoft.Extensions.Primitives;
+using OpenShock.Common.Authentication.Services;
+using OpenShock.Common.Errors;
 using OpenShock.Common.Models;
 using OpenShock.Common.OpenShockDb;
+using OpenShock.Common.Problems;
 using OpenShock.Common.Redis;
-using OpenShock.ServicesCommon.Authentication.Services;
-using OpenShock.ServicesCommon.Errors;
-using OpenShock.ServicesCommon.Problems;
-using OpenShock.ServicesCommon.Services.BatchUpdate;
+using OpenShock.Common.Services.BatchUpdate;
 using Redis.OM.Contracts;
 using Redis.OM.Searching;
 
-namespace OpenShock.ServicesCommon.Authentication.Handlers;
+namespace OpenShock.Common.Authentication.Handlers;
 
 public sealed class LoginSessionAuthentication : AuthenticationHandler<AuthenticationSchemeOptions>
 {
