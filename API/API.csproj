@@ -69,7 +69,6 @@
     <ItemGroup>
         <ProjectReference Include="..\Common\Common.csproj" />
         <None Include="devcert.pfx" CopyToPublishDirectory="Always" />
-        <ProjectReference Include="..\ServicesCommon\ServicesCommon.csproj" />
         <None Update="SmtpTemplates\PasswordReset.liquid">
           <CopyToOutputDirectory>Always</CopyToOutputDirectory>
         </None>
