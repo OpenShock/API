@@ -50,44 +50,6 @@ public sealed class RedisSubscriberService : IHostedService, IAsyncDisposable
         await _subscriber.SubscribeAsync(RedisChannels.KeyEventExpired, (_, message) => { LucTask.Run(() => RunLogic(message, false)); });
         await _subscriber.SubscribeAsync(RedisChannels.KeyEventJsonSet, (_, message) => { LucTask.Run(() => RunLogic(message, true)); });
         await _subscriber.SubscribeAsync(RedisChannels.KeyEventDel, (_, message) => { LucTask.Run(() => RunLogic(message, false)); });
-        
-        await _subscriber.SubscribeAsync(RedisChannels.DeviceControl, (_, message) => { LucTask.Run(() => DeviceControl(message)); });
-        await _subscriber.SubscribeAsync(RedisChannels.DeviceCaptive, (_, message) => { LucTask.Run(() => DeviceControlCaptive(message)); });
-    }
-
-    private static async Task DeviceControl(RedisValue value)
-    {
-        if (!value.HasValue) return;
-        var data = JsonSerializer.Deserialize<ControlMessage>(value.ToString());
-        if (data == null) return;
-
-        foreach (var controlMessage in data.ControlMessages)
-        {
-            var shocks = controlMessage.Value.Select(shock => new ControlResponse
-            {
-                Id = shock.RfId, Duration = shock.Duration, Intensity = shock.Intensity, Type = shock.Type,
-                Model = shock.Model
-            });
-
-            await WebsocketManager.DeviceWebSockets.SendMessageTo(controlMessage.Key, new BaseResponse<ResponseType>
-            {
-                ResponseType = ResponseType.Control,
-                Data = shocks
-            });
-        }
-    }
-    
-    private static async Task DeviceControlCaptive(RedisValue value)
-    {
-        if (!value.HasValue) return;
-        var data = JsonSerializer.Deserialize<CaptiveMessage>(value.ToString());
-        if (data == null) return;
-
-        await WebsocketManager.DeviceWebSockets.SendMessageTo(data.DeviceId, new BaseResponse<ResponseType>
-        {
-            ResponseType = ResponseType.CaptiveControl,
-            Data = data.Enabled
-        });
     }
     
     private async Task RunLogic(RedisValue message, bool set)
