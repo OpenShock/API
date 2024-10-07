@@ -1,5 +1,4 @@
 ﻿using OpenShock.Common.Geo;
-using TUnit.Assertions.Extensions.Numbers;
 
 namespace OpenShock.Common.Tests.Geo;
 
@@ -15,7 +14,7 @@ public class DistanceLookupTests
 
         // Assert
         await Assert.That(result).IsTrue();
-        await Assert.That(distance).IsEqualToWithTolerance(expectedDistance, 0.1f);
+        await Assert.That(distance).IsEqualTo(expectedDistance).Within(0.1f);
     }
 
     [Test]
