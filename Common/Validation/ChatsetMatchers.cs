@@ -33,4 +33,11 @@ public static class CharsetMatchers
             or (>= 0x1F000 and <= 0x1F02F) // 1F000
             or >= 0x1F0A0;                 // 1F0A0, 1F100, 1F200, 1F300, 1F600, 1F650, 1F680, 1F700, 1F780, 1F800, 1F900, 1FA00, 1FA70, 1FB00, 1FF80, 20000, 2A700, 2B740, 2B820, 2CEB0, 2F800, 2FF80, 30000, 3FF80, 4FF80, 5FF80, 6FF80, 7FF80, 8FF80, 9FF80, AFF80, BFF80, CFF80, DFF80, E0000, E0100, EFF80, FFF80, 10FF80
     }
+
+    public static bool ContainsUnwantedUserInterfaceRunes(string str)
+    {
+        if (string.IsNullOrEmpty(str)) return false;
+
+        return str.EnumerateRunes().Any(IsUnwantedUserInterfaceRune);
+    }
 }

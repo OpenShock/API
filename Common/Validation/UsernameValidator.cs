@@ -27,10 +27,8 @@ public static class UsernameValidator
         }
 
         // Check if string contains any unwanted characters
-        // ReSharper disable once ForeachCanBeConvertedToQueryUsingAnotherGetEnumerator
-        foreach (var r in username.EnumerateRunes())
-            if (CharsetMatchers.IsUnwantedUserInterfaceRune(r))
-                return new ValidationResult(false, "Username must not contain obnoxious characters.");
+        if (CharsetMatchers.ContainsUnwantedUserInterfaceRunes(username))
+            return new ValidationResult(false, "Username must not contain obnoxious characters.");
 
 
         return new ValidationResult(true, string.Empty);
