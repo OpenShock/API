@@ -83,7 +83,7 @@ public class Alpha2CountryCodeTests
 
         // Assert
         await Assert.That(result).IsFalse();
-        await Assert.That(c).IsEqualTo(Alpha2CountryCode.UnknownCountry);
+        await Assert.That(c == Alpha2CountryCode.UnknownCountry).IsTrue();
     }
 
     [Test]
