@@ -166,10 +166,7 @@ jobs:
     needs: containerize
     if: ${{ github.repository_owner == 'OpenShock' && github.ref_type == 'branch' && github.event_name != 'pull_request' && github.ref_name == 'develop' }}
     environment: staging
-    strategy:
-      matrix:
-        deployment: ${{ fromJson(vars.DEPLOYMENT_NAMES) }}
-  
+
     steps:
       - uses: actions/checkout@v4
         with:
@@ -180,4 +177,4 @@ jobs:
         with:
           apiurl: ${{ secrets.KUBERNETES_APIURL }}
           token: ${{ secrets.KUBERNETES_TOKEN }}
-          deployment: ${{ matrix.deployment }}
+          deployment: ${{ vars.DEPLOYMENT_NAMES }}
