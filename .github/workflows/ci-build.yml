@@ -7,7 +7,7 @@ on:
     branches:
       - master
       - develop
-    types: [opened, reopened, synchronize]
+    types: [ opened, reopened, synchronize ]
   workflow_call:
   workflow_dispatch:
 
@@ -25,12 +25,12 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-      
+
       - name: Setup .NET SDK ${{ env.DOTNET_VERSION }}
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: ${{ env.DOTNET_VERSION }}
-      
+
       - name: Install dependencies
         run: dotnet restore
 
@@ -39,16 +39,16 @@ jobs:
 
       - name: Test
         run: dotnet test --no-restore --verbosity normal
-      
+
       - name: Publish API
         run: dotnet publish API/API.csproj -c Release -o ./publish/API
-      
+
       - name: Publish LiveControlGateway
         run: dotnet publish LiveControlGateway/LiveControlGateway.csproj -c Release -o ./publish/LiveControlGateway
 
       - name: Publish Cron
         run: dotnet publish Cron/Cron.csproj -c Release -o ./publish/Cron
-      
+
       - name: Upload API artifacts
         uses: actions/upload-artifact@v4
         with:
@@ -56,7 +56,7 @@ jobs:
           path: publish/API/*
           retention-days: 1
           if-no-files-found: error
-      
+
       - name: Upload LiveControlGateway artifacts
         uses: actions/upload-artifact@v4
         with:
@@ -64,7 +64,7 @@ jobs:
           path: publish/LiveControlGateway/*
           retention-days: 1
           if-no-files-found: error
-          
+
       - name: Upload Cron artifacts
         uses: actions/upload-artifact@v4
         with:
@@ -72,13 +72,13 @@ jobs:
           path: publish/Cron/*
           retention-days: 1
           if-no-files-found: error
-      
+  
   containerize:
     runs-on: ubuntu-latest
     needs: build
     strategy:
       matrix:
-        project: [API, LiveControlGateway, Cron]
+        project: [ API, LiveControlGateway, Cron ]
 
     steps:
       - name: Checkout
@@ -112,7 +112,7 @@ jobs:
       - name: Get image name
         id: name
         run: echo "name=$(echo "${{ matrix.project }}" | sed -r 's|([a-z0-9])([A-Z])|\1-\L\2|g;s|([A-Z])|\L\1|g')" >> $GITHUB_OUTPUT
-      
+
       - name: Find latest tag
         uses: oprypin/find-latest-tag@v1
         id: latest-tag
@@ -120,7 +120,7 @@ jobs:
           repository: ${{ github.repository }}
           regex: '^[0-9]+.[0-9]+.[0-9]+$'
           releases-only: false
-      
+
       - name: Extract metadata (tags, labels) for Docker
         id: meta
         uses: docker/metadata-action@v5
@@ -154,7 +154,7 @@ jobs:
     environment: production
 
     steps:
-      - name: Call deployment webhook
+      - name: Rollout Kubernetes Deployment Restart
         shell: bash
         env:
           WEBHOOK_URL: ${{ secrets.WEBHOOK_URL }}
@@ -168,9 +168,24 @@ jobs:
     environment: staging
 
     steps:
-      - name: Call deployment webhook
+      - name: Rollout Kubernetes Deployment Restart
         shell: bash
         env:
-          WEBHOOK_URL: ${{ secrets.WEBHOOK_URL }}
-        run: |
-          curl -X POST -d "" "$WEBHOOK_URL"
+          KUBERNETES_APIURL: ${{ secrets.KUBERNETES_APIURL }}
+          KUBERNETES_TOKEN: ${{ secrets.KUBERNETES_TOKEN }}
+          
+        run: >
+          curl -X PATCH "$KUBERNETES_APIURL/apis/apps/v1/namespaces/default/deployments/api-staging?fieldManager=kubectl-rollout&pretty=true" \
+          --header 'Content-Type: application/strategic-merge-patch+json' \
+          --header 'Authorization: Bearer $KUBERNETES_TOKEN'
+          --data-raw '{
+            "spec": {
+              "template": {
+                "metadata": {
+                  "annotations": {
+                    "kubectl.kubernetes.io/restartedAt": <time.Now()>
+                  }
+                }
+              }
+            }
+          }'
