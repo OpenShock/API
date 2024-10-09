@@ -168,24 +168,8 @@ jobs:
     environment: staging
   
     steps:
-      - name: Rollout Kubernetes Deployment Restart
-        shell: bash
-        env:
-          KUBERNETES_APIURL: ${{ secrets.KUBERNETES_APIURL }}
-          KUBERNETES_TOKEN: ${{ secrets.KUBERNETES_TOKEN }}
-        
-        run: |
-          curl -k -f -o /dev/null -X PATCH "$KUBERNETES_APIURL/apis/apps/v1/namespaces/default/deployments/api-staging?fieldManager=kubectl-rollout&pretty=true" \
-          --header "Content-Type: application/strategic-merge-patch+json" \
-          --header "Authorization: Bearer $KUBERNETES_TOKEN" \
-          --data-raw '{
-            "spec": {
-              "template": {
-                "metadata": {
-                  "annotations": {
-                    "kubectl.kubernetes.io/restartedAt": "'"$(date -u +"%Y-%m-%dT%H:%M:%SZ")"'"
-                  }
-                }
-              }
-            }
-          }'
+      - uses: ./.github/actions/kubernetes-rollout-restart
+        with:
+          apiurl: ${{ secrets.KUBERNETES_APIURL }}
+          token: ${{ secrets.KUBERNETES_TOKEN }}
+          deployment: ${{ vars.DEPLOYMENT_NAME }}

@@ -1,0 +1,34 @@
+﻿name: kubernetes-rollout-restart
+description: Start a rollout restart of a kubernetes deployment
+inputs:
+  apiurl:
+    required: true
+    description: Kubernetes API Url (e.g. `https://example.org:6446`)
+  token:
+    required: true
+    description: Bearer Token for Authentication (Service Account Token)
+  deployment:
+    required: true
+    description: Deployment name
+
+runs:
+  using: composite
+  
+  steps:
+    - name: Rollout Kubernetes Deployment Restart
+      shell: bash
+      run: |
+        curl -k -f -o /dev/null -X PATCH "${{ inputs.apiurl }}/apis/apps/v1/namespaces/default/deployments/${{ inputs.deployment }}?fieldManager=kubectl-rollout&pretty=true" \
+        --header "Content-Type: application/strategic-merge-patch+json" \
+        --header "Authorization: Bearer ${{ inputs.token }}" \
+        --data-raw '{
+          "spec": {
+            "template": {
+              "metadata": {
+                "annotations": {
+                  "kubectl.kubernetes.io/restartedAt": "'"$(date -u +"%Y-%m-%dT%H:%M:%SZ")"'"
+                }
+              }
+            }
+          }
+        }'
