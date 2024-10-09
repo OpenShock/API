@@ -166,24 +166,24 @@ jobs:
     needs: containerize
     if: ${{ github.ref_type == 'branch' && github.event_name != 'pull_request' && github.ref_name == 'develop' }}
     environment: staging
-
+  
     steps:
       - name: Rollout Kubernetes Deployment Restart
         shell: bash
         env:
           KUBERNETES_APIURL: ${{ secrets.KUBERNETES_APIURL }}
           KUBERNETES_TOKEN: ${{ secrets.KUBERNETES_TOKEN }}
-          
+        
         run: >
           curl -X PATCH "$KUBERNETES_APIURL/apis/apps/v1/namespaces/default/deployments/api-staging?fieldManager=kubectl-rollout&pretty=true" \
-          --header 'Content-Type: application/strategic-merge-patch+json' \
-          --header 'Authorization: Bearer $KUBERNETES_TOKEN'
+          --header "Content-Type: application/strategic-merge-patch+json" \
+          --header "Authorization: Bearer $KUBERNETES_TOKEN" \
           --data-raw '{
             "spec": {
               "template": {
                 "metadata": {
                   "annotations": {
-                    "kubectl.kubernetes.io/restartedAt": <time.Now()>
+                    "kubectl.kubernetes.io/restartedAt": "'"$(date -u +"%Y-%m-%dT%H:%M:%SZ")"'"
                   }
                 }
               }
