@@ -174,18 +174,20 @@ jobs:
           KUBERNETES_APIURL: ${{ secrets.KUBERNETES_APIURL }}
           KUBERNETES_TOKEN: ${{ secrets.KUBERNETES_TOKEN }}
         
-        run: >
-          curl -X PATCH "$KUBERNETES_APIURL/apis/apps/v1/namespaces/default/deployments/api-staging?fieldManager=kubectl-rollout&pretty=true" \
+        run: |
+          curl -k -X PATCH "$KUBERNETES_APIURL/apis/apps/v1/namespaces/default/deployments/api-staging?fieldManager=kubectl-rollout&pretty=true" \
           --header "Content-Type: application/strategic-merge-patch+json" \
           --header "Authorization: Bearer $KUBERNETES_TOKEN" \
-          --data-raw '{
+          --data-raw @- <<EOF
+          {
             "spec": {
               "template": {
                 "metadata": {
                   "annotations": {
-                    "kubectl.kubernetes.io/restartedAt": "'"$(date -u +"%Y-%m-%dT%H:%M:%SZ")"'"
+                    "kubectl.kubernetes.io/restartedAt": "$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
                   }
                 }
               }
             }
-          }'
+          }
+          EOF
