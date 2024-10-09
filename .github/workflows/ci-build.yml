@@ -177,4 +177,4 @@ jobs:
         with:
           apiurl: ${{ secrets.KUBERNETES_APIURL }}
           token: ${{ secrets.KUBERNETES_TOKEN }}
-          deployment: ${{ vars.DEPLOYMENT_NAMES }}
+          deployments: ${{ vars.DEPLOYMENT_NAMES }}
