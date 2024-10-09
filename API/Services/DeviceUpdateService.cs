@@ -1,12 +1,12 @@
 ﻿using Microsoft.AspNetCore.SignalR;
+using OpenShock.Common.Hubs;
 using OpenShock.Common.Models;
-using OpenShock.ServicesCommon.Hubs;
-using OpenShock.ServicesCommon.Services.Device;
-using OpenShock.ServicesCommon.Services.RedisPubSub;
+using OpenShock.Common.Services.Device;
+using OpenShock.Common.Services.RedisPubSub;
 
 namespace OpenShock.API.Services;
 
-public class DeviceUpdateService : IDeviceUpdateService
+public sealed class DeviceUpdateService : IDeviceUpdateService
 {
     private readonly IRedisPubService _redisPubService;
     private readonly IHubContext<UserHub, IUserHub> _hubContext;

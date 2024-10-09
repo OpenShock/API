@@ -8,7 +8,7 @@ namespace OpenShock.LiveControlGateway;
 /// <summary>
 /// Lcg keep alive task, to report to redis
 /// </summary>
-public class LcgKeepAlive : IHostedService
+public sealed class LcgKeepAlive : IHostedService
 {
     private readonly ILogger<LcgKeepAlive> _logger;
     private readonly IWebHostEnvironment _env;

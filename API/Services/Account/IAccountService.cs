@@ -1,8 +1,7 @@
 ﻿using OneOf;
 using OneOf.Types;
-using OpenShock.API.Models.Response;
 using OpenShock.Common.OpenShockDb;
-using OpenShock.ServicesCommon.Validation;
+using OpenShock.Common.Validation;
 
 namespace OpenShock.API.Services.Account;
 

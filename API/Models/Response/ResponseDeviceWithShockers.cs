@@ -1,6 +1,6 @@
 ﻿namespace OpenShock.API.Models.Response;
 
-public class ResponseDeviceWithShockers : ResponseDevice
+public sealed class ResponseDeviceWithShockers : ResponseDevice
 {
     public required IEnumerable<ShockerResponse> Shockers { get; set; }
 }

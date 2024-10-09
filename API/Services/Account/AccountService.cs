@@ -6,10 +6,11 @@ using OpenShock.API.Models.Response;
 using OpenShock.API.Services.Email;
 using OpenShock.API.Services.Email.Mailjet.Mail;
 using OpenShock.API.Utils;
+using OpenShock.Common;
 using OpenShock.Common.OpenShockDb;
 using OpenShock.Common.Redis;
 using OpenShock.Common.Utils;
-using OpenShock.ServicesCommon.Validation;
+using OpenShock.Common.Validation;
 using Redis.OM.Contracts;
 using Redis.OM.Searching;
 
@@ -21,7 +22,6 @@ namespace OpenShock.API.Services.Account;
 public sealed class AccountService : IAccountService
 {
     private const HashType HashAlgo = HashType.SHA512;
-    private static readonly TimeSpan PasswordResetLifetime = TimeSpan.FromDays(7);
 
     private readonly OpenShockContext _db;
     private readonly IEmailService _emailService;
@@ -67,7 +67,7 @@ public sealed class AccountService : IAccountService
             Id = newGuid,
             Name = username,
             Email = email.ToLowerInvariant(),
-            PasswordHash = PasswordHashingHelpers.HashPassword(password),
+            PasswordHash = PasswordHashingUtils.HashPassword(password),
             EmailActived = emailActivated
         };
         _db.Users.Add(user);
@@ -114,7 +114,7 @@ public sealed class AccountService : IAccountService
             cancellationToken: cancellationToken);
         if (user == null)
         {
-            _logger.LogInformation("Failed to find user with email or username [{EmailOrUsername}]", emailOrUsername);
+            await Task.Delay(100, cancellationToken); // TODO: Set appropriate time to match password hashing time, preventing timing attacks
             return new NotFound();
         }
 
@@ -136,7 +136,7 @@ public sealed class AccountService : IAccountService
     /// <inheritdoc />
     public async Task<OneOf<Success, NotFound, SecretInvalid>> PasswordResetExists(Guid passwordResetId, string secret, CancellationToken cancellationToken = default)
     {
-        var validUntil = DateTime.UtcNow.Add(PasswordResetLifetime);
+        var validUntil = DateTime.UtcNow.Add(Constants.PasswordResetRequestLifetime);
         var reset = await _db.PasswordResets.SingleOrDefaultAsync(x =>
             x.Id == passwordResetId && x.UsedOn == null && x.CreatedOn < validUntil, cancellationToken: cancellationToken);
 
@@ -148,7 +148,7 @@ public sealed class AccountService : IAccountService
     /// <inheritdoc />
     public async Task<OneOf<Success, TooManyPasswordResets, NotFound>> CreatePasswordReset(string email)
     {
-        var validUntil = DateTime.UtcNow.Add(PasswordResetLifetime);
+        var validUntil = DateTime.UtcNow.Add(Constants.PasswordResetRequestLifetime);
         var lowerCaseEmail = email.ToLowerInvariant();
         var user = await _db.Users.Where(x => x.Email == lowerCaseEmail).Select(x => new
         {
@@ -178,7 +178,7 @@ public sealed class AccountService : IAccountService
     /// <inheritdoc />
     public async Task<OneOf<Success, NotFound, SecretInvalid>> PasswordResetComplete(Guid passwordResetId, string secret, string newPassword)
     {
-        var validUntil = DateTime.UtcNow.Add(PasswordResetLifetime);
+        var validUntil = DateTime.UtcNow.Add(Constants.PasswordResetRequestLifetime);
         
         var reset = await _db.PasswordResets.Include(x => x.User).SingleOrDefaultAsync(x =>
             x.Id == passwordResetId && x.UsedOn == null && x.CreatedOn < validUntil);
@@ -187,7 +187,7 @@ public sealed class AccountService : IAccountService
         if(!BCrypt.Net.BCrypt.EnhancedVerify(secret, reset.Secret, HashAlgo)) return new SecretInvalid();
 
         reset.UsedOn = DateTime.UtcNow;
-        reset.User.PasswordHash = PasswordHashingHelpers.HashPassword(newPassword);
+        reset.User.PasswordHash = PasswordHashingUtils.HashPassword(newPassword);
         await _db.SaveChangesAsync();
         return new Success();
     }
@@ -223,18 +223,18 @@ public sealed class AccountService : IAccountService
 
     private async Task<bool> CheckPassword(string emailOrUsername, string password, User user)
     {
-        var result = PasswordHashingHelpers.VerifyPassword(password, user.PasswordHash);
+        var result = PasswordHashingUtils.VerifyPassword(password, user.PasswordHash);
 
         if (!result.Verified)
         {
-            _logger.LogInformation("Failed to verify password, EmailOrUsername [{EmailOrUsername}]", emailOrUsername);
+            _logger.LogInformation("Failed to verify password for user ID: [{Id}]", user.Id);
             return false;
         }
 
         if (result.NeedsRehash)
         {
-            _logger.LogInformation("Password needs rehashing, EmailOrUsername [{EmailOrUsername}]", emailOrUsername);
-            user.PasswordHash = PasswordHashingHelpers.HashPassword(password);
+            _logger.LogInformation("Rehashing password for user ID: [{Id}]", user.Id);
+            user.PasswordHash = PasswordHashingUtils.HashPassword(password);
             await _db.SaveChangesAsync();
         }
 

@@ -1,11 +1,11 @@
 ﻿using System.Text.Json;
 using OpenShock.Common.Redis.PubSub;
+using OpenShock.Common.Services.RedisPubSub;
 using OpenShock.Common.Utils;
 using OpenShock.LiveControlGateway.LifetimeManager;
 using OpenShock.LiveControlGateway.Websocket;
 using OpenShock.Serialization;
 using OpenShock.Serialization.Types;
-using OpenShock.ServicesCommon.Services.RedisPubSub;
 using StackExchange.Redis;
 
 namespace OpenShock.LiveControlGateway.PubSub;

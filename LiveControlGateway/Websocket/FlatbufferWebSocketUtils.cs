@@ -2,7 +2,7 @@
 using System.Net.WebSockets;
 using FlatSharp;
 using OneOf;
-using OpenShock.ServicesCommon.Utils;
+using OpenShock.Common.Utils;
 
 namespace OpenShock.LiveControlGateway.Websocket;
 
@@ -111,17 +111,9 @@ public static class FlatbufferWebSocketUtils
 /// <summary>
 /// When flatbuffers deserialization fails
 /// </summary>
-public readonly struct DeserializeFailed
-{
-    /// <summary>
-    /// Exception that caused the failure
-    /// </summary>
-    public required Exception Exception { get; init; }
-}
+public readonly record struct DeserializeFailed(Exception Exception);
 
 /// <summary>
 /// When the websocket sent a close frame
 /// </summary>
-public readonly struct WebsocketClosure
-{
-}
+public readonly struct WebsocketClosure;

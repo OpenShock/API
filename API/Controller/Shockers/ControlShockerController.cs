@@ -2,14 +2,14 @@
 using Asp.Versioning;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.SignalR;
+using OpenShock.Common.Authentication.Attributes;
+using OpenShock.Common.DeviceControl;
+using OpenShock.Common.Errors;
+using OpenShock.Common.Hubs;
 using OpenShock.Common.Models;
-using OpenShock.ServicesCommon.Authentication.Attributes;
-using OpenShock.ServicesCommon.DeviceControl;
-using OpenShock.ServicesCommon.Errors;
-using OpenShock.ServicesCommon.Hubs;
-using OpenShock.ServicesCommon.Problems;
-using OpenShock.ServicesCommon.Services.RedisPubSub;
-using OpenShock.ServicesCommon.Utils;
+using OpenShock.Common.Problems;
+using OpenShock.Common.Services.RedisPubSub;
+using OpenShock.Common.Utils;
 
 namespace OpenShock.API.Controller.Shockers;
 

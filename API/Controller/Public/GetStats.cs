@@ -1,7 +1,7 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using OpenShock.Common.Models;
+using OpenShock.Common.Problems;
 using OpenShock.Common.Redis;
-using OpenShock.ServicesCommon.Problems;
 using Redis.OM.Contracts;
 
 namespace OpenShock.API.Controller.Public;
@@ -29,7 +29,7 @@ public sealed partial class PublicController
     }
 }
 
-public class StatsResponse
+public sealed class StatsResponse
 {
     public required int DevicesOnline { get; set; }
 }

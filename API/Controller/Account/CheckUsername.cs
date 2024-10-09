@@ -1,8 +1,8 @@
 ﻿using System.Diagnostics.CodeAnalysis;
 using Microsoft.AspNetCore.Mvc;
 using OpenShock.API.Models.Requests;
-using OpenShock.ServicesCommon.Problems;
-using OpenShock.ServicesCommon.Validation;
+using OpenShock.Common.Problems;
+using OpenShock.Common.Validation;
 
 namespace OpenShock.API.Controller.Account;
 

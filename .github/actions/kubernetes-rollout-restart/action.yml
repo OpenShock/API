@@ -1,0 +1,46 @@
+﻿name: kubernetes-rollout-restart
+description: Start a rollout restart of Kubernetes deployments
+inputs:
+  apiurl:
+    required: true
+    description: Kubernetes API Url (e.g. `https://example.org:6446`)
+  token:
+    required: true
+    description: Bearer Token for Authentication (Service Account Token)
+  deployments:
+    required: true
+    description: Comma-separated list of deployment names
+
+runs:
+  using: composite
+  
+  steps:
+    - name: Rollout Kubernetes Deployment Restart
+      shell: bash
+      run: |
+        IFS=',' read -ra DEPLOYMENT_ARRAY <<< "${{ inputs.deployments }}"
+        for deployment in "${DEPLOYMENT_ARRAY[@]}"; do
+          echo "Deploying to deployment: $deployment"
+          curl -k -f -o /dev/null -X PATCH "${{ inputs.apiurl }}/apis/apps/v1/namespaces/default/deployments/$deployment?fieldManager=kubectl-rollout&pretty=true" \
+          --header "Content-Type: application/strategic-merge-patch+json" \
+          --header "Authorization: Bearer ${{ inputs.token }}" \
+          --data-raw '{
+            "spec": {
+              "template": {
+                "metadata": {
+                  "annotations": {
+                    "kubectl.kubernetes.io/restartedAt": "'"$(date -u +"%Y-%m-%dT%H:%M:%SZ")"'"
+                  }
+                }
+              }
+            }
+          }'
+        
+          # Check if the curl command was successful
+          if [ $? -ne 0 ]; then
+            echo "Failed to restart deployment: $deployment"
+            exit 1  # Fail the action if curl fails
+          else
+            echo "Successfully restarted deployment: $deployment"
+          fi
+        done

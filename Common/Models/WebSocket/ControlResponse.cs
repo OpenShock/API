@@ -1,6 +1,6 @@
 ﻿namespace OpenShock.Common.Models.WebSocket;
 
-public class ControlResponse
+public sealed class ControlResponse
 {
     public required ushort Id { get; set; }
     public required ControlType Type { get; set; }

@@ -12,26 +12,23 @@ using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.OpenApi.Models;
 using Npgsql;
 using OpenShock.Common;
+using OpenShock.Common.Authentication;
+using OpenShock.Common.Authentication.Handlers;
+using OpenShock.Common.Authentication.Services;
+using OpenShock.Common.ExceptionHandle;
 using OpenShock.Common.JsonSerialization;
 using OpenShock.Common.Models;
 using OpenShock.Common.OpenShockDb;
+using OpenShock.Common.Problems;
 using OpenShock.Common.Redis;
+using OpenShock.Common.Services.Device;
+using OpenShock.Common.Services.LCGNodeProvisioner;
+using OpenShock.Common.Services.Ota;
+using OpenShock.Common.Utils;
 using OpenShock.LiveControlGateway.PubSub;
-using OpenShock.ServicesCommon;
-using OpenShock.ServicesCommon.Authentication;
-using OpenShock.ServicesCommon.Authentication.Handlers;
-using OpenShock.ServicesCommon.Authentication.Services;
-using OpenShock.ServicesCommon.ExceptionHandle;
-using OpenShock.ServicesCommon.Geo;
-using OpenShock.ServicesCommon.Problems;
-using OpenShock.ServicesCommon.Services.Device;
-using OpenShock.ServicesCommon.Services.Ota;
-using OpenShock.ServicesCommon.Services.RedisPubSub;
-using OpenShock.ServicesCommon.Utils;
 using Redis.OM;
 using Redis.OM.Contracts;
 using Serilog;
-using StackExchange.Redis;
 using IPNetwork = Microsoft.AspNetCore.HttpOverrides.IPNetwork;
 using JsonSerializer = System.Text.Json.JsonSerializer;
 using WebSocketOptions = Microsoft.AspNetCore.Builder.WebSocketOptions;
@@ -41,7 +38,7 @@ namespace OpenShock.LiveControlGateway;
 /// <summary>
 /// Startup class for the LCG
 /// </summary>
-public class Startup
+public sealed class Startup
 {
     private readonly ForwardedHeadersOptions _forwardedSettings = new()
     {
@@ -112,21 +109,7 @@ public class Startup
         
         // ----------------- REDIS -----------------
         
-        var redisConfig = new ConfigurationOptions
-        {
-            AbortOnConnectFail = true,
-            Password = _lcgConfig.Redis.Password,
-            User = _lcgConfig.Redis.User,
-            Ssl = false,
-            EndPoints = new EndPointCollection
-            {
-                { _lcgConfig.Redis.Host, _lcgConfig.Redis.Port }
-            }
-        };
-        
-        services.AddSingleton<IConnectionMultiplexer>(ConnectionMultiplexer.Connect(redisConfig));
-        services.AddSingleton<IRedisConnectionProvider, RedisConnectionProvider>();
-        services.AddSingleton<IRedisPubService, RedisPubService>();
+        var commonService = services.AddOpenShockServices(_lcgConfig);
 
         services.AddMemoryCache();
         services.AddHttpContextAccessor();
@@ -135,7 +118,7 @@ public class Startup
         services.AddScoped<IClientAuthService<Device>, ClientAuthService<Device>>();
         services.AddScoped<ITokenReferenceService<ApiToken>, TokenReferenceService<ApiToken>>();
         
-        services.AddSingleton<IGeoLocation, GeoLocation>();
+        services.AddSingleton<ILCGNodeProvisioner, LCGNodeProvisioner>();
 
         services.AddWebEncoders();
         services.TryAddSingleton<TimeProvider>(_ => TimeProvider.System);
@@ -159,8 +142,9 @@ public class Startup
             });
         });
         
+        
         services.AddSignalR()
-            .AddOpenShockStackExchangeRedis(options => { options.Configuration = redisConfig; })
+            .AddOpenShockStackExchangeRedis(options => { options.Configuration = commonService.RedisConfig; })
             .AddJsonProtocol(options =>
             {
                 options.PayloadSerializerOptions.PropertyNameCaseInsensitive = true;
@@ -251,7 +235,6 @@ public class Startup
         services.AddHostedService<RedisSubscriberService>(); 
         services.AddHostedService<LcgKeepAlive>();
         
-        services.AddOpenShockServices();
     }
 
     /// <summary>
@@ -263,7 +246,7 @@ public class Startup
     public void Configure(IApplicationBuilder app, IWebHostEnvironment env, ILoggerFactory loggerFactory)
     {
         ApplicationLogging.LoggerFactory = loggerFactory;
-        foreach (var proxy in OpenShockConstants.TrustedProxies)
+        foreach (var proxy in TrustedProxiesFetcher.GetTrustedProxies())
         {
             var split = proxy.Split('/');
             _forwardedSettings.KnownNetworks.Add(new IPNetwork(IPAddress.Parse(split[0]), int.Parse(split[1])));

@@ -4,7 +4,7 @@ using System.Text.Json;
 
 namespace OpenShock.Common.Models;
 
-public class BaseResponse<T>
+public sealed class BaseResponse<T>
 {
     public string? Message { get; set; }
     public T? Data { get; set; }

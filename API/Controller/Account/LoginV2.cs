@@ -3,9 +3,9 @@ using OpenShock.API.Models.Requests;
 using System.Net;
 using Asp.Versioning;
 using OpenShock.API.Services.Account;
-using OpenShock.ServicesCommon.Errors;
-using OpenShock.ServicesCommon.Problems;
-using OpenShock.ServicesCommon.Services.Turnstile;
+using OpenShock.Common.Errors;
+using OpenShock.Common.Problems;
+using OpenShock.Common.Services.Turnstile;
 
 namespace OpenShock.API.Controller.Account;
 

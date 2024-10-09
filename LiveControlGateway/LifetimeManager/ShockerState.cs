@@ -1,4 +1,5 @@
 ﻿using System.ComponentModel.DataAnnotations;
+using OpenShock.Common;
 using OpenShock.Common.Models;
 
 namespace OpenShock.LiveControlGateway.LifetimeManager;
@@ -30,7 +31,7 @@ public sealed class ShockerState
     /// <summary>
     /// Last intensity sent to the shocker via live control
     /// </summary>
-    [Range(0, 100)]
+    [Range(Constants.MinControlIntensity, Constants.MaxControlIntensity)]
     public byte LastIntensity { get; set; } = 0;
     
     /// <summary>

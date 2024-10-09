@@ -7,21 +7,20 @@ using Microsoft.AspNetCore.Mvc.Filters;
 using Microsoft.EntityFrameworkCore;
 using OneOf;
 using OneOf.Types;
+using OpenShock.Common;
+using OpenShock.Common.Authentication;
+using OpenShock.Common.Authentication.Attributes;
+using OpenShock.Common.Authentication.Services;
 using OpenShock.Common.JsonSerialization;
 using OpenShock.Common.Models;
 using OpenShock.Common.Models.WebSocket;
 using OpenShock.Common.Models.WebSocket.LCG;
 using OpenShock.Common.OpenShockDb;
 using OpenShock.Common.Utils;
+using OpenShock.Common.Websocket;
 using OpenShock.LiveControlGateway.LifetimeManager;
 using OpenShock.LiveControlGateway.Models;
 using OpenShock.LiveControlGateway.Websocket;
-using OpenShock.ServicesCommon.Authentication;
-using OpenShock.ServicesCommon.Authentication.Attributes;
-using OpenShock.ServicesCommon.Authentication.Services;
-using OpenShock.ServicesCommon.Models;
-using OpenShock.ServicesCommon.Utils;
-using OpenShock.ServicesCommon.Websocket;
 using Timer = System.Timers.Timer;
 
 namespace OpenShock.LiveControlGateway.Controllers;
@@ -499,9 +498,9 @@ public sealed class LiveControlController : WebsocketBaseController<IBaseRespons
 
 
         var perms = permCheck.AsT0.Value;
+
         // Clamp to limits
-        var intensityMax = perms.Intensity ?? 100;
-        var intensity = Math.Clamp(frame.Intensity, (byte)0, intensityMax);
+        var intensity = Math.Clamp(frame.Intensity, Constants.MinControlIntensity, perms.Intensity ?? Constants.MaxControlIntensity);
 
         var result = DeviceLifetimeManager.ReceiveFrame(Id, frame.Shocker, frame.Type, intensity, _tps);
         if (result.IsT0)
@@ -597,14 +596,14 @@ public sealed class LiveControlController : WebsocketBaseController<IBaseRespons
 /// <summary>
 /// OneOf
 /// </summary>
-public struct LiveNotEnabled;
+public readonly struct LiveNotEnabled;
 
 /// <summary>
 /// OneOf
 /// </summary>
-public struct NoPermission;
+public readonly struct NoPermission;
 
 /// <summary>
 /// OneOf
 /// </summary>
-public struct ShockerPaused;
+public readonly struct ShockerPaused;

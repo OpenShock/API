@@ -2,7 +2,7 @@
 using OpenShock.Common.Models;
 using Asp.Versioning;
 using OpenShock.API.Services.Account;
-using OpenShock.ServicesCommon.Problems;
+using OpenShock.Common.Problems;
 
 namespace OpenShock.API.Controller.Account;
 

@@ -18,36 +18,32 @@ using OpenShock.API.Services.Account;
 using OpenShock.API.Services.Email.Mailjet;
 using OpenShock.API.Services.Email.Smtp;
 using OpenShock.Common;
+using OpenShock.Common.Authentication;
+using OpenShock.Common.Authentication.Handlers;
+using OpenShock.Common.Authentication.Services;
+using OpenShock.Common.DataAnnotations;
+using OpenShock.Common.ExceptionHandle;
+using OpenShock.Common.Hubs;
 using OpenShock.Common.JsonSerialization;
 using OpenShock.Common.Models;
 using OpenShock.Common.OpenShockDb;
+using OpenShock.Common.Problems;
 using OpenShock.Common.Redis;
-using OpenShock.ServicesCommon;
-using OpenShock.ServicesCommon.Authentication;
-using OpenShock.ServicesCommon.Authentication.Handlers;
-using OpenShock.ServicesCommon.Authentication.Services;
-using OpenShock.ServicesCommon.DataAnnotations;
-using OpenShock.ServicesCommon.ExceptionHandle;
-using OpenShock.ServicesCommon.Geo;
-using OpenShock.ServicesCommon.Hubs;
-using OpenShock.ServicesCommon.Problems;
-using OpenShock.ServicesCommon.Services.BatchUpdate;
-using OpenShock.ServicesCommon.Services.Device;
-using OpenShock.ServicesCommon.Services.Ota;
-using OpenShock.ServicesCommon.Services.RedisPubSub;
-using OpenShock.ServicesCommon.Services.Turnstile;
-using OpenShock.ServicesCommon.Utils;
+using OpenShock.Common.Services.Device;
+using OpenShock.Common.Services.LCGNodeProvisioner;
+using OpenShock.Common.Services.Ota;
+using OpenShock.Common.Services.Turnstile;
+using OpenShock.Common.Utils;
 using Redis.OM;
 using Redis.OM.Contracts;
 using Semver;
 using Serilog;
-using StackExchange.Redis;
 using IPNetwork = Microsoft.AspNetCore.HttpOverrides.IPNetwork;
 using WebSocketOptions = Microsoft.AspNetCore.Builder.WebSocketOptions;
 
 namespace OpenShock.API;
 
-public class Startup
+public sealed class Startup
 {
     private readonly ForwardedHeadersOptions _forwardedSettings = new()
     {
@@ -120,23 +116,7 @@ public class Startup
         });
 
 
-        // ----------------- REDIS -----------------
-
-
-        var redisConfig = new ConfigurationOptions
-        {
-            AbortOnConnectFail = true,
-            Password = _apiConfig.Redis.Password,
-            User = _apiConfig.Redis.User,
-            Ssl = false,
-            EndPoints = new EndPointCollection
-            {
-                { _apiConfig.Redis.Host, _apiConfig.Redis.Port }
-            }
-        };
-        services.AddSingleton<IConnectionMultiplexer>(ConnectionMultiplexer.Connect(redisConfig));
-        services.AddSingleton<IRedisConnectionProvider, RedisConnectionProvider>();
-        services.AddSingleton<IRedisPubService, RedisPubService>();
+        var commonServices = services.AddOpenShockServices(_apiConfig);
 
         services.AddMemoryCache();
         services.AddHttpContextAccessor();
@@ -145,7 +125,7 @@ public class Startup
         services.AddScoped<IClientAuthService<Device>, ClientAuthService<Device>>();
         services.AddScoped<ITokenReferenceService<ApiToken>, TokenReferenceService<ApiToken>>();
 
-        services.AddSingleton<IGeoLocation, GeoLocation>();
+        services.AddSingleton<ILCGNodeProvisioner, LCGNodeProvisioner>();
 
 
         services.AddSingleton(x =>
@@ -204,7 +184,7 @@ public class Startup
             });
         });
         services.AddSignalR()
-            .AddOpenShockStackExchangeRedis(options => { options.Configuration = redisConfig; })
+            .AddOpenShockStackExchangeRedis(options => { options.Configuration = commonServices.RedisConfig; })
             .AddJsonProtocol(options =>
             {
                 options.PayloadSerializerOptions.PropertyNameCaseInsensitive = true;
@@ -286,7 +266,9 @@ public class Startup
                 });
                 options.AddServer(new OpenApiServer { Url = "https://api.openshock.app" });
                 options.AddServer(new OpenApiServer { Url = "https://staging-api.openshock.app" });
+#if DEBUG
                 options.AddServer(new OpenApiServer { Url = "https://localhost" });
+#endif
                 options.SwaggerDoc("v1", new OpenApiInfo { Title = "OpenShock", Version = "1" });
                 options.SwaggerDoc("v2", new OpenApiInfo { Title = "OpenShock", Version = "2" });
                 options.MapType<SemVersion>(() => OpenApiSchemas.SemVerSchema);
@@ -296,8 +278,7 @@ public class Startup
 
         services.ConfigureOptions<ConfigureSwaggerOptions>();
         //services.AddHealthChecks().AddCheck<DatabaseHealthCheck>("database");
-
-        services.AddOpenShockServices();
+        
         services.AddHostedService<RedisSubscriberService>();
     }
 
@@ -305,7 +286,7 @@ public class Startup
         ILogger<Startup> logger)
     {
         ApplicationLogging.LoggerFactory = loggerFactory;
-        foreach (var proxy in OpenShockConstants.TrustedProxies)
+        foreach (var proxy in TrustedProxiesFetcher.GetTrustedProxies())
         {
             var split = proxy.Split('/');
             _forwardedSettings.KnownNetworks.Add(new IPNetwork(IPAddress.Parse(split[0]), int.Parse(split[1])));

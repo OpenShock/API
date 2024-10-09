@@ -4,8 +4,8 @@ using Microsoft.EntityFrameworkCore;
 using OpenShock.Common.Redis;
 using Redis.OM;
 using System.Net;
-using OpenShock.ServicesCommon.Errors;
-using OpenShock.ServicesCommon.Problems;
+using OpenShock.Common.Errors;
+using OpenShock.Common.Problems;
 
 namespace OpenShock.API.Controller.Device;
 

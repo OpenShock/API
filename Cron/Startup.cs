@@ -7,22 +7,20 @@ using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Npgsql;
+using OpenShock.Common;
+using OpenShock.Common.ExceptionHandle;
 using OpenShock.Common.JsonSerialization;
 using OpenShock.Common.Models;
 using OpenShock.Common.OpenShockDb;
-using OpenShock.ServicesCommon;
-using OpenShock.ServicesCommon.ExceptionHandle;
-using OpenShock.ServicesCommon.Problems;
-using OpenShock.ServicesCommon.Services.RedisPubSub;
+using OpenShock.Common.Problems;
+using OpenShock.Common.Utils;
 using Redis.OM;
-using Redis.OM.Contracts;
 using Serilog;
-using StackExchange.Redis;
 using IPNetwork = Microsoft.AspNetCore.HttpOverrides.IPNetwork;
 
 namespace OpenShock.Cron;
 
-public class Startup
+public sealed class Startup
 {
     private readonly ForwardedHeadersOptions _forwardedSettings = new()
     {
@@ -122,32 +120,14 @@ public class Startup
             builder.EnableSensitiveDataLogging();
             builder.EnableDetailedErrors();
         });
-
-        // ----------------- REDIS -----------------
-
-        var redisConfig = new ConfigurationOptions
-        {
-            AbortOnConnectFail = true,
-            Password = _config.Redis.Password,
-            User = _config.Redis.User,
-            Ssl = false,
-            EndPoints = new EndPointCollection
-            {
-                { _config.Redis.Host, _config.Redis.Port }
-            }
-        };
-
-        services.AddSingleton<IConnectionMultiplexer>(ConnectionMultiplexer.Connect(redisConfig));
-        services.AddSingleton<IRedisConnectionProvider, RedisConnectionProvider>();
-        services.AddSingleton<IRedisPubService, RedisPubService>();
         
-        services.AddOpenShockServices();
+        services.AddOpenShockServices(_config);
     }
 
     public void Configure(IApplicationBuilder app, IWebHostEnvironment env, ILoggerFactory loggerFactory,
         ILogger<Startup> logger)
     {
-        foreach (var proxy in OpenShockConstants.TrustedProxies)
+        foreach (var proxy in TrustedProxiesFetcher.GetTrustedProxies())
         {
             var split = proxy.Split('/');
             _forwardedSettings.KnownNetworks.Add(new IPNetwork(IPAddress.Parse(split[0]), int.Parse(split[1])));

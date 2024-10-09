@@ -1,15 +1,16 @@
 ﻿// ReSharper disable InconsistentNaming
 
 using System.ComponentModel.DataAnnotations;
+using OpenShock.Common.Config;
+using OpenShock.Common.Geo;
 using OpenShock.Common.Utils;
-using OpenShock.ServicesCommon.Config;
 
 namespace OpenShock.LiveControlGateway;
 
 /// <summary>
 /// Config for the LCG
 /// </summary>
-public class LCGConfig : BaseConfig
+public sealed class LCGConfig : BaseConfig
 {
     /// <summary>
     /// LCG specific config instance

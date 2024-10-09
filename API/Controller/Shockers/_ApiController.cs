@@ -1,7 +1,7 @@
 ﻿using Asp.Versioning;
 using Microsoft.AspNetCore.Mvc;
+using OpenShock.Common.Authentication.ControllerBase;
 using OpenShock.Common.OpenShockDb;
-using OpenShock.ServicesCommon.Authentication.ControllerBase;
 
 namespace OpenShock.API.Controller.Shockers;
 
