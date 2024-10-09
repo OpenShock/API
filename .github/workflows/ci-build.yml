@@ -178,16 +178,14 @@ jobs:
           curl -k -X PATCH "$KUBERNETES_APIURL/apis/apps/v1/namespaces/default/deployments/api-staging?fieldManager=kubectl-rollout&pretty=true" \
           --header "Content-Type: application/strategic-merge-patch+json" \
           --header "Authorization: Bearer $KUBERNETES_TOKEN" \
-          --data-raw @- <<EOF
-          {
+          --data-raw '{
             "spec": {
               "template": {
                 "metadata": {
                   "annotations": {
-                    "kubectl.kubernetes.io/restartedAt": "$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
+                    "kubectl.kubernetes.io/restartedAt": "'"$(date -u +"%Y-%m-%dT%H:%M:%SZ")"'"
                   }
                 }
               }
             }
-          }
-          EOF
+          }'
