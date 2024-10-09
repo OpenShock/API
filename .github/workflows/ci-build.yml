@@ -168,6 +168,11 @@ jobs:
     environment: staging
   
     steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            .github
+        
       - uses: ./.github/actions/kubernetes-rollout-restart
         with:
           apiurl: ${{ secrets.KUBERNETES_APIURL }}
