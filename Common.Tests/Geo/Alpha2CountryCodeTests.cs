@@ -45,7 +45,11 @@ public class Alpha2CountryCodeTests
     public async Task InvalidCharTypes_ShouldThrow(string str)
     {
         // Act
-        var ex = await Assert.ThrowsAsync<ArgumentException>(() => { Alpha2CountryCode c = str; return Task.CompletedTask; });
+        var ex = await Assert.ThrowsAsync<ArgumentException>(() =>
+        {
+            Alpha2CountryCode c = str;
+            return Task.CompletedTask;
+        });
 
         // Assert
         await Assert.That(ex.Message).IsEqualTo("Country code must be uppercase ASCII characters only (Parameter 'str')");
@@ -76,6 +80,10 @@ public class Alpha2CountryCodeTests
     [Arguments("1U")]
     [Arguments("ÆØ")]
     [Arguments(":D")]
+    [Arguments("")]
+    [Arguments(" ")]
+    [Arguments("  ")]
+    [Arguments("       ")]
     public async Task TryParseAndValidate_InvalidCode_ShouldReturnFalse(string str)
     {
         // Act
