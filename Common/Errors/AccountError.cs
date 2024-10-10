@@ -18,4 +18,7 @@ public static class AccountError
             { "usernameError", usernameError }
         }
     };
+
+    public static OpenShockProblem PasswordChangeInvalidPassword => new OpenShockProblem(
+        "Account.Password.OldPasswordInvalid", "The old password is invalid", HttpStatusCode.Forbidden);
 }

@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using System.Net;
+using Microsoft.AspNetCore.Mvc;
 using OpenShock.API.Models.Requests;
 using OpenShock.Common.Errors;
 using OpenShock.Common.Problems;
@@ -15,6 +16,8 @@ public sealed partial class AuthenticatedAccountController
     /// <exception cref="Exception"></exception>
     [HttpPost("username")]
     [ProducesSuccess]
+    [ProducesProblem(HttpStatusCode.Conflict, "UsernameTaken")]
+    [ProducesProblem(HttpStatusCode.BadRequest, "UsernameInvalid")]
     public async Task<IActionResult> ChangeUsername(ChangeUsernameRequest data)
     {
         var result = await _accountService.ChangeUsername(CurrentUser.DbUser.Id, data.Username);

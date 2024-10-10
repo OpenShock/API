@@ -56,11 +56,13 @@ public sealed class AccountService : IAccountService
         return CreateAccount(email, username, password, true);
     }
 
-    private async Task<OneOf<Success<User>, AccountWithEmailOrUsernameExists>> CreateAccount(string email, string username,
+    private async Task<OneOf<Success<User>, AccountWithEmailOrUsernameExists>> CreateAccount(string email,
+        string username,
         string password, bool emailActivated)
     {
-        if(await _db.Users.AnyAsync(x => x.Email == email.ToLowerInvariant() || x.Name == username)) return new AccountWithEmailOrUsernameExists();
-        
+        if (await _db.Users.AnyAsync(x => x.Email == email.ToLowerInvariant() || x.Name == username))
+            return new AccountWithEmailOrUsernameExists();
+
         var newGuid = Guid.NewGuid();
         var user = new User
         {
@@ -85,7 +87,7 @@ public sealed class AccountService : IAccountService
         if (accountCreate.IsT1) return accountCreate;
 
         var user = accountCreate.AsT0.Value;
-        
+
         var id = Guid.NewGuid();
         var secret = CryptoUtils.RandomString(32);
         var secretHash = BCrypt.Net.BCrypt.EnhancedHashPassword(secret, HashAlgo);
@@ -114,11 +116,12 @@ public sealed class AccountService : IAccountService
             cancellationToken: cancellationToken);
         if (user == null)
         {
-            await Task.Delay(100, cancellationToken); // TODO: Set appropriate time to match password hashing time, preventing timing attacks
+            await Task.Delay(100,
+                cancellationToken); // TODO: Set appropriate time to match password hashing time, preventing timing attacks
             return new NotFound();
         }
 
-        if (!await CheckPassword(emailOrUsername, password, user)) return new NotFound();
+        if (!await CheckPassword(password, user)) return new NotFound();
 
         var randomSessionId = CryptoUtils.RandomString(64);
 
@@ -134,14 +137,16 @@ public sealed class AccountService : IAccountService
     }
 
     /// <inheritdoc />
-    public async Task<OneOf<Success, NotFound, SecretInvalid>> PasswordResetExists(Guid passwordResetId, string secret, CancellationToken cancellationToken = default)
+    public async Task<OneOf<Success, NotFound, SecretInvalid>> PasswordResetExists(Guid passwordResetId, string secret,
+        CancellationToken cancellationToken = default)
     {
         var validUntil = DateTime.UtcNow.Add(Constants.PasswordResetRequestLifetime);
         var reset = await _db.PasswordResets.SingleOrDefaultAsync(x =>
-            x.Id == passwordResetId && x.UsedOn == null && x.CreatedOn < validUntil, cancellationToken: cancellationToken);
+                x.Id == passwordResetId && x.UsedOn == null && x.CreatedOn < validUntil,
+            cancellationToken: cancellationToken);
 
         if (reset == null) return new NotFound();
-        if(!BCrypt.Net.BCrypt.EnhancedVerify(secret, reset.Secret, HashAlgo)) return new SecretInvalid();
+        if (!BCrypt.Net.BCrypt.EnhancedVerify(secret, reset.Secret, HashAlgo)) return new SecretInvalid();
         return new Success();
     }
 
@@ -157,7 +162,7 @@ public sealed class AccountService : IAccountService
         }).FirstOrDefaultAsync();
         if (user == null) return new NotFound();
         if (user.PasswordResetCount >= 3) return new TooManyPasswordResets();
-        
+
         var secret = CryptoUtils.RandomString(32);
         var hash = BCrypt.Net.BCrypt.EnhancedHashPassword(secret, HashAlgo);
         var passwordReset = new PasswordReset
@@ -171,20 +176,21 @@ public sealed class AccountService : IAccountService
 
         await _emailService.PasswordReset(new Contact(user.User.Email, user.User.Name),
             new Uri(_apiConfig.Frontend.BaseUrl, $"/#/account/password/recover/{passwordReset.Id}/{secret}"));
-        
+
         return new Success();
     }
 
     /// <inheritdoc />
-    public async Task<OneOf<Success, NotFound, SecretInvalid>> PasswordResetComplete(Guid passwordResetId, string secret, string newPassword)
+    public async Task<OneOf<Success, NotFound, SecretInvalid>> PasswordResetComplete(Guid passwordResetId,
+        string secret, string newPassword)
     {
         var validUntil = DateTime.UtcNow.Add(Constants.PasswordResetRequestLifetime);
-        
+
         var reset = await _db.PasswordResets.Include(x => x.User).SingleOrDefaultAsync(x =>
             x.Id == passwordResetId && x.UsedOn == null && x.CreatedOn < validUntil);
 
         if (reset == null) return new NotFound();
-        if(!BCrypt.Net.BCrypt.EnhancedVerify(secret, reset.Secret, HashAlgo)) return new SecretInvalid();
+        if (!BCrypt.Net.BCrypt.EnhancedVerify(secret, reset.Secret, HashAlgo)) return new SecretInvalid();
 
         reset.UsedOn = DateTime.UtcNow;
         reset.User.PasswordHash = PasswordHashingUtils.HashPassword(newPassword);
@@ -193,12 +199,13 @@ public sealed class AccountService : IAccountService
     }
 
     /// <inheritdoc />
-    public async Task<OneOf<Success, UsernameTaken, UsernameError>> CheckUsernameAvailability(string username, CancellationToken cancellationToken = default)
+    public async Task<OneOf<Success, UsernameTaken, UsernameError>> CheckUsernameAvailability(string username,
+        CancellationToken cancellationToken = default)
     {
         var validationResult = UsernameValidator.Validate(username);
         if (validationResult.IsT1)
             return validationResult.AsT1;
-        
+
         var isTaken = await _db.Users.AnyAsync(x => x.Name == username, cancellationToken: cancellationToken);
         if (isTaken) return new UsernameTaken();
 
@@ -206,22 +213,37 @@ public sealed class AccountService : IAccountService
     }
 
     /// <inheritdoc />
-    public async Task<OneOf<Success, Error<OneOf<UsernameTaken, UsernameError>>, NotFound>> ChangeUsername(Guid userId, string username)
+    public async Task<OneOf<Success, Error<OneOf<UsernameTaken, UsernameError>>, NotFound>> ChangeUsername(Guid userId,
+        string username, bool ignoreLimit = false)
     {
         var availability = await CheckUsernameAvailability(username);
         if (availability.IsT1) return new Error<OneOf<UsernameTaken, UsernameError>>(availability.AsT1);
         if (availability.IsT2) return new Error<OneOf<UsernameTaken, UsernameError>>(availability.AsT2);
-        
+
         var user = await _db.Users.FirstOrDefaultAsync(x => x.Id == userId);
         if (user == null) return new NotFound();
-        
+
         user.Name = username;
         await _db.SaveChangesAsync();
         return new Success();
     }
 
 
-    private async Task<bool> CheckPassword(string emailOrUsername, string password, User user)
+    /// <inheritdoc />
+    public async Task<OneOf<Success, NotFound>> ChangePassword(Guid userId, string newPassword)
+    {
+        var user = await _db.Users.Where(x => x.Id == userId).ExecuteUpdateAsync(calls =>
+            calls.SetProperty(x => x.PasswordHash, PasswordHashingUtils.HashPassword(newPassword)));
+        return user switch
+        {
+            <= 0 => new NotFound(),
+            1 => new Success(),
+            _ => throw new Exception("Updated more than row during password reset"),
+        };
+    }
+
+
+    private async Task<bool> CheckPassword(string password, User user)
     {
         var result = PasswordHashingUtils.VerifyPassword(password, user.PasswordHash);
 

@@ -78,8 +78,17 @@ public interface IAccountService
     /// </summary>
     /// <param name="userId"></param>
     /// <param name="username"></param>
+    /// <param name="ignoreLimit">Ignore the username change limit, set this to true when an admin is changing the username</param>
     /// <returns><see cref="Error{UsernameCheckResult}"/> only returns when the result is != Available</returns>
-    public Task<OneOf<Success, Error<OneOf<UsernameTaken, UsernameError>>, NotFound>> ChangeUsername(Guid userId, string username);
+    public Task<OneOf<Success, Error<OneOf<UsernameTaken, UsernameError>>, NotFound>> ChangeUsername(Guid userId, string username, bool ignoreLimit = false);
+    
+    /// <summary>
+    /// Change the password of a user
+    /// </summary>
+    /// <param name="userId"></param>
+    /// <param name="newPassword"></param>
+    /// <returns></returns>
+    public Task<OneOf<Success, NotFound>> ChangePassword(Guid userId, string newPassword);
 }
 
 public readonly struct AccountWithEmailOrUsernameExists;
@@ -87,3 +96,5 @@ public readonly struct TooManyPasswordResets;
 public readonly struct SecretInvalid;
 
 public readonly struct UsernameTaken;
+
+public readonly struct OldPasswordIncorrect;
