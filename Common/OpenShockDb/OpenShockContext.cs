@@ -422,6 +422,10 @@ public partial class OpenShockContext : DbContext
 
             entity.ToTable("users_email_changes");
 
+            entity.HasIndex(e => e.CreatedOn, "idx_email_changes_created_on").HasAnnotation("Npgsql:StorageParameter:deduplicate_items", "true");
+
+            entity.HasIndex(e => e.UsedOn, "idx_email_changes_used_on").HasAnnotation("Npgsql:StorageParameter:deduplicate_items", "true");
+
             entity.Property(e => e.Id)
                 .ValueGeneratedNever()
                 .HasColumnName("id");
@@ -447,6 +451,10 @@ public partial class OpenShockContext : DbContext
             entity.HasKey(e => new { e.Id, e.UserId }).HasName("users_name_changes_pkey");
 
             entity.ToTable("users_name_changes");
+
+            entity.HasIndex(e => e.CreatedOn, "idx_user_name_changes_created_on").HasAnnotation("Npgsql:StorageParameter:deduplicate_items", "true");
+
+            entity.HasIndex(e => e.OldName, "idx_user_name_changes_old_name").HasAnnotation("Npgsql:StorageParameter:deduplicate_items", "true");
 
             entity.Property(e => e.Id)
                 .ValueGeneratedOnAdd()
