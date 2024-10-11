@@ -21,4 +21,7 @@ public static class AccountError
 
     public static OpenShockProblem PasswordChangeInvalidPassword => new OpenShockProblem(
         "Account.Password.OldPasswordInvalid", "The old password is invalid", HttpStatusCode.Forbidden);
+    
+    public static OpenShockProblem UsernameRecentlyChanged => new OpenShockProblem(
+        "Account.Username.RecentlyChanged", "You have recently changed your username. You can only change your username every 7 days", HttpStatusCode.Forbidden);
 }

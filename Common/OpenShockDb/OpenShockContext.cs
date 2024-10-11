@@ -39,6 +39,10 @@ public partial class OpenShockContext : DbContext
 
     public virtual DbSet<UsersActivation> UsersActivations { get; set; }
 
+    public virtual DbSet<UsersEmailChange> UsersEmailChanges { get; set; }
+
+    public virtual DbSet<UsersNameChange> UsersNameChanges { get; set; }
+
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {
         if (!optionsBuilder.IsConfigured)
@@ -410,6 +414,55 @@ public partial class OpenShockContext : DbContext
             entity.HasOne(d => d.User).WithMany(p => p.UsersActivations)
                 .HasForeignKey(d => d.UserId)
                 .HasConstraintName("user_id");
+        });
+
+        modelBuilder.Entity<UsersEmailChange>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("users_email_change_pkey");
+
+            entity.ToTable("users_email_changes");
+
+            entity.Property(e => e.Id)
+                .ValueGeneratedNever()
+                .HasColumnName("id");
+            entity.Property(e => e.CreatedOn)
+                .HasDefaultValueSql("CURRENT_TIMESTAMP")
+                .HasColumnName("created_on");
+            entity.Property(e => e.Email)
+                .HasColumnType("character varying")
+                .HasColumnName("email");
+            entity.Property(e => e.Secret)
+                .HasColumnType("character varying")
+                .HasColumnName("secret");
+            entity.Property(e => e.UsedOn).HasColumnName("used_on");
+            entity.Property(e => e.UserId).HasColumnName("user_id");
+
+            entity.HasOne(d => d.User).WithMany(p => p.UsersEmailChanges)
+                .HasForeignKey(d => d.UserId)
+                .HasConstraintName("fk_user_id");
+        });
+
+        modelBuilder.Entity<UsersNameChange>(entity =>
+        {
+            entity.HasKey(e => new { e.Id, e.UserId }).HasName("users_name_changes_pkey");
+
+            entity.ToTable("users_name_changes");
+
+            entity.Property(e => e.Id)
+                .ValueGeneratedOnAdd()
+                .UseIdentityAlwaysColumn()
+                .HasColumnName("id");
+            entity.Property(e => e.UserId).HasColumnName("user_id");
+            entity.Property(e => e.CreatedOn)
+                .HasDefaultValueSql("CURRENT_TIMESTAMP")
+                .HasColumnName("created_on");
+            entity.Property(e => e.OldName)
+                .HasColumnType("character varying")
+                .HasColumnName("old_name");
+
+            entity.HasOne(d => d.User).WithMany(p => p.UsersNameChanges)
+                .HasForeignKey(d => d.UserId)
+                .HasConstraintName("fk_user_id");
         });
     }
 }

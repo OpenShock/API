@@ -213,18 +213,42 @@ public sealed class AccountService : IAccountService
     }
 
     /// <inheritdoc />
-    public async Task<OneOf<Success, Error<OneOf<UsernameTaken, UsernameError>>, NotFound>> ChangeUsername(Guid userId,
-        string username, bool ignoreLimit = false)
+    public async Task<OneOf<Success, Error<OneOf<UsernameTaken, UsernameError, RecentlyChanged>>, NotFound>>
+        ChangeUsername(Guid userId,
+            string username, bool ignoreLimit = false)
     {
+        var sevenDaysAgo = DateTime.UtcNow.AddDays(-7);
+        if (await _db.UsersNameChanges.Where(x => x.UserId == userId && x.CreatedOn >= sevenDaysAgo).AnyAsync())
+        {
+            return new Error<OneOf<UsernameTaken, UsernameError, RecentlyChanged>>(new RecentlyChanged());
+        }
+
         var availability = await CheckUsernameAvailability(username);
-        if (availability.IsT1) return new Error<OneOf<UsernameTaken, UsernameError>>(availability.AsT1);
-        if (availability.IsT2) return new Error<OneOf<UsernameTaken, UsernameError>>(availability.AsT2);
+        if (availability.IsT1)
+            return new Error<OneOf<UsernameTaken, UsernameError, RecentlyChanged>>(availability.AsT1);
+        if (availability.IsT2)
+            return new Error<OneOf<UsernameTaken, UsernameError, RecentlyChanged>>(availability.AsT2);
+
+        await using var transaction = await _db.Database.BeginTransactionAsync();
 
         var user = await _db.Users.FirstOrDefaultAsync(x => x.Id == userId);
         if (user == null) return new NotFound();
 
+        var oldName = user.Name;
+
         user.Name = username;
         await _db.SaveChangesAsync();
+
+        _db.UsersNameChanges.Add(new UsersNameChange
+        {
+            UserId = userId,
+            OldName = oldName
+        });
+
+        await _db.SaveChangesAsync();
+
+        await transaction.CommitAsync();
+
         return new Success();
     }
 

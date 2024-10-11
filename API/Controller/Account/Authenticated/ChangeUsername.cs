@@ -18,12 +18,17 @@ public sealed partial class AuthenticatedAccountController
     [ProducesSuccess]
     [ProducesProblem(HttpStatusCode.Conflict, "UsernameTaken")]
     [ProducesProblem(HttpStatusCode.BadRequest, "UsernameInvalid")]
+    [ProducesProblem(HttpStatusCode.Forbidden, "UsernameRecentlyChanged")]
     public async Task<IActionResult> ChangeUsername(ChangeUsernameRequest data)
     {
         var result = await _accountService.ChangeUsername(CurrentUser.DbUser.Id, data.Username);
 
-        return result.Match(success => RespondSuccessSimple("Successfully changed username"),
-            error => Problem(error.Value.IsT0 ? AccountError.UsernameTaken : AccountError.UsernameInvalid(error.Value.AsT1)),
+        return result.Match(
+            success => RespondSuccessSimple("Successfully changed username"),
+            error => Problem(error.Value.Match(
+                taken => AccountError.UsernameTaken,
+                AccountError.UsernameInvalid,
+                changed => AccountError.UsernameRecentlyChanged)),
             found => throw new Exception("Unexpected result, apparently our current user does not exist..."));
     }
 }

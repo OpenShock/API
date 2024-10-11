@@ -80,7 +80,7 @@ public interface IAccountService
     /// <param name="username"></param>
     /// <param name="ignoreLimit">Ignore the username change limit, set this to true when an admin is changing the username</param>
     /// <returns><see cref="Error{UsernameCheckResult}"/> only returns when the result is != Available</returns>
-    public Task<OneOf<Success, Error<OneOf<UsernameTaken, UsernameError>>, NotFound>> ChangeUsername(Guid userId, string username, bool ignoreLimit = false);
+    public Task<OneOf<Success, Error<OneOf<UsernameTaken, UsernameError, RecentlyChanged>>, NotFound>> ChangeUsername(Guid userId, string username, bool ignoreLimit = false);
     
     /// <summary>
     /// Change the password of a user
@@ -97,4 +97,4 @@ public readonly struct SecretInvalid;
 
 public readonly struct UsernameTaken;
 
-public readonly struct OldPasswordIncorrect;
+public readonly struct RecentlyChanged;
