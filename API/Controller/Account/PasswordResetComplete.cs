@@ -23,10 +23,9 @@ public sealed partial class AccountController
     [ProducesProblem(HttpStatusCode.NotFound, "PasswordResetNotFound")]
     [MapToApiVersion("1")]
     public async Task<IActionResult> PasswordResetComplete([FromRoute] Guid passwordResetId,
-        [FromRoute] string secret, [FromBody] PasswordResetProcessData body,
-        [FromServices] IAccountService accountService)
+        [FromRoute] string secret, [FromBody] PasswordResetProcessData body)
     {
-        var passwordResetComplete = await accountService.PasswordResetComplete(passwordResetId, secret, body.Password);
+        var passwordResetComplete = await _accountService.PasswordResetComplete(passwordResetId, secret, body.Password);
 
         return passwordResetComplete.Match(
             success => RespondSuccessSimple("Password successfully changed"),

@@ -22,14 +22,13 @@ public sealed partial class AccountController
     [MapToApiVersion("1")]
     public async Task<IActionResult> Login(
         [FromBody] Login body,
-        [FromServices] IAccountService accountService,
         [FromServices] ApiConfig apiConfig,
         CancellationToken cancellationToken)
     {
         var cookieDomainToUse = apiConfig.Frontend.CookieDomain.Split(',').FirstOrDefault(domain => Request.Headers.Host.ToString().EndsWith(domain, StringComparison.OrdinalIgnoreCase));
         if (cookieDomainToUse == null) return Problem(LoginError.InvalidDomain);
         
-        var loginAction = await accountService.Login(body.Email, body.Password, new LoginContext
+        var loginAction = await _accountService.Login(body.Email, body.Password, new LoginContext
         {
             Ip = HttpContext.Connection.RemoteIpAddress?.MapToIPv4().ToString() ?? string.Empty,
             UserAgent = HttpContext.Request.Headers.UserAgent.ToString()
@@ -40,7 +39,7 @@ public sealed partial class AccountController
 
         HttpContext.Response.Cookies.Append("openShockSession", loginAction.AsT0.Value, new CookieOptions
         {
-            Expires = new DateTimeOffset(DateTime.UtcNow.Add(accountService.SessionLifetime)),
+            Expires = new DateTimeOffset(DateTime.UtcNow.Add(_accountService.SessionLifetime)),
             Secure = true,
             HttpOnly = true,
             SameSite = SameSiteMode.Strict,

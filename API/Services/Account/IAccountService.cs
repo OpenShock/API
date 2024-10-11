@@ -1,6 +1,7 @@
 ﻿using OneOf;
 using OneOf.Types;
 using OpenShock.Common.OpenShockDb;
+using OpenShock.Common.Validation;
 
 namespace OpenShock.API.Services.Account;
 
@@ -63,8 +64,37 @@ public interface IAccountService
     /// <param name="newPassword"></param>
     /// <returns></returns>
     public Task<OneOf<Success, NotFound, SecretInvalid>> PasswordResetComplete(Guid passwordResetId, string secret, string newPassword);
+    
+    /// <summary>
+    /// Check the availability of a username
+    /// </summary>
+    /// <param name="username"></param>
+    /// <param name="cancellationToken"></param>
+    /// <returns></returns>
+    public Task<OneOf<Success, UsernameTaken, UsernameError>> CheckUsernameAvailability(string username, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Change the username of a user
+    /// </summary>
+    /// <param name="userId"></param>
+    /// <param name="username"></param>
+    /// <param name="ignoreLimit">Ignore the username change limit, set this to true when an admin is changing the username</param>
+    /// <returns><see cref="Error{UsernameCheckResult}"/> only returns when the result is != Available</returns>
+    public Task<OneOf<Success, Error<OneOf<UsernameTaken, UsernameError, RecentlyChanged>>, NotFound>> ChangeUsername(Guid userId, string username, bool ignoreLimit = false);
+    
+    /// <summary>
+    /// Change the password of a user
+    /// </summary>
+    /// <param name="userId"></param>
+    /// <param name="newPassword"></param>
+    /// <returns></returns>
+    public Task<OneOf<Success, NotFound>> ChangePassword(Guid userId, string newPassword);
 }
 
 public readonly struct AccountWithEmailOrUsernameExists;
 public readonly struct TooManyPasswordResets;
 public readonly struct SecretInvalid;
+
+public readonly struct UsernameTaken;
+
+public readonly struct RecentlyChanged;

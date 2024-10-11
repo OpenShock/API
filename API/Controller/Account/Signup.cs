@@ -21,10 +21,9 @@ public sealed partial class AccountController
     [ProducesSuccess]
     [ProducesProblem(HttpStatusCode.Conflict, "EmailOrUsernameAlreadyExists")]
     [MapToApiVersion("1")]
-    public async Task<IActionResult> SignUp([FromBody] SignUp body,
-        [FromServices] IAccountService accountService)
+    public async Task<IActionResult> SignUp([FromBody] SignUp body)
     {
-        var creationAction = await accountService.CreateAccount(body.Email, body.Username, body.Password);
+        var creationAction = await _accountService.CreateAccount(body.Email, body.Username, body.Password);
         if (creationAction.IsT1) return Problem(SignupError.EmailAlreadyExists);
 
 

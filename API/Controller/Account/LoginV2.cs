@@ -23,7 +23,6 @@ public sealed partial class AccountController
     [MapToApiVersion("2")]
     public async Task<IActionResult> LoginV2(
         [FromBody] LoginV2 body,
-        [FromServices] IAccountService accountService,
         [FromServices] ICloudflareTurnstileService turnstileService,
         [FromServices] ApiConfig apiConfig,
         CancellationToken cancellationToken)
@@ -34,7 +33,7 @@ public sealed partial class AccountController
         var turnStile = await turnstileService.VerifyUserResponseToken(body.TurnstileResponse, HttpContext.Connection.RemoteIpAddress, cancellationToken);
         if (!turnStile.IsT0) return Problem(TurnstileError.InvalidTurnstile);
             
-        var loginAction = await accountService.Login(body.Email, body.Password, new LoginContext
+        var loginAction = await _accountService.Login(body.Email, body.Password, new LoginContext
         {
             Ip = HttpContext.Connection.RemoteIpAddress?.MapToIPv4().ToString() ?? string.Empty,
             UserAgent = HttpContext.Request.Headers.UserAgent.ToString()
@@ -45,7 +44,7 @@ public sealed partial class AccountController
         
         HttpContext.Response.Cookies.Append("openShockSession", loginAction.AsT0.Value, new CookieOptions
         {
-            Expires = new DateTimeOffset(DateTime.UtcNow.Add(accountService.SessionLifetime)),
+            Expires = new DateTimeOffset(DateTime.UtcNow.Add(_accountService.SessionLifetime)),
             Secure = true,
             HttpOnly = true,
             SameSite = SameSiteMode.Strict,

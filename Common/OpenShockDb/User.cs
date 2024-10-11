@@ -33,4 +33,8 @@ public partial class User
     public virtual ICollection<ShockerSharesLink> ShockerSharesLinks { get; set; } = new List<ShockerSharesLink>();
 
     public virtual ICollection<UsersActivation> UsersActivations { get; set; } = new List<UsersActivation>();
+
+    public virtual ICollection<UsersEmailChange> UsersEmailChanges { get; set; } = new List<UsersEmailChange>();
+
+    public virtual ICollection<UsersNameChange> UsersNameChanges { get; set; } = new List<UsersNameChange>();
 }

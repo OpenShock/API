@@ -10,5 +10,7 @@ public static class Constants
 
     public static readonly TimeSpan PasswordResetRequestLifetime = TimeSpan.FromHours(1);
 
+    public static readonly TimeSpan NameChangeCooldown = TimeSpan.FromDays(7);
+
     public const float DistanceToAndromedaGalaxyInKm = 2.401E19f;
 }

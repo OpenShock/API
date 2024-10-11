@@ -22,9 +22,9 @@ public sealed partial class AccountController
     [ProducesSuccess]
     [ProducesProblem(HttpStatusCode.NotFound, "PasswordResetNotFound")]
     [MapToApiVersion("1")]
-    public async Task<IActionResult> PasswordResetCheckValid([FromRoute] Guid passwordResetId, [FromRoute] string secret, [FromServices] IAccountService accountService, CancellationToken cancellationToken)
+    public async Task<IActionResult> PasswordResetCheckValid([FromRoute] Guid passwordResetId, [FromRoute] string secret, CancellationToken cancellationToken)
     {
-        var passwordResetExists = await accountService.PasswordResetExists(passwordResetId, secret, cancellationToken);
+        var passwordResetExists = await _accountService.PasswordResetExists(passwordResetId, secret, cancellationToken);
         return passwordResetExists.Match(
             success => RespondSuccessSimple("Valid password reset process"),
             notFound => Problem(PasswordResetError.PasswordResetNotFound),

@@ -28,7 +28,6 @@ public sealed partial class AccountController
     [MapToApiVersion("2")]
     public async Task<IActionResult> SignUpV2(
         [FromBody] SignUpV2 body,
-        [FromServices] IAccountService accountService,
         [FromServices] ICloudflareTurnstileService turnstileService,
         [FromServices] ApiConfig apiConfig,
         CancellationToken cancellationToken)
@@ -40,7 +39,7 @@ public sealed partial class AccountController
             if (!turnStile.IsT0) return Problem(TurnstileError.InvalidTurnstile);
         }
 
-        var creationAction = await accountService.Signup(body.Email, body.Username, body.Password);
+        var creationAction = await _accountService.Signup(body.Email, body.Username, body.Password);
         if (creationAction.IsT1)
             return Problem(SignupError.EmailAlreadyExists);
 
