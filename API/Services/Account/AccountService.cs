@@ -116,7 +116,7 @@ public sealed class AccountService : IAccountService
             return new NotFound();
         }
 
-        if (!await CheckPassword(emailOrUsername, password, user)) return new NotFound();
+        if (!await CheckPassword(password, user)) return new NotFound();
 
         var randomSessionId = CryptoUtils.RandomString(64);
 
@@ -191,7 +191,7 @@ public sealed class AccountService : IAccountService
     }
 
 
-    private async Task<bool> CheckPassword(string emailOrUsername, string password, User user)
+    private async Task<bool> CheckPassword(string password, User user)
     {
         var result = PasswordHashingUtils.VerifyPassword(password, user.PasswordHash);
 
