@@ -18,8 +18,15 @@ public static class CharsetMatchers
     /// <returns>True if string is safe</returns>
     public static bool IsUnwantedUserInterfaceRune(Rune r)
     {
+        // Basic ASCII test first (hot path)
+        if (r.Value is >= 0x00020 and <= 0x0007E)
+            return false;
+
         return r.Value
-            is (>= 0x002B0 and <= 0x0036F) // 002B0, 00300
+            is (>= 0x00000 and <= 0x0007F) // 00000 (Remaining ASCII chars)
+            or (>= 0x00080 and <= 0x000A0) // 00080 (Control blocks only)
+            or (>= 0x002B0 and <= 0x0036F) // 002B0, 00300
+            or (>= 0x01400 and <= 0x017FF) // 01400, 01680, 016A0, 01700, 01720, 01740, 01760, 01780
             or (>= 0x01AB0 and <= 0x01AFF) // 01AB0
             or (>= 0x01DC0 and <= 0x01DFF) // 01DC0
             or (>= 0x02000 and <= 0x0209F) // 02000, 02070
@@ -31,7 +38,12 @@ public static class CharsetMatchers
             or (>= 0x02B00 and <= 0x02BFF) // 02B00
             or (>= 0x0FE00 and <= 0x0FE0F) // 0FE00
             or (>= 0x1F000 and <= 0x1F02F) // 1F000
-            or >= 0x1F0A0;                 // 1F0A0, 1F100, 1F200, 1F300, 1F600, 1F650, 1F680, 1F700, 1F780, 1F800, 1F900, 1FA00, 1FA70, 1FB00, 1FF80, 20000, 2A700, 2B740, 2B820, 2CEB0, 2F800, 2FF80, 30000, 3FF80, 4FF80, 5FF80, 6FF80, 7FF80, 8FF80, 9FF80, AFF80, BFF80, CFF80, DFF80, E0000, E0100, EFF80, FFF80, 10FF80
+            or >= 0x1F0A0                  // 1F0A0, 1F100, 1F200, 1F300, 1F600, 1F650, 1F680, 1F700, 1F780, 1F800, 1F900, 1FA00, 1FA70, 1FB00, 1FF80, 20000, 2A700, 2B740, 2B820, 2CEB0, 2F800, 2FF80, 30000, 3FF80, 4FF80, 5FF80, 6FF80, 7FF80, 8FF80, 9FF80, AFF80, BFF80, CFF80, DFF80, E0000, E0100, EFF80, FFF80, 10FF80
+
+            // Other bad symbols (https://en.wikipedia.org/wiki/Whitespace_character#Unicode)
+            or 0x000AD                     // Soft hyphen
+            or (>= 0x0180B and <= 0x0180F) // Mongolian format controls
+            or 0x03000;                    // Ideographic space
     }
 
     public static bool ContainsUnwantedUserInterfaceRunes(string str)
