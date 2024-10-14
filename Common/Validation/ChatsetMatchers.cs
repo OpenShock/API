@@ -11,12 +11,12 @@ namespace OpenShock.Common.Validation;
 public static class CharsetMatchers
 {
     /// <summary>
-    /// <para>Detects all unwanted UI characters in a string, which includes <see href="https://en.wikipedia.org/wiki/Zalgo_text">Zalgo text</see>, and <see href="https://en.wikipedia.org/wiki/Zero-width_space">Zero-width space</see></para>
-    /// <para>It detects all Diacritical Marks and Combining Diacritical Marks.</para>
+    /// <para>Checks if a unicode value is undesired for displaying in user interfaces</para>
+    /// <para>Undesired values include among other things Emojis, <see href="https://en.wikipedia.org/wiki/Zalgo_text">Zalgo text</see>, and <see href="https://en.wikipedia.org/wiki/Zero-width_space">Zero-width space</see></para>
     /// </summary>
     /// <param name="r">String Rune to check for obnoxious characters</param>
     /// <returns>True if string is safe</returns>
-    public static bool IsUnwantedUserInterfaceRune(uint value)
+    public static bool IsUndesiredUserInterfaceCharacter(uint value)
     {
         return value
             is (>= 0x00000 and <= 0x0001F) // 00000 (C0 Controls)
@@ -42,7 +42,7 @@ public static class CharsetMatchers
             or 0x03000;                    // Ideographic space
     }
 
-    public static bool ContainsUnwantedUserInterfaceRunes(ReadOnlySpan<char> span)
+    public static bool ContainsUndesiredUserInterfaceCharacters(ReadOnlySpan<char> span)
     {
         if (span.IsEmpty) return false;
 

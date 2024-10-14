@@ -22,7 +22,7 @@ internal class CharsetMatchersTests
             if (string.IsNullOrEmpty(line)) continue;
 
             // Act
-            bool result = CharsetMatchers.ContainsUnwantedUserInterfaceRunes(line);
+            bool result = CharsetMatchers.ContainsUndesiredUserInterfaceCharacters(line);
 
             // Assert
             await Assert.That(result).IsFalse();
@@ -38,7 +38,7 @@ internal class CharsetMatchersTests
             if (string.IsNullOrEmpty(line)) continue;
 
             // Act
-            bool result = CharsetMatchers.ContainsUnwantedUserInterfaceRunes(line);
+            bool result = CharsetMatchers.ContainsUndesiredUserInterfaceCharacters(line);
 
             // Assert
             await Assert.That(result).IsTrue();

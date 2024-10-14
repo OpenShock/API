@@ -29,7 +29,7 @@ public static class UsernameValidator
         }
 
         // Check if string contains any unwanted characters
-        if (CharsetMatchers.ContainsUnwantedUserInterfaceRunes(username))
+        if (CharsetMatchers.ContainsUndesiredUserInterfaceCharacters(username))
             return new UsernameError(UsernameErrorType.ObnoxiousCharacters, "Username must not contain obnoxious characters.");
 
         return new Success();
