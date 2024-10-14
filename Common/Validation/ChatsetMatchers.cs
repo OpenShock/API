@@ -16,9 +16,9 @@ public static class CharsetMatchers
     /// </summary>
     /// <param name="r">String Rune to check for obnoxious characters</param>
     /// <returns>True if string is safe</returns>
-    public static bool IsUnwantedUserInterfaceRune(Rune r)
+    public static bool IsUnwantedUserInterfaceRune(uint value)
     {
-        return r.Value
+        return value
             is (>= 0x00000 and <= 0x0001F) // 00000 (C0 Controls)
             or (>= 0x0007F and <= 0x000A0) // 00000, 00080 (C0 Controls, C1 Controls)
             or (>= 0x002B0 and <= 0x0036F) // 002B0, 00300
@@ -42,10 +42,36 @@ public static class CharsetMatchers
             or 0x03000;                    // Ideographic space
     }
 
-    public static bool ContainsUnwantedUserInterfaceRunes(string str)
+    public static bool ContainsUnwantedUserInterfaceRunes(ReadOnlySpan<char> span)
     {
-        if (string.IsNullOrEmpty(str)) return false;
+        if (span.IsEmpty) return false;
 
-        return str.EnumerateRunes().Any(IsUnwantedUserInterfaceRune);
+        int i = span.LastIndexOfAnyExceptInRange(' ', '~'); // Find any non-ascii values (Not between space and tilde)
+        if (i < 0) return false;
+
+        while (i < span.Length)
+        {
+            char c = span[i++];
+
+            uint value;
+            if (char.IsSurrogate(c)) // UTF-32 handling
+            {
+                if (++i >= span.Length) return true; // High surrogate without following low surrogate
+
+                char c2 = span[i];
+
+                if (!char.IsSurrogatePair(c, c2)) return true; // Ensure valid pair to prevent ConvertToUtf32 from throwing an exception
+
+                value = (uint)char.ConvertToUtf32(c, c2);
+            }
+            else
+            {
+                value = (uint)c;
+            }
+
+            if (IsUndesiredUserInterfaceCharacter(value)) return true;
+        }
+
+        return false;
     }
 }
