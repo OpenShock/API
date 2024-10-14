@@ -18,12 +18,9 @@ public static class CharsetMatchers
     /// <returns>True if string is safe</returns>
     public static bool IsUnwantedUserInterfaceRune(Rune r)
     {
-        // Basic ASCII test first (hot path)
-        if (r.Value is >= 0x00020 and <= 0x0007E)
-            return false;
-
         return r.Value
-            is (>= 0x00000 and <= 0x000A0) // 00000, 00080 (Remaining ASCII chars and control characters)
+            is (>= 0x00000 and <= 0x0001F) // 00000 (C0 Controls)
+            or (>= 0x0007F and <= 0x000A0) // 00000, 00080 (C0 Controls, C1 Controls)
             or (>= 0x002B0 and <= 0x0036F) // 002B0, 00300
             or (>= 0x01400 and <= 0x017FF) // 01400, 01680, 016A0, 01700, 01720, 01740, 01760, 01780
             or (>= 0x01AB0 and <= 0x01AFF) // 01AB0
