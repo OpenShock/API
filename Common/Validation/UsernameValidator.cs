@@ -18,7 +18,7 @@ public static class UsernameValidator
             return new UsernameError(UsernameErrorType.TooLong, "Username is too long.");
         }
 
-        if (char.IsWhiteSpace(username[0]) || char.IsWhiteSpace(username[^1]))
+        if (char.IsWhiteSpace(username, 0) || char.IsWhiteSpace(username, username.Length - 1))
         {
             return new UsernameError(UsernameErrorType.StartOrEndWithWhitespace, "Username cannot start or end with whitespace.");
         }
