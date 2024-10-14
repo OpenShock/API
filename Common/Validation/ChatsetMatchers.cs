@@ -23,8 +23,7 @@ public static class CharsetMatchers
             return false;
 
         return r.Value
-            is (>= 0x00000 and <= 0x0007F) // 00000 (Remaining ASCII chars)
-            or (>= 0x00080 and <= 0x000A0) // 00080 (Control blocks only)
+            is (>= 0x00000 and <= 0x000A0) // 00000, 00080 (Remaining ASCII chars and control characters)
             or (>= 0x002B0 and <= 0x0036F) // 002B0, 00300
             or (>= 0x01400 and <= 0x017FF) // 01400, 01680, 016A0, 01700, 01720, 01740, 01760, 01780
             or (>= 0x01AB0 and <= 0x01AFF) // 01AB0
