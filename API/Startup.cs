@@ -37,6 +37,7 @@ using OpenShock.Common.Services.Turnstile;
 using OpenShock.Common.Utils;
 using Redis.OM;
 using Redis.OM.Contracts;
+using Scalar.AspNetCore;
 using Semver;
 using Serilog;
 using IPNetwork = Microsoft.AspNetCore.HttpOverrides.IPNetwork;
@@ -235,7 +236,7 @@ public sealed class Startup
                 return problemDetails.ToObjectResult(context.HttpContext);
             };
         });
-
+        
         services.AddSwaggerGen(options =>
             {
                 options.CustomOperationIds(e =>
@@ -351,6 +352,11 @@ public sealed class Startup
                 options => { options.Transports = HttpTransportType.WebSockets; });
             endpoints.MapHub<ShareLinkHub>("/1/hubs/share/link/{id}",
                 options => { options.Transports = HttpTransportType.WebSockets; });
+
+            endpoints.MapScalarApiReference(options =>
+            {
+                options.OpenApiRoutePattern = "/swagger/{documentName}/swagger.json";
+            });
         });
     }
 }

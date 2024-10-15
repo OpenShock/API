@@ -41,6 +41,7 @@
         <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="8.0.8" />
         <PackageReference Include="OneOf" Version="3.0.271" />
         <PackageReference Include="Redis.OM" Version="0.7.5" />
+        <PackageReference Include="Scalar.AspNetCore" Version="1.2.9" />
         <PackageReference Include="Serilog" Version="4.0.2" />
         <PackageReference Include="Serilog.AspNetCore" Version="8.0.3" />
         <PackageReference Include="Serilog.Sinks.Console" Version="6.0.0" />
