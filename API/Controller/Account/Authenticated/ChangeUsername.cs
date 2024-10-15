@@ -15,7 +15,7 @@ public sealed partial class AuthenticatedAccountController
     /// <returns></returns>
     /// <exception cref="Exception"></exception>
     [HttpPost("username")]
-    [ProducesSuccess]
+    [ProducesSlimSuccess]
     [ProducesProblem(HttpStatusCode.Conflict, "UsernameTaken")]
     [ProducesProblem(HttpStatusCode.BadRequest, "UsernameInvalid")]
     [ProducesProblem(HttpStatusCode.Forbidden, "UsernameRecentlyChanged")]
@@ -24,7 +24,7 @@ public sealed partial class AuthenticatedAccountController
         var result = await _accountService.ChangeUsername(CurrentUser.DbUser.Id, data.Username);
 
         return result.Match(
-            success => RespondSuccessSimple("Successfully changed username"),
+            success => RespondSlimSuccess(),
             error => Problem(error.Value.Match(
                 taken => AccountError.UsernameTaken,
                 AccountError.UsernameInvalid,

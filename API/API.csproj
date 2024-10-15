@@ -53,14 +53,14 @@
     </ItemGroup>
 
     <Target Name="SetSourceRevisionId" BeforeTargets="InitializeSourceControlInformation">
-        <Exec Command="git rev-parse HEAD" ConsoleToMSBuild="True" IgnoreExitCode="False">
+        <Exec Command="git rev-parse HEAD" IgnoreExitCode="False">
             <Output PropertyName="SourceRevisionId" TaskParameter="ConsoleOutput" />
         </Exec>
     </Target>
 
     <Target Name="SetHash" AfterTargets="InitializeSourceControlInformation">
         <ItemGroup>
-            <AssemblyAttribute Include="OpenShock.API.Utils.GitHashAttribute">
+            <AssemblyAttribute Include="OpenShock.Common.Utils.GitHashAttribute">
                 <_Parameter1>$(SourceRevisionId)</_Parameter1>
             </AssemblyAttribute>
         </ItemGroup>
