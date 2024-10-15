@@ -3,6 +3,7 @@ using System.Reflection;
 using Asp.Versioning;
 using OpenShock.Common;
 using OpenShock.Common.Problems;
+using OpenShock.Common.Utils;
 
 namespace OpenShock.LiveControlGateway.Controllers;
 
@@ -31,6 +32,7 @@ public sealed class InstanceDetailsController : OpenShockControllerBase
         {
             Name = AssemblyNameString,
             Version = AssemblyVersion,
+            Commit = GitHashAttribute.FullHash,
             CurrentTime = DateTimeOffset.UtcNow,
             Fqdn = lcgConfig.Lcg.Fqdn,
             CountryCode = lcgConfig.Lcg.CountryCode
@@ -46,6 +48,11 @@ public sealed class InstanceDetailsController : OpenShockControllerBase
         /// Name of the instance.
         /// </summary>
         public required string Name { get; init; }
+        
+        /// <summary>
+        /// Commit hash of the instance.
+        /// </summary>
+        public required string Commit { get; set; }
 
         /// <summary>
         /// Version of the instance.

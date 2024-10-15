@@ -24,6 +24,20 @@
         <PackageReference Include="Swashbuckle.AspNetCore" Version="6.8.1" />
     </ItemGroup>
 
+    <Target Name="SetSourceRevisionId" BeforeTargets="InitializeSourceControlInformation">
+        <Exec Command="git rev-parse HEAD" IgnoreExitCode="False">
+            <Output PropertyName="SourceRevisionId" TaskParameter="ConsoleOutput" />
+        </Exec>
+    </Target>
+
+    <Target Name="SetHash" AfterTargets="InitializeSourceControlInformation">
+        <ItemGroup>
+            <AssemblyAttribute Include="OpenShock.Common.Utils.GitHashAttribute">
+                <_Parameter1>$(SourceRevisionId)</_Parameter1>
+            </AssemblyAttribute>
+        </ItemGroup>
+    </Target>
+    
     <ItemGroup>
       <ProjectReference Include="..\Common\Common.csproj" />
       <FlatSharpSchema Include="Serialization\**\*.fbs" />

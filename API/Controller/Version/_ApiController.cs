@@ -5,6 +5,7 @@ using OpenShock.API.Utils;
 using OpenShock.Common;
 using OpenShock.Common.Models;
 using OpenShock.Common.Problems;
+using OpenShock.Common.Utils;
 
 namespace OpenShock.API.Controller.Version;
 
@@ -38,7 +39,8 @@ public sealed partial class VersionController : OpenShockControllerBase
                 Commit = GitHashAttribute.FullHash,
                 CurrentTime = DateTimeOffset.UtcNow,
                 FrontendUrl = apiConfig.Frontend.BaseUrl,
-                ShortLinkUrl = apiConfig.Frontend.ShortUrl
+                ShortLinkUrl = apiConfig.Frontend.ShortUrl,
+                TurnstileSiteKey = apiConfig.Turnstile.SiteKey
             }
         };
     }
@@ -50,5 +52,6 @@ public sealed partial class VersionController : OpenShockControllerBase
         public required DateTimeOffset CurrentTime { get; set; }
         public required Uri FrontendUrl { get; set; }
         public required Uri ShortLinkUrl { get; set; }
+        public required string? TurnstileSiteKey { get; set; }
     }
 }

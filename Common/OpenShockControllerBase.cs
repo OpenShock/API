@@ -33,4 +33,18 @@ public class OpenShockControllerBase : ControllerBase
             Message = message
         });
     }
+    
+    [NonAction]
+    public ObjectResult RespondSlimSuccess(HttpStatusCode statusCode = HttpStatusCode.OK)
+    {
+        Response.StatusCode = (int)statusCode;
+        return new ObjectResult(null);
+    }
+    
+    [NonAction]
+    public ObjectResult RespondSlimSuccess<T>(T data, HttpStatusCode statusCode = HttpStatusCode.OK)
+    {
+        Response.StatusCode = (int)statusCode;
+        return new ObjectResult(data);
+    }
 }

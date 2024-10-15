@@ -15,13 +15,13 @@ public sealed partial class AccountController
     /// <param name="cancellationToken"></param>
     /// <returns></returns>
     [HttpPost("username/check")]
-    [ProducesSuccess<UsernameCheckResponse>]
+    [ProducesSlimSuccess<UsernameCheckResponse>]
     public async Task<IActionResult> CheckUsername(ChangeUsernameRequest data, CancellationToken cancellationToken)
     {
         var availability = await _accountService.CheckUsernameAvailability(data.Username, cancellationToken);
-        return availability.Match(success => RespondSuccess(new UsernameCheckResponse(UsernameAvailability.Available)),
-            taken => RespondSuccess(new UsernameCheckResponse(UsernameAvailability.Taken)),
-            invalid => RespondSuccess(new UsernameCheckResponse(UsernameAvailability.Invalid, invalid)));
+        return availability.Match(success => RespondSlimSuccess(new UsernameCheckResponse(UsernameAvailability.Available)),
+            taken => RespondSlimSuccess(new UsernameCheckResponse(UsernameAvailability.Taken)),
+            invalid => RespondSlimSuccess(new UsernameCheckResponse(UsernameAvailability.Invalid, invalid)));
     }
 }
 
