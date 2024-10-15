@@ -12,6 +12,7 @@ using OpenShock.Common.OpenShockDb;
 using OpenShock.Common.Problems;
 using OpenShock.Common.Redis;
 using OpenShock.Common.Services.BatchUpdate;
+using OpenShock.Common.Utils;
 using Redis.OM.Contracts;
 using Redis.OM.Searching;
 
@@ -95,8 +96,20 @@ public sealed class LoginSessionAuthentication : AuthenticationHandler<Authentic
         var session = await _userSessions.FindByIdAsync(sessionKey);
         if (session == null) return Fail(AuthResultError.SessionInvalid);
 
+        // This can be removed at a later point, this is just for upgrade purposes
         if(UpdateOlderLoginSessions(session)) await _userSessions.SaveAsync();
 
+        if (session.Expires!.Value < DateTime.UtcNow.Subtract(Constants.LoginSessionExpansionAfter))
+        {
+#pragma warning disable CS4014
+            LucTask.Run(async () =>
+#pragma warning restore CS4014
+            {
+                session.Expires = DateTime.UtcNow.Add(Constants.LoginSessionLifetime);
+                await _userSessions.UpdateAsync(session, Constants.LoginSessionLifetime);
+            });
+        }
+        
         var retrievedUser = await _db.Users.FirstAsync(user => user.Id == session.UserId);
 
         _authService.CurrentClient = new LinkUser

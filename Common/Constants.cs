@@ -15,4 +15,5 @@ public static class Constants
     public const float DistanceToAndromedaGalaxyInKm = 2.401E19f;
     
     public static readonly TimeSpan LoginSessionLifetime = TimeSpan.FromDays(30);
+    public static readonly TimeSpan LoginSessionExpansionAfter = TimeSpan.FromDays(1);
 }
