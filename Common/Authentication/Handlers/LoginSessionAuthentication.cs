@@ -164,7 +164,7 @@ public sealed class LoginSessionAuthentication : AuthenticationHandler<Authentic
 
         if (session.Expires == null)
         {
-            session.Expires = DateTime.UtcNow.Add(Constants.LoginSessionLifetime);
+            session.Expires = DateTime.UtcNow;
             save = true;
         }
 
