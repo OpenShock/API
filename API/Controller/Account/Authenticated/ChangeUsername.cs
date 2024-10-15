@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Mvc;
 using OpenShock.API.Models.Requests;
 using OpenShock.Common.Errors;
+using OpenShock.Common.Models;
 using OpenShock.Common.Problems;
 
 namespace OpenShock.API.Controller.Account.Authenticated;
@@ -21,7 +22,8 @@ public sealed partial class AuthenticatedAccountController
     [ProducesProblem(HttpStatusCode.Forbidden, "UsernameRecentlyChanged")]
     public async Task<IActionResult> ChangeUsername(ChangeUsernameRequest data)
     {
-        var result = await _accountService.ChangeUsername(CurrentUser.DbUser.Id, data.Username);
+        var result = await _accountService.ChangeUsername(CurrentUser.DbUser.Id, data.Username,
+            CurrentUser.DbUser.Rank.IsAllowed(RankType.Staff));
 
         return result.Match(
             success => RespondSlimSuccess(),
