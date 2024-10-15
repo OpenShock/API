@@ -21,8 +21,8 @@ public sealed partial class TokensController
     /// <response code="200">All tokens for the current user</response>
     [HttpGet]
     [UserSessionOnly]
-    [ProducesSuccess<IEnumerable<TokenResponse>>]
-    public async Task<BaseResponse<IEnumerable<TokenResponse>>> ListTokens()
+    [ProducesSlimSuccess<IEnumerable<TokenResponse>>]
+    public async Task<IEnumerable<TokenResponse>> ListTokens()
     {
         var apiTokens = await _db.ApiTokens
             .Where(x => x.UserId == CurrentUser.DbUser.Id && (x.ValidUntil == null || x.ValidUntil > DateTime.UtcNow))
@@ -37,10 +37,7 @@ public sealed partial class TokensController
             Id = x.Id
         }).ToListAsync();
 
-        return new BaseResponse<IEnumerable<TokenResponse>>
-        {
-            Data = apiTokens
-        };
+        return apiTokens;
     }
 
     /// <summary>
@@ -51,7 +48,7 @@ public sealed partial class TokensController
     /// <response code="404">The token does not exist or you do not have access to it.</response>
     [HttpGet("{tokenId}")]
     [UserSessionOnly]
-    [ProducesSuccess<TokenResponse>]
+    [ProducesSlimSuccess<TokenResponse>]
     [ProducesProblem(HttpStatusCode.NotFound, "ApiTokenNotFound")]    
     public async Task<IActionResult> GetTokenById([FromRoute] Guid tokenId)
     {
@@ -69,7 +66,7 @@ public sealed partial class TokensController
         
         if (apiToken == null) return Problem(ApiTokenError.ApiTokenNotFound);
         
-        return RespondSuccess(apiToken);
+        return RespondSlimSuccess(apiToken);
     }
 
     /// <summary>
@@ -80,7 +77,7 @@ public sealed partial class TokensController
     /// <response code="404">The token does not exist or you do not have access to it.</response>
     [HttpDelete("{tokenId}")]
     [UserSessionOnly]
-    [ProducesSuccess]
+    [ProducesSlimSuccess]
     [ProducesProblem(HttpStatusCode.NotFound, "ApiTokenNotFound")]    
     public async Task<IActionResult> DeleteToken([FromRoute] Guid tokenId)
     {
@@ -88,7 +85,7 @@ public sealed partial class TokensController
             .Where(x => x.UserId == CurrentUser.DbUser.Id && x.Id == tokenId)
             .ExecuteDeleteAsync();
         if (apiToken <= 0) return Problem(ApiTokenError.ApiTokenNotFound);
-        return RespondSuccessSimple("Successfully deleted api token");
+        return RespondSlimSuccess();
     }
 
     /// <summary>
@@ -98,8 +95,8 @@ public sealed partial class TokensController
     /// <response code="200">The created token</response>
     [HttpPost]
     [UserSessionOnly]
-    [ProducesSuccess<string>]
-    public async Task<BaseResponse<string>> CreateToken([FromBody] CreateTokenRequest body)
+    [ProducesSlimSuccess<TokenCreatedResponse>]
+    public async Task<TokenCreatedResponse> CreateToken([FromBody] CreateTokenRequest body)
     {
         var token = new ApiToken
         {
@@ -114,9 +111,9 @@ public sealed partial class TokensController
         _db.ApiTokens.Add(token);
         await _db.SaveChangesAsync();
 
-        return new BaseResponse<string>
+        return new TokenCreatedResponse
         {
-            Data = token.Token
+            Token = token.Token
         };
     }
 
@@ -129,7 +126,7 @@ public sealed partial class TokensController
     /// <response code="404">The token does not exist or you do not have access to it.</response>
     [HttpPatch("{tokenId}")]
     [UserSessionOnly]
-    [ProducesSuccess]
+    [ProducesSlimSuccess]
     [ProducesProblem(HttpStatusCode.NotFound, "ApiTokenNotFound")]    
     public async Task<IActionResult> EditToken([FromRoute] Guid tokenId, [FromBody] EditTokenRequest body)
     {
@@ -141,7 +138,7 @@ public sealed partial class TokensController
         token.Permissions = body.Permissions.Distinct().ToList();
         await _db.SaveChangesAsync();
 
-        return RespondSuccessSimple("Successfully updated api token");
+        return RespondSlimSuccess();
     }
 
     public class EditTokenRequest
@@ -155,5 +152,10 @@ public sealed partial class TokensController
     public sealed class CreateTokenRequest : EditTokenRequest
     {
         public DateTime? ValidUntil { get; set; } = null;
+    }
+    
+    public sealed class TokenCreatedResponse
+    {
+        public required string Token { get; set; }
     }
 }

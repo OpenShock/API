@@ -2,12 +2,11 @@
 using OpenShock.API.Models.Response;
 using OpenShock.Common.Authentication.Attributes;
 using OpenShock.Common.Authentication.Services;
-using OpenShock.Common.OpenShockDb;
 using OpenShock.Common.Problems;
 
-namespace OpenShock.API.Controller.Tokens;
+namespace OpenShock.API.Controller.Sessions;
 
-public sealed partial class TokensController
+public sealed partial class SessionsController
 {
     /// <summary>
     /// Gets information about the current token used to access this endpoint
@@ -17,24 +16,23 @@ public sealed partial class TokensController
     /// <exception cref="Exception"></exception>
     [HttpGet("self")]
     [TokenOnly]
-    [ProducesSlimSuccess<TokenResponse>]
-    public TokenResponse GetSelfToken([FromServices] IUserReferenceService userReferenceService)
+    [ProducesSlimSuccess<LoginSessionResponse>]
+    public LoginSessionResponse GetSelfSession([FromServices] IUserReferenceService userReferenceService)
     {
         var x = userReferenceService.AuthReference;
         
         if (x == null) throw new Exception("This should not be reachable due to AuthenticatedSession requirement");
-        if (!x.Value.IsT1) throw new Exception("This should not be reachable due to the [TokenOnly] attribute");
+        if (!x.Value.IsT0) throw new Exception("This should not be reachable due to the [UserSessionOnly] attribute");
         
-        var token = x.Value.AsT1;
+        var session = x.Value.AsT0;
         
-        return new TokenResponse
+        return new LoginSessionResponse
         {
-            CreatedOn = token.CreatedOn,
-            ValidUntil = token.ValidUntil,
-            LastUsed = token.LastUsed,
-            Permissions = token.Permissions,
-            Name = token.Name,
-            Id = token.Id
+            Id = session.PublicId!.Value,
+            Created = session.Created!.Value,
+            Expires = session.Expires!.Value,
+            Ip = session.Ip,
+            UserAgent = session.UserAgent
         };
     }
 }
