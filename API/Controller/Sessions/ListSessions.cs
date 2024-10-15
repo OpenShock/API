@@ -10,6 +10,7 @@ public sealed partial class SessionsController
     [ProducesSlimSuccess]
     public async Task<IEnumerable<LoginSessionResponse>> ListSessions()
     {
+        
         return await _sessionService.ListSessions(CurrentUser.DbUser.Id);
     }
 }

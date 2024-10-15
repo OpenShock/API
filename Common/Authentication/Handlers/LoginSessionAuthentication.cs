@@ -21,7 +21,7 @@ namespace OpenShock.Common.Authentication.Handlers;
 public sealed class LoginSessionAuthentication : AuthenticationHandler<AuthenticationSchemeOptions>
 {
     private readonly IClientAuthService<LinkUser> _authService;
-    private readonly ITokenReferenceService<ApiToken> _tokenReferenceService;
+    private readonly IUserReferenceService _userReferenceService;
     private readonly IBatchUpdateService _batchUpdateService;
     private readonly OpenShockContext _db;
     private readonly IRedisCollection<LoginSession> _userSessions;
@@ -33,14 +33,15 @@ public sealed class LoginSessionAuthentication : AuthenticationHandler<Authentic
         ILoggerFactory logger,
         UrlEncoder encoder,
         IClientAuthService<LinkUser> clientAuth,
+        IUserReferenceService userReferenceService,
         OpenShockContext db,
         IRedisConnectionProvider provider,
-        IOptions<JsonOptions> jsonOptions, ITokenReferenceService<ApiToken> tokenReferenceService, IBatchUpdateService batchUpdateService)
+        IOptions<JsonOptions> jsonOptions, IBatchUpdateService batchUpdateService)
         : base(options, logger, encoder)
     {
         _authService = clientAuth;
+        _userReferenceService = userReferenceService;
         _db = db;
-        _tokenReferenceService = tokenReferenceService;
         _batchUpdateService = batchUpdateService;
         _userSessions = provider.RedisCollection<LoginSession>();
         _serializerOptions = jsonOptions.Value.SerializerOptions;
@@ -75,7 +76,7 @@ public sealed class LoginSessionAuthentication : AuthenticationHandler<Authentic
         {
             DbUser = tokenDto.User
         };
-        _tokenReferenceService.Token = tokenDto;
+        _userReferenceService.AuthReference = tokenDto;
 
         Context.Items["User"] = _authService.CurrentClient.DbUser.Id;
 
@@ -95,7 +96,7 @@ public sealed class LoginSessionAuthentication : AuthenticationHandler<Authentic
     {
         var session = await _userSessions.FindByIdAsync(sessionKey);
         if (session == null) return Fail(AuthResultError.SessionInvalid);
-
+        
         // This can be removed at a later point, this is just for upgrade purposes
         if(UpdateOlderLoginSessions(session)) await _userSessions.SaveAsync();
 
@@ -112,6 +113,7 @@ public sealed class LoginSessionAuthentication : AuthenticationHandler<Authentic
         
         var retrievedUser = await _db.Users.FirstAsync(user => user.Id == session.UserId);
 
+        _userReferenceService.AuthReference = session;
         _authService.CurrentClient = new LinkUser
         {
             DbUser = retrievedUser

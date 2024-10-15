@@ -124,7 +124,7 @@ public sealed class Startup
 
         services.AddScoped<IClientAuthService<LinkUser>, ClientAuthService<LinkUser>>();
         services.AddScoped<IClientAuthService<Device>, ClientAuthService<Device>>();
-        services.AddScoped<ITokenReferenceService<ApiToken>, TokenReferenceService<ApiToken>>();
+        services.AddScoped<IUserReferenceService, UserReferenceService>();
 
         services.AddSingleton<ILCGNodeProvisioner, LCGNodeProvisioner>();
 

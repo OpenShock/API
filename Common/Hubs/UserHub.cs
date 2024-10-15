@@ -23,22 +23,22 @@ public sealed class UserHub : Hub<IUserHub>
     private readonly OpenShockContext _db;
     private readonly IRedisConnectionProvider _provider;
     private readonly IRedisPubService _redisPubService;
-    private readonly ITokenReferenceService<ApiToken> _tokenReferenceService;
+    private readonly IUserReferenceService _userReferenceService;
     private IReadOnlyCollection<PermissionType>? _tokenPermissions = null;
 
     public UserHub(ILogger<UserHub> logger, OpenShockContext db, IRedisConnectionProvider provider,
-        IRedisPubService redisPubService, ITokenReferenceService<ApiToken> tokenReferenceService)
+        IRedisPubService redisPubService, IUserReferenceService userReferenceService)
     {
         _logger = logger;
         _db = db;
         _provider = provider;
         _redisPubService = redisPubService;
-        _tokenReferenceService = tokenReferenceService;
+        _userReferenceService = userReferenceService;
     }
 
     public override async Task OnConnectedAsync()
     {
-        _tokenPermissions = _tokenReferenceService.Token?.Permissions;
+        _tokenPermissions = _userReferenceService.AuthReference is not { IsT1: true } ? null : _userReferenceService.AuthReference.Value.AsT1.Permissions;
 
         await Clients.Caller.Welcome(Context.ConnectionId);
         var devicesOnline = _provider.RedisCollection<DeviceOnline>(false);

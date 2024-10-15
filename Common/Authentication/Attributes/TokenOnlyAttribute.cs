@@ -10,14 +10,15 @@ public sealed class TokenOnlyAttribute : Attribute, IAuthorizationFilter
 {
     public void OnAuthorization(AuthorizationFilterContext context)
     {
-        var tokenService = context.HttpContext.RequestServices.GetService<ITokenReferenceService<ApiToken>>();
-        if (tokenService == null)
+        var userReferenceService = context.HttpContext.RequestServices.GetRequiredService<IUserReferenceService>();
+
+        if (userReferenceService.AuthReference == null)
         {
             var error = AuthorizationError.UnknownError;
             context.Result = error.ToObjectResult(context.HttpContext);
             return;
         }
-
-        if (tokenService.Token == null) context.Result = AuthorizationError.TokenOnly.ToObjectResult(context.HttpContext);
+        
+        if (!userReferenceService.AuthReference.Value.IsT1) context.Result = AuthorizationError.TokenOnly.ToObjectResult(context.HttpContext);
     }
 }

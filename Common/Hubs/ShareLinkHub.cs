@@ -19,23 +19,23 @@ public sealed class ShareLinkHub : Hub<IShareLinkHub>
     private readonly IHubContext<UserHub, IUserHub> _userHub;
     private readonly ILogger<ShareLinkHub> _logger;
     private readonly IRedisPubService _redisPubService;
-    private readonly ITokenReferenceService<ApiToken> _tokenReferenceService;
+    private readonly IUserReferenceService _userReferenceService;
     private IReadOnlyCollection<PermissionType>? _tokenPermissions = null;
 
     public ShareLinkHub(OpenShockContext db, IHubContext<UserHub, IUserHub> userHub, ILogger<ShareLinkHub> logger,
-        IRedisConnectionProvider provider, IRedisPubService redisPubService, ITokenReferenceService<ApiToken> tokenReferenceService)
+        IRedisConnectionProvider provider, IRedisPubService redisPubService, IUserReferenceService userReferenceService)
     {
         _db = db;
         _userHub = userHub;
         _logger = logger;
         _redisPubService = redisPubService;
-        _tokenReferenceService = tokenReferenceService;
+        _userReferenceService = userReferenceService;
         _userSessions = provider.RedisCollection<LoginSession>(false);
     }
 
     public override async Task OnConnectedAsync()
     {
-        _tokenPermissions = _tokenReferenceService.Token?.Permissions;
+        _tokenPermissions = _userReferenceService.AuthReference is not { IsT1: true } ? null : _userReferenceService.AuthReference.Value.AsT1.Permissions;
         
         var httpContext = Context.GetHttpContext();
         if (httpContext?.GetRouteValue("Id") is not string param || !Guid.TryParse(param, out var id))

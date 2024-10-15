@@ -10,14 +10,15 @@ public sealed class UserSessionOnlyAttribute : Attribute, IAuthorizationFilter
 {
     public void OnAuthorization(AuthorizationFilterContext context)
     {
-        var tokenService = context.HttpContext.RequestServices.GetService<ITokenReferenceService<ApiToken>>();
-        if (tokenService == null)
+        var userReferenceService = context.HttpContext.RequestServices.GetRequiredService<IUserReferenceService>();
+        
+        if (userReferenceService.AuthReference == null)
         {
             var error = AuthorizationError.UnknownError;
             context.Result = error.ToObjectResult(context.HttpContext);
             return;
         }
-
-        if (tokenService.Token != null) context.Result = AuthorizationError.UserSessionOnly.ToObjectResult(context.HttpContext);
+        
+        if (!userReferenceService.AuthReference.Value.IsT0) context.Result = AuthorizationError.UserSessionOnly.ToObjectResult(context.HttpContext);
     }
 }

@@ -26,11 +26,12 @@ public class AuthenticatedSessionControllerBase : OpenShockControllerBase, IActi
     [NonAction]
     public bool IsAllowed(PermissionType requiredType)
     {
-        var tokenService = HttpContext.RequestServices.GetService<ITokenReferenceService<ApiToken>>();
+        var userReferenceService = HttpContext.RequestServices.GetRequiredService<IUserReferenceService>();
         
-        // We are in a session
-        if (tokenService?.Token == null) return true;
+        if(userReferenceService.AuthReference == null) throw new Exception("UserReferenceService.AuthReference is null, this should not happen");
         
-        return requiredType.IsAllowed(tokenService.Token.Permissions);
+        if (userReferenceService.AuthReference.Value.IsT0) return true; // We are in a session
+        
+        return requiredType.IsAllowed(userReferenceService.AuthReference.Value.AsT1.Permissions);
     }
 }

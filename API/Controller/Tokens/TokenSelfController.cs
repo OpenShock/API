@@ -12,24 +12,29 @@ public sealed partial class TokensController
     /// <summary>
     /// Gets information about the current token used to access this endpoint
     /// </summary>
-    /// <param name="tokenService"></param>
+    /// <param name="userReferenceService"></param>
     /// <returns></returns>
     /// <exception cref="Exception"></exception>
     [HttpGet("self")]
     [TokenOnly]
     [ProducesSuccess<TokenResponse>]
-    public TokenResponse GetSelfToken([FromServices] ITokenReferenceService<ApiToken> tokenService)
+    public TokenResponse GetSelfToken([FromServices] IUserReferenceService userReferenceService)
     {
-        var x = tokenService.Token;
-        if (x?.Token == null) throw new Exception("This should not be reachable due to the [TokenOnly] attribute");
+        var x = userReferenceService.AuthReference;
+        
+        if (x == null) throw new Exception("This should not be reachable due to AuthenticatedSession requirement");
+        if (!x.Value.IsT1) throw new Exception("This should not be reachable due to the [TokenOnly] attribute");
+        
+        var token = x.Value.AsT1;
+        
         return new TokenResponse
         {
-            CreatedOn = x.CreatedOn,
-            ValidUntil = x.ValidUntil,
-            LastUsed = x.LastUsed,
-            Permissions = x.Permissions,
-            Name = x.Name,
-            Id = x.Id
+            CreatedOn = token.CreatedOn,
+            ValidUntil = token.ValidUntil,
+            LastUsed = token.LastUsed,
+            Permissions = token.Permissions,
+            Name = token.Name,
+            Id = token.Id
         };
     }
 }

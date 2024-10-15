@@ -18,20 +18,20 @@ public sealed class TokenPermissionAttribute : Attribute, IAuthorizationFilter
 
     public void OnAuthorization(AuthorizationFilterContext context)
     {
-        var tokenService = context.HttpContext.RequestServices.GetService<ITokenReferenceService<ApiToken>>();
-        if (tokenService == null)
+        var tokenService = context.HttpContext.RequestServices.GetRequiredService<IUserReferenceService>();
+        if (tokenService.AuthReference == null)
         {
             var error = AuthorizationError.UnknownError;
             context.Result = error.ToObjectResult(context.HttpContext);
             return;
         }
 
-        if (tokenService.Token == null) return;
-        
-        if(_type.IsAllowed(tokenService.Token.Permissions)) return;
-        
-    var missingPermissionError =
-            AuthorizationError.TokenPermissionMissing(_type, tokenService.Token.Permissions);
+        if (tokenService.AuthReference.Value.IsT0) return;
+
+        if (_type.IsAllowed(tokenService.AuthReference.Value.AsT1.Permissions)) return;
+
+        var missingPermissionError =
+            AuthorizationError.TokenPermissionMissing(_type, tokenService.AuthReference.Value.AsT1.Permissions);
         context.Result = missingPermissionError.ToObjectResult(context.HttpContext);
     }
 }
