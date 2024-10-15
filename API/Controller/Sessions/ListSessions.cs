@@ -7,7 +7,7 @@ namespace OpenShock.API.Controller.Sessions;
 public sealed partial class SessionsController
 {
     [HttpGet]
-    [ProducesSlimSuccess]
+    [ProducesSlimSuccess<IEnumerable<LoginSessionResponse>>]
     public async Task<IEnumerable<LoginSessionResponse>> ListSessions()
     {
         
