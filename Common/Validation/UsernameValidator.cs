@@ -18,7 +18,7 @@ public static class UsernameValidator
             return new UsernameError(UsernameErrorType.TooLong, "Username is too long.");
         }
 
-        if (char.IsWhiteSpace(username[0]) || char.IsWhiteSpace(username[^1]))
+        if (char.IsWhiteSpace(username, 0) || char.IsWhiteSpace(username, username.Length - 1))
         {
             return new UsernameError(UsernameErrorType.StartOrEndWithWhitespace, "Username cannot start or end with whitespace.");
         }
@@ -29,7 +29,7 @@ public static class UsernameValidator
         }
 
         // Check if string contains any unwanted characters
-        if (CharsetMatchers.ContainsUnwantedUserInterfaceRunes(username))
+        if (CharsetMatchers.ContainsUndesiredUserInterfaceCharacters(username))
             return new UsernameError(UsernameErrorType.ObnoxiousCharacters, "Username must not contain obnoxious characters.");
 
         return new Success();

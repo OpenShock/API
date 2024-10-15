@@ -35,7 +35,7 @@ public static class TrustedProxiesFetcher
 
     private static string[] SplitNewLine(string content)
     {
-        return content.Split([' ', '\r', '\n', '\t'], StringSplitOptions.RemoveEmptyEntries);
+        return content.Split((char[])[' ', '\r', '\n', '\t'], StringSplitOptions.RemoveEmptyEntries);
     }
 
     private static async Task<string[]> FetchCloudflareIPsV4(HttpClient client, CancellationToken ct)

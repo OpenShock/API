@@ -42,7 +42,7 @@
         <PackageReference Include="OneOf" Version="3.0.271" />
         <PackageReference Include="Redis.OM" Version="0.7.5" />
         <PackageReference Include="Serilog" Version="4.0.2" />
-        <PackageReference Include="Serilog.AspNetCore" Version="8.0.2" />
+        <PackageReference Include="Serilog.AspNetCore" Version="8.0.3" />
         <PackageReference Include="Serilog.Sinks.Console" Version="6.0.0" />
         <PackageReference Include="Serilog.Sinks.Grafana.Loki" Version="8.3.0" />
         <PackageReference Include="StackExchange.Redis" Version="2.8.16" />
@@ -53,14 +53,14 @@
     </ItemGroup>
 
     <Target Name="SetSourceRevisionId" BeforeTargets="InitializeSourceControlInformation">
-        <Exec Command="git rev-parse HEAD" ConsoleToMSBuild="True" IgnoreExitCode="False">
+        <Exec Command="git rev-parse HEAD" IgnoreExitCode="False">
             <Output PropertyName="SourceRevisionId" TaskParameter="ConsoleOutput" />
         </Exec>
     </Target>
 
     <Target Name="SetHash" AfterTargets="InitializeSourceControlInformation">
         <ItemGroup>
-            <AssemblyAttribute Include="OpenShock.API.Utils.GitHashAttribute">
+            <AssemblyAttribute Include="OpenShock.Common.Utils.GitHashAttribute">
                 <_Parameter1>$(SourceRevisionId)</_Parameter1>
             </AssemblyAttribute>
         </ItemGroup>

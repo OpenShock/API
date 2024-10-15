@@ -310,8 +310,7 @@ public sealed class Startup
         redisConnection.CreateIndex(typeof(DeviceOnline));
         redisConnection.CreateIndex(typeof(DevicePair));
         redisConnection.CreateIndex(typeof(LcgNode));
-
-
+        
         if (!_apiConfig.Db.SkipMigration)
         {
             logger.LogInformation("Running database migrations...");

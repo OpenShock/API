@@ -4,23 +4,29 @@ namespace OpenShock.Common.Tests.Validation;
 
 internal class CharsetMatchersTests
 {
-    private readonly string whitelist;
+    private readonly string[] whitelist;
     private readonly string[] blacklist;
 
     public CharsetMatchersTests()
     {
-        whitelist = File.ReadAllText("Validation/DataSets/WhiteList.txt");
+        whitelist = File.ReadAllLines("Validation/DataSets/WhiteList.txt");
         blacklist = File.ReadAllLines("Validation/DataSets/BlackList.txt");
     }
 
     [Test]
     public async Task ContainsUnwanted_Whitelist_ReturnsFalse()
     {
-        // Act
-        bool result = CharsetMatchers.ContainsUnwantedUserInterfaceRunes(whitelist);
+        foreach (var line in whitelist)
+        {
+            // Skip empty lines
+            if (string.IsNullOrEmpty(line)) continue;
 
-        // Assert
-        await Assert.That(result).IsFalse();
+            // Act
+            bool result = CharsetMatchers.ContainsUndesiredUserInterfaceCharacters(line);
+
+            // Assert
+            await Assert.That(result).IsFalse();
+        }
     }
 
     [Test]
@@ -32,7 +38,7 @@ internal class CharsetMatchersTests
             if (string.IsNullOrEmpty(line)) continue;
 
             // Act
-            bool result = CharsetMatchers.ContainsUnwantedUserInterfaceRunes(line);
+            bool result = CharsetMatchers.ContainsUndesiredUserInterfaceCharacters(line);
 
             // Assert
             await Assert.That(result).IsTrue();
