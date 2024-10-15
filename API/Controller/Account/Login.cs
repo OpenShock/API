@@ -3,6 +3,7 @@ using OpenShock.API.Models.Requests;
 using System.Net;
 using Asp.Versioning;
 using OpenShock.API.Services.Account;
+using OpenShock.Common;
 using OpenShock.Common.Errors;
 using OpenShock.Common.Problems;
 
@@ -39,7 +40,7 @@ public sealed partial class AccountController
 
         HttpContext.Response.Cookies.Append("openShockSession", loginAction.AsT0.Value, new CookieOptions
         {
-            Expires = new DateTimeOffset(DateTime.UtcNow.Add(_accountService.SessionLifetime)),
+            Expires = new DateTimeOffset(DateTime.UtcNow.Add(Constants.LoginSessionLifetime)),
             Secure = true,
             HttpOnly = true,
             SameSite = SameSiteMode.Strict,

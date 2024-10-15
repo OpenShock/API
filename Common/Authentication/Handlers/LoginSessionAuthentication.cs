@@ -12,6 +12,7 @@ using OpenShock.Common.OpenShockDb;
 using OpenShock.Common.Problems;
 using OpenShock.Common.Redis;
 using OpenShock.Common.Services.BatchUpdate;
+using OpenShock.Common.Utils;
 using Redis.OM.Contracts;
 using Redis.OM.Searching;
 
@@ -41,7 +42,7 @@ public sealed class LoginSessionAuthentication : AuthenticationHandler<Authentic
         _db = db;
         _tokenReferenceService = tokenReferenceService;
         _batchUpdateService = batchUpdateService;
-        _userSessions = provider.RedisCollection<LoginSession>(false);
+        _userSessions = provider.RedisCollection<LoginSession>();
         _serializerOptions = jsonOptions.Value.SerializerOptions;
     }
 
@@ -95,6 +96,20 @@ public sealed class LoginSessionAuthentication : AuthenticationHandler<Authentic
         var session = await _userSessions.FindByIdAsync(sessionKey);
         if (session == null) return Fail(AuthResultError.SessionInvalid);
 
+        // This can be removed at a later point, this is just for upgrade purposes
+        if(UpdateOlderLoginSessions(session)) await _userSessions.SaveAsync();
+
+        if (session.Expires!.Value < DateTime.UtcNow.Subtract(Constants.LoginSessionExpansionAfter))
+        {
+#pragma warning disable CS4014
+            LucTask.Run(async () =>
+#pragma warning restore CS4014
+            {
+                session.Expires = DateTime.UtcNow.Add(Constants.LoginSessionLifetime);
+                await _userSessions.UpdateAsync(session, Constants.LoginSessionLifetime);
+            });
+        }
+        
         var retrievedUser = await _db.Users.FirstAsync(user => user.Id == session.UserId);
 
         _authService.CurrentClient = new LinkUser
@@ -114,6 +129,7 @@ public sealed class LoginSessionAuthentication : AuthenticationHandler<Authentic
 
         return AuthenticateResult.Success(ticket);
     }
+    
 
     private AuthenticateResult Fail(OpenShockProblem reason)
     {
@@ -128,5 +144,30 @@ public sealed class LoginSessionAuthentication : AuthenticationHandler<Authentic
         Response.StatusCode = _authResultError.Status!.Value;
         _authResultError.AddContext(Context);
         return Context.Response.WriteAsJsonAsync(_authResultError, _serializerOptions, contentType: "application/problem+json");
+    }
+    
+    public static bool UpdateOlderLoginSessions(LoginSession session)
+    {
+        var save = false;
+        
+        if (session.PublicId == null)
+        {
+            session.PublicId = Guid.NewGuid();
+            save = true;
+        }
+
+        if (session.Created == null)
+        {
+            session.Created = DateTime.UtcNow;
+            save = true;
+        }
+
+        if (session.Expires == null)
+        {
+            session.Expires = DateTime.UtcNow.Add(Constants.LoginSessionLifetime);
+            save = true;
+        }
+
+        return save;
     }
 }

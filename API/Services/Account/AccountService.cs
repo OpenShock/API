@@ -47,8 +47,6 @@ public sealed class AccountService : IAccountService
         _loginSessions = redisConnectionProvider.RedisCollection<LoginSession>(false);
     }
 
-    public TimeSpan SessionLifetime { get; } = TimeSpan.FromDays(30);
-
     /// <inheritdoc />
     public Task<OneOf<Success<User>, AccountWithEmailOrUsernameExists>> CreateAccount(string email, string username,
         string password)
@@ -130,8 +128,11 @@ public sealed class AccountService : IAccountService
             Id = randomSessionId,
             UserId = user.Id,
             UserAgent = loginContext.UserAgent,
-            Ip = loginContext.Ip
-        }, SessionLifetime);
+            Ip = loginContext.Ip,
+            PublicId = Guid.NewGuid(),
+            Created = DateTime.UtcNow,
+            Expires = DateTime.UtcNow.Add(Constants.LoginSessionLifetime),
+        }, Constants.LoginSessionLifetime);
 
         return new Success<string>(randomSessionId);
     }
@@ -217,8 +218,8 @@ public sealed class AccountService : IAccountService
         ChangeUsername(Guid userId,
             string username, bool ignoreLimit = false)
     {
-        var sevenDaysAgo = DateTime.UtcNow.AddDays(-7);
-        if (await _db.UsersNameChanges.Where(x => x.UserId == userId && x.CreatedOn >= sevenDaysAgo).AnyAsync())
+        var cooldownSubtracted = DateTime.UtcNow.Subtract(Constants.NameChangeCooldown);
+        if (await _db.UsersNameChanges.Where(x => x.UserId == userId && x.CreatedOn >= cooldownSubtracted).AnyAsync())
         {
             return new Error<OneOf<UsernameTaken, UsernameError, RecentlyChanged>>(new RecentlyChanged());
         }
