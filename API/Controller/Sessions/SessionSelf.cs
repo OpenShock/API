@@ -15,7 +15,7 @@ public sealed partial class SessionsController
     /// <returns></returns>
     /// <exception cref="Exception"></exception>
     [HttpGet("self")]
-    [TokenOnly]
+    [UserSessionOnly]
     [ProducesSlimSuccess<LoginSessionResponse>]
     public LoginSessionResponse GetSelfSession([FromServices] IUserReferenceService userReferenceService)
     {
