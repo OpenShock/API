@@ -95,7 +95,7 @@ public sealed class LoginSessionAuthentication : AuthenticationHandler<Authentic
         var session = await _userSessions.FindByIdAsync(sessionKey);
         if (session == null) return Fail(AuthResultError.SessionInvalid);
 
-        if(await UpdateOlderLoginSessions(session)) await _userSessions.SaveAsync();
+        if(UpdateOlderLoginSessions(session)) await _userSessions.SaveAsync();
 
         var retrievedUser = await _db.Users.FirstAsync(user => user.Id == session.UserId);
 
@@ -133,7 +133,7 @@ public sealed class LoginSessionAuthentication : AuthenticationHandler<Authentic
         return Context.Response.WriteAsJsonAsync(_authResultError, _serializerOptions, contentType: "application/problem+json");
     }
     
-    public static async Task<bool> UpdateOlderLoginSessions(LoginSession session)
+    public static bool UpdateOlderLoginSessions(LoginSession session)
     {
         var save = false;
         

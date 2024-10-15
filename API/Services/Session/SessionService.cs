@@ -34,7 +34,7 @@ public sealed class SessionService : ISessionService
         var needsSave = false;
         foreach (var session in sessions)
         {
-            if(await LoginSessionAuthentication.UpdateOlderLoginSessions(session)) needsSave = true;
+            if(LoginSessionAuthentication.UpdateOlderLoginSessions(session)) needsSave = true;
         }
         if(needsSave) await _loginSessions.SaveAsync();
         
