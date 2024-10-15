@@ -8,14 +8,14 @@ namespace OpenShock.API.Controller.Sessions;
 public sealed partial class SessionsController
 {
     [HttpDelete("{sessionId}")]
-    [ProducesSuccess]
+    [ProducesSlimSuccess]
     [ProducesProblem(HttpStatusCode.NotFound, "SessionNotFound")]
     public async Task<IActionResult> DeleteSession(Guid sessionId)
     {
         var result = await _sessionService.DeleteSession(CurrentUser.DbUser.Id, sessionId);
 
         return result.Match(
-            success => RespondSuccessSimple("Successfully deleted session"),
+            success => RespondSlimSuccess(),
             error => Problem(SessionError.SessionNotFound));
     }
 }
