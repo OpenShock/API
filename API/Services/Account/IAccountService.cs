@@ -10,8 +10,6 @@ namespace OpenShock.API.Services.Account;
 /// </summary>
 public interface IAccountService
 {
-    public TimeSpan SessionLifetime { get; }
-    
     /// <summary>
     /// Creates an account 
     /// </summary>

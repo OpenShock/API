@@ -17,6 +17,7 @@ using OpenShock.API.Services;
 using OpenShock.API.Services.Account;
 using OpenShock.API.Services.Email.Mailjet;
 using OpenShock.API.Services.Email.Smtp;
+using OpenShock.API.Services.Session;
 using OpenShock.Common;
 using OpenShock.Common.Authentication;
 using OpenShock.Common.Authentication.Handlers;
@@ -195,6 +196,7 @@ public sealed class Startup
         services.AddScoped<IDeviceUpdateService, DeviceUpdateService>();
         services.AddScoped<IOtaService, OtaService>();
         services.AddScoped<IAccountService, AccountService>();
+        services.AddScoped<ISessionService, SessionService>();
 
         var apiVersioningBuilder = services.AddApiVersioning(options =>
         {

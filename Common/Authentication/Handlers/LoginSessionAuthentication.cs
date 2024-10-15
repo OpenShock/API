@@ -41,7 +41,7 @@ public sealed class LoginSessionAuthentication : AuthenticationHandler<Authentic
         _db = db;
         _tokenReferenceService = tokenReferenceService;
         _batchUpdateService = batchUpdateService;
-        _userSessions = provider.RedisCollection<LoginSession>(false);
+        _userSessions = provider.RedisCollection<LoginSession>();
         _serializerOptions = jsonOptions.Value.SerializerOptions;
     }
 
@@ -95,6 +95,8 @@ public sealed class LoginSessionAuthentication : AuthenticationHandler<Authentic
         var session = await _userSessions.FindByIdAsync(sessionKey);
         if (session == null) return Fail(AuthResultError.SessionInvalid);
 
+        if(await UpdateOlderLoginSessions(session)) await _userSessions.SaveAsync();
+
         var retrievedUser = await _db.Users.FirstAsync(user => user.Id == session.UserId);
 
         _authService.CurrentClient = new LinkUser
@@ -114,6 +116,7 @@ public sealed class LoginSessionAuthentication : AuthenticationHandler<Authentic
 
         return AuthenticateResult.Success(ticket);
     }
+    
 
     private AuthenticateResult Fail(OpenShockProblem reason)
     {
@@ -128,5 +131,30 @@ public sealed class LoginSessionAuthentication : AuthenticationHandler<Authentic
         Response.StatusCode = _authResultError.Status!.Value;
         _authResultError.AddContext(Context);
         return Context.Response.WriteAsJsonAsync(_authResultError, _serializerOptions, contentType: "application/problem+json");
+    }
+    
+    public static async Task<bool> UpdateOlderLoginSessions(LoginSession session)
+    {
+        var save = false;
+        
+        if (session.PublicId == null)
+        {
+            session.PublicId = Guid.NewGuid();
+            save = true;
+        }
+
+        if (session.Created == null)
+        {
+            session.Created = DateTime.UtcNow;
+            save = true;
+        }
+
+        if (session.Expires == null)
+        {
+            session.Expires = DateTime.UtcNow.Add(Constants.LoginSessionLifetime);
+            save = true;
+        }
+
+        return save;
     }
 }
