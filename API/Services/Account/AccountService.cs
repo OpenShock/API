@@ -219,7 +219,7 @@ public sealed class AccountService : IAccountService
             string username, bool ignoreLimit = false)
     {
         var cooldownSubtracted = DateTime.UtcNow.Subtract(Constants.NameChangeCooldown);
-        if (await _db.UsersNameChanges.Where(x => x.UserId == userId && x.CreatedOn >= cooldownSubtracted).AnyAsync())
+        if (!ignoreLimit && await _db.UsersNameChanges.Where(x => x.UserId == userId && x.CreatedOn >= cooldownSubtracted).AnyAsync())
         {
             return new Error<OneOf<UsernameTaken, UsernameError, RecentlyChanged>>(new RecentlyChanged());
         }

@@ -166,7 +166,7 @@ public sealed partial class ShockerController
     }
 
     /// <summary>
-    /// Update a share code for a shocker
+    /// Update a share for a shocker
     /// </summary>
     /// <param name="shockerId"></param>
     /// <param name="sharedWithUserId"></param>
