@@ -41,13 +41,15 @@ public static class DistanceLookup
     {
         if (alpha2CountryA.IsUnknown() || alpha2CountryB.IsUnknown())
         {
-            distance = 0f;
+            distance = Constants.DistanceToAndromedaGalaxyInKm;
+
             return false;
         }
 
         if (!Distances.TryGetValue(Alpha2CountryCode.GetCombinedHashCode(alpha2CountryA, alpha2CountryB), out distance))
         {
-            distance = 0f;
+            distance = Constants.DistanceToAndromedaGalaxyInKm;
+
             return false;
         }
 

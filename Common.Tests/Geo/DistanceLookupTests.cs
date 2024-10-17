@@ -29,6 +29,6 @@ public class DistanceLookupTests
 
         // Assert
         await Assert.That(result).IsFalse();
-        await Assert.That(distance).IsEqualTo(0f);
+        await Assert.That(distance).IsEqualTo(Constants.DistanceToAndromedaGalaxyInKm);
     }
 }
