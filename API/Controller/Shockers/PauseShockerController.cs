@@ -30,7 +30,7 @@ public sealed partial class ShockerController
         [FromServices] IDeviceUpdateService deviceUpdateService)
     {
         var shocker = await _db.Shockers.Where(x => x.Id == shockerId && x.DeviceNavigation.Owner == CurrentUser.DbUser.Id)
-            .SingleOrDefaultAsync();
+            .FirstOrDefaultAsync();
         if (shocker == null) return Problem(ShockerError.ShockerNotFound);
         shocker.Paused = body.Pause;
         await _db.SaveChangesAsync();

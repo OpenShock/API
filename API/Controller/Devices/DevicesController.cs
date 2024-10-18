@@ -56,7 +56,7 @@ public sealed partial class DevicesController
                 Name = x.Name,
                 CreatedOn = x.CreatedOn,
                 Token = hasAuthPerms ? x.Token : null
-            }).SingleOrDefaultAsync();
+            }).FirstOrDefaultAsync();
         if (device == null) return Problem(DeviceError.DeviceNotFound);
 
         return RespondSuccess(device);
@@ -77,7 +77,7 @@ public sealed partial class DevicesController
     public async Task<IActionResult> EditDevice([FromRoute] Guid deviceId, [FromBody] DeviceEdit body, [FromServices] IDeviceUpdateService updateService)
     {
         var device = await _db.Devices.Where(x => x.Owner == CurrentUser.DbUser.Id && x.Id == deviceId)
-            .SingleOrDefaultAsync();
+            .FirstOrDefaultAsync();
         if (device == null) return Problem(DeviceError.DeviceNotFound);
 
         device.Name = body.Name;
@@ -102,7 +102,7 @@ public sealed partial class DevicesController
     public async Task<IActionResult> RegenerateDeviceToken([FromRoute] Guid deviceId)
     {
         var device = await _db.Devices.Where(x => x.Owner == CurrentUser.DbUser.Id && x.Id == deviceId)
-            .SingleOrDefaultAsync();
+            .FirstOrDefaultAsync();
         if (device == null) return Problem(DeviceError.DeviceNotFound);
 
         device.Token = CryptoUtils.RandomString(256);

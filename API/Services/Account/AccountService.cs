@@ -142,7 +142,7 @@ public sealed class AccountService : IAccountService
         CancellationToken cancellationToken = default)
     {
         var validUntil = DateTime.UtcNow.Add(Constants.PasswordResetRequestLifetime);
-        var reset = await _db.PasswordResets.SingleOrDefaultAsync(x =>
+        var reset = await _db.PasswordResets.FirstOrDefaultAsync(x =>
                 x.Id == passwordResetId && x.UsedOn == null && x.CreatedOn < validUntil,
             cancellationToken: cancellationToken);
 
@@ -187,7 +187,7 @@ public sealed class AccountService : IAccountService
     {
         var validUntil = DateTime.UtcNow.Add(Constants.PasswordResetRequestLifetime);
 
-        var reset = await _db.PasswordResets.Include(x => x.User).SingleOrDefaultAsync(x =>
+        var reset = await _db.PasswordResets.Include(x => x.User).FirstOrDefaultAsync(x =>
             x.Id == passwordResetId && x.UsedOn == null && x.CreatedOn < validUntil);
 
         if (reset == null) return new NotFound();
