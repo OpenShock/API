@@ -13,7 +13,7 @@ public partial class Device
 
     public DateTime CreatedOn { get; set; }
 
-    public string TokenHash { get; set; } = null!;
+    public string Token { get; set; } = null!;
 
     public virtual ICollection<DeviceOtaUpdate> DeviceOtaUpdates { get; set; } = new List<DeviceOtaUpdate>();
 

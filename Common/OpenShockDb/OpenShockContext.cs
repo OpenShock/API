@@ -111,9 +111,9 @@ public partial class OpenShockContext : DbContext
                 .HasColumnType("character varying")
                 .HasColumnName("name");
             entity.Property(e => e.Owner).HasColumnName("owner");
-            entity.Property(e => e.TokenHash)
+            entity.Property(e => e.Token)
                 .HasMaxLength(256)
-                .HasColumnName("token_hash");
+                .HasColumnName("token");
 
             entity.HasOne(d => d.OwnerNavigation).WithMany(p => p.Devices)
                 .HasForeignKey(d => d.Owner)

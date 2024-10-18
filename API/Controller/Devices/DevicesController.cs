@@ -55,7 +55,7 @@ public sealed partial class DevicesController
                 Id = x.Id,
                 Name = x.Name,
                 CreatedOn = x.CreatedOn,
-                Token = hasAuthPerms ? x.TokenHash : null
+                Token = hasAuthPerms ? x.Token : null
             }).SingleOrDefaultAsync();
         if (device == null) return Problem(DeviceError.DeviceNotFound);
 
@@ -105,7 +105,7 @@ public sealed partial class DevicesController
             .SingleOrDefaultAsync();
         if (device == null) return Problem(DeviceError.DeviceNotFound);
 
-        device.TokenHash = CryptoUtils.RandomString(256);
+        device.Token = CryptoUtils.RandomString(256);
 
         var affected = await _db.SaveChangesAsync();
         if (affected <= 0) throw new Exception("Failed to save regenerated token");
@@ -144,21 +144,18 @@ public sealed partial class DevicesController
     [ProducesSuccess<Guid>(statusCode: HttpStatusCode.Created)]
     public async Task<BaseResponse<Guid>> CreateDevice([FromServices] IDeviceUpdateService updateService)
     {
-        string token = CryptoUtils.RandomString(256);
-
         var device = new Common.OpenShockDb.Device
         {
             Id = Guid.NewGuid(),
             Owner = CurrentUser.DbUser.Id,
             Name = $"New Device {DateTimeOffset.UtcNow}",
-            TokenHash = HashingUtils.HashSha256(token),
+            Token = CryptoUtils.RandomString(256)
         };
         _db.Devices.Add(device);
         await _db.SaveChangesAsync();
         
         await updateService.UpdateDevice(CurrentUser.DbUser.Id, device.Id, DeviceUpdateType.Created);
         
-        // TODO: Return token too
         Response.StatusCode = (int)HttpStatusCode.Created;
         return new BaseResponse<Guid>
         {
@@ -177,13 +174,13 @@ public sealed partial class DevicesController
     [TokenPermission(PermissionType.Devices_Edit)]
     [ProducesSuccess<string>]
     [ProducesProblem(HttpStatusCode.NotFound, "DeviceNotFound")]
-    public async Task<IActionResult> CreatePairCode([FromRoute] Guid deviceId)
+    public async Task<IActionResult> GetPairCode([FromRoute] Guid deviceId)
     {
         var devicePairs = _redis.RedisCollection<DevicePair>();
 
         var deviceExists = await _db.Devices.AnyAsync(x => x.Id == deviceId && x.Owner == CurrentUser.DbUser.Id);
         if (!deviceExists) Problem(DeviceError.DeviceNotFound);
-        // TODO: replace with unlink?
+        // replace with unlink?
         var existing = await devicePairs.FindByIdAsync(deviceId.ToString());
         if (existing != null) await devicePairs.DeleteAsync(existing);
 
