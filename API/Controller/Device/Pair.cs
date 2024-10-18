@@ -6,6 +6,7 @@ using Redis.OM;
 using System.Net;
 using OpenShock.Common.Errors;
 using OpenShock.Common.Problems;
+using OpenShock.Common.Utils;
 
 namespace OpenShock.API.Controller.Device;
 
@@ -26,6 +27,7 @@ public sealed partial class DeviceController
     {
         var devicePairs = _redis.RedisCollection<DevicePair>();
 
+        // TODO: Create device on pair code redemption?
         var pair = await devicePairs.Where(x => x.PairCode == pairCode).SingleOrDefaultAsync();
         if (pair == null) return Problem(PairError.PairCodeNotFound);
         await devicePairs.DeleteAsync(pair);
@@ -33,6 +35,12 @@ public sealed partial class DeviceController
         var device = await _db.Devices.SingleOrDefaultAsync(x => x.Id == pair.Id);
         if (device == null) throw new Exception("Device not found for pair code");
 
-        return RespondSuccess(device.Token);
+        string token = CryptoUtils.RandomString(256);
+
+        device.TokenHash = HashingUtils.HashSha256(token);
+
+        await _db.SaveChangesAsync();
+
+        return RespondSuccess(token);
     }
 }

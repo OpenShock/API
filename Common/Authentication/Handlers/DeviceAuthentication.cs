@@ -9,6 +9,7 @@ using OpenShock.Common.Authentication.Services;
 using OpenShock.Common.Errors;
 using OpenShock.Common.OpenShockDb;
 using OpenShock.Common.Problems;
+using OpenShock.Common.Utils;
 
 namespace OpenShock.Common.Authentication.Handlers;
 
@@ -40,21 +41,23 @@ public sealed class DeviceAuthentication : AuthenticationHandler<AuthenticationS
 
     protected override async Task<AuthenticateResult> HandleAuthenticateAsync()
     {
-        string sessionKey;
+        string token;
 
-        if (Context.Request.Headers.TryGetValue("DeviceToken", out var sessionKeyHeader) &&
-            !string.IsNullOrEmpty(sessionKeyHeader))
+        if (Context.Request.Headers.TryGetValue("DeviceToken", out var deviceTokenHeader) &&
+            !string.IsNullOrEmpty(deviceTokenHeader))
         {
-            sessionKey = sessionKeyHeader!;
+            token = deviceTokenHeader!;
         }
-        else if (Context.Request.Headers.TryGetValue("Device-Token", out var sessionKeyHeader2) &&
-                            !string.IsNullOrEmpty(sessionKeyHeader2))
+        else if (Context.Request.Headers.TryGetValue("Device-Token", out var deviceTokenHeader2) &&
+                            !string.IsNullOrEmpty(deviceTokenHeader2))
         {
-            sessionKey = sessionKeyHeader2!;
+            token = deviceTokenHeader2!;
         }
         else return Fail(AuthResultError.HeaderMissingOrInvalid);
 
-        var device = await _db.Devices.Where(x => x.Token == sessionKey).SingleOrDefaultAsync();
+        string tokenHash = HashingUtils.HashSha256(token);
+
+        var device = await _db.Devices.Where(x => x.TokenHash == tokenHash).SingleOrDefaultAsync();
         if (device == null) return Fail(AuthResultError.TokenInvalid);
 
         _authService.CurrentClient = device;

@@ -10,7 +10,7 @@ public partial class ApiToken
 
     public string Name { get; set; } = null!;
 
-    public string Token { get; set; } = null!;
+    public string TokenHash { get; set; } = null!;
 
     public Guid UserId { get; set; }
 

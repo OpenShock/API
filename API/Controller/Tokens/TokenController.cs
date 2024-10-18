@@ -98,22 +98,24 @@ public sealed partial class TokensController
     [ProducesSlimSuccess<TokenCreatedResponse>]
     public async Task<TokenCreatedResponse> CreateToken([FromBody] CreateTokenRequest body)
     {
-        var token = new ApiToken
+        string token = CryptoUtils.RandomString(64);
+
+        var tokenDto = new ApiToken
         {
             UserId = CurrentUser.DbUser.Id,
-            Token = CryptoUtils.RandomString(64),
+            TokenHash = HashingUtils.HashSha256(token),
             CreatedByIp = HttpContext.Connection.RemoteIpAddress?.ToString() ?? "error",
             Permissions = body.Permissions.Distinct().ToList(),
             Id = Guid.NewGuid(),
             Name = body.Name,
             ValidUntil = body.ValidUntil?.ToUniversalTime()
         };
-        _db.ApiTokens.Add(token);
+        _db.ApiTokens.Add(tokenDto);
         await _db.SaveChangesAsync();
 
         return new TokenCreatedResponse
         {
-            Token = token.Token
+            Token = token,
         };
     }
 

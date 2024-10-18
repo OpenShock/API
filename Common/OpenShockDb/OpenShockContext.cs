@@ -82,9 +82,9 @@ public partial class OpenShockContext : DbContext
             entity.Property(e => e.Name)
                 .HasMaxLength(64)
                 .HasColumnName("name");
-            entity.Property(e => e.Token)
+            entity.Property(e => e.TokenHash)
                 .HasMaxLength(256)
-                .HasColumnName("token");
+                .HasColumnName("token_hash");
             entity.Property(e => e.UserId).HasColumnName("user_id");
             entity.Property(e => e.ValidUntil).HasColumnName("valid_until");
 
@@ -111,9 +111,9 @@ public partial class OpenShockContext : DbContext
                 .HasColumnType("character varying")
                 .HasColumnName("name");
             entity.Property(e => e.Owner).HasColumnName("owner");
-            entity.Property(e => e.Token)
+            entity.Property(e => e.TokenHash)
                 .HasMaxLength(256)
-                .HasColumnName("token");
+                .HasColumnName("token_hash");
 
             entity.HasOne(d => d.OwnerNavigation).WithMany(p => p.Devices)
                 .HasForeignKey(d => d.Owner)
