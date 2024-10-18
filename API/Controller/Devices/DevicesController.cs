@@ -184,15 +184,16 @@ public sealed partial class DevicesController
         var existing = await devicePairs.FindByIdAsync(deviceId.ToString());
         if (existing != null) await devicePairs.DeleteAsync(existing);
 
-        var r = new Random();
-        var pairCode = new DevicePair
+        string pairCode = CryptoUtils.RandomNumericString(6);
+
+        var devicePairDto = new DevicePair
         {
             Id = deviceId,
-            PairCode = r.Next(0, 1000000).ToString("000000")
+            PairCode = pairCode
         };
-        await devicePairs.InsertAsync(pairCode, TimeSpan.FromMinutes(15));
+        await devicePairs.InsertAsync(devicePairDto, TimeSpan.FromMinutes(15));
 
-        return RespondSuccess(pairCode.PairCode);
+        return RespondSuccess(pairCode);
     }
 
     /// <summary>
