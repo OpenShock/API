@@ -31,7 +31,7 @@ public sealed partial class ShockerController
         [FromServices] IDeviceUpdateService deviceUpdateService)
     {
         var device = await _db.Devices.Where(x => x.Owner == CurrentUser.DbUser.Id && x.Id == body.Device)
-            .Select(x => x.Id).SingleOrDefaultAsync();
+            .Select(x => x.Id).FirstOrDefaultAsync();
         if (device == Guid.Empty) return Problem(DeviceError.DeviceNotFound);
         var shockerCount = await _db.Shockers.CountAsync(x => x.Device == body.Device);
 

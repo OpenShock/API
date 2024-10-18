@@ -67,7 +67,7 @@ public sealed class LoginSessionAuthentication : AuthenticationHandler<Authentic
 
     private async Task<AuthenticateResult> TokenAuth(string token)
     {
-        var tokenDto = await _db.ApiTokens.Include(x => x.User).SingleOrDefaultAsync(x => x.Token == token &&
+        var tokenDto = await _db.ApiTokens.Include(x => x.User).FirstOrDefaultAsync(x => x.Token == token &&
             (x.ValidUntil == null || x.ValidUntil >= DateTime.UtcNow));
         if (tokenDto == null) return Fail(AuthResultError.TokenInvalid);
 

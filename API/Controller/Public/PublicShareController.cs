@@ -58,7 +58,7 @@ public sealed partial class PublicController
                     Paused = ShareLinkUtils.GetPausedReason(y.Paused, y.Shocker.Paused),
                 }
             })
-        }).SingleOrDefaultAsync();
+        }).FirstOrDefaultAsync();
 
         if (shareLink == null) return RespondSuccess(ShareLinkError.ShareLinkNotFound);
         

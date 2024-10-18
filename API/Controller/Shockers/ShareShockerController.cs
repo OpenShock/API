@@ -112,7 +112,7 @@ public sealed partial class ShockerController
     )
     {
         var device = await _db.Shockers.Where(x => x.DeviceNavigation.Owner == CurrentUser.DbUser.Id && x.Id == shockerId)
-            .Select(x => x.Device).SingleOrDefaultAsync();
+            .Select(x => x.Device).FirstOrDefaultAsync();
         if (device == Guid.Empty) return Problem(ShockerError.ShockerNotFound);
 
         var newCode = new ShockerShareCode
@@ -189,7 +189,7 @@ public sealed partial class ShockerController
                 x.ShockerId == shockerId && x.SharedWith == sharedWithUserId &&
                 x.Shocker.DeviceNavigation.Owner == CurrentUser.DbUser.Id).Select(x =>
                 new { Share = x, DeviceId = x.Shocker.Device, Owner = x.Shocker.DeviceNavigation.Owner })
-            .SingleOrDefaultAsync();
+            .FirstOrDefaultAsync();
         if (affected == null) return Problem(ShockerError.ShockerNotFound);
 
         var share = affected.Share;
@@ -231,7 +231,7 @@ public sealed partial class ShockerController
         var affected = await _db.ShockerShares.Where(x =>
             x.ShockerId == shockerId && x.SharedWith == sharedWithUserId &&
             x.Shocker.DeviceNavigation.Owner == CurrentUser.DbUser.Id).Select(x =>
-            new { Share = x, DeviceId = x.Shocker.Device, Owner = x.Shocker.DeviceNavigation.Owner }).SingleOrDefaultAsync();
+            new { Share = x, DeviceId = x.Shocker.Device, Owner = x.Shocker.DeviceNavigation.Owner }).FirstOrDefaultAsync();
         if (affected == null) return Problem(ShockerError.ShockerNotFound);
 
         affected.Share.Paused = body.Pause;

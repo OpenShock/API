@@ -53,7 +53,7 @@ public sealed class SessionService : ISessionService
     public async Task<OneOf<Success, NotFound>> DeleteSession(Guid userId, Guid sessionId)
     {
         var session = await _loginSessions.Where(x => x.UserId == userId && x.PublicId == sessionId)
-            .SingleOrDefaultAsync();
+            .FirstOrDefaultAsync();
         if (session == null) return new NotFound();
 
         await _loginSessions.DeleteAsync(session);
