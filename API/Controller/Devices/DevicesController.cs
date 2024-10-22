@@ -72,9 +72,9 @@ public sealed partial class DevicesController
     /// <response code="404">Device does not exist</response>
     [HttpPatch("{deviceId}")]
     [TokenPermission(PermissionType.Devices_Edit)]
-    [ProducesSuccess]
+    [ProducesSlimSuccess]
     [ProducesProblem(HttpStatusCode.NotFound, "DeviceNotFound")]
-    public async Task<IActionResult> EditDevice([FromRoute] Guid deviceId, [FromBody] DeviceEdit body, [FromServices] IDeviceUpdateService updateService)
+    public async Task<IActionResult> EditDevice([FromRoute] Guid deviceId, [FromBody] HubEditRequest body, [FromServices] IDeviceUpdateService updateService)
     {
         var device = await _db.Devices.Where(x => x.Owner == CurrentUser.DbUser.Id && x.Id == deviceId)
             .FirstOrDefaultAsync();
@@ -85,7 +85,7 @@ public sealed partial class DevicesController
 
         await updateService.UpdateDeviceForAllShared(CurrentUser.DbUser.Id, device.Id, DeviceUpdateType.Updated);
 
-        return RespondSuccessSimple("Successfully updated device");
+        return RespondSlimSuccess();
     }
 
     /// <summary>
@@ -97,7 +97,7 @@ public sealed partial class DevicesController
     /// <response code="500">Failed to save regenerated token</response>
     [HttpPut("{deviceId}")]
     [TokenPermission(PermissionType.Devices_Edit)]
-    [ProducesSuccess]
+    [ProducesSlimSuccess]
     [ProducesProblem(HttpStatusCode.NotFound, "DeviceNotFound")]
     public async Task<IActionResult> RegenerateDeviceToken([FromRoute] Guid deviceId)
     {
@@ -110,7 +110,7 @@ public sealed partial class DevicesController
         var affected = await _db.SaveChangesAsync();
         if (affected <= 0) throw new Exception("Failed to save regenerated token");
 
-        return RespondSuccessSimple("Successfully regenerated device token");
+        return RespondSlimSuccess();
     }
 
     /// <summary>
@@ -122,7 +122,7 @@ public sealed partial class DevicesController
     /// <response code="404">Device does not exist</response>
     [HttpDelete("{deviceId}")]
     [TokenPermission(PermissionType.Devices_Edit)]
-    [ProducesSuccess]
+    [ProducesSlimSuccess]
     [ProducesProblem(HttpStatusCode.NotFound, "DeviceNotFound")]
     public async Task<IActionResult> RemoveDevice([FromRoute] Guid deviceId, [FromServices] IDeviceUpdateService updateService)
     {
@@ -132,7 +132,7 @@ public sealed partial class DevicesController
         
         await updateService.UpdateDeviceForAllShared(CurrentUser.DbUser.Id, deviceId, DeviceUpdateType.Deleted);
         
-        return RespondSuccessSimple("Successfully deleted device");
+        return RespondSlimSuccess();
     }
 
     /// <summary>
@@ -141,27 +141,25 @@ public sealed partial class DevicesController
     /// <response code="201">Successfully created device</response>
     [HttpPost]
     [TokenPermission(PermissionType.Devices_Edit)]
-    [ProducesSuccess<Guid>(statusCode: HttpStatusCode.Created)]
-    public async Task<BaseResponse<Guid>> CreateDevice([FromServices] IDeviceUpdateService updateService)
+    [ProducesSlimSuccess<Guid>(statusCode: HttpStatusCode.Created)]
+    public async Task<Guid> CreateDevice([FromBody] HubCreateRequest data, [FromServices] IDeviceUpdateService updateService)
     {
+        var hubName = data.Name ?? $"New Hub {DateTimeOffset.UtcNow:d}";
+        
         var device = new Common.OpenShockDb.Device
         {
             Id = Guid.NewGuid(),
             Owner = CurrentUser.DbUser.Id,
-            Name = $"New Device {DateTimeOffset.UtcNow}",
+            Name = hubName,
             Token = CryptoUtils.RandomString(256)
         };
         _db.Devices.Add(device);
         await _db.SaveChangesAsync();
         
         await updateService.UpdateDevice(CurrentUser.DbUser.Id, device.Id, DeviceUpdateType.Created);
-        
+
         Response.StatusCode = (int)HttpStatusCode.Created;
-        return new BaseResponse<Guid>
-        {
-            Message = "Successfully created device",
-            Data = device.Id
-        };
+        return device.Id;
     }
 
     /// <summary>
