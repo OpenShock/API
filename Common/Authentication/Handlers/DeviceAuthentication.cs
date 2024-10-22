@@ -54,7 +54,7 @@ public sealed class DeviceAuthentication : AuthenticationHandler<AuthenticationS
         }
         else return Fail(AuthResultError.HeaderMissingOrInvalid);
 
-        var device = await _db.Devices.Where(x => x.Token == sessionKey).SingleOrDefaultAsync();
+        var device = await _db.Devices.Where(x => x.Token == sessionKey).FirstOrDefaultAsync();
         if (device == null) return Fail(AuthResultError.TokenInvalid);
 
         _authService.CurrentClient = device;

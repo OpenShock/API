@@ -1,4 +1,5 @@
 ﻿using System.Net;
+using Asp.Versioning;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using OpenShock.API.Models.Requests;
@@ -21,6 +22,7 @@ public sealed partial class DevicesController
     /// <response code="200">All devices for the current user</response>
     [HttpGet]
     [ProducesSuccess<IEnumerable<Models.Response.ResponseDevice>>]
+    [MapToApiVersion("1")]
     public async Task<BaseResponse<IEnumerable<Models.Response.ResponseDevice>>> ListDevices()
     {
         var devices = await _db.Devices.Where(x => x.Owner == CurrentUser.DbUser.Id)
@@ -44,6 +46,7 @@ public sealed partial class DevicesController
     [HttpGet("{deviceId}")]
     [ProducesSuccess<Models.Response.ResponseDeviceWithToken>]
     [ProducesProblem(HttpStatusCode.NotFound, "DeviceNotFound")]
+    [MapToApiVersion("1")]
     public async Task<IActionResult> GetDeviceById([FromRoute] Guid deviceId)
     {
         var hasAuthPerms = IsAllowed(PermissionType.Devices_Auth);
@@ -56,7 +59,7 @@ public sealed partial class DevicesController
                 Name = x.Name,
                 CreatedOn = x.CreatedOn,
                 Token = hasAuthPerms ? x.Token : null
-            }).SingleOrDefaultAsync();
+            }).FirstOrDefaultAsync();
         if (device == null) return Problem(DeviceError.DeviceNotFound);
 
         return RespondSuccess(device);
@@ -72,12 +75,13 @@ public sealed partial class DevicesController
     /// <response code="404">Device does not exist</response>
     [HttpPatch("{deviceId}")]
     [TokenPermission(PermissionType.Devices_Edit)]
-    [ProducesSuccess]
+    [ProducesSlimSuccess]
     [ProducesProblem(HttpStatusCode.NotFound, "DeviceNotFound")]
-    public async Task<IActionResult> EditDevice([FromRoute] Guid deviceId, [FromBody] DeviceEdit body, [FromServices] IDeviceUpdateService updateService)
+    [MapToApiVersion("1")]
+    public async Task<IActionResult> EditDevice([FromRoute] Guid deviceId, [FromBody] HubEditRequest body, [FromServices] IDeviceUpdateService updateService)
     {
         var device = await _db.Devices.Where(x => x.Owner == CurrentUser.DbUser.Id && x.Id == deviceId)
-            .SingleOrDefaultAsync();
+            .FirstOrDefaultAsync();
         if (device == null) return Problem(DeviceError.DeviceNotFound);
 
         device.Name = body.Name;
@@ -85,7 +89,7 @@ public sealed partial class DevicesController
 
         await updateService.UpdateDeviceForAllShared(CurrentUser.DbUser.Id, device.Id, DeviceUpdateType.Updated);
 
-        return RespondSuccessSimple("Successfully updated device");
+        return RespondSlimSuccess();
     }
 
     /// <summary>
@@ -97,12 +101,13 @@ public sealed partial class DevicesController
     /// <response code="500">Failed to save regenerated token</response>
     [HttpPut("{deviceId}")]
     [TokenPermission(PermissionType.Devices_Edit)]
-    [ProducesSuccess]
+    [ProducesSlimSuccess]
     [ProducesProblem(HttpStatusCode.NotFound, "DeviceNotFound")]
+    [MapToApiVersion("1")]
     public async Task<IActionResult> RegenerateDeviceToken([FromRoute] Guid deviceId)
     {
         var device = await _db.Devices.Where(x => x.Owner == CurrentUser.DbUser.Id && x.Id == deviceId)
-            .SingleOrDefaultAsync();
+            .FirstOrDefaultAsync();
         if (device == null) return Problem(DeviceError.DeviceNotFound);
 
         device.Token = CryptoUtils.RandomString(256);
@@ -110,7 +115,7 @@ public sealed partial class DevicesController
         var affected = await _db.SaveChangesAsync();
         if (affected <= 0) throw new Exception("Failed to save regenerated token");
 
-        return RespondSuccessSimple("Successfully regenerated device token");
+        return RespondSlimSuccess();
     }
 
     /// <summary>
@@ -122,8 +127,9 @@ public sealed partial class DevicesController
     /// <response code="404">Device does not exist</response>
     [HttpDelete("{deviceId}")]
     [TokenPermission(PermissionType.Devices_Edit)]
-    [ProducesSuccess]
+    [ProducesSlimSuccess]
     [ProducesProblem(HttpStatusCode.NotFound, "DeviceNotFound")]
+    [MapToApiVersion("1")]
     public async Task<IActionResult> RemoveDevice([FromRoute] Guid deviceId, [FromServices] IDeviceUpdateService updateService)
     {
         var affected = await _db.Devices.Where(x => x.Owner == CurrentUser.DbUser.Id && x.Id == deviceId)
@@ -132,7 +138,7 @@ public sealed partial class DevicesController
         
         await updateService.UpdateDeviceForAllShared(CurrentUser.DbUser.Id, deviceId, DeviceUpdateType.Deleted);
         
-        return RespondSuccessSimple("Successfully deleted device");
+        return RespondSlimSuccess();
     }
 
     /// <summary>
@@ -141,27 +147,39 @@ public sealed partial class DevicesController
     /// <response code="201">Successfully created device</response>
     [HttpPost]
     [TokenPermission(PermissionType.Devices_Edit)]
-    [ProducesSuccess<Guid>(statusCode: HttpStatusCode.Created)]
-    public async Task<BaseResponse<Guid>> CreateDevice([FromServices] IDeviceUpdateService updateService)
+    [ProducesSlimSuccess<Guid>(statusCode: HttpStatusCode.Created)]
+    [MapToApiVersion("1")]
+    public Task<Guid> CreateDevice([FromServices] IDeviceUpdateService updateService)
+    => CreateDeviceV2(new HubCreateRequest
+        {
+            Name = $"New Hub {DateTimeOffset.UtcNow:d}"
+        }, updateService);
+    
+    
+    /// <summary>
+    /// Create a new device for the current user
+    /// </summary>
+    /// <response code="201">Successfully created device</response>
+    [HttpPost]
+    [TokenPermission(PermissionType.Devices_Edit)]
+    [ProducesSlimSuccess<Guid>(statusCode: HttpStatusCode.Created)]
+    [MapToApiVersion("2")]
+    public async Task<Guid> CreateDeviceV2([FromBody] HubCreateRequest data, [FromServices] IDeviceUpdateService updateService)
     {
         var device = new Common.OpenShockDb.Device
         {
             Id = Guid.NewGuid(),
             Owner = CurrentUser.DbUser.Id,
-            Name = $"New Device {DateTimeOffset.UtcNow}",
+            Name = data.Name,
             Token = CryptoUtils.RandomString(256)
         };
         _db.Devices.Add(device);
         await _db.SaveChangesAsync();
         
         await updateService.UpdateDevice(CurrentUser.DbUser.Id, device.Id, DeviceUpdateType.Created);
-        
+
         Response.StatusCode = (int)HttpStatusCode.Created;
-        return new BaseResponse<Guid>
-        {
-            Message = "Successfully created device",
-            Data = device.Id
-        };
+        return device.Id;
     }
 
     /// <summary>
@@ -174,6 +192,7 @@ public sealed partial class DevicesController
     [TokenPermission(PermissionType.Devices_Edit)]
     [ProducesSuccess<string>]
     [ProducesProblem(HttpStatusCode.NotFound, "DeviceNotFound")]
+    [MapToApiVersion("1")]
     public async Task<IActionResult> GetPairCode([FromRoute] Guid deviceId)
     {
         var devicePairs = _redis.RedisCollection<DevicePair>();
@@ -184,15 +203,16 @@ public sealed partial class DevicesController
         var existing = await devicePairs.FindByIdAsync(deviceId.ToString());
         if (existing != null) await devicePairs.DeleteAsync(existing);
 
-        var r = new Random();
-        var pairCode = new DevicePair
+        string pairCode = CryptoUtils.RandomNumericString(6);
+
+        var devicePairDto = new DevicePair
         {
             Id = deviceId,
-            PairCode = r.Next(0, 1000000).ToString("000000")
+            PairCode = pairCode
         };
-        await devicePairs.InsertAsync(pairCode, TimeSpan.FromMinutes(15));
+        await devicePairs.InsertAsync(devicePairDto, TimeSpan.FromMinutes(15));
 
-        return RespondSuccess(pairCode.PairCode);
+        return RespondSuccess(pairCode);
     }
 
     /// <summary>
@@ -209,6 +229,7 @@ public sealed partial class DevicesController
     [ProducesProblem(HttpStatusCode.NotFound, "DeviceNotFound")]
     [ProducesProblem(HttpStatusCode.NotFound, "DeviceIsNotOnline")]
     [ProducesProblem(HttpStatusCode.PreconditionFailed, "DeviceNotConnectedToGateway")]
+    [MapToApiVersion("1")]
     public async Task<IActionResult> GetLiveControlGatewayInfo([FromRoute] Guid deviceId)
     {
         // Check if user owns device or has a share

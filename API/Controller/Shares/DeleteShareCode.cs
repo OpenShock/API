@@ -20,7 +20,7 @@ public sealed partial class SharesController
     public async Task<IActionResult> DeleteShareCode([FromRoute] Guid shareCodeId)
     {
         var yes = await _db.ShockerShareCodes
-            .Where(x => x.Id == shareCodeId && x.Shocker.DeviceNavigation.Owner == CurrentUser.DbUser.Id).SingleOrDefaultAsync();
+            .Where(x => x.Id == shareCodeId && x.Shocker.DeviceNavigation.Owner == CurrentUser.DbUser.Id).FirstOrDefaultAsync();
         var affected = await _db.ShockerShareCodes.Where(x =>
             x.Id == shareCodeId && x.Shocker.DeviceNavigation.Owner == CurrentUser.DbUser.Id).ExecuteDeleteAsync();
         if (affected <= 0) return Problem(ShareCodeError.ShareCodeNotFound);

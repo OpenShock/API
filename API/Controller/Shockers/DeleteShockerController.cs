@@ -29,7 +29,7 @@ public sealed partial class ShockerController
         [FromServices] IDeviceUpdateService deviceUpdateService)
     {
         var affected = await _db.Shockers.Where(x => x.DeviceNavigation.Owner == CurrentUser.DbUser.Id && x.Id == shockerId)
-            .SingleOrDefaultAsync();
+            .FirstOrDefaultAsync();
 
         if (affected == null) return Problem(ShockerError.ShockerNotFound);
 

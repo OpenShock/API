@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Asp.Versioning;
+using Microsoft.AspNetCore.Mvc;
 using OpenShock.Common.Authentication.ControllerBase;
 using OpenShock.Common.OpenShockDb;
 using Redis.OM.Contracts;
@@ -10,6 +11,8 @@ namespace OpenShock.API.Controller.Devices;
 /// </summary>
 [ApiController]
 [Route("/{version:apiVersion}/devices")]
+[ApiVersion("1")]
+[ApiVersion("2")]
 public sealed partial class DevicesController : AuthenticatedSessionControllerBase
 {
     private readonly OpenShockContext _db;
