@@ -4,6 +4,7 @@ namespace OpenShock.API.Models.Requests;
 
 public sealed class HubCreateRequest
 {
+    [Required(AllowEmptyStrings = false)]
     [StringLength(32, MinimumLength = 1)]
-    public string? Name { get; set; } = null;
+    public required string Name { get; init; }
 }

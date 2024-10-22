@@ -1,4 +1,5 @@
 ﻿using System.Net;
+using Asp.Versioning;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using OpenShock.Common.Authentication.Attributes;
@@ -22,6 +23,7 @@ public sealed partial class DevicesController
     [UserSessionOnly]
     [ProducesSuccess<IReadOnlyCollection<OtaItem>>]
     [ProducesProblem(HttpStatusCode.NotFound, "DeviceNotFound")]
+    [MapToApiVersion("1")]
     public async Task<IActionResult> GetOtaUpdateHistory([FromRoute] Guid deviceId, [FromServices] IOtaService otaService)
     {
         // Check if user owns device or has a share

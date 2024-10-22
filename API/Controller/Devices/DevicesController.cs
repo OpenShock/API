@@ -1,4 +1,5 @@
 ﻿using System.Net;
+using Asp.Versioning;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using OpenShock.API.Models.Requests;
@@ -21,6 +22,7 @@ public sealed partial class DevicesController
     /// <response code="200">All devices for the current user</response>
     [HttpGet]
     [ProducesSuccess<IEnumerable<Models.Response.ResponseDevice>>]
+    [MapToApiVersion("1")]
     public async Task<BaseResponse<IEnumerable<Models.Response.ResponseDevice>>> ListDevices()
     {
         var devices = await _db.Devices.Where(x => x.Owner == CurrentUser.DbUser.Id)
@@ -44,6 +46,7 @@ public sealed partial class DevicesController
     [HttpGet("{deviceId}")]
     [ProducesSuccess<Models.Response.ResponseDeviceWithToken>]
     [ProducesProblem(HttpStatusCode.NotFound, "DeviceNotFound")]
+    [MapToApiVersion("1")]
     public async Task<IActionResult> GetDeviceById([FromRoute] Guid deviceId)
     {
         var hasAuthPerms = IsAllowed(PermissionType.Devices_Auth);
@@ -74,6 +77,7 @@ public sealed partial class DevicesController
     [TokenPermission(PermissionType.Devices_Edit)]
     [ProducesSlimSuccess]
     [ProducesProblem(HttpStatusCode.NotFound, "DeviceNotFound")]
+    [MapToApiVersion("1")]
     public async Task<IActionResult> EditDevice([FromRoute] Guid deviceId, [FromBody] HubEditRequest body, [FromServices] IDeviceUpdateService updateService)
     {
         var device = await _db.Devices.Where(x => x.Owner == CurrentUser.DbUser.Id && x.Id == deviceId)
@@ -99,6 +103,7 @@ public sealed partial class DevicesController
     [TokenPermission(PermissionType.Devices_Edit)]
     [ProducesSlimSuccess]
     [ProducesProblem(HttpStatusCode.NotFound, "DeviceNotFound")]
+    [MapToApiVersion("1")]
     public async Task<IActionResult> RegenerateDeviceToken([FromRoute] Guid deviceId)
     {
         var device = await _db.Devices.Where(x => x.Owner == CurrentUser.DbUser.Id && x.Id == deviceId)
@@ -124,6 +129,7 @@ public sealed partial class DevicesController
     [TokenPermission(PermissionType.Devices_Edit)]
     [ProducesSlimSuccess]
     [ProducesProblem(HttpStatusCode.NotFound, "DeviceNotFound")]
+    [MapToApiVersion("1")]
     public async Task<IActionResult> RemoveDevice([FromRoute] Guid deviceId, [FromServices] IDeviceUpdateService updateService)
     {
         var affected = await _db.Devices.Where(x => x.Owner == CurrentUser.DbUser.Id && x.Id == deviceId)
@@ -142,15 +148,29 @@ public sealed partial class DevicesController
     [HttpPost]
     [TokenPermission(PermissionType.Devices_Edit)]
     [ProducesSlimSuccess<Guid>(statusCode: HttpStatusCode.Created)]
-    public async Task<Guid> CreateDevice([FromBody] HubCreateRequest data, [FromServices] IDeviceUpdateService updateService)
+    [MapToApiVersion("1")]
+    public Task<Guid> CreateDevice([FromServices] IDeviceUpdateService updateService)
+    => CreateDeviceV2(new HubCreateRequest
+        {
+            Name = $"New Hub {DateTimeOffset.UtcNow:d}"
+        }, updateService);
+    
+    
+    /// <summary>
+    /// Create a new device for the current user
+    /// </summary>
+    /// <response code="201">Successfully created device</response>
+    [HttpPost]
+    [TokenPermission(PermissionType.Devices_Edit)]
+    [ProducesSlimSuccess<Guid>(statusCode: HttpStatusCode.Created)]
+    [MapToApiVersion("2")]
+    public async Task<Guid> CreateDeviceV2([FromBody] HubCreateRequest data, [FromServices] IDeviceUpdateService updateService)
     {
-        var hubName = data.Name ?? $"New Hub {DateTimeOffset.UtcNow:d}";
-        
         var device = new Common.OpenShockDb.Device
         {
             Id = Guid.NewGuid(),
             Owner = CurrentUser.DbUser.Id,
-            Name = hubName,
+            Name = data.Name,
             Token = CryptoUtils.RandomString(256)
         };
         _db.Devices.Add(device);
@@ -172,6 +192,7 @@ public sealed partial class DevicesController
     [TokenPermission(PermissionType.Devices_Edit)]
     [ProducesSuccess<string>]
     [ProducesProblem(HttpStatusCode.NotFound, "DeviceNotFound")]
+    [MapToApiVersion("1")]
     public async Task<IActionResult> GetPairCode([FromRoute] Guid deviceId)
     {
         var devicePairs = _redis.RedisCollection<DevicePair>();
@@ -208,6 +229,7 @@ public sealed partial class DevicesController
     [ProducesProblem(HttpStatusCode.NotFound, "DeviceNotFound")]
     [ProducesProblem(HttpStatusCode.NotFound, "DeviceIsNotOnline")]
     [ProducesProblem(HttpStatusCode.PreconditionFailed, "DeviceNotConnectedToGateway")]
+    [MapToApiVersion("1")]
     public async Task<IActionResult> GetLiveControlGatewayInfo([FromRoute] Guid deviceId)
     {
         // Check if user owns device or has a share
