@@ -29,7 +29,7 @@ public static class DeviceLifetimeManager
     /// <param name="dbContextFactory"></param>
     /// <param name="cancellationToken"></param>
     /// <returns></returns>
-    public static async Task<DeviceLifetime> AddDeviceConnection(byte tps, DeviceController deviceController,
+    public static async Task<DeviceLifetime> AddDeviceConnection(byte tps, IDeviceController deviceController,
         OpenShockContext db, IDbContextFactory<OpenShockContext> dbContextFactory, CancellationToken cancellationToken)
     {
             if (Managers.TryGetValue(deviceController.Id, out var oldController))
@@ -53,7 +53,7 @@ public static class DeviceLifetimeManager
     /// Remove device from Lifetime Manager, called on dispose of device controller
     /// </summary>
     /// <param name="deviceController"></param>
-    public static async Task RemoveDeviceConnection(DeviceController deviceController)
+    public static async Task RemoveDeviceConnection(IDeviceController deviceController)
     {
         foreach (var websocketController in WebsocketManager.LiveControlUsers.GetConnections(deviceController.Id)) 
             await websocketController.UpdateConnectedState(false);

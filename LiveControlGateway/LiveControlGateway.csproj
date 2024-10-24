@@ -11,6 +11,7 @@
         <Product>LiveControlGateway</Product>
         <GenerateDocumentationFile>true</GenerateDocumentationFile>
         <LangVersion>12</LangVersion>
+        <UserSecretsId>a2109c1e-fb11-44d7-8127-346ef60cb9a5</UserSecretsId>
     </PropertyGroup>
 
     <ItemGroup>
