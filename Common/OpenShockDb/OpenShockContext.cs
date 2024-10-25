@@ -23,6 +23,10 @@ public partial class OpenShockContext : DbContext
 
     public virtual DbSet<PasswordReset> PasswordResets { get; set; }
 
+    public virtual DbSet<ShareRequest> ShareRequests { get; set; }
+
+    public virtual DbSet<ShareRequestsShocker> ShareRequestsShockers { get; set; }
+
     public virtual DbSet<Shocker> Shockers { get; set; }
 
     public virtual DbSet<ShockerControlLog> ShockerControlLogs { get; set; }
@@ -171,6 +175,64 @@ public partial class OpenShockContext : DbContext
             entity.HasOne(d => d.User).WithMany(p => p.PasswordResets)
                 .HasForeignKey(d => d.UserId)
                 .HasConstraintName("user_id");
+        });
+
+        modelBuilder.Entity<ShareRequest>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("shares_codes_pkey");
+
+            entity.ToTable("share_requests");
+
+            entity.Property(e => e.Id)
+                .ValueGeneratedNever()
+                .HasColumnName("id");
+            entity.Property(e => e.CreatedOn)
+                .HasDefaultValueSql("CURRENT_TIMESTAMP")
+                .HasColumnType("time with time zone")
+                .HasColumnName("created_on");
+            entity.Property(e => e.Owner).HasColumnName("owner");
+            entity.Property(e => e.User).HasColumnName("user");
+
+            entity.HasOne(d => d.OwnerNavigation).WithMany(p => p.ShareRequestOwnerNavigations)
+                .HasForeignKey(d => d.Owner)
+                .HasConstraintName("fk_share_requests_owner");
+
+            entity.HasOne(d => d.UserNavigation).WithMany(p => p.ShareRequestUserNavigations)
+                .HasForeignKey(d => d.User)
+                .OnDelete(DeleteBehavior.Cascade)
+                .HasConstraintName("fk_share_requests_user");
+        });
+
+        modelBuilder.Entity<ShareRequestsShocker>(entity =>
+        {
+            entity.HasKey(e => new { e.ShareRequest, e.Shocker }).HasName("share_requests_shockers_pkey");
+
+            entity.ToTable("share_requests_shockers");
+
+            entity.Property(e => e.ShareRequest).HasColumnName("share_request");
+            entity.Property(e => e.Shocker).HasColumnName("shocker");
+            entity.Property(e => e.LimitDuration).HasColumnName("limit_duration");
+            entity.Property(e => e.LimitIntensity).HasColumnName("limit_intensity");
+            entity.Property(e => e.PermLive)
+                .HasDefaultValue(true)
+                .HasColumnName("perm_live");
+            entity.Property(e => e.PermShock)
+                .HasDefaultValue(true)
+                .HasColumnName("perm_shock");
+            entity.Property(e => e.PermSound)
+                .HasDefaultValue(true)
+                .HasColumnName("perm_sound");
+            entity.Property(e => e.PermVibrate)
+                .HasDefaultValue(true)
+                .HasColumnName("perm_vibrate");
+
+            entity.HasOne(d => d.ShareRequestNavigation).WithMany(p => p.ShareRequestsShockerShareRequestNavigations)
+                .HasForeignKey(d => d.ShareRequest)
+                .HasConstraintName("fk_share_requests_shockers_share_request");
+
+            entity.HasOne(d => d.ShockerNavigation).WithMany(p => p.ShareRequestsShockerShockerNavigations)
+                .HasForeignKey(d => d.Shocker)
+                .HasConstraintName("fk_share_requests_shockers_shocker");
         });
 
         modelBuilder.Entity<Shocker>(entity =>

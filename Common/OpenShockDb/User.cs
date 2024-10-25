@@ -26,6 +26,10 @@ public partial class User
 
     public virtual ICollection<PasswordReset> PasswordResets { get; set; } = new List<PasswordReset>();
 
+    public virtual ICollection<ShareRequest> ShareRequestOwnerNavigations { get; set; } = new List<ShareRequest>();
+
+    public virtual ICollection<ShareRequest> ShareRequestUserNavigations { get; set; } = new List<ShareRequest>();
+
     public virtual ICollection<ShockerControlLog> ShockerControlLogs { get; set; } = new List<ShockerControlLog>();
 
     public virtual ICollection<ShockerShare> ShockerShares { get; set; } = new List<ShockerShare>();

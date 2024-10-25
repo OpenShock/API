@@ -17,7 +17,7 @@ using Semver;
 using Serilog;
 
 namespace OpenShock.LiveControlGateway.Controllers;
-
+//TODO: Implement new keep alive ping pong machanism
 /// <summary>
 /// Communication with the devices aka ESP-32 micro controllers
 /// </summary>
