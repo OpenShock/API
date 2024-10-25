@@ -17,7 +17,7 @@ using Semver;
 using Serilog;
 
 namespace OpenShock.LiveControlGateway.Controllers;
-//TODO: Implement new keep alive ping pong machanism
+
 /// <summary>
 /// Communication with the devices aka ESP-32 micro controllers
 /// </summary>
@@ -29,7 +29,7 @@ public sealed class DeviceV2Controller : DeviceControllerBase<HubToGatewayMessag
 {
     private readonly IHubContext<UserHub, IUserHub> _userHubContext;
     private readonly Timer _pingTimer;
-    private readonly DateTimeOffset _lastPingSent = DateTimeOffset.UtcNow;
+    private DateTimeOffset _lastPingSent = DateTimeOffset.UtcNow;
 
     /// <summary>
     /// DI
@@ -59,11 +59,12 @@ public sealed class DeviceV2Controller : DeviceControllerBase<HubToGatewayMessag
     {
         try
         {
+            _lastPingSent = DateTimeOffset.UtcNow;
             await QueueMessage(new GatewayToHubMessage
             {
                 Payload = new GatewayToHubMessagePayload(new Ping
                 {
-                    UnixUtcTime = (ulong)DateTimeOffset.UtcNow.ToUnixTimeSeconds()
+                    UnixUtcTime = (ulong)_lastPingSent.ToUnixTimeSeconds()
                 })
             });
         }
