@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
+using OpenShock.Common;
 using OpenShock.Common.Authentication;
 using OpenShock.Common.Hubs;
 using OpenShock.Common.Models;
@@ -16,7 +17,7 @@ using Semver;
 using Serilog;
 
 namespace OpenShock.LiveControlGateway.Controllers;
-
+//TODO: Implement new keep alive ping pong machanism
 /// <summary>
 /// Communication with the devices aka ESP-32 micro controllers
 /// </summary>
@@ -27,6 +28,8 @@ namespace OpenShock.LiveControlGateway.Controllers;
 public sealed class DeviceV2Controller : DeviceControllerBase<HubToGatewayMessage, GatewayToHubMessage>
 {
     private readonly IHubContext<UserHub, IUserHub> _userHubContext;
+    private readonly Timer _pingTimer;
+    private readonly DateTimeOffset _lastPingSent = DateTimeOffset.UtcNow;
 
     /// <summary>
     /// DI
@@ -49,7 +52,31 @@ public sealed class DeviceV2Controller : DeviceControllerBase<HubToGatewayMessag
             dbContextFactory, serviceProvider, lcgConfig)
     {
         _userHubContext = userHubContext;
+        _pingTimer = new Timer(PingTimerElapsed, null, Constants.DevicePingInitialDelay, Constants.DevicePingPeriod);
     }
+
+    private async void PingTimerElapsed(object? state)
+    {
+        try
+        {
+            await QueueMessage(new GatewayToHubMessage
+            {
+                Payload = new GatewayToHubMessagePayload(new Ping
+                {
+                    UnixUtcTime = (ulong)DateTimeOffset.UtcNow.ToUnixTimeSeconds()
+                })
+            });
+        }
+        catch (Exception e)
+        {
+            Logger.LogError(e, "Error while sending ping message to device [{DeviceId}]", CurrentDevice.Id);
+        }
+    }
+
+    /// <summary>
+    /// The latency of the last ping
+    /// </summary>
+    public TimeSpan Latency { get; private set; }
     
     private OtaUpdateStatus? _lastStatus;
     
@@ -68,6 +95,8 @@ public sealed class DeviceV2Controller : DeviceControllerBase<HubToGatewayMessag
         {
             case HubToGatewayMessagePayload.ItemKind.Pong:
                 await SelfOnline();
+                Latency = DateTimeOffset.UtcNow - _lastPingSent;
+                
                 break;
 
             case HubToGatewayMessagePayload.ItemKind.OtaUpdateStarted:
@@ -180,7 +209,6 @@ public sealed class DeviceV2Controller : DeviceControllerBase<HubToGatewayMessag
             })
         });
 
-
     /// <inheritdoc />
     public override ValueTask OtaInstall(SemVersion version)
         => QueueMessage(new GatewayToHubMessage
@@ -192,4 +220,10 @@ public sealed class DeviceV2Controller : DeviceControllerBase<HubToGatewayMessag
         });
 
 
+    /// <inheritdoc />
+    public override async ValueTask DisposeControllerAsync()
+    {
+        await _pingTimer.DisposeAsync();
+        await base.DisposeControllerAsync();
+    }
 }
