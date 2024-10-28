@@ -1,6 +1,7 @@
 ﻿using System.Net;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using OpenShock.Common;
 using OpenShock.Common.Errors;
 using OpenShock.Common.Problems;
 
@@ -19,9 +20,14 @@ public sealed partial class SharesController
     [ProducesProblem(HttpStatusCode.NotFound, "ShareCodeNotFound")]
     public async Task<IActionResult> DeleteShareCode([FromRoute] Guid shareCodeId)
     {
-        var affected = await _db.ShockerShareCodes.Where(x =>
-            x.Id == shareCodeId && x.Shocker.DeviceNavigation.Owner == CurrentUser.DbUser.Id).ExecuteDeleteAsync();
-        if (affected <= 0) return Problem(ShareCodeError.ShareCodeNotFound);
+        var affected = await _db.ShockerShareCodes
+            .Where(x => x.Id == shareCodeId)
+            .WhereIsUserOrAdmin(x => x.Shocker.DeviceNavigation.OwnerNavigation, CurrentUser)
+            .ExecuteDeleteAsync();
+        if (affected <= 0)
+        {
+            return Problem(ShareCodeError.ShareCodeNotFound);
+        }
 
         return RespondSuccessSimple("Successfully deleted share code");
     }
