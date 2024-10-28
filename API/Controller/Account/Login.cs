@@ -6,6 +6,7 @@ using OpenShock.API.Services.Account;
 using OpenShock.Common;
 using OpenShock.Common.Errors;
 using OpenShock.Common.Problems;
+using OpenShock.Common.Utils;
 
 namespace OpenShock.API.Controller.Account;
 
@@ -31,8 +32,8 @@ public sealed partial class AccountController
         
         var loginAction = await _accountService.Login(body.Email, body.Password, new LoginContext
         {
-            Ip = HttpContext.Connection.RemoteIpAddress?.MapToIPv4().ToString() ?? string.Empty,
-            UserAgent = HttpContext.Request.Headers.UserAgent.ToString()
+            Ip = HttpContext.GetRemoteIP().ToString(),
+            UserAgent = HttpContext.GetUserAgent(),
         }, cancellationToken);
 
         if (loginAction.IsT1) return Problem(LoginError.InvalidCredentials);

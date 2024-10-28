@@ -102,7 +102,7 @@ public sealed partial class TokensController
         {
             UserId = CurrentUser.DbUser.Id,
             Token = CryptoUtils.RandomString(64),
-            CreatedByIp = HttpContext.Connection.RemoteIpAddress?.ToString() ?? "error",
+            CreatedByIp = HttpContext.GetRemoteIP().ToString(),
             Permissions = body.Permissions.Distinct().ToList(),
             Id = Guid.NewGuid(),
             Name = body.Name,
