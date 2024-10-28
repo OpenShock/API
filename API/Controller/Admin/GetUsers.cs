@@ -12,9 +12,9 @@ namespace OpenShock.API.Controller.Admin;
 public sealed partial class AdminController
 {
     /// <summary>
-    /// Gets all online devices
+    /// Gets all users, paginated
     /// </summary>
-    /// <response code="200">All online devices</response>
+    /// <response code="200">Paginated users</response>
     /// <response code="401">Unauthorized</response>
     [HttpGet("users")]
     [ProducesSuccess<IAsyncEnumerable<AdminUserResponse>>]
