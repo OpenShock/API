@@ -20,17 +20,22 @@ public sealed class LinkUser
         return DbUser == user || DbUser.Id == user.Id;
     }
 
-    public bool IsUserOrRank(User user, RankType requiredRank)
+    public bool IsRank(RankType rank)
+    {
+        return DbUser.Rank >= rank;
+    }
+
+    public bool IsUserOrRank(User user, RankType rank)
     {
         if (IsUser(user)) return true;
 
-        return DbUser.Rank >= requiredRank;
+        return DbUser.Rank >= rank;
     }
 
-    public bool IsUserOrRank(Guid userId, RankType requiredRank)
+    public bool IsUserOrRank(Guid userId, RankType rank)
     {
         if (IsUser(userId)) return true;
 
-        return DbUser.Rank >= requiredRank;
+        return DbUser.Rank >= rank;
     }
 }

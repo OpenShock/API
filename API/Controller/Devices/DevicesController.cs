@@ -1,16 +1,16 @@
-﻿using System.Net;
-using Asp.Versioning;
+﻿using Asp.Versioning;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using OpenShock.API.Models.Requests;
 using OpenShock.API.Services;
-using OpenShock.API.Utils;
 using OpenShock.Common.Authentication.Attributes;
 using OpenShock.Common.Errors;
 using OpenShock.Common.Models;
 using OpenShock.Common.Problems;
 using OpenShock.Common.Redis;
 using OpenShock.Common.Utils;
+using System.Linq.Expressions;
+using System.Net;
 
 namespace OpenShock.API.Controller.Devices;
 
@@ -132,8 +132,11 @@ public sealed partial class DevicesController
     [MapToApiVersion("1")]
     public async Task<IActionResult> RemoveDevice([FromRoute] Guid deviceId, [FromServices] IDeviceUpdateService updateService)
     {
-        var affected = await _db.Devices.Where(x => x.Owner == CurrentUser.DbUser.Id && x.Id == deviceId)
-            .ExecuteDeleteAsync();
+        Expression<Func<Common.OpenShockDb.Device, bool>> predicate = CurrentUser.IsRank(RankType.Admin)
+            ? (x => x.Id == deviceId)
+            : (x => x.Id == deviceId && x.Owner == CurrentUser.DbUser.Id);
+
+        var affected = await _db.Devices.Where(predicate).ExecuteDeleteAsync();
         if (affected <= 0) return Problem(DeviceError.DeviceNotFound);
         
         await updateService.UpdateDeviceForAllShared(CurrentUser.DbUser.Id, deviceId, DeviceUpdateType.Deleted);
