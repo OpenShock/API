@@ -1,6 +1,6 @@
 ﻿using System.Net;
 
-namespace OpenShock.Common.Problems;
+namespace OpenShock.Common.Problems.CustomProblems;
 
 public sealed class ShockerControlProblem(
     string type,
