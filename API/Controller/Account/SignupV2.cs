@@ -6,6 +6,7 @@ using OpenShock.API.Services.Account;
 using OpenShock.Common.Errors;
 using OpenShock.Common.Problems;
 using OpenShock.Common.Services.Turnstile;
+using OpenShock.Common.Utils;
 
 namespace OpenShock.API.Controller.Account;
 
@@ -34,8 +35,7 @@ public sealed partial class AccountController
     {
         if (apiConfig.Turnstile.Enabled)
         {
-            var turnStile = await turnstileService.VerifyUserResponseToken(body.TurnstileResponse,
-                HttpContext.Connection.RemoteIpAddress, cancellationToken);
+            var turnStile = await turnstileService.VerifyUserResponseToken(body.TurnstileResponse, HttpContext.GetRemoteIP(), cancellationToken);
             if (!turnStile.IsT0) return Problem(TurnstileError.InvalidTurnstile);
         }
 

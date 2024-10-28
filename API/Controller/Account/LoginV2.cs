@@ -7,6 +7,7 @@ using OpenShock.Common;
 using OpenShock.Common.Errors;
 using OpenShock.Common.Problems;
 using OpenShock.Common.Services.Turnstile;
+using OpenShock.Common.Utils;
 
 namespace OpenShock.API.Controller.Account;
 
@@ -31,13 +32,15 @@ public sealed partial class AccountController
         var cookieDomainToUse = apiConfig.Frontend.CookieDomain.Split(',').FirstOrDefault(domain => Request.Headers.Host.ToString().EndsWith(domain, StringComparison.OrdinalIgnoreCase));
         if (cookieDomainToUse == null) return Problem(LoginError.InvalidDomain);
 
-        var turnStile = await turnstileService.VerifyUserResponseToken(body.TurnstileResponse, HttpContext.Connection.RemoteIpAddress, cancellationToken);
+        var remoteIP = HttpContext.GetRemoteIP();
+
+        var turnStile = await turnstileService.VerifyUserResponseToken(body.TurnstileResponse, remoteIP, cancellationToken);
         if (!turnStile.IsT0) return Problem(TurnstileError.InvalidTurnstile);
             
         var loginAction = await _accountService.Login(body.Email, body.Password, new LoginContext
         {
-            Ip = HttpContext.Connection.RemoteIpAddress?.MapToIPv4().ToString() ?? string.Empty,
-            UserAgent = HttpContext.Request.Headers.UserAgent.ToString()
+            Ip = remoteIP.ToString(),
+            UserAgent = HttpContext.GetUserAgent(),
         }, cancellationToken);
 
         if (loginAction.IsT1) return Problem(LoginError.InvalidCredentials);
