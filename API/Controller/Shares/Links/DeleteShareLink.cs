@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System.Net;
+using OpenShock.Common;
 using OpenShock.Common.Errors;
 using OpenShock.Common.Problems;
 
@@ -19,7 +20,9 @@ public sealed partial class ShareLinksController
     [ProducesProblem(HttpStatusCode.NotFound, "ShareLinkNotFound")]
     public async Task<IActionResult> DeleteShareLink([FromRoute] Guid shareLinkId)
     {
-        var result = await _db.ShockerSharesLinks.Where(x => x.Id == shareLinkId && x.OwnerId == CurrentUser.DbUser.Id)
+        var result = await _db.ShockerSharesLinks
+            .Where(x => x.Id == shareLinkId)
+            .WhereIsUserOrAdmin(x => x.Owner, CurrentUser)
             .ExecuteDeleteAsync();
 
         return result > 0
