@@ -7,12 +7,9 @@ namespace OpenShock.API.Services.Session;
 
 public interface ISessionService
 {
-    /// <summary>
-    /// 
-    /// </summary>
-    /// <param name="userId"></param>
-    /// <returns></returns>
-    public Task<IEnumerable<LoginSessionResponse>> ListSessions(Guid userId);
-    
-    public Task<OneOf<Success, NotFound>> DeleteSession(Guid userId, Guid sessionId);
+    public Task<IEnumerable<LoginSession>> ListSessions(Guid userId);
+
+    public Task<LoginSession?> GetSession(Guid userId);
+
+    public Task DeleteSession(LoginSession loginSession);
 }
