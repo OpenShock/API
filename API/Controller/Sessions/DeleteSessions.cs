@@ -1,6 +1,7 @@
 ﻿using System.Net;
 using Microsoft.AspNetCore.Mvc;
 using OpenShock.Common.Errors;
+using OpenShock.Common.Models;
 using OpenShock.Common.Problems;
 
 namespace OpenShock.API.Controller.Sessions;
@@ -14,8 +15,8 @@ public sealed partial class SessionsController
     {
         var loginSession = await _sessionService.GetSession(sessionId);
 
-        // If the session was not found, or does not belong to the current user (unless its an admin) return NotFound
-        if (loginSession == null || (loginSession.UserId != CurrentUser.DbUser.Id && CurrentUser.DbUser.Rank < Common.Models.RankType.Admin)) 
+        // If the session was not found, or the user does not have the privledges to access it, return NotFound
+        if (loginSession == null || CurrentUser.IsUserOrRank(loginSession.UserId, RankType.Admin))
         {
             return Problem(SessionError.SessionNotFound);
         }
