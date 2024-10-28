@@ -17,7 +17,7 @@ public sealed partial class AdminController
     /// <response code="200">Paginated users</response>
     /// <response code="401">Unauthorized</response>
     [HttpGet("users")]
-    [ProducesSuccess<IAsyncEnumerable<AdminUserResponse>>]
+    [ProducesSlimSuccess<Paginated<AdminUserResponse>>]
     public async Task<Paginated<AdminUserResponse>> GetUsers([FromQuery] [Range(0, 1000)] int limit = 100, [FromQuery] [Range(0, int.MaxValue)] int offset = 0)
     {
         var deferredCount = _db.Users.DeferredLongCount().FutureValue();
