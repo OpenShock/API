@@ -226,11 +226,11 @@ public partial class OpenShockContext : DbContext
                 .HasDefaultValue(true)
                 .HasColumnName("perm_vibrate");
 
-            entity.HasOne(d => d.ShareRequestNavigation).WithMany(p => p.ShareRequestsShockerShareRequestNavigations)
+            entity.HasOne(d => d.ShareRequestNavigation).WithMany(p => p.ShareRequestsShockers)
                 .HasForeignKey(d => d.ShareRequest)
                 .HasConstraintName("fk_share_requests_shockers_share_request");
 
-            entity.HasOne(d => d.ShockerNavigation).WithMany(p => p.ShareRequestsShockerShockerNavigations)
+            entity.HasOne(d => d.ShockerNavigation).WithMany(p => p.ShareRequestsShockers)
                 .HasForeignKey(d => d.Shocker)
                 .HasConstraintName("fk_share_requests_shockers_shocker");
         });

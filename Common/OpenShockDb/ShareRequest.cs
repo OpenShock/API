@@ -15,5 +15,7 @@ public partial class ShareRequest
 
     public virtual User OwnerNavigation { get; set; } = null!;
 
+    public virtual ICollection<ShareRequestsShocker> ShareRequestsShockers { get; set; } = new List<ShareRequestsShocker>();
+
     public virtual User? UserNavigation { get; set; }
 }

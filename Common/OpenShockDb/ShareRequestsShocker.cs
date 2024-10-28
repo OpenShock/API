@@ -21,7 +21,7 @@ public partial class ShareRequestsShocker
 
     public bool PermLive { get; set; }
 
-    public virtual Shocker ShareRequestNavigation { get; set; } = null!;
+    public virtual ShareRequest ShareRequestNavigation { get; set; } = null!;
 
     public virtual Shocker ShockerNavigation { get; set; } = null!;
 }

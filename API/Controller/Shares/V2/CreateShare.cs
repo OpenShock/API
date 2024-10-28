@@ -59,6 +59,7 @@ public sealed partial class SharesV2Controller
             _db.ShareRequestsShockers.Add(new ShareRequestsShocker
             {
                 ShareRequest = shareRequest.Id,
+                Shocker = createShockerShare.Id,
                 LimitDuration = createShockerShare.Limits.Duration,
                 LimitIntensity = createShockerShare.Limits.Intensity,
                 PermLive = createShockerShare.Permissions.Live,
