@@ -38,7 +38,7 @@ public sealed partial class AdminController
                     Devices = user.Devices.Count,
                     Shockers = user.Devices.SelectMany(d => d.Shockers).Count(),
                     PasswordResetRequests = user.PasswordResets.Count,
-                    ShockerControlLogs = user.ShockerControlLogs.Count,
+                    ShockerControlLogs = user.Devices.SelectMany(d => d.Shockers).SelectMany(s => s.ShockerControlLogs).Count(),
                     ShockerShares = user.ShockerShares.Count,
                     ShockerShareLinks = user.ShockerSharesLinks.Count,
                     ChangeEmailRequests = user.UsersEmailChanges.Count,
