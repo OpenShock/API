@@ -26,13 +26,6 @@ public sealed partial class SessionsController
         
         var session = x.Value.AsT0;
         
-        return new LoginSessionResponse
-        {
-            Id = session.PublicId!.Value,
-            Created = session.Created!.Value,
-            Expires = session.Expires!.Value,
-            Ip = session.Ip,
-            UserAgent = session.UserAgent
-        };
+        return LoginSessionResponse.MapFrom(session);
     }
 }

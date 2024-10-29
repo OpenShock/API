@@ -5,6 +5,7 @@ using System.Net;
 using OpenShock.Common.Errors;
 using OpenShock.Common.Problems;
 using OpenShock.Common.Services.LCGNodeProvisioner;
+using OpenShock.Common.Utils;
 
 namespace OpenShock.API.Controller.Device;
 
@@ -22,17 +23,15 @@ public sealed partial class DeviceController
         [FromServices] IWebHostEnvironment env)
     {
         var countryCode = Alpha2CountryCode.UnknownCountry;
-        if (HttpContext.Request.Headers.TryGetValue("CF-IPCountry", out var countryHeader) &&
-            !string.IsNullOrEmpty(countryHeader))
+        if (HttpContext.TryGetCFIPCountry(out var countryHeader))
         {
-            var countryHeaderString = countryHeader.ToString();
-            if (Alpha2CountryCode.TryParseAndValidate(countryHeaderString, out var code))
+            if (Alpha2CountryCode.TryParseAndValidate(countryHeader, out var code))
             {
                 countryCode = code;
             }
             else
             {
-                _logger.LogWarning("Country alpha2 code could not be parsed [{CountryHeader}]", countryHeaderString);
+                _logger.LogWarning("Country alpha2 code could not be parsed [{CountryHeader}]", countryHeader);
             }
         }
         else

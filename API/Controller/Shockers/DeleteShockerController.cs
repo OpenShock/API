@@ -3,6 +3,7 @@ using Asp.Versioning;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using OpenShock.API.Services;
+using OpenShock.Common;
 using OpenShock.Common.Authentication.Attributes;
 using OpenShock.Common.Errors;
 using OpenShock.Common.Models;
@@ -28,10 +29,15 @@ public sealed partial class ShockerController
         [FromRoute] Guid shockerId,
         [FromServices] IDeviceUpdateService deviceUpdateService)
     {
-        var affected = await _db.Shockers.Where(x => x.DeviceNavigation.Owner == CurrentUser.DbUser.Id && x.Id == shockerId)
+        var affected = await _db.Shockers
+            .Where(x => x.Id == shockerId)
+            .WhereIsUserOrAdmin(x => x.DeviceNavigation.OwnerNavigation, CurrentUser)
             .FirstOrDefaultAsync();
 
-        if (affected == null) return Problem(ShockerError.ShockerNotFound);
+        if (affected == null)
+        {
+            return Problem(ShockerError.ShockerNotFound);
+        }
 
         _db.Shockers.Remove(affected);
         await _db.SaveChangesAsync();

@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System.Net;
+using OpenShock.Common;
 using OpenShock.Common.Errors;
 using OpenShock.Common.Problems;
 
@@ -22,13 +23,23 @@ public sealed partial class ShareLinksController
     [ProducesProblem(HttpStatusCode.NotFound, "ShockerNotInShareLink")]
     public async Task<IActionResult> RemoveShocker([FromRoute] Guid shareLinkId, [FromRoute] Guid shockerId)
     {
-        var exists = await _db.ShockerSharesLinks.AnyAsync(x => x.OwnerId == CurrentUser.DbUser.Id && x.Id == shareLinkId);
-        if (!exists) return Problem(ShareLinkError.ShareLinkNotFound);
+        var exists = await _db.ShockerSharesLinks
+            .Where(x => x.Id == shareLinkId)
+            .WhereIsUserOrAdmin(x => x.Owner, CurrentUser)
+            .AnyAsync();
+        if (!exists)
+        {
+            return Problem(ShareLinkError.ShareLinkNotFound);
+        }
 
-        var affected = await _db.ShockerSharesLinksShockers.Where(x => x.ShareLinkId == shareLinkId && x.ShockerId == shockerId)
+        var affected = await _db.ShockerSharesLinksShockers
+            .Where(x => x.ShareLinkId == shareLinkId && x.ShockerId == shockerId)
             .ExecuteDeleteAsync();
-        if (affected > 0) return RespondSuccessSimple("Successfully removed shocker");
+        if (affected <= 0)
+        {
+            return Problem(ShareLinkError.ShockerNotInShareLink);
+        }
         
-        return Problem(ShareLinkError.ShockerNotInShareLink);
+        return RespondSuccessSimple($"Successfully removed {affected} {(affected == 1 ? "shocker" : "shockers")}");
     }
 }

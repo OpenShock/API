@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using OpenShock.API.Models.Response;
 using OpenShock.API.Utils;
+using OpenShock.Common;
 using OpenShock.Common.Authentication.Attributes;
 using OpenShock.Common.Errors;
 using OpenShock.Common.Models;
@@ -82,9 +83,15 @@ public sealed partial class TokensController
     public async Task<IActionResult> DeleteToken([FromRoute] Guid tokenId)
     {
         var apiToken = await _db.ApiTokens
-            .Where(x => x.UserId == CurrentUser.DbUser.Id && x.Id == tokenId)
+            .Where(x => x.Id == tokenId)
+            .WhereIsUserOrAdmin(x => x.User, CurrentUser)
             .ExecuteDeleteAsync();
-        if (apiToken <= 0) return Problem(ApiTokenError.ApiTokenNotFound);
+        
+        if (apiToken <= 0)
+        {
+            return Problem(ApiTokenError.ApiTokenNotFound);
+        }
+        
         return RespondSlimSuccess();
     }
 
@@ -102,7 +109,7 @@ public sealed partial class TokensController
         {
             UserId = CurrentUser.DbUser.Id,
             Token = CryptoUtils.RandomString(64),
-            CreatedByIp = HttpContext.Connection.RemoteIpAddress?.ToString() ?? "error",
+            CreatedByIp = HttpContext.GetRemoteIP().ToString(),
             Permissions = body.Permissions.Distinct().ToList(),
             Id = Guid.NewGuid(),
             Name = body.Name,
