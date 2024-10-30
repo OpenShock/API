@@ -84,25 +84,25 @@ public static partial class ExpressionBuilder
 
     private static Expression BuildLessThanExpression(Type memberType, Expression memberExpr, string value)
     {
-        if (!memberType.IsPrimitive && !memberType.IsEnum) throw new ExpressionException($"Operation < is not supported for {memberType}");
+        if (memberType is { IsPrimitive: false, IsEnum: false }) throw new ExpressionException($"Operation < is not supported for {memberType}");
         return Expression.LessThan(memberExpr, GetConstant(memberType, value));
     }
     
     private static Expression BuildGreaterThanExpression(Type memberType, Expression memberExpr, string value)
     {
-        if (!memberType.IsPrimitive && !memberType.IsEnum) throw new ExpressionException($"Operation > is not supported for {memberType}");
+        if (memberType is { IsPrimitive: false, IsEnum: false }) throw new ExpressionException($"Operation > is not supported for {memberType}");
         return Expression.GreaterThan(memberExpr, GetConstant(memberType, value));
     }
 
     private static Expression BuildLessThanOrEqualExpression(Type memberType, Expression memberExpr, string value)
     {
-        if (!memberType.IsPrimitive && !memberType.IsEnum) throw new ExpressionException($"Operation <= is not supported for {memberType}");
+        if (memberType is { IsPrimitive: false, IsEnum: false }) throw new ExpressionException($"Operation <= is not supported for {memberType}");
         return Expression.LessThan(memberExpr, GetConstant(memberType, value));
     }
     
     private static Expression BuildGreaterThanOrEqualExpression(Type memberType, Expression memberExpr, string value)
     {
-        if (!memberType.IsPrimitive && !memberType.IsEnum) throw new ExpressionException($"Operation >= is not supported for {memberType}");
+        if (memberType is { IsPrimitive: false, IsEnum: false }) throw new ExpressionException($"Operation >= is not supported for {memberType}");
         return Expression.GreaterThan(memberExpr, GetConstant(memberType, value));
     }
     
@@ -133,10 +133,10 @@ public static partial class ExpressionBuilder
     {
         query = query.Trim();
 
-        int index;
         List<string> words = [];
         while (!query.IsEmpty)
         {
+            int index;
             if (query[0] == '\'')
             {
                 // Remove quote
@@ -184,9 +184,9 @@ public static partial class ExpressionBuilder
     }
     private static IEnumerable<ParsedFilter> ParseFilters(string query)
     {
-        string member = string.Empty;
-        string operation = String.Empty;
-        ExpectedToken expectedToken = ExpectedToken.Member;
+        var member = string.Empty;
+        var operation = string.Empty;
+        var expectedToken = ExpectedToken.Member;
         foreach (var word in GetFilterWords(query))
         {
             switch (expectedToken)
