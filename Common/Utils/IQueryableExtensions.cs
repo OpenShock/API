@@ -74,8 +74,21 @@ public static partial class IQueryableExtensions
 
         return (memberExpr, memberType) =>
         {
-            var collated = Expression.Call(null, EfFunctionsCollateMethodInfo, EfFunctionsConstExpr, memberExpr, DefaultStrConstExpr);
-            return Expression.Call(null, EfFunctionsILikeMethodInfo, EfFunctionsConstExpr, collated, valueConstant);
+            MethodCallExpression transformedExpression;
+            if (memberType == typeof(string))
+            {
+                transformedExpression = Expression.Call(null, EfFunctionsCollateMethodInfo, EfFunctionsConstExpr, memberExpr, DefaultStrConstExpr);
+            }
+            else if (memberType.IsEnum)
+            {
+                transformedExpression = Expression.Call(memberExpr, typeof(Enum).GetMethod("ToString", [])!);
+            }
+            else
+            {
+                transformedExpression = Expression.Call(memberExpr, typeof(object).GetMethod("ToString")!);
+            }
+            
+            return Expression.Call(null, EfFunctionsILikeMethodInfo, EfFunctionsConstExpr, transformedExpression, valueConstant);
         };
     }
     
