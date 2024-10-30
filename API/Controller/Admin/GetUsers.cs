@@ -1,4 +1,5 @@
 ﻿using System.ComponentModel.DataAnnotations;
+using System.Net;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using OpenShock.Common.Models;
@@ -17,7 +18,7 @@ public sealed partial class AdminController
     /// <response code="401">Unauthorized</response>ho
     [HttpGet("users")]
     [ProducesSlimSuccess<Paginated<AdminUserResponse>>]
-    public async Task<Paginated<AdminUserResponse>> GetUsers(
+    public async Task<IActionResult> GetUsers(
         [FromQuery(Name = "$filter")] string filterQuery = "",
         [FromQuery(Name = "$orderby")] string orderbyQuery = "",
         [FromQuery(Name = "$offset")] [Range(0, int.MaxValue)] int offset = 0,
@@ -50,15 +51,22 @@ public sealed partial class AdminController
                     CreateUserRequests = user.UsersActivations.Count,
                 }
             });
-        
-        if (!string.IsNullOrEmpty(filterQuery))
-        {
-            query = query.ApplyFilter(filterQuery);
-        }
 
-        if (!string.IsNullOrEmpty(orderbyQuery))
+        try
         {
-            query = query.ApplyOrderBy(orderbyQuery);
+            if (!string.IsNullOrEmpty(filterQuery))
+            {
+                query = query.ApplyFilter(filterQuery);
+            }
+
+            if (!string.IsNullOrEmpty(orderbyQuery))
+            {
+                query = query.ApplyOrderBy(orderbyQuery);
+            }
+        }
+        catch (ExpressionBuilder.ExpressionException e)
+        {
+            return Problem(e.Message, statusCode: 400);
         }
 
         if (offset != 0)
@@ -68,13 +76,13 @@ public sealed partial class AdminController
         
         var deferredUsers = query.Take(limit).Future();
 
-        return new Paginated<AdminUserResponse>
+        return Ok(new Paginated<AdminUserResponse>
         {
             Data = await deferredUsers.ToListAsync(),
             Offset = offset,
             Limit = limit,
             Total = await deferredCount.ValueAsync(),
-        };
+        });
     }
 
     public sealed class AdminUserResponse
