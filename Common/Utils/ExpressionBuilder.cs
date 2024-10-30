@@ -3,8 +3,6 @@ using System.Reflection;
 using System.Runtime.Serialization;
 using System.Text.RegularExpressions;
 using Microsoft.EntityFrameworkCore;
-using OneOf;
-using OneOf.Types;
 
 namespace OpenShock.Common.Utils;
 
@@ -28,10 +26,12 @@ public static partial class ExpressionBuilder
     private static MemberInfo? GetPropertyOrField(Type type, string propOrFieldName)
     {
         var member = type.GetMember(propOrFieldName, BindingFlags.Public | BindingFlags.Instance | BindingFlags.GetProperty | BindingFlags.GetField | BindingFlags.IgnoreCase).SingleOrDefault();
-        if (member == null) return null;
+        if (member == null)
+            return null;
 
         var isIgnored = member.GetCustomAttributes(typeof(IgnoreDataMemberAttribute), true).Any();
-        if (isIgnored) return null;
+        if (isIgnored)
+            return null;
 
         return member;
     }
@@ -45,7 +45,7 @@ public static partial class ExpressionBuilder
             _ => null
         };
     }
-    
+
     private static ConstantExpression GetConstant(Type type, string value)
     {
         /* Currently this causes a really weird bug which persists across subsequent requests
@@ -54,21 +54,22 @@ public static partial class ExpressionBuilder
             var enumValue = Enum.Parse(type, value, ignoreCase: true);
             return Expression.Constant(enumValue, type);
         }
-        */ 
-        
+        */
+
         return Expression.Constant(value, type);
     }
 
     private static Expression BuildEfFunctionsCollatedILikeExpression(Type memberType, Expression memberExpr, string value)
     {
-        if (memberType != typeof(string)) throw new ExpressionException($"Operation ILIKE is not supported for {memberType}");
-        
+        if (memberType != typeof(string))
+            throw new ExpressionException($"Operation ILIKE is not supported for {memberType}");
+
         var valueConstant = Expression.Constant(value, typeof(string));
         var defaultStrConstant = Expression.Constant("default", typeof(string));
         var efFunctionsConstant = Expression.Constant(EF.Functions, typeof(DbFunctions));
-        
+
         var collated = Expression.Call(null, EfFunctionsCollateMethodInfo, efFunctionsConstant, memberExpr, defaultStrConstant);
-            
+
         return Expression.Call(null, EfFunctionsILikeMethodInfo, efFunctionsConstant, collated, valueConstant);
     }
 
@@ -84,48 +85,54 @@ public static partial class ExpressionBuilder
 
     private static Expression BuildLessThanExpression(Type memberType, Expression memberExpr, string value)
     {
-        if (memberType is { IsPrimitive: false, IsEnum: false }) throw new ExpressionException($"Operation < is not supported for {memberType}");
+        if (memberType is { IsPrimitive: false, IsEnum: false })
+            throw new ExpressionException($"Operation < is not supported for {memberType}");
         return Expression.LessThan(memberExpr, GetConstant(memberType, value));
     }
-    
+
     private static Expression BuildGreaterThanExpression(Type memberType, Expression memberExpr, string value)
     {
-        if (memberType is { IsPrimitive: false, IsEnum: false }) throw new ExpressionException($"Operation > is not supported for {memberType}");
+        if (memberType is { IsPrimitive: false, IsEnum: false })
+            throw new ExpressionException($"Operation > is not supported for {memberType}");
         return Expression.GreaterThan(memberExpr, GetConstant(memberType, value));
     }
 
     private static Expression BuildLessThanOrEqualExpression(Type memberType, Expression memberExpr, string value)
     {
-        if (memberType is { IsPrimitive: false, IsEnum: false }) throw new ExpressionException($"Operation <= is not supported for {memberType}");
+        if (memberType is { IsPrimitive: false, IsEnum: false })
+            throw new ExpressionException($"Operation <= is not supported for {memberType}");
         return Expression.LessThan(memberExpr, GetConstant(memberType, value));
     }
-    
+
     private static Expression BuildGreaterThanOrEqualExpression(Type memberType, Expression memberExpr, string value)
     {
-        if (memberType is { IsPrimitive: false, IsEnum: false }) throw new ExpressionException($"Operation >= is not supported for {memberType}");
+        if (memberType is { IsPrimitive: false, IsEnum: false })
+            throw new ExpressionException($"Operation >= is not supported for {memberType}");
         return Expression.GreaterThan(memberExpr, GetConstant(memberType, value));
     }
-    
+
     private static Expression CreateMemberCompareExpression<T>(Type entityType, ParameterExpression parameterExpr, string propOrFieldName, string operation, string value) where T : class
     {
         var memberInfo = GetPropertyOrField(entityType, propOrFieldName);
-        if (memberInfo == null) throw new ExpressionException($"'{propOrFieldName}' is not a valid property");
+        if (memberInfo == null)
+            throw new ExpressionException($"'{propOrFieldName}' is not a valid property");
 
         var memberType = GetPropertyOrFieldType(memberInfo);
-        if (memberType == null) throw new ExpressionException("Unknown error occured");
-        
+        if (memberType == null)
+            throw new ExpressionException("Unknown error occured");
+
         var memberExpr = Expression.MakeMemberAccess(parameterExpr, memberInfo);
 
         return operation switch
         {
             "like" => BuildEfFunctionsCollatedILikeExpression(memberType, memberExpr, value),
-            "==" or "eq" => BuildEqualExpression(memberType, memberExpr, value), 
+            "==" or "eq" => BuildEqualExpression(memberType, memberExpr, value),
             "!=" or "neq" => BuildNotEqualExpression(memberType, memberExpr, value),
             "<" or "lt" => BuildLessThanExpression(memberType, memberExpr, value),
             ">" or "gt" => BuildGreaterThanExpression(memberType, memberExpr, value),
             "<=" or "lte" => BuildLessThanOrEqualExpression(memberType, memberExpr, value),
             ">=" or "gte" => BuildGreaterThanOrEqualExpression(memberType, memberExpr, value),
-            _ => throw new ExpressionException($"'{operation}' is not a supported operation type."),
+            _ => throw new ExpressionException($"'{operation}' is not a supported operation type.")
         };
     }
 
@@ -144,6 +151,7 @@ public static partial class ExpressionBuilder
 
                 // Look for next quote
                 index = query.IndexOf('\'');
+
                 if (index < 0)
                 {
                     // No more quotes, throw error
@@ -164,7 +172,7 @@ public static partial class ExpressionBuilder
 
             // Return next word
             words.Add(query[..index].ToString());
-            
+
             // Remove word and spaces behind
             query = query[(index + 1)..].TrimStart(' ');
         }
@@ -198,11 +206,14 @@ public static partial class ExpressionBuilder
                     expectedToken = ExpectedToken.Value;
                     break;
                 case ExpectedToken.Value:
-                    if (!ValidMemberNameRegex().IsMatch(member)) throw new ExpressionException("Invalid filter string!");
-                    if (string.IsNullOrEmpty(operation)) throw new ExpressionException("Invalid filter string!");
-                    
+                    if (!ValidMemberNameRegex().IsMatch(member))
+                        throw new ExpressionException("Invalid filter string!");
+
+                    if (string.IsNullOrEmpty(operation))
+                        throw new ExpressionException("Invalid filter string!");
+
                     yield return new ParsedFilter(member, operation, word);
-                    
+
                     member = string.Empty;
                     operation = string.Empty;
                     expectedToken = ExpectedToken.AndOrEnd;
@@ -217,18 +228,16 @@ public static partial class ExpressionBuilder
         }
 
         if (expectedToken != ExpectedToken.AndOrEnd)
-        {
             throw new ExpressionException("Unexpected end of query");
-        }
     }
 
     public static Expression<Func<T, bool>>? GetFilterExpression<T>(string filterQuery) where T : class
     {
         Expression? completeExpr = null;
-        
+
         var entityType = typeof(T);
         var parameterExpr = Expression.Parameter(entityType, "x");
-        
+
         foreach (var filter in ParseFilters(filterQuery))
         {
             var memberExpr = CreateMemberCompareExpression<T>(entityType, parameterExpr, filter.MemberName, filter.Operation, filter.Value);
@@ -242,7 +251,7 @@ public static partial class ExpressionBuilder
                 completeExpr = Expression.And(completeExpr, memberExpr);
             }
         }
-        
+
         if (completeExpr == null) return null;
 
         return Expression.Lambda<Func<T, bool>>(completeExpr, parameterExpr);
