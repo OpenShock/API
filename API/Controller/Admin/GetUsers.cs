@@ -26,24 +26,7 @@ public sealed partial class AdminController
     {
         var deferredCount = _db.Users.DeferredLongCount().FutureValue();
 
-        var query = _db.Users.AsNoTracking();
-        
-        if (!string.IsNullOrEmpty(filterQuery))
-        {
-            query = query.ApplyFilter(filterQuery);
-        }
-
-        if (!string.IsNullOrEmpty(orderbyQuery))
-        {
-            query = query.ApplyOrderBy(orderbyQuery);
-        }
-
-        if (offset != 0)
-        {
-            query = query.Skip(offset);
-        }
-        
-        var deferredUsers = query.Take(limit).Select(user =>
+        var query = _db.Users.AsNoTracking().Select(user =>
             new AdminUserResponse
             {
                 Id = user.Id,
@@ -66,7 +49,24 @@ public sealed partial class AdminController
                     ChangeNameRequests = user.UsersNameChanges.Count,
                     CreateUserRequests = user.UsersActivations.Count,
                 }
-            }).Future();
+            });
+        
+        if (!string.IsNullOrEmpty(filterQuery))
+        {
+            query = query.ApplyFilter(filterQuery);
+        }
+
+        if (!string.IsNullOrEmpty(orderbyQuery))
+        {
+            query = query.ApplyOrderBy(orderbyQuery);
+        }
+
+        if (offset != 0)
+        {
+            query = query.Skip(offset);
+        }
+        
+        var deferredUsers = query.Take(limit).Future();
 
         return new Paginated<AdminUserResponse>
         {
