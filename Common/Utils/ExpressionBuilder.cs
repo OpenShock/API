@@ -144,13 +144,11 @@ public static partial class ExpressionBuilder
 
                 // Look for next quote
                 index = query.IndexOf('\'');
-                if (index < 0) throw new ExpressionException("Invalid query string, unterminated quote found.");
-
-                // Return string
-                words.Add(query[..index].ToString());
-
-                // Remove string
-                query = query[(index + 1)..].TrimStart(' ');
+                if (index < 0)
+                {
+                    // No more quotes, throw error
+                    throw new ExpressionException("Invalid query string, unterminated quote found.");
+                }
             }
             else
             {
@@ -162,13 +160,13 @@ public static partial class ExpressionBuilder
                     words.Add(query.ToString());
                     break;
                 }
-
-                // Return next word
-                words.Add(query[..index].ToString());
-
-                // Remove word and spaces behind
-                query = query[(index + 1)..].TrimStart(' ');
             }
+
+            // Return next word
+            words.Add(query[..index].ToString());
+            
+            // Remove word and spaces behind
+            query = query[(index + 1)..].TrimStart(' ');
         }
 
         return words;
@@ -206,7 +204,7 @@ public static partial class ExpressionBuilder
                     yield return new ParsedFilter(member, operation, word);
                     
                     member = string.Empty;
-                    operation = String.Empty;
+                    operation = string.Empty;
                     expectedToken = ExpectedToken.AndOrEnd;
                     break;
                 case ExpectedToken.AndOrEnd:
