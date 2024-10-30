@@ -2,6 +2,7 @@
 using System.Reflection;
 using System.Runtime.Serialization;
 using System.Text.RegularExpressions;
+using Microsoft.EntityFrameworkCore;
 
 namespace OpenShock.Common.Utils;
 
@@ -18,6 +19,15 @@ public static partial class IQueryableExtensions
         EndsWith,
         Contains,
     }
+    
+    private static readonly ConstantExpression DefaultStrConstExpr = Expression.Constant("default", typeof(string));
+    private static readonly ConstantExpression EfFunctionsConstExpr = Expression.Constant(EF.Functions, typeof(DbFunctions));
+    private static readonly MethodInfo EfFunctionsCollateMethodInfo = typeof(RelationalDbFunctionsExtensions).GetMethod("Collate")?.MakeGenericMethod(typeof(string)) ?? throw new NullReferenceException("EF.Functions.Collate(string,string) not found");
+    private static readonly MethodInfo EfFunctionsILikeMethodInfo = typeof(NpgsqlDbFunctionsExtensions).GetMethod("ILike", [typeof(DbFunctions), typeof(string), typeof(string) ]) ?? throw new NullReferenceException("EF.Functions.ILike(string,string) not found");
+    private static readonly MethodInfo StringEqualsMethodInfo = typeof(string).GetMethod("Equals", [typeof(string)]) ?? throw new Exception("string.Equals(string,StringComparison) method not found");
+    private static readonly MethodInfo StringStartsWithMethodInfo = typeof(string).GetMethod("StartsWith", [typeof(string)]) ?? throw new Exception("string.StartsWith(string) method not found");
+    private static readonly MethodInfo StringEndsWithMethodInfo = typeof(string).GetMethod("EndsWith", [typeof(string)]) ?? throw new Exception("string.EndsWith(string) method not found");
+    private static readonly MethodInfo StringContainsMethodInfo = typeof(string).GetMethod("Contains", [typeof(string)]) ?? throw new Exception("string.Contains(string) method not found");
     
     private static MemberInfo? GetPropertyOrField(Type type, string propOrFieldName)
     {
@@ -58,58 +68,53 @@ public static partial class IQueryableExtensions
         return Expression.Lambda<Func<T, bool>>(operationExpr, parameterExpr);
     }
 
-    private static Func<MemberExpression, Type, Expression> CreateStringEqualsOperationExpression(string value)
+    private static Func<MemberExpression, Type, Expression> CreatePgsqlILikeOperationExpression(string value)
     {
-        var method = typeof(string).GetMethod("Equals", [typeof(string)]) ?? throw new Exception("string.Equals(string,StringComparison) method not found");
+        var valueConstant = Expression.Constant(value, typeof(string));
 
         return (memberExpr, memberType) =>
         {
-            var valueConstant = Expression.Constant(value, typeof(string));
-            return Expression.Call(memberExpr, method, valueConstant);
+            var collated = Expression.Call(null, EfFunctionsCollateMethodInfo, EfFunctionsConstExpr, memberExpr, DefaultStrConstExpr);
+            return Expression.Call(null, EfFunctionsILikeMethodInfo, EfFunctionsConstExpr, collated, valueConstant);
         };
+    }
+    
+    private static Func<MemberExpression, Type, Expression> CreateStringEqualsOperationExpression(string value)
+    {
+        var valueConstant = Expression.Constant(value, typeof(string));
+        
+        return (memberExpr, memberType) => Expression.Call(memberExpr, StringEqualsMethodInfo, valueConstant);
     }
 
     private static Func<MemberExpression, Type, Expression> CreateStringStartsWithOperationExpression(string value)
     {
-        var method = typeof(string).GetMethod("StartsWith", [typeof(string)]) ?? throw new Exception("string.StartsWith(string,StringComparison) method not found");
-
-        return (memberExpr, memberType) =>
-        {
-            var valueConstant = Expression.Constant(value, typeof(string));
-            return Expression.Call(memberExpr, method, valueConstant);
-        };
+        var valueConstant = Expression.Constant(value, typeof(string));
+        
+        return (memberExpr, memberType) => Expression.Call(memberExpr, StringStartsWithMethodInfo, valueConstant);
     }
 
     private static Func<MemberExpression, Type, Expression> CreateStringEndsWithOperationExpression(string value)
     {
-        var method = typeof(string).GetMethod("EndsWith", [typeof(string)]) ?? throw new Exception("string.EndsWith(string,StringComparison) method not found");
-
-        return (memberExpr, memberType) =>
-        {
-            var valueConstant = Expression.Constant(value, typeof(string));
-            return Expression.Call(memberExpr, method, valueConstant);
-        };
+        var valueConstant = Expression.Constant(value, typeof(string));
+        
+        return (memberExpr, memberType) => Expression.Call(memberExpr, StringEndsWithMethodInfo, valueConstant);
     }
 
     private static Func<MemberExpression, Type, Expression> CreateStringContainsOperationExpression(string value)
     {
-        var method = typeof(string).GetMethod("Contains", [typeof(string)]) ?? throw new Exception("string.Contains(string,StringComparison) method not found");
-
-        return (memberExpr, memberType) =>
-        {
-            var valueConstant = Expression.Constant(value, typeof(string));
-            return Expression.Call(memberExpr, method, valueConstant);
-        };
+        var valueConstant = Expression.Constant(value, typeof(string));
+        
+        return (memberExpr, memberType) => Expression.Call(memberExpr, StringContainsMethodInfo, valueConstant);
     }
 
     private static Expression<Func<T, bool>>? CreatePropertyOrFieldStringCompareExpression<T>(string propOrFieldName, OperationType operation, string value) where T : class
     {
         var operationExpression = operation switch
         {
-            OperationType.Equals => CreateStringEqualsOperationExpression(value),
-            OperationType.StartsWith => CreateStringStartsWithOperationExpression(value),
-            OperationType.EndsWith => CreateStringEndsWithOperationExpression(value),
-            OperationType.Contains => CreateStringContainsOperationExpression(value),
+            OperationType.Equals => CreatePgsqlILikeOperationExpression(value),
+            OperationType.StartsWith => CreatePgsqlILikeOperationExpression($"{value}%"),
+            OperationType.EndsWith => CreatePgsqlILikeOperationExpression($"%{value}"),
+            OperationType.Contains => CreatePgsqlILikeOperationExpression($"%{value}%"),
             _ => throw new Exception("Unsupported operation!")
         };
 
