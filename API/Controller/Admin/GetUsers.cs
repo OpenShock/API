@@ -3,7 +3,6 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using OpenShock.Common.Models;
 using OpenShock.Common.Utils;
-using OpenShock.Common.OpenShockDb;
 using OpenShock.Common.Problems;
 using Z.EntityFramework.Plus;
 
@@ -15,44 +14,28 @@ public sealed partial class AdminController
     /// Gets all users, paginated
     /// </summary>
     /// <response code="200">Paginated users</response>
-    /// <response code="401">Unauthorized</response>
+    /// <response code="401">Unauthorized</response>ho
     [HttpGet("users")]
     [ProducesSlimSuccess<Paginated<AdminUserResponse>>]
-    public async Task<Paginated<AdminUserResponse>> GetUsers([FromQuery] string filters = "", [FromQuery] string sortBy = "", [FromQuery] string sortDirection = "", [FromQuery] [Range(0, int.MaxValue)] int offset = 0, [FromQuery] [Range(1, 1000)] int limit = 100)
+    public async Task<Paginated<AdminUserResponse>> GetUsers(
+        [FromQuery(Name = "$filter")] string filterQuery = "",
+        [FromQuery(Name = "$orderby")] string orderbyQuery = "",
+        [FromQuery(Name = "$offset")] [Range(0, int.MaxValue)] int offset = 0,
+        [FromQuery(Name = "$limit")] [Range(1, 1000)] int limit = 100
+        )
     {
         var deferredCount = _db.Users.DeferredLongCount().FutureValue();
 
         var query = _db.Users.AsNoTracking();
         
-        if (!string.IsNullOrEmpty(filters))
+        if (!string.IsNullOrEmpty(filterQuery))
         {
-            var filterParams = filters.Split(';'); // Or use JSON parsing if more complex
-
-            foreach (var filter in filterParams)
-            {
-                var parts = filter.Split(':');
-                var property = parts[0];
-                var value = parts[1];
-
-                query = property switch
-                {
-                    "Id" => query.Where(u => u.Id.ToString().Contains(value)),
-                    "Name" => query.Where(u => u.Name.Contains(value)),
-                    "Email" => query.Where(u => u.Email.Contains(value)),
-                    "Rank" => query.Where(u => u.Rank.ToString() == value),
-                    _ => query
-                };
-            }
+            query = query.ApplyFilter(filterQuery);
         }
 
-        if (!string.IsNullOrEmpty(sortBy))
+        if (!string.IsNullOrEmpty(orderbyQuery))
         {
-            // TODO: Implement me
-        }
-
-        if (!string.IsNullOrEmpty(sortDirection))
-        {
-            // TODO: Implement me
+            query = query.ApplyOrderBy(orderbyQuery);
         }
 
         if (offset != 0)
