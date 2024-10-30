@@ -191,8 +191,8 @@ public static partial class IQueryableExtensions
                     operation = word switch
                     {
                         "==" or "===" => OperationType.Equals,
-                        "*=" or "*==" => OperationType.StartsWith,
-                        "=*" or "==*" => OperationType.EndsWith,
+                        "=*" or "==*" => OperationType.StartsWith,
+                        "*=" or "*==" => OperationType.EndsWith,
                         "=*=" => OperationType.Contains,
                         _ => throw new Exception("Unsupported operation!")
                     };
