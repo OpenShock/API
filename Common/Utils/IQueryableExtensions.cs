@@ -113,8 +113,6 @@ public static partial class IQueryableExtensions
             _ => throw new Exception("Unsupported operation!")
         };
 
-        if (operationExpression == null) return null;
-
         return CreatePropertyOrFieldOperationExpression<T>(propOrFieldName, operationExpression);
     }
 
