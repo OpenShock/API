@@ -11,15 +11,6 @@ public static partial class IQueryableExtensions
     [GeneratedRegex(@"^[A-Za-z][A-Za-z0-9]*$")]
     private static partial Regex ValidMemberNameRegex();
     
-    private enum OperationType
-    {
-        None,
-        Equals,
-        StartsWith,
-        EndsWith,
-        Contains,
-    }
-    
     private static readonly ConstantExpression DefaultStrConstExpr = Expression.Constant("default", typeof(string));
     private static readonly ConstantExpression EfFunctionsConstExpr = Expression.Constant(EF.Functions, typeof(DbFunctions));
     private static readonly MethodInfo EfFunctionsCollateMethodInfo = typeof(RelationalDbFunctionsExtensions).GetMethod("Collate")?.MakeGenericMethod(typeof(string)) ?? throw new NullReferenceException("EF.Functions.Collate(string,string) not found");
@@ -49,89 +40,91 @@ public static partial class IQueryableExtensions
             _ => null
         };
     }
+    
+    private static ConstantExpression GetConstant(Type type, string value)
+    {
+        /* Currently this causes a really weird bug which persists across subsequent requests
+        if (type.IsEnum)
+        {
+            var enumValue = Enum.Parse(type, value, ignoreCase: true);
+            return Expression.Constant(enumValue, type);
+        }
+        */ 
+        
+        return Expression.Constant(value, type);
+    }
 
-    private static Expression<Func<T, bool>>? CreatePropertyOrFieldOperationExpression<T>(string memberName, Func<MemberExpression, Type, Expression> createOperationExpression)
+    private static Expression BuildEfFunctionsCollatedILikeExpression(Type memberType, Expression memberExpr, string value)
+    {
+        if (memberType != typeof(string)) throw new ArgumentException($"Operation ILIKE is not supported for {memberType}");
+        
+        var valueConstant = Expression.Constant(value, typeof(string));
+        
+        var collated = Expression.Call(null, EfFunctionsCollateMethodInfo, EfFunctionsConstExpr, memberExpr, DefaultStrConstExpr);
+            
+        return Expression.Call(null, EfFunctionsILikeMethodInfo, EfFunctionsConstExpr, collated, valueConstant);
+    }
+
+    private static Expression BuildEqualExpression(Type memberType, Expression memberExpr, string value)
+    {
+        return Expression.Equal(memberExpr, GetConstant(memberType, value));
+    }
+
+    private static Expression BuildNotEqualExpression(Type memberType, Expression memberExpr, string value)
+    {
+        return Expression.NotEqual(memberExpr, GetConstant(memberType, value));
+    }
+
+    private static Expression BuildLessThanExpression(Type memberType, Expression memberExpr, string value)
+    {
+        if (!memberType.IsPrimitive && !memberType.IsEnum) throw new ArgumentException($"Operation < is not supported for {memberType}");
+        return Expression.LessThan(memberExpr, GetConstant(memberType, value));
+    }
+    
+    private static Expression BuildGreaterThanExpression(Type memberType, Expression memberExpr, string value)
+    {
+        if (!memberType.IsPrimitive && !memberType.IsEnum) throw new ArgumentException($"Operation > is not supported for {memberType}");
+        return Expression.GreaterThan(memberExpr, GetConstant(memberType, value));
+    }
+
+    private static Expression BuildLessThanOrEqualExpression(Type memberType, Expression memberExpr, string value)
+    {
+        if (!memberType.IsPrimitive && !memberType.IsEnum) throw new ArgumentException($"Operation <= is not supported for {memberType}");
+        return Expression.LessThan(memberExpr, GetConstant(memberType, value));
+    }
+    
+    private static Expression BuildGreaterThanOrEqualExpression(Type memberType, Expression memberExpr, string value)
+    {
+        if (!memberType.IsPrimitive && !memberType.IsEnum) throw new ArgumentException($"Operation >= is not supported for {memberType}");
+        return Expression.GreaterThan(memberExpr, GetConstant(memberType, value));
+    }
+    
+    private static Expression<Func<T, bool>>? CreatePropertyOrFieldStringCompareExpression<T>(string propOrFieldName, string operation, string value) where T : class
     {
         var entityType = typeof(T);
 
-        var memberInfo = GetPropertyOrField(entityType, memberName);
+        var memberInfo = GetPropertyOrField(entityType, propOrFieldName);
         if (memberInfo == null) return null;
 
         var memberType = GetPropertyOrFieldType(memberInfo);
         if (memberType == null) return null;
-
+        
         var parameterExpr = Expression.Parameter(entityType, "x");
         var memberExpr = Expression.MakeMemberAccess(parameterExpr, memberInfo);
 
-        var operationExpr = createOperationExpression(memberExpr, memberType);
+        var operationExpr = operation switch
+        {
+            "like" => BuildEfFunctionsCollatedILikeExpression(memberType, memberExpr, value),
+            "==" or "eq" => BuildEqualExpression(memberType, memberExpr, value), 
+            "!=" or "neq" => BuildNotEqualExpression(memberType, memberExpr, value),
+            "<" or "lt" => BuildLessThanExpression(memberType, memberExpr, value),
+            ">" or "gt" => BuildGreaterThanExpression(memberType, memberExpr, value),
+            "<=" or "lte" => BuildLessThanOrEqualExpression(memberType, memberExpr, value),
+            ">=" or "gte" => BuildGreaterThanOrEqualExpression(memberType, memberExpr, value),
+            _ => throw new NotSupportedException($"'{operation}' is not a supported operation type."),
+        };
 
         return Expression.Lambda<Func<T, bool>>(operationExpr, parameterExpr);
-    }
-
-    private static Func<MemberExpression, Type, Expression> CreatePgsqlILikeOperationExpression(string value)
-    {
-        var valueConstant = Expression.Constant(value, typeof(string));
-
-        return (memberExpr, memberType) =>
-        {
-            MethodCallExpression transformedExpression;
-            if (memberType == typeof(string))
-            {
-                transformedExpression = Expression.Call(null, EfFunctionsCollateMethodInfo, EfFunctionsConstExpr, memberExpr, DefaultStrConstExpr);
-            }
-            else if (memberType.IsEnum)
-            {
-                transformedExpression = Expression.Call(memberExpr, typeof(Enum).GetMethod("ToString", [])!);
-            }
-            else
-            {
-                transformedExpression = Expression.Call(memberExpr, typeof(object).GetMethod("ToString")!);
-            }
-            
-            return Expression.Call(null, EfFunctionsILikeMethodInfo, EfFunctionsConstExpr, transformedExpression, valueConstant);
-        };
-    }
-    
-    private static Func<MemberExpression, Type, Expression> CreateStringEqualsOperationExpression(string value)
-    {
-        var valueConstant = Expression.Constant(value, typeof(string));
-        
-        return (memberExpr, memberType) => Expression.Call(memberExpr, StringEqualsMethodInfo, valueConstant);
-    }
-
-    private static Func<MemberExpression, Type, Expression> CreateStringStartsWithOperationExpression(string value)
-    {
-        var valueConstant = Expression.Constant(value, typeof(string));
-        
-        return (memberExpr, memberType) => Expression.Call(memberExpr, StringStartsWithMethodInfo, valueConstant);
-    }
-
-    private static Func<MemberExpression, Type, Expression> CreateStringEndsWithOperationExpression(string value)
-    {
-        var valueConstant = Expression.Constant(value, typeof(string));
-        
-        return (memberExpr, memberType) => Expression.Call(memberExpr, StringEndsWithMethodInfo, valueConstant);
-    }
-
-    private static Func<MemberExpression, Type, Expression> CreateStringContainsOperationExpression(string value)
-    {
-        var valueConstant = Expression.Constant(value, typeof(string));
-        
-        return (memberExpr, memberType) => Expression.Call(memberExpr, StringContainsMethodInfo, valueConstant);
-    }
-
-    private static Expression<Func<T, bool>>? CreatePropertyOrFieldStringCompareExpression<T>(string propOrFieldName, OperationType operation, string value) where T : class
-    {
-        var operationExpression = operation switch
-        {
-            OperationType.Equals => CreatePgsqlILikeOperationExpression(value),
-            OperationType.StartsWith => CreatePgsqlILikeOperationExpression($"{value}%"),
-            OperationType.EndsWith => CreatePgsqlILikeOperationExpression($"%{value}"),
-            OperationType.Contains => CreatePgsqlILikeOperationExpression($"%{value}%"),
-            _ => throw new Exception("Unsupported operation!")
-        };
-
-        return CreatePropertyOrFieldOperationExpression<T>(propOrFieldName, operationExpression);
     }
 
     private static List<string> GetFilterWords(ReadOnlySpan<char> query)
@@ -179,7 +172,7 @@ public static partial class IQueryableExtensions
         return words;
     }
 
-    private sealed record ParsedFilter(string MemberName, OperationType Operation, string Value);
+    private sealed record ParsedFilter(string MemberName, string Operation, string Value);
     private enum ExpectedToken
     {
         Member,
@@ -190,7 +183,7 @@ public static partial class IQueryableExtensions
     private static IEnumerable<ParsedFilter> ParseFilters(string query)
     {
         string member = string.Empty;
-        OperationType operation = OperationType.None;
+        string operation = String.Empty;
         ExpectedToken expectedToken = ExpectedToken.Member;
         foreach (var word in GetFilterWords(query))
         {
@@ -201,24 +194,17 @@ public static partial class IQueryableExtensions
                     expectedToken = ExpectedToken.Operation;
                     break;
                 case ExpectedToken.Operation:
-                    operation = word switch
-                    {
-                        "==" or "===" => OperationType.Equals,
-                        "=*" or "==*" => OperationType.StartsWith,
-                        "*=" or "*==" => OperationType.EndsWith,
-                        "=*=" => OperationType.Contains,
-                        _ => throw new Exception("Unsupported operation!")
-                    };
+                    operation = word;
                     expectedToken = ExpectedToken.Value;
                     break;
                 case ExpectedToken.Value:
                     if (!ValidMemberNameRegex().IsMatch(member)) throw new Exception("Invalid filter string!");
-                    if (operation == OperationType.None) throw new Exception("Invalid filter string!");
+                    if (string.IsNullOrEmpty(operation)) throw new Exception("Invalid filter string!");
                     
                     yield return new ParsedFilter(member, operation, word);
                     
                     member = string.Empty;
-                    operation = OperationType.None;
+                    operation = String.Empty;
                     expectedToken = ExpectedToken.AndOrEnd;
                     break;
                 case ExpectedToken.AndOrEnd:
