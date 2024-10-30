@@ -7,6 +7,15 @@ namespace OpenShock.Common.Utils;
 
 public static class IQueryableExtensions
 {
+    private enum OperationType
+    {
+        None,
+        Equals,
+        StartsWith,
+        EndsWith,
+        Contains,
+    }
+    
     private static MemberInfo? GetPropertyOrField(Type type, string propOrFieldName)
     {
         var member = type.GetMember(propOrFieldName, BindingFlags.Public | BindingFlags.Instance | BindingFlags.GetProperty | BindingFlags.GetField | BindingFlags.IgnoreCase).SingleOrDefault();
@@ -94,14 +103,14 @@ public static class IQueryableExtensions
         };
     }
 
-    private static Expression<Func<T, bool>>? CreatePropertyOrFieldStringCompareExpression<T>(string propOrFieldName, string compareType, string value, StringComparison comparisonType = StringComparison.InvariantCultureIgnoreCase) where T : class
+    private static Expression<Func<T, bool>>? CreatePropertyOrFieldStringCompareExpression<T>(string propOrFieldName, OperationType operation, string value, StringComparison comparisonType = StringComparison.InvariantCultureIgnoreCase) where T : class
     {
-        var operationExpression = compareType switch
+        var operationExpression = operation switch
         {
-            "eq" => CreateStringEqualsOperationExpression(value, comparisonType),
-            "startswith" => CreateStringStartsWithOperationExpression(value, comparisonType),
-            "endswith" => CreateStringEndsWithOperationExpression(value, comparisonType),
-            "contains" => CreateStringContainsOperationExpression(value, comparisonType),
+            OperationType.Equals => CreateStringEqualsOperationExpression(value, comparisonType),
+            OperationType.StartsWith => CreateStringStartsWithOperationExpression(value, comparisonType),
+            OperationType.EndsWith => CreateStringEndsWithOperationExpression(value, comparisonType),
+            OperationType.Contains => CreateStringContainsOperationExpression(value, comparisonType),
             _ => throw new Exception("Unsupported operation!")
         };
 
@@ -125,7 +134,7 @@ public static class IQueryableExtensions
 
                 // Look for next quote
                 index = query.IndexOf('\'');
-                if (index < 0) throw new Exception("Invalid query string!");
+                if (index < 0) throw new Exception("Invalid query string, unterminated quote found.");
 
                 // Return string
                 words.Add(query[..index].ToString());
@@ -155,7 +164,7 @@ public static class IQueryableExtensions
         return words;
     }
 
-    private record ParsedFilter(string member, string operation, string value);
+    private record ParsedFilter(string member, OperationType operation, string value);
     enum ExpectedToken
     {
         Member,
@@ -166,7 +175,7 @@ public static class IQueryableExtensions
     private static IEnumerable<ParsedFilter> ParseFilters(string query)
     {
         string member = string.Empty;
-        string operation = string.Empty;
+        OperationType operation = OperationType.None;
         ExpectedToken expectedToken = ExpectedToken.Member;
         foreach (var word in GetFilterWords(query))
         {
@@ -177,7 +186,14 @@ public static class IQueryableExtensions
                     expectedToken = ExpectedToken.Operation;
                     break;
                 case ExpectedToken.Operation:
-                    operation = word;
+                    operation = word switch
+                    {
+                        "==" or "===" => OperationType.Equals,
+                        "*=" or "*==" => OperationType.StartsWith,
+                        "=*" or "==*" => OperationType.EndsWith,
+                        "=*=" => OperationType.Contains,
+                        _ => throw new Exception("Unsupported operation!")
+                    };
                     expectedToken = ExpectedToken.Value;
                     break;
                 case ExpectedToken.Value:
