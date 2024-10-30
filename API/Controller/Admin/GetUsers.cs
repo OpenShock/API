@@ -18,11 +18,49 @@ public sealed partial class AdminController
     /// <response code="401">Unauthorized</response>
     [HttpGet("users")]
     [ProducesSlimSuccess<Paginated<AdminUserResponse>>]
-    public async Task<Paginated<AdminUserResponse>> GetUsers([FromQuery] [Range(0, 1000)] int limit = 100, [FromQuery] [Range(0, int.MaxValue)] int offset = 0)
+    public async Task<Paginated<AdminUserResponse>> GetUsers([FromQuery] string filters = "", [FromQuery] string sortBy = "", [FromQuery] string sortDirection = "", [FromQuery] [Range(0, int.MaxValue)] int offset = 0, [FromQuery] [Range(1, 1000)] int limit = 100)
     {
         var deferredCount = _db.Users.DeferredLongCount().FutureValue();
 
-        var deferredUsers = _db.Users.AsNoTracking().OrderBy(x => x.CreatedAt).Skip(offset).Take(limit).Select(user =>
+        var query = _db.Users.AsNoTracking();
+        
+        if (!string.IsNullOrEmpty(filters))
+        {
+            var filterParams = filters.Split(';'); // Or use JSON parsing if more complex
+
+            foreach (var filter in filterParams)
+            {
+                var parts = filter.Split(':');
+                var property = parts[0];
+                var value = parts[1];
+
+                query = property switch
+                {
+                    "Id" => query.Where(u => u.Id.ToString().Contains(value)),
+                    "Name" => query.Where(u => u.Name.Contains(value)),
+                    "Email" => query.Where(u => u.Email.Contains(value)),
+                    "Rank" => query.Where(u => u.Rank.ToString() == value),
+                    _ => query
+                };
+            }
+        }
+
+        if (!string.IsNullOrEmpty(sortBy))
+        {
+            // TODO: Implement me
+        }
+
+        if (!string.IsNullOrEmpty(sortDirection))
+        {
+            // TODO: Implement me
+        }
+
+        if (offset != 0)
+        {
+            query = query.Skip(offset);
+        }
+        
+        var deferredUsers = query.Take(limit).Select(user =>
             new AdminUserResponse
             {
                 Id = user.Id,
