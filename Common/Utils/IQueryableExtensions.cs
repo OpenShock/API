@@ -58,62 +58,58 @@ public static partial class IQueryableExtensions
         return Expression.Lambda<Func<T, bool>>(operationExpr, parameterExpr);
     }
 
-    private static Func<MemberExpression, Type, Expression> CreateStringEqualsOperationExpression(string value, StringComparison comparisonType)
+    private static Func<MemberExpression, Type, Expression> CreateStringEqualsOperationExpression(string value)
     {
-        var method = typeof(string).GetMethod("Equals", [typeof(string), typeof(StringComparison)]) ?? throw new Exception("string.Equals(string,StringComparison) method not found");
+        var method = typeof(string).GetMethod("Equals", [typeof(string)]) ?? throw new Exception("string.Equals(string,StringComparison) method not found");
 
         return (memberExpr, memberType) =>
         {
             var valueConstant = Expression.Constant(value, typeof(string));
-            var comparisonConstant = Expression.Constant(comparisonType, typeof(StringComparison));
-            return Expression.Call(memberExpr, method, valueConstant, comparisonConstant);
+            return Expression.Call(memberExpr, method, valueConstant);
         };
     }
 
-    private static Func<MemberExpression, Type, Expression> CreateStringStartsWithOperationExpression(string value, StringComparison comparisonType)
+    private static Func<MemberExpression, Type, Expression> CreateStringStartsWithOperationExpression(string value)
     {
-        var method = typeof(string).GetMethod("StartsWith", [typeof(string), typeof(StringComparison)]) ?? throw new Exception("string.StartsWith(string,StringComparison) method not found");
+        var method = typeof(string).GetMethod("StartsWith", [typeof(string)]) ?? throw new Exception("string.StartsWith(string,StringComparison) method not found");
 
         return (memberExpr, memberType) =>
         {
             var valueConstant = Expression.Constant(value, typeof(string));
-            var comparisonConstant = Expression.Constant(comparisonType, typeof(StringComparison));
-            return Expression.Call(memberExpr, method, valueConstant, comparisonConstant);
+            return Expression.Call(memberExpr, method, valueConstant);
         };
     }
 
-    private static Func<MemberExpression, Type, Expression> CreateStringEndsWithOperationExpression(string value, StringComparison comparisonType)
+    private static Func<MemberExpression, Type, Expression> CreateStringEndsWithOperationExpression(string value)
     {
-        var method = typeof(string).GetMethod("EndsWith", [typeof(string), typeof(StringComparison)]) ?? throw new Exception("string.EndsWith(string,StringComparison) method not found");
+        var method = typeof(string).GetMethod("EndsWith", [typeof(string)]) ?? throw new Exception("string.EndsWith(string,StringComparison) method not found");
 
         return (memberExpr, memberType) =>
         {
             var valueConstant = Expression.Constant(value, typeof(string));
-            var comparisonConstant = Expression.Constant(comparisonType, typeof(StringComparison));
-            return Expression.Call(memberExpr, method, valueConstant, comparisonConstant);
+            return Expression.Call(memberExpr, method, valueConstant);
         };
     }
 
-    private static Func<MemberExpression, Type, Expression> CreateStringContainsOperationExpression(string value, StringComparison comparisonType)
+    private static Func<MemberExpression, Type, Expression> CreateStringContainsOperationExpression(string value)
     {
-        var method = typeof(string).GetMethod("Contains", [typeof(string), typeof(StringComparison)]) ?? throw new Exception("string.Contains(string,StringComparison) method not found");
+        var method = typeof(string).GetMethod("Contains", [typeof(string)]) ?? throw new Exception("string.Contains(string,StringComparison) method not found");
 
         return (memberExpr, memberType) =>
         {
             var valueConstant = Expression.Constant(value, typeof(string));
-            var comparisonConstant = Expression.Constant(comparisonType, typeof(StringComparison));
-            return Expression.Call(memberExpr, method, valueConstant, comparisonConstant);
+            return Expression.Call(memberExpr, method, valueConstant);
         };
     }
 
-    private static Expression<Func<T, bool>>? CreatePropertyOrFieldStringCompareExpression<T>(string propOrFieldName, OperationType operation, string value, StringComparison comparisonType = StringComparison.InvariantCultureIgnoreCase) where T : class
+    private static Expression<Func<T, bool>>? CreatePropertyOrFieldStringCompareExpression<T>(string propOrFieldName, OperationType operation, string value) where T : class
     {
         var operationExpression = operation switch
         {
-            OperationType.Equals => CreateStringEqualsOperationExpression(value, comparisonType),
-            OperationType.StartsWith => CreateStringStartsWithOperationExpression(value, comparisonType),
-            OperationType.EndsWith => CreateStringEndsWithOperationExpression(value, comparisonType),
-            OperationType.Contains => CreateStringContainsOperationExpression(value, comparisonType),
+            OperationType.Equals => CreateStringEqualsOperationExpression(value),
+            OperationType.StartsWith => CreateStringStartsWithOperationExpression(value),
+            OperationType.EndsWith => CreateStringEndsWithOperationExpression(value),
+            OperationType.Contains => CreateStringContainsOperationExpression(value),
             _ => throw new Exception("Unsupported operation!")
         };
 
