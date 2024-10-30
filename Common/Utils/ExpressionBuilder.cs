@@ -18,8 +18,6 @@ public static partial class ExpressionBuilder
     [GeneratedRegex(@"^[A-Za-z][A-Za-z0-9]*$")]
     private static partial Regex ValidMemberNameRegex();
     
-    private static readonly ConstantExpression DefaultStrConstExpr = Expression.Constant("default", typeof(string));
-    private static readonly ConstantExpression EfFunctionsConstExpr = Expression.Constant(EF.Functions, typeof(DbFunctions));
     private static readonly MethodInfo EfFunctionsCollateMethodInfo = typeof(RelationalDbFunctionsExtensions).GetMethod("Collate")?.MakeGenericMethod(typeof(string)) ?? throw new ExpressionException("EF.Functions.Collate(string,string) not found");
     private static readonly MethodInfo EfFunctionsILikeMethodInfo = typeof(NpgsqlDbFunctionsExtensions).GetMethod("ILike", [typeof(DbFunctions), typeof(string), typeof(string) ]) ?? throw new ExpressionException("EF.Functions.ILike(string,string) not found");
     private static readonly MethodInfo StringEqualsMethodInfo = typeof(string).GetMethod("Equals", [typeof(string)]) ?? throw new ExpressionException("string.Equals(string,StringComparison) method not found");
@@ -66,10 +64,12 @@ public static partial class ExpressionBuilder
         if (memberType != typeof(string)) throw new ExpressionException($"Operation ILIKE is not supported for {memberType}");
         
         var valueConstant = Expression.Constant(value, typeof(string));
+        var defaultStrConstant = Expression.Constant("default", typeof(string));
+        var efFunctionsConstant = Expression.Constant(EF.Functions, typeof(DbFunctions));
         
-        var collated = Expression.Call(null, EfFunctionsCollateMethodInfo, EfFunctionsConstExpr, memberExpr, DefaultStrConstExpr);
+        var collated = Expression.Call(null, EfFunctionsCollateMethodInfo, efFunctionsConstant, memberExpr, defaultStrConstant);
             
-        return Expression.Call(null, EfFunctionsILikeMethodInfo, EfFunctionsConstExpr, collated, valueConstant);
+        return Expression.Call(null, EfFunctionsILikeMethodInfo, efFunctionsConstant, collated, valueConstant);
     }
 
     private static Expression BuildEqualExpression(Type memberType, Expression memberExpr, string value)
