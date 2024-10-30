@@ -1,12 +1,15 @@
 ﻿using System.Linq.Expressions;
 using System.Reflection;
 using System.Runtime.Serialization;
+using System.Text.RegularExpressions;
 
 namespace OpenShock.Common.Utils;
 
-
-public static class IQueryableExtensions
+public static partial class IQueryableExtensions
 {
+    [GeneratedRegex(@"^[A-Za-z][A-Za-z0-9]*$")]
+    private static partial Regex ValidMemberNameRegex();
+    
     private enum OperationType
     {
         None,
@@ -21,7 +24,7 @@ public static class IQueryableExtensions
         var member = type.GetMember(propOrFieldName, BindingFlags.Public | BindingFlags.Instance | BindingFlags.GetProperty | BindingFlags.GetField | BindingFlags.IgnoreCase).SingleOrDefault();
         if (member == null) return null;
 
-        bool isIgnored = member.GetCustomAttributes(typeof(IgnoreDataMemberAttribute), true).Any();
+        var isIgnored = member.GetCustomAttributes(typeof(IgnoreDataMemberAttribute), true).Any();
         if (isIgnored) return null;
 
         return member;
@@ -164,8 +167,8 @@ public static class IQueryableExtensions
         return words;
     }
 
-    private record ParsedFilter(string member, OperationType operation, string value);
-    enum ExpectedToken
+    private sealed record ParsedFilter(string MemberName, OperationType Operation, string Value);
+    private enum ExpectedToken
     {
         Member,
         Operation,
@@ -197,7 +200,13 @@ public static class IQueryableExtensions
                     expectedToken = ExpectedToken.Value;
                     break;
                 case ExpectedToken.Value:
+                    if (!ValidMemberNameRegex().IsMatch(member)) throw new Exception("Invalid filter string!");
+                    if (operation == OperationType.None) throw new Exception("Invalid filter string!");
+                    
                     yield return new ParsedFilter(member, operation, word);
+                    
+                    member = string.Empty;
+                    operation = OperationType.None;
                     expectedToken = ExpectedToken.AndOrEnd;
                     break;
                 case ExpectedToken.AndOrEnd:
@@ -219,7 +228,7 @@ public static class IQueryableExtensions
     {
         foreach (var filter in ParseFilters(filterQuery))
         {
-            var containsExpression = CreatePropertyOrFieldStringCompareExpression<T>(filter.member, filter.operation, filter.value);
+            var containsExpression = CreatePropertyOrFieldStringCompareExpression<T>(filter.MemberName, filter.Operation, filter.Value);
 
             if (containsExpression != null)
             {
