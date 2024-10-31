@@ -1,6 +1,7 @@
 ﻿using System.ComponentModel.DataAnnotations;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using OpenShock.Common.Errors;
 using OpenShock.Common.Models;
 using OpenShock.Common.Utils;
 using OpenShock.Common.Problems;
@@ -43,7 +44,7 @@ public sealed partial class AdminController
         }
         catch (ExpressionBuilder.ExpressionException e)
         {
-            return Problem(e.Message, statusCode: 400);
+            return Problem(ExpressionError.ExpressionExceptionError(e.Message));
         }
 
         if (offset != 0)
