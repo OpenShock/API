@@ -3,7 +3,6 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using OpenShock.Common.Models;
 using OpenShock.Common.Utils;
-using OpenShock.Common.OpenShockDb;
 using OpenShock.Common.Problems;
 using Z.EntityFramework.Plus;
 
@@ -18,11 +17,16 @@ public sealed partial class AdminController
     /// <response code="401">Unauthorized</response>
     [HttpGet("users")]
     [ProducesSlimSuccess<Paginated<AdminUserResponse>>]
-    public async Task<Paginated<AdminUserResponse>> GetUsers([FromQuery] [Range(0, 1000)] int limit = 100, [FromQuery] [Range(0, int.MaxValue)] int offset = 0)
+    public async Task<IActionResult> GetUsers(
+        [FromQuery(Name = "$filter")] string filterQuery = "",
+        [FromQuery(Name = "$orderby")] string orderbyQuery = "",
+        [FromQuery(Name = "$offset")] [Range(0, int.MaxValue)] int offset = 0,
+        [FromQuery(Name = "$limit")] [Range(1, 1000)] int limit = 100
+        )
     {
         var deferredCount = _db.Users.DeferredLongCount().FutureValue();
 
-        var deferredUsers = _db.Users.AsNoTracking().OrderBy(x => x.CreatedAt).Skip(offset).Take(limit).Select(user =>
+        var query = _db.Users.AsNoTracking().Select(user =>
             new AdminUserResponse
             {
                 Id = user.Id,
@@ -45,15 +49,39 @@ public sealed partial class AdminController
                     ChangeNameRequests = user.UsersNameChanges.Count,
                     CreateUserRequests = user.UsersActivations.Count,
                 }
-            }).Future();
+            });
 
-        return new Paginated<AdminUserResponse>
+        try
+        {
+            if (!string.IsNullOrEmpty(filterQuery))
+            {
+                query = query.ApplyFilter(filterQuery);
+            }
+
+            if (!string.IsNullOrEmpty(orderbyQuery))
+            {
+                query = query.ApplyOrderBy(orderbyQuery);
+            }
+        }
+        catch (ExpressionBuilder.ExpressionException e)
+        {
+            return Problem(e.Message, statusCode: 400);
+        }
+
+        if (offset != 0)
+        {
+            query = query.Skip(offset);
+        }
+        
+        var deferredUsers = query.Take(limit).Future();
+
+        return Ok(new Paginated<AdminUserResponse>
         {
             Data = await deferredUsers.ToListAsync(),
             Offset = offset,
             Limit = limit,
             Total = await deferredCount.ValueAsync(),
-        };
+        });
     }
 
     public sealed class AdminUserResponse
