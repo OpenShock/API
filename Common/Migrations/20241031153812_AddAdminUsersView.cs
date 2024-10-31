@@ -30,8 +30,8 @@ namespace OpenShock.Common.Migrations
                         (SELECT COUNT(*) FROM users_name_changes   unc WHERE unc.user_id     = u.id) AS name_change_request_count,
                         (SELECT COUNT(*) FROM users_activation     uac WHERE uac.user_id     = u.id) AS user_activation_count,
                         (SELECT COUNT(*) FROM devices              dev WHERE dev.owner       = u.id) AS device_count,
-                        (SELECT COUNT(*) FROM devices              dev WHERE dev.owner       = u.id JOIN shockers sck ON dev.id = sck.device) AS shocker_count,
-                        (SELECT COUNT(*) FROM devices              dev WHERE dev.owner       = u.id JOIN shockers sck ON dev.id = sck.device JOIN shocker_control_logs scl ON scl.shocker_id = sck.id) AS shocker_control_log_count
+                        (SELECT COUNT(*) FROM devices              dev JOIN shockers sck ON dev.id = sck.device WHERE dev.owner = u.id) AS shocker_count,
+                        (SELECT COUNT(*) FROM devices              dev JOIN shockers sck ON dev.id = sck.device JOIN shocker_control_logs scl ON scl.shocker_id = sck.id WHERE dev.owner = u.id) AS shocker_control_log_count
                     FROM
                         users u;
                 """);
