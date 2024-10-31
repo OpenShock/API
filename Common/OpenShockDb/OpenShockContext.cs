@@ -47,6 +47,8 @@ public partial class OpenShockContext : DbContext
 
     public virtual DbSet<UsersNameChange> UsersNameChanges { get; set; }
 
+    public virtual DbSet<AdminUsersView> AdminUsersViews { get; set; }
+
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {
         if (!optionsBuilder.IsConfigured)
@@ -551,6 +553,52 @@ public partial class OpenShockContext : DbContext
             entity.HasOne(d => d.User).WithMany(p => p.UsersNameChanges)
                 .HasForeignKey(d => d.UserId)
                 .HasConstraintName("fk_user_id");
+        });
+
+        modelBuilder.Entity<AdminUsersView>(entity =>
+        {
+            entity
+                .HasNoKey()
+                .ToView("admin_users_view");
+
+            entity.Property(e => e.Id)
+                .HasColumnName("id");
+            entity.Property(e => e.Name)
+                .HasColumnType("character varying")
+                .HasColumnName("name");
+            entity.Property(e => e.Email)
+                .HasColumnType("character varying")
+                .HasColumnName("email");
+            entity.Property(e => e.PasswordHashType)
+                .HasColumnType("character varying")
+                .HasColumnName("password_hash_type");
+            entity.Property(e => e.CreatedAt)
+                .HasColumnName("created_at");
+            entity.Property(e => e.EmailActived)
+                .HasColumnName("email_actived");
+            entity.Property(e => e.Rank)
+                .HasColumnType("rank_type")
+                .HasColumnName("rank");
+            entity.Property(e => e.ApiTokenCount)
+                .HasColumnName("api_token_count");
+            entity.Property(e => e.PasswordResetCount)
+                .HasColumnName("password_reset_count");
+            entity.Property(e => e.ShockerShareCount)
+                .HasColumnName("shocker_share_count");
+            entity.Property(e => e.ShockerShareLinkCount)
+                .HasColumnName("shocker_share_link_count");
+            entity.Property(e => e.EmailChangeRequestCount)
+                .HasColumnName("email_change_request_count");
+            entity.Property(e => e.NameChangeRequestCount)
+                .HasColumnName("name_change_request_count");
+            entity.Property(e => e.UserActivationCount)
+                .HasColumnName("user_activation_count");
+            entity.Property(e => e.DeviceCount)
+                .HasColumnName("device_count");
+            entity.Property(e => e.ShockerCount)
+                .HasColumnName("shocker_count");
+            entity.Property(e => e.ShockerControlLogCount)
+                .HasColumnName("shocker_control_log_count");
         });
     }
 }
