@@ -149,25 +149,25 @@ public sealed partial class SharesV2Controller
         return RespondSlimSuccess();
     }
     
-    [HttpPost("requests/incoming/{id:guid}")]
-    [ProducesSlimSuccess]
-    [ProducesProblem(HttpStatusCode.NotFound, "ShareRequestNotFound")]
-    public async Task<IActionResult> RedeemRequest(Guid id)
-    {
-        var shareRequest = await _db.ShareRequests
-            .Where(x => x.Id == id && (x.User == null || x.User == CurrentUser.DbUser.Id)).Include(x => x.ShareRequestsShockers).FirstOrDefaultAsync();
-        
-        if (shareRequest == null) return Problem(ShareError.ShareRequestNotFound);
-        
-        var alreadySharedShockers = await _db.ShockerShares.Where(x => x.Shocker.DeviceNavigation.OwnerNavigation.Id == shareRequest.Owner && x.SharedWith == CurrentUser.DbUser.Id).Select(x => x.ShockerId).ToArrayAsync();
-        
-        foreach (var shareRequestShareRequestsShocker in shareRequest.ShareRequestsShockers)
-        {
-            
-        }
-        
-        return RespondSlimSuccess();
-    }
+    // [HttpPost("requests/incoming/{id:guid}")]
+    // [ProducesSlimSuccess]
+    // [ProducesProblem(HttpStatusCode.NotFound, "ShareRequestNotFound")]
+    // public async Task<IActionResult> RedeemRequest(Guid id)
+    // {
+    //     var shareRequest = await _db.ShareRequests
+    //         .Where(x => x.Id == id && (x.User == null || x.User == CurrentUser.DbUser.Id)).Include(x => x.ShareRequestsShockers).FirstOrDefaultAsync();
+    //     
+    //     if (shareRequest == null) return Problem(ShareError.ShareRequestNotFound);
+    //     
+    //     var alreadySharedShockers = await _db.ShockerShares.Where(x => x.Shocker.DeviceNavigation.OwnerNavigation.Id == shareRequest.Owner && x.SharedWith == CurrentUser.DbUser.Id).Select(x => x.ShockerId).ToArrayAsync();
+    //     
+    //     foreach (var shareRequestShareRequestsShocker in shareRequest.ShareRequestsShockers)
+    //     {
+    //         
+    //     }
+    //     
+    //     return RespondSlimSuccess();
+    // }
 }
 
 public class ShareRequestBase
