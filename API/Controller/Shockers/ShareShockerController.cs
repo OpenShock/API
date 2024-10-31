@@ -107,7 +107,7 @@ public sealed partial class ShockerController
     [MapToApiVersion("1")]
     public async Task<IActionResult> ShockerShareCodeCreate(
         [FromRoute] Guid shockerId,
-        [FromBody] CreateShockerShare body,
+        [FromBody] ShockerPermLimitPair body,
         [FromServices] IDeviceUpdateService deviceUpdateService
     )
     {
@@ -182,7 +182,7 @@ public sealed partial class ShockerController
     public async Task<IActionResult> ShockerShareCodeUpdate(
         [FromRoute] Guid shockerId,
         [FromRoute] Guid sharedWithUserId,
-        [FromBody] CreateShockerShare body,
+        [FromBody] ShockerPermLimitPair body,
         [FromServices] IDeviceUpdateService deviceUpdateService)
     {
         var affected = await _db.ShockerShares.Where(x =>

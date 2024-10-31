@@ -15,9 +15,9 @@ public partial class ShareRequestsShocker
 
     public bool PermShock { get; set; }
 
-    public int? LimitDuration { get; set; }
+    public ushort? LimitDuration { get; set; }
 
-    public short? LimitIntensity { get; set; }
+    public byte? LimitIntensity { get; set; }
 
     public bool PermLive { get; set; }
 

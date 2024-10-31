@@ -177,7 +177,6 @@ public partial class OpenShockContext : DbContext
                 .HasColumnType("character varying")
                 .HasColumnName("secret");
             entity.Property(e => e.UsedOn)
-                .HasColumnType("time with time zone")
                 .HasColumnName("used_on");
             entity.Property(e => e.UserId).HasColumnName("user_id");
 
@@ -191,13 +190,14 @@ public partial class OpenShockContext : DbContext
             entity.HasKey(e => e.Id).HasName("shares_codes_pkey");
 
             entity.ToTable("share_requests");
+            
+            entity.HasIndex(e => e.Owner).HasAnnotation("Npgsql:StorageParameter:deduplicate_items", "true");
 
             entity.Property(e => e.Id)
                 .ValueGeneratedNever()
                 .HasColumnName("id");
             entity.Property(e => e.CreatedOn)
                 .HasDefaultValueSql("CURRENT_TIMESTAMP")
-                .HasColumnType("time with time zone")
                 .HasColumnName("created_on");
             entity.Property(e => e.Owner).HasColumnName("owner");
             entity.Property(e => e.User).HasColumnName("user");

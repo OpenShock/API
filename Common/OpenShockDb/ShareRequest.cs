@@ -9,7 +9,7 @@ public partial class ShareRequest
 
     public Guid Owner { get; set; }
 
-    public DateTimeOffset CreatedOn { get; set; }
+    public DateTime CreatedOn { get; set; }
 
     public Guid? User { get; set; }
 

@@ -1,6 +1,6 @@
 ﻿namespace OpenShock.API.Models.Requests;
 
-public sealed class CreateShockerShareWithId : CreateShockerShare
+public class ShockerPermLimitPairWithId : ShockerPermLimitPair
 {
     public Guid Id { get; set; }
 }

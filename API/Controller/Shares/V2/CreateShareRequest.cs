@@ -11,7 +11,7 @@ namespace OpenShock.API.Controller.Shares.V2;
 
 public sealed partial class SharesV2Controller
 {
-    [HttpPost]
+    [HttpPost("requests")]
     [ProducesSlimSuccess<Guid>]
     [ProducesProblem(HttpStatusCode.NotFound, "UserNotFound")]
     [ProducesProblem(HttpStatusCode.BadRequest, "ShareCreateCannotShareWithSelf")]
@@ -20,7 +20,7 @@ public sealed partial class SharesV2Controller
     {
         if (data.User == CurrentUser.DbUser.Id)
         {
-            return Problem(ShareError.ShareCreateCannotShareWithSelf);
+            return Problem(ShareError.ShareRequestCreateCannotShareWithSelf);
         }
         
         var providedShockerIds = data.Shockers.Select(x => x.Id).ToArray();
