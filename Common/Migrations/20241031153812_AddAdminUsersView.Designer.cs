@@ -61,47 +61,47 @@ namespace OpenShock.Common.Migrations
                         .HasColumnType("boolean")
                         .HasColumnName("email_actived");
 
-                    b.Property("Rank")
+                    b.Property<int>("Rank")
                         .HasColumnType("rank_type")
                         .HasColumnName("rank");
 
-                    b.Property("ApiTokenCount")
+                    b.Property<int>("ApiTokenCount")
                         .HasColumnType("integer")
                         .HasColumnName("api_token_count");
 
-                    b.Property("PasswordResetCount")
+                    b.Property<int>("PasswordResetCount")
                         .HasColumnType("integer")
                         .HasColumnName("password_reset_count");
 
-                    b.Property("ShockerShareCount")
+                    b.Property<int>("ShockerShareCount")
                         .HasColumnType("integer")
                         .HasColumnName("shocker_share_count");
 
-                    b.Property("ShockerShareLinkCount")
+                    b.Property<int>("ShockerShareLinkCount")
                         .HasColumnType("integer")
                         .HasColumnName("shocker_share_link_count");
 
-                    b.Property("EmailChangeRequestCount")
+                    b.Property<int>("EmailChangeRequestCount")
                         .HasColumnType("integer")
                         .HasColumnName("email_change_request_count");
 
-                    b.Property("NameChangeRequestCount")
+                    b.Property<int>("NameChangeRequestCount")
                         .HasColumnType("integer")
                         .HasColumnName("name_change_request_count");
 
-                    b.Property("UserActivationCount")
+                    b.Property<int>("UserActivationCount")
                         .HasColumnType("integer")
                         .HasColumnName("user_activation_count");
 
-                    b.Property("DeviceCount")
+                    b.Property<int>("DeviceCount")
                         .HasColumnType("integer")
                         .HasColumnName("device_count");
 
-                    b.Property("ShockerCount")
+                    b.Property<int>("ShockerCount")
                         .HasColumnType("integer")
                         .HasColumnName("shocker_count");
 
-                    b.Property("ShockerControlLogCount")
+                    b.Property<int>("ShockerControlLogCount")
                         .HasColumnType("integer")
                         .HasColumnName("shocker_control_log_count");
                 });
