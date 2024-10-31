@@ -34,6 +34,7 @@ public static class IQueryableExtensions
 
         var parameterExpr = Expression.Parameter(entityType, "x");
         var memberExpr = Expression.MakeMemberAccess(parameterExpr, memberInfo);
+        var lambda = Expression.Lambda(memberExpr, parameterExpr);
 
         var methodName = direction switch
         {
@@ -52,6 +53,6 @@ public static class IQueryableExtensions
             .MakeGenericMethod(entityType, memberType);
 
         // Invoke the method on the query with the key selector and return the ordered query
-        return (IOrderedQueryable<T>)method.Invoke(null, [query, memberExpr])!;
+        return (IOrderedQueryable<T>)method.Invoke(null, [query, lambda])!;
     }
 }
