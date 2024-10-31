@@ -23,7 +23,7 @@ public static partial class ExpressionBuilder
     private static readonly MethodInfo StringEndsWithMethodInfo = typeof(string).GetMethod("EndsWith", [typeof(string)]) ?? throw new ExpressionException("string.EndsWith(string) method not found");
     private static readonly MethodInfo StringContainsMethodInfo = typeof(string).GetMethod("Contains", [typeof(string)]) ?? throw new ExpressionException("string.Contains(string) method not found");
     
-    private static MemberInfo? GetPropertyOrField(Type type, string propOrFieldName)
+    public static MemberInfo? GetPropertyOrField(Type type, string propOrFieldName)
     {
         var member = type.GetMember(propOrFieldName, BindingFlags.Public | BindingFlags.Instance | BindingFlags.GetProperty | BindingFlags.GetField | BindingFlags.IgnoreCase).SingleOrDefault();
         if (member == null)
@@ -36,7 +36,7 @@ public static partial class ExpressionBuilder
         return member;
     }
 
-    private static Type? GetPropertyOrFieldType(MemberInfo propOrField)
+    public static Type? GetPropertyOrFieldType(MemberInfo propOrField)
     {
         return propOrField switch
         {
