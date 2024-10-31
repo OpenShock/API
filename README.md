@@ -59,6 +59,7 @@ You need these environment variables to use SMTP:
 | Variable                                   | Required | Default value | Allowed / Example value            |
 |--------------------------------------------|----------|---------------|------------------------------------|
 | `OPENSHOCK__MAIL__SMTP__HOST`              | x        |               | `mail.my-openshock-instance.net`   |
+| `OPENSHOCK__MAIL__SMTP__PORT`              |          | `587`         | `587`                              |
 | `OPENSHOCK__MAIL__SMTP__USERNAME`          | x        |               | `system@my-openshock-instance.net` |
 | `OPENSHOCK__MAIL__SMTP__PASSWORD`          | x        |               | `superSecurePassword`              |
 | `OPENSHOCK__MAIL__SMTP__ENABLESSL`         |          | `true`        | `true` or `false`                  |
