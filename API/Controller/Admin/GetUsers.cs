@@ -1,5 +1,4 @@
 ﻿using System.ComponentModel.DataAnnotations;
-using System.Net;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using OpenShock.Common.Models;
@@ -15,7 +14,7 @@ public sealed partial class AdminController
     /// Gets all users, paginated
     /// </summary>
     /// <response code="200">Paginated users</response>
-    /// <response code="401">Unauthorized</response>ho
+    /// <response code="401">Unauthorized</response>
     [HttpGet("users")]
     [ProducesSlimSuccess<Paginated<AdminUserResponse>>]
     public async Task<IActionResult> GetUsers(
