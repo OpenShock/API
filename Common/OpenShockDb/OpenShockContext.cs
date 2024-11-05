@@ -124,11 +124,11 @@ public partial class OpenShockContext : DbContext
                 .HasColumnName("created_on");
             entity.Property(e => e.Name)
                 .HasColumnType("character varying")
-                .HasMaxLength(HardLimits.DeviceNameMaxLength)
+                .HasMaxLength(HardLimits.HubNameMaxLength)
                 .HasColumnName("name");
             entity.Property(e => e.Owner).HasColumnName("owner");
             entity.Property(e => e.Token)
-                .HasMaxLength(HardLimits.DeviceTokenMaxLength)
+                .HasMaxLength(HardLimits.HubTokenMaxLength)
                 .HasColumnName("token");
 
             entity.HasOne(d => d.OwnerNavigation).WithMany(p => p.Devices)
