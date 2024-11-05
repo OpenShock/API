@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using Microsoft.EntityFrameworkCore;
 using OpenShock.Common.Constants;
+using OpenShock.Common.Utils;
 
 namespace OpenShock.Common.OpenShockDb;
 
@@ -82,8 +83,7 @@ public partial class OpenShockContext : DbContext
                 .ValueGeneratedNever()
                 .HasColumnName("id");
             entity.Property(e => e.CreatedByIp)
-                .HasColumnType("character varying")
-                .HasMaxLength(HardLimits.IpAddressMaxLength)
+                .VarCharWithLength(HardLimits.IpAddressMaxLength)
                 .HasColumnName("created_by_ip");
             entity.Property(e => e.CreatedOn)
                 .HasDefaultValueSql("CURRENT_TIMESTAMP")
@@ -123,8 +123,7 @@ public partial class OpenShockContext : DbContext
                 .HasDefaultValueSql("CURRENT_TIMESTAMP")
                 .HasColumnName("created_on");
             entity.Property(e => e.Name)
-                .HasColumnType("character varying")
-                .HasMaxLength(HardLimits.HubNameMaxLength)
+                .VarCharWithLength(HardLimits.HubNameMaxLength)
                 .HasColumnName("name");
             entity.Property(e => e.Owner).HasColumnName("owner");
             entity.Property(e => e.Token)
@@ -150,12 +149,10 @@ public partial class OpenShockContext : DbContext
                 .HasDefaultValueSql("CURRENT_TIMESTAMP")
                 .HasColumnName("created_on");
             entity.Property(e => e.Message)
-                .HasColumnType("character varying")
-                .HasMaxLength(HardLimits.OtaUpdateMessageMaxLength)
+                .VarCharWithLength(HardLimits.OtaUpdateMessageMaxLength)
                 .HasColumnName("message");
             entity.Property(e => e.Version)
-                .HasColumnType("character varying")
-                .HasMaxLength(HardLimits.SemVerMaxLength)
+                .VarCharWithLength(HardLimits.SemVerMaxLength)
                 .HasColumnName("version");
             
             entity.Property(e => e.Status).HasColumnType("ota_update_status").HasColumnName("status");
@@ -181,8 +178,7 @@ public partial class OpenShockContext : DbContext
                 .HasDefaultValueSql("CURRENT_TIMESTAMP")
                 .HasColumnName("created_on");
             entity.Property(e => e.Secret)
-                .HasColumnType("character varying")
-                .HasMaxLength(HardLimits.PasswordResetSecretMaxLength)
+                .VarCharWithLength(HardLimits.PasswordResetSecretMaxLength)
                 .HasColumnName("secret");
             entity.Property(e => e.UsedOn)
                 .HasColumnName("used_on");
@@ -297,8 +293,7 @@ public partial class OpenShockContext : DbContext
                 .HasDefaultValueSql("CURRENT_TIMESTAMP")
                 .HasColumnName("created_on");
             entity.Property(e => e.CustomName)
-                .HasColumnType("character varying")
-                .HasMaxLength(HardLimits.ShockerControlLogCustomNameMaxLength)
+                .VarCharWithLength(HardLimits.ShockerControlLogCustomNameMaxLength)
                 .HasColumnName("custom_name");
             entity.Property(e => e.Duration).HasColumnName("duration");
             entity.Property(e => e.Intensity).HasColumnName("intensity");
@@ -404,8 +399,7 @@ public partial class OpenShockContext : DbContext
                 .HasColumnName("created_on");
             entity.Property(e => e.ExpiresOn).HasColumnName("expires_on");
             entity.Property(e => e.Name)
-                .HasColumnType("character varying")
-                .HasMaxLength(HardLimits.ShockerShareLinkNameMaxLength)
+                .VarCharWithLength(HardLimits.ShockerShareLinkNameMaxLength)
                 .HasColumnName("name");
             entity.Property(e => e.OwnerId).HasColumnName("owner_id");
 
@@ -460,20 +454,17 @@ public partial class OpenShockContext : DbContext
                 .HasDefaultValueSql("CURRENT_TIMESTAMP")
                 .HasColumnName("created_at");
             entity.Property(e => e.Email)
-                .HasColumnType("character varying")
-                .HasMaxLength(HardLimits.EmailAddressMaxLength)
+                .VarCharWithLength(HardLimits.EmailAddressMaxLength)
                 .HasColumnName("email");
             entity.Property(e => e.EmailActived)
                 .HasDefaultValue(false)
                 .HasColumnName("email_actived");
             entity.Property(e => e.Name)
                 .UseCollation("ndcoll")
-                .HasColumnType("character varying")
-                .HasMaxLength(HardLimits.UsernameMaxLength)
+                .VarCharWithLength(HardLimits.UsernameMaxLength)
                 .HasColumnName("name");
             entity.Property(e => e.PasswordHash)
-                .HasColumnType("character varying")
-                .HasMaxLength(HardLimits.PasswordHashMaxLength)
+                .VarCharWithLength(HardLimits.PasswordHashMaxLength)
                 .HasColumnName("password_hash");
             entity.Property(e => e.Rank)
                 .HasColumnType("rank_type")
@@ -495,8 +486,7 @@ public partial class OpenShockContext : DbContext
                 .HasDefaultValueSql("CURRENT_TIMESTAMP")
                 .HasColumnName("created_on");
             entity.Property(e => e.Secret)
-                .HasColumnType("character varying")
-                .HasMaxLength(HardLimits.UserActivationSecretMaxLength)
+                .VarCharWithLength(HardLimits.UserActivationSecretMaxLength)
                 .HasColumnName("secret");
             entity.Property(e => e.UsedOn).HasColumnName("used_on");
             entity.Property(e => e.UserId).HasColumnName("user_id");
@@ -525,12 +515,10 @@ public partial class OpenShockContext : DbContext
                 .HasDefaultValueSql("CURRENT_TIMESTAMP")
                 .HasColumnName("created_on");
             entity.Property(e => e.Email)
-                .HasColumnType("character varying")
-                .HasMaxLength(HardLimits.EmailAddressMaxLength)
+                .VarCharWithLength(HardLimits.EmailAddressMaxLength)
                 .HasColumnName("email");
             entity.Property(e => e.Secret)
-                .HasColumnType("character varying")
-                .HasMaxLength(HardLimits.UserEmailChangeSecretMaxLength)
+                .VarCharWithLength(HardLimits.UserEmailChangeSecretMaxLength)
                 .HasColumnName("secret");
             entity.Property(e => e.UsedOn).HasColumnName("used_on");
             entity.Property(e => e.UserId).HasColumnName("user_id");
@@ -561,8 +549,7 @@ public partial class OpenShockContext : DbContext
                 .HasDefaultValueSql("CURRENT_TIMESTAMP")
                 .HasColumnName("created_on");
             entity.Property(e => e.OldName)
-                .HasColumnType("character varying")
-                .HasMaxLength(HardLimits.UsernameMaxLength)
+                .VarCharWithLength(HardLimits.UsernameMaxLength)
                 .HasColumnName("old_name");
 
             entity.HasOne(d => d.User).WithMany(p => p.UsersNameChanges)
