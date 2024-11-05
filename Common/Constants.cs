@@ -21,5 +21,4 @@ public static class Constants
     public static readonly TimeSpan DevicePingPeriod = TimeSpan.FromSeconds(15);
     public static readonly TimeSpan DeviceKeepAliveInitialTimeout = TimeSpan.FromSeconds(65);
     public static readonly TimeSpan DeviceKeepAliveTimeout = TimeSpan.FromSeconds(35);
-    public static readonly object DeviceKeepAliveTimeoutIntBoxed = (int)DeviceKeepAliveTimeout.TotalSeconds;
 }

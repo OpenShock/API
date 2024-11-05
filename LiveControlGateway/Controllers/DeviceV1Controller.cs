@@ -68,7 +68,7 @@ public sealed class DeviceV1Controller : DeviceControllerBase<HubToGatewayMessag
         switch (payload.Kind)
         {
             case HubToGatewayMessagePayload.ItemKind.KeepAlive:
-                await SelfOnline();
+                await SelfOnline(TimeSpan.FromMilliseconds(payload.KeepAlive.Uptime));
                 break;
 
             case HubToGatewayMessagePayload.ItemKind.OtaInstallStarted:

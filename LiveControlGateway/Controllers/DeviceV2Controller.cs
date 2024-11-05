@@ -95,9 +95,8 @@ public sealed class DeviceV2Controller : DeviceControllerBase<HubToGatewayMessag
         switch (payload.Kind)
         {
             case HubToGatewayMessagePayload.ItemKind.Pong:
-                await SelfOnline();
                 Latency = DateTimeOffset.UtcNow - _lastPingSent;
-                
+                await SelfOnline(TimeSpan.FromMilliseconds(payload.Pong.Uptime), Latency);
                 break;
 
             case HubToGatewayMessagePayload.ItemKind.OtaUpdateStarted:

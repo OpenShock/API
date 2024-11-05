@@ -11,11 +11,13 @@ using OpenShock.Common;
 using OpenShock.Common.Authentication;
 using OpenShock.Common.Authentication.Attributes;
 using OpenShock.Common.Authentication.Services;
+using OpenShock.Common.Errors;
 using OpenShock.Common.JsonSerialization;
 using OpenShock.Common.Models;
 using OpenShock.Common.Models.WebSocket;
 using OpenShock.Common.Models.WebSocket.LCG;
 using OpenShock.Common.OpenShockDb;
+using OpenShock.Common.Problems;
 using OpenShock.Common.Utils;
 using OpenShock.Common.Websocket;
 using OpenShock.LiveControlGateway.LifetimeManager;
@@ -138,12 +140,11 @@ public sealed class LiveControlController : WebsocketBaseController<IBaseRespons
     /// We get the id from the route, check if its valid, check if the user has access to the shocker / device
     /// </summary>
     /// <returns></returns>
-    protected override async Task<bool> ConnectionPrecondition()
+    protected override async Task<OneOf<Success, OneOf.Types.Error<OpenShockProblem>>> ConnectionPrecondition()
     {
         if (HttpContext.GetRouteValue("deviceId") is not string param || !Guid.TryParse(param, out var id))
         {
-            HttpContext.Response.StatusCode = (int)HttpStatusCode.BadRequest;
-            return false;
+            return new OneOf.Types.Error<OpenShockProblem>(WebsocketError.WebsocketLiveControlHubIdInvalid);
         }
 
         _deviceId = id;
@@ -154,12 +155,7 @@ public sealed class LiveControlController : WebsocketBaseController<IBaseRespons
 
         if (!deviceExistsAndYouHaveAccess)
         {
-            HttpContext.Response.StatusCode = (int)HttpStatusCode.NotFound;
-            await HttpContext.Response.WriteAsJsonAsync(new Common.Models.BaseResponse<object>
-            {
-                Message = "Device does not exist or you do not have access to it"
-            });
-            return false;
+            return new OneOf.Types.Error<OpenShockProblem>(WebsocketError.WebsocketLiveControlHubNotFound);
         }
         
         _device = await _db.Devices.FirstOrDefaultAsync(x => x.Id == _deviceId);
@@ -178,7 +174,7 @@ public sealed class LiveControlController : WebsocketBaseController<IBaseRespons
             }
         }
 
-        return true;
+        return new Success();
     }
 
     /// <summary>

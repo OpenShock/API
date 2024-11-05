@@ -2,7 +2,10 @@
 using System.Threading.Channels;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
+using OneOf;
+using OneOf.Types;
 using OpenShock.Common.Errors;
+using OpenShock.Common.Problems;
 using OpenShock.Common.Utils;
 using JsonOptions = Microsoft.AspNetCore.Http.Json.JsonOptions;
 
@@ -103,11 +106,19 @@ public abstract class WebsocketBaseController<T> : OpenShockControllerBase, IAsy
             var response = WebsocketError.NonWebsocketRequest;
             response.AddContext(HttpContext);
             await HttpContext.Response.WriteAsJsonAsync(response, jsonOptions.Value.SerializerOptions, contentType: "application/problem+json");
+            await Close.CancelAsync();
             return;
         }
 
-        if (!await ConnectionPrecondition())
+        var connectionPrecondition = await ConnectionPrecondition();
+        if (connectionPrecondition.IsT1)
         {
+            var jsonOptions = HttpContext.RequestServices.GetRequiredService<IOptions<JsonOptions>>();
+            var response = connectionPrecondition.AsT1.Value;
+            HttpContext.Response.StatusCode = response.Status ?? StatusCodes.Status400BadRequest;
+            response.AddContext(HttpContext);
+            await HttpContext.Response.WriteAsJsonAsync(response, jsonOptions.Value.SerializerOptions, contentType: "application/problem+json");
+            
             await Close.CancelAsync();
             return;
         }
@@ -191,12 +202,13 @@ public abstract class WebsocketBaseController<T> : OpenShockControllerBase, IAsy
     /// </summary>
     [NonAction]
     protected virtual Task UnregisterConnection() => Task.CompletedTask;
-    
+
     /// <summary>
     /// Action when the websocket connection is destroyed to unregister the connection to a websocket manager
     /// </summary>
     [NonAction]
-    protected virtual Task<bool> ConnectionPrecondition() => Task.FromResult(true);
+    protected virtual Task<OneOf<Success, Error<OpenShockProblem>>> ConnectionPrecondition() =>
+        Task.FromResult(OneOf<Success, Error<OpenShockProblem>>.FromT0(new Success()));
     
     ~WebsocketBaseController()
     {

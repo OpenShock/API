@@ -51,7 +51,8 @@ public sealed partial class AdminController
                     Gateway = x.Gateway,
                     Owner = dbItem.Owner,
                     Name = dbItem.Name,
-                    ConnectedAt = x.ConnectedAt
+                    ConnectedAt = x.ConnectedAt,
+                    UserAgent = x.UserAgent
                 };
             })
         };
@@ -64,9 +65,11 @@ public sealed partial class AdminController
         public required GenericIni Owner { get; init; }
 
         [JsonConverter(typeof(SemVersionJsonConverter))]
-        public required SemVersion? FirmwareVersion { get; init; }
+        public required SemVersion FirmwareVersion { get; init; }
 
-        public required string? Gateway { get; init; }
+        public required string Gateway { get; init; }
         public required DateTimeOffset ConnectedAt { get; init; }
+        
+        public required string? UserAgent { get; init; }
     }
 }

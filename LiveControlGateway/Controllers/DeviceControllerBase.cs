@@ -4,11 +4,16 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
+using OneOf;
+using OneOf.Types;
 using OpenShock.Common;
 using OpenShock.Common.Authentication.Services;
+using OpenShock.Common.Errors;
 using OpenShock.Common.Hubs;
 using OpenShock.Common.OpenShockDb;
+using OpenShock.Common.Problems;
 using OpenShock.Common.Redis;
+using OpenShock.Common.Utils;
 using OpenShock.LiveControlGateway.LifetimeManager;
 using OpenShock.LiveControlGateway.Websocket;
 using OpenShock.Serialization.Gateway;
@@ -41,6 +46,7 @@ public abstract class DeviceControllerBase<TIn, TOut> : FlatbuffersWebsocketBase
 
     private readonly Timer _keepAliveTimeoutTimer = new(Constants.DeviceKeepAliveInitialTimeout);
     private DateTimeOffset _connected = DateTimeOffset.UtcNow;
+    private string _userAgent;
 
     public override Guid Id => CurrentDevice.Id;
     
@@ -87,18 +93,30 @@ public abstract class DeviceControllerBase<TIn, TOut> : FlatbuffersWebsocketBase
         };
         _keepAliveTimeoutTimer.Start();
     }
-    
 
-    private SemVersion? FirmwareVersion { get; set; }
-    
+
+    private SemVersion _firmwareVersion;
+
+    /// <inheritdoc />
+    protected override async Task<OneOf<Success, Error<OpenShockProblem>>> ConnectionPrecondition()
+    {
+        _connected = DateTimeOffset.UtcNow;
+
+        if (HttpContext.Request.Headers.TryGetValue("Firmware-Version", out var header) &&
+            SemVersion.TryParse(header, SemVersionStyles.Strict, out var version))
+        {
+            _firmwareVersion = version;
+        }
+        else return new Error<OpenShockProblem>(WebsocketError.WebsocketHubFirmwareVersionInvalid);
+        
+        _userAgent = HttpContext.Request.Headers.UserAgent.ToString().Truncate(256);
+
+        return new Success();
+    }
+
     /// <inheritdoc />
     protected override async Task RegisterConnection()
     {
-        _connected = DateTimeOffset.UtcNow;
-        
-        if (HttpContext.Request.Headers.TryGetValue("Firmware-Version", out var header) &&
-            SemVersion.TryParse(header, SemVersionStyles.Strict, out var version)) FirmwareVersion = version;
-
         await using var db = await _dbContextFactory.CreateDbContextAsync();
         await DeviceLifetimeManager.AddDeviceConnection(5, this, db, _dbContextFactory, Linked.Token);
     }
@@ -122,7 +140,7 @@ public abstract class DeviceControllerBase<TIn, TOut> : FlatbuffersWebsocketBase
     /// <summary>
     /// Keep the device online
     /// </summary>
-    protected async Task SelfOnline()
+    protected async Task SelfOnline(TimeSpan uptime, TimeSpan? latency = null)
     {
         Logger.LogDebug("Received keep alive from device [{DeviceId}]", CurrentDevice.Id);
 
@@ -137,25 +155,30 @@ public abstract class DeviceControllerBase<TIn, TOut> : FlatbuffersWebsocketBase
             {
                 Id = CurrentDevice.Id,
                 Owner = CurrentDevice.Owner,
-                FirmwareVersion = FirmwareVersion,
+                FirmwareVersion = _firmwareVersion,
                 Gateway = _lcgConfig.Lcg.Fqdn,
-                ConnectedAt = _connected
+                ConnectedAt = _connected,
+                UserAgent = _userAgent
             }, Constants.DeviceKeepAliveTimeout);
             return;
         }
 
-        if (online.FirmwareVersion != FirmwareVersion || online.Gateway != _lcgConfig.Lcg.Fqdn ||
-            online.ConnectedAt != _connected)
+        online.Uptime = uptime;
+        online.Latency = latency;
+        
+        if (online.FirmwareVersion != _firmwareVersion ||
+            online.Gateway != _lcgConfig.Lcg.Fqdn ||
+            online.ConnectedAt != _connected ||
+            online.UserAgent != _userAgent)
         {
             online.Gateway = _lcgConfig.Lcg.Fqdn;
-            online.FirmwareVersion = FirmwareVersion;
+            online.FirmwareVersion = _firmwareVersion;
             online.ConnectedAt = _connected;
-            await deviceOnline.SaveAsync();
+            online.UserAgent = _userAgent;
             Logger.LogInformation("Updated details of online device");
         }
 
-        await _redisConnectionProvider.Connection.ExecuteAsync("EXPIRE",
-            $"{typeof(DeviceOnline).FullName}:{CurrentDevice.Id}", Constants.DeviceKeepAliveTimeoutIntBoxed);
+        await deviceOnline.UpdateAsync(online, Constants.DeviceKeepAliveTimeout);
     }
     
     /// <inheritdoc />
