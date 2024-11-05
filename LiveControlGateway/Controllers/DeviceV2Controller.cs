@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using OpenShock.Common;
 using OpenShock.Common.Authentication;
+using OpenShock.Common.Constants;
 using OpenShock.Common.Hubs;
 using OpenShock.Common.Models;
 using OpenShock.Common.OpenShockDb;
@@ -52,7 +53,7 @@ public sealed class DeviceV2Controller : DeviceControllerBase<HubToGatewayMessag
             dbContextFactory, serviceProvider, lcgConfig)
     {
         _userHubContext = userHubContext;
-        _pingTimer = new Timer(PingTimerElapsed, null, Constants.DevicePingInitialDelay, Constants.DevicePingPeriod);
+        _pingTimer = new Timer(PingTimerElapsed, null, Duration.DevicePingInitialDelay, Duration.DevicePingPeriod);
     }
 
     private async void PingTimerElapsed(object? state)
