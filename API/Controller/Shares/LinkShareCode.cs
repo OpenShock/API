@@ -1,4 +1,5 @@
 ﻿using System.Net;
+using Asp.Versioning;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using OpenShock.API.Services;
@@ -25,6 +26,7 @@ public sealed partial class SharesController
     [ProducesProblem(HttpStatusCode.NotFound, "ShareCodeNotFound")]
     [ProducesProblem(HttpStatusCode.BadRequest, "CantLinkOwnShareCode")]
     [ProducesProblem(HttpStatusCode.BadRequest, "ShockerAlreadyLinked")]
+    [MapToApiVersion("1")]
     public async Task<IActionResult> LinkShareCode(
         [FromRoute] Guid shareCodeId,
         [FromServices] IDeviceUpdateService deviceUpdateService

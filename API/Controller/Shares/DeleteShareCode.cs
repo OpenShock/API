@@ -1,4 +1,5 @@
 ﻿using System.Net;
+using Asp.Versioning;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using OpenShock.Common;
@@ -18,6 +19,7 @@ public sealed partial class SharesController
     [HttpDelete("code/{shareCodeId}")]
     [ProducesSuccess]
     [ProducesProblem(HttpStatusCode.NotFound, "ShareCodeNotFound")]
+    [MapToApiVersion("1")]
     public async Task<IActionResult> DeleteShareCode([FromRoute] Guid shareCodeId)
     {
         var affected = await _db.ShockerShareCodes
