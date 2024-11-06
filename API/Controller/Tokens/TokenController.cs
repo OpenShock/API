@@ -6,6 +6,7 @@ using OpenShock.API.Models.Response;
 using OpenShock.API.Utils;
 using OpenShock.Common;
 using OpenShock.Common.Authentication.Attributes;
+using OpenShock.Common.Constants;
 using OpenShock.Common.Errors;
 using OpenShock.Common.Models;
 using OpenShock.Common.OpenShockDb;
@@ -108,7 +109,7 @@ public sealed partial class TokensController
         var token = new ApiToken
         {
             UserId = CurrentUser.DbUser.Id,
-            Token = CryptoUtils.RandomString(64),
+            Token = CryptoUtils.RandomString(HardLimits.ApiKeyTokenMaxLength),
             CreatedByIp = HttpContext.GetRemoteIP().ToString(),
             Permissions = body.Permissions.Distinct().ToList(),
             Id = Guid.NewGuid(),
@@ -150,9 +151,10 @@ public sealed partial class TokensController
 
     public class EditTokenRequest
     {
-        [StringLength(64, ErrorMessage = "Name must be less than 64 characters")]
+        [StringLength(HardLimits.ApiKeyTokenMaxLength, MinimumLength = HardLimits.ApiKeyTokenMinLength, ErrorMessage = "API token length must be between {1} and {2}")]
         public required string Name { get; set; }
-        [MaxLength(256, ErrorMessage = "You can only have 256 permissions, this is a hard limit")]
+        
+        [MaxLength(HardLimits.ApiKeyMaxPermissions, ErrorMessage = "API token permissions must be between {1} and {2}")]
         public List<PermissionType> Permissions { get; set; } = [PermissionType.Shockers_Use];
     }
 

@@ -1,10 +1,11 @@
 ﻿using System.ComponentModel.DataAnnotations;
+using OpenShock.Common.Constants;
 
 namespace OpenShock.API.Models.Requests;
 
 public sealed class CreateShareRequest
 {
-    [MaxLength(128)] // Hard limit
+    [MaxLength(HardLimits.CreateShareRequestMaxShockers)]
     public required IEnumerable<ShockerPermLimitPairWithId> Shockers { get; set; }
     public Guid? User { get; set; } = null;
 }

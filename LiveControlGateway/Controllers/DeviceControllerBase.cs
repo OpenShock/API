@@ -8,6 +8,7 @@ using OneOf;
 using OneOf.Types;
 using OpenShock.Common;
 using OpenShock.Common.Authentication.Services;
+using OpenShock.Common.Constants;
 using OpenShock.Common.Errors;
 using OpenShock.Common.Hubs;
 using OpenShock.Common.OpenShockDb;
@@ -44,7 +45,7 @@ public abstract class DeviceControllerBase<TIn, TOut> : FlatbuffersWebsocketBase
     private readonly IDbContextFactory<OpenShockContext> _dbContextFactory;
     private readonly LCGConfig _lcgConfig;
 
-    private readonly Timer _keepAliveTimeoutTimer = new(Constants.DeviceKeepAliveInitialTimeout);
+    private readonly Timer _keepAliveTimeoutTimer = new(Duration.DeviceKeepAliveInitialTimeout);
     private DateTimeOffset _connected = DateTimeOffset.UtcNow;
     private string _userAgent;
 
@@ -144,7 +145,7 @@ public abstract class DeviceControllerBase<TIn, TOut> : FlatbuffersWebsocketBase
     {
         Logger.LogDebug("Received keep alive from device [{DeviceId}]", CurrentDevice.Id);
 
-        _keepAliveTimeoutTimer.Interval = Constants.DeviceKeepAliveTimeout.TotalMilliseconds;
+        _keepAliveTimeoutTimer.Interval = Duration.DeviceKeepAliveTimeout.TotalMilliseconds;
 
         var deviceOnline = _redisConnectionProvider.RedisCollection<DeviceOnline>();
         var deviceId = CurrentDevice.Id.ToString();
@@ -159,7 +160,7 @@ public abstract class DeviceControllerBase<TIn, TOut> : FlatbuffersWebsocketBase
                 Gateway = _lcgConfig.Lcg.Fqdn,
                 ConnectedAt = _connected,
                 UserAgent = _userAgent
-            }, Constants.DeviceKeepAliveTimeout);
+            }, Duration.DeviceKeepAliveTimeout);
             return;
         }
 
@@ -178,7 +179,7 @@ public abstract class DeviceControllerBase<TIn, TOut> : FlatbuffersWebsocketBase
             Logger.LogInformation("Updated details of online device");
         }
 
-        await deviceOnline.UpdateAsync(online, Constants.DeviceKeepAliveTimeout);
+        await deviceOnline.UpdateAsync(online, Duration.DeviceKeepAliveTimeout);
     }
     
     /// <inheritdoc />

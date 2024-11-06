@@ -1,4 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using OpenShock.Common.Constants;
 using OpenShock.Common.Geo;
 using OpenShock.Common.Redis;
 using Redis.OM;
@@ -44,7 +45,7 @@ public sealed class LCGNodeProvisioner : ILCGNodeProvisioner
             .ToArrayAsync();
 
         var node = nodes
-            .OrderBy(x => DistanceLookup.TryGetDistanceBetween(x.Country, countryCode, out float distance) ? distance : Constants.DistanceToAndromedaGalaxyInKm) // Just a large number :3
+            .OrderBy(x => DistanceLookup.TryGetDistanceBetween(x.Country, countryCode, out float distance) ? distance : Distance.DistanceToAndromedaGalaxyInKm) // Just a large number :3
             .ThenBy(x => x.Load)
             .FirstOrDefault();
 

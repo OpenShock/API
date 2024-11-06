@@ -7,6 +7,7 @@ using OpenShock.API.Services.Email;
 using OpenShock.API.Services.Email.Mailjet.Mail;
 using OpenShock.API.Utils;
 using OpenShock.Common;
+using OpenShock.Common.Constants;
 using OpenShock.Common.OpenShockDb;
 using OpenShock.Common.Redis;
 using OpenShock.Common.Utils;
@@ -131,8 +132,8 @@ public sealed class AccountService : IAccountService
             Ip = loginContext.Ip,
             PublicId = Guid.NewGuid(),
             Created = DateTime.UtcNow,
-            Expires = DateTime.UtcNow.Add(Constants.LoginSessionLifetime),
-        }, Constants.LoginSessionLifetime);
+            Expires = DateTime.UtcNow.Add(Duration.LoginSessionLifetime),
+        }, Duration.LoginSessionLifetime);
 
         return new Success<string>(randomSessionId);
     }
@@ -141,7 +142,7 @@ public sealed class AccountService : IAccountService
     public async Task<OneOf<Success, NotFound, SecretInvalid>> PasswordResetExists(Guid passwordResetId, string secret,
         CancellationToken cancellationToken = default)
     {
-        var validUntil = DateTime.UtcNow.Add(Constants.PasswordResetRequestLifetime);
+        var validUntil = DateTime.UtcNow.Add(Duration.PasswordResetRequestLifetime);
         var reset = await _db.PasswordResets.FirstOrDefaultAsync(x =>
                 x.Id == passwordResetId && x.UsedOn == null && x.CreatedOn < validUntil,
             cancellationToken: cancellationToken);
@@ -154,7 +155,7 @@ public sealed class AccountService : IAccountService
     /// <inheritdoc />
     public async Task<OneOf<Success, TooManyPasswordResets, NotFound>> CreatePasswordReset(string email)
     {
-        var validUntil = DateTime.UtcNow.Add(Constants.PasswordResetRequestLifetime);
+        var validUntil = DateTime.UtcNow.Add(Duration.PasswordResetRequestLifetime);
         var lowerCaseEmail = email.ToLowerInvariant();
         var user = await _db.Users.Where(x => x.Email == lowerCaseEmail).Select(x => new
         {
@@ -185,7 +186,7 @@ public sealed class AccountService : IAccountService
     public async Task<OneOf<Success, NotFound, SecretInvalid>> PasswordResetComplete(Guid passwordResetId,
         string secret, string newPassword)
     {
-        var validUntil = DateTime.UtcNow.Add(Constants.PasswordResetRequestLifetime);
+        var validUntil = DateTime.UtcNow.Add(Duration.PasswordResetRequestLifetime);
 
         var reset = await _db.PasswordResets.Include(x => x.User).FirstOrDefaultAsync(x =>
             x.Id == passwordResetId && x.UsedOn == null && x.CreatedOn < validUntil);
@@ -218,7 +219,7 @@ public sealed class AccountService : IAccountService
         ChangeUsername(Guid userId,
             string username, bool ignoreLimit = false)
     {
-        var cooldownSubtracted = DateTime.UtcNow.Subtract(Constants.NameChangeCooldown);
+        var cooldownSubtracted = DateTime.UtcNow.Subtract(Duration.NameChangeCooldown);
         if (!ignoreLimit && await _db.UsersNameChanges.Where(x => x.UserId == userId && x.CreatedOn >= cooldownSubtracted).AnyAsync())
         {
             return new Error<OneOf<UsernameTaken, UsernameError, RecentlyChanged>>(new RecentlyChanged());

@@ -2,6 +2,7 @@
 using Microsoft.EntityFrameworkCore;
 using OneOf;
 using OneOf.Types;
+using OpenShock.Common.Constants;
 using OpenShock.Common.Hubs;
 using OpenShock.Common.Models;
 using OpenShock.Common.Models.WebSocket.User;
@@ -97,8 +98,8 @@ public static class ControlLogic
             if (shockerInfo.Paused) return new ShockerPaused(shock.Id);
 
             if (!IsAllowed(shock.Type, shockerInfo.PermsAndLimits)) return new ShockerNoPermission(shock.Id);
-            var durationMax = shockerInfo.PermsAndLimits?.Duration ?? Constants.MaxControlDuration;
-            var intensityMax = shockerInfo.PermsAndLimits?.Intensity ?? Constants.MaxControlIntensity;
+            var durationMax = shockerInfo.PermsAndLimits?.Duration ?? HardLimits.MaxControlDuration;
+            var intensityMax = shockerInfo.PermsAndLimits?.Intensity ?? HardLimits.MaxControlIntensity;
 
             if (!finalMessages.TryGetValue(shockerInfo.Device, out var deviceGroup))
             {
@@ -106,8 +107,8 @@ public static class ControlLogic
                 finalMessages[shockerInfo.Device] = deviceGroup;
             }
 
-            var intensity = Math.Clamp(shock.Intensity, Constants.MinControlIntensity, intensityMax);
-            var duration = Math.Clamp(shock.Duration, Constants.MinControlDuration, durationMax);
+            var intensity = Math.Clamp(shock.Intensity, HardLimits.MinControlIntensity, intensityMax);
+            var duration = Math.Clamp(shock.Duration, HardLimits.MinControlDuration, durationMax);
 
             deviceGroup.Add(new ControlMessage.ShockerControlInfo
             {

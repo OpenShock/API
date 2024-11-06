@@ -1,4 +1,5 @@
-﻿using OpenShock.Common.Geo;
+﻿using OpenShock.Common.Constants;
+using OpenShock.Common.Geo;
 
 namespace OpenShock.Common.Tests.Geo;
 
@@ -29,6 +30,6 @@ public class DistanceLookupTests
 
         // Assert
         await Assert.That(result).IsFalse();
-        await Assert.That(distance).IsEqualTo(Constants.DistanceToAndromedaGalaxyInKm);
+        await Assert.That(distance).IsEqualTo(Distance.DistanceToAndromedaGalaxyInKm);
     }
 }

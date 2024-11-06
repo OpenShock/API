@@ -11,6 +11,7 @@ using OpenShock.Common;
 using OpenShock.Common.Authentication;
 using OpenShock.Common.Authentication.Attributes;
 using OpenShock.Common.Authentication.Services;
+using OpenShock.Common.Constants;
 using OpenShock.Common.Errors;
 using OpenShock.Common.JsonSerialization;
 using OpenShock.Common.Models;
@@ -496,7 +497,7 @@ public sealed class LiveControlController : WebsocketBaseController<IBaseRespons
         var perms = permCheck.AsT0.Value;
 
         // Clamp to limits
-        var intensity = Math.Clamp(frame.Intensity, Constants.MinControlIntensity, perms.Intensity ?? Constants.MaxControlIntensity);
+        var intensity = Math.Clamp(frame.Intensity, HardLimits.MinControlIntensity, perms.Intensity ?? HardLimits.MaxControlIntensity);
 
         var result = DeviceLifetimeManager.ReceiveFrame(Id, frame.Shocker, frame.Type, intensity, _tps);
         if (result.IsT0)

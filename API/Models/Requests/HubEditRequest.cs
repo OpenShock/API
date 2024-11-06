@@ -1,10 +1,11 @@
 ﻿using System.ComponentModel.DataAnnotations;
+using OpenShock.Common.Constants;
 
 namespace OpenShock.API.Models.Requests;
 
 public sealed class HubEditRequest
 {
     [Required(AllowEmptyStrings = false)]
-    [StringLength(32, MinimumLength = 1)]
+    [StringLength(HardLimits.HubNameMaxLength, MinimumLength = HardLimits.HubNameMinLength)]
     public required string Name { get; set; }
 }
