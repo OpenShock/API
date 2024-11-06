@@ -41,6 +41,10 @@ public sealed partial class AdminController
             {
                 query = query.ApplyOrderBy(orderbyQuery);
             }
+            else
+            {
+                query = query.OrderBy(u => u.CreatedAt);
+            }
         }
         catch (ExpressionBuilder.ExpressionException e)
         {
