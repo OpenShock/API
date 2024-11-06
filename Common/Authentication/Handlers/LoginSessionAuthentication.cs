@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Http.Json;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using OpenShock.Common.Authentication.Services;
+using OpenShock.Common.Constants;
 using OpenShock.Common.Errors;
 using OpenShock.Common.Models;
 using OpenShock.Common.OpenShockDb;
@@ -100,14 +101,14 @@ public sealed class LoginSessionAuthentication : AuthenticationHandler<Authentic
         // This can be removed at a later point, this is just for upgrade purposes
         if(UpdateOlderLoginSessions(session)) await _userSessions.SaveAsync();
 
-        if (session.Expires!.Value < DateTime.UtcNow.Subtract(Constants.LoginSessionExpansionAfter))
+        if (session.Expires!.Value < DateTime.UtcNow.Subtract(Duration.LoginSessionExpansionAfter))
         {
 #pragma warning disable CS4014
             LucTask.Run(async () =>
 #pragma warning restore CS4014
             {
-                session.Expires = DateTime.UtcNow.Add(Constants.LoginSessionLifetime);
-                await _userSessions.UpdateAsync(session, Constants.LoginSessionLifetime);
+                session.Expires = DateTime.UtcNow.Add(Duration.LoginSessionLifetime);
+                await _userSessions.UpdateAsync(session, Duration.LoginSessionLifetime);
             });
         }
         

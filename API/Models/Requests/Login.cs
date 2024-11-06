@@ -1,11 +1,13 @@
 ﻿using System.ComponentModel.DataAnnotations;
+using OpenShock.Common.Constants;
 
 namespace OpenShock.API.Models.Requests;
 
 public sealed class Login
 {
-    [MinLength(1)]
+    [Required(AllowEmptyStrings = false)]
     public required string Password { get; set; }
-    [MinLength(1)]
+    
+    [Required(AllowEmptyStrings = false)]
     public required string Email { get; set; }
 }

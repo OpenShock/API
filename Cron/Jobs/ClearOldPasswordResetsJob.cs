@@ -1,5 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using OpenShock.Common;
+using OpenShock.Common.Constants;
 using OpenShock.Common.OpenShockDb;
 using OpenShock.Cron.Attributes;
 
@@ -26,7 +27,7 @@ public sealed class ClearOldPasswordResetsJob
     {
         // Delete all password reset requests that have not been used and are older than the lifetime.
         // Leave expired requests that have been used for 14 days for moderation purposes.
-        var earliestCreatedOn = DateTime.Now - (Constants.PasswordResetRequestLifetime + TimeSpan.FromDays(14));
+        var earliestCreatedOn = DateTime.Now - (Duration.PasswordResetRequestLifetime + TimeSpan.FromDays(14));
         var earliestCreatedOnUtc = DateTime.SpecifyKind(earliestCreatedOn, DateTimeKind.Utc);
 
         // Run the delete query

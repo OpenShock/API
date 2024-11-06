@@ -1,5 +1,6 @@
 ﻿using OpenShock.Common.Utils;
 using System.Collections.Frozen;
+using OpenShock.Common.Constants;
 
 namespace OpenShock.Common.Geo;
 
@@ -41,14 +42,14 @@ public static class DistanceLookup
     {
         if (alpha2CountryA.IsUnknown() || alpha2CountryB.IsUnknown())
         {
-            distance = Constants.DistanceToAndromedaGalaxyInKm;
+            distance = Distance.DistanceToAndromedaGalaxyInKm;
 
             return false;
         }
 
         if (!Distances.TryGetValue(Alpha2CountryCode.GetCombinedHashCode(alpha2CountryA, alpha2CountryB), out distance))
         {
-            distance = Constants.DistanceToAndromedaGalaxyInKm;
+            distance = Distance.DistanceToAndromedaGalaxyInKm;
 
             return false;
         }

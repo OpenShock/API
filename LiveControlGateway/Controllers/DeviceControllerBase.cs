@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using OpenShock.Common;
 using OpenShock.Common.Authentication.Services;
+using OpenShock.Common.Constants;
 using OpenShock.Common.Hubs;
 using OpenShock.Common.OpenShockDb;
 using OpenShock.Common.Redis;
@@ -39,7 +40,7 @@ public abstract class DeviceControllerBase<TIn, TOut> : FlatbuffersWebsocketBase
     private readonly IDbContextFactory<OpenShockContext> _dbContextFactory;
     private readonly LCGConfig _lcgConfig;
 
-    private readonly Timer _keepAliveTimeoutTimer = new(Constants.DeviceKeepAliveInitialTimeout);
+    private readonly Timer _keepAliveTimeoutTimer = new(Duration.DeviceKeepAliveInitialTimeout);
     private DateTimeOffset _connected = DateTimeOffset.UtcNow;
 
     public override Guid Id => CurrentDevice.Id;
@@ -126,7 +127,7 @@ public abstract class DeviceControllerBase<TIn, TOut> : FlatbuffersWebsocketBase
     {
         Logger.LogDebug("Received keep alive from device [{DeviceId}]", CurrentDevice.Id);
 
-        _keepAliveTimeoutTimer.Interval = Constants.DeviceKeepAliveTimeout.TotalMilliseconds;
+        _keepAliveTimeoutTimer.Interval = Duration.DeviceKeepAliveTimeout.TotalMilliseconds;
 
         var deviceOnline = _redisConnectionProvider.RedisCollection<DeviceOnline>();
         var deviceId = CurrentDevice.Id.ToString();
@@ -140,7 +141,7 @@ public abstract class DeviceControllerBase<TIn, TOut> : FlatbuffersWebsocketBase
                 FirmwareVersion = FirmwareVersion,
                 Gateway = _lcgConfig.Lcg.Fqdn,
                 ConnectedAt = _connected
-            }, Constants.DeviceKeepAliveTimeout);
+            }, Duration.DeviceKeepAliveTimeout);
             return;
         }
 
@@ -155,7 +156,7 @@ public abstract class DeviceControllerBase<TIn, TOut> : FlatbuffersWebsocketBase
         }
 
         await _redisConnectionProvider.Connection.ExecuteAsync("EXPIRE",
-            $"{typeof(DeviceOnline).FullName}:{CurrentDevice.Id}", Constants.DeviceKeepAliveTimeoutIntBoxed);
+            $"{typeof(DeviceOnline).FullName}:{CurrentDevice.Id}", Duration.DeviceKeepAliveTimeoutIntBoxed);
     }
     
     /// <inheritdoc />
