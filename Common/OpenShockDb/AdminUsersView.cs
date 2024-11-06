@@ -6,37 +6,37 @@ namespace OpenShock.Common.OpenShockDb;
 
 public class AdminUsersView
 {
-    public Guid Id { get; set; }
+    public required Guid Id { get; set; }
 
-    public string Name { get; set; } = null!;
+    public required string Name { get; set; }
 
-    public string Email { get; set; } = null!;
+    public required string Email { get; set; }
 
-    public string PasswordHashType { get; set; } = null!;
+    public required string PasswordHashType { get; set; }
 
-    public DateTime CreatedAt { get; set; }
+    public required DateTime CreatedAt { get; set; }
 
-    public bool EmailActivated { get; set; }
+    public required bool EmailActivated { get; set; }
 
-    public RankType Rank { get; set; }
+    public required RankType Rank { get; set; }
 
-    public int ApiTokenCount { get; set; }
+    public required int ApiTokenCount { get; set; }
 
-    public int PasswordResetCount { get; set; }
+    public required int PasswordResetCount { get; set; }
 
-    public int ShockerShareCount { get; set; }
+    public required int ShockerShareCount { get; set; }
 
-    public int ShockerShareLinkCount { get; set; }
+    public required int ShockerShareLinkCount { get; set; }
 
-    public int EmailChangeRequestCount { get; set; }
+    public required int EmailChangeRequestCount { get; set; }
 
-    public int NameChangeRequestCount { get; set; }
+    public required int NameChangeRequestCount { get; set; }
 
-    public int UserActivationCount { get; set; }
+    public required int UserActivationCount { get; set; }
 
-    public int DeviceCount { get; set; }
+    public required int DeviceCount { get; set; }
 
-    public int ShockerCount { get; set; }
+    public required int ShockerCount { get; set; }
 
-    public int ShockerControlLogCount { get; set; }
+    public required int ShockerControlLogCount { get; set; }
 }
