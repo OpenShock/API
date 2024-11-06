@@ -52,7 +52,9 @@ public sealed partial class AdminController
                     Owner = dbItem.Owner,
                     Name = dbItem.Name,
                     ConnectedAt = x.ConnectedAt,
-                    UserAgent = x.UserAgent
+                    UserAgent = x.UserAgent,
+                    Latency = x.Latency,
+                    Uptime = x.Uptime
                 };
             })
         };
@@ -71,5 +73,7 @@ public sealed partial class AdminController
         public required DateTimeOffset ConnectedAt { get; init; }
         
         public required string? UserAgent { get; init; }
+        public required TimeSpan? Uptime { get; init; }
+        public required TimeSpan? Latency { get; init; }
     }
 }
