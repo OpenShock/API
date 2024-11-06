@@ -73,7 +73,9 @@ public sealed partial class AdminController
         public required DateTimeOffset ConnectedAt { get; init; }
         
         public required string? UserAgent { get; init; }
+        [JsonConverter(typeof(TimeSpanToMillisecondsConverter))]
         public required TimeSpan? Uptime { get; init; }
+        [JsonConverter(typeof(TimeSpanToMillisecondsConverter))]
         public required TimeSpan? Latency { get; init; }
     }
 }
