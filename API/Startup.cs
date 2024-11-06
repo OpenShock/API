@@ -276,6 +276,9 @@ public sealed class Startup
                 options.SwaggerDoc("v2", new OpenApiInfo { Title = "OpenShock", Version = "2" });
                 options.MapType<SemVersion>(() => OpenApiSchemas.SemVerSchema);
                 options.MapType<PauseReason>(() => OpenApiSchemas.PauseReasonEnumSchema);
+
+                // Avoid nullable strings everywhere
+                options.SupportNonNullableReferenceTypes();
             }
         );
 
