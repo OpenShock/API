@@ -1,6 +1,7 @@
 using System.Diagnostics.CodeAnalysis;
 using OneOf;
 using OneOf.Types;
+using OpenShock.Common.Constants;
 
 namespace OpenShock.Common.Validation;
 
@@ -8,12 +9,12 @@ public static class UsernameValidator
 {
     public static OneOf<Success, UsernameError> Validate(string username)
     {
-        if (username.Length < ValidationConstants.UsernameMinLength)
+        if (username.Length < HardLimits.UsernameMinLength)
         {
             return new UsernameError(UsernameErrorType.TooShort, "Username is too short.");
         }
 
-        if (username.Length > ValidationConstants.UsernameMaxLength)
+        if (username.Length > HardLimits.UsernameMaxLength)
         {
             return new UsernameError(UsernameErrorType.TooLong, "Username is too long.");
         }

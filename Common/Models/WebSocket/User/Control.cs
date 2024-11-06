@@ -1,4 +1,5 @@
 ﻿using System.ComponentModel.DataAnnotations;
+using OpenShock.Common.Constants;
 
 namespace OpenShock.Common.Models.WebSocket.User;
 
@@ -10,10 +11,10 @@ public sealed class Control
     [EnumDataType(typeof(ControlType))]
     public required ControlType Type { get; set; }
 
-    [Range(Constants.MinControlIntensity, Constants.MaxControlIntensity)]
+    [Range(HardLimits.MinControlIntensity, HardLimits.MaxControlIntensity)]
     public required byte Intensity { get; set; }
 
-    [Range(Constants.MinControlDuration, Constants.MaxControlDuration)]
+    [Range(HardLimits.MinControlDuration, HardLimits.MaxControlDuration)]
     public required ushort Duration { get; set; }
 
     /// <summary>

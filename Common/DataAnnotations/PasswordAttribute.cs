@@ -1,27 +1,31 @@
 ﻿using System.ComponentModel.DataAnnotations;
+using System.Net.Mail;
 using Microsoft.OpenApi.Any;
 using Microsoft.OpenApi.Models;
+using OpenShock.Common.Constants;
 using OpenShock.Common.DataAnnotations.Interfaces;
-using OpenShock.Common.Validation;
 
 namespace OpenShock.Common.DataAnnotations;
 
 /// <summary>
-/// An attribute used to validate whether a display name is valid.
+/// An attribute used to validate whether a password is valid.
 /// </summary>
 /// <remarks>
 /// Inherits from <see cref="ValidationAttribute"/>.
 /// </remarks>
 [AttributeUsage(AttributeTargets.Property | AttributeTargets.Field | AttributeTargets.Parameter, AllowMultiple = false)]
-public sealed class UsernameAttribute : ValidationAttribute, IParameterAttribute
+public sealed class PasswordAttribute : ValidationAttribute, IParameterAttribute
 {
     /// <summary>
     /// Example value used to generate OpenApi documentation.
     /// </summary>
-    private const string ExampleValue = "String";
+    private const string ExampleValue = "user@example.com";
 
-    private const string ErrMsgCannotBeNull = "Username cannot be null";
-    private const string ErrMsgMustBeString = "Username must be a string";
+    private const string ErrMsgCannotBeNull = "Password cannot be null";
+    private const string ErrMsgMustBeString = "Password must be a string";
+    private const string ErrMsgTooShort = "Password is too short";
+    private const string ErrMsgTooLong = "Password is too long";
+    private const string ErrMsgCannotStartOrEndWithWhiteSpace = "Password cannot start or end with whitespace";
 
     /// <summary>
     /// Indicates whether validation should be performed.
@@ -29,10 +33,10 @@ public sealed class UsernameAttribute : ValidationAttribute, IParameterAttribute
     public bool ShouldValidate { get; }
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="UsernameAttribute"/> class with the specified validation behavior.
+    /// Initializes a new instance of the <see cref="PasswordAttribute"/> class with the specified validation behavior.
     /// </summary>
     /// <param name="shouldValidate">True if validation should be performed; otherwise, false.</param>
-    public UsernameAttribute(bool shouldValidate) => ShouldValidate = shouldValidate;
+    public PasswordAttribute(bool shouldValidate) => ShouldValidate = shouldValidate;
 
     /// <inheritdoc/>
     protected override ValidationResult? IsValid(object? value, ValidationContext validationContext)
@@ -41,11 +45,13 @@ public sealed class UsernameAttribute : ValidationAttribute, IParameterAttribute
 
         if (value is null) return new ValidationResult(ErrMsgCannotBeNull);
         
-        if (value is not string displayName) return new ValidationResult(ErrMsgMustBeString);
+        if (value is not string password) return new ValidationResult(ErrMsgMustBeString);
         
-        var result = UsernameValidator.Validate(displayName);
+        if (password.Length < HardLimits.EmailAddressMinLength) return new ValidationResult(ErrMsgTooShort);
+        
+        if (password.Length > HardLimits.EmailAddressMaxLength) return new ValidationResult(ErrMsgTooLong);
 
-        if (!result.IsT0) return new ValidationResult($"{result.AsT1.Type} - {result.AsT1.Message}");
+        if (password.Trim().Length != password.Length) return new ValidationResult(ErrMsgCannotStartOrEndWithWhiteSpace);
         
         return ValidationResult.Success;
     }
