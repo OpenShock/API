@@ -1,4 +1,5 @@
 ﻿using System.Net;
+using Asp.Versioning;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using OpenShock.API.Models.Requests;
@@ -7,15 +8,16 @@ using OpenShock.Common.OpenShockDb;
 using OpenShock.Common.Problems;
 using Z.EntityFramework.Plus;
 
-namespace OpenShock.API.Controller.Shares.V2;
+namespace OpenShock.API.Controller.Shares;
 
-public sealed partial class SharesV2Controller
+public sealed partial class SharesController
 {
     [HttpPost("requests")]
     [ProducesSlimSuccess<Guid>]
     [ProducesProblem(HttpStatusCode.NotFound, "UserNotFound")]
     [ProducesProblem(HttpStatusCode.BadRequest, "ShareCreateCannotShareWithSelf")]
     [ProducesProblem(HttpStatusCode.NotFound, "ShareCreateShockerNotFound")]
+    [ApiVersion("2")]
     public async Task<IActionResult> CreateShare([FromBody] CreateShareRequest data)
     {
         if (data.User == CurrentUser.DbUser.Id)

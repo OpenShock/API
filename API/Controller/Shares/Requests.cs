@@ -1,4 +1,5 @@
 ﻿using System.Net;
+using Asp.Versioning;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using OpenShock.API.Models.Requests;
@@ -8,12 +9,13 @@ using OpenShock.Common.Models;
 using OpenShock.Common.Problems;
 using OpenShock.Common.Utils;
 
-namespace OpenShock.API.Controller.Shares.V2;
+namespace OpenShock.API.Controller.Shares;
 
-public sealed partial class SharesV2Controller
+public sealed partial class SharesController
 {
     [HttpGet("requests/outstanding")]
     [ProducesSlimSuccess<IEnumerable<ShareRequestBaseItem>>]
+    [ApiVersion("2")]
     public async Task<IEnumerable<ShareRequestBaseItem>> GetOutstandingRequestsList()
     {
         var outstandingShares = await _db.ShareRequests.Where(x => x.Owner == CurrentUser.DbUser.Id)
@@ -46,6 +48,7 @@ public sealed partial class SharesV2Controller
     
     [HttpGet("requests/incoming")]
     [ProducesSlimSuccess<IEnumerable<ShareRequestBaseItem>>]
+    [ApiVersion("2")]
     public async Task<IEnumerable<ShareRequestBaseItem>> GetIncomingRequestsList()
     {
         var outstandingShares = await _db.ShareRequests.Where(x => x.User == CurrentUser.DbUser.Id)
@@ -79,6 +82,7 @@ public sealed partial class SharesV2Controller
     [HttpGet("requests/{id:guid}")]
     [ProducesSlimSuccess<ShareRequestBaseDetails>]
     [ProducesProblem(HttpStatusCode.NotFound, "ShareRequestNotFound")]
+    [ApiVersion("2")]
     public async Task<IActionResult> GetRequest(Guid id)
     {
         var outstandingShare = await _db.ShareRequests.Where(x => x.Id == id && (x.Owner == CurrentUser.DbUser.Id || x.User == CurrentUser.DbUser.Id))
@@ -126,6 +130,7 @@ public sealed partial class SharesV2Controller
     [HttpDelete("requests/outgoing/{id:guid}")]
     [ProducesSlimSuccess]
     [ProducesProblem(HttpStatusCode.NotFound, "ShareRequestNotFound")]
+    [ApiVersion("2")]
     public async Task<IActionResult> DeleteRequest(Guid id)
     {
         var deletedShareRequest = await _db.ShareRequests
@@ -139,6 +144,7 @@ public sealed partial class SharesV2Controller
     [HttpDelete("requests/incoming/{id:guid}")]
     [ProducesSlimSuccess]
     [ProducesProblem(HttpStatusCode.NotFound, "ShareRequestNotFound")]
+    [ApiVersion("2")]
     public async Task<IActionResult> DenyRequest(Guid id)
     {
         var deletedShareRequest = await _db.ShareRequests
@@ -148,10 +154,11 @@ public sealed partial class SharesV2Controller
         
         return RespondSlimSuccess();
     }
-    
+
     // [HttpPost("requests/incoming/{id:guid}")]
     // [ProducesSlimSuccess]
     // [ProducesProblem(HttpStatusCode.NotFound, "ShareRequestNotFound")]
+    // [ApiVersion("2")]
     // public async Task<IActionResult> RedeemRequest(Guid id)
     // {
     //     var shareRequest = await _db.ShareRequests

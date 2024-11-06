@@ -1,4 +1,5 @@
 ﻿using System.Net;
+using Asp.Versioning;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using OpenShock.API.Models.Response;
@@ -7,12 +8,13 @@ using OpenShock.Common.Models;
 using OpenShock.Common.Problems;
 using OpenShock.Common.Utils;
 
-namespace OpenShock.API.Controller.Shares.V2;
+namespace OpenShock.API.Controller.Shares;
 
-public sealed partial class SharesV2Controller
+public sealed partial class SharesController
 {
     [HttpGet]
     [ProducesSlimSuccess<IEnumerable<GenericIni>>]
+    [ApiVersion("2")]
     public async Task<IEnumerable<GenericIni>> GetSharesByUsers()
     {
         var sharedToUsers = await _db.ShockerShares.Where(x => x.Shocker.DeviceNavigation.Owner == CurrentUser.DbUser.Id)
@@ -28,6 +30,7 @@ public sealed partial class SharesV2Controller
     [HttpGet("{userId:guid}")]
     [ProducesSlimSuccess<ShareInfo>]
     [ProducesProblem(HttpStatusCode.NotFound, "UserNotFound")]
+    [ApiVersion("2")]
     public async Task<IActionResult> GetSharesToUser(Guid userId)
     {
         var sharedWithUser = await _db.ShockerShares.Where(x => x.Shocker.DeviceNavigation.Owner == CurrentUser.DbUser.Id && x.SharedWith == userId)
