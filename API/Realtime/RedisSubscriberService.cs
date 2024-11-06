@@ -47,49 +47,65 @@ public sealed class RedisSubscriberService : IHostedService, IAsyncDisposable
     /// <inheritdoc />
     public async Task StartAsync(CancellationToken cancellationToken)
     {
-        await _subscriber.SubscribeAsync(RedisChannels.KeyEventExpired, (_, message) => { LucTask.Run(() => RunLogic(message, false)); });
-        await _subscriber.SubscribeAsync(RedisChannels.DeviceOnlineStatus, (_, message) => { LucTask.Run(() => RunLogic(message, true)); });
-        await _subscriber.SubscribeAsync(RedisChannels.KeyEventDel, (_, message) => { LucTask.Run(() => RunLogic(message, false)); });
+        await _subscriber.SubscribeAsync(RedisChannels.KeyEventExpired, (_, message) => { LucTask.Run(() => HandleKeyDelOrExpired(message)); });
+        await _subscriber.SubscribeAsync(RedisChannels.DeviceOnlineStatus, (_, message) => { LucTask.Run(() => HandleDeviceOnlineStatus(message)); });
+        await _subscriber.SubscribeAsync(RedisChannels.KeyEventDel, (_, message) => { LucTask.Run(() => HandleKeyDelOrExpired(message)); });
+    }
+
+    private async Task HandleDeviceOnlineStatus(RedisValue message)
+    {
+        if (!message.HasValue) return;
+        var data = JsonSerializer.Deserialize<DeviceUpdatedMessage>(message.ToString());
+        if (data == null) return;
+
+        await LogicDeviceOnlineStatus(data.Id);
     }
     
-    private async Task RunLogic(RedisValue message, bool set)
+    private async Task HandleKeyDelOrExpired(RedisValue message)
     {
         if (!message.HasValue) return;
         var msg = message.ToString().Split(':');
         if (msg.Length < 2) return;
-        await using var db = await _dbContextFactory.CreateDbContextAsync();
+
 
         if (!Guid.TryParse(msg[1], out var id)) return;
 
         if (typeof(DeviceOnline).FullName == msg[0])
         {
-            var data = await db.Devices.Where(x => x.Id == id).Select(x => new
-            {
-                x.Owner,
-                SharedWith = x.Shockers.SelectMany(y => y.ShockerShares)
-            }).FirstOrDefaultAsync();
-            if (data == null) return;
-
-
-            var sharedWith = await db.Users.Where(x => x.ShockerShares.Any(y => y.Shocker.Device == id))
-                .Select(x => x.Id).ToArrayAsync();
-            var userIds = new List<string>
-            {
-                "local#" + data.Owner
-            };
-            userIds.AddRange(sharedWith.Select(x => "local#" + x));
-            var deviceOnline = await _devicesOnline.FindByIdAsync(msg[1]);
-            var arr = new[]
-            {
-                new DeviceOnlineState
-                {
-                    Device = id,
-                    Online = set,
-                    FirmwareVersion = deviceOnline?.FirmwareVersion ?? null
-                }
-            };
-            await _hubContext.Clients.Users(userIds).DeviceStatus(arr);
+            await LogicDeviceOnlineStatus(id);
         }
+    }
+
+    private async Task LogicDeviceOnlineStatus(Guid deviceId)
+    {
+        await using var db = await _dbContextFactory.CreateDbContextAsync();
+        
+        var data = await db.Devices.Where(x => x.Id == deviceId).Select(x => new
+        {
+            x.Owner,
+            SharedWith = x.Shockers.SelectMany(y => y.ShockerShares)
+        }).FirstOrDefaultAsync();
+        if (data == null) return;
+
+
+        var sharedWith = await db.Users.Where(x => x.ShockerShares.Any(y => y.Shocker.Device == deviceId))
+            .Select(x => x.Id).ToArrayAsync();
+        var userIds = new List<string>
+        {
+            "local#" + data.Owner
+        };
+        userIds.AddRange(sharedWith.Select(x => "local#" + x));
+        var deviceOnline = await _devicesOnline.FindByIdAsync(deviceId.ToString());
+        var arr = new[]
+        {
+            new DeviceOnlineState
+            {
+                Device = deviceId,
+                Online = deviceOnline != null,
+                FirmwareVersion = deviceOnline?.FirmwareVersion ?? null
+            }
+        };
+        await _hubContext.Clients.Users(userIds).DeviceStatus(arr);
     }
 
     /// <inheritdoc />
