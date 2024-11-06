@@ -1,4 +1,6 @@
 ﻿using OpenShock.Common.Models;
+// We are in a view, no need to restrict lengths lol
+// ReSharper disable EntityFramework.ModelValidation.UnlimitedStringLength
 
 namespace OpenShock.Common.OpenShockDb;
 
@@ -14,7 +16,7 @@ public class AdminUsersView
 
     public DateTime CreatedAt { get; set; }
 
-    public bool EmailActived { get; set; }
+    public bool EmailActivated { get; set; }
 
     public RankType Rank { get; set; }
 
