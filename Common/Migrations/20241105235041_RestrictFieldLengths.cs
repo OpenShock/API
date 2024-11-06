@@ -10,6 +10,10 @@ namespace OpenShock.Common.Migrations
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
+            // Truncate shocker sharelinks names to 64 characters
+            migrationBuilder.Sql("UPDATE public.shocker_shares_links SET name = LEFT(name, 64) WHERE LENGTH(name) > 64");
+            
+            // We need to drop the view to modify the target table
             migrationBuilder.Sql(AddAdminUsersView.AdminUsersViewDropQuery);
             
             migrationBuilder.AlterColumn<string>(
@@ -152,12 +156,14 @@ namespace OpenShock.Common.Migrations
                 oldClrType: typeof(string),
                 oldType: "character varying");
             
+            // Re-Create the view
             migrationBuilder.Sql(AddAdminUsersView.AdminUsersViewCreateQuery);
         }
 
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
+            // We need to drop the view to modify the target table
             migrationBuilder.Sql(AddAdminUsersView.AdminUsersViewDropQuery);
             
             migrationBuilder.AlterColumn<string>(
@@ -300,6 +306,7 @@ namespace OpenShock.Common.Migrations
                 oldType: "character varying(40)",
                 oldMaxLength: 40);
             
+            // Re-Create the view
             migrationBuilder.Sql(AddAdminUsersView.AdminUsersViewCreateQuery);
         }
     }
