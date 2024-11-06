@@ -75,7 +75,7 @@ public partial class OpenShockContext : DbContext
 
             entity.HasIndex(e => e.UserId).HasAnnotation("Npgsql:StorageParameter:deduplicate_items", "true");
             entity.HasIndex(e => e.ValidUntil).HasAnnotation("Npgsql:StorageParameter:deduplicate_items", "true");
-            entity.HasIndex(e => e.Token).IsUnique();
+            entity.HasIndex(e => e.TokenHash).IsUnique();
 
             entity.Property(e => e.Id)
                 .ValueGeneratedNever()
