@@ -10,6 +10,7 @@ using OpenShock.Common.Hubs;
 using OpenShock.Common.Models;
 using OpenShock.Common.OpenShockDb;
 using OpenShock.Common.Services.Ota;
+using OpenShock.Common.Services.RedisPubSub;
 using OpenShock.Common.Utils;
 using OpenShock.Serialization.Gateway;
 using OpenShock.Serialization.Types;
@@ -42,15 +43,16 @@ public sealed class DeviceV2Controller : DeviceControllerBase<HubToGatewayMessag
     /// <param name="userHubContext"></param>
     /// <param name="serviceProvider"></param>
     /// <param name="lcgConfig"></param>
+    /// <param name="redisPubService"></param>
     public DeviceV2Controller(
         ILogger<DeviceV2Controller> logger,
         IHostApplicationLifetime lifetime,
         IRedisConnectionProvider redisConnectionProvider,
         IDbContextFactory<OpenShockContext> dbContextFactory,
         IHubContext<UserHub, IUserHub> userHubContext,
-        IServiceProvider serviceProvider, LCGConfig lcgConfig)
+        IServiceProvider serviceProvider, LCGConfig lcgConfig, IRedisPubService redisPubService)
         : base(logger, lifetime, HubToGatewayMessage.Serializer, GatewayToHubMessage.Serializer, redisConnectionProvider, 
-            dbContextFactory, serviceProvider, lcgConfig)
+            dbContextFactory, serviceProvider, lcgConfig, redisPubService)
     {
         _userHubContext = userHubContext;
         _pingTimer = new Timer(PingTimerElapsed, null, Duration.DevicePingInitialDelay, Duration.DevicePingPeriod);

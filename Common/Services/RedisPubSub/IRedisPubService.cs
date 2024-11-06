@@ -6,6 +6,13 @@ namespace OpenShock.Common.Services.RedisPubSub;
 public interface IRedisPubService
 {
     /// <summary>
+    /// Used when a device comes online or changes its connection details like, gateway, firmware version, etc.
+    /// </summary>
+    /// <param name="deviceId"></param>
+    /// <returns></returns>
+    public Task SendDeviceOnlineStatus(Guid deviceId);
+    
+    /// <summary>
     /// General shocker control
     /// </summary>
     /// <param name="sender"></param>

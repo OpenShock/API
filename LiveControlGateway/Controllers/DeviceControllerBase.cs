@@ -14,6 +14,7 @@ using OpenShock.Common.Hubs;
 using OpenShock.Common.OpenShockDb;
 using OpenShock.Common.Problems;
 using OpenShock.Common.Redis;
+using OpenShock.Common.Services.RedisPubSub;
 using OpenShock.Common.Utils;
 using OpenShock.LiveControlGateway.LifetimeManager;
 using OpenShock.LiveControlGateway.Websocket;
@@ -44,6 +45,7 @@ public abstract class DeviceControllerBase<TIn, TOut> : FlatbuffersWebsocketBase
     private readonly IRedisConnectionProvider _redisConnectionProvider;
     private readonly IDbContextFactory<OpenShockContext> _dbContextFactory;
     private readonly LCGConfig _lcgConfig;
+    private readonly IRedisPubService _redisPubService;
 
     private readonly Timer _keepAliveTimeoutTimer = new(Duration.DeviceKeepAliveInitialTimeout);
     private DateTimeOffset _connected = DateTimeOffset.UtcNow;
@@ -79,14 +81,15 @@ public abstract class DeviceControllerBase<TIn, TOut> : FlatbuffersWebsocketBase
         ISerializer<TOut> outgoingSerializer,
         IRedisConnectionProvider redisConnectionProvider,
         IDbContextFactory<OpenShockContext> dbContextFactory,
-        IServiceProvider serviceProvider, LCGConfig lcgConfig
-        
+        IServiceProvider serviceProvider, LCGConfig lcgConfig,
+        IRedisPubService redisPubService
         ) : base(logger, lifetime, incomingSerializer, outgoingSerializer)
     {
         _redisConnectionProvider = redisConnectionProvider;
         _dbContextFactory = dbContextFactory;
         ServiceProvider = serviceProvider;
         _lcgConfig = lcgConfig;
+        _redisPubService = redisPubService;
         _keepAliveTimeoutTimer.Elapsed += async (sender, args) =>
         {
             Logger.LogInformation("Keep alive timeout reached, closing websocket connection");
@@ -161,11 +164,18 @@ public abstract class DeviceControllerBase<TIn, TOut> : FlatbuffersWebsocketBase
                 ConnectedAt = _connected,
                 UserAgent = _userAgent
             }, Duration.DeviceKeepAliveTimeout);
+
+            
+            await _redisPubService.SendDeviceOnlineStatus(CurrentDevice.Id);
             return;
         }
 
+        // We cannot rely on the json set anymore, since that also happens with uptime and latency
+        // as we dont want to send a device online status every time, we will do it here
         online.Uptime = uptime;
         online.Latency = latency;
+
+        var sendOnlineStatusUpdate = false;
         
         if (online.FirmwareVersion != _firmwareVersion ||
             online.Gateway != _lcgConfig.Lcg.Fqdn ||
@@ -177,9 +187,16 @@ public abstract class DeviceControllerBase<TIn, TOut> : FlatbuffersWebsocketBase
             online.ConnectedAt = _connected;
             online.UserAgent = _userAgent;
             Logger.LogInformation("Updated details of online device");
+            
+            sendOnlineStatusUpdate = true;
         }
 
         await deviceOnline.UpdateAsync(online, Duration.DeviceKeepAliveTimeout);
+        
+        if (sendOnlineStatusUpdate)
+        {
+            await _redisPubService.SendDeviceOnlineStatus(CurrentDevice.Id);
+        }
     }
     
     /// <inheritdoc />
