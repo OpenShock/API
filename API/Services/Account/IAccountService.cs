@@ -36,7 +36,7 @@ public interface IAccountService
     /// <param name="loginContext"></param>
     /// <param name="cancellationToken"></param>
     /// <returns></returns>
-    public Task<OneOf<Success<string>, NotFound>> Login(string emailOrUsername, string password, LoginContext loginContext, CancellationToken cancellationToken = default);
+    public Task<OneOf<Success<string>, NotFound>> Login(string usernameOrEmail, string password, LoginContext loginContext, CancellationToken cancellationToken = default);
     
     /// <summary>
     /// Check if a password reset request exists and the secret is valid

@@ -106,12 +106,12 @@ public sealed class AccountService : IAccountService
     }
 
     /// <inheritdoc />
-    public async Task<OneOf<Success<string>, NotFound>> Login(string emailOrUsername, string password,
+    public async Task<OneOf<Success<string>, NotFound>> Login(string usernameOrEmail, string password,
         LoginContext loginContext, CancellationToken cancellationToken = default)
     {
-        var lowercaseEmailOrUsername = emailOrUsername.ToLowerInvariant();
+        var lowercaseUsernameOrEmail = usernameOrEmail.ToLowerInvariant();
         var user = await _db.Users.FirstOrDefaultAsync(
-            x => x.Email == lowercaseEmailOrUsername || x.Name == lowercaseEmailOrUsername,
+            x => x.Email == lowercaseUsernameOrEmail || x.Name == lowercaseUsernameOrEmail,
             cancellationToken: cancellationToken);
         if (user == null)
         {

@@ -38,7 +38,7 @@ public sealed partial class AccountController
         var turnStile = await turnstileService.VerifyUserResponseToken(body.TurnstileResponse, remoteIP, cancellationToken);
         if (!turnStile.IsT0) return Problem(TurnstileError.InvalidTurnstile);
             
-        var loginAction = await _accountService.Login(body.Email, body.Password, new LoginContext
+        var loginAction = await _accountService.Login(body.UsernameOrEmail, body.Password, new LoginContext
         {
             Ip = remoteIP.ToString(),
             UserAgent = HttpContext.GetUserAgent(),

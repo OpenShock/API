@@ -9,7 +9,7 @@ public sealed class LoginV2
     public required string Password { get; set; }
     
     [Required(AllowEmptyStrings = false)]
-    public required string Email { get; set; }
+    public required string UsernameOrEmail { get; set; }
     
     [Required(AllowEmptyStrings = false)]
     public required string TurnstileResponse { get; set; }
