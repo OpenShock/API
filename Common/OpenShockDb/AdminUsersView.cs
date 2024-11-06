@@ -12,7 +12,7 @@ public class AdminUsersView
 
     public required string Email { get; set; }
 
-    public required string PasswordHashType { get; set; }
+    public required PasswordHashingAlgorithm PasswordHashType { get; set; }
 
     public required DateTime CreatedAt { get; set; }
 
