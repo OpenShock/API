@@ -26,11 +26,11 @@ public sealed partial class DeviceController
     {
         var devicePairs = _redis.RedisCollection<DevicePair>();
 
-        var pair = await devicePairs.Where(x => x.PairCode == pairCode).SingleOrDefaultAsync();
+        var pair = await devicePairs.Where(x => x.PairCode == pairCode).FirstOrDefaultAsync();
         if (pair == null) return Problem(PairError.PairCodeNotFound);
         await devicePairs.DeleteAsync(pair);
 
-        var device = await _db.Devices.SingleOrDefaultAsync(x => x.Id == pair.Id);
+        var device = await _db.Devices.FirstOrDefaultAsync(x => x.Id == pair.Id);
         if (device == null) throw new Exception("Device not found for pair code");
 
         return RespondSuccess(device.Token);

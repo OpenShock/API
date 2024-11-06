@@ -2,7 +2,7 @@
 
 namespace OpenShock.API.Models.Requests;
 
-public sealed class CreateShareCode
+public class ShockerPermLimitPair
 {
     public required ShockerPermissions Permissions { get; set; }
     public required ShockerLimits Limits { get; set; }

@@ -33,13 +33,12 @@ public sealed partial class SharesController
         var shareCode = await _db.ShockerShareCodes.Where(x => x.Id == shareCodeId).Select(x => new
         {
             Share = x, x.Shocker.DeviceNavigation.Owner, x.Shocker.Device
-        }).SingleOrDefaultAsync();
+        }).FirstOrDefaultAsync();
         if (shareCode == null) return Problem(ShareCodeError.ShareCodeNotFound);
         if (shareCode.Owner == CurrentUser.DbUser.Id) return Problem(ShareCodeError.CantLinkOwnShareCode);
         if (await _db.ShockerShares.AnyAsync(x => x.ShockerId == shareCodeId && x.SharedWith == CurrentUser.DbUser.Id))
             return Problem(ShareCodeError.ShockerAlreadyLinked);
-
-
+        
         _db.ShockerShares.Add(new ShockerShare
         {
             SharedWith = CurrentUser.DbUser.Id,

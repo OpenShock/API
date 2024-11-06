@@ -80,7 +80,14 @@ namespace OpenShock.Common.Migrations
                     b.HasKey("Id")
                         .HasName("api_tokens_pkey");
 
-                    b.HasIndex("UserId");
+                    b.HasIndex("Token")
+                        .IsUnique();
+
+                    b.HasIndex("UserId")
+                        .HasAnnotation("Npgsql:StorageParameter:deduplicate_items", "true");
+
+                    b.HasIndex("ValidUntil")
+                        .HasAnnotation("Npgsql:StorageParameter:deduplicate_items", "true");
 
                     b.ToTable("api_tokens", (string)null);
                 });
@@ -115,7 +122,11 @@ namespace OpenShock.Common.Migrations
                     b.HasKey("Id")
                         .HasName("devices_pkey");
 
-                    b.HasIndex("Owner");
+                    b.HasIndex("Owner")
+                        .HasAnnotation("Npgsql:StorageParameter:deduplicate_items", "true");
+
+                    b.HasIndex("Token")
+                        .IsUnique();
 
                     b.ToTable("devices", (string)null);
                 });
@@ -175,8 +186,8 @@ namespace OpenShock.Common.Migrations
                         .HasColumnType("character varying")
                         .HasColumnName("secret");
 
-                    b.Property<DateTimeOffset?>("UsedOn")
-                        .HasColumnType("time with time zone")
+                    b.Property<DateTime?>("UsedOn")
+                        .HasColumnType("timestamp with time zone")
                         .HasColumnName("used_on");
 
                     b.Property<Guid>("UserId")
@@ -186,9 +197,91 @@ namespace OpenShock.Common.Migrations
                     b.HasKey("Id")
                         .HasName("password_resets_pkey");
 
-                    b.HasIndex("UserId");
+                    b.HasIndex("UserId")
+                        .HasAnnotation("Npgsql:StorageParameter:deduplicate_items", "true");
 
                     b.ToTable("password_resets", (string)null);
+                });
+
+            modelBuilder.Entity("OpenShock.Common.OpenShockDb.ShareRequest", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTime>("CreatedOn")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_on")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                    b.Property<Guid>("Owner")
+                        .HasColumnType("uuid")
+                        .HasColumnName("owner");
+
+                    b.Property<Guid?>("User")
+                        .HasColumnType("uuid")
+                        .HasColumnName("user");
+
+                    b.HasKey("Id")
+                        .HasName("shares_codes_pkey");
+
+                    b.HasIndex("Owner")
+                        .HasAnnotation("Npgsql:StorageParameter:deduplicate_items", "true");
+
+                    b.HasIndex("User");
+
+                    b.ToTable("share_requests", (string)null);
+                });
+
+            modelBuilder.Entity("OpenShock.Common.OpenShockDb.ShareRequestsShocker", b =>
+                {
+                    b.Property<Guid>("ShareRequest")
+                        .HasColumnType("uuid")
+                        .HasColumnName("share_request");
+
+                    b.Property<Guid>("Shocker")
+                        .HasColumnType("uuid")
+                        .HasColumnName("shocker");
+
+                    b.Property<int?>("LimitDuration")
+                        .HasColumnType("integer")
+                        .HasColumnName("limit_duration");
+
+                    b.Property<short?>("LimitIntensity")
+                        .HasColumnType("smallint")
+                        .HasColumnName("limit_intensity");
+
+                    b.Property<bool>("PermLive")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true)
+                        .HasColumnName("perm_live");
+
+                    b.Property<bool>("PermShock")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true)
+                        .HasColumnName("perm_shock");
+
+                    b.Property<bool>("PermSound")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true)
+                        .HasColumnName("perm_sound");
+
+                    b.Property<bool>("PermVibrate")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true)
+                        .HasColumnName("perm_vibrate");
+
+                    b.HasKey("ShareRequest", "Shocker")
+                        .HasName("share_requests_shockers_pkey");
+
+                    b.HasIndex("Shocker");
+
+                    b.ToTable("share_requests_shockers", (string)null);
                 });
 
             modelBuilder.Entity("OpenShock.Common.OpenShockDb.Shocker", b =>
@@ -230,7 +323,8 @@ namespace OpenShock.Common.Migrations
                     b.HasKey("Id")
                         .HasName("shockers_pkey");
 
-                    b.HasIndex("Device");
+                    b.HasIndex("Device")
+                        .HasAnnotation("Npgsql:StorageParameter:deduplicate_items", "true");
 
                     b.ToTable("shockers", (string)null);
                 });
@@ -282,7 +376,8 @@ namespace OpenShock.Common.Migrations
 
                     b.HasIndex("ControlledBy");
 
-                    b.HasIndex("ShockerId");
+                    b.HasIndex("ShockerId")
+                        .HasAnnotation("Npgsql:StorageParameter:deduplicate_items", "true");
 
                     b.ToTable("shocker_control_logs", (string)null);
                 });
@@ -344,7 +439,8 @@ namespace OpenShock.Common.Migrations
                     b.HasKey("ShockerId", "SharedWith")
                         .HasName("shocker_shares_pkey");
 
-                    b.HasIndex("SharedWith");
+                    b.HasIndex("SharedWith")
+                        .HasAnnotation("Npgsql:StorageParameter:deduplicate_items", "true");
 
                     b.ToTable("shocker_shares", (string)null);
                 });
@@ -427,7 +523,8 @@ namespace OpenShock.Common.Migrations
                     b.HasKey("Id")
                         .HasName("shocker_shares_links_pkey");
 
-                    b.HasIndex("OwnerId");
+                    b.HasIndex("OwnerId")
+                        .HasAnnotation("Npgsql:StorageParameter:deduplicate_items", "true");
 
                     b.ToTable("shocker_shares_links", (string)null);
                 });
@@ -527,17 +624,13 @@ namespace OpenShock.Common.Migrations
                     b.HasKey("Id")
                         .HasName("users_pkey");
 
-                    b.HasIndex(new[] { "Email" }, "email")
+                    b.HasIndex("Email")
                         .IsUnique();
 
-                    b.HasIndex(new[] { "Email" }, "idx_email");
-
-                    b.HasIndex(new[] { "Name" }, "idx_name");
-
-                    NpgsqlIndexBuilderExtensions.UseCollation(b.HasIndex(new[] { "Name" }, "idx_name"), new[] { "ndcoll" });
-
-                    b.HasIndex(new[] { "Name" }, "username")
+                    b.HasIndex("Name")
                         .IsUnique();
+
+                    NpgsqlIndexBuilderExtensions.UseCollation(b.HasIndex("Name"), new[] { "ndcoll" });
 
                     b.ToTable("users", (string)null);
                 });
@@ -608,13 +701,13 @@ namespace OpenShock.Common.Migrations
                     b.HasKey("Id")
                         .HasName("users_email_change_pkey");
 
+                    b.HasIndex("CreatedOn")
+                        .HasAnnotation("Npgsql:StorageParameter:deduplicate_items", "true");
+
+                    b.HasIndex("UsedOn")
+                        .HasAnnotation("Npgsql:StorageParameter:deduplicate_items", "true");
+
                     b.HasIndex("UserId");
-
-                    b.HasIndex(new[] { "CreatedOn" }, "idx_email_changes_created_on")
-                        .HasAnnotation("Npgsql:StorageParameter:deduplicate_items", "true");
-
-                    b.HasIndex(new[] { "UsedOn" }, "idx_email_changes_used_on")
-                        .HasAnnotation("Npgsql:StorageParameter:deduplicate_items", "true");
 
                     b.ToTable("users_email_changes", (string)null);
                 });
@@ -646,12 +739,13 @@ namespace OpenShock.Common.Migrations
                     b.HasKey("Id", "UserId")
                         .HasName("users_name_changes_pkey");
 
-                    b.HasIndex("UserId");
-
-                    b.HasIndex(new[] { "CreatedOn" }, "idx_user_name_changes_created_on")
+                    b.HasIndex("CreatedOn")
                         .HasAnnotation("Npgsql:StorageParameter:deduplicate_items", "true");
 
-                    b.HasIndex(new[] { "OldName" }, "idx_user_name_changes_old_name")
+                    b.HasIndex("OldName")
+                        .HasAnnotation("Npgsql:StorageParameter:deduplicate_items", "true");
+
+                    b.HasIndex("UserId")
                         .HasAnnotation("Npgsql:StorageParameter:deduplicate_items", "true");
 
                     b.ToTable("users_name_changes", (string)null);
@@ -703,6 +797,47 @@ namespace OpenShock.Common.Migrations
                         .HasConstraintName("user_id");
 
                     b.Navigation("User");
+                });
+
+            modelBuilder.Entity("OpenShock.Common.OpenShockDb.ShareRequest", b =>
+                {
+                    b.HasOne("OpenShock.Common.OpenShockDb.User", "OwnerNavigation")
+                        .WithMany("ShareRequestOwnerNavigations")
+                        .HasForeignKey("Owner")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_share_requests_owner");
+
+                    b.HasOne("OpenShock.Common.OpenShockDb.User", "UserNavigation")
+                        .WithMany("ShareRequestUserNavigations")
+                        .HasForeignKey("User")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .HasConstraintName("fk_share_requests_user");
+
+                    b.Navigation("OwnerNavigation");
+
+                    b.Navigation("UserNavigation");
+                });
+
+            modelBuilder.Entity("OpenShock.Common.OpenShockDb.ShareRequestsShocker", b =>
+                {
+                    b.HasOne("OpenShock.Common.OpenShockDb.ShareRequest", "ShareRequestNavigation")
+                        .WithMany("ShareRequestsShockers")
+                        .HasForeignKey("ShareRequest")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_share_requests_shockers_share_request");
+
+                    b.HasOne("OpenShock.Common.OpenShockDb.Shocker", "ShockerNavigation")
+                        .WithMany("ShareRequestsShockers")
+                        .HasForeignKey("Shocker")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_share_requests_shockers_shocker");
+
+                    b.Navigation("ShareRequestNavigation");
+
+                    b.Navigation("ShockerNavigation");
                 });
 
             modelBuilder.Entity("OpenShock.Common.OpenShockDb.Shocker", b =>
@@ -846,8 +981,15 @@ namespace OpenShock.Common.Migrations
                     b.Navigation("Shockers");
                 });
 
+            modelBuilder.Entity("OpenShock.Common.OpenShockDb.ShareRequest", b =>
+                {
+                    b.Navigation("ShareRequestsShockers");
+                });
+
             modelBuilder.Entity("OpenShock.Common.OpenShockDb.Shocker", b =>
                 {
+                    b.Navigation("ShareRequestsShockers");
+
                     b.Navigation("ShockerControlLogs");
 
                     b.Navigation("ShockerShareCodes");
@@ -869,6 +1011,10 @@ namespace OpenShock.Common.Migrations
                     b.Navigation("Devices");
 
                     b.Navigation("PasswordResets");
+
+                    b.Navigation("ShareRequestOwnerNavigations");
+
+                    b.Navigation("ShareRequestUserNavigations");
 
                     b.Navigation("ShockerControlLogs");
 

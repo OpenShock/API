@@ -16,4 +16,10 @@ public static class Constants
     
     public static readonly TimeSpan LoginSessionLifetime = TimeSpan.FromDays(30);
     public static readonly TimeSpan LoginSessionExpansionAfter = TimeSpan.FromDays(1);
+    
+    public static readonly TimeSpan DevicePingInitialDelay = TimeSpan.FromSeconds(5);
+    public static readonly TimeSpan DevicePingPeriod = TimeSpan.FromSeconds(15);
+    public static readonly TimeSpan DeviceKeepAliveInitialTimeout = TimeSpan.FromSeconds(65);
+    public static readonly TimeSpan DeviceKeepAliveTimeout = TimeSpan.FromSeconds(35);
+    public static readonly object DeviceKeepAliveTimeoutIntBoxed = (int)DeviceKeepAliveTimeout.TotalSeconds;
 }

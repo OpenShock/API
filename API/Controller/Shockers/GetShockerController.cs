@@ -31,7 +31,7 @@ public sealed partial class ShockerController
             Device = x.Device,
             Model = x.Model,
             IsPaused = x.Paused
-        }).SingleOrDefaultAsync();
+        }).FirstOrDefaultAsync();
 
         if (shocker == null) return Problem(ShockerError.ShockerNotFound);
         return RespondSuccess(shocker);

@@ -67,7 +67,7 @@ public sealed class RedisSubscriberService : IHostedService, IAsyncDisposable
             {
                 x.Owner,
                 SharedWith = x.Shockers.SelectMany(y => y.ShockerShares)
-            }).SingleOrDefaultAsync();
+            }).FirstOrDefaultAsync();
             if (data == null) return;
 
 

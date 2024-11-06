@@ -69,7 +69,7 @@ public sealed class LoginSessionAuthentication : AuthenticationHandler<Authentic
     {
         string tokenHash = HashingUtils.HashSha256(token);
 
-        var tokenDto = await _db.ApiTokens.Include(x => x.User).SingleOrDefaultAsync(x => x.TokenHash == tokenHash &&
+        var tokenDto = await _db.ApiTokens.Include(x => x.User).FirstOrDefaultAsync(x => x.TokenHash == tokenHash &&
             (x.ValidUntil == null || x.ValidUntil >= DateTime.UtcNow));
         if (tokenDto == null) return Fail(AuthResultError.TokenInvalid);
 

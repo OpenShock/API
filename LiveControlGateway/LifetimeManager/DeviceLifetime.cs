@@ -10,7 +10,6 @@ using OpenShock.Common.Redis.PubSub;
 using OpenShock.Common.Utils;
 using OpenShock.LiveControlGateway.Controllers;
 using OpenShock.LiveControlGateway.Websocket;
-using OpenShock.Serialization;
 using OpenShock.Serialization.Gateway;
 using OpenShock.Serialization.Types;
 using Semver;
@@ -29,7 +28,7 @@ public sealed class DeviceLifetime : IAsyncDisposable
 
     private Dictionary<Guid, ShockerState> _shockerStates = new();
     private readonly byte _tps;
-    private readonly DeviceController _deviceController;
+    private readonly IDeviceController _deviceController;
     private readonly CancellationToken _cancellationToken;
 
     private readonly IDbContextFactory<OpenShockContext> _dbContextFactory;
@@ -41,7 +40,7 @@ public sealed class DeviceLifetime : IAsyncDisposable
     /// <param name="deviceController"></param>
     /// <param name="dbContextFactory"></param>
     /// <param name="cancellationToken"></param>
-    public DeviceLifetime([Range(1, 10)] byte tps, DeviceController deviceController,
+    public DeviceLifetime([Range(1, 10)] byte tps, IDeviceController deviceController,
         IDbContextFactory<OpenShockContext> dbContextFactory,
         CancellationToken cancellationToken = default)
     {
@@ -49,7 +48,7 @@ public sealed class DeviceLifetime : IAsyncDisposable
         _deviceController = deviceController;
         _cancellationToken = cancellationToken;
         _dbContextFactory = dbContextFactory;
-        
+
         _waitBetweenTicks = TimeSpan.FromMilliseconds(Math.Floor((float)1000 / tps));
         _commandDuration = (ushort)(_waitBetweenTicks.TotalMilliseconds * 2.5);
     }
@@ -115,13 +114,7 @@ public sealed class DeviceLifetime : IAsyncDisposable
 
         if (commandList == null) return;
 
-        await _deviceController.QueueMessage(new GatewayToHubMessage
-        {
-            Payload = new GatewayToHubMessagePayload(new ShockerCommandList
-            {
-                Commands = commandList
-            })
-        });
+        await _deviceController.Control(commandList);
     }
 
     /// <summary>
@@ -132,7 +125,8 @@ public sealed class DeviceLifetime : IAsyncDisposable
         await using var db = await _dbContextFactory.CreateDbContextAsync(_cancellationToken);
         await UpdateShockers(db);
 
-        foreach (var websocketController in WebsocketManager.LiveControlUsers.GetConnections(_deviceController.Id))
+        foreach (var websocketController in
+                 WebsocketManager.LiveControlUsers.GetConnections(_deviceController.Id))
             await websocketController.UpdatePermissions(db);
     }
 
@@ -189,11 +183,12 @@ public sealed class DeviceLifetime : IAsyncDisposable
         foreach (var shock in shocks)
         {
             if (!_shockerStates.TryGetValue(shock.Id, out var state)) continue;
-            
-            Logger.LogTrace("Control exclusive: {Exclusive}, type: {Type}, duration: {Duration}, intensity: {Intensity}",
+
+            Logger.LogTrace(
+                "Control exclusive: {Exclusive}, type: {Type}, duration: {Duration}, intensity: {Intensity}",
                 shock.Exclusive, shock.Type, shock.Duration, shock.Intensity);
-            state.ExclusiveUntil = shock.Exclusive && shock.Type != ControlType.Stop ?
-                DateTimeOffset.UtcNow.AddMilliseconds(shock.Duration) 
+            state.ExclusiveUntil = shock.Exclusive && shock.Type != ControlType.Stop
+                ? DateTimeOffset.UtcNow.AddMilliseconds(shock.Duration)
                 : DateTimeOffset.MinValue;
 
             shocksTransformed.Add(new ShockerCommand
@@ -204,10 +199,7 @@ public sealed class DeviceLifetime : IAsyncDisposable
             });
         }
 
-        return _deviceController.QueueMessage(new GatewayToHubMessage
-        {
-            Payload = new GatewayToHubMessagePayload(new ShockerCommandList { Commands = shocksTransformed })
-        });
+        return _deviceController.Control(shocksTransformed);
     }
 
     /// <summary>
@@ -215,27 +207,13 @@ public sealed class DeviceLifetime : IAsyncDisposable
     /// </summary>
     /// <param name="enabled"></param>
     /// <returns></returns>
-    public ValueTask ControlCaptive(bool enabled) =>
-        _deviceController.QueueMessage(new GatewayToHubMessage
-        {
-            Payload = new GatewayToHubMessagePayload(new CaptivePortalConfig
-            {
-                Enabled = enabled
-            })
-        });
+    public ValueTask ControlCaptive(bool enabled) => _deviceController.CaptivePortal(enabled);
 
     /// <summary>
     /// Ota install from redis
     /// </summary>
     /// <returns></returns>
-    public ValueTask OtaInstall(SemVersion semVersion) =>
-        _deviceController.QueueMessage(new GatewayToHubMessage
-        {
-            Payload = new GatewayToHubMessagePayload(new OtaInstall
-            {
-                Version = semVersion.ToSemVer()
-            })
-        });
+    public ValueTask OtaInstall(SemVersion semVersion) => _deviceController.OtaInstall(semVersion);
 
     /// <inheritdoc />
     public ValueTask DisposeAsync() => _deviceController.DisposeAsync();

@@ -1,6 +1,7 @@
 ﻿using System.Net;
 using OpenShock.Common.Models;
 using OpenShock.Common.Problems;
+using OpenShock.Common.Problems.CustomProblems;
 
 namespace OpenShock.Common.Errors;
 

@@ -23,6 +23,10 @@ public partial class OpenShockContext : DbContext
 
     public virtual DbSet<PasswordReset> PasswordResets { get; set; }
 
+    public virtual DbSet<ShareRequest> ShareRequests { get; set; }
+
+    public virtual DbSet<ShareRequestsShocker> ShareRequestsShockers { get; set; }
+
     public virtual DbSet<Shocker> Shockers { get; set; }
 
     public virtual DbSet<ShockerControlLog> ShockerControlLogs { get; set; }
@@ -42,6 +46,8 @@ public partial class OpenShockContext : DbContext
     public virtual DbSet<UsersEmailChange> UsersEmailChanges { get; set; }
 
     public virtual DbSet<UsersNameChange> UsersNameChanges { get; set; }
+
+    public virtual DbSet<AdminUsersView> AdminUsersViews { get; set; }
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {
@@ -66,6 +72,10 @@ public partial class OpenShockContext : DbContext
             entity.HasKey(e => e.Id).HasName("api_tokens_pkey");
 
             entity.ToTable("api_tokens");
+
+            entity.HasIndex(e => e.UserId).HasAnnotation("Npgsql:StorageParameter:deduplicate_items", "true");
+            entity.HasIndex(e => e.ValidUntil).HasAnnotation("Npgsql:StorageParameter:deduplicate_items", "true");
+            entity.HasIndex(e => e.Token).IsUnique();
 
             entity.Property(e => e.Id)
                 .ValueGeneratedNever()
@@ -100,6 +110,9 @@ public partial class OpenShockContext : DbContext
             entity.HasKey(e => e.Id).HasName("devices_pkey");
 
             entity.ToTable("devices");
+
+            entity.HasIndex(e => e.Owner).HasAnnotation("Npgsql:StorageParameter:deduplicate_items", "true");
+            entity.HasIndex(e => e.Token).IsUnique();
 
             entity.Property(e => e.Id)
                 .ValueGeneratedNever()
@@ -153,6 +166,8 @@ public partial class OpenShockContext : DbContext
             entity.HasKey(e => e.Id).HasName("password_resets_pkey");
 
             entity.ToTable("password_resets");
+            
+            entity.HasIndex(e => e.UserId).HasAnnotation("Npgsql:StorageParameter:deduplicate_items", "true");
 
             entity.Property(e => e.Id)
                 .ValueGeneratedNever()
@@ -164,7 +179,6 @@ public partial class OpenShockContext : DbContext
                 .HasColumnType("character varying")
                 .HasColumnName("secret");
             entity.Property(e => e.UsedOn)
-                .HasColumnType("time with time zone")
                 .HasColumnName("used_on");
             entity.Property(e => e.UserId).HasColumnName("user_id");
 
@@ -173,11 +187,72 @@ public partial class OpenShockContext : DbContext
                 .HasConstraintName("user_id");
         });
 
+        modelBuilder.Entity<ShareRequest>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("shares_codes_pkey");
+
+            entity.ToTable("share_requests");
+            
+            entity.HasIndex(e => e.Owner).HasAnnotation("Npgsql:StorageParameter:deduplicate_items", "true");
+
+            entity.Property(e => e.Id)
+                .ValueGeneratedNever()
+                .HasColumnName("id");
+            entity.Property(e => e.CreatedOn)
+                .HasDefaultValueSql("CURRENT_TIMESTAMP")
+                .HasColumnName("created_on");
+            entity.Property(e => e.Owner).HasColumnName("owner");
+            entity.Property(e => e.User).HasColumnName("user");
+
+            entity.HasOne(d => d.OwnerNavigation).WithMany(p => p.ShareRequestOwnerNavigations)
+                .HasForeignKey(d => d.Owner)
+                .HasConstraintName("fk_share_requests_owner");
+
+            entity.HasOne(d => d.UserNavigation).WithMany(p => p.ShareRequestUserNavigations)
+                .HasForeignKey(d => d.User)
+                .OnDelete(DeleteBehavior.Cascade)
+                .HasConstraintName("fk_share_requests_user");
+        });
+
+        modelBuilder.Entity<ShareRequestsShocker>(entity =>
+        {
+            entity.HasKey(e => new { e.ShareRequest, e.Shocker }).HasName("share_requests_shockers_pkey");
+
+            entity.ToTable("share_requests_shockers");
+
+            entity.Property(e => e.ShareRequest).HasColumnName("share_request");
+            entity.Property(e => e.Shocker).HasColumnName("shocker");
+            entity.Property(e => e.LimitDuration).HasColumnName("limit_duration");
+            entity.Property(e => e.LimitIntensity).HasColumnName("limit_intensity");
+            entity.Property(e => e.PermLive)
+                .HasDefaultValue(true)
+                .HasColumnName("perm_live");
+            entity.Property(e => e.PermShock)
+                .HasDefaultValue(true)
+                .HasColumnName("perm_shock");
+            entity.Property(e => e.PermSound)
+                .HasDefaultValue(true)
+                .HasColumnName("perm_sound");
+            entity.Property(e => e.PermVibrate)
+                .HasDefaultValue(true)
+                .HasColumnName("perm_vibrate");
+
+            entity.HasOne(d => d.ShareRequestNavigation).WithMany(p => p.ShareRequestsShockers)
+                .HasForeignKey(d => d.ShareRequest)
+                .HasConstraintName("fk_share_requests_shockers_share_request");
+
+            entity.HasOne(d => d.ShockerNavigation).WithMany(p => p.ShareRequestsShockers)
+                .HasForeignKey(d => d.Shocker)
+                .HasConstraintName("fk_share_requests_shockers_shocker");
+        });
+
         modelBuilder.Entity<Shocker>(entity =>
         {
             entity.HasKey(e => e.Id).HasName("shockers_pkey");
 
             entity.ToTable("shockers");
+            
+            entity.HasIndex(e => e.Device).HasAnnotation("Npgsql:StorageParameter:deduplicate_items", "true");
 
             entity.Property(e => e.Id)
                 .ValueGeneratedNever()
@@ -205,6 +280,8 @@ public partial class OpenShockContext : DbContext
             entity.HasKey(e => e.Id).HasName("shocker_control_logs_pkey");
 
             entity.ToTable("shocker_control_logs");
+            
+            entity.HasIndex(e => e.ShockerId).HasAnnotation("Npgsql:StorageParameter:deduplicate_items", "true");
 
             entity.Property(e => e.Id)
                 .ValueGeneratedNever()
@@ -239,6 +316,8 @@ public partial class OpenShockContext : DbContext
             entity.HasKey(e => new { e.ShockerId, e.SharedWith }).HasName("shocker_shares_pkey");
 
             entity.ToTable("shocker_shares");
+            
+            entity.HasIndex(e => e.SharedWith).HasAnnotation("Npgsql:StorageParameter:deduplicate_items", "true");
 
             entity.Property(e => e.ShockerId).HasColumnName("shocker_id");
             entity.Property(e => e.SharedWith).HasColumnName("shared_with");
@@ -307,6 +386,8 @@ public partial class OpenShockContext : DbContext
             entity.HasKey(e => e.Id).HasName("shocker_shares_links_pkey");
 
             entity.ToTable("shocker_shares_links");
+            
+            entity.HasIndex(e => e.OwnerId).HasAnnotation("Npgsql:StorageParameter:deduplicate_items", "true");
 
             entity.Property(e => e.Id)
                 .ValueGeneratedNever()
@@ -361,13 +442,8 @@ public partial class OpenShockContext : DbContext
 
             entity.ToTable("users");
 
-            entity.HasIndex(e => e.Email, "email").IsUnique();
-
-            entity.HasIndex(e => e.Email, "idx_email");
-
-            entity.HasIndex(e => e.Name, "idx_name").UseCollation(new[] { "ndcoll" });
-
-            entity.HasIndex(e => e.Name, "username").IsUnique();
+            entity.HasIndex(e => e.Email).IsUnique();
+            entity.HasIndex(e => e.Name).UseCollation(new[] { "ndcoll" }).IsUnique();
 
             entity.Property(e => e.Id)
                 .ValueGeneratedNever()
@@ -398,6 +474,8 @@ public partial class OpenShockContext : DbContext
             entity.HasKey(e => e.Id).HasName("users_activation_pkey");
 
             entity.ToTable("users_activation");
+            
+            entity.HasIndex(e => e.UserId);
 
             entity.Property(e => e.Id)
                 .ValueGeneratedNever()
@@ -421,10 +499,12 @@ public partial class OpenShockContext : DbContext
             entity.HasKey(e => e.Id).HasName("users_email_change_pkey");
 
             entity.ToTable("users_email_changes");
+            
+            entity.HasIndex(e => e.UserId);
 
-            entity.HasIndex(e => e.CreatedOn, "idx_email_changes_created_on").HasAnnotation("Npgsql:StorageParameter:deduplicate_items", "true");
+            entity.HasIndex(e => e.CreatedOn).HasAnnotation("Npgsql:StorageParameter:deduplicate_items", "true");
 
-            entity.HasIndex(e => e.UsedOn, "idx_email_changes_used_on").HasAnnotation("Npgsql:StorageParameter:deduplicate_items", "true");
+            entity.HasIndex(e => e.UsedOn).HasAnnotation("Npgsql:StorageParameter:deduplicate_items", "true");
 
             entity.Property(e => e.Id)
                 .ValueGeneratedNever()
@@ -452,9 +532,11 @@ public partial class OpenShockContext : DbContext
 
             entity.ToTable("users_name_changes");
 
-            entity.HasIndex(e => e.CreatedOn, "idx_user_name_changes_created_on").HasAnnotation("Npgsql:StorageParameter:deduplicate_items", "true");
+            entity.HasIndex(e => e.CreatedOn).HasAnnotation("Npgsql:StorageParameter:deduplicate_items", "true");
 
-            entity.HasIndex(e => e.OldName, "idx_user_name_changes_old_name").HasAnnotation("Npgsql:StorageParameter:deduplicate_items", "true");
+            entity.HasIndex(e => e.OldName).HasAnnotation("Npgsql:StorageParameter:deduplicate_items", "true");
+            
+            entity.HasIndex(e => e.UserId).HasAnnotation("Npgsql:StorageParameter:deduplicate_items", "true");
 
             entity.Property(e => e.Id)
                 .ValueGeneratedOnAdd()
@@ -471,6 +553,52 @@ public partial class OpenShockContext : DbContext
             entity.HasOne(d => d.User).WithMany(p => p.UsersNameChanges)
                 .HasForeignKey(d => d.UserId)
                 .HasConstraintName("fk_user_id");
+        });
+
+        modelBuilder.Entity<AdminUsersView>(entity =>
+        {
+            entity
+                .HasNoKey()
+                .ToView("admin_users_view");
+
+            entity.Property(e => e.Id)
+                .HasColumnName("id");
+            entity.Property(e => e.Name)
+                .HasColumnType("character varying")
+                .HasColumnName("name");
+            entity.Property(e => e.Email)
+                .HasColumnType("character varying")
+                .HasColumnName("email");
+            entity.Property(e => e.PasswordHashType)
+                .HasColumnType("character varying")
+                .HasColumnName("password_hash_type");
+            entity.Property(e => e.CreatedAt)
+                .HasColumnName("created_at");
+            entity.Property(e => e.EmailActived)
+                .HasColumnName("email_actived");
+            entity.Property(e => e.Rank)
+                .HasColumnType("rank_type")
+                .HasColumnName("rank");
+            entity.Property(e => e.ApiTokenCount)
+                .HasColumnName("api_token_count");
+            entity.Property(e => e.PasswordResetCount)
+                .HasColumnName("password_reset_count");
+            entity.Property(e => e.ShockerShareCount)
+                .HasColumnName("shocker_share_count");
+            entity.Property(e => e.ShockerShareLinkCount)
+                .HasColumnName("shocker_share_link_count");
+            entity.Property(e => e.EmailChangeRequestCount)
+                .HasColumnName("email_change_request_count");
+            entity.Property(e => e.NameChangeRequestCount)
+                .HasColumnName("name_change_request_count");
+            entity.Property(e => e.UserActivationCount)
+                .HasColumnName("user_activation_count");
+            entity.Property(e => e.DeviceCount)
+                .HasColumnName("device_count");
+            entity.Property(e => e.ShockerCount)
+                .HasColumnName("shocker_count");
+            entity.Property(e => e.ShockerControlLogCount)
+                .HasColumnName("shocker_control_log_count");
         });
     }
 }

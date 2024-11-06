@@ -1,1 +1,1 @@
-﻿dotnet ef dbcontext scaffold "Host=docker-node;Port=1337;Database=openshock;Username=root;Password=root" Npgsql.EntityFrameworkCore.PostgreSQL -c OpenShockContext -o OpenShockDb -f
+﻿dotnet ef dbcontext scaffold "Host=docker-node;Port=1337;Database=openshock-app;Username=root;Password=root" Npgsql.EntityFrameworkCore.PostgreSQL -c OpenShockContext -o OpenShockDb -f --schema public
