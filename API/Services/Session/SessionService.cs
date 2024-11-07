@@ -47,6 +47,15 @@ public sealed class SessionService : ISessionService
             .FirstOrDefaultAsync();
     }
 
+    public async Task<bool> DeleteSession(Guid sessionId)
+    {
+        var session = await GetSession(sessionId);
+        if (session == null) return false;
+        
+        await _loginSessions.DeleteAsync(session);
+        return true;
+    }
+
     public async Task DeleteSession(LoginSession loginSession)
     {
         await _loginSessions.DeleteAsync(loginSession);
