@@ -1,9 +1,5 @@
-﻿using OneOf;
-using OneOf.Types;
-using OpenShock.API.Models.Response;
-using OpenShock.Common;
+﻿using Microsoft.EntityFrameworkCore;
 using OpenShock.Common.Authentication.Handlers;
-using OpenShock.Common.OpenShockDb;
 using OpenShock.Common.Redis;
 using Redis.OM;
 using Redis.OM.Contracts;
@@ -27,33 +23,36 @@ public sealed class SessionService : ISessionService
         _loginSessions = redisConnectionProvider.RedisCollection<LoginSession>();
     }
 
-    public async Task<IEnumerable<LoginSession>> ListSessions(Guid userId)
+    public async Task<IEnumerable<LoginSession>> ListSessionsByUserId(Guid userId)
     {
         var sessions = await _loginSessions.Where(x => x.UserId == userId).ToListAsync();
 
         var needsSave = false;
         foreach (var session in sessions)
         {
-            if(LoginSessionAuthentication.UpdateOlderLoginSessions(session)) needsSave = true;
+            if (LoginSessionAuthentication.UpdateOlderLoginSessions(session)) needsSave = true;
         }
-        if(needsSave) await _loginSessions.SaveAsync();
-        
+        if (needsSave) await _loginSessions.SaveAsync();
+
         return sessions;
     }
 
-    public async Task<LoginSession?> GetSession(Guid sessionId)
+    public async Task<LoginSession?> GetSessionByPulbicId(Guid publicSessionId)
     {
-        return await _loginSessions.Where(x => x.PublicId == sessionId)
+        return await _loginSessions.Where(x => x.PublicId == publicSessionId)
             .FirstOrDefaultAsync();
     }
 
-    public async Task<bool> DeleteSession(Guid sessionId)
+    public async Task<bool> DeleteSessionById(string sessionId)
     {
-        var session = await GetSession(sessionId);
-        if (session == null) return false;
-        
-        await _loginSessions.DeleteAsync(session);
-        return true;
+        int affected = await _loginSessions.Where(x => x.Id == sessionId).ExecuteDeleteAsync();
+        return affected > 0;
+    }
+
+    public async Task<bool> DeleteSessionByPublicId(Guid publicSessionId)
+    {
+        int affected = await _loginSessions.Where(x => x.PublicId == publicSessionId).ExecuteDeleteAsync();
+        return affected > 0;
     }
 
     public async Task DeleteSession(LoginSession loginSession)

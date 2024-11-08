@@ -54,17 +54,10 @@ public sealed class ShareLinkHub : Hub<IShareLinkHub>
         }
 
         GenericIni? user = null;
-        
-        if (httpContext.Request.Cookies.TryGetValue("openShockSession", out var accessKeyCookie) &&
-            !string.IsNullOrEmpty(accessKeyCookie))
+
+        if (httpContext.TryGetSessionKey(out var sessionKey))
         {
-            user = await SessionAuth(accessKeyCookie);
-        }
-        
-        if (httpContext.Request.Headers.TryGetValue("OpenShockSession", out var sessionKeyHeader) &&
-            !string.IsNullOrEmpty(sessionKeyHeader))
-        {
-            user = await SessionAuth(sessionKeyHeader!);
+            user = await SessionAuth(sessionKey);
         }
         
         // TODO: Add token auth
