@@ -15,5 +15,5 @@ public static class SemVersionExtensions
     };
     
     public static SemVersion ToSemVersion(this SemVer version) => 
-        SemVersion.ParsedFrom(version.Major, version.Minor, version.Patch, version.Prerelease, version.Build);
+        SemVersion.ParsedFrom(version.Major, version.Minor, version.Patch, version.Prerelease ?? string.Empty, version.Build ?? string.Empty);
 }
