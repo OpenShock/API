@@ -60,7 +60,7 @@ public sealed partial class PublicController
             })
         }).FirstOrDefaultAsync();
 
-        if (shareLink == null) return RespondSuccess(ShareLinkError.ShareLinkNotFound);
+        if (shareLink == null) return RespondSuccessLegacy(ShareLinkError.ShareLinkNotFound);
         
         
         var final = new PublicShareLinkResponse
@@ -83,6 +83,6 @@ public sealed partial class PublicController
             final.Devices.Single(x => x.Id == shocker.DeviceId).Shockers.Add(shocker.Shocker);
         }
 
-        return RespondSuccess(final);
+        return RespondSuccessLegacy(final);
     }
 }

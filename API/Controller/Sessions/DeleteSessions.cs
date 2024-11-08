@@ -23,6 +23,6 @@ public sealed partial class SessionsController
 
         await _sessionService.DeleteSession(loginSession);
 
-        return RespondSlimSuccess();
+        return Ok();
     }
 }

@@ -26,7 +26,7 @@ public sealed partial class ShareLinksController
             .ExecuteDeleteAsync();
 
         return result > 0
-            ? RespondSuccessSimple("Deleted share link")
+            ? RespondSuccessLegacySimple("Deleted share link")
             : Problem(ShareLinkError.ShareLinkNotFound);
     }
 }

@@ -59,6 +59,6 @@ public sealed partial class SharesController
             return Problem(ShareError.ShareGetNoShares);
         }
         
-        return RespondSlimSuccess(sharedWithUser);
+        return Ok(sharedWithUser);
     }
 }

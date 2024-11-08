@@ -48,6 +48,6 @@ public sealed partial class AccountController
 
         HttpContext.SetSessionKeyCookie(loginAction.AsT0.Value, "." + cookieDomainToUse);
 
-        return RespondSuccessSimple("Successfully logged in");
+        return RespondSuccessLegacySimple("Successfully logged in");
     }
 }

@@ -40,6 +40,6 @@ public sealed partial class ShareLinksController
             return Problem(ShareLinkError.ShockerNotInShareLink);
         }
         
-        return RespondSuccessSimple($"Successfully removed {affected} {(affected == 1 ? "shocker" : "shockers")}");
+        return RespondSuccessLegacySimple($"Successfully removed {affected} {(affected == 1 ? "shocker" : "shockers")}");
     }
 }

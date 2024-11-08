@@ -63,7 +63,7 @@ public sealed partial class DevicesController
             }).FirstOrDefaultAsync();
         if (device == null) return Problem(DeviceError.DeviceNotFound);
 
-        return RespondSuccess(device);
+        return RespondSuccessLegacy(device);
     }
 
     /// <summary>
@@ -90,7 +90,7 @@ public sealed partial class DevicesController
 
         await updateService.UpdateDeviceForAllShared(CurrentUser.DbUser.Id, device.Id, DeviceUpdateType.Updated);
 
-        return RespondSlimSuccess();
+        return Ok();
     }
 
     /// <summary>
@@ -116,7 +116,7 @@ public sealed partial class DevicesController
         var affected = await _db.SaveChangesAsync();
         if (affected <= 0) throw new Exception("Failed to save regenerated token");
 
-        return RespondSlimSuccess();
+        return Ok();
     }
 
     /// <summary>
@@ -138,7 +138,7 @@ public sealed partial class DevicesController
         
         await updateService.UpdateDeviceForAllShared(CurrentUser.DbUser.Id, deviceId, DeviceUpdateType.Deleted);
         
-        return RespondSlimSuccess();
+        return Ok();
     }
 
     /// <summary>
@@ -212,7 +212,7 @@ public sealed partial class DevicesController
         };
         await devicePairs.InsertAsync(devicePairDto, TimeSpan.FromMinutes(15));
 
-        return RespondSuccess(pairCode);
+        return RespondSuccessLegacy(pairCode);
     }
 
     /// <summary>
@@ -251,7 +251,7 @@ public sealed partial class DevicesController
         var gateway = await lcgNodes.FindByIdAsync(online.Gateway);
         if (gateway == null) throw new Exception("Internal server error, lcg node could not be found");
 
-        return RespondSuccess(new LcgResponse
+        return RespondSuccessLegacy(new LcgResponse
         {
             Gateway = gateway.Fqdn,
             Country = gateway.Country

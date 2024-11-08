@@ -25,8 +25,8 @@ public sealed partial class AuthenticatedAccountController
         var result = await _accountService.ChangeUsername(CurrentUser.DbUser.Id, data.Username,
             CurrentUser.DbUser.Rank.IsAllowed(RankType.Staff));
 
-        return result.Match(
-            success => RespondSlimSuccess(),
+        return result.Match<IActionResult>(
+            success => Ok(),
             error => Problem(error.Value.Match(
                 taken => AccountError.UsernameTaken,
                 AccountError.UsernameInvalid,

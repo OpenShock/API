@@ -38,6 +38,6 @@ public sealed partial class AccountController
         }
 
         // its always a success, logout endpoints should be idempotent
-        return RespondSlimSuccess();
+        return Ok();
     }
 }

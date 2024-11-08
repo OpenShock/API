@@ -124,7 +124,7 @@ public sealed partial class SharesController
         
         if (outstandingShare == null) return Problem(ShareError.ShareRequestNotFound);
         
-        return RespondSlimSuccess(outstandingShare);
+        return Ok(outstandingShare);
     }
     
     [HttpDelete("requests/outgoing/{id:guid}")]
@@ -138,7 +138,7 @@ public sealed partial class SharesController
         
         if (deletedShareRequest <= 0) return Problem(ShareError.ShareRequestNotFound);
         
-        return RespondSlimSuccess();
+        return Ok();
     }
     
     [HttpDelete("requests/incoming/{id:guid}")]
@@ -152,7 +152,7 @@ public sealed partial class SharesController
         
         if (deletedShareRequest <= 0) return Problem(ShareError.ShareRequestNotFound);
         
-        return RespondSlimSuccess();
+        return Ok();
     }
 
     // [HttpPost("requests/incoming/{id:guid}")]
@@ -173,7 +173,7 @@ public sealed partial class SharesController
     //         
     //     }
     //     
-    //     return RespondSlimSuccess();
+    //     return Ok();
     // }
 }
 

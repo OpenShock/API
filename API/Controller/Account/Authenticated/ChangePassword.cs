@@ -25,7 +25,7 @@ public sealed partial class AuthenticatedAccountController
         
         var result = await _accountService.ChangePassword(CurrentUser.DbUser.Id, data.NewPassword);
 
-        return result.Match(success => RespondSlimSuccess(),
+        return result.Match(success => Ok(),
             notFound => throw new Exception("Unexpected result, apparently our current user does not exist..."));
     }
 }

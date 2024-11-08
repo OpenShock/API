@@ -31,7 +31,7 @@ public sealed partial class DevicesController
             x.Id == deviceId && x.Owner == CurrentUser.DbUser.Id);
         if (!deviceExistsAndYouHaveAccess) return Problem(DeviceError.DeviceNotFound);
 
-        return RespondSuccess(await otaService.GetUpdates(deviceId));
+        return RespondSuccessLegacy(await otaService.GetUpdates(deviceId));
     }
     
 }

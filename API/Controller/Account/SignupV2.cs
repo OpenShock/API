@@ -43,6 +43,6 @@ public sealed partial class AccountController
         if (creationAction.IsT1)
             return Problem(SignupError.EmailAlreadyExists);
 
-        return RespondSuccessSimple("Successfully signed up");
+        return RespondSuccessLegacySimple("Successfully signed up");
     }
 }

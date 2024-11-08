@@ -57,7 +57,7 @@ public sealed partial class ShockerController
                 }
             ).ToListAsync();
 
-        return RespondSuccess(shares);
+        return RespondSuccessLegacy(shares);
     }
 
     /// <summary>
@@ -82,7 +82,7 @@ public sealed partial class ShockerController
                 }
             ).ToListAsync();
 
-        return RespondSuccess(shares);
+        return RespondSuccessLegacy(shares);
     }
 
     public sealed class ShareCodeInfo
@@ -130,7 +130,7 @@ public sealed partial class ShockerController
 
         await deviceUpdateService.UpdateDeviceForAllShared(CurrentUser.DbUser.Id, device, DeviceUpdateType.ShockerUpdated);
 
-        return RespondSuccess(newCode.Id);
+        return RespondSuccessLegacy(newCode.Id);
     }
 
     /// <summary>
@@ -162,7 +162,7 @@ public sealed partial class ShockerController
 
         await deviceUpdateService.UpdateDevice(device.Owner, device.Device, DeviceUpdateType.ShockerUpdated, sharedWithUserId);
 
-        return RespondSlimSuccess();
+        return Ok();
     }
 
     /// <summary>
@@ -205,7 +205,7 @@ public sealed partial class ShockerController
 
         await deviceUpdateService.UpdateDevice(affected.Owner, affected.DeviceId, DeviceUpdateType.ShockerUpdated, sharedWithUserId);
 
-        return RespondSlimSuccess();
+        return Ok();
     }
 
     /// <summary>
@@ -240,6 +240,6 @@ public sealed partial class ShockerController
 
         await deviceUpdateService.UpdateDevice(affected.Owner, affected.DeviceId, DeviceUpdateType.ShockerUpdated, sharedWithUserId);
 
-        return RespondSuccess(body.Pause);
+        return RespondSuccessLegacy(body.Pause);
     }
 }

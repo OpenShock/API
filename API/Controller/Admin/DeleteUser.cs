@@ -35,6 +35,6 @@ public sealed partial class AdminController
         _db.Users.Remove(user);
         await _db.SaveChangesAsync();
 
-        return RespondSlimSuccess();
+        return Ok();
     }
 }

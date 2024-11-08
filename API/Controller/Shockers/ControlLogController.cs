@@ -56,6 +56,6 @@ public sealed partial class ShockerController
                     }
             }).ToListAsync();
 
-        return RespondSuccess(logs);
+        return RespondSuccessLegacy(logs);
     }
 }

@@ -75,6 +75,6 @@ public sealed partial class SharesController
 
         await transaction.CommitAsync();
 
-        return RespondSlimSuccess(shareRequest.Id);
+        return Ok(shareRequest.Id);
     }
 }

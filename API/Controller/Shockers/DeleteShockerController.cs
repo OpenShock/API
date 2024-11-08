@@ -44,6 +44,6 @@ public sealed partial class ShockerController
 
         await deviceUpdateService.UpdateDeviceForAllShared(CurrentUser.DbUser.Id, affected.Device, DeviceUpdateType.ShockerUpdated);
 
-        return RespondSuccessSimple("Shocker removed successfully");
+        return RespondSuccessLegacySimple("Shocker removed successfully");
     }
 }

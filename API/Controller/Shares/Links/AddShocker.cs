@@ -45,6 +45,6 @@ public sealed partial class ShareLinksController
 
         await _db.SaveChangesAsync();
         
-        return RespondSuccessSimple("Successfully added shocker");
+        return RespondSuccessLegacySimple("Successfully added shocker");
     }
 }

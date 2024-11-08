@@ -42,6 +42,6 @@ public sealed partial class ShareLinksController
         shocker.Cooldown = body.Cooldown;
 
         await _db.SaveChangesAsync();
-        return RespondSuccessSimple("Successfully updated shocker");
+        return RespondSuccessLegacySimple("Successfully updated shocker");
     }
 }

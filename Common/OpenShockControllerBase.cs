@@ -14,7 +14,7 @@ public class OpenShockControllerBase : ControllerBase
     public ObjectResult Problem(OpenShockProblem problem) => problem.ToObjectResult(HttpContext);
     
     [NonAction]
-    public ObjectResult RespondSuccess<T>(T data, string message = "", HttpStatusCode statusCode = HttpStatusCode.OK)
+    public ObjectResult RespondSuccessLegacy<T>(T data, string message = "", HttpStatusCode statusCode = HttpStatusCode.OK)
     {
         Response.StatusCode = (int)statusCode;
         return new ObjectResult(new BaseResponse<T>
@@ -25,26 +25,12 @@ public class OpenShockControllerBase : ControllerBase
     }
 
     [NonAction]
-    public ObjectResult RespondSuccessSimple(string message = "", HttpStatusCode statusCode = HttpStatusCode.OK)
+    public ObjectResult RespondSuccessLegacySimple(string message = "", HttpStatusCode statusCode = HttpStatusCode.OK)
     {
         Response.StatusCode = (int)statusCode;
         return new ObjectResult(new BaseResponse<object>
         {
             Message = message
         });
-    }
-    
-    [NonAction]
-    public ObjectResult RespondSlimSuccess(HttpStatusCode statusCode = HttpStatusCode.OK)
-    {
-        Response.StatusCode = (int)statusCode;
-        return new ObjectResult(null);
-    }
-    
-    [NonAction]
-    public ObjectResult RespondSlimSuccess<T>(T data, HttpStatusCode statusCode = HttpStatusCode.OK)
-    {
-        Response.StatusCode = (int)statusCode;
-        return new ObjectResult(data);
     }
 }

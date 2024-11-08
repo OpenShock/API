@@ -34,6 +34,6 @@ public sealed partial class ShockerController
         }).FirstOrDefaultAsync();
 
         if (shocker == null) return Problem(ShockerError.ShockerNotFound);
-        return RespondSuccess(shocker);
+        return RespondSuccessLegacy(shocker);
     }
 }

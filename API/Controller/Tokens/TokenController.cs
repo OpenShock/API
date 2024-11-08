@@ -68,7 +68,7 @@ public sealed partial class TokensController
         
         if (apiToken == null) return Problem(ApiTokenError.ApiTokenNotFound);
         
-        return RespondSlimSuccess(apiToken);
+        return Ok(apiToken);
     }
 
     /// <summary>
@@ -93,7 +93,7 @@ public sealed partial class TokensController
             return Problem(ApiTokenError.ApiTokenNotFound);
         }
         
-        return RespondSlimSuccess();
+        return Ok();
     }
 
     /// <summary>
@@ -146,7 +146,7 @@ public sealed partial class TokensController
         token.Permissions = body.Permissions.Distinct().ToList();
         await _db.SaveChangesAsync();
 
-        return RespondSlimSuccess();
+        return Ok();
     }
 
     public class EditTokenRequest

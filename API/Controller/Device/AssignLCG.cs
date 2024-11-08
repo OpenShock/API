@@ -42,7 +42,7 @@ public sealed partial class DeviceController
         var closestNode = await geoLocation.GetOptimalNode(countryCode, env.EnvironmentName);
         if (closestNode == null) return Problem(AssignLcgError.NoLcgNodesAvailable);
 
-        return RespondSuccess(new LcgNodeResponse
+        return RespondSuccessLegacy(new LcgNodeResponse
         {
             Fqdn = closestNode.Fqdn,
             Country = closestNode.Country

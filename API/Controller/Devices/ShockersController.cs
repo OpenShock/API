@@ -34,6 +34,6 @@ public sealed partial class DevicesController
             IsPaused = x.Paused
         }).ToListAsync();
 
-        return RespondSuccess(shockers);
+        return RespondSuccessLegacy(shockers);
     }
 }
