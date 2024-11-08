@@ -1,10 +1,10 @@
 ﻿using Asp.Versioning;
 using Microsoft.AspNetCore.Mvc;
 using OpenShock.API.Services.Account;
-using OpenShock.API.Services.Session;
 using OpenShock.Common.Authentication.Attributes;
 using OpenShock.Common.Authentication.ControllerBase;
 using OpenShock.Common.OpenShockDb;
+using OpenShock.Common.Services.Session;
 using Redis.OM.Contracts;
 
 namespace OpenShock.API.Controller.Account.Authenticated;

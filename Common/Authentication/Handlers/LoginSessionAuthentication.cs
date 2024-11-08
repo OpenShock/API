@@ -1,7 +1,4 @@
-﻿using System.Security.Claims;
-using System.Text.Encodings.Web;
-using System.Text.Json;
-using Microsoft.AspNetCore.Authentication;
+﻿using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Http.Json;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
@@ -13,9 +10,11 @@ using OpenShock.Common.OpenShockDb;
 using OpenShock.Common.Problems;
 using OpenShock.Common.Redis;
 using OpenShock.Common.Services.BatchUpdate;
+using OpenShock.Common.Services.Session;
 using OpenShock.Common.Utils;
-using Redis.OM.Contracts;
-using Redis.OM.Searching;
+using System.Security.Claims;
+using System.Text.Encodings.Web;
+using System.Text.Json;
 
 namespace OpenShock.Common.Authentication.Handlers;
 
@@ -25,7 +24,7 @@ public sealed class LoginSessionAuthentication : AuthenticationHandler<Authentic
     private readonly IUserReferenceService _userReferenceService;
     private readonly IBatchUpdateService _batchUpdateService;
     private readonly OpenShockContext _db;
-    private readonly IRedisCollection<LoginSession> _userSessions;
+    private readonly ISessionService _sessionService;
     private readonly JsonSerializerOptions _serializerOptions;
     private OpenShockProblem? _authResultError = null;
 
@@ -36,16 +35,16 @@ public sealed class LoginSessionAuthentication : AuthenticationHandler<Authentic
         IClientAuthService<LinkUser> clientAuth,
         IUserReferenceService userReferenceService,
         OpenShockContext db,
-        IRedisConnectionProvider provider,
+        ISessionService sessionService,
         IOptions<JsonOptions> jsonOptions, IBatchUpdateService batchUpdateService)
         : base(options, logger, encoder)
     {
         _authService = clientAuth;
         _userReferenceService = userReferenceService;
         _db = db;
-        _batchUpdateService = batchUpdateService;
-        _userSessions = provider.RedisCollection<LoginSession>();
+        _sessionService = sessionService;
         _serializerOptions = jsonOptions.Value.SerializerOptions;
+        _batchUpdateService = batchUpdateService;
     }
 
     protected override Task<AuthenticateResult> HandleAuthenticateAsync()
@@ -92,11 +91,8 @@ public sealed class LoginSessionAuthentication : AuthenticationHandler<Authentic
 
     private async Task<AuthenticateResult> SessionAuth(string sessionKey)
     {
-        var session = await _userSessions.FindByIdAsync(sessionKey);
+        var session = await _sessionService.GetSessionById(sessionKey);
         if (session == null) return Fail(AuthResultError.SessionInvalid);
-        
-        // This can be removed at a later point, this is just for upgrade purposes
-        if(UpdateOlderLoginSessions(session)) await _userSessions.SaveAsync();
 
         if (session.Expires!.Value < DateTime.UtcNow.Subtract(Duration.LoginSessionExpansionAfter))
         {
@@ -105,7 +101,7 @@ public sealed class LoginSessionAuthentication : AuthenticationHandler<Authentic
 #pragma warning restore CS4014
             {
                 session.Expires = DateTime.UtcNow.Add(Duration.LoginSessionLifetime);
-                await _userSessions.UpdateAsync(session, Duration.LoginSessionLifetime);
+                await _sessionService.UpdateSession(session, Duration.LoginSessionLifetime);
             });
         }
         
@@ -144,30 +140,5 @@ public sealed class LoginSessionAuthentication : AuthenticationHandler<Authentic
         Response.StatusCode = _authResultError.Status!.Value;
         _authResultError.AddContext(Context);
         return Context.Response.WriteAsJsonAsync(_authResultError, _serializerOptions, contentType: "application/problem+json");
-    }
-    
-    public static bool UpdateOlderLoginSessions(LoginSession session)
-    {
-        var save = false;
-        
-        if (session.PublicId == null)
-        {
-            session.PublicId = Guid.NewGuid();
-            save = true;
-        }
-
-        if (session.Created == null)
-        {
-            session.Created = DateTime.UtcNow;
-            save = true;
-        }
-
-        if (session.Expires == null)
-        {
-            session.Expires = DateTime.UtcNow;
-            save = true;
-        }
-
-        return save;
     }
 }
