@@ -50,20 +50,17 @@ public sealed class LoginSessionAuthentication : AuthenticationHandler<Authentic
 
     protected override Task<AuthenticateResult> HandleAuthenticateAsync()
     {
-        if ((Context.Request.Headers.TryGetValue("OpenShockToken", out var tokenHeaderO) || Context.Request.Headers.TryGetValue("Open-Shock-Token", out tokenHeaderO)) &&
-            !string.IsNullOrEmpty(tokenHeaderO)) return TokenAuth(tokenHeaderO!);
-        
-        if (Context.Request.Headers.TryGetValue("OpenShockSession", out var sessionKeyHeader) &&
-            !string.IsNullOrEmpty(sessionKeyHeader)) return SessionAuth(sessionKeyHeader!);
-        
-        if (Context.Request.Cookies.TryGetValue("openShockSession", out var accessKeyCookie) &&
-            !string.IsNullOrEmpty(accessKeyCookie)) return SessionAuth(accessKeyCookie);
-        
-        // Legacy to not break current applications
-        if (Context.Request.Headers.TryGetValue("ShockLinkToken", out var tokenHeader) &&
-            !string.IsNullOrEmpty(tokenHeader)) return TokenAuth(tokenHeader!);
+        if (Context.TryGetSessionKey(out var sessionKey))
+        {
+            return SessionAuth(sessionKey);
+        }
 
-        return Task.FromResult(Fail(AuthResultError.HeaderMissingOrInvalid));
+        if (Context.TryGetAuthTokenFromHeader(out var token))
+        {
+            return TokenAuth(token);
+        }
+
+        return Task.FromResult(Fail(AuthResultError.CookieOrHeaderMissingOrInvalid));
     }
 
     private async Task<AuthenticateResult> TokenAuth(string token)

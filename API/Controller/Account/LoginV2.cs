@@ -45,16 +45,8 @@ public sealed partial class AccountController
         }, cancellationToken);
 
         if (loginAction.IsT1) return Problem(LoginError.InvalidCredentials);
-        
-        
-        HttpContext.Response.Cookies.Append("openShockSession", loginAction.AsT0.Value, new CookieOptions
-        {
-            Expires = new DateTimeOffset(DateTime.UtcNow.Add(Duration.LoginSessionLifetime)),
-            Secure = true,
-            HttpOnly = true,
-            SameSite = SameSiteMode.Strict,
-            Domain = "." + cookieDomainToUse
-        });
+
+        HttpContext.SetSessionKeyCookie(loginAction.AsT0.Value, "." + cookieDomainToUse);
 
         return RespondSuccessSimple("Successfully logged in");
     }

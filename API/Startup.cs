@@ -22,6 +22,7 @@ using OpenShock.Common;
 using OpenShock.Common.Authentication;
 using OpenShock.Common.Authentication.Handlers;
 using OpenShock.Common.Authentication.Services;
+using OpenShock.Common.Constants;
 using OpenShock.Common.DataAnnotations;
 using OpenShock.Common.ExceptionHandle;
 using OpenShock.Common.Hubs;
@@ -245,9 +246,9 @@ public sealed class Startup
                 options.ParameterFilter<AttributeFilter>();
                 options.OperationFilter<AttributeFilter>();
                 options.IncludeXmlComments(Path.Combine(AppContext.BaseDirectory, "OpenShock.API.xml"), true);
-                options.AddSecurityDefinition("OpenShockToken", new OpenApiSecurityScheme
+                options.AddSecurityDefinition(AuthConstants.AuthTokenHeaderName, new OpenApiSecurityScheme
                 {
-                    Name = "OpenShockToken",
+                    Name = AuthConstants.AuthTokenHeaderName,
                     Type = SecuritySchemeType.ApiKey,
                     Scheme = "ApiKeyAuth",
                     In = ParameterLocation.Header,
@@ -261,7 +262,7 @@ public sealed class Startup
                             Reference = new OpenApiReference
                             {
                                 Type = ReferenceType.SecurityScheme,
-                                Id = "OpenShockToken"
+                                Id = AuthConstants.AuthTokenHeaderName
                             }
                         },
                         Array.Empty<string>()

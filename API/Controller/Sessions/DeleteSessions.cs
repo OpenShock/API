@@ -13,7 +13,7 @@ public sealed partial class SessionsController
     [ProducesProblem(HttpStatusCode.NotFound, "SessionNotFound")]
     public async Task<IActionResult> DeleteSession(Guid sessionId)
     {
-        var loginSession = await _sessionService.GetSession(sessionId);
+        var loginSession = await _sessionService.GetSessionByPulbicId(sessionId);
 
         // If the session was not found, or the user does not have the privledges to access it, return NotFound
         if (loginSession == null || !CurrentUser.IsUserOrRank(loginSession.UserId, RankType.Admin))
