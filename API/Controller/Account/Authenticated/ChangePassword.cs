@@ -15,7 +15,7 @@ public sealed partial class AuthenticatedAccountController
     /// <returns></returns>
     /// <exception cref="Exception"></exception>
     [HttpPost("password")]
-    [ProducesSlimSuccess]
+    [ProducesResponseType(StatusCodes.Status200OK)]
     public async Task<IActionResult> ChangePassword(ChangePasswordRequest data)
     {
         if (!PasswordHashingUtils.VerifyPassword(data.OldPassword, CurrentUser.DbUser.PasswordHash).Verified)
@@ -25,7 +25,7 @@ public sealed partial class AuthenticatedAccountController
         
         var result = await _accountService.ChangePassword(CurrentUser.DbUser.Id, data.NewPassword);
 
-        return result.Match(success => RespondSlimSuccess(),
+        return result.Match(success => Ok(),
             notFound => throw new Exception("Unexpected result, apparently our current user does not exist..."));
     }
 }

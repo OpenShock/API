@@ -19,7 +19,7 @@ public sealed partial class PublicController
     /// <response code="200">The share link information was successfully retrieved.</response>
     /// <response code="404">The share link does not exist.</response>
     [HttpGet("shares/links/{shareLinkId}")]
-    [ProducesSuccess<PublicShareLinkResponse>]
+    [ProducesResponseType<BaseResponse<PublicShareLinkResponse>>(StatusCodes.Status200OK)]
     [ProducesProblem(HttpStatusCode.NotFound, "ShareLinkNotFound")]
     public async Task<IActionResult> GetShareLink([FromRoute] Guid shareLinkId)
     {
@@ -60,7 +60,7 @@ public sealed partial class PublicController
             })
         }).FirstOrDefaultAsync();
 
-        if (shareLink == null) return RespondSuccess(ShareLinkError.ShareLinkNotFound);
+        if (shareLink == null) return RespondSuccessLegacy(ShareLinkError.ShareLinkNotFound);
         
         
         var final = new PublicShareLinkResponse
@@ -83,6 +83,6 @@ public sealed partial class PublicController
             final.Devices.Single(x => x.Id == shocker.DeviceId).Shockers.Add(shocker.Shocker);
         }
 
-        return RespondSuccess(final);
+        return RespondSuccessLegacy(final);
     }
 }

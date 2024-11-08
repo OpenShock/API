@@ -21,7 +21,7 @@ public sealed partial class ShockerController
     /// <response code="400">You can have a maximum of 11 Shockers per Device.</response>
     /// <response code="404">Device does not exist</response>
     [HttpPost]
-    [ProducesSuccess<Guid>(statusCode: HttpStatusCode.Created)]
+    [ProducesResponseType<BaseResponse<Guid>>(StatusCodes.Status201Created)]
     [TokenPermission(PermissionType.Shockers_Edit)]
     [ProducesProblem(HttpStatusCode.NotFound, "DeviceNotFound")]
     [ProducesProblem(HttpStatusCode.BadRequest, "TooManyShockers")]
@@ -51,6 +51,6 @@ public sealed partial class ShockerController
         await deviceUpdateService.UpdateDeviceForAllShared(CurrentUser.DbUser.Id, device,
             DeviceUpdateType.ShockerUpdated);
         
-        return RespondSuccess(shocker.Id, statusCode: HttpStatusCode.Created);
+        return RespondSuccessLegacy(shocker.Id, statusCode: HttpStatusCode.Created);
     }
 }

@@ -8,6 +8,7 @@ using OpenShock.Common.Constants;
 using OpenShock.Common.Errors;
 using OpenShock.Common.Problems;
 using OpenShock.Common.Utils;
+using OpenShock.Common.Models;
 
 namespace OpenShock.API.Controller.Account;
 
@@ -19,7 +20,7 @@ public sealed partial class AccountController
     /// <response code="200">User successfully logged in</response>
     /// <response code="401">Invalid username or password</response>
     [HttpPost("login")]
-    [ProducesSuccess]
+    [ProducesResponseType<BaseResponse<object>>(StatusCodes.Status200OK)]
     [ProducesProblem(HttpStatusCode.Unauthorized, "InvalidCredentials")]
     [ProducesProblem(HttpStatusCode.Forbidden, "InvalidDomain")]
     [MapToApiVersion("1")]
@@ -41,6 +42,6 @@ public sealed partial class AccountController
 
         HttpContext.SetSessionKeyCookie(loginAction.AsT0.Value, "." + cookieDomainToUse);
 
-        return RespondSuccessSimple("Successfully logged in");
+        return RespondSuccessLegacySimple("Successfully logged in");
     }
 }

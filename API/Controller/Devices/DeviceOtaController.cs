@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using OpenShock.Common.Authentication.Attributes;
 using OpenShock.Common.Errors;
+using OpenShock.Common.Models;
 using OpenShock.Common.Models.Services.Ota;
 using OpenShock.Common.Problems;
 using OpenShock.Common.Services.Ota;
@@ -21,7 +22,7 @@ public sealed partial class DevicesController
     /// <response code="404">Could not find device or you do not have access to it</response>
     [HttpGet("{deviceId}/ota")]
     [UserSessionOnly]
-    [ProducesSuccess<IReadOnlyCollection<OtaItem>>]
+    [ProducesResponseType<BaseResponse<IReadOnlyCollection<OtaItem>>>(StatusCodes.Status200OK)]
     [ProducesProblem(HttpStatusCode.NotFound, "DeviceNotFound")]
     [MapToApiVersion("1")]
     public async Task<IActionResult> GetOtaUpdateHistory([FromRoute] Guid deviceId, [FromServices] IOtaService otaService)
@@ -31,7 +32,7 @@ public sealed partial class DevicesController
             x.Id == deviceId && x.Owner == CurrentUser.DbUser.Id);
         if (!deviceExistsAndYouHaveAccess) return Problem(DeviceError.DeviceNotFound);
 
-        return RespondSuccess(await otaService.GetUpdates(deviceId));
+        return RespondSuccessLegacy(await otaService.GetUpdates(deviceId));
     }
     
 }

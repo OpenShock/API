@@ -24,7 +24,7 @@ public sealed class InstanceDetailsController : OpenShockControllerBase
     /// </summary>
     /// <response code="200">Instance details was successfully retrieved.</response>
     [HttpGet]
-    [ProducesSlimSuccess<InstanceDetailsResponse>]
+    [ProducesResponseType<InstanceDetailsResponse>(StatusCodes.Status200OK)]
     [MapToApiVersion("1")]
     public InstanceDetailsResponse GetNodeInfo([FromServices] LCGConfig lcgConfig)
     {

@@ -13,7 +13,7 @@ namespace OpenShock.API.Controller.Shares;
 public sealed partial class SharesController
 {
     [HttpGet]
-    [ProducesSlimSuccess<IEnumerable<GenericIni>>]
+    [ProducesResponseType<IEnumerable<GenericIni>>(StatusCodes.Status200OK)]
     [ApiVersion("2")]
     public async Task<IEnumerable<GenericIni>> GetSharesByUsers()
     {
@@ -28,7 +28,7 @@ public sealed partial class SharesController
     }
     
     [HttpGet("{userId:guid}")]
-    [ProducesSlimSuccess<ShareInfo>]
+    [ProducesResponseType<ShareInfo>(StatusCodes.Status200OK)]
     [ProducesProblem(HttpStatusCode.NotFound, "UserNotFound")]
     [ApiVersion("2")]
     public async Task<IActionResult> GetSharesToUser(Guid userId)
@@ -59,6 +59,6 @@ public sealed partial class SharesController
             return Problem(ShareError.ShareGetNoShares);
         }
         
-        return RespondSlimSuccess(sharedWithUser);
+        return Ok(sharedWithUser);
     }
 }

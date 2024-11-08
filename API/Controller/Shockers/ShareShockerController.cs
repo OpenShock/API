@@ -23,7 +23,7 @@ public sealed partial class ShockerController
     /// <response code="200">OK</response>
     /// <response code="404">The shocker does not exist or you do not have access to it.</response>
     [HttpGet("{shockerId}/shares")]
-    [ProducesSuccess<IEnumerable<ShareInfo>>]
+    [ProducesResponseType<BaseResponse<IEnumerable<ShareInfo>>>(StatusCodes.Status200OK)]
     [ProducesProblem(HttpStatusCode.NotFound, "ShockerNotFound")]    
     [MapToApiVersion("1")]
     public async Task<IActionResult> GetShockerShares([FromRoute] Guid shockerId)
@@ -57,7 +57,7 @@ public sealed partial class ShockerController
                 }
             ).ToListAsync();
 
-        return RespondSuccess(shares);
+        return RespondSuccessLegacy(shares);
     }
 
     /// <summary>
@@ -66,7 +66,7 @@ public sealed partial class ShockerController
     /// <param name="shockerId"></param>
     /// <response code="200">OK</response>
     [HttpGet("{shockerId}/shareCodes")]
-    [ProducesSuccess<IEnumerable<ShareCodeInfo>>]
+    [ProducesResponseType<BaseResponse<IEnumerable<ShareCodeInfo>>>(StatusCodes.Status200OK)]
     [ProducesProblem(HttpStatusCode.NotFound, "ShockerNotFound")]    
     [MapToApiVersion("1")]
     public async Task<IActionResult> ShockerShareCodeList([FromRoute] Guid shockerId)
@@ -82,7 +82,7 @@ public sealed partial class ShockerController
                 }
             ).ToListAsync();
 
-        return RespondSuccess(shares);
+        return RespondSuccessLegacy(shares);
     }
 
     public sealed class ShareCodeInfo
@@ -102,7 +102,7 @@ public sealed partial class ShockerController
     /// <returns></returns>
     [HttpPost("{shockerId}/shares")]
     [TokenPermission(PermissionType.Shockers_Edit)]
-    [ProducesSuccess<Guid>]
+    [ProducesResponseType<BaseResponse<Guid>>(StatusCodes.Status200OK)]
     [ProducesProblem(HttpStatusCode.NotFound, "ShockerNotFound")]    
     [MapToApiVersion("1")]
     public async Task<IActionResult> ShockerShareCodeCreate(
@@ -130,7 +130,7 @@ public sealed partial class ShockerController
 
         await deviceUpdateService.UpdateDeviceForAllShared(CurrentUser.DbUser.Id, device, DeviceUpdateType.ShockerUpdated);
 
-        return RespondSuccess(newCode.Id);
+        return RespondSuccessLegacy(newCode.Id);
     }
 
     /// <summary>
@@ -143,7 +143,7 @@ public sealed partial class ShockerController
     /// <response code="404">Share does not exists or device/shocker does not belong to you nor is shared with you</response>
     [HttpDelete("{shockerId}/shares/{sharedWithUserId}")]
     [TokenPermission(PermissionType.Shockers_Edit)]
-    [ProducesSlimSuccess]
+    [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesProblem(HttpStatusCode.NotFound, "ShockerNotFound")]    
     [MapToApiVersion("1")]
     public async Task<IActionResult> ShockerShareCodeRemove(
@@ -162,7 +162,7 @@ public sealed partial class ShockerController
 
         await deviceUpdateService.UpdateDevice(device.Owner, device.Device, DeviceUpdateType.ShockerUpdated, sharedWithUserId);
 
-        return RespondSlimSuccess();
+        return Ok();
     }
 
     /// <summary>
@@ -176,7 +176,7 @@ public sealed partial class ShockerController
     /// <response code="404">The share code does not exist or you do not have access to it.</response>
     [HttpPatch("{shockerId}/shares/{sharedWithUserId}")]
     [TokenPermission(PermissionType.Shockers_Edit)]
-    [ProducesSlimSuccess]
+    [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesProblem(HttpStatusCode.NotFound, "ShockerNotFound")]
     [MapToApiVersion("1")]
     public async Task<IActionResult> ShockerShareCodeUpdate(
@@ -205,7 +205,7 @@ public sealed partial class ShockerController
 
         await deviceUpdateService.UpdateDevice(affected.Owner, affected.DeviceId, DeviceUpdateType.ShockerUpdated, sharedWithUserId);
 
-        return RespondSlimSuccess();
+        return Ok();
     }
 
     /// <summary>
@@ -219,7 +219,7 @@ public sealed partial class ShockerController
     /// <response code="404">The share code does not exist or you do not have access to it.</response>
     [HttpPost("{shockerId}/shares/{sharedWithUserId}/pause")]
     [TokenPermission(PermissionType.Shockers_Pause)]
-    [ProducesSuccess<bool>]
+    [ProducesResponseType<BaseResponse<bool>>(StatusCodes.Status200OK)]
     [ProducesProblem(HttpStatusCode.NotFound, "ShockerNotFound")]    
     [MapToApiVersion("1")]
     public async Task<IActionResult> ShockerShareCodePause(
@@ -240,6 +240,6 @@ public sealed partial class ShockerController
 
         await deviceUpdateService.UpdateDevice(affected.Owner, affected.DeviceId, DeviceUpdateType.ShockerUpdated, sharedWithUserId);
 
-        return RespondSuccess(body.Pause);
+        return RespondSuccessLegacy(body.Pause);
     }
 }

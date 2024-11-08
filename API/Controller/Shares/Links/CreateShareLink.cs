@@ -13,8 +13,8 @@ public sealed partial class ShareLinksController
     /// </summary>
     /// <response code="200">The created share link</response>
     [HttpPost(Name = "CreateShareLink")]
-    [ProducesSuccess<Guid>]
-    public async Task<BaseResponse<Guid>> CreateShareLink([FromBody] ShareLinkCreate body)
+    [ProducesResponseType<BaseResponse<Guid>>(StatusCodes.Status200OK)]
+    public async Task<IActionResult> CreateShareLink([FromBody] ShareLinkCreate body)
     {
         var entity = new ShockerSharesLink
         {
@@ -26,9 +26,6 @@ public sealed partial class ShareLinksController
         _db.ShockerSharesLinks.Add(entity);
         await _db.SaveChangesAsync();
 
-        return new BaseResponse<Guid>
-        {
-            Data = entity.Id
-        };
+        return RespondSuccessLegacy(entity.Id);
     }
 }

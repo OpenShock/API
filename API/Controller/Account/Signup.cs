@@ -5,6 +5,7 @@ using Asp.Versioning;
 using OpenShock.API.Services.Account;
 using OpenShock.Common.Errors;
 using OpenShock.Common.Problems;
+using OpenShock.Common.Models;
 
 namespace OpenShock.API.Controller.Account;
 
@@ -17,7 +18,7 @@ public sealed partial class AccountController
     /// <response code="200">User successfully signed up</response>
     /// <response code="409">Username or email already exists</response>
     [HttpPost("signup")]
-    [ProducesSuccess]
+    [ProducesResponseType<BaseResponse<object>>(StatusCodes.Status200OK)]
     [ProducesProblem(HttpStatusCode.Conflict, "EmailOrUsernameAlreadyExists")]
     [MapToApiVersion("1")]
     public async Task<IActionResult> SignUp([FromBody] SignUp body)
@@ -26,6 +27,6 @@ public sealed partial class AccountController
         if (creationAction.IsT1) return Problem(SignupError.EmailAlreadyExists);
 
 
-        return RespondSuccessSimple("Successfully signed up");
+        return RespondSuccessLegacySimple("Successfully signed up");
     }
 }

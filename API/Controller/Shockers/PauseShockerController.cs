@@ -23,7 +23,7 @@ public sealed partial class ShockerController
     /// <response code="404">Shocker not found or does not belong to you</response>
     [HttpPost("{shockerId}/pause")]
     [TokenPermission(PermissionType.Shockers_Pause)]
-    [ProducesSuccess<bool?>]
+    [ProducesResponseType<BaseResponse<bool?>>(StatusCodes.Status200OK)]
     [ProducesProblem(HttpStatusCode.NotFound, "ShockerNotFound")]    
     [MapToApiVersion("1")]
     public async Task<IActionResult> PauseShocker([FromRoute] Guid shockerId, [FromBody] PauseRequest body,
@@ -37,6 +37,6 @@ public sealed partial class ShockerController
 
         await deviceUpdateService.UpdateDeviceForAllShared(CurrentUser.DbUser.Id, shocker.Device, DeviceUpdateType.ShockerUpdated);
 
-        return RespondSuccess(body.Pause);
+        return RespondSuccessLegacy(body.Pause);
     }
 }

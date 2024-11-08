@@ -7,6 +7,7 @@ using OpenShock.Common.Errors;
 using OpenShock.Common.Problems;
 using OpenShock.Common.Services.Turnstile;
 using OpenShock.Common.Utils;
+using OpenShock.Common.Models;
 
 namespace OpenShock.API.Controller.Account;
 
@@ -22,7 +23,7 @@ public sealed partial class AccountController
     /// <response code="200">User successfully signed up</response>
     /// <response code="400">Username or email already exists</response>
     [HttpPost("signup")]
-    [ProducesSuccess]
+    [ProducesResponseType<BaseResponse<object>>(StatusCodes.Status200OK)]
     [ProducesProblem(HttpStatusCode.Conflict, "EmailOrUsernameAlreadyExists")]
     [ProducesProblem(HttpStatusCode.Forbidden, "InvalidTurnstileResponse")]
     [MapToApiVersion("2")]
@@ -42,6 +43,6 @@ public sealed partial class AccountController
         if (creationAction.IsT1)
             return Problem(SignupError.EmailAlreadyExists);
 
-        return RespondSuccessSimple("Successfully signed up");
+        return RespondSuccessLegacySimple("Successfully signed up");
     }
 }

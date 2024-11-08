@@ -5,6 +5,7 @@ using OpenShock.API.Models.Response;
 using System.Net;
 using OpenShock.Common.Errors;
 using OpenShock.Common.Problems;
+using OpenShock.Common.Models;
 
 namespace OpenShock.API.Controller.Shares.Links;
 
@@ -20,7 +21,7 @@ public sealed partial class ShareLinksController
     /// <response code="404">Share link or shocker does not exist</response>
     /// <response code="400">Shocker does not exist in share link</response>
     [HttpPatch("{shareLinkId}/{shockerId}")]
-    [ProducesSuccess<ShareLinkResponse>]
+    [ProducesResponseType<BaseResponse<ShareLinkResponse>>(StatusCodes.Status200OK)]
     [ProducesProblem(HttpStatusCode.NotFound, "ShareLinkNotFound")]
     [ProducesProblem(HttpStatusCode.NotFound, "ShockerNotInShareLink")]
     public async Task<IActionResult> EditShocker([FromRoute] Guid shareLinkId, [FromRoute] Guid shockerId, [FromBody] ShareLinkEditShocker body)
@@ -42,6 +43,6 @@ public sealed partial class ShareLinksController
         shocker.Cooldown = body.Cooldown;
 
         await _db.SaveChangesAsync();
-        return RespondSuccessSimple("Successfully updated shocker");
+        return RespondSuccessLegacySimple("Successfully updated shocker");
     }
 }

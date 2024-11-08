@@ -7,7 +7,7 @@ namespace OpenShock.API.Controller.Sessions;
 public sealed partial class SessionsController
 {
     [HttpGet]
-    [ProducesSlimSuccess<IEnumerable<LoginSessionResponse>>]
+    [ProducesResponseType<IEnumerable<LoginSessionResponse>>(StatusCodes.Status200OK)]
     public async Task<IEnumerable<LoginSessionResponse>> ListSessions()
     {
         var sessions = await _sessionService.ListSessionsByUserId(CurrentUser.DbUser.Id);

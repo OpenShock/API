@@ -13,7 +13,7 @@ namespace OpenShock.API.Controller.Shares;
 public sealed partial class SharesController
 {
     [HttpPost("requests")]
-    [ProducesSlimSuccess<Guid>]
+    [ProducesResponseType<Guid>(StatusCodes.Status200OK)]
     [ProducesProblem(HttpStatusCode.NotFound, "UserNotFound")]
     [ProducesProblem(HttpStatusCode.BadRequest, "ShareCreateCannotShareWithSelf")]
     [ProducesProblem(HttpStatusCode.NotFound, "ShareCreateShockerNotFound")]
@@ -75,6 +75,6 @@ public sealed partial class SharesController
 
         await transaction.CommitAsync();
 
-        return RespondSlimSuccess(shareRequest.Id);
+        return Ok(shareRequest.Id);
     }
 }

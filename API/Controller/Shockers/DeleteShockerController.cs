@@ -22,7 +22,7 @@ public sealed partial class ShockerController
     /// <response code="404">Shocker does not exist</response>
     [HttpDelete("{shockerId}")]
     [TokenPermission(PermissionType.Shockers_Edit)]
-    [ProducesSuccess]
+    [ProducesResponseType<BaseResponse<object>>(StatusCodes.Status200OK)]
     [ProducesProblem(HttpStatusCode.NotFound, "ShockerNotFound")]
     [MapToApiVersion("1")]
     public async Task<IActionResult> RemoveShocker(
@@ -44,6 +44,6 @@ public sealed partial class ShockerController
 
         await deviceUpdateService.UpdateDeviceForAllShared(CurrentUser.DbUser.Id, affected.Device, DeviceUpdateType.ShockerUpdated);
 
-        return RespondSuccessSimple("Shocker removed successfully");
+        return RespondSuccessLegacySimple("Shocker removed successfully");
     }
 }

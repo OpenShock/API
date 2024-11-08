@@ -24,7 +24,7 @@ public sealed partial class ShockerController
     [MapToApiVersion("2")]
     [HttpPost("control")]
     [TokenPermission(PermissionType.Shockers_Use)]
-    [ProducesSuccess]
+    [ProducesResponseType<BaseResponse<object>>(StatusCodes.Status200OK)]
     [ProducesProblem(HttpStatusCode.NotFound, "Shocker not found")]
     [ProducesProblem(HttpStatusCode.PreconditionFailed, "Shocker is paused")]
     [ProducesProblem(HttpStatusCode.Forbidden, "You don't have permission to control this shocker")]
@@ -45,7 +45,7 @@ public sealed partial class ShockerController
 
         var controlAction = await ControlLogic.ControlByUser(body.Shocks, _db, sender, userHub.Clients, redisPubService);
         return controlAction.Match(
-            success => RespondSuccessSimple("Successfully sent control messages"),
+            success => RespondSuccessLegacySimple("Successfully sent control messages"),
             notFound => Problem(ShockerControlError.ShockerControlNotFound(notFound.Value)),
             paused => Problem(ShockerControlError.ShockerControlPaused(paused.Value)),
             noPermission => Problem(ShockerControlError.ShockerControlNoPermission(noPermission.Value)));
@@ -58,7 +58,7 @@ public sealed partial class ShockerController
     [MapToApiVersion("1")]
     [HttpPost("control")]
     [TokenPermission(PermissionType.Shockers_Use)]
-    [ProducesSuccess]
+    [ProducesResponseType<BaseResponse<object>>(StatusCodes.Status200OK)]
     [ProducesProblem(HttpStatusCode.NotFound, "Shocker not found")]
     [ProducesProblem(HttpStatusCode.PreconditionFailed, "Shocker is paused")]
     [ProducesProblem(HttpStatusCode.Forbidden, "You don't have permission to control this shocker")]

@@ -22,9 +22,9 @@ public sealed partial class DevicesController
     /// </summary>
     /// <response code="200">All devices for the current user</response>
     [HttpGet]
-    [ProducesSuccess<IEnumerable<Models.Response.ResponseDevice>>]
+    [ProducesResponseType<BaseResponse<IEnumerable<Models.Response.ResponseDevice>>>(StatusCodes.Status200OK)]
     [MapToApiVersion("1")]
-    public async Task<BaseResponse<IEnumerable<Models.Response.ResponseDevice>>> ListDevices()
+    public async Task<IActionResult> ListDevices()
     {
         var devices = await _db.Devices.Where(x => x.Owner == CurrentUser.DbUser.Id)
             .Select(x => new Models.Response.ResponseDevice
@@ -33,10 +33,8 @@ public sealed partial class DevicesController
                 Name = x.Name,
                 CreatedOn = x.CreatedOn
             }).ToListAsync();
-        return new BaseResponse<IEnumerable<Models.Response.ResponseDevice>>
-        {
-            Data = devices
-        };
+
+        return RespondSuccessLegacy(devices);
     }
 
     /// <summary>
@@ -45,7 +43,7 @@ public sealed partial class DevicesController
     /// <param name="deviceId"></param>
     /// <response code="200">The device</response>
     [HttpGet("{deviceId}")]
-    [ProducesSuccess<Models.Response.ResponseDeviceWithToken>]
+    [ProducesResponseType<BaseResponse<Models.Response.ResponseDeviceWithToken>>(StatusCodes.Status200OK)]
     [ProducesProblem(HttpStatusCode.NotFound, "DeviceNotFound")]
     [MapToApiVersion("1")]
     public async Task<IActionResult> GetDeviceById([FromRoute] Guid deviceId)
@@ -63,7 +61,7 @@ public sealed partial class DevicesController
             }).FirstOrDefaultAsync();
         if (device == null) return Problem(DeviceError.DeviceNotFound);
 
-        return RespondSuccess(device);
+        return RespondSuccessLegacy(device);
     }
 
     /// <summary>
@@ -76,7 +74,7 @@ public sealed partial class DevicesController
     /// <response code="404">Device does not exist</response>
     [HttpPatch("{deviceId}")]
     [TokenPermission(PermissionType.Devices_Edit)]
-    [ProducesSlimSuccess]
+    [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesProblem(HttpStatusCode.NotFound, "DeviceNotFound")]
     [MapToApiVersion("1")]
     public async Task<IActionResult> EditDevice([FromRoute] Guid deviceId, [FromBody] HubEditRequest body, [FromServices] IDeviceUpdateService updateService)
@@ -90,7 +88,7 @@ public sealed partial class DevicesController
 
         await updateService.UpdateDeviceForAllShared(CurrentUser.DbUser.Id, device.Id, DeviceUpdateType.Updated);
 
-        return RespondSlimSuccess();
+        return Ok();
     }
 
     /// <summary>
@@ -102,7 +100,7 @@ public sealed partial class DevicesController
     /// <response code="500">Failed to save regenerated token</response>
     [HttpPut("{deviceId}")]
     [TokenPermission(PermissionType.Devices_Edit)]
-    [ProducesSlimSuccess]
+    [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesProblem(HttpStatusCode.NotFound, "DeviceNotFound")]
     [MapToApiVersion("1")]
     public async Task<IActionResult> RegenerateDeviceToken([FromRoute] Guid deviceId)
@@ -116,7 +114,7 @@ public sealed partial class DevicesController
         var affected = await _db.SaveChangesAsync();
         if (affected <= 0) throw new Exception("Failed to save regenerated token");
 
-        return RespondSlimSuccess();
+        return Ok();
     }
 
     /// <summary>
@@ -128,7 +126,7 @@ public sealed partial class DevicesController
     /// <response code="404">Device does not exist</response>
     [HttpDelete("{deviceId}")]
     [TokenPermission(PermissionType.Devices_Edit)]
-    [ProducesSlimSuccess]
+    [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesProblem(HttpStatusCode.NotFound, "DeviceNotFound")]
     [MapToApiVersion("1")]
     public async Task<IActionResult> RemoveDevice([FromRoute] Guid deviceId, [FromServices] IDeviceUpdateService updateService)
@@ -138,7 +136,7 @@ public sealed partial class DevicesController
         
         await updateService.UpdateDeviceForAllShared(CurrentUser.DbUser.Id, deviceId, DeviceUpdateType.Deleted);
         
-        return RespondSlimSuccess();
+        return Ok();
     }
 
     /// <summary>
@@ -147,7 +145,7 @@ public sealed partial class DevicesController
     /// <response code="201">Successfully created device</response>
     [HttpPost]
     [TokenPermission(PermissionType.Devices_Edit)]
-    [ProducesSlimSuccess<Guid>(statusCode: HttpStatusCode.Created)]
+    [ProducesResponseType<Guid>(StatusCodes.Status201Created)]
     [MapToApiVersion("1")]
     public Task<Guid> CreateDevice([FromServices] IDeviceUpdateService updateService)
     => CreateDeviceV2(new HubCreateRequest
@@ -162,7 +160,7 @@ public sealed partial class DevicesController
     /// <response code="201">Successfully created device</response>
     [HttpPost]
     [TokenPermission(PermissionType.Devices_Edit)]
-    [ProducesSlimSuccess<Guid>(statusCode: HttpStatusCode.Created)]
+    [ProducesResponseType<Guid>(StatusCodes.Status201Created)]
     [MapToApiVersion("2")]
     public async Task<Guid> CreateDeviceV2([FromBody] HubCreateRequest data, [FromServices] IDeviceUpdateService updateService)
     {
@@ -190,7 +188,7 @@ public sealed partial class DevicesController
     /// <response code="404">Device does not exist or does not belong to you</response>
     [HttpGet("{deviceId}/pair")]
     [TokenPermission(PermissionType.Devices_Edit)]
-    [ProducesSuccess<string>]
+    [ProducesResponseType<BaseResponse<string>>(StatusCodes.Status200OK)]
     [ProducesProblem(HttpStatusCode.NotFound, "DeviceNotFound")]
     [MapToApiVersion("1")]
     public async Task<IActionResult> GetPairCode([FromRoute] Guid deviceId)
@@ -212,7 +210,7 @@ public sealed partial class DevicesController
         };
         await devicePairs.InsertAsync(devicePairDto, TimeSpan.FromMinutes(15));
 
-        return RespondSuccess(pairCode);
+        return RespondSuccessLegacy(pairCode);
     }
 
     /// <summary>
@@ -225,7 +223,7 @@ public sealed partial class DevicesController
     /// <response code="412">Device is online but not connected to a LCG node, you might need to upgrade your firmware to use this feature</response>
     /// <response code="500">Internal server error, lcg node could not be found</response>
     [HttpGet("{deviceId}/lcg")]
-    [ProducesSuccess<LcgResponse>]
+    [ProducesResponseType<BaseResponse<LcgResponse>>(StatusCodes.Status200OK)]
     [ProducesProblem(HttpStatusCode.NotFound, "DeviceNotFound")]
     [ProducesProblem(HttpStatusCode.NotFound, "DeviceIsNotOnline")]
     [ProducesProblem(HttpStatusCode.PreconditionFailed, "DeviceNotConnectedToGateway")]
@@ -251,7 +249,7 @@ public sealed partial class DevicesController
         var gateway = await lcgNodes.FindByIdAsync(online.Gateway);
         if (gateway == null) throw new Exception("Internal server error, lcg node could not be found");
 
-        return RespondSuccess(new LcgResponse
+        return RespondSuccessLegacy(new LcgResponse
         {
             Gateway = gateway.Fqdn,
             Country = gateway.Country

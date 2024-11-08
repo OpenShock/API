@@ -21,7 +21,7 @@ public sealed partial class ShareLinksController
     /// <response code="404">Share link or shocker does not exist</response>
     /// <response code="400">Shocker does not exist in share link</response>
     [HttpPost("{shareLinkId}/{shockerId}/pause")]
-    [ProducesSuccess<PauseReason>]
+    [ProducesResponseType<BaseResponse<PauseReason>>(StatusCodes.Status200OK)]
     [ProducesProblem(HttpStatusCode.NotFound, "ShareLinkNotFound")]
     [ProducesProblem(HttpStatusCode.NotFound, "ShockerNotInShareLink")]
     public async Task<IActionResult> PauseShocker([FromRoute] Guid shareLinkId, [FromRoute] Guid shockerId, [FromBody] PauseRequest body)
@@ -37,6 +37,6 @@ public sealed partial class ShareLinksController
         shocker.Paused = body.Pause;
         await _db.SaveChangesAsync();
 
-        return RespondSuccess(ShareLinkUtils.GetPausedReason(shocker.Paused, shocker.Shocker.Paused));
+        return RespondSuccessLegacy(ShareLinkUtils.GetPausedReason(shocker.Paused, shocker.Shocker.Paused));
     }
 }

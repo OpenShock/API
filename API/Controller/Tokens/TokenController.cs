@@ -23,7 +23,7 @@ public sealed partial class TokensController
     /// <response code="200">All tokens for the current user</response>
     [HttpGet]
     [UserSessionOnly]
-    [ProducesSlimSuccess<IEnumerable<TokenResponse>>]
+    [ProducesResponseType<IEnumerable<TokenResponse>>(StatusCodes.Status200OK)]
     public async Task<IEnumerable<TokenResponse>> ListTokens()
     {
         var apiTokens = await _db.ApiTokens
@@ -50,7 +50,7 @@ public sealed partial class TokensController
     /// <response code="404">The token does not exist or you do not have access to it.</response>
     [HttpGet("{tokenId}")]
     [UserSessionOnly]
-    [ProducesSlimSuccess<TokenResponse>]
+    [ProducesResponseType<TokenResponse>(StatusCodes.Status200OK)]
     [ProducesProblem(HttpStatusCode.NotFound, "ApiTokenNotFound")]    
     public async Task<IActionResult> GetTokenById([FromRoute] Guid tokenId)
     {
@@ -68,7 +68,7 @@ public sealed partial class TokensController
         
         if (apiToken == null) return Problem(ApiTokenError.ApiTokenNotFound);
         
-        return RespondSlimSuccess(apiToken);
+        return Ok(apiToken);
     }
 
     /// <summary>
@@ -79,7 +79,7 @@ public sealed partial class TokensController
     /// <response code="404">The token does not exist or you do not have access to it.</response>
     [HttpDelete("{tokenId}")]
     [UserSessionOnly]
-    [ProducesSlimSuccess]
+    [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesProblem(HttpStatusCode.NotFound, "ApiTokenNotFound")]    
     public async Task<IActionResult> DeleteToken([FromRoute] Guid tokenId)
     {
@@ -93,7 +93,7 @@ public sealed partial class TokensController
             return Problem(ApiTokenError.ApiTokenNotFound);
         }
         
-        return RespondSlimSuccess();
+        return Ok();
     }
 
     /// <summary>
@@ -103,7 +103,7 @@ public sealed partial class TokensController
     /// <response code="200">The created token</response>
     [HttpPost]
     [UserSessionOnly]
-    [ProducesSlimSuccess<TokenCreatedResponse>]
+    [ProducesResponseType<TokenCreatedResponse>(StatusCodes.Status200OK)]
     public async Task<TokenCreatedResponse> CreateToken([FromBody] CreateTokenRequest body)
     {
         var token = new ApiToken
@@ -134,7 +134,7 @@ public sealed partial class TokensController
     /// <response code="404">The token does not exist or you do not have access to it.</response>
     [HttpPatch("{tokenId}")]
     [UserSessionOnly]
-    [ProducesSlimSuccess]
+    [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesProblem(HttpStatusCode.NotFound, "ApiTokenNotFound")]    
     public async Task<IActionResult> EditToken([FromRoute] Guid tokenId, [FromBody] EditTokenRequest body)
     {
@@ -146,7 +146,7 @@ public sealed partial class TokensController
         token.Permissions = body.Permissions.Distinct().ToList();
         await _db.SaveChangesAsync();
 
-        return RespondSlimSuccess();
+        return Ok();
     }
 
     public class EditTokenRequest

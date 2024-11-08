@@ -16,7 +16,7 @@ public sealed partial class SessionsController
     /// <exception cref="Exception"></exception>
     [HttpGet("self")]
     [UserSessionOnly]
-    [ProducesSlimSuccess<LoginSessionResponse>]
+    [ProducesResponseType<LoginSessionResponse>(StatusCodes.Status200OK)]
     public LoginSessionResponse GetSelfSession([FromServices] IUserReferenceService userReferenceService)
     {
         var x = userReferenceService.AuthReference;

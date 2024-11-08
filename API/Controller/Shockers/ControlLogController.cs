@@ -22,7 +22,7 @@ public sealed partial class ShockerController
     /// <response code="200">The logs</response>
     /// <response code="404">Shocker does not exist</response>
     [HttpGet("{shockerId}/logs")]
-    [ProducesSuccess<IEnumerable<LogEntry>>]
+    [ProducesResponseType<BaseResponse<IEnumerable<LogEntry>>>(StatusCodes.Status200OK)]
     [ProducesProblem(HttpStatusCode.NotFound, "ShockerNotFound")]
     [MapToApiVersion("1")]
     public async Task<IActionResult> GetShockerLogs([FromRoute] Guid shockerId, [FromQuery] uint offset = 0,
@@ -56,6 +56,6 @@ public sealed partial class ShockerController
                     }
             }).ToListAsync();
 
-        return RespondSuccess(logs);
+        return RespondSuccessLegacy(logs);
     }
 }
