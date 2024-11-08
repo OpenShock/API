@@ -14,7 +14,6 @@ public sealed partial class AccountController
     /// </summary>
     /// <param name="passwordResetId">The id of the password reset</param>
     /// <param name="secret">The secret of the password reset</param>
-    /// <param name="accountService"></param>
     /// <param name="cancellationToken"></param>
     /// <response code="200">Valid password reset process</response>
     /// <response code="404">Password reset process not found</response>

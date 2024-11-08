@@ -56,7 +56,7 @@ public sealed class Startup
         ForwardedForHeaderName = "CF-Connecting-IP"
     };
 
-    private ApiConfig _apiConfig;
+    private readonly ApiConfig _apiConfig;
 
     public Startup(IConfiguration configuration)
     {

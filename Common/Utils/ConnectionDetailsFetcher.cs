@@ -16,7 +16,7 @@ public static class ConnectionDetailsFetcher
         return context.Request.Headers.UserAgent.ToString();
     }
 
-    public static bool TryGetCFIPCountry(this HttpContext context, [MaybeNullWhen(false)] out string cfIpCountry)
+    public static bool TryGetCFIPCountry(this HttpContext context, [NotNullWhen(true)] out string? cfIpCountry)
     {
         if (!context.Request.Headers.TryGetValue("CF-IPCountry", out var value))
         {
@@ -30,7 +30,7 @@ public static class ConnectionDetailsFetcher
             return false;
         }
 
-        cfIpCountry = value;
+        cfIpCountry = value.ToString();
 
         return true;
     }

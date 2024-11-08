@@ -2,8 +2,8 @@
 
 public sealed class Paginated<T>
 {
-    public int Offset { get; set; }
-    public int Limit { get; set; }
-    public long Total { get; set; }
-    public IEnumerable<T> Data { get; set; }
+    public required int Offset { get; set; }
+    public required int Limit { get; set; }
+    public required long Total { get; set; }
+    public required IEnumerable<T> Data { get; set; }
 }

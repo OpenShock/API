@@ -16,7 +16,6 @@ public sealed partial class AccountController
     /// Signs up a new user
     /// </summary>
     /// <param name="body"></param>
-    /// <param name="accountService"></param>
     /// <param name="turnstileService"></param>
     /// <param name="apiConfig"></param>
     /// <param name="cancellationToken"></param>

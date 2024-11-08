@@ -15,7 +15,6 @@ public sealed partial class AccountController
     /// <param name="passwordResetId">The id of the password reset</param>
     /// <param name="secret">The secret of the password reset</param>
     /// <param name="body"></param>
-    /// <param name="accountService"></param>
     /// <response code="200">Password successfully changed</response>
     /// <response code="404">Password reset process not found</response>
     [HttpPost("recover/{passwordResetId}/{secret}")]
