@@ -4,6 +4,7 @@ using Asp.Versioning;
 using OpenShock.API.Services.Account;
 using OpenShock.Common.Errors;
 using OpenShock.Common.Problems;
+using OpenShock.Common.Models;
 
 namespace OpenShock.API.Controller.Account;
 
@@ -19,7 +20,7 @@ public sealed partial class AccountController
     /// <response code="200">Password successfully changed</response>
     /// <response code="404">Password reset process not found</response>
     [HttpPost("recover/{passwordResetId}/{secret}")]
-    [ProducesSuccess]
+    [ProducesResponseType<BaseResponse<object>>(StatusCodes.Status200OK)]
     [ProducesProblem(HttpStatusCode.NotFound, "PasswordResetNotFound")]
     [MapToApiVersion("1")]
     public async Task<IActionResult> PasswordResetComplete([FromRoute] Guid passwordResetId,

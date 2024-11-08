@@ -4,6 +4,7 @@ using System.Net;
 using OpenShock.Common;
 using OpenShock.Common.Errors;
 using OpenShock.Common.Problems;
+using OpenShock.Common.Models;
 
 namespace OpenShock.API.Controller.Shares.Links;
 
@@ -18,7 +19,7 @@ public sealed partial class ShareLinksController
     /// <response code="404">Share link or shocker does not exist</response>
     /// <response code="400">Shocker does not exist in share link</response>
     [HttpDelete("{shareLinkId}/{shockerId}")]
-    [ProducesSuccess]
+    [ProducesResponseType<BaseResponse<object>>(StatusCodes.Status200OK)]
     [ProducesProblem(HttpStatusCode.NotFound, "ShareLinkNotFound")]
     [ProducesProblem(HttpStatusCode.NotFound, "ShockerNotInShareLink")]
     public async Task<IActionResult> RemoveShocker([FromRoute] Guid shareLinkId, [FromRoute] Guid shockerId)

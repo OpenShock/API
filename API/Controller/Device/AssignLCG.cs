@@ -6,6 +6,7 @@ using OpenShock.Common.Errors;
 using OpenShock.Common.Problems;
 using OpenShock.Common.Services.LCGNodeProvisioner;
 using OpenShock.Common.Utils;
+using OpenShock.Common.Models;
 
 namespace OpenShock.API.Controller.Device;
 
@@ -17,7 +18,7 @@ public sealed partial class DeviceController
     /// <response code="200">Successfully assigned LCG node</response>
     /// <response code="503">Unable to find suitable LCG node</response>
     [HttpGet("assignLCG")]
-    [ProducesSuccess<LcgNodeResponse>]
+    [ProducesResponseType<BaseResponse<LcgNodeResponse>>(StatusCodes.Status200OK)]
     [ProducesProblem(HttpStatusCode.ServiceUnavailable, "NoLcgNodesAvailable")]
     public async Task<IActionResult> GetLiveControlGateway([FromServices] ILCGNodeProvisioner geoLocation,
         [FromServices] IWebHostEnvironment env)

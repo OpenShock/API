@@ -6,6 +6,7 @@ using Redis.OM;
 using System.Net;
 using OpenShock.Common.Errors;
 using OpenShock.Common.Problems;
+using OpenShock.Common.Models;
 
 namespace OpenShock.API.Controller.Device;
 
@@ -20,7 +21,7 @@ public sealed partial class DeviceController
     [AllowAnonymous]
     [HttpGet("pair/{pairCode}", Name = "Pair")]
     [HttpGet("~/{version:apiVersion}/pair/{pairCode}", Name = "Pair_DEPRECATED")] // Backwards compatibility
-    [ProducesSuccess<string>]
+    [ProducesResponseType<BaseResponse<string>>(StatusCodes.Status200OK)]
     [ProducesProblem(HttpStatusCode.NotFound, "PairCodeNotFound")]
     public async Task<IActionResult> Pair([FromRoute] string pairCode)
     {

@@ -18,8 +18,8 @@ public sealed partial class AdminController
     /// <response code="200">All online devices</response>
     /// <response code="401">Unauthorized</response>
     [HttpGet("monitoring/onlineDevices")]
-    [ProducesSuccess<IEnumerable<AdminOnlineDeviceResponse>>]
-    public async Task<BaseResponse<IEnumerable<AdminOnlineDeviceResponse>>> GetOnlineDevices()
+    [ProducesResponseType<BaseResponse<IEnumerable<AdminOnlineDeviceResponse>>>(StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetOnlineDevices()
     {
         var devicesOnline = _redis.RedisCollection<DeviceOnline>(false);
 
@@ -39,9 +39,7 @@ public sealed partial class AdminController
                     }
                 }).ToListAsync();
 
-        return new BaseResponse<IEnumerable<AdminOnlineDeviceResponse>>
-        {
-            Data = allOnlineDevices.Select(x =>
+        return RespondSuccessLegacy(allOnlineDevices.Select(x =>
             {
                 var dbItem = dbLookup.First(y => y.Id == x.Id);
                 return new AdminOnlineDeviceResponse
@@ -57,7 +55,7 @@ public sealed partial class AdminController
                     Uptime = x.Uptime
                 };
             })
-        };
+        );
     }
 
     public sealed class AdminOnlineDeviceResponse

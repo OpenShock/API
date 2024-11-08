@@ -13,19 +13,16 @@ public sealed partial class PublicController
     /// </summary>
     /// <response code="200">The statistics were successfully retrieved.</response>
     [HttpGet("stats")]
-    [ProducesSuccess<StatsResponse>]
-    public async Task<BaseResponse<StatsResponse>> GetOnlineDevicesStatistics(
+    [ProducesResponseType<BaseResponse<StatsResponse>>(StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetOnlineDevicesStatistics(
         [FromServices] IRedisConnectionProvider redisConnectionProvider)
     {
         var deviceOnlines = redisConnectionProvider.RedisCollection<DeviceOnline>(false);
 
-        return new BaseResponse<StatsResponse>
+        return RespondSuccessLegacy(new StatsResponse
         {
-            Data = new StatsResponse
-            {
-                DevicesOnline = await deviceOnlines.CountAsync()
-            }
-        };
+            DevicesOnline = await deviceOnlines.CountAsync()
+        });
     }
 }
 

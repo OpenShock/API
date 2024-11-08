@@ -19,7 +19,7 @@ public sealed partial class PublicController
     /// <response code="200">The share link information was successfully retrieved.</response>
     /// <response code="404">The share link does not exist.</response>
     [HttpGet("shares/links/{shareLinkId}")]
-    [ProducesSuccess<PublicShareLinkResponse>]
+    [ProducesResponseType<BaseResponse<PublicShareLinkResponse>>(StatusCodes.Status200OK)]
     [ProducesProblem(HttpStatusCode.NotFound, "ShareLinkNotFound")]
     public async Task<IActionResult> GetShareLink([FromRoute] Guid shareLinkId)
     {

@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using OpenShock.Common;
 using OpenShock.Common.Errors;
+using OpenShock.Common.Models;
 using OpenShock.Common.Problems;
 
 namespace OpenShock.API.Controller.Shares;
@@ -17,7 +18,7 @@ public sealed partial class SharesController
     /// <response code="200">Deleted share code</response>
     /// <response code="404">Share code not found or does not belong to you</response>
     [HttpDelete("code/{shareCodeId}")]
-    [ProducesSuccess]
+    [ProducesResponseType<BaseResponse<object>>(StatusCodes.Status200OK)]
     [ProducesProblem(HttpStatusCode.NotFound, "ShareCodeNotFound")]
     [MapToApiVersion("1")]
     public async Task<IActionResult> DeleteShareCode([FromRoute] Guid shareCodeId)

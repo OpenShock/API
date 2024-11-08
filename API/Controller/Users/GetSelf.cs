@@ -11,7 +11,7 @@ public sealed partial class UsersController
     /// </summary>
     /// <response code="200">The user's information was successfully retrieved.</response>
     [HttpGet("self")]
-    [ProducesSuccess<SelfResponse>]
+    [ProducesResponseType<BaseResponse<SelfResponse>>(StatusCodes.Status200OK)]
     public BaseResponse<SelfResponse> GetSelf() => new()
     {
         Data = new SelfResponse

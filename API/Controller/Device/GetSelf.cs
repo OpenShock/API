@@ -13,8 +13,8 @@ public sealed partial class DeviceController
     /// </summary>
     /// <response code="200">The device information was successfully retrieved.</response>
     [HttpGet("self")]
-    [ProducesSuccess<DeviceSelfResponse>]
-    public async Task<BaseResponse<DeviceSelfResponse>> GetSelf()
+    [ProducesResponseType<BaseResponse<DeviceSelfResponse>>(StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetSelf()
     {
         var shockers = await _db.Shockers.Where(x => x.Device == CurrentDevice.Id).Select(x => new MinimalShocker
         {
@@ -23,14 +23,12 @@ public sealed partial class DeviceController
             Model = x.Model
         }).ToArrayAsync();
 
-        return new BaseResponse<DeviceSelfResponse>
-        {
-            Data = new DeviceSelfResponse
+        return RespondSuccessLegacy(new DeviceSelfResponse
             {
                 Id = CurrentDevice.Id,
                 Name = CurrentDevice.Name,
                 Shockers = shockers
             }
-        };
+        );
     }
 }

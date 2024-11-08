@@ -22,7 +22,7 @@ public sealed partial class SharesController
     /// <response code="400">You cannot link your own shocker code / You already have this shocker linked to your account</response>
     /// <response code="500">Error while linking share code to your account</response>
     [HttpPost("code/{shareCodeId}")]
-    [ProducesSuccess]
+    [ProducesResponseType<BaseResponse<object>>(StatusCodes.Status200OK)]
     [ProducesProblem(HttpStatusCode.NotFound, "ShareCodeNotFound")]
     [ProducesProblem(HttpStatusCode.BadRequest, "CantLinkOwnShareCode")]
     [ProducesProblem(HttpStatusCode.BadRequest, "ShockerAlreadyLinked")]

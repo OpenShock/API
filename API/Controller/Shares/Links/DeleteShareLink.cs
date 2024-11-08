@@ -4,6 +4,7 @@ using System.Net;
 using OpenShock.Common;
 using OpenShock.Common.Errors;
 using OpenShock.Common.Problems;
+using OpenShock.Common.Models;
 
 namespace OpenShock.API.Controller.Shares.Links;
 
@@ -16,7 +17,7 @@ public sealed partial class ShareLinksController
     /// <response code="200">Deleted share link</response>
     /// <response code="404">Share link not found or does not belong to you</response>
     [HttpDelete("{shareLinkId}")]
-    [ProducesSuccess]
+    [ProducesResponseType<BaseResponse<object>>(StatusCodes.Status200OK)]
     [ProducesProblem(HttpStatusCode.NotFound, "ShareLinkNotFound")]
     public async Task<IActionResult> DeleteShareLink([FromRoute] Guid shareLinkId)
     {

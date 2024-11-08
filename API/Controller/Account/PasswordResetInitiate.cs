@@ -13,7 +13,7 @@ public sealed partial class AccountController
     /// </summary>
     /// <response code="200">Password reset email sent if the email is associated to an registered account</response>
     [HttpPost("reset")]
-    [ProducesSuccess]
+    [ProducesResponseType<BaseResponse<object>>(StatusCodes.Status200OK)]
     [MapToApiVersion("1")]
     public async Task<BaseResponse<object>> PasswordResetInitiate([FromBody] ResetRequest body)
     {
