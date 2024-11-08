@@ -27,6 +27,7 @@ public abstract class FlatbuffersWebsocketBaseController<TIn, TOut> : WebsocketB
     /// <param name="logger"></param>
     /// <param name="lifetime"></param>
     /// <param name="incomingSerializer"></param>
+    /// <param name="outgoingSerializer"></param>
     public FlatbuffersWebsocketBaseController(ILogger<FlatbuffersWebsocketBaseController<TIn, TOut>> logger,
         IHostApplicationLifetime lifetime, ISerializer<TIn> incomingSerializer, ISerializer<TOut> outgoingSerializer) : base(logger, lifetime)
     {

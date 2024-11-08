@@ -102,7 +102,7 @@ public abstract class DeviceControllerBase<TIn, TOut> : FlatbuffersWebsocketBase
     private SemVersion _firmwareVersion;
 
     /// <inheritdoc />
-    protected override async Task<OneOf<Success, Error<OpenShockProblem>>> ConnectionPrecondition()
+    protected override Task<OneOf<Success, Error<OpenShockProblem>>> ConnectionPrecondition()
     {
         _connected = DateTimeOffset.UtcNow;
 
@@ -111,11 +111,15 @@ public abstract class DeviceControllerBase<TIn, TOut> : FlatbuffersWebsocketBase
         {
             _firmwareVersion = version;
         }
-        else return new Error<OpenShockProblem>(WebsocketError.WebsocketHubFirmwareVersionInvalid);
+        else
+        {
+            var err = new Error<OpenShockProblem>(WebsocketError.WebsocketHubFirmwareVersionInvalid);
+            return Task.FromResult(OneOf<Success, Error<OpenShockProblem>>.FromT1(err));
+        }
         
         _userAgent = HttpContext.Request.Headers.UserAgent.ToString().Truncate(256);
 
-        return new Success();
+        return Task.FromResult(OneOf<Success, Error<OpenShockProblem>>.FromT0(new Success()));
     }
 
     /// <inheritdoc />

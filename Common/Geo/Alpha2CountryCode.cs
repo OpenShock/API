@@ -6,7 +6,7 @@ public readonly record struct Alpha2CountryCode(char Char1, char Char2)
 {
     public static readonly Alpha2CountryCode UnknownCountry = "XX"; // Country code for unknown country
 
-    public static bool TryParseAndValidate(string str, [MaybeNullWhen(false)] out Alpha2CountryCode code)
+    public static bool TryParseAndValidate(string str, [NotNullWhen(true)] out Alpha2CountryCode code)
     {
         if (str.Length != 2 || !char.IsAsciiLetterUpper(str[0]) || !char.IsAsciiLetterUpper(str[1]))
         {

@@ -1,8 +1,4 @@
-﻿using System.Net;
-using System.Text;
-using System.Text.Json;
-using System.Text.Json.Serialization;
-using Asp.Versioning;
+﻿using Asp.Versioning;
 using Asp.Versioning.ApiExplorer;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Http.Connections;
@@ -17,7 +13,6 @@ using OpenShock.API.Services;
 using OpenShock.API.Services.Account;
 using OpenShock.API.Services.Email.Mailjet;
 using OpenShock.API.Services.Email.Smtp;
-using OpenShock.API.Services.Session;
 using OpenShock.Common;
 using OpenShock.Common.Authentication;
 using OpenShock.Common.Authentication.Handlers;
@@ -34,6 +29,7 @@ using OpenShock.Common.Redis;
 using OpenShock.Common.Services.Device;
 using OpenShock.Common.Services.LCGNodeProvisioner;
 using OpenShock.Common.Services.Ota;
+using OpenShock.Common.Services.Session;
 using OpenShock.Common.Services.Turnstile;
 using OpenShock.Common.Utils;
 using Redis.OM;
@@ -41,6 +37,10 @@ using Redis.OM.Contracts;
 using Scalar.AspNetCore;
 using Semver;
 using Serilog;
+using System.Net;
+using System.Text;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using IPNetwork = Microsoft.AspNetCore.HttpOverrides.IPNetwork;
 using WebSocketOptions = Microsoft.AspNetCore.Builder.WebSocketOptions;
 
@@ -56,7 +56,7 @@ public sealed class Startup
         ForwardedForHeaderName = "CF-Connecting-IP"
     };
 
-    private ApiConfig _apiConfig;
+    private readonly ApiConfig _apiConfig;
 
     public Startup(IConfiguration configuration)
     {

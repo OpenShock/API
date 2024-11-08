@@ -31,7 +31,7 @@ public interface IAccountService
     /// <summary>
     /// Login a user into his user session
     /// </summary>
-    /// <param name="emailOrUsername"></param>
+    /// <param name="usernameOrEmail"></param>
     /// <param name="password"></param>
     /// <param name="loginContext"></param>
     /// <param name="cancellationToken"></param>

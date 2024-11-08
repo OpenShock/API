@@ -15,7 +15,6 @@ public sealed partial class AccountController
     /// Signs up a new user
     /// </summary>
     /// <param name="body"></param>
-    /// <param name="accountService"></param>
     /// <response code="200">User successfully signed up</response>
     /// <response code="409">Username or email already exists</response>
     [HttpPost("signup")]
