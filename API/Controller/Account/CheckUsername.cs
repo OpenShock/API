@@ -15,7 +15,7 @@ public sealed partial class AccountController
     /// <param name="cancellationToken"></param>
     /// <returns></returns>
     [HttpPost("username/check")]
-    [ProducesSlimSuccess<UsernameCheckResponse>]
+    [ProducesResponseType<UsernameCheckResponse>(StatusCodes.Status200OK)]
     public async Task<IActionResult> CheckUsername(ChangeUsernameRequest data, CancellationToken cancellationToken)
     {
         var availability = await _accountService.CheckUsernameAvailability(data.Username, cancellationToken);

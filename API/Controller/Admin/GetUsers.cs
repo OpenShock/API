@@ -18,7 +18,7 @@ public sealed partial class AdminController
     /// <response code="200">Paginated users</response>
     /// <response code="401">Unauthorized</response>
     [HttpGet("users")]
-    [ProducesSlimSuccess<Paginated<AdminUsersView>>]
+    [ProducesResponseType<Paginated<AdminUsersView>>(StatusCodes.Status200OK)]
     public async Task<IActionResult> GetUsers(
         [FromQuery(Name = "$filter")] string filterQuery = "",
         [FromQuery(Name = "$orderby")] string orderbyQuery = "",

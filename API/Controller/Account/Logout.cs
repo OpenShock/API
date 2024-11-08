@@ -11,7 +11,7 @@ namespace OpenShock.API.Controller.Account;
 public sealed partial class AccountController
 {
     [HttpPost("logout")]
-    [ProducesSlimSuccess]
+    [ProducesResponseType(StatusCodes.Status200OK)]
     [MapToApiVersion("1")]
     public async Task<IActionResult> Logout(
         [FromServices] ISessionService sessionService,

@@ -17,7 +17,7 @@ public sealed partial class TokensController
     /// <exception cref="Exception"></exception>
     [HttpGet("self")]
     [TokenOnly]
-    [ProducesSlimSuccess<TokenResponse>]
+    [ProducesResponseType<TokenResponse>(StatusCodes.Status200OK)]
     public TokenResponse GetSelfToken([FromServices] IUserReferenceService userReferenceService)
     {
         var x = userReferenceService.AuthReference;

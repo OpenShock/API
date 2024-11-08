@@ -9,7 +9,7 @@ namespace OpenShock.API.Controller.Sessions;
 public sealed partial class SessionsController
 {
     [HttpDelete("{sessionId}")]
-    [ProducesSlimSuccess]
+    [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesProblem(HttpStatusCode.NotFound, "SessionNotFound")]
     public async Task<IActionResult> DeleteSession(Guid sessionId)
     {

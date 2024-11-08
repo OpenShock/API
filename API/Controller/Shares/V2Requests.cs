@@ -14,7 +14,7 @@ namespace OpenShock.API.Controller.Shares;
 public sealed partial class SharesController
 {
     [HttpGet("requests/outstanding")]
-    [ProducesSlimSuccess<IEnumerable<ShareRequestBaseItem>>]
+    [ProducesResponseType<IEnumerable<ShareRequestBaseItem>>(StatusCodes.Status200OK)]
     [ApiVersion("2")]
     public async Task<IEnumerable<ShareRequestBaseItem>> GetOutstandingRequestsList()
     {
@@ -47,7 +47,7 @@ public sealed partial class SharesController
     }
     
     [HttpGet("requests/incoming")]
-    [ProducesSlimSuccess<IEnumerable<ShareRequestBaseItem>>]
+    [ProducesResponseType<IEnumerable<ShareRequestBaseItem>>(StatusCodes.Status200OK)]
     [ApiVersion("2")]
     public async Task<IEnumerable<ShareRequestBaseItem>> GetIncomingRequestsList()
     {
@@ -80,7 +80,7 @@ public sealed partial class SharesController
     }
     
     [HttpGet("requests/{id:guid}")]
-    [ProducesSlimSuccess<ShareRequestBaseDetails>]
+    [ProducesResponseType<ShareRequestBaseDetails>(StatusCodes.Status200OK)]
     [ProducesProblem(HttpStatusCode.NotFound, "ShareRequestNotFound")]
     [ApiVersion("2")]
     public async Task<IActionResult> GetRequest(Guid id)
@@ -128,7 +128,7 @@ public sealed partial class SharesController
     }
     
     [HttpDelete("requests/outgoing/{id:guid}")]
-    [ProducesSlimSuccess]
+    [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesProblem(HttpStatusCode.NotFound, "ShareRequestNotFound")]
     [ApiVersion("2")]
     public async Task<IActionResult> DeleteRequest(Guid id)
@@ -142,7 +142,7 @@ public sealed partial class SharesController
     }
     
     [HttpDelete("requests/incoming/{id:guid}")]
-    [ProducesSlimSuccess]
+    [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesProblem(HttpStatusCode.NotFound, "ShareRequestNotFound")]
     [ApiVersion("2")]
     public async Task<IActionResult> DenyRequest(Guid id)
@@ -156,7 +156,7 @@ public sealed partial class SharesController
     }
 
     // [HttpPost("requests/incoming/{id:guid}")]
-    // [ProducesSlimSuccess]
+    // [ProducesResponseType(StatusCodes.Status200OK)]
     // [ProducesProblem(HttpStatusCode.NotFound, "ShareRequestNotFound")]
     // [ApiVersion("2")]
     // public async Task<IActionResult> RedeemRequest(Guid id)

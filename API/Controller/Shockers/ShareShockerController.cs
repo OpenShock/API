@@ -143,7 +143,7 @@ public sealed partial class ShockerController
     /// <response code="404">Share does not exists or device/shocker does not belong to you nor is shared with you</response>
     [HttpDelete("{shockerId}/shares/{sharedWithUserId}")]
     [TokenPermission(PermissionType.Shockers_Edit)]
-    [ProducesSlimSuccess]
+    [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesProblem(HttpStatusCode.NotFound, "ShockerNotFound")]    
     [MapToApiVersion("1")]
     public async Task<IActionResult> ShockerShareCodeRemove(
@@ -176,7 +176,7 @@ public sealed partial class ShockerController
     /// <response code="404">The share code does not exist or you do not have access to it.</response>
     [HttpPatch("{shockerId}/shares/{sharedWithUserId}")]
     [TokenPermission(PermissionType.Shockers_Edit)]
-    [ProducesSlimSuccess]
+    [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesProblem(HttpStatusCode.NotFound, "ShockerNotFound")]
     [MapToApiVersion("1")]
     public async Task<IActionResult> ShockerShareCodeUpdate(

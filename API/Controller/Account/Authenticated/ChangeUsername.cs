@@ -16,7 +16,7 @@ public sealed partial class AuthenticatedAccountController
     /// <returns></returns>
     /// <exception cref="Exception"></exception>
     [HttpPost("username")]
-    [ProducesSlimSuccess]
+    [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesProblem(HttpStatusCode.Conflict, "UsernameTaken")]
     [ProducesProblem(HttpStatusCode.BadRequest, "UsernameInvalid")]
     [ProducesProblem(HttpStatusCode.Forbidden, "UsernameRecentlyChanged")]

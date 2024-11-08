@@ -76,7 +76,7 @@ public sealed partial class DevicesController
     /// <response code="404">Device does not exist</response>
     [HttpPatch("{deviceId}")]
     [TokenPermission(PermissionType.Devices_Edit)]
-    [ProducesSlimSuccess]
+    [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesProblem(HttpStatusCode.NotFound, "DeviceNotFound")]
     [MapToApiVersion("1")]
     public async Task<IActionResult> EditDevice([FromRoute] Guid deviceId, [FromBody] HubEditRequest body, [FromServices] IDeviceUpdateService updateService)
@@ -102,7 +102,7 @@ public sealed partial class DevicesController
     /// <response code="500">Failed to save regenerated token</response>
     [HttpPut("{deviceId}")]
     [TokenPermission(PermissionType.Devices_Edit)]
-    [ProducesSlimSuccess]
+    [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesProblem(HttpStatusCode.NotFound, "DeviceNotFound")]
     [MapToApiVersion("1")]
     public async Task<IActionResult> RegenerateDeviceToken([FromRoute] Guid deviceId)
@@ -128,7 +128,7 @@ public sealed partial class DevicesController
     /// <response code="404">Device does not exist</response>
     [HttpDelete("{deviceId}")]
     [TokenPermission(PermissionType.Devices_Edit)]
-    [ProducesSlimSuccess]
+    [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesProblem(HttpStatusCode.NotFound, "DeviceNotFound")]
     [MapToApiVersion("1")]
     public async Task<IActionResult> RemoveDevice([FromRoute] Guid deviceId, [FromServices] IDeviceUpdateService updateService)
@@ -147,7 +147,7 @@ public sealed partial class DevicesController
     /// <response code="201">Successfully created device</response>
     [HttpPost]
     [TokenPermission(PermissionType.Devices_Edit)]
-    [ProducesSlimSuccess<Guid>(statusCode: HttpStatusCode.Created)]
+    [ProducesResponseType<Guid>(StatusCodes.Status201Created)]
     [MapToApiVersion("1")]
     public Task<Guid> CreateDevice([FromServices] IDeviceUpdateService updateService)
     => CreateDeviceV2(new HubCreateRequest
@@ -162,7 +162,7 @@ public sealed partial class DevicesController
     /// <response code="201">Successfully created device</response>
     [HttpPost]
     [TokenPermission(PermissionType.Devices_Edit)]
-    [ProducesSlimSuccess<Guid>(statusCode: HttpStatusCode.Created)]
+    [ProducesResponseType<Guid>(StatusCodes.Status201Created)]
     [MapToApiVersion("2")]
     public async Task<Guid> CreateDeviceV2([FromBody] HubCreateRequest data, [FromServices] IDeviceUpdateService updateService)
     {
