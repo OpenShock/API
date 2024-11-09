@@ -20,7 +20,7 @@ public sealed class SessionService : ISessionService
     /// <param name="redisConnectionProvider"></param>
     public SessionService(IRedisConnectionProvider redisConnectionProvider)
     {
-        _loginSessions = redisConnectionProvider.RedisCollection<LoginSession>();
+        _loginSessions = redisConnectionProvider.RedisCollection<LoginSession>(false);
     }
 
     public async Task<Guid> CreateSessionAsync(string sessionId, Guid userId, string userAgent, string ipAddress)

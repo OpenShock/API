@@ -24,7 +24,7 @@ public class OpenShockProblem : ProblemDetails
     [Obsolete("This is the exact same as title or detail if present, refer to using title in the future")]
     public string Message => Detail ?? Title!;
     
-    public string? TraceId { get; set; } 
+    public string? RequestId { get; set; } 
     
     public ObjectResult ToObjectResult(HttpContext httpContext)
     {
@@ -37,6 +37,6 @@ public class OpenShockProblem : ProblemDetails
     
     public void AddContext(HttpContext httpContext)
     {
-        TraceId = httpContext.TraceIdentifier;
+        RequestId = httpContext.TraceIdentifier;
     }
 }
