@@ -121,7 +121,8 @@ public sealed partial class TokensController
 
         return new TokenCreatedResponse
         {
-            Token = token.Token
+            Token = token.Token,
+            Id = token.Id
         };
     }
 
@@ -166,5 +167,6 @@ public sealed partial class TokensController
     public sealed class TokenCreatedResponse
     {
         public required string Token { get; set; }
+        public required Guid Id { get; set; }
     }
 }
