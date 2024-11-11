@@ -7,4 +7,5 @@ public interface IBatchUpdateService
     /// </summary>
     /// <param name="tokenId"></param>
     public void UpdateTokenLastUsed(Guid tokenId);
+    public void UpdateSessionLastUsed(string sessionKey, DateTimeOffset lastUsed);
 }

@@ -18,7 +18,7 @@ using System.Text.Json;
 
 namespace OpenShock.Common.Authentication.Handlers;
 
-public sealed class LoginSessionAuthentication : AuthenticationHandler<AuthenticationSchemeOptions>, IDisposable
+public sealed class LoginSessionAuthentication : AuthenticationHandler<AuthenticationSchemeOptions>
 {
     private readonly IClientAuthService<LinkUser> _authService;
     private readonly IUserReferenceService _userReferenceService;
@@ -105,6 +105,8 @@ public sealed class LoginSessionAuthentication : AuthenticationHandler<Authentic
             });
         }
         
+        _batchUpdateService.UpdateSessionLastUsed(sessionKey, DateTime.UtcNow);
+        
         var retrievedUser = await _db.Users.FirstAsync(user => user.Id == session.UserId);
 
         _userReferenceService.AuthReference = session;
@@ -140,10 +142,5 @@ public sealed class LoginSessionAuthentication : AuthenticationHandler<Authentic
         Response.StatusCode = _authResultError.Status!.Value;
         _authResultError.AddContext(Context);
         return Context.Response.WriteAsJsonAsync(_authResultError, _serializerOptions, contentType: "application/problem+json");
-    }
-
-    public void Dispose()
-    {
-        Console.WriteLine("AUTH CONTEXT FUCKED OFF");
     }
 }
