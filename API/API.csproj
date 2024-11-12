@@ -39,7 +39,7 @@
         <PackageReference Include="MiniValidation" Version="0.9.1" />
         <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="8.0.10" />
         <PackageReference Include="OneOf" Version="3.0.271" />
-        <PackageReference Include="Redis.OM" Version="0.7.6" />
+        <PackageReference Include="Redis.OM" Version="0.7.5" />
         <PackageReference Include="Scalar.AspNetCore" Version="1.2.34" />
         <PackageReference Include="Serilog" Version="3.1.1" />
         <PackageReference Include="Serilog.AspNetCore" Version="8.0.3" />
