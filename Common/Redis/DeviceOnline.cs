@@ -5,9 +5,11 @@ using Semver;
 
 namespace OpenShock.Common.Redis;
 
-[Document(StorageType = StorageType.Json, IndexName = "device-online")]
+[Document(StorageType = StorageType.Json, IndexName = IndexName)]
 public sealed class DeviceOnline
 {
+    public const string IndexName = "device-online";
+    
     [RedisIdField] [Indexed] public required Guid Id { get; set; }
     [Indexed] public required Guid Owner { get; set; }
     [JsonConverter(typeof(SemVersionJsonConverter))]

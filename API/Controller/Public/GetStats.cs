@@ -1,8 +1,11 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using NRedisStack.RedisStackCommands;
 using OpenShock.Common.Models;
 using OpenShock.Common.Problems;
 using OpenShock.Common.Redis;
+using Redis.OM;
 using Redis.OM.Contracts;
+using StackExchange.Redis;
 
 namespace OpenShock.API.Controller.Public;
 
@@ -14,19 +17,19 @@ public sealed partial class PublicController
     /// <response code="200">The statistics were successfully retrieved.</response>
     [HttpGet("stats")]
     [ProducesResponseType<BaseResponse<StatsResponse>>(StatusCodes.Status200OK)]
-    public async Task<IActionResult> GetOnlineDevicesStatistics(
-        [FromServices] IRedisConnectionProvider redisConnectionProvider)
+    public async Task<IActionResult> GetOnlineDevicesStatistics([FromServices] IConnectionMultiplexer redisConnectionMultiplexer)
     {
-        var deviceOnlines = redisConnectionProvider.RedisCollection<DeviceOnline>(false);
+        var ft = redisConnectionMultiplexer.GetDatabase().FT();
+        var deviceOnlineInfo = await ft.InfoAsync(DeviceOnline.IndexName);
 
         return RespondSuccessLegacy(new StatsResponse
         {
-            DevicesOnline = await deviceOnlines.CountAsync()
+            DevicesOnline = deviceOnlineInfo.NumDocs
         });
     }
 }
 
 public sealed class StatsResponse
 {
-    public required int DevicesOnline { get; set; }
+    public required long DevicesOnline { get; set; }
 }
