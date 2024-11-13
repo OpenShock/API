@@ -24,6 +24,9 @@ public class OpenShockProblem : ProblemDetails
     [Obsolete("This is the exact same as title or detail if present, refer to using title in the future")]
     public string Message => Detail ?? Title!;
     
+    [Obsolete("This is the exact same as requestId, refer to using requestId in the future")]
+    public string? TraceId => RequestId;
+    
     public string? RequestId { get; set; } 
     
     public ObjectResult ToObjectResult(HttpContext httpContext)
