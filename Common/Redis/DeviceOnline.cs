@@ -22,4 +22,5 @@ public sealed class DeviceOnline
     public TimeSpan? Uptime { get; set; }
     [JsonConverter(typeof(TimeSpanToMillisecondsConverter))]
     public TimeSpan? Latency { get; set; }
+    public int Rssi { get; set; }
 }

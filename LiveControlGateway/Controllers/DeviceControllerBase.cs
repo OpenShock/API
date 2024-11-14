@@ -148,7 +148,7 @@ public abstract class DeviceControllerBase<TIn, TOut> : FlatbuffersWebsocketBase
     /// <summary>
     /// Keep the device online
     /// </summary>
-    protected async Task SelfOnline(TimeSpan uptime, TimeSpan? latency = null)
+    protected async Task SelfOnline(TimeSpan uptime, TimeSpan? latency = null, int Rssi = -70) // -70dBm = OK connection
     {
         Logger.LogDebug("Received keep alive from device [{DeviceId}]", CurrentDevice.Id);
 
@@ -178,6 +178,7 @@ public abstract class DeviceControllerBase<TIn, TOut> : FlatbuffersWebsocketBase
         // as we dont want to send a device online status every time, we will do it here
         online.Uptime = uptime;
         online.Latency = latency;
+        online.Rssi = Rssi;
 
         var sendOnlineStatusUpdate = false;
         
