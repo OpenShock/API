@@ -49,8 +49,9 @@ public abstract class DeviceControllerBase<TIn, TOut> : FlatbuffersWebsocketBase
 
     private readonly Timer _keepAliveTimeoutTimer = new(Duration.DeviceKeepAliveInitialTimeout);
     private DateTimeOffset _connected = DateTimeOffset.UtcNow;
-    private string _userAgent;
+    private string? _userAgent;
 
+    /// <inheritdoc cref="IDeviceController.Id" />
     public override Guid Id => CurrentDevice.Id;
     
     /// <summary>
@@ -74,6 +75,18 @@ public abstract class DeviceControllerBase<TIn, TOut> : FlatbuffersWebsocketBase
     {
     }
     
+    /// <summary>
+    /// Base for hub websocket controllers
+    /// </summary>
+    /// <param name="logger"></param>
+    /// <param name="lifetime"></param>
+    /// <param name="incomingSerializer"></param>
+    /// <param name="outgoingSerializer"></param>
+    /// <param name="redisConnectionProvider"></param>
+    /// <param name="dbContextFactory"></param>
+    /// <param name="serviceProvider"></param>
+    /// <param name="lcgConfig"></param>
+    /// <param name="redisPubService"></param>
     protected DeviceControllerBase(
         ILogger<FlatbuffersWebsocketBaseController<TIn, TOut>> logger,
         IHostApplicationLifetime lifetime,
@@ -99,7 +112,7 @@ public abstract class DeviceControllerBase<TIn, TOut> : FlatbuffersWebsocketBase
     }
 
 
-    private SemVersion _firmwareVersion;
+    private SemVersion? _firmwareVersion;
 
     /// <inheritdoc />
     protected override Task<OneOf<Success, Error<OpenShockProblem>>> ConnectionPrecondition()
@@ -126,7 +139,7 @@ public abstract class DeviceControllerBase<TIn, TOut> : FlatbuffersWebsocketBase
     protected override async Task RegisterConnection()
     {
         await using var db = await _dbContextFactory.CreateDbContextAsync();
-        await DeviceLifetimeManager.AddDeviceConnection(5, this, db, _dbContextFactory, Linked.Token);
+        await DeviceLifetimeManager.AddDeviceConnection(5, this, db, _dbContextFactory, LinkedToken);
     }
     
     /// <inheritdoc />
@@ -163,7 +176,7 @@ public abstract class DeviceControllerBase<TIn, TOut> : FlatbuffersWebsocketBase
             {
                 Id = CurrentDevice.Id,
                 Owner = CurrentDevice.Owner,
-                FirmwareVersion = _firmwareVersion,
+                FirmwareVersion = _firmwareVersion!,
                 Gateway = _lcgConfig.Lcg.Fqdn,
                 ConnectedAt = _connected,
                 UserAgent = _userAgent
@@ -188,7 +201,7 @@ public abstract class DeviceControllerBase<TIn, TOut> : FlatbuffersWebsocketBase
             online.UserAgent != _userAgent)
         {
             online.Gateway = _lcgConfig.Lcg.Fqdn;
-            online.FirmwareVersion = _firmwareVersion;
+            online.FirmwareVersion = _firmwareVersion!;
             online.ConnectedAt = _connected;
             online.UserAgent = _userAgent;
             Logger.LogInformation("Updated details of online device");

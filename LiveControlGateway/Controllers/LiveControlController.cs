@@ -251,14 +251,14 @@ public sealed class LiveControlController : WebsocketBaseController<IBaseRespons
         Logger.LogDebug("Starting ping timer...");
         _pingTimer.Start();
 
-        while (!Linked.IsCancellationRequested)
+        while (!LinkedToken.IsCancellationRequested)
         {
             try
             {
                 if (WebSocket!.State == WebSocketState.Aborted) break;
                 var message =
                     await JsonWebSocketUtils.ReceiveFullMessageAsyncNonAlloc<BaseRequest<LiveRequestType>>(WebSocket,
-                        Linked.Token);
+                        LinkedToken);
 
                 if (message.IsT2)
                 {
@@ -271,7 +271,7 @@ public sealed class LiveControlController : WebsocketBaseController<IBaseRespons
                     try
                     {
                         await WebSocket.CloseAsync(WebSocketCloseStatus.NormalClosure, "Normal close",
-                            Linked.Token);
+                            LinkedToken);
                     }
                     catch (OperationCanceledException e)
                     {

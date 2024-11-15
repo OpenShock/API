@@ -49,15 +49,14 @@ public abstract class FlatbuffersWebsocketBaseController<TIn, TOut> : WebsocketB
     /// <inheritdoc />
     protected override async Task Logic()
     {
-        while (!Linked.IsCancellationRequested)
+        while (!LinkedToken.IsCancellationRequested)
         {
             try
             {
                 if (WebSocket?.State == WebSocketState.Aborted) return;
                 var message =
                     await FlatbufferWebSocketUtils.ReceiveFullMessageAsyncNonAlloc(WebSocket!,
-                        _incomingSerializer,
-                        Linked.Token);
+                        _incomingSerializer, LinkedToken);
 
                 // All is good, normal message, deserialize and handle
                 if (message.IsT0)
@@ -93,7 +92,7 @@ public abstract class FlatbuffersWebsocketBaseController<TIn, TOut> : WebsocketB
                     try
                     {
                         await WebSocket.CloseAsync(WebSocketCloseStatus.NormalClosure, "Normal close",
-                            Linked.Token);
+                            LinkedToken);
                     }
                     catch (OperationCanceledException e)
                     {
