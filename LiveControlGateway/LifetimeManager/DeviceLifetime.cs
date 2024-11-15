@@ -315,7 +315,15 @@ public readonly struct SelfOnlineData
     /// <param name="userAgent"></param>
     /// <param name="latency"></param>
     /// <param name="rssi"></param>
-    public SelfOnlineData(Guid owner, string gateway, SemVersion firmwareVersion, DateTimeOffset connectedAt, TimeSpan uptime, string userAgent, TimeSpan? latency = null, int rssi = -70)
+    public SelfOnlineData(
+        Guid owner,
+        string gateway,
+        SemVersion firmwareVersion,
+        DateTimeOffset connectedAt,
+        TimeSpan uptime,
+        string userAgent,
+        TimeSpan? latency = null,
+        int rssi = -70)
     {
         Owner = owner;
         Gateway = gateway;
