@@ -2,12 +2,13 @@
 using Microsoft.EntityFrameworkCore;
 using OneOf;
 using OneOf.Types;
-using OpenShock.Common;
 using OpenShock.Common.Models;
 using OpenShock.Common.OpenShockDb;
 using OpenShock.Common.Redis.PubSub;
+using OpenShock.Common.Services.RedisPubSub;
 using OpenShock.LiveControlGateway.Controllers;
 using OpenShock.LiveControlGateway.Websocket;
+using Redis.OM.Contracts;
 using Semver;
 
 namespace OpenShock.LiveControlGateway.LifetimeManager;
@@ -15,33 +16,61 @@ namespace OpenShock.LiveControlGateway.LifetimeManager;
 /// <summary>
 /// Lifetime manager for devices, this class is responsible for managing the lifetime of devices
 /// </summary>
-public static class DeviceLifetimeManager
+public sealed class DeviceLifetimeManager
 {
-    private static readonly ILogger Logger = ApplicationLogging.CreateLogger(typeof(DeviceLifetimeManager));
-    private static readonly ConcurrentDictionary<Guid, DeviceLifetime> Managers = new();
+    private readonly ILogger<DeviceLifetimeManager> _logger;
+    private readonly IDbContextFactory<OpenShockContext> _dbContextFactory;
+    private readonly IRedisConnectionProvider _redisConnectionProvider;
+    private readonly IRedisPubService _redisPubService;
+    private readonly ConcurrentDictionary<Guid, DeviceLifetime> _managers = new();
+
+    /// <summary>
+    /// DI constructor
+    /// </summary>
+    /// <param name="logger"></param>
+    /// <param name="dbContextFactory"></param>
+    /// <param name="redisConnectionProvider"></param>
+    /// <param name="redisPubService"></param>
+    public DeviceLifetimeManager(
+        ILogger<DeviceLifetimeManager> logger,
+        IDbContextFactory<OpenShockContext> dbContextFactory,
+        IRedisConnectionProvider redisConnectionProvider,
+        IRedisPubService redisPubService)
+    {
+        _logger = logger;
+        _dbContextFactory = dbContextFactory;
+        _redisConnectionProvider = redisConnectionProvider;
+        _redisPubService = redisPubService;
+    }
 
     /// <summary>
     /// Add device to lifetime manager, called on successful connect of device
     /// </summary>
     /// <param name="tps"></param>
     /// <param name="deviceController"></param>
-    /// <param name="db"></param>
-    /// <param name="dbContextFactory"></param>
     /// <param name="cancellationToken"></param>
     /// <returns></returns>
-    public static async Task<DeviceLifetime> AddDeviceConnection(byte tps, IDeviceController deviceController,
-        OpenShockContext db, IDbContextFactory<OpenShockContext> dbContextFactory, CancellationToken cancellationToken)
+    public async Task<DeviceLifetime> AddDeviceConnection(byte tps, IDeviceController deviceController, CancellationToken cancellationToken)
     {
-            if (Managers.TryGetValue(deviceController.Id, out var oldController))
+            if (_managers.TryGetValue(deviceController.Id, out var oldController))
             {
-                Logger.LogDebug("Disposing old device controller");
+                _logger.LogDebug("Disposing old device controller");
                 await oldController.DisposeAsync();
             }
-            Logger.LogInformation("New device connected, creating lifetime [{DeviceId}]", deviceController.Id);
+            _logger.LogInformation("New device connected, creating lifetime [{DeviceId}]", deviceController.Id);
             
-            var deviceLifetime = new DeviceLifetime(tps, deviceController, dbContextFactory, cancellationToken);
+            var deviceLifetime = new DeviceLifetime(
+                tps,
+                deviceController,
+                _dbContextFactory,
+                _redisConnectionProvider,
+                _redisPubService,
+                cancellationToken);
+
+            await using var db = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
+        
             await deviceLifetime.InitAsync(db);
-            Managers[deviceController.Id] = deviceLifetime;
+            _managers[deviceController.Id] = deviceLifetime;
             
             foreach (var websocketController in WebsocketManager.LiveControlUsers.GetConnections(deviceController.Id)) 
                 await websocketController.UpdateConnectedState(true);
@@ -53,12 +82,12 @@ public static class DeviceLifetimeManager
     /// Remove device from Lifetime Manager, called on dispose of device controller
     /// </summary>
     /// <param name="deviceController"></param>
-    public static async Task RemoveDeviceConnection(IDeviceController deviceController)
+    public async Task RemoveDeviceConnection(IDeviceController deviceController)
     {
         foreach (var websocketController in WebsocketManager.LiveControlUsers.GetConnections(deviceController.Id)) 
             await websocketController.UpdateConnectedState(false);
         
-        Managers.Remove(deviceController.Id, out _);
+        _managers.Remove(deviceController.Id, out _);
     }
 
     /// <summary>
@@ -66,7 +95,7 @@ public static class DeviceLifetimeManager
     /// </summary>
     /// <param name="device"></param>
     /// <returns></returns>
-    public static bool IsConnected(Guid device) => Managers.ContainsKey(device);
+    public bool IsConnected(Guid device) => _managers.ContainsKey(device);
 
     /// <summary>
     /// Receive a control frame by a client, this implies that limits and permissions have been checked before
@@ -77,10 +106,10 @@ public static class DeviceLifetimeManager
     /// <param name="intensity"></param>
     /// <param name="tps"></param>
     /// <returns></returns>
-    public static OneOf<Success, DeviceNotFound, ShockerNotFound, ShockerExclusive> ReceiveFrame(Guid device, Guid shocker,
+    public OneOf<Success, DeviceNotFound, ShockerNotFound, ShockerExclusive> ReceiveFrame(Guid device, Guid shocker,
         ControlType type, byte intensity, byte tps)
     {
-        if (!Managers.TryGetValue(device, out var deviceLifetime)) return new DeviceNotFound();
+        if (!_managers.TryGetValue(device, out var deviceLifetime)) return new DeviceNotFound();
         var receiveFrameAction = deviceLifetime.ReceiveFrame(shocker, type, intensity, tps);
         if(receiveFrameAction.IsT0) return new Success();
         if(receiveFrameAction.IsT1) return new ShockerNotFound();
@@ -92,9 +121,9 @@ public static class DeviceLifetimeManager
     /// </summary>
     /// <param name="device"></param>
     /// <returns></returns>
-    public static async Task<OneOf<Success, DeviceNotFound>> UpdateDevice(Guid device)
+    public async Task<OneOf<Success, DeviceNotFound>> UpdateDevice(Guid device)
     {
-        if (!Managers.TryGetValue(device, out var deviceLifetime)) return new DeviceNotFound();
+        if (!_managers.TryGetValue(device, out var deviceLifetime)) return new DeviceNotFound();
         await deviceLifetime.UpdateDevice();
         return new Success();
     }
@@ -105,9 +134,9 @@ public static class DeviceLifetimeManager
     /// <param name="device"></param>
     /// <param name="shocks"></param>
     /// <returns></returns>
-    public static async Task<OneOf<Success, DeviceNotFound>> Control(Guid device, IEnumerable<ControlMessage.ShockerControlInfo> shocks)
+    public async Task<OneOf<Success, DeviceNotFound>> Control(Guid device, IEnumerable<ControlMessage.ShockerControlInfo> shocks)
     {
-        if (!Managers.TryGetValue(device, out var deviceLifetime)) return new DeviceNotFound();
+        if (!_managers.TryGetValue(device, out var deviceLifetime)) return new DeviceNotFound();
         await deviceLifetime.Control(shocks);
         return new Success();
     }
@@ -118,9 +147,9 @@ public static class DeviceLifetimeManager
     /// <param name="device"></param>
     /// <param name="enabled"></param>
     /// <returns></returns>
-    public static async Task<OneOf<Success, DeviceNotFound>> ControlCaptive(Guid device, bool enabled)
+    public async Task<OneOf<Success, DeviceNotFound>> ControlCaptive(Guid device, bool enabled)
     {
-        if (!Managers.TryGetValue(device, out var deviceLifetime)) return new DeviceNotFound();
+        if (!_managers.TryGetValue(device, out var deviceLifetime)) return new DeviceNotFound();
         await deviceLifetime.ControlCaptive(enabled);
         return new Success();
     }
@@ -131,10 +160,22 @@ public static class DeviceLifetimeManager
     /// <param name="device"></param>
     /// <param name="version"></param>
     /// <returns></returns>
-    public static async Task<OneOf<Success, DeviceNotFound>> OtaInstall(Guid device, SemVersion version)
+    public async Task<OneOf<Success, DeviceNotFound>> OtaInstall(Guid device, SemVersion version)
     {
-        if (!Managers.TryGetValue(device, out var deviceLifetime)) return new DeviceNotFound();
+        if (!_managers.TryGetValue(device, out var deviceLifetime)) return new DeviceNotFound();
         await deviceLifetime.OtaInstall(version);
+        return new Success();
+    }
+
+    /// <summary>
+    /// Set device online, or update its status
+    /// </summary>
+    /// <param name="device"></param>
+    /// <param name="data"></param>
+    public async Task<OneOf<Success, DeviceNotFound>> DeviceOnline(Guid device, SelfOnlineData data)
+    {
+        if (!_managers.TryGetValue(device, out var deviceLifetime)) return new DeviceNotFound();
+        await deviceLifetime.Online(device, data);
         return new Success();
     }
 }
@@ -153,3 +194,5 @@ public readonly struct ShockerNotFound;
 /// OneOf
 /// </summary>
 public readonly record struct ShockerExclusive(DateTimeOffset Until);
+
+

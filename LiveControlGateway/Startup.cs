@@ -8,6 +8,7 @@ using OpenShock.Common.JsonSerialization;
 using OpenShock.Common.Services.Device;
 using OpenShock.Common.Services.Ota;
 using OpenShock.Common.Utils;
+using OpenShock.LiveControlGateway.LifetimeManager;
 using OpenShock.LiveControlGateway.PubSub;
 using JsonSerializer = System.Text.Json.JsonSerializer;
 
@@ -107,7 +108,9 @@ public sealed class Startup
 
         services.AddHostedService<RedisSubscriberService>(); 
         services.AddHostedService<LcgKeepAlive>();
-        
+
+        services.AddSingleton<DeviceLifetimeManager>();
+
     }
 
     /// <summary>

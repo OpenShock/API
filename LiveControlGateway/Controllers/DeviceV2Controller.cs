@@ -2,19 +2,15 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.SignalR;
-using Microsoft.EntityFrameworkCore;
-using OpenShock.Common;
 using OpenShock.Common.Authentication;
 using OpenShock.Common.Constants;
 using OpenShock.Common.Hubs;
 using OpenShock.Common.Models;
-using OpenShock.Common.OpenShockDb;
 using OpenShock.Common.Services.Ota;
-using OpenShock.Common.Services.RedisPubSub;
 using OpenShock.Common.Utils;
+using OpenShock.LiveControlGateway.LifetimeManager;
 using OpenShock.Serialization.Gateway;
 using OpenShock.Serialization.Types;
-using Redis.OM.Contracts;
 using Semver;
 using Serilog;
 
@@ -38,21 +34,17 @@ public sealed class DeviceV2Controller : DeviceControllerBase<HubToGatewayMessag
     /// </summary>
     /// <param name="logger"></param>
     /// <param name="lifetime"></param>
-    /// <param name="redisConnectionProvider"></param>
-    /// <param name="dbContextFactory"></param>
+    /// <param name="deviceLifetimeManager"></param>
     /// <param name="userHubContext"></param>
     /// <param name="serviceProvider"></param>
     /// <param name="lcgConfig"></param>
-    /// <param name="redisPubService"></param>
     public DeviceV2Controller(
         ILogger<DeviceV2Controller> logger,
         IHostApplicationLifetime lifetime,
-        IRedisConnectionProvider redisConnectionProvider,
-        IDbContextFactory<OpenShockContext> dbContextFactory,
+        DeviceLifetimeManager deviceLifetimeManager,
         IHubContext<UserHub, IUserHub> userHubContext,
-        IServiceProvider serviceProvider, LCGConfig lcgConfig, IRedisPubService redisPubService)
-        : base(logger, lifetime, HubToGatewayMessage.Serializer, GatewayToHubMessage.Serializer, redisConnectionProvider, 
-            dbContextFactory, serviceProvider, lcgConfig, redisPubService)
+        IServiceProvider serviceProvider, LCGConfig lcgConfig)
+        : base(logger, lifetime, HubToGatewayMessage.Serializer, GatewayToHubMessage.Serializer, deviceLifetimeManager, serviceProvider, lcgConfig)
     {
         _userHubContext = userHubContext;
         _pingTimer = new Timer(PingTimerElapsed, null, Duration.DevicePingInitialDelay, Duration.DevicePingPeriod);
@@ -99,7 +91,7 @@ public sealed class DeviceV2Controller : DeviceControllerBase<HubToGatewayMessag
         {
             case HubToGatewayMessagePayload.ItemKind.Pong:
                 Latency = DateTimeOffset.UtcNow - _lastPingSent;
-                await SelfOnline(TimeSpan.FromMilliseconds(payload.Pong.Uptime), Latency);
+                await SelfOnline(TimeSpan.FromMilliseconds(payload.Pong.Uptime), Latency, payload.Pong.Rssi);
                 break;
 
             case HubToGatewayMessagePayload.ItemKind.OtaUpdateStarted:

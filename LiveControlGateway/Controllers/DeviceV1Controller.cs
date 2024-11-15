@@ -2,17 +2,14 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.SignalR;
-using Microsoft.EntityFrameworkCore;
 using OpenShock.Common.Authentication;
 using OpenShock.Common.Hubs;
 using OpenShock.Common.Models;
-using OpenShock.Common.OpenShockDb;
 using OpenShock.Common.Services.Ota;
-using OpenShock.Common.Services.RedisPubSub;
 using OpenShock.Common.Utils;
+using OpenShock.LiveControlGateway.LifetimeManager;
 using OpenShock.Serialization.Deprecated.DoNotUse.V1;
 using OpenShock.Serialization.Types;
-using Redis.OM.Contracts;
 using Semver;
 using Serilog;
 
@@ -34,21 +31,18 @@ public sealed class DeviceV1Controller : DeviceControllerBase<HubToGatewayMessag
     /// </summary>
     /// <param name="logger"></param>
     /// <param name="lifetime"></param>
-    /// <param name="redisConnectionProvider"></param>
-    /// <param name="dbContextFactory"></param>
+    /// <param name="deviceLifetimeManager"></param>
     /// <param name="userHubContext"></param>
     /// <param name="serviceProvider"></param>
     /// <param name="lcgConfig"></param>
-    /// <param name="redisPubService"></param>
     public DeviceV1Controller(
         ILogger<DeviceV1Controller> logger,
         IHostApplicationLifetime lifetime,
-        IRedisConnectionProvider redisConnectionProvider,
-        IDbContextFactory<OpenShockContext> dbContextFactory,
+        DeviceLifetimeManager deviceLifetimeManager,
         IHubContext<UserHub, IUserHub> userHubContext,
-        IServiceProvider serviceProvider, LCGConfig lcgConfig, IRedisPubService redisPubService)
-        : base(logger, lifetime, HubToGatewayMessage.Serializer, GatewayToHubMessage.Serializer, redisConnectionProvider, 
-            dbContextFactory, serviceProvider, lcgConfig, redisPubService)
+        IServiceProvider serviceProvider, LCGConfig lcgConfig)
+        : base(logger, lifetime, HubToGatewayMessage.Serializer, GatewayToHubMessage.Serializer, deviceLifetimeManager,
+            serviceProvider, lcgConfig)
     {
         _userHubContext = userHubContext;
     }

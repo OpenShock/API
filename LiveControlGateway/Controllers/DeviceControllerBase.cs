@@ -41,11 +41,10 @@ public abstract class DeviceControllerBase<TIn, TOut> : FlatbuffersWebsocketBase
     /// Service provider
     /// </summary>
     protected readonly IServiceProvider ServiceProvider;
-    
-    private readonly IRedisConnectionProvider _redisConnectionProvider;
-    private readonly IDbContextFactory<OpenShockContext> _dbContextFactory;
+
     private readonly LCGConfig _lcgConfig;
-    private readonly IRedisPubService _redisPubService;
+
+    private readonly DeviceLifetimeManager _deviceLifetimeManager;
 
     private readonly Timer _keepAliveTimeoutTimer = new(Duration.DeviceKeepAliveInitialTimeout);
     private DateTimeOffset _connected = DateTimeOffset.UtcNow;
@@ -74,7 +73,7 @@ public abstract class DeviceControllerBase<TIn, TOut> : FlatbuffersWebsocketBase
     public void OnActionExecuted(ActionExecutedContext context)
     {
     }
-    
+
     /// <summary>
     /// Base for hub websocket controllers
     /// </summary>
@@ -82,27 +81,22 @@ public abstract class DeviceControllerBase<TIn, TOut> : FlatbuffersWebsocketBase
     /// <param name="lifetime"></param>
     /// <param name="incomingSerializer"></param>
     /// <param name="outgoingSerializer"></param>
-    /// <param name="redisConnectionProvider"></param>
-    /// <param name="dbContextFactory"></param>
+    /// <param name="deviceLifetimeManager"></param>
     /// <param name="serviceProvider"></param>
     /// <param name="lcgConfig"></param>
-    /// <param name="redisPubService"></param>
     protected DeviceControllerBase(
         ILogger<FlatbuffersWebsocketBaseController<TIn, TOut>> logger,
         IHostApplicationLifetime lifetime,
         ISerializer<TIn> incomingSerializer,
         ISerializer<TOut> outgoingSerializer,
-        IRedisConnectionProvider redisConnectionProvider,
-        IDbContextFactory<OpenShockContext> dbContextFactory,
-        IServiceProvider serviceProvider, LCGConfig lcgConfig,
-        IRedisPubService redisPubService
+        DeviceLifetimeManager deviceLifetimeManager,
+        IServiceProvider serviceProvider,
+        LCGConfig lcgConfig
         ) : base(logger, lifetime, incomingSerializer, outgoingSerializer)
     {
-        _redisConnectionProvider = redisConnectionProvider;
-        _dbContextFactory = dbContextFactory;
+        _deviceLifetimeManager = deviceLifetimeManager;
         ServiceProvider = serviceProvider;
         _lcgConfig = lcgConfig;
-        _redisPubService = redisPubService;
         _keepAliveTimeoutTimer.Elapsed += async (sender, args) =>
         {
             Logger.LogInformation("Keep alive timeout reached, closing websocket connection");
@@ -138,15 +132,14 @@ public abstract class DeviceControllerBase<TIn, TOut> : FlatbuffersWebsocketBase
     /// <inheritdoc />
     protected override async Task RegisterConnection()
     {
-        await using var db = await _dbContextFactory.CreateDbContextAsync();
-        await DeviceLifetimeManager.AddDeviceConnection(5, this, db, _dbContextFactory, LinkedToken);
+        await _deviceLifetimeManager.AddDeviceConnection(5, this, LinkedToken);
     }
     
     /// <inheritdoc />
     protected override async Task UnregisterConnection()
     {
         Logger.LogDebug("Unregistering device connection [{DeviceId}]", Id);
-        await DeviceLifetimeManager.RemoveDeviceConnection(this);
+        await _deviceLifetimeManager.RemoveDeviceConnection(this);
     }
     
     /// <inheritdoc />
@@ -161,59 +154,32 @@ public abstract class DeviceControllerBase<TIn, TOut> : FlatbuffersWebsocketBase
     /// <summary>
     /// Keep the device online
     /// </summary>
-    protected async Task SelfOnline(TimeSpan uptime, TimeSpan? latency = null, int Rssi = -70) // -70dBm = OK connection
+    protected async Task SelfOnline(TimeSpan uptime, TimeSpan? latency = null, int rssi = -70) // -70dBm = OK connection
     {
         Logger.LogDebug("Received keep alive from device [{DeviceId}]", CurrentDevice.Id);
 
+        // Reset the keep alive timeout
         _keepAliveTimeoutTimer.Interval = Duration.DeviceKeepAliveTimeout.TotalMilliseconds;
 
-        var deviceOnline = _redisConnectionProvider.RedisCollection<DeviceOnline>();
-        var deviceId = CurrentDevice.Id.ToString();
-        var online = await deviceOnline.FindByIdAsync(deviceId);
-        if (online == null)
+        var result = await _deviceLifetimeManager.DeviceOnline(CurrentDevice.Id, new SelfOnlineData()
         {
-            await deviceOnline.InsertAsync(new DeviceOnline
-            {
-                Id = CurrentDevice.Id,
-                Owner = CurrentDevice.Owner,
-                FirmwareVersion = _firmwareVersion!,
-                Gateway = _lcgConfig.Lcg.Fqdn,
-                ConnectedAt = _connected,
-                UserAgent = _userAgent
-            }, Duration.DeviceKeepAliveTimeout);
-
-            
-            await _redisPubService.SendDeviceOnlineStatus(CurrentDevice.Id);
-            return;
-        }
-
-        // We cannot rely on the json set anymore, since that also happens with uptime and latency
-        // as we dont want to send a device online status every time, we will do it here
-        online.Uptime = uptime;
-        online.Latency = latency;
-        online.Rssi = Rssi;
-
-        var sendOnlineStatusUpdate = false;
+            Owner = CurrentDevice.Owner,
+            Gateway = _lcgConfig.Lcg.Fqdn,
+            FirmwareVersion = _firmwareVersion!,
+            ConnectedAt = _connected,
+            UserAgent = _userAgent,
+            Uptime = uptime,
+            Latency = latency,
+            Rssi = rssi
+        });
         
-        if (online.FirmwareVersion != _firmwareVersion ||
-            online.Gateway != _lcgConfig.Lcg.Fqdn ||
-            online.ConnectedAt != _connected ||
-            online.UserAgent != _userAgent)
+        if (result.IsT1)
         {
-            online.Gateway = _lcgConfig.Lcg.Fqdn;
-            online.FirmwareVersion = _firmwareVersion!;
-            online.ConnectedAt = _connected;
-            online.UserAgent = _userAgent;
-            Logger.LogInformation("Updated details of online device");
-            
-            sendOnlineStatusUpdate = true;
-        }
-
-        await deviceOnline.UpdateAsync(online, Duration.DeviceKeepAliveTimeout);
-        
-        if (sendOnlineStatusUpdate)
-        {
-            await _redisPubService.SendDeviceOnlineStatus(CurrentDevice.Id);
+            Logger.LogError("Error while updating device online status [{DeviceId}], we dont exist in the managers list", CurrentDevice.Id);
+            await Close.CancelAsync();
+            if (WebSocket != null)
+                await WebSocket.CloseAsync(WebSocketCloseStatus.InternalServerError, "Device not found in manager",
+                    CancellationToken.None);
         }
     }
     

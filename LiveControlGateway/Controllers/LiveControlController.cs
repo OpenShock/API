@@ -1,5 +1,4 @@
-﻿using System.Net;
-using System.Net.WebSockets;
+﻿using System.Net.WebSockets;
 using System.Text.Json;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -7,7 +6,6 @@ using Microsoft.AspNetCore.Mvc.Filters;
 using Microsoft.EntityFrameworkCore;
 using OneOf;
 using OneOf.Types;
-using OpenShock.Common;
 using OpenShock.Common.Authentication;
 using OpenShock.Common.Authentication.Attributes;
 using OpenShock.Common.Authentication.Services;
@@ -38,6 +36,7 @@ namespace OpenShock.LiveControlGateway.Controllers;
 public sealed class LiveControlController : WebsocketBaseController<IBaseResponse<LiveResponseType>>, IActionFilter
 {
     private readonly OpenShockContext _db;
+    private readonly DeviceLifetimeManager _deviceLifetimeManager;
 
     private static readonly TimeSpan PingInterval = TimeSpan.FromSeconds(5);
 
@@ -75,10 +74,15 @@ public sealed class LiveControlController : WebsocketBaseController<IBaseRespons
     /// <param name="db"></param>
     /// <param name="logger"></param>
     /// <param name="lifetime"></param>
-    public LiveControlController(OpenShockContext db,
-        ILogger<LiveControlController> logger, IHostApplicationLifetime lifetime) : base(logger, lifetime)
+    /// <param name="deviceLifetimeManager"></param>
+    public LiveControlController(
+        OpenShockContext db,
+        ILogger<LiveControlController> logger,
+        IHostApplicationLifetime lifetime,
+        DeviceLifetimeManager deviceLifetimeManager) : base(logger, lifetime)
     {
         _db = db;
+        _deviceLifetimeManager = deviceLifetimeManager;
         _pingTimer.Elapsed += (_, _) => LucTask.Run(SendPing);
     }
 
@@ -212,7 +216,7 @@ public sealed class LiveControlController : WebsocketBaseController<IBaseRespons
                 Client = _tps
             }
         });
-        await UpdateConnectedState(DeviceLifetimeManager.IsConnected(Id), true);
+        await UpdateConnectedState(_deviceLifetimeManager.IsConnected(Id), true);
     }
 
     private bool _lastIsConnected;
@@ -499,7 +503,7 @@ public sealed class LiveControlController : WebsocketBaseController<IBaseRespons
         // Clamp to limits
         var intensity = Math.Clamp(frame.Intensity, HardLimits.MinControlIntensity, perms.Intensity ?? HardLimits.MaxControlIntensity);
 
-        var result = DeviceLifetimeManager.ReceiveFrame(Id, frame.Shocker, frame.Type, intensity, _tps);
+        var result = _deviceLifetimeManager.ReceiveFrame(Id, frame.Shocker, frame.Type, intensity, _tps);
         if (result.IsT0)
         {
             Logger.LogTrace("Successfully received frame");

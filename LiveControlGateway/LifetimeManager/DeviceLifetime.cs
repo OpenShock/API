@@ -4,14 +4,18 @@ using Microsoft.EntityFrameworkCore;
 using OneOf;
 using OneOf.Types;
 using OpenShock.Common;
+using OpenShock.Common.Constants;
 using OpenShock.Common.Models;
 using OpenShock.Common.OpenShockDb;
+using OpenShock.Common.Redis;
 using OpenShock.Common.Redis.PubSub;
+using OpenShock.Common.Services.RedisPubSub;
 using OpenShock.Common.Utils;
 using OpenShock.LiveControlGateway.Controllers;
 using OpenShock.LiveControlGateway.Websocket;
 using OpenShock.Serialization.Gateway;
 using OpenShock.Serialization.Types;
+using Redis.OM.Contracts;
 using Semver;
 using ShockerModelType = OpenShock.Serialization.Types.ShockerModelType;
 
@@ -32,6 +36,8 @@ public sealed class DeviceLifetime : IAsyncDisposable
     private readonly CancellationToken _cancellationToken;
 
     private readonly IDbContextFactory<OpenShockContext> _dbContextFactory;
+    private readonly IRedisConnectionProvider _redisConnectionProvider;
+    private readonly IRedisPubService _redisPubService;
 
     /// <summary>
     /// DI Constructor
@@ -39,15 +45,21 @@ public sealed class DeviceLifetime : IAsyncDisposable
     /// <param name="tps"></param>
     /// <param name="deviceController"></param>
     /// <param name="dbContextFactory"></param>
+    /// <param name="redisPubService"></param>
     /// <param name="cancellationToken"></param>
+    /// <param name="redisConnectionProvider"></param>
     public DeviceLifetime([Range(1, 10)] byte tps, IDeviceController deviceController,
         IDbContextFactory<OpenShockContext> dbContextFactory,
+        IRedisConnectionProvider redisConnectionProvider,
+        IRedisPubService redisPubService,
         CancellationToken cancellationToken = default)
     {
         _tps = tps;
         _deviceController = deviceController;
         _cancellationToken = cancellationToken;
         _dbContextFactory = dbContextFactory;
+        _redisConnectionProvider = redisConnectionProvider;
+        _redisPubService = redisPubService;
 
         _waitBetweenTicks = TimeSpan.FromMilliseconds(Math.Floor((float)1000 / tps));
         _commandDuration = (ushort)(_waitBetweenTicks.TotalMilliseconds * 2.5);
@@ -215,6 +227,143 @@ public sealed class DeviceLifetime : IAsyncDisposable
     /// <returns></returns>
     public ValueTask OtaInstall(SemVersion semVersion) => _deviceController.OtaInstall(semVersion);
 
+    /// <summary>
+    /// Update self online status
+    /// </summary>
+    /// <param name="device"></param>
+    /// <param name="data"></param>
+    /// <returns></returns>
+    public async Task<OneOf<Success, OnlineStateUpdated>> Online(Guid device, SelfOnlineData data)
+    {
+        var deviceOnline = _redisConnectionProvider.RedisCollection<DeviceOnline>();
+        var deviceId = device.ToString();
+        var online = await deviceOnline.FindByIdAsync(deviceId);
+        if (online == null)
+        {
+            await deviceOnline.InsertAsync(new DeviceOnline
+            {
+                Id = device,
+                Owner = data.Owner,
+                FirmwareVersion = data.FirmwareVersion,
+                Gateway = data.Gateway,
+                ConnectedAt = data.ConnectedAt,
+                UserAgent = data.UserAgent,
+                Latency = data.Latency,
+                Rssi = data.Rssi,
+                Uptime = data.Uptime
+            }, Duration.DeviceKeepAliveTimeout);
+
+            
+            await _redisPubService.SendDeviceOnlineStatus(device);
+            return new Success();
+        }
+
+        // We cannot rely on the json set anymore, since that also happens with uptime and latency
+        // as we dont want to send a device online status every time, we will do it here
+        online.Uptime = data.Uptime;
+        online.Latency = data.Latency;
+        online.Rssi = data.Rssi;
+
+        var sendOnlineStatusUpdate = false;
+        
+        if (online.FirmwareVersion != data.FirmwareVersion ||
+            online.Gateway != data.Gateway ||
+            online.ConnectedAt != data.ConnectedAt ||
+            online.UserAgent != data.UserAgent)
+        {
+            online.Gateway = data.Gateway;
+            online.FirmwareVersion = data.FirmwareVersion!;
+            online.ConnectedAt = data.ConnectedAt;
+            online.UserAgent = data.UserAgent;
+            
+            sendOnlineStatusUpdate = true;
+        }
+
+        await deviceOnline.UpdateAsync(online, Duration.DeviceKeepAliveTimeout);
+        
+        if (sendOnlineStatusUpdate)
+        {
+            await _redisPubService.SendDeviceOnlineStatus(device);
+            return new OnlineStateUpdated();
+        }
+
+        return new Success();
+    }
+
     /// <inheritdoc />
     public ValueTask DisposeAsync() => _deviceController.DisposeAsync();
+}
+
+/// <summary>
+/// Online state updated
+/// </summary>
+public readonly struct OnlineStateUpdated;
+
+/// <summary>
+/// Self online data struct
+/// </summary>
+public readonly struct SelfOnlineData
+{
+    /// <summary>
+    /// Man why do I need a constructor for this wtf
+    /// </summary>
+    /// <param name="owner"></param>
+    /// <param name="gateway"></param>
+    /// <param name="firmwareVersion"></param>
+    /// <param name="connectedAt"></param>
+    /// <param name="uptime"></param>
+    /// <param name="userAgent"></param>
+    /// <param name="latency"></param>
+    /// <param name="rssi"></param>
+    public SelfOnlineData(Guid owner, string gateway, SemVersion firmwareVersion, DateTimeOffset connectedAt, TimeSpan uptime, string userAgent, TimeSpan? latency = null, int rssi = -70)
+    {
+        Owner = owner;
+        Gateway = gateway;
+        FirmwareVersion = firmwareVersion;
+        ConnectedAt = connectedAt;
+        Uptime = uptime;
+        UserAgent = userAgent;
+        Latency = latency;
+        Rssi = rssi;
+    }
+    
+    /// <summary>
+    /// The owner of the device
+    /// </summary>
+    public required Guid Owner { get; init; }
+    
+    /// <summary>
+    /// Our gateway fqdn
+    /// </summary>
+    public required string Gateway { get; init; }
+    
+    /// <summary>
+    /// Firmware version sent by the hub
+    /// </summary>
+    public required SemVersion FirmwareVersion { get; init; }
+    
+    /// <summary>
+    /// When the websocket connected
+    /// </summary>
+    public required DateTimeOffset ConnectedAt { get; init; }
+    
+    /// <summary>
+    /// Raw useragent
+    /// </summary>
+    public string? UserAgent { get; init; } = null;
+    
+    /// <summary>
+    /// Hub uptime
+    /// </summary>
+    public required TimeSpan Uptime { get; init; }
+    
+    /// <summary>
+    /// Measured latency
+    /// </summary>
+    public TimeSpan? Latency { get; init; } = null;
+    
+    /// <summary>
+    /// Wifi rssi
+    /// </summary>
+    public int Rssi { get; init; } = -70;
 }
