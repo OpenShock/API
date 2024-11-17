@@ -248,9 +248,9 @@ public sealed class DeviceLifetime : IAsyncDisposable
                 Gateway = data.Gateway,
                 ConnectedAt = data.ConnectedAt,
                 UserAgent = data.UserAgent,
-                Latency = data.Latency,
+                BootedAt = data.BootedAt,
+                LatencyMs = data.LatencyMs,
                 Rssi = data.Rssi,
-                Uptime = data.Uptime
             }, Duration.DeviceKeepAliveTimeout);
 
             
@@ -259,9 +259,9 @@ public sealed class DeviceLifetime : IAsyncDisposable
         }
 
         // We cannot rely on the json set anymore, since that also happens with uptime and latency
-        // as we dont want to send a device online status every time, we will do it here
-        online.Uptime = data.Uptime;
-        online.Latency = data.Latency;
+        // as we don't want to send a device online status every time, we will do it here
+        online.BootedAt = data.BootedAt;
+        online.LatencyMs = data.LatencyMs;
         online.Rssi = data.Rssi;
 
         var sendOnlineStatusUpdate = false;
@@ -311,27 +311,27 @@ public readonly struct SelfOnlineData
     /// <param name="gateway"></param>
     /// <param name="firmwareVersion"></param>
     /// <param name="connectedAt"></param>
-    /// <param name="uptime"></param>
+    /// <param name="bootedAt"></param>
     /// <param name="userAgent"></param>
-    /// <param name="latency"></param>
+    /// <param name="latencyMs"></param>
     /// <param name="rssi"></param>
     public SelfOnlineData(
         Guid owner,
         string gateway,
         SemVersion firmwareVersion,
         DateTimeOffset connectedAt,
-        TimeSpan uptime,
         string userAgent,
-        TimeSpan? latency = null,
-        int rssi = -70)
+        DateTimeOffset bootedAt,
+        ushort? latencyMs = null,
+        int? rssi = null)
     {
         Owner = owner;
         Gateway = gateway;
         FirmwareVersion = firmwareVersion;
         ConnectedAt = connectedAt;
-        Uptime = uptime;
         UserAgent = userAgent;
-        Latency = latency;
+        BootedAt = bootedAt;
+        LatencyMs = latencyMs;
         Rssi = rssi;
     }
     
@@ -363,15 +363,15 @@ public readonly struct SelfOnlineData
     /// <summary>
     /// Hub uptime
     /// </summary>
-    public required TimeSpan Uptime { get; init; }
+    public DateTimeOffset BootedAt { get; init; }
     
     /// <summary>
     /// Measured latency
     /// </summary>
-    public TimeSpan? Latency { get; init; } = null;
+    public ushort? LatencyMs { get; init; } = null;
     
     /// <summary>
     /// Wifi rssi
     /// </summary>
-    public int Rssi { get; init; } = -70;
+    public int? Rssi { get; init; } = null;
 }

@@ -1,4 +1,5 @@
-﻿using System.Net.WebSockets;
+﻿using System.Diagnostics;
+using System.Net.WebSockets;
 using System.Text.Json;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -55,16 +56,13 @@ public sealed class LiveControlController : WebsocketBaseController<IBaseRespons
     private Device? _device;
     private Dictionary<Guid, LiveShockerPermission> _sharedShockers = new();
     private byte _tps = 10;
+    private long _pingTimestamp = Stopwatch.GetTimestamp();
+    private ushort _latencyMs = 0;
     
     /// <summary>
     /// Connection Id for this connection, unique and random per connection
     /// </summary>
     public Guid ConnectionId => Guid.NewGuid();
-
-    /// <summary>
-    /// Last latency in milliseconds, 0 initially
-    /// </summary>
-    public ulong LastLatency { get; private set; } = 0;
 
     private readonly Timer _pingTimer = new(PingInterval);
 
@@ -332,39 +330,19 @@ public sealed class LiveControlController : WebsocketBaseController<IBaseRespons
     private async Task IntakePong(JsonDocument? requestData)
     {
         Logger.LogTrace("Intake pong");
-
-        var currentTimestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
-
-        PingResponse? pong;
-        try
+        
+        // Received pong without sending ping, this could be abusing the pong endpoint.
+        if (_pingTimestamp == 0)
         {
-            pong = requestData.NewSlDeserialize<PingResponse>();
-
-            if (pong == null)
-            {
-                Logger.LogWarning("Error while deserializing pong");
-                await QueueMessage(new Common.Models.WebSocket.BaseResponse<LiveResponseType>
-                {
-                    ResponseType = LiveResponseType.InvalidData
-                });
-                return;
-            }
-        }
-        catch (Exception e)
-        {
-            Logger.LogWarning(e, "Error while deserializing frame");
-            await QueueMessage(new Common.Models.WebSocket.BaseResponse<LiveResponseType>
-            {
-                ResponseType = LiveResponseType.InvalidData
-            });
+            // TODO: Kick or warn client.
             return;
         }
 
-        var latency = currentTimestamp - pong.Timestamp;
-        LastLatency = Convert.ToUInt64(Math.Max(0, latency));
+        _latencyMs = (ushort)Math.Min(Stopwatch.GetElapsedTime(_pingTimestamp).TotalMilliseconds, ushort.MaxValue); // If someone has a ping higher than 65 seconds, they are messing with us. Cap it to 65 seconds
+        _pingTimestamp = 0;
 
         if (Logger.IsEnabled(LogLevel.Trace))
-            Logger.LogTrace("Latency: {Latency}ms (raw: {RawLatency}ms)", LastLatency, latency);
+            Logger.LogTrace("Latency: {Latency}ms", _latencyMs);
 
         await QueueMessage(new Common.Models.WebSocket.BaseResponse<LiveResponseType>
         {
@@ -372,7 +350,7 @@ public sealed class LiveControlController : WebsocketBaseController<IBaseRespons
             Data = new LatencyAnnounceData
             {
                 DeviceLatency = 0, // TODO: Implement device latency calculation
-                OwnLatency = LastLatency
+                OwnLatency = _latencyMs
             }
         });
     }
@@ -575,13 +553,11 @@ public sealed class LiveControlController : WebsocketBaseController<IBaseRespons
             Logger.LogDebug("Sending ping to live control user [{User}] for device [{Device}]", _currentUser.DbUser.Id,
                 Id);
 
+        _pingTimestamp = Stopwatch.GetTimestamp();
         await QueueMessage(new Common.Models.WebSocket.BaseResponse<LiveResponseType>
         {
             ResponseType = LiveResponseType.Ping,
-            Data = new PingResponse
-            {
-                Timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()
-            }
+            Data = new object {} // No data for now
         });
     }
 

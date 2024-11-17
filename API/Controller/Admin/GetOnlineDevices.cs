@@ -52,8 +52,8 @@ public sealed partial class AdminController
                     Name = dbItem.Name,
                     ConnectedAt = x.ConnectedAt,
                     UserAgent = x.UserAgent,
-                    Uptime = x.Uptime,
-                    Latency = x.Latency,
+                    BootedAt = x.BootedAt,
+                    LatencyMs = x.LatencyMs,
                     Rssi = x.Rssi,
                 };
             })
@@ -73,10 +73,8 @@ public sealed partial class AdminController
         public required DateTimeOffset ConnectedAt { get; init; }
         
         public required string? UserAgent { get; init; }
-        [JsonConverter(typeof(TimeSpanToMillisecondsConverter))]
-        public required TimeSpan? Uptime { get; init; }
-        [JsonConverter(typeof(TimeSpanToMillisecondsConverter))]
-        public required TimeSpan? Latency { get; init; }
-        public required int Rssi { get; init; }
+        public required DateTimeOffset BootedAt { get; init; }
+        public required ushort? LatencyMs { get; init; }
+        public required int? Rssi { get; init; }
     }
 }

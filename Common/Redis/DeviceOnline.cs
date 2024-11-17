@@ -18,9 +18,7 @@ public sealed class DeviceOnline
     public required DateTimeOffset ConnectedAt { get; set; }
     public string? UserAgent { get; set; } = null;
     
-    [JsonConverter(typeof(TimeSpanToMillisecondsConverter))]
-    public TimeSpan? Uptime { get; set; }
-    [JsonConverter(typeof(TimeSpanToMillisecondsConverter))]
-    public TimeSpan? Latency { get; set; }
-    public int Rssi { get; set; }
+    public DateTimeOffset BootedAt { get; set; }
+    public ushort? LatencyMs { get; set; }
+    public int? Rssi { get; set; }
 }

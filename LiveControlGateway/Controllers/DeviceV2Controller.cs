@@ -1,4 +1,5 @@
-﻿using Asp.Versioning;
+﻿using System.Diagnostics;
+using Asp.Versioning;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.SignalR;
@@ -27,7 +28,8 @@ public sealed class DeviceV2Controller : DeviceControllerBase<HubToGatewayMessag
 {
     private readonly IHubContext<UserHub, IUserHub> _userHubContext;
     private readonly Timer _pingTimer;
-    private DateTimeOffset _lastPingSent = DateTimeOffset.UtcNow;
+    private long _pingTimestamp = Stopwatch.GetTimestamp();
+    private ushort _latencyMs = 0;
 
     /// <summary>
     /// DI
@@ -54,12 +56,12 @@ public sealed class DeviceV2Controller : DeviceControllerBase<HubToGatewayMessag
     {
         try
         {
-            _lastPingSent = DateTimeOffset.UtcNow;
+            _pingTimestamp = Stopwatch.GetTimestamp();
             await QueueMessage(new GatewayToHubMessage
             {
                 Payload = new GatewayToHubMessagePayload(new Ping
                 {
-                    UnixUtcTime = (ulong)_lastPingSent.ToUnixTimeSeconds()
+                    UnixUtcTime = (ulong)DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(),
                 })
             });
         }
@@ -68,11 +70,6 @@ public sealed class DeviceV2Controller : DeviceControllerBase<HubToGatewayMessag
             Logger.LogError(e, "Error while sending ping message to device [{DeviceId}]", CurrentDevice.Id);
         }
     }
-
-    /// <summary>
-    /// The latency of the last ping
-    /// </summary>
-    public TimeSpan Latency { get; private set; }
     
     private OtaUpdateStatus? _lastStatus;
     
@@ -90,8 +87,17 @@ public sealed class DeviceV2Controller : DeviceControllerBase<HubToGatewayMessag
         switch (payload.Kind)
         {
             case HubToGatewayMessagePayload.ItemKind.Pong:
-                Latency = DateTimeOffset.UtcNow - _lastPingSent;
-                await SelfOnline(TimeSpan.FromMilliseconds(payload.Pong.Uptime), Latency, payload.Pong.Rssi);
+                
+                // Received pong without sending ping, this could be abusing the pong endpoint.
+                if (_pingTimestamp == 0)
+                {
+                    // TODO: Kick or warn client.
+                    return;
+                }
+                
+                _latencyMs = (ushort)Math.Min(Stopwatch.GetElapsedTime(_pingTimestamp).TotalMilliseconds, ushort.MaxValue); // If someone has a ping higher than 65 seconds, they are messing with us. Cap it to 65 seconds
+                _pingTimestamp = 0;
+                await SelfOnline(DateTimeOffset.UtcNow.Subtract(TimeSpan.FromMilliseconds(payload.Pong.Uptime)), _latencyMs, payload.Pong.Rssi);
                 break;
 
             case HubToGatewayMessagePayload.ItemKind.OtaUpdateStarted:

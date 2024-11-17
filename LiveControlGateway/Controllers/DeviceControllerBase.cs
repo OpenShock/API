@@ -154,7 +154,7 @@ public abstract class DeviceControllerBase<TIn, TOut> : FlatbuffersWebsocketBase
     /// <summary>
     /// Keep the device online
     /// </summary>
-    protected async Task SelfOnline(TimeSpan uptime, TimeSpan? latency = null, int rssi = -70) // -70dBm = OK connection
+    protected async Task SelfOnline(DateTimeOffset bootedAt, ushort? latency = null, int? rssi = null)
     {
         Logger.LogDebug("Received keep alive from device [{DeviceId}]", CurrentDevice.Id);
 
@@ -168,8 +168,8 @@ public abstract class DeviceControllerBase<TIn, TOut> : FlatbuffersWebsocketBase
             FirmwareVersion = _firmwareVersion!,
             ConnectedAt = _connected,
             UserAgent = _userAgent,
-            Uptime = uptime,
-            Latency = latency,
+            BootedAt = bootedAt,
+            LatencyMs = latency,
             Rssi = rssi
         });
         
