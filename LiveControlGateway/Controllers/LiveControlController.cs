@@ -557,7 +557,10 @@ public sealed class LiveControlController : WebsocketBaseController<IBaseRespons
         await QueueMessage(new Common.Models.WebSocket.BaseResponse<LiveResponseType>
         {
             ResponseType = LiveResponseType.Ping,
-            Data = new object {} // No data for now
+            Data = new LcgLiveControlPing
+            {
+                Timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()
+            }
         });
     }
 
