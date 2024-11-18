@@ -7,10 +7,10 @@ namespace OpenShock.LiveControlGateway.Controllers;
 /// <summary>
 /// 
 /// </summary>
-public interface IDeviceController : IAsyncDisposable
+public interface IHubController : IAsyncDisposable
 {
     /// <summary>
-    /// The devices ID, unique across all devices
+    /// The hub ID, unique across all hubs
     /// </summary>
     public Guid Id { get; }
 

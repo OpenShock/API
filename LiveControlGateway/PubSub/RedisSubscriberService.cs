@@ -12,18 +12,18 @@ namespace OpenShock.LiveControlGateway.PubSub;
 /// </summary>
 public sealed class RedisSubscriberService : IHostedService, IAsyncDisposable
 {
-    private readonly DeviceLifetimeManager _deviceLifetimeManager;
+    private readonly HubLifetimeManager _hubLifetimeManager;
     private readonly ISubscriber _subscriber;
 
     /// <summary>
     /// DI Constructor
     /// </summary>
     /// <param name="connectionMultiplexer"></param>
-    /// <param name="deviceLifetimeManager"></param>
+    /// <param name="hubLifetimeManager"></param>
     public RedisSubscriberService(
-        IConnectionMultiplexer connectionMultiplexer, DeviceLifetimeManager deviceLifetimeManager)
+        IConnectionMultiplexer connectionMultiplexer, HubLifetimeManager hubLifetimeManager)
     {
-        _deviceLifetimeManager = deviceLifetimeManager;
+        _hubLifetimeManager = hubLifetimeManager;
         _subscriber = connectionMultiplexer.GetSubscriber();
     }
 
@@ -48,7 +48,7 @@ public sealed class RedisSubscriberService : IHostedService, IAsyncDisposable
         var data = JsonSerializer.Deserialize<ControlMessage>(value.ToString());
         if (data == null) return;
 
-        await Task.WhenAll(data.ControlMessages.Select(x => _deviceLifetimeManager.Control(x.Key, x.Value)));
+        await Task.WhenAll(data.ControlMessages.Select(x => _hubLifetimeManager.Control(x.Key, x.Value)));
     }
 
     private async Task DeviceControlCaptive(RedisValue value)
@@ -57,7 +57,7 @@ public sealed class RedisSubscriberService : IHostedService, IAsyncDisposable
         var data = JsonSerializer.Deserialize<CaptiveMessage>(value.ToString());
         if (data == null) return;
 
-        await _deviceLifetimeManager.ControlCaptive(data.DeviceId, data.Enabled);
+        await _hubLifetimeManager.ControlCaptive(data.DeviceId, data.Enabled);
     }
 
     /// <summary>
@@ -71,7 +71,7 @@ public sealed class RedisSubscriberService : IHostedService, IAsyncDisposable
         var data = JsonSerializer.Deserialize<DeviceUpdatedMessage>(value.ToString());
         if (data == null) return;
         
-        await _deviceLifetimeManager.UpdateDevice(data.Id);
+        await _hubLifetimeManager.UpdateDevice(data.Id);
     }
 
     /// <summary>
@@ -85,7 +85,7 @@ public sealed class RedisSubscriberService : IHostedService, IAsyncDisposable
         var data = JsonSerializer.Deserialize<DeviceOtaInstallMessage>(value.ToString());
         if (data == null) return;
         
-        await _deviceLifetimeManager.OtaInstall(data.Id, data.Version);
+        await _hubLifetimeManager.OtaInstall(data.Id, data.Version);
     }
 
 

@@ -109,7 +109,7 @@ public sealed class Startup
         services.AddHostedService<RedisSubscriberService>(); 
         services.AddHostedService<LcgKeepAlive>();
 
-        services.AddSingleton<DeviceLifetimeManager>();
+        services.AddSingleton<HubLifetimeManager>();
 
     }
 

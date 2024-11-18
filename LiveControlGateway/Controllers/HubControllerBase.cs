@@ -26,16 +26,16 @@ using Timer = System.Timers.Timer;
 namespace OpenShock.LiveControlGateway.Controllers;
 
 /// <summary>
-/// Basis for the device controllers, shares common functionality
+/// Basis for the hub controllers, shares common functionality
 /// </summary>
 /// <typeparam name="TIn">The type we are receiving / deserializing</typeparam>
 /// <typeparam name="TOut">The type we are sending out / serializing</typeparam>
-public abstract class DeviceControllerBase<TIn, TOut> : FlatbuffersWebsocketBaseController<TIn, TOut>, IDeviceController, IActionFilter where TIn : class, IFlatBufferSerializable where TOut : class, IFlatBufferSerializable
+public abstract class HubControllerBase<TIn, TOut> : FlatbuffersWebsocketBaseController<TIn, TOut>, IHubController, IActionFilter where TIn : class, IFlatBufferSerializable where TOut : class, IFlatBufferSerializable
 {
     /// <summary>
-    /// The current device
+    /// The current hub
     /// </summary>
-    protected Device CurrentDevice = null!;
+    protected Device CurrentHub = null!;
     
     /// <summary>
     /// Service provider
@@ -44,14 +44,14 @@ public abstract class DeviceControllerBase<TIn, TOut> : FlatbuffersWebsocketBase
 
     private readonly LCGConfig _lcgConfig;
 
-    private readonly DeviceLifetimeManager _deviceLifetimeManager;
+    private readonly HubLifetimeManager _hubLifetimeManager;
 
     private readonly Timer _keepAliveTimeoutTimer = new(Duration.DeviceKeepAliveInitialTimeout);
     private DateTimeOffset _connected = DateTimeOffset.UtcNow;
     private string? _userAgent;
 
-    /// <inheritdoc cref="IDeviceController.Id" />
-    public override Guid Id => CurrentDevice.Id;
+    /// <inheritdoc cref="IHubController.Id" />
+    public override Guid Id => CurrentHub.Id;
     
     /// <summary>
     /// Authentication context
@@ -60,7 +60,7 @@ public abstract class DeviceControllerBase<TIn, TOut> : FlatbuffersWebsocketBase
     [NonAction]
     public void OnActionExecuting(ActionExecutingContext context)
     {
-        CurrentDevice = ControllerContext.HttpContext.RequestServices
+        CurrentHub = ControllerContext.HttpContext.RequestServices
             .GetRequiredService<IClientAuthService<Device>>()
             .CurrentClient;
     }
@@ -81,20 +81,20 @@ public abstract class DeviceControllerBase<TIn, TOut> : FlatbuffersWebsocketBase
     /// <param name="lifetime"></param>
     /// <param name="incomingSerializer"></param>
     /// <param name="outgoingSerializer"></param>
-    /// <param name="deviceLifetimeManager"></param>
+    /// <param name="hubLifetimeManager"></param>
     /// <param name="serviceProvider"></param>
     /// <param name="lcgConfig"></param>
-    protected DeviceControllerBase(
+    protected HubControllerBase(
         ILogger<FlatbuffersWebsocketBaseController<TIn, TOut>> logger,
         IHostApplicationLifetime lifetime,
         ISerializer<TIn> incomingSerializer,
         ISerializer<TOut> outgoingSerializer,
-        DeviceLifetimeManager deviceLifetimeManager,
+        HubLifetimeManager hubLifetimeManager,
         IServiceProvider serviceProvider,
         LCGConfig lcgConfig
         ) : base(logger, lifetime, incomingSerializer, outgoingSerializer)
     {
-        _deviceLifetimeManager = deviceLifetimeManager;
+        _hubLifetimeManager = hubLifetimeManager;
         ServiceProvider = serviceProvider;
         _lcgConfig = lcgConfig;
         _keepAliveTimeoutTimer.Elapsed += async (sender, args) =>
@@ -132,14 +132,14 @@ public abstract class DeviceControllerBase<TIn, TOut> : FlatbuffersWebsocketBase
     /// <inheritdoc />
     protected override async Task RegisterConnection()
     {
-        await _deviceLifetimeManager.AddDeviceConnection(5, this, LinkedToken);
+        await _hubLifetimeManager.AddDeviceConnection(5, this, LinkedToken);
     }
     
     /// <inheritdoc />
     protected override async Task UnregisterConnection()
     {
-        Logger.LogDebug("Unregistering device connection [{DeviceId}]", Id);
-        await _deviceLifetimeManager.RemoveDeviceConnection(this);
+        Logger.LogDebug("Unregistering hub connection [{HubId}]", Id);
+        await _hubLifetimeManager.RemoveDeviceConnection(this);
     }
     
     /// <inheritdoc />
@@ -152,18 +152,18 @@ public abstract class DeviceControllerBase<TIn, TOut> : FlatbuffersWebsocketBase
     public abstract ValueTask OtaInstall(SemVersion version);
     
     /// <summary>
-    /// Keep the device online
+    /// Keep the hub online
     /// </summary>
     protected async Task SelfOnline(DateTimeOffset bootedAt, ushort? latency = null, int? rssi = null)
     {
-        Logger.LogDebug("Received keep alive from device [{DeviceId}]", CurrentDevice.Id);
+        Logger.LogDebug("Received keep alive from hub [{HubId}]", CurrentHub.Id);
 
         // Reset the keep alive timeout
         _keepAliveTimeoutTimer.Interval = Duration.DeviceKeepAliveTimeout.TotalMilliseconds;
 
-        var result = await _deviceLifetimeManager.DeviceOnline(CurrentDevice.Id, new SelfOnlineData()
+        var result = await _hubLifetimeManager.DeviceOnline(CurrentHub.Id, new SelfOnlineData()
         {
-            Owner = CurrentDevice.Owner,
+            Owner = CurrentHub.Owner,
             Gateway = _lcgConfig.Lcg.Fqdn,
             FirmwareVersion = _firmwareVersion!,
             ConnectedAt = _connected,
@@ -175,10 +175,10 @@ public abstract class DeviceControllerBase<TIn, TOut> : FlatbuffersWebsocketBase
         
         if (result.IsT1)
         {
-            Logger.LogError("Error while updating device online status [{DeviceId}], we dont exist in the managers list", CurrentDevice.Id);
+            Logger.LogError("Error while updating hub online status [{HubId}], we dont exist in the managers list", CurrentHub.Id);
             await Close.CancelAsync();
             if (WebSocket != null)
-                await WebSocket.CloseAsync(WebSocketCloseStatus.InternalServerError, "Device not found in manager",
+                await WebSocket.CloseAsync(WebSocketCloseStatus.InternalServerError, "Hub not found in manager",
                     CancellationToken.None);
         }
     }

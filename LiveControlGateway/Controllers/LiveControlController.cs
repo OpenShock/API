@@ -31,13 +31,13 @@ namespace OpenShock.LiveControlGateway.Controllers;
 /// Live control controller
 /// </summary>
 [ApiController]
-[Route("/{version:apiVersion}/ws/live/{deviceId:guid}")]
+[Route("/{version:apiVersion}/ws/live/{hubId:guid}")]
 [TokenPermission(PermissionType.Shockers_Use)]
 [Authorize(AuthenticationSchemes = OpenShockAuthSchemas.SessionTokenCombo)]
 public sealed class LiveControlController : WebsocketBaseController<IBaseResponse<LiveResponseType>>, IActionFilter
 {
     private readonly OpenShockContext _db;
-    private readonly DeviceLifetimeManager _deviceLifetimeManager;
+    private readonly HubLifetimeManager _hubLifetimeManager;
 
     private static readonly TimeSpan PingInterval = TimeSpan.FromSeconds(5);
 
@@ -52,7 +52,7 @@ public sealed class LiveControlController : WebsocketBaseController<IBaseRespons
     };
 
     private LinkUser _currentUser = null!;
-    private Guid? _deviceId;
+    private Guid? _hubId;
     private Device? _device;
     private Dictionary<Guid, LiveShockerPermission> _sharedShockers = new();
     private byte _tps = 10;
@@ -72,15 +72,15 @@ public sealed class LiveControlController : WebsocketBaseController<IBaseRespons
     /// <param name="db"></param>
     /// <param name="logger"></param>
     /// <param name="lifetime"></param>
-    /// <param name="deviceLifetimeManager"></param>
+    /// <param name="hubLifetimeManager"></param>
     public LiveControlController(
         OpenShockContext db,
         ILogger<LiveControlController> logger,
         IHostApplicationLifetime lifetime,
-        DeviceLifetimeManager deviceLifetimeManager) : base(logger, lifetime)
+        HubLifetimeManager hubLifetimeManager) : base(logger, lifetime)
     {
         _db = db;
-        _deviceLifetimeManager = deviceLifetimeManager;
+        _hubLifetimeManager = hubLifetimeManager;
         _pingTimer.Elapsed += (_, _) => LucTask.Run(SendPing);
     }
 
@@ -99,18 +99,18 @@ public sealed class LiveControlController : WebsocketBaseController<IBaseRespons
     }
 
     /// <summary>
-    /// Update all shockers permissions for this user on this device
+    /// Update all shockers permissions for this user on this hub
     /// </summary>
     /// <param name="db"></param>
     [NonAction]
     public async Task UpdatePermissions(OpenShockContext db)
     {
-        Logger.LogDebug("Updating shared permissions for device [{Device}] for user [{User}]", Id,
+        Logger.LogDebug("Updating shared permissions for hub [{HubId}] for user [{User}]", Id,
             _currentUser.DbUser.Id);
         
         if (_device!.Owner == _currentUser.DbUser.Id)
         {
-            Logger.LogTrace("User is owner of device");
+            Logger.LogTrace("User is owner of hub");
             _sharedShockers = await db.Shockers.Where(x => x.Device == Id).ToDictionaryAsync(x => x.Id, x => new LiveShockerPermission()
             {
                 Paused = x.Paused,
@@ -140,28 +140,28 @@ public sealed class LiveControlController : WebsocketBaseController<IBaseRespons
     }
 
     /// <summary>
-    /// We get the id from the route, check if its valid, check if the user has access to the shocker / device
+    /// We get the id from the route, check if its valid, check if the user has access to the shocker / hub
     /// </summary>
     /// <returns></returns>
     protected override async Task<OneOf<Success, OneOf.Types.Error<OpenShockProblem>>> ConnectionPrecondition()
     {
-        if (HttpContext.GetRouteValue("deviceId") is not string param || !Guid.TryParse(param, out var id))
+        if (HttpContext.GetRouteValue("hubId") is not string param || !Guid.TryParse(param, out var id))
         {
             return new OneOf.Types.Error<OpenShockProblem>(WebsocketError.WebsocketLiveControlHubIdInvalid);
         }
 
-        _deviceId = id;
+        _hubId = id;
 
-        var deviceExistsAndYouHaveAccess = await _db.Devices.AnyAsync(x =>
-            x.Id == _deviceId && (x.Owner == _currentUser.DbUser.Id || x.Shockers.Any(y => y.ShockerShares.Any(
+        var hubExistsAndYouHaveAccess = await _db.Devices.AnyAsync(x =>
+            x.Id == _hubId && (x.Owner == _currentUser.DbUser.Id || x.Shockers.Any(y => y.ShockerShares.Any(
                 z => z.SharedWith == _currentUser.DbUser.Id && z.PermLive))));
 
-        if (!deviceExistsAndYouHaveAccess)
+        if (!hubExistsAndYouHaveAccess)
         {
             return new OneOf.Types.Error<OpenShockProblem>(WebsocketError.WebsocketLiveControlHubNotFound);
         }
         
-        _device = await _db.Devices.FirstOrDefaultAsync(x => x.Id == _deviceId);
+        _device = await _db.Devices.FirstOrDefaultAsync(x => x.Id == _hubId);
 
         await UpdatePermissions(_db);
         
@@ -201,7 +201,7 @@ public sealed class LiveControlController : WebsocketBaseController<IBaseRespons
     }
 
     /// <inheritdoc />
-    public override Guid Id => _deviceId ?? throw new Exception("Device id is null");
+    public override Guid Id => _hubId ?? throw new Exception("Hub id is null");
 
     /// <inheritdoc />
     protected override async Task SendInitialData()
@@ -214,13 +214,13 @@ public sealed class LiveControlController : WebsocketBaseController<IBaseRespons
                 Client = _tps
             }
         });
-        await UpdateConnectedState(_deviceLifetimeManager.IsConnected(Id), true);
+        await UpdateConnectedState(_hubLifetimeManager.IsConnected(Id), true);
     }
 
     private bool _lastIsConnected;
 
     /// <summary>
-    /// Update the connected state of the device if different from what was last sent
+    /// Update the connected state of the hub if different from what was last sent
     /// </summary>
     /// <param name="isConnected"></param>
     /// <param name="force"></param>
@@ -229,7 +229,7 @@ public sealed class LiveControlController : WebsocketBaseController<IBaseRespons
     {
         if (_lastIsConnected == isConnected && !force) return;
 
-        Logger.LogTrace("Sending connection update for device [{Device}] [{State}]", Id, isConnected);
+        Logger.LogTrace("Sending connection update for hub [{HubId}] [{State}]", Id, isConnected);
 
         _lastIsConnected = isConnected;
         try
@@ -243,7 +243,7 @@ public sealed class LiveControlController : WebsocketBaseController<IBaseRespons
         }
         catch (Exception e)
         {
-            Logger.LogWarning(e, "Error while sending device connected state");
+            Logger.LogWarning(e, "Error while sending hub connected state");
         }
     }
 
@@ -349,7 +349,7 @@ public sealed class LiveControlController : WebsocketBaseController<IBaseRespons
             ResponseType = LiveResponseType.LatencyAnnounce,
             Data = new LatencyAnnounceData
             {
-                DeviceLatency = 0, // TODO: Implement device latency calculation
+                DeviceLatency = 0, // TODO: Implement hub latency calculation
                 OwnLatency = _latencyMs
             }
         });
@@ -481,7 +481,7 @@ public sealed class LiveControlController : WebsocketBaseController<IBaseRespons
         // Clamp to limits
         var intensity = Math.Clamp(frame.Intensity, HardLimits.MinControlIntensity, perms.Intensity ?? HardLimits.MaxControlIntensity);
 
-        var result = _deviceLifetimeManager.ReceiveFrame(Id, frame.Shocker, frame.Type, intensity, _tps);
+        var result = _hubLifetimeManager.ReceiveFrame(Id, frame.Shocker, frame.Type, intensity, _tps);
         if (result.IsT0)
         {
             Logger.LogTrace("Successfully received frame");
@@ -550,7 +550,7 @@ public sealed class LiveControlController : WebsocketBaseController<IBaseRespons
         if (WebSocket is not { State: WebSocketState.Open }) return;
 
         if (Logger.IsEnabled(LogLevel.Debug))
-            Logger.LogDebug("Sending ping to live control user [{User}] for device [{Device}]", _currentUser.DbUser.Id,
+            Logger.LogDebug("Sending ping to live control user [{UserId}] for hub [{HubId}]", _currentUser.DbUser.Id,
                 Id);
 
         _pingTimestamp = Stopwatch.GetTimestamp();

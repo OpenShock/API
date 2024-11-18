@@ -16,13 +16,13 @@ namespace OpenShock.LiveControlGateway.LifetimeManager;
 /// <summary>
 /// Lifetime manager for devices, this class is responsible for managing the lifetime of devices
 /// </summary>
-public sealed class DeviceLifetimeManager
+public sealed class HubLifetimeManager
 {
-    private readonly ILogger<DeviceLifetimeManager> _logger;
+    private readonly ILogger<HubLifetimeManager> _logger;
     private readonly IDbContextFactory<OpenShockContext> _dbContextFactory;
     private readonly IRedisConnectionProvider _redisConnectionProvider;
     private readonly IRedisPubService _redisPubService;
-    private readonly ConcurrentDictionary<Guid, DeviceLifetime> _managers = new();
+    private readonly ConcurrentDictionary<Guid, HubLifetime> _managers = new();
 
     /// <summary>
     /// DI constructor
@@ -31,8 +31,8 @@ public sealed class DeviceLifetimeManager
     /// <param name="dbContextFactory"></param>
     /// <param name="redisConnectionProvider"></param>
     /// <param name="redisPubService"></param>
-    public DeviceLifetimeManager(
-        ILogger<DeviceLifetimeManager> logger,
+    public HubLifetimeManager(
+        ILogger<HubLifetimeManager> logger,
         IDbContextFactory<OpenShockContext> dbContextFactory,
         IRedisConnectionProvider redisConnectionProvider,
         IRedisPubService redisPubService)
@@ -47,21 +47,21 @@ public sealed class DeviceLifetimeManager
     /// Add device to lifetime manager, called on successful connect of device
     /// </summary>
     /// <param name="tps"></param>
-    /// <param name="deviceController"></param>
+    /// <param name="hubController"></param>
     /// <param name="cancellationToken"></param>
     /// <returns></returns>
-    public async Task<DeviceLifetime> AddDeviceConnection(byte tps, IDeviceController deviceController, CancellationToken cancellationToken)
+    public async Task<HubLifetime> AddDeviceConnection(byte tps, IHubController hubController, CancellationToken cancellationToken)
     {
-            if (_managers.TryGetValue(deviceController.Id, out var oldController))
+            if (_managers.TryGetValue(hubController.Id, out var oldController))
             {
                 _logger.LogDebug("Disposing old device controller");
                 await oldController.DisposeAsync();
             }
-            _logger.LogInformation("New device connected, creating lifetime [{DeviceId}]", deviceController.Id);
+            _logger.LogInformation("New device connected, creating lifetime [{DeviceId}]", hubController.Id);
             
-            var deviceLifetime = new DeviceLifetime(
+            var deviceLifetime = new HubLifetime(
                 tps,
-                deviceController,
+                hubController,
                 _dbContextFactory,
                 _redisConnectionProvider,
                 _redisPubService,
@@ -70,9 +70,9 @@ public sealed class DeviceLifetimeManager
             await using var db = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
         
             await deviceLifetime.InitAsync(db);
-            _managers[deviceController.Id] = deviceLifetime;
+            _managers[hubController.Id] = deviceLifetime;
             
-            foreach (var websocketController in WebsocketManager.LiveControlUsers.GetConnections(deviceController.Id)) 
+            foreach (var websocketController in WebsocketManager.LiveControlUsers.GetConnections(hubController.Id)) 
                 await websocketController.UpdateConnectedState(true);
             
             return deviceLifetime;
@@ -81,13 +81,13 @@ public sealed class DeviceLifetimeManager
     /// <summary>
     /// Remove device from Lifetime Manager, called on dispose of device controller
     /// </summary>
-    /// <param name="deviceController"></param>
-    public async Task RemoveDeviceConnection(IDeviceController deviceController)
+    /// <param name="hubController"></param>
+    public async Task RemoveDeviceConnection(IHubController hubController)
     {
-        foreach (var websocketController in WebsocketManager.LiveControlUsers.GetConnections(deviceController.Id)) 
+        foreach (var websocketController in WebsocketManager.LiveControlUsers.GetConnections(hubController.Id)) 
             await websocketController.UpdateConnectedState(false);
         
-        _managers.Remove(deviceController.Id, out _);
+        _managers.Remove(hubController.Id, out _);
     }
 
     /// <summary>

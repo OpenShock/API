@@ -24,15 +24,15 @@ namespace OpenShock.LiveControlGateway.LifetimeManager;
 /// <summary>
 /// Handles all Business Logic for a single device
 /// </summary>
-public sealed class DeviceLifetime : IAsyncDisposable
+public sealed class HubLifetime : IAsyncDisposable
 {
     private readonly TimeSpan _waitBetweenTicks;
     private readonly ushort _commandDuration;
-    private static readonly ILogger<DeviceLifetime> Logger = ApplicationLogging.CreateLogger<DeviceLifetime>();
+    private static readonly ILogger<HubLifetime> Logger = ApplicationLogging.CreateLogger<HubLifetime>();
 
     private Dictionary<Guid, ShockerState> _shockerStates = new();
     private readonly byte _tps;
-    private readonly IDeviceController _deviceController;
+    private readonly IHubController _hubController;
     private readonly CancellationToken _cancellationToken;
 
     private readonly IDbContextFactory<OpenShockContext> _dbContextFactory;
@@ -43,19 +43,19 @@ public sealed class DeviceLifetime : IAsyncDisposable
     /// DI Constructor
     /// </summary>
     /// <param name="tps"></param>
-    /// <param name="deviceController"></param>
+    /// <param name="hubController"></param>
     /// <param name="dbContextFactory"></param>
     /// <param name="redisPubService"></param>
     /// <param name="cancellationToken"></param>
     /// <param name="redisConnectionProvider"></param>
-    public DeviceLifetime([Range(1, 10)] byte tps, IDeviceController deviceController,
+    public HubLifetime([Range(1, 10)] byte tps, IHubController hubController,
         IDbContextFactory<OpenShockContext> dbContextFactory,
         IRedisConnectionProvider redisConnectionProvider,
         IRedisPubService redisPubService,
         CancellationToken cancellationToken = default)
     {
         _tps = tps;
-        _deviceController = deviceController;
+        _hubController = hubController;
         _cancellationToken = cancellationToken;
         _dbContextFactory = dbContextFactory;
         _redisConnectionProvider = redisConnectionProvider;
@@ -97,7 +97,7 @@ public sealed class DeviceLifetime : IAsyncDisposable
             var waitTime = _waitBetweenTicks - elapsed;
             if (waitTime.TotalMilliseconds < 1)
             {
-                Logger.LogWarning("Update loop running behind for device [{DeviceId}]", _deviceController.Id);
+                Logger.LogWarning("Update loop running behind for device [{DeviceId}]", _hubController.Id);
                 continue;
             }
 
@@ -126,7 +126,7 @@ public sealed class DeviceLifetime : IAsyncDisposable
 
         if (commandList == null) return;
 
-        await _deviceController.Control(commandList);
+        await _hubController.Control(commandList);
     }
 
     /// <summary>
@@ -138,7 +138,7 @@ public sealed class DeviceLifetime : IAsyncDisposable
         await UpdateShockers(db);
 
         foreach (var websocketController in
-                 WebsocketManager.LiveControlUsers.GetConnections(_deviceController.Id))
+                 WebsocketManager.LiveControlUsers.GetConnections(_hubController.Id))
             await websocketController.UpdatePermissions(db);
     }
 
@@ -147,8 +147,8 @@ public sealed class DeviceLifetime : IAsyncDisposable
     /// </summary>
     private async Task UpdateShockers(OpenShockContext db)
     {
-        Logger.LogDebug("Updating shockers for device [{DeviceId}]", _deviceController.Id);
-        var ownShockers = await db.Shockers.Where(x => x.Device == _deviceController.Id).Select(x => new ShockerState()
+        Logger.LogDebug("Updating shockers for device [{DeviceId}]", _hubController.Id);
+        var ownShockers = await db.Shockers.Where(x => x.Device == _hubController.Id).Select(x => new ShockerState()
         {
             Id = x.Id,
             Model = x.Model,
@@ -211,7 +211,7 @@ public sealed class DeviceLifetime : IAsyncDisposable
             });
         }
 
-        return _deviceController.Control(shocksTransformed);
+        return _hubController.Control(shocksTransformed);
     }
 
     /// <summary>
@@ -219,13 +219,13 @@ public sealed class DeviceLifetime : IAsyncDisposable
     /// </summary>
     /// <param name="enabled"></param>
     /// <returns></returns>
-    public ValueTask ControlCaptive(bool enabled) => _deviceController.CaptivePortal(enabled);
+    public ValueTask ControlCaptive(bool enabled) => _hubController.CaptivePortal(enabled);
 
     /// <summary>
     /// Ota install from redis
     /// </summary>
     /// <returns></returns>
-    public ValueTask OtaInstall(SemVersion semVersion) => _deviceController.OtaInstall(semVersion);
+    public ValueTask OtaInstall(SemVersion semVersion) => _hubController.OtaInstall(semVersion);
 
     /// <summary>
     /// Update self online status
@@ -291,7 +291,7 @@ public sealed class DeviceLifetime : IAsyncDisposable
     }
 
     /// <inheritdoc />
-    public ValueTask DisposeAsync() => _deviceController.DisposeAsync();
+    public ValueTask DisposeAsync() => _hubController.DisposeAsync();
 }
 
 /// <summary>
