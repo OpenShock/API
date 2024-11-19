@@ -19,18 +19,18 @@
           <PrivateAssets>all</PrivateAssets>
           <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
         </PackageReference>
-        <PackageReference Include="Microsoft.EntityFrameworkCore" Version="9.0.0" />
-        <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="9.0.0">
+        <PackageReference Include="Microsoft.EntityFrameworkCore" Version="8.0.11" />
+        <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="8.0.11">
             <PrivateAssets>all</PrivateAssets>
             <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
         </PackageReference>
-        <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" Version="9.0.0" />
-        <PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="9.0.0">
+        <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" Version="8.0.11" />
+        <PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="8.0.11">
             <PrivateAssets>all</PrivateAssets>
             <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
         </PackageReference>
         <PackageReference Include="Microsoft.IO.RecyclableMemoryStream" Version="3.0.1"/>
-        <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="9.0.0" />
+        <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="8.0.10"/>
         <PackageReference Include="NRedisStack" Version="0.13.0" />
         <PackageReference Include="OpenShock.Serialization.Flatbuffers" Version="2.0.0-preview.5" />
         <PackageReference Include="OpenTelemetry.Exporter.Prometheus.AspNetCore" Version="1.10.0-beta.1" />
@@ -51,7 +51,7 @@
         <PackageReference Include="Swashbuckle.AspNetCore.Swagger" Version="7.0.0" />
         <PackageReference Include="Swashbuckle.AspNetCore.SwaggerGen" Version="7.0.0" />
         <PackageReference Include="Swashbuckle.AspNetCore.SwaggerUI" Version="7.0.0" />
-        <PackageReference Include="Z.EntityFramework.Plus.EFCore" Version="9.103.6.2" />
+        <PackageReference Include="Z.EntityFramework.Plus.EFCore" Version="8.103.6.2" />
     </ItemGroup>
     
 </Project>
