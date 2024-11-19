@@ -66,6 +66,8 @@ public static class OpenShockMiddlewareHelper
         
         app.UseOpenTelemetryPrometheusScrapingEndpoint(context =>
         {
+            if(context.Request.Path != "/metrics") return false;
+            
             var remoteIp = context.Connection.RemoteIpAddress;
             return remoteIp != null && metricsAllowedIpNetworks.Any(x => x.Contains(remoteIp));
         });
