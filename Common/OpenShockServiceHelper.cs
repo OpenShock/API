@@ -5,7 +5,6 @@ using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection.Extensions;
-using Npgsql;
 using OpenShock.Common.Authentication;
 using OpenShock.Common.Authentication.Handlers;
 using OpenShock.Common.Authentication.Services;
@@ -19,7 +18,6 @@ using OpenShock.Common.Services.BatchUpdate;
 using OpenShock.Common.Services.RedisPubSub;
 using OpenShock.Common.Services.Session;
 using OpenTelemetry.Metrics;
-using OpenTelemetry.Trace;
 using Redis.OM;
 using Redis.OM.Contracts;
 using StackExchange.Redis;
@@ -155,19 +153,16 @@ public static class OpenShockServiceHelper
         
         // <---- Postgres EF Core ---->
         
-        // How do I do this now with EFCore?!
-#pragma warning disable CS0618
-        NpgsqlConnection.GlobalTypeMapper.MapEnum<ControlType>();
-        NpgsqlConnection.GlobalTypeMapper.MapEnum<PermissionType>();
-        NpgsqlConnection.GlobalTypeMapper.MapEnum<ShockerModelType>();
-        NpgsqlConnection.GlobalTypeMapper.MapEnum<RankType>();
-        NpgsqlConnection.GlobalTypeMapper.MapEnum<OtaUpdateStatus>();
-#pragma warning restore CS0618
-
-        
         services.AddDbContextPool<OpenShockContext>(builder =>
         {
-            builder.UseNpgsql(config.Db.Conn);
+            builder.UseNpgsql(config.Db.Conn, optionsBuilder =>
+            {
+                optionsBuilder.MapEnum<RankType>();
+                optionsBuilder.MapEnum<ControlType>();
+                optionsBuilder.MapEnum<PermissionType>();
+                optionsBuilder.MapEnum<ShockerModelType>();
+                optionsBuilder.MapEnum<OtaUpdateStatus>();
+            });
             if (config.Db.Debug)
             {
                 builder.EnableSensitiveDataLogging();
