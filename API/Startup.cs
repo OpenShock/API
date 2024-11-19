@@ -171,7 +171,7 @@ public sealed class Startup
     {
         ApplicationLogging.LoggerFactory = loggerFactory;
 
-        app.UseCommonOpenShockServices();
+        app.UseCommonOpenShockMiddleware();
         
         if (!_apiConfig.Db.SkipMigration)
         {
@@ -199,7 +199,6 @@ public sealed class Startup
                     description.GroupName.ToUpperInvariant());
         });
 
-
         app.UseEndpoints(endpoints =>
         {
             endpoints.MapControllers();
@@ -207,7 +206,7 @@ public sealed class Startup
                 options => { options.Transports = HttpTransportType.WebSockets; });
             endpoints.MapHub<ShareLinkHub>("/1/hubs/share/link/{id}",
                 options => { options.Transports = HttpTransportType.WebSockets; });
-
+            
             endpoints.MapScalarApiReference(options =>
             {
                 options.OpenApiRoutePattern = "/swagger/{documentName}/swagger.json";

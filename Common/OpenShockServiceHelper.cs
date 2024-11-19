@@ -18,6 +18,8 @@ using OpenShock.Common.Problems;
 using OpenShock.Common.Services.BatchUpdate;
 using OpenShock.Common.Services.RedisPubSub;
 using OpenShock.Common.Services.Session;
+using OpenTelemetry.Metrics;
+using OpenTelemetry.Trace;
 using Redis.OM;
 using Redis.OM.Contracts;
 using StackExchange.Redis;
@@ -34,6 +36,8 @@ public static class OpenShockServiceHelper
     /// <returns></returns>
     public static ServicesResult AddOpenShockServices(this IServiceCollection services, BaseConfig config)
     {
+        services.AddSingleton<BaseConfig>();
+        
         // <---- ASP.NET ---->
         services.AddExceptionHandler<OpenShockExceptionHandler>();
         
@@ -85,6 +89,8 @@ public static class OpenShockServiceHelper
         {
             setup.GroupNameFormat = "VVV";
             setup.SubstituteApiVersionInUrl = true;
+            setup.DefaultApiVersion = new ApiVersion(1, 0);
+            setup.AssumeDefaultVersionWhenUnspecified = true;
         });
         
         // generic ASP.NET stuff
@@ -106,6 +112,14 @@ public static class OpenShockServiceHelper
             });
         });
         
+        // OpenTelemetry
+
+        services.AddOpenTelemetry()
+            .WithMetrics(metrics => metrics
+                .AddRuntimeInstrumentation()
+                .AddAspNetCoreInstrumentation()
+                .AddHttpClientInstrumentation()
+                .AddPrometheusExporter());
         
         // <---- Redis ---->
         
@@ -177,8 +191,7 @@ public static class OpenShockServiceHelper
         services.AddSingleton<IBatchUpdateService, BatchUpdateService>();
         services.AddHostedService<BatchUpdateService>(provider =>
             (BatchUpdateService)provider.GetRequiredService<IBatchUpdateService>());
-
-
+        
         return new ServicesResult
         {
             RedisConfig = configurationOptions

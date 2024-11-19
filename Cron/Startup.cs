@@ -1,6 +1,7 @@
 ﻿using Hangfire;
 using Hangfire.PostgreSql;
 using OpenShock.Common;
+using OpenTelemetry.Trace;
 
 namespace OpenShock.Cron;
 
@@ -28,13 +29,14 @@ public sealed class Startup
                 c.UseNpgsqlConnection(_config.Db.Conn)));
         services.AddHangfireServer();
         
+        
         services.AddOpenShockServices(_config);
     }
 
     public void Configure(IApplicationBuilder app, IWebHostEnvironment env, ILoggerFactory loggerFactory,
         ILogger<Startup> logger)
     {
-        app.UseCommonOpenShockServices();
+        app.UseCommonOpenShockMiddleware();
         
         app.UseHangfireDashboard(options: new DashboardOptions
         {

@@ -1,5 +1,6 @@
 ﻿using System.Net;
 using Microsoft.AspNetCore.HttpOverrides;
+using OpenShock.Common.Config;
 using OpenShock.Common.Redis;
 using OpenShock.Common.Utils;
 using Redis.OM;
@@ -19,12 +20,13 @@ public static class OpenShockMiddlewareHelper
         ForwardedForHeaderName = "CF-Connecting-IP"
     };
     
-    public static IApplicationBuilder UseCommonOpenShockServices(this IApplicationBuilder app)
+    public static IApplicationBuilder UseCommonOpenShockMiddleware(this IApplicationBuilder app)
     {
-        foreach (var proxy in TrustedProxiesFetcher.GetTrustedProxies())
+        var config = app.ApplicationServices.GetRequiredService<BaseConfig>();
+        
+        foreach (var proxy in TrustedProxiesFetcher.GetTrustedNetworks())
         {
-            var split = proxy.Split('/');
-            ForwardedSettings.KnownNetworks.Add(new IPNetwork(IPAddress.Parse(split[0]), int.Parse(split[1])));
+            ForwardedSettings.KnownNetworks.Add(proxy);
         }
 
         app.UseForwardedHeaders(ForwardedSettings);
@@ -59,6 +61,14 @@ public static class OpenShockMiddlewareHelper
         redisConnection.CreateIndex(typeof(DeviceOnline));
         redisConnection.CreateIndex(typeof(DevicePair));
         redisConnection.CreateIndex(typeof(LcgNode));
+
+        var metricsAllowedIpNetworks = config.Metrics.AllowedNetworks.Select(x => IPNetwork.Parse(x));
+        
+        app.UseOpenTelemetryPrometheusScrapingEndpoint(context =>
+        {
+            var remoteIp = context.Connection.RemoteIpAddress;
+            return remoteIp != null && metricsAllowedIpNetworks.Any(x => x.Contains(remoteIp));
+        });
         
         return app;
     }

@@ -122,7 +122,7 @@ public sealed class Startup
     public void Configure(IApplicationBuilder app, IWebHostEnvironment env, ILoggerFactory loggerFactory)
     {
         ApplicationLogging.LoggerFactory = loggerFactory;
-        app.UseCommonOpenShockServices();
+        app.UseCommonOpenShockMiddleware();
 
         app.UseSwagger();
         var provider = app.ApplicationServices.GetRequiredService<IApiVersionDescriptionProvider>();
