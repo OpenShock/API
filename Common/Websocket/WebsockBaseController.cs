@@ -1,5 +1,6 @@
 ﻿using System.Net.Mime;
 using System.Net.WebSockets;
+using System.Text.Json;
 using System.Threading.Channels;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
@@ -166,7 +167,7 @@ public abstract class WebsocketBaseController<T> : OpenShockControllerBase, IAsy
             }
             catch (Exception e)
             {
-                Logger.LogError(e, "Error while sending message to client");
+                Logger.LogError(e, "Error while sending message to client - {Msg}", JsonSerializer.Serialize(msg));
                 throw;
             }
         }
