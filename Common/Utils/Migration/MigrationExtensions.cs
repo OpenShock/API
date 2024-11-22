@@ -63,7 +63,7 @@ public static class MigrationExtensions
     {
         return db.ExecuteSql(
             $"""
-            SELECT COUNT(*) FROM "__ComplexMigrationHistory" WHERE "MigrationId" = '{migrationId}'
+            SELECT COUNT(*) FROM "__ComplexMigrationHistory" WHERE "MigrationId" = '{migrationId}';
             """
         ) > 0;
     }
@@ -71,7 +71,7 @@ public static class MigrationExtensions
     {
         return db.ExecuteSql(
             $"""
-             SELECT COUNT(*) FROM "__ComplexMigrationHistory" WHERE "MigrationId" = '{migrationId}' AND "Completed" = FALSE
+             SELECT COUNT(*) FROM "__ComplexMigrationHistory" WHERE "MigrationId" = '{migrationId}' AND "Completed" = FALSE;
              """
         ) > 0;
     }
@@ -79,7 +79,7 @@ public static class MigrationExtensions
     {
         return db.SqlQueryRaw<string>(
             $"""
-            SELECT "MigrationId" FROM "__ComplexMigrationHistory" WHERE "Completed" = FALSE
+            SELECT "MigrationId" FROM "__ComplexMigrationHistory" WHERE "Completed" = FALSE;
             """
         ).ToList();
     }
@@ -95,7 +95,7 @@ public static class MigrationExtensions
     {
         if (db.ExecuteSql(
             $"""
-                UPDATE "__ComplexMigrationHistory" SET "Completed" = TRUE WHERE "MigrationId" = '{migrationId}'
+            UPDATE "__ComplexMigrationHistory" SET "Completed" = TRUE WHERE "MigrationId" = '{migrationId}';
             """
             ) != 1)
         {
