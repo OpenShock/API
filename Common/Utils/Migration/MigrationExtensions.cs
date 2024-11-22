@@ -95,7 +95,7 @@ public static class MigrationExtensions
     {
         if (db.ExecuteSql(
             $"""
-            UPDATE "__ComplexMigrationHistory" SET "Completed" = TRUE WHERE "MigrationId" = '{migrationId}';
+            UPDATE "__ComplexMigrationHistory" SET "Completed" = TRUE WHERE "MigrationId" = '{migrationId}' AND "Completed" = FALSE;
             """
             ) != 1)
         {
