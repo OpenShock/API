@@ -53,7 +53,6 @@ public static class MigrationExtensions
             $"""
             CREATE TABLE IF NOT EXISTS "__ComplexMigrationHistory" (
                 "MigrationId" CHARACTER VARYING(150) NOT NULL PRIMARY KEY,
-                "ProductVersion" CHARACTER VARYING(32) NOT NULL,
                 "Completed" BOOLEAN NOT NULL DEFAULT FALSE,
                 "AppliedOn" TIMESTAMP WITHOUT TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP
             );
@@ -88,10 +87,7 @@ public static class MigrationExtensions
     {
         db.ExecuteSql(
             $"""
-            INSERT INTO "__ComplexMigrationHistory" (
-                "MigrationId",
-                "ProductVersion"
-            ) VALUES ({migrationId}, {ProductInfo.GetVersion()});
+            INSERT INTO "__ComplexMigrationHistory" ("MigrationId") VALUES ({migrationId});
             """
         );
     }
