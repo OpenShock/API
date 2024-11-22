@@ -7,6 +7,8 @@ public static class MigrationExtensions
 {
     private static KeyValuePair<string, ComplexMigrationBase<TDbContext>>? GetComplexMigrationRecord<TDbContext>(this Type type) where TDbContext : DbContext
     {
+        if (!type.IsClass) return null; // Hot path
+        
         if (!typeof(Microsoft.EntityFrameworkCore.Migrations.Migration).IsAssignableFrom(type))
         {
             return null;
@@ -21,7 +23,7 @@ public static class MigrationExtensions
         var complexMigrationType = type
             .GetCustomAttributes(false)
             .Select(x => x.GetType())
-            .Where(type => type.GetGenericTypeDefinition() == typeof(ComplexMigrationAttribute<,>))
+            .Where(type => type.IsGenericType && type.GetGenericTypeDefinition() == typeof(ComplexMigrationAttribute<,>))
             .Select(type => type.GetGenericArguments().First())
             .SingleOrDefault();
 
