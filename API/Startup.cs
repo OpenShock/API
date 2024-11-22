@@ -22,6 +22,7 @@ using OpenShock.Common.Services.Ota;
 using OpenShock.Common.Services.Session;
 using OpenShock.Common.Services.Turnstile;
 using OpenShock.Common.Utils;
+using OpenShock.Common.Utils.Migration;
 using Redis.OM;
 using Redis.OM.Contracts;
 using Scalar.AspNetCore;
