@@ -1,6 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Migrations;
 using System.Reflection;
+using Microsoft.EntityFrameworkCore.Infrastructure;
 
 namespace OpenShock.Common.Utils.Migration;
 
@@ -11,8 +11,8 @@ public static class MigrationExtensions
         var complexMigrationType = type
             .GetCustomAttributes(false)
             .Select(x => x.GetType())
-            .Where(type => type.IsGenericType && type.GetGenericTypeDefinition() == typeof(ComplexMigrationAttribute<,>))
-            .Select(type => type.GetGenericArguments().First())
+            .Where(t => t.IsGenericType && t.GetGenericTypeDefinition() == typeof(ComplexMigrationAttribute<,>))
+            .Select(t => t.GetGenericArguments().First())
             .SingleOrDefault();
 
         if (complexMigrationType == null)
@@ -27,7 +27,7 @@ public static class MigrationExtensions
         }
 
 
-        var complexMigrationInstance = Activator.CreateInstance(complexMigrationType) as ComplexMigrationBase<TDbContext> ?? throw new Exception("Failed to instanciate ComplexMigrationBase");
+        var complexMigrationInstance = Activator.CreateInstance(complexMigrationType) as ComplexMigrationBase<TDbContext> ?? throw new Exception("Failed to instantiate ComplexMigrationBase");
 
         return new KeyValuePair<string, ComplexMigrationBase<TDbContext>>(migrationId, complexMigrationInstance);
     }
@@ -47,50 +47,161 @@ public static class MigrationExtensions
             .ToDictionary();
     }
 
+    private static void MigrationHistory_EnsureCreated(DatabaseFacade db)
+    {
+        db.ExecuteSqlRaw(
+            $"""
+            CREATE TABLE IF NOT EXISTS "__ComplexMigrationHistory" (
+                "MigrationId" CHARACTER VARYING(150) NOT NULL PRIMARY KEY,
+                "ProductVersion" CHARACTER VARYING(32) NOT NULL,
+                "Completed" BOOLEAN NOT NULL DEFAULT FALSE,
+                "AppliedOn" TIMESTAMP WITHOUT TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP
+            );
+            """
+        );
+    }
+    private static bool MigrationHistory_Exists(DatabaseFacade db, string migrationId)
+    {
+        return db.ExecuteSql(
+            $"""
+            SELECT COUNT(*) FROM "__ComplexMigrationHistory" WHERE "MigrationId" = '{migrationId}'
+            """
+        ) > 0;
+    }
+    private static bool MigrationHistory_IsCompleted(DatabaseFacade db, string migrationId)
+    {
+        return db.ExecuteSql(
+            $"""
+             SELECT COUNT(*) FROM "__ComplexMigrationHistory" WHERE "MigrationId" = '{migrationId}' AND "Completed" = FALSE
+             """
+        ) > 0;
+    }
+    private static List<string> MigrationHistory_ListUncompleted(DatabaseFacade db)
+    {
+        return db.SqlQueryRaw<string>(
+            $"""
+            SELECT "MigrationId" FROM "__ComplexMigrationHistory" WHERE "Completed" = FALSE
+            """
+        ).ToList();
+    }
+    private static void MigrationHistory_Create(DatabaseFacade db, string migrationId)
+    {
+        db.ExecuteSql(
+            $"""
+             INSERT INTO "__ComplexMigrationHistory" (
+                 "MigrationId",
+                 "ProductVersion"
+             ) VALUES ({migrationId}, {ProductInfo.GetVersion()});
+             """
+        );
+    }
+    private static void MigrationHistory_MarkCompleted(DatabaseFacade db, string migrationId)
+    {
+        if (db.ExecuteSql(
+                $"""
+                 UPDATE "__ComplexMigrationHistory" SET "Completed" = TRUE WHERE "MigrationId" = '{migrationId}'
+                 """
+            ) != 1)
+        {
+            throw new Exception($"Failed to mark migration \"{migrationId}\" as completed");
+        }
+    }
+
+    private static void RunComplexPreMigration<T>(T context, string pendingMigration, bool isMigratingDown, ComplexMigrationBase<T>? migration, ILogger logger) where T : DbContext
+    {
+        using var transaction = context.Database.BeginTransaction();
+        
+        if (MigrationHistory_Exists(context.Database, pendingMigration))
+        {
+            if (migration == null)
+            {
+                throw new Exception($"Migration \"{pendingMigration}\" exists in database, but not in solution, refusing to migrate to avoid data loss!");
+            }
+            return;
+        }
+
+        if (migration == null)
+        {
+            return;
+        }
+
+
+        if (isMigratingDown)
+            migration.BeforeDown(context, logger);
+        else
+            migration.BeforeUp(context, logger);
+        
+        MigrationHistory_Create(context.Database, pendingMigration);
+        
+        transaction.Commit();
+    }
+    private static void RunComplexPostMigration<T>(T context, string pendingMigration, bool isMigratingDown, ComplexMigrationBase<T> migration, ILogger logger) where T : DbContext
+    {
+        using var transaction = context.Database.BeginTransaction();
+
+        if (MigrationHistory_IsCompleted(context.Database, pendingMigration))
+        {
+            return;
+        }
+        
+        if (isMigratingDown)
+            migration.AfterDown(context, logger);
+        else
+            migration.AfterUp(context, logger);
+                    
+        MigrationHistory_MarkCompleted(context.Database, pendingMigration);
+                    
+        transaction.Commit();
+    }
+    
+    private static void RunMigrations<T>(T context, List<string> pendingMigrations, bool isMigratingDown, Dictionary<string, ComplexMigrationBase<T>> complexMigrations, ILogger logger)
+        where T : DbContext
+    {
+        foreach (var pendingMigration in pendingMigrations)
+        {
+            var complexMigration = complexMigrations.GetValueOrDefault(pendingMigration);
+            
+            RunComplexPreMigration(context, pendingMigration, isMigratingDown, complexMigration, logger);
+
+            logger.LogInformation("Applying migration [{@Migration}]", pendingMigration);
+            context.Database.Migrate(pendingMigration);
+
+            if (complexMigration != null)
+            {
+                RunComplexPostMigration(context, pendingMigration, isMigratingDown, complexMigration, logger);
+            }
+        }
+    }
+    
     public static IApplicationBuilder RunMigrations<T>(this IApplicationBuilder app, ILogger logger) where T : DbContext
     {
         using var scope = app.ApplicationServices.CreateScope();
 
         var context = scope.ServiceProvider.GetRequiredService<T>();
-
-        var pendingMigrationIds = context.Database.GetPendingMigrations().ToList();
-        if (pendingMigrationIds.Count <= 0) return app;
-
-        // If pending migrations contains already applied migrations, that must mean that we are reverting migrations
-        bool isDown = context.Database.GetAppliedMigrations().ToHashSet().Overlaps(pendingMigrationIds);
+        
+        var pendingMigrations = context.Database.GetPendingMigrations().ToList();
+        var appliedMigrations = context.Database.GetAppliedMigrations().ToList();
+        var isMigratingDown = appliedMigrations.ToHashSet().Overlaps(pendingMigrations);
 
         var complexMigrations = context.GetComplexMigrations();
 
-        foreach (var migrationId in pendingMigrationIds)
+        MigrationHistory_EnsureCreated(context.Database);
+        var uncompletedComplexMigrations = MigrationHistory_ListUncompleted(context.Database);
+        if (appliedMigrations.Count != 0 && uncompletedComplexMigrations.Any(m => m != appliedMigrations[^1]))
         {
-            var complexMigration = complexMigrations.GetValueOrDefault(migrationId);
+            throw new Exception("Found uncompleted complex migrations that was supposed to run before current database version, refusing to migrate to avoid data loss!");
+        }
 
-            if (complexMigration != null)
-            {
-                if (isDown)
-                {
-                    complexMigration.BeforeDown(context, logger);
-                }
-                else
-                {
-                    complexMigration.BeforeUp(context, logger);
-                }
-            }
+        var pendingMigrationIds = context.Database.GetPendingMigrations().ToList();
+        if (pendingMigrationIds.Count > 0)
+        {
+            RunMigrations<T>(context, pendingMigrationIds, isMigratingDown, complexMigrations, logger);
+        }
 
-            logger.LogInformation("Applying migration [{@Migration}]", migrationId);
-            context.Database.Migrate(migrationId);
-
-            if (complexMigration != null)
-            {
-                if (isDown)
-                {
-                    complexMigration.AfterDown(context, logger);
-                }
-                else
-                {
-                    complexMigration.AfterUp(context, logger);
-                }
-            }
+        foreach (var uncompletedMigration in uncompletedComplexMigrations)
+        {
+            if (!complexMigrations.TryGetValue(uncompletedMigration, out var complexMigration)) throw new Exception("Need to run uncompleted migration but could not find it in solution, refusing to migrate to avoid data loss!");
+            RunComplexPostMigration(context, uncompletedMigration, isMigratingDown, complexMigration, logger);
         }
 
         return app;
