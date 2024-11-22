@@ -88,19 +88,19 @@ public static class MigrationExtensions
     {
         db.ExecuteSql(
             $"""
-             INSERT INTO "__ComplexMigrationHistory" (
-                 "MigrationId",
-                 "ProductVersion"
-             ) VALUES ({migrationId}, {ProductInfo.GetVersion()});
-             """
+            INSERT INTO "__ComplexMigrationHistory" (
+                "MigrationId",
+                "ProductVersion"
+            ) VALUES ({migrationId}, {ProductInfo.GetVersion()});
+            """
         );
     }
     private static void MigrationHistory_MarkCompleted(DatabaseFacade db, string migrationId)
     {
         if (db.ExecuteSql(
-                $"""
-                 UPDATE "__ComplexMigrationHistory" SET "Completed" = TRUE WHERE "MigrationId" = '{migrationId}'
-                 """
+            $"""
+                UPDATE "__ComplexMigrationHistory" SET "Completed" = TRUE WHERE "MigrationId" = '{migrationId}'
+            """
             ) != 1)
         {
             throw new Exception($"Failed to mark migration \"{migrationId}\" as completed");
