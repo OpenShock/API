@@ -55,6 +55,9 @@ public static class MigrationExtensions
         var pendingMigrationIds = context.Database.GetPendingMigrations().ToList();
         if (pendingMigrationIds.Count <= 0) return app;
 
+        // If pending migrations contains already applied migrations, that must mean that we are reverting migrations
+        bool isDown = context.Database.GetAppliedMigrations().ToHashSet().Overlaps(pendingMigrationIds);
+
         var complexMigrations = context.GetComplexMigrations();
 
         foreach (var migrationId in pendingMigrationIds)
@@ -63,8 +66,14 @@ public static class MigrationExtensions
 
             if (complexMigration != null)
             {
-                complexMigration.BeforeUp(context, logger); // TODO: this needs to only run on up
-                complexMigration.BeforeDown(context, logger); // TODO: this needs to only run on down
+                if (isDown)
+                {
+                    complexMigration.BeforeDown(context, logger);
+                }
+                else
+                {
+                    complexMigration.BeforeUp(context, logger);
+                }
             }
 
             logger.LogInformation("Applying migration [{@Migration}]", migrationId);
@@ -72,8 +81,14 @@ public static class MigrationExtensions
 
             if (complexMigration != null)
             {
-                complexMigration.AfterUp(context, logger); // TODO: this needs to only run on up
-                complexMigration.AfterDown(context, logger); // TODO: this needs to only run on down
+                if (isDown)
+                {
+                    complexMigration.AfterDown(context, logger);
+                }
+                else
+                {
+                    complexMigration.AfterUp(context, logger);
+                }
             }
         }
 
