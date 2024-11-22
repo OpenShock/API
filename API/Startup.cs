@@ -176,17 +176,10 @@ public sealed class Startup
         if (!_apiConfig.Db.SkipMigration)
         {
             logger.LogInformation("Running database migrations...");
-            using var scope = app.ApplicationServices.CreateScope();
-            var openShockContext = scope.ServiceProvider.GetRequiredService<OpenShockContext>();
-            var pendingMigrations = openShockContext.Database.GetPendingMigrations().ToList();
 
-            if (pendingMigrations.Count > 0)
-            {
-                logger.LogInformation("Found pending migrations, applying [{@Migrations}]", pendingMigrations);
-                openShockContext.Database.Migrate();
-                logger.LogInformation("Applied database migrations... proceeding with startup");
-            }
-            else logger.LogInformation("No pending migrations found, proceeding with startup");
+            app.RunMigrations<OpenShockContext>(logger);
+
+            logger.LogInformation("Applied database migrations... proceeding with startup");
         }
         else logger.LogWarning("Skipping possible database migrations...");
 
