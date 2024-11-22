@@ -1,4 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Migrations;
 using System.Reflection;
 
 namespace OpenShock.Common.Utils.Migration;
@@ -7,19 +8,6 @@ public static class MigrationExtensions
 {
     private static KeyValuePair<string, ComplexMigrationBase<TDbContext>>? GetComplexMigrationRecord<TDbContext>(this Type type) where TDbContext : DbContext
     {
-        if (!type.IsClass) return null; // Hot path
-        
-        if (!typeof(Microsoft.EntityFrameworkCore.Migrations.Migration).IsAssignableFrom(type))
-        {
-            return null;
-        }
-
-        var migrationId = type.GetCustomAttribute<Microsoft.EntityFrameworkCore.Migrations.MigrationAttribute>(false)?.Id;
-        if (string.IsNullOrEmpty(migrationId))
-        {
-            return null;
-        }
-
         var complexMigrationType = type
             .GetCustomAttributes(false)
             .Select(x => x.GetType())
@@ -32,6 +20,13 @@ public static class MigrationExtensions
             return null;
         }
 
+        var migrationId = type.GetCustomAttribute<Microsoft.EntityFrameworkCore.Migrations.MigrationAttribute>(false)?.Id;
+        if (string.IsNullOrEmpty(migrationId))
+        {
+            return null;
+        }
+
+
         var complexMigrationInstance = Activator.CreateInstance(complexMigrationType) as ComplexMigrationBase<TDbContext> ?? throw new Exception("Failed to instanciate ComplexMigrationBase");
 
         return new KeyValuePair<string, ComplexMigrationBase<TDbContext>>(migrationId, complexMigrationInstance);
@@ -39,9 +34,13 @@ public static class MigrationExtensions
 
     private static Dictionary<string, ComplexMigrationBase<TDbContext>> GetComplexMigrations<TDbContext>(this TDbContext context) where TDbContext : DbContext
     {
+        var efcoreMigrationType = typeof(Microsoft.EntityFrameworkCore.Migrations.Migration);
+
         return AppDomain.CurrentDomain
             .GetAssemblies()
             .SelectMany(asm => asm.GetTypes())
+            .Where(type => type.IsClass)
+            .Where(efcoreMigrationType.IsAssignableFrom)
             .Select(GetComplexMigrationRecord<TDbContext>)
             .Where(record => record.HasValue)
             .Select(record => record!.Value)
