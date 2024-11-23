@@ -12,11 +12,11 @@ namespace OpenShock.Common.Migrations
         {
             migrationBuilder.Sql(
                 $"""
-                UPDATE [shockers] AS [shocker]
+                UPDATE shockers
                 SET
-                    [shocker.rf_id] = (([shocker.rf_id])::bit(32) << 1)::integer
+                    rf_id = ((rf_id)::bit(32) << 1)::integer
                 WHERE
-                    [shocker.model] = 'petrainer998DR'
+                    model = 'petrainer998DR'
                 """
             );
         }
@@ -26,11 +26,11 @@ namespace OpenShock.Common.Migrations
         {
             migrationBuilder.Sql(
                 $"""
-                UPDATE [shockers] AS [shocker]
+                UPDATE shockers
                 SET
-                    [shocker.rf_id] = (([shocker.rf_id])::bit(32) >> 1)::integer
+                    rf_id = ((rf_id)::bit(32) >> 1)::integer
                 WHERE
-                    [shocker.model] = 'petrainer998DR'
+                    model = 'petrainer998DR'
                 """
             );
         }
