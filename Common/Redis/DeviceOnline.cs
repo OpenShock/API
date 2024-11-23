@@ -5,13 +5,20 @@ using Semver;
 
 namespace OpenShock.Common.Redis;
 
-[Document(StorageType = StorageType.Json, IndexName = "device-online")]
+[Document(StorageType = StorageType.Json, IndexName = IndexName)]
 public sealed class DeviceOnline
 {
+    public const string IndexName = "device-online";
+    
     [RedisIdField] [Indexed] public required Guid Id { get; set; }
     [Indexed] public required Guid Owner { get; set; }
     [JsonConverter(typeof(SemVersionJsonConverter))]
-    public SemVersion? FirmwareVersion { get; set; }
-    public string? Gateway { get; set; }
-    public DateTimeOffset ConnectedAt { get; set; }
+    public required SemVersion FirmwareVersion { get; set; }
+    public required string Gateway { get; set; }
+    public required DateTimeOffset ConnectedAt { get; set; }
+    public string? UserAgent { get; set; } = null;
+    
+    public DateTimeOffset BootedAt { get; set; }
+    public ushort? LatencyMs { get; set; }
+    public int? Rssi { get; set; }
 }

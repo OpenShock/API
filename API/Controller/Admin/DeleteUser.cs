@@ -18,7 +18,7 @@ public sealed partial class AdminController
     /// <response code="200">OK</response>
     /// <response code="401">Unauthorized</response>
     [HttpDelete("users/{userId}")]
-    [ProducesSlimSuccess]
+    [ProducesResponseType(StatusCodes.Status200OK)]
     public async Task<IActionResult> DeleteUser([FromRoute] Guid userId)
     {
         var user = await _db.Users.Where(x => x.Id == userId).FirstOrDefaultAsync();
@@ -35,6 +35,6 @@ public sealed partial class AdminController
         _db.Users.Remove(user);
         await _db.SaveChangesAsync();
 
-        return RespondSlimSuccess();
+        return Ok();
     }
 }

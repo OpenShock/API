@@ -33,7 +33,7 @@ builder.UseContentRoot(Directory.GetCurrentDirectory())
         {
             serverOptions.ListenAnyIP(80);
 #if DEBUG
-            serverOptions.ListenAnyIP(443, options => { options.UseHttps("devcert.pfx"); });
+            serverOptions.ListenAnyIP(443, options => { options.UseHttps(); });
 #endif
             serverOptions.Limits.RequestHeadersTimeout = TimeSpan.FromMilliseconds(3000);
         });

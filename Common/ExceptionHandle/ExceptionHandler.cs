@@ -6,61 +6,34 @@ using OpenShock.Common.Errors;
 
 namespace OpenShock.Common.ExceptionHandle;
 
-public static class ExceptionHandler
+public sealed class OpenShockExceptionHandler : IExceptionHandler
 {
-    private static readonly ILogger Logger = ApplicationLogging.CreateLogger(typeof(ExceptionHandler));
+    private static readonly ILogger Logger = ApplicationLogging.CreateLogger(typeof(OpenShockExceptionHandler));
     private static readonly ILogger LoggerRequestInfo = ApplicationLogging.CreateLogger("RequestInfo");
+    
+    private readonly IProblemDetailsService _problemDetailsService;
 
-    /// <summary>
-    /// Configures two middlewares used to handle exceptions globally.
-    /// </summary>
-    /// <param name="app"></param>
-    public static void ConfigureExceptionHandler(this IApplicationBuilder app)
+    public OpenShockExceptionHandler(IProblemDetailsService problemDetailsService)
     {
-        // Enable request body buffering. Needed to allow rewinding the body reader,
-        // if the body has already been read before.
-        // Runs before the request action is executed and body is read.
-        app.Use((context, next) =>
-        {
-            context.Request.EnableBuffering();
-            return next.Invoke();
-        });
+        _problemDetailsService = problemDetailsService;
+    }
+    
+    public async ValueTask<bool> TryHandleAsync(HttpContext context, Exception exception, CancellationToken cancellationToken)
+    {
+        context.Response.StatusCode = (int)HttpStatusCode.InternalServerError;
+        await PrintRequestInfo(context);
         
-        // Use the built in exception handler middleware, to capture unhandled exceptions.
-        app.UseExceptionHandler(appError =>
-        {
-            // Action to be executed when an exception is thrown.
-            appError.Run(async context =>
-            {
-                // Get the exception details by getting the IExceptionHandlerFeature from our HttpContext.
-                var contextFeature = context.Features.Get<IExceptionHandlerFeature>();
-                // This should not be null, otherwise no exception was thrown or some other error in ASP.NET occurred.
-                if (contextFeature == null) return;
-                
+        var responseObject = ExceptionError.Exception;
+        responseObject.AddContext(context);
 
-                // Any other exception has been thrown, return a InternalServerError, always print full request infos.
-                // Side note: Exception logging is done by Microsoft Diagnostics middleware already, so no need to do
-                // it again manually.
-                
-                context.Response.StatusCode = (int)HttpStatusCode.InternalServerError;
-                await PrintRequestInfo(context);
-                
-                
-                var jsonOptions = context.RequestServices.GetRequiredService<IOptions<JsonOptions>>();
-                
-                var responseObject = ExceptionError.Exception;
-                responseObject.AddContext(context);
-                
-                await context.Response.WriteAsJsonAsync(responseObject, jsonOptions.Value.SerializerOptions, contentType: "application/problem+json");
-            });
+        return await _problemDetailsService.TryWriteAsync(new ProblemDetailsContext
+        {
+            HttpContext = context,
+            Exception = exception,
+            ProblemDetails = responseObject
         });
     }
-
-    /// <summary>
-    /// This method prints all relevant info that could be useful for debugging purposes.
-    /// Also contains redundant data like method, path and correlation id for readability purposes.
-    /// </summary>
-    /// <param name="context"></param>
+    
     private static async Task PrintRequestInfo(HttpContext context)
     {
         // Rewind our body reader, so we can read it again.

@@ -1,4 +1,4 @@
-﻿using System.Net;
+﻿using System.Diagnostics;
 using System.Net.WebSockets;
 using System.Text.Json;
 using Microsoft.AspNetCore.Authorization;
@@ -7,16 +7,17 @@ using Microsoft.AspNetCore.Mvc.Filters;
 using Microsoft.EntityFrameworkCore;
 using OneOf;
 using OneOf.Types;
-using OpenShock.Common;
 using OpenShock.Common.Authentication;
 using OpenShock.Common.Authentication.Attributes;
 using OpenShock.Common.Authentication.Services;
 using OpenShock.Common.Constants;
+using OpenShock.Common.Errors;
 using OpenShock.Common.JsonSerialization;
 using OpenShock.Common.Models;
 using OpenShock.Common.Models.WebSocket;
 using OpenShock.Common.Models.WebSocket.LCG;
 using OpenShock.Common.OpenShockDb;
+using OpenShock.Common.Problems;
 using OpenShock.Common.Utils;
 using OpenShock.Common.Websocket;
 using OpenShock.LiveControlGateway.LifetimeManager;
@@ -30,12 +31,13 @@ namespace OpenShock.LiveControlGateway.Controllers;
 /// Live control controller
 /// </summary>
 [ApiController]
-[Route("/{version:apiVersion}/ws/live/{deviceId:guid}")]
+[Route("/{version:apiVersion}/ws/live/{hubId:guid}")]
 [TokenPermission(PermissionType.Shockers_Use)]
 [Authorize(AuthenticationSchemes = OpenShockAuthSchemas.SessionTokenCombo)]
 public sealed class LiveControlController : WebsocketBaseController<IBaseResponse<LiveResponseType>>, IActionFilter
 {
     private readonly OpenShockContext _db;
+    private readonly HubLifetimeManager _hubLifetimeManager;
 
     private static readonly TimeSpan PingInterval = TimeSpan.FromSeconds(5);
 
@@ -50,20 +52,17 @@ public sealed class LiveControlController : WebsocketBaseController<IBaseRespons
     };
 
     private LinkUser _currentUser = null!;
-    private Guid? _deviceId;
+    private Guid? _hubId;
     private Device? _device;
     private Dictionary<Guid, LiveShockerPermission> _sharedShockers = new();
     private byte _tps = 10;
+    private long _pingTimestamp = Stopwatch.GetTimestamp();
+    private ushort _latencyMs = 0;
     
     /// <summary>
     /// Connection Id for this connection, unique and random per connection
     /// </summary>
     public Guid ConnectionId => Guid.NewGuid();
-
-    /// <summary>
-    /// Last latency in milliseconds, 0 initially
-    /// </summary>
-    public ulong LastLatency { get; private set; } = 0;
 
     private readonly Timer _pingTimer = new(PingInterval);
 
@@ -73,10 +72,15 @@ public sealed class LiveControlController : WebsocketBaseController<IBaseRespons
     /// <param name="db"></param>
     /// <param name="logger"></param>
     /// <param name="lifetime"></param>
-    public LiveControlController(OpenShockContext db,
-        ILogger<LiveControlController> logger, IHostApplicationLifetime lifetime) : base(logger, lifetime)
+    /// <param name="hubLifetimeManager"></param>
+    public LiveControlController(
+        OpenShockContext db,
+        ILogger<LiveControlController> logger,
+        IHostApplicationLifetime lifetime,
+        HubLifetimeManager hubLifetimeManager) : base(logger, lifetime)
     {
         _db = db;
+        _hubLifetimeManager = hubLifetimeManager;
         _pingTimer.Elapsed += (_, _) => LucTask.Run(SendPing);
     }
 
@@ -95,18 +99,18 @@ public sealed class LiveControlController : WebsocketBaseController<IBaseRespons
     }
 
     /// <summary>
-    /// Update all shockers permissions for this user on this device
+    /// Update all shockers permissions for this user on this hub
     /// </summary>
     /// <param name="db"></param>
     [NonAction]
     public async Task UpdatePermissions(OpenShockContext db)
     {
-        Logger.LogDebug("Updating shared permissions for device [{Device}] for user [{User}]", Id,
+        Logger.LogDebug("Updating shared permissions for hub [{HubId}] for user [{User}]", Id,
             _currentUser.DbUser.Id);
         
         if (_device!.Owner == _currentUser.DbUser.Id)
         {
-            Logger.LogTrace("User is owner of device");
+            Logger.LogTrace("User is owner of hub");
             _sharedShockers = await db.Shockers.Where(x => x.Device == Id).ToDictionaryAsync(x => x.Id, x => new LiveShockerPermission()
             {
                 Paused = x.Paused,
@@ -136,34 +140,28 @@ public sealed class LiveControlController : WebsocketBaseController<IBaseRespons
     }
 
     /// <summary>
-    /// We get the id from the route, check if its valid, check if the user has access to the shocker / device
+    /// We get the id from the route, check if its valid, check if the user has access to the shocker / hub
     /// </summary>
     /// <returns></returns>
-    protected override async Task<bool> ConnectionPrecondition()
+    protected override async Task<OneOf<Success, OneOf.Types.Error<OpenShockProblem>>> ConnectionPrecondition()
     {
-        if (HttpContext.GetRouteValue("deviceId") is not string param || !Guid.TryParse(param, out var id))
+        if (HttpContext.GetRouteValue("hubId") is not string param || !Guid.TryParse(param, out var id))
         {
-            HttpContext.Response.StatusCode = (int)HttpStatusCode.BadRequest;
-            return false;
+            return new OneOf.Types.Error<OpenShockProblem>(WebsocketError.WebsocketLiveControlHubIdInvalid);
         }
 
-        _deviceId = id;
+        _hubId = id;
 
-        var deviceExistsAndYouHaveAccess = await _db.Devices.AnyAsync(x =>
-            x.Id == _deviceId && (x.Owner == _currentUser.DbUser.Id || x.Shockers.Any(y => y.ShockerShares.Any(
+        var hubExistsAndYouHaveAccess = await _db.Devices.AnyAsync(x =>
+            x.Id == _hubId && (x.Owner == _currentUser.DbUser.Id || x.Shockers.Any(y => y.ShockerShares.Any(
                 z => z.SharedWith == _currentUser.DbUser.Id && z.PermLive))));
 
-        if (!deviceExistsAndYouHaveAccess)
+        if (!hubExistsAndYouHaveAccess)
         {
-            HttpContext.Response.StatusCode = (int)HttpStatusCode.NotFound;
-            await HttpContext.Response.WriteAsJsonAsync(new Common.Models.BaseResponse<object>
-            {
-                Message = "Device does not exist or you do not have access to it"
-            });
-            return false;
+            return new OneOf.Types.Error<OpenShockProblem>(WebsocketError.WebsocketLiveControlHubNotFound);
         }
         
-        _device = await _db.Devices.FirstOrDefaultAsync(x => x.Id == _deviceId);
+        _device = await _db.Devices.FirstOrDefaultAsync(x => x.Id == _hubId);
 
         await UpdatePermissions(_db);
         
@@ -179,7 +177,7 @@ public sealed class LiveControlController : WebsocketBaseController<IBaseRespons
             }
         }
 
-        return true;
+        return new Success();
     }
 
     /// <summary>
@@ -203,7 +201,7 @@ public sealed class LiveControlController : WebsocketBaseController<IBaseRespons
     }
 
     /// <inheritdoc />
-    public override Guid Id => _deviceId ?? throw new Exception("Device id is null");
+    public override Guid Id => _hubId ?? throw new Exception("Hub id is null");
 
     /// <inheritdoc />
     protected override async Task SendInitialData()
@@ -216,13 +214,13 @@ public sealed class LiveControlController : WebsocketBaseController<IBaseRespons
                 Client = _tps
             }
         });
-        await UpdateConnectedState(DeviceLifetimeManager.IsConnected(Id), true);
+        await UpdateConnectedState(_hubLifetimeManager.IsConnected(Id), true);
     }
 
     private bool _lastIsConnected;
 
     /// <summary>
-    /// Update the connected state of the device if different from what was last sent
+    /// Update the connected state of the hub if different from what was last sent
     /// </summary>
     /// <param name="isConnected"></param>
     /// <param name="force"></param>
@@ -231,7 +229,7 @@ public sealed class LiveControlController : WebsocketBaseController<IBaseRespons
     {
         if (_lastIsConnected == isConnected && !force) return;
 
-        Logger.LogTrace("Sending connection update for device [{Device}] [{State}]", Id, isConnected);
+        Logger.LogTrace("Sending connection update for hub [{HubId}] [{State}]", Id, isConnected);
 
         _lastIsConnected = isConnected;
         try
@@ -245,7 +243,7 @@ public sealed class LiveControlController : WebsocketBaseController<IBaseRespons
         }
         catch (Exception e)
         {
-            Logger.LogWarning(e, "Error while sending device connected state");
+            Logger.LogWarning(e, "Error while sending hub connected state");
         }
     }
 
@@ -255,14 +253,14 @@ public sealed class LiveControlController : WebsocketBaseController<IBaseRespons
         Logger.LogDebug("Starting ping timer...");
         _pingTimer.Start();
 
-        while (!Linked.IsCancellationRequested)
+        while (!LinkedToken.IsCancellationRequested)
         {
             try
             {
                 if (WebSocket!.State == WebSocketState.Aborted) break;
                 var message =
                     await JsonWebSocketUtils.ReceiveFullMessageAsyncNonAlloc<BaseRequest<LiveRequestType>>(WebSocket,
-                        Linked.Token);
+                        LinkedToken);
 
                 if (message.IsT2)
                 {
@@ -275,7 +273,7 @@ public sealed class LiveControlController : WebsocketBaseController<IBaseRespons
                     try
                     {
                         await WebSocket.CloseAsync(WebSocketCloseStatus.NormalClosure, "Normal close",
-                            Linked.Token);
+                            LinkedToken);
                     }
                     catch (OperationCanceledException e)
                     {
@@ -332,47 +330,27 @@ public sealed class LiveControlController : WebsocketBaseController<IBaseRespons
     private async Task IntakePong(JsonDocument? requestData)
     {
         Logger.LogTrace("Intake pong");
-
-        var currentTimestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
-
-        PingResponse? pong;
-        try
+        
+        // Received pong without sending ping, this could be abusing the pong endpoint.
+        if (_pingTimestamp == 0)
         {
-            pong = requestData.NewSlDeserialize<PingResponse>();
-
-            if (pong == null)
-            {
-                Logger.LogWarning("Error while deserializing pong");
-                await QueueMessage(new Common.Models.WebSocket.BaseResponse<LiveResponseType>
-                {
-                    ResponseType = LiveResponseType.InvalidData
-                });
-                return;
-            }
-        }
-        catch (Exception e)
-        {
-            Logger.LogWarning(e, "Error while deserializing frame");
-            await QueueMessage(new Common.Models.WebSocket.BaseResponse<LiveResponseType>
-            {
-                ResponseType = LiveResponseType.InvalidData
-            });
+            // TODO: Kick or warn client.
             return;
         }
 
-        var latency = currentTimestamp - pong.Timestamp;
-        LastLatency = Convert.ToUInt64(Math.Max(0, latency));
+        _latencyMs = (ushort)Math.Min(Stopwatch.GetElapsedTime(_pingTimestamp).TotalMilliseconds, ushort.MaxValue); // If someone has a ping higher than 65 seconds, they are messing with us. Cap it to 65 seconds
+        _pingTimestamp = 0;
 
         if (Logger.IsEnabled(LogLevel.Trace))
-            Logger.LogTrace("Latency: {Latency}ms (raw: {RawLatency}ms)", LastLatency, latency);
+            Logger.LogTrace("Latency: {Latency}ms", _latencyMs);
 
         await QueueMessage(new Common.Models.WebSocket.BaseResponse<LiveResponseType>
         {
             ResponseType = LiveResponseType.LatencyAnnounce,
             Data = new LatencyAnnounceData
             {
-                DeviceLatency = 0, // TODO: Implement device latency calculation
-                OwnLatency = LastLatency
+                DeviceLatency = 0, // TODO: Implement hub latency calculation
+                OwnLatency = _latencyMs
             }
         });
     }
@@ -503,7 +481,7 @@ public sealed class LiveControlController : WebsocketBaseController<IBaseRespons
         // Clamp to limits
         var intensity = Math.Clamp(frame.Intensity, HardLimits.MinControlIntensity, perms.Intensity ?? HardLimits.MaxControlIntensity);
 
-        var result = DeviceLifetimeManager.ReceiveFrame(Id, frame.Shocker, frame.Type, intensity, _tps);
+        var result = _hubLifetimeManager.ReceiveFrame(Id, frame.Shocker, frame.Type, intensity, _tps);
         if (result.IsT0)
         {
             Logger.LogTrace("Successfully received frame");
@@ -572,13 +550,14 @@ public sealed class LiveControlController : WebsocketBaseController<IBaseRespons
         if (WebSocket is not { State: WebSocketState.Open }) return;
 
         if (Logger.IsEnabled(LogLevel.Debug))
-            Logger.LogDebug("Sending ping to live control user [{User}] for device [{Device}]", _currentUser.DbUser.Id,
+            Logger.LogDebug("Sending ping to live control user [{UserId}] for hub [{HubId}]", _currentUser.DbUser.Id,
                 Id);
 
+        _pingTimestamp = Stopwatch.GetTimestamp();
         await QueueMessage(new Common.Models.WebSocket.BaseResponse<LiveResponseType>
         {
             ResponseType = LiveResponseType.Ping,
-            Data = new PingResponse
+            Data = new LcgLiveControlPing
             {
                 Timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()
             }

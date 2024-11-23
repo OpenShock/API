@@ -1,6 +1,8 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using System.Net.Mime;
+using Microsoft.AspNetCore.Mvc;
 using OpenShock.API.Models.Requests;
 using OpenShock.Common.Errors;
+using OpenShock.Common.Models;
 using OpenShock.Common.Problems;
 using OpenShock.Common.Utils;
 
@@ -15,8 +17,8 @@ public sealed partial class AuthenticatedAccountController
     /// <returns></returns>
     /// <exception cref="Exception"></exception>
     [HttpPost("email")]
-    [ProducesSuccess]
-    public async Task<IActionResult> ChangeEmail(ChangeEmailRequest data)
+    [ProducesResponseType<BaseResponse<object>>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
+    public Task<IActionResult> ChangeEmail(ChangeEmailRequest data)
     {
         throw new NotImplementedException();
     }

@@ -576,7 +576,7 @@ public partial class OpenShockContext : DbContext
                 .HasColumnName("password_hash_type");
             entity.Property(e => e.CreatedAt)
                 .HasColumnName("created_at");
-            entity.Property(e => e.EmailActived)
+            entity.Property(e => e.EmailActivated)
                 .HasColumnName("email_actived");
             entity.Property(e => e.Rank)
                 .HasColumnType("rank_type")

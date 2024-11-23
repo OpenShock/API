@@ -1,5 +1,6 @@
 ﻿using System.ComponentModel.DataAnnotations;
 using System.Net;
+using System.Net.Mime;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using OpenShock.API.Models.Response;
@@ -23,7 +24,7 @@ public sealed partial class TokensController
     /// <response code="200">All tokens for the current user</response>
     [HttpGet]
     [UserSessionOnly]
-    [ProducesSlimSuccess<IEnumerable<TokenResponse>>]
+    [ProducesResponseType<IEnumerable<TokenResponse>>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
     public async Task<IEnumerable<TokenResponse>> ListTokens()
     {
         var apiTokens = await _db.ApiTokens
@@ -50,8 +51,8 @@ public sealed partial class TokensController
     /// <response code="404">The token does not exist or you do not have access to it.</response>
     [HttpGet("{tokenId}")]
     [UserSessionOnly]
-    [ProducesSlimSuccess<TokenResponse>]
-    [ProducesProblem(HttpStatusCode.NotFound, "ApiTokenNotFound")]    
+    [ProducesResponseType<TokenResponse>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
+    [ProducesResponseType<OpenShockProblem>(StatusCodes.Status404NotFound, MediaTypeNames.Application.ProblemJson)] // ApiTokenNotFound    
     public async Task<IActionResult> GetTokenById([FromRoute] Guid tokenId)
     {
         var apiToken = await _db.ApiTokens
@@ -68,7 +69,7 @@ public sealed partial class TokensController
         
         if (apiToken == null) return Problem(ApiTokenError.ApiTokenNotFound);
         
-        return RespondSlimSuccess(apiToken);
+        return Ok(apiToken);
     }
 
     /// <summary>
@@ -79,8 +80,8 @@ public sealed partial class TokensController
     /// <response code="404">The token does not exist or you do not have access to it.</response>
     [HttpDelete("{tokenId}")]
     [UserSessionOnly]
-    [ProducesSlimSuccess]
-    [ProducesProblem(HttpStatusCode.NotFound, "ApiTokenNotFound")]    
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType<OpenShockProblem>(StatusCodes.Status404NotFound, MediaTypeNames.Application.ProblemJson)] // ApiTokenNotFound    
     public async Task<IActionResult> DeleteToken([FromRoute] Guid tokenId)
     {
         var apiToken = await _db.ApiTokens
@@ -93,7 +94,7 @@ public sealed partial class TokensController
             return Problem(ApiTokenError.ApiTokenNotFound);
         }
         
-        return RespondSlimSuccess();
+        return Ok();
     }
 
     /// <summary>
@@ -103,7 +104,7 @@ public sealed partial class TokensController
     /// <response code="200">The created token</response>
     [HttpPost]
     [UserSessionOnly]
-    [ProducesSlimSuccess<TokenCreatedResponse>]
+    [ProducesResponseType<TokenCreatedResponse>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
     public async Task<TokenCreatedResponse> CreateToken([FromBody] CreateTokenRequest body)
     {
         string token = CryptoUtils.RandomString(HardLimits.ApiKeyTokenMaxLength);
@@ -124,6 +125,7 @@ public sealed partial class TokensController
         return new TokenCreatedResponse
         {
             Token = token,
+            Id = tokenDto.Id
         };
     }
 
@@ -136,8 +138,8 @@ public sealed partial class TokensController
     /// <response code="404">The token does not exist or you do not have access to it.</response>
     [HttpPatch("{tokenId}")]
     [UserSessionOnly]
-    [ProducesSlimSuccess]
-    [ProducesProblem(HttpStatusCode.NotFound, "ApiTokenNotFound")]    
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType<OpenShockProblem>(StatusCodes.Status404NotFound, MediaTypeNames.Application.ProblemJson)] // ApiTokenNotFound    
     public async Task<IActionResult> EditToken([FromRoute] Guid tokenId, [FromBody] EditTokenRequest body)
     {
         var token = await _db.ApiTokens
@@ -148,7 +150,7 @@ public sealed partial class TokensController
         token.Permissions = body.Permissions.Distinct().ToList();
         await _db.SaveChangesAsync();
 
-        return RespondSlimSuccess();
+        return Ok();
     }
 
     public class EditTokenRequest
@@ -168,5 +170,6 @@ public sealed partial class TokensController
     public sealed class TokenCreatedResponse
     {
         public required string Token { get; set; }
+        public required Guid Id { get; set; }
     }
 }

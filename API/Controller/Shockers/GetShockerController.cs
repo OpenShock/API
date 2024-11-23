@@ -1,9 +1,11 @@
 ﻿using System.Net;
+using System.Net.Mime;
 using Asp.Versioning;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using OpenShock.API.Models.Response;
 using OpenShock.Common.Errors;
+using OpenShock.Common.Models;
 using OpenShock.Common.Problems;
 
 namespace OpenShock.API.Controller.Shockers;
@@ -17,8 +19,8 @@ public sealed partial class ShockerController
     /// <response code="200">The shocker information was successfully retrieved.</response>
     /// <response code="404">The shocker does not exist or you do not have access to it.</response>
     [HttpGet("{shockerId}")]
-    [ProducesSuccess<ShockerWithDevice>]
-    [ProducesProblem(HttpStatusCode.NotFound, "ShockerNotFound")]
+    [ProducesResponseType<BaseResponse<ShockerWithDevice>>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
+    [ProducesResponseType<OpenShockProblem>(StatusCodes.Status404NotFound, MediaTypeNames.Application.ProblemJson)] // ShockerNotFound
     [MapToApiVersion("1")]
     public async Task<IActionResult> GetShockerById([FromRoute] Guid shockerId)
     {
@@ -34,6 +36,6 @@ public sealed partial class ShockerController
         }).FirstOrDefaultAsync();
 
         if (shocker == null) return Problem(ShockerError.ShockerNotFound);
-        return RespondSuccess(shocker);
+        return RespondSuccessLegacy(shocker);
     }
 }

@@ -1,37 +1,16 @@
 ﻿using System.ComponentModel.DataAnnotations;
-using System.Net;
 using System.Text.Json;
-using System.Text.Json.Serialization;
-using Asp.Versioning;
 using Asp.Versioning.ApiExplorer;
-using Microsoft.AspNetCore.Authentication;
-using Microsoft.AspNetCore.HttpOverrides;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.OpenApi.Models;
-using Npgsql;
 using OpenShock.Common;
-using OpenShock.Common.Authentication;
-using OpenShock.Common.Authentication.Handlers;
-using OpenShock.Common.Authentication.Services;
-using OpenShock.Common.ExceptionHandle;
+using OpenShock.Common.Constants;
 using OpenShock.Common.JsonSerialization;
-using OpenShock.Common.Models;
-using OpenShock.Common.OpenShockDb;
-using OpenShock.Common.Problems;
-using OpenShock.Common.Redis;
 using OpenShock.Common.Services.Device;
-using OpenShock.Common.Services.LCGNodeProvisioner;
 using OpenShock.Common.Services.Ota;
 using OpenShock.Common.Utils;
+using OpenShock.LiveControlGateway.LifetimeManager;
 using OpenShock.LiveControlGateway.PubSub;
-using Redis.OM;
-using Redis.OM.Contracts;
-using Serilog;
-using IPNetwork = Microsoft.AspNetCore.HttpOverrides.IPNetwork;
 using JsonSerializer = System.Text.Json.JsonSerializer;
-using WebSocketOptions = Microsoft.AspNetCore.Builder.WebSocketOptions;
 
 namespace OpenShock.LiveControlGateway;
 
@@ -40,14 +19,6 @@ namespace OpenShock.LiveControlGateway;
 /// </summary>
 public sealed class Startup
 {
-    private readonly ForwardedHeadersOptions _forwardedSettings = new()
-    {
-        ForwardedHeaders = ForwardedHeaders.All,
-        RequireHeaderSymmetry = false,
-        ForwardLimit = null,
-        ForwardedForHeaderName = "CF-Connecting-IP"
-    };
-
     private LCGConfig _lcgConfig;
 
     /// <summary>
@@ -83,65 +54,7 @@ public sealed class Startup
     {
         services.AddSingleton(_lcgConfig);
         
-        // ----------------- DATABASE -----------------
-        
-        // How do I do this now with EFCore?!
-#pragma warning disable CS0618
-        NpgsqlConnection.GlobalTypeMapper.MapEnum<ControlType>();
-        NpgsqlConnection.GlobalTypeMapper.MapEnum<PermissionType>();
-        NpgsqlConnection.GlobalTypeMapper.MapEnum<ShockerModelType>();
-        NpgsqlConnection.GlobalTypeMapper.MapEnum<RankType>();
-        NpgsqlConnection.GlobalTypeMapper.MapEnum<OtaUpdateStatus>();
-#pragma warning restore CS0618
-        services.AddDbContextPool<OpenShockContext>(builder =>
-        {
-            builder.UseNpgsql(_lcgConfig.Db.Conn);
-            builder.EnableSensitiveDataLogging();
-            builder.EnableDetailedErrors();
-        });
-        
-        services.AddDbContextFactory<OpenShockContext>(builder =>
-        {
-            builder.UseNpgsql(_lcgConfig.Db.Conn);
-            builder.EnableSensitiveDataLogging();
-            builder.EnableDetailedErrors();
-        });
-        
-        // ----------------- REDIS -----------------
-        
         var commonService = services.AddOpenShockServices(_lcgConfig);
-
-        services.AddMemoryCache();
-        services.AddHttpContextAccessor();
-
-        services.AddScoped<IClientAuthService<LinkUser>, ClientAuthService<LinkUser>>();
-        services.AddScoped<IClientAuthService<Device>, ClientAuthService<Device>>();
-        services.AddScoped<IUserReferenceService, UserReferenceService>();
-        
-        services.AddSingleton<ILCGNodeProvisioner, LCGNodeProvisioner>();
-
-        services.AddWebEncoders();
-        services.TryAddSingleton<TimeProvider>(_ => TimeProvider.System);
-        new AuthenticationBuilder(services)
-            .AddScheme<AuthenticationSchemeOptions, LoginSessionAuthentication>(
-                OpenShockAuthSchemas.SessionTokenCombo, _ => { })
-            .AddScheme<AuthenticationSchemeOptions, DeviceAuthentication>(
-                OpenShockAuthSchemas.DeviceToken, _ => { });
-        services.AddAuthenticationCore();
-        services.AddAuthorization();
-
-        services.AddCors(options =>
-        {
-            options.AddDefaultPolicy(builder =>
-            {
-                builder.SetIsOriginAllowed(_ => true);
-                builder.AllowAnyHeader();
-                builder.AllowCredentials();
-                builder.AllowAnyMethod();
-                builder.SetPreflightMaxAge(TimeSpan.FromHours(24));
-            });
-        });
-        
         
         services.AddSignalR()
             .AddOpenShockStackExchangeRedis(options => { options.Configuration = commonService.RedisConfig; })
@@ -153,45 +66,6 @@ public sealed class Startup
 
         services.AddScoped<IDeviceService, DeviceService>();
         services.AddScoped<IOtaService, OtaService>();
-        
-
-        var apiVersioningBuilder = services.AddApiVersioning(options =>
-        {
-            options.DefaultApiVersion = new ApiVersion(1, 0);
-            options.AssumeDefaultVersionWhenUnspecified = true;
-        });
-        services.AddControllers().AddJsonOptions(x =>
-        {
-            x.JsonSerializerOptions.PropertyNameCaseInsensitive = true;
-            x.JsonSerializerOptions.Converters.Add(new PermissionTypeConverter());
-            x.JsonSerializerOptions.Converters.Add(new CustomJsonStringEnumConverter());
-        });
-
-
-        apiVersioningBuilder.AddApiExplorer(setup =>
-        {
-            setup.GroupNameFormat = "VVV";
-            setup.SubstituteApiVersionInUrl = true;
-        });
-        
-        services.ConfigureHttpJsonOptions(options =>
-        {
-            options.SerializerOptions.PropertyNameCaseInsensitive = true;
-            options.SerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
-            options.SerializerOptions.Converters.Add(new PermissionTypeConverter());
-            options.SerializerOptions.Converters.Add(new JsonStringEnumConverter());
-        });
-        
-        services.AddProblemDetails();
-        
-        services.Configure<ApiBehaviorOptions>(options =>
-        {
-            options.InvalidModelStateResponseFactory = context =>
-            {
-                var problemDetails = new ValidationProblem(context.ModelState);
-                return problemDetails.ToObjectResult(context.HttpContext);
-            };
-        });
         
         services.AddSwaggerGen(options =>
             {
@@ -217,7 +91,7 @@ public sealed class Startup
                             Reference = new OpenApiReference
                             {
                                 Type = ReferenceType.SecurityScheme,
-                                Id = "OpenShockToken"
+                                Id = AuthConstants.AuthTokenHeaderName
                             }
                         },
                         Array.Empty<string>()
@@ -234,7 +108,9 @@ public sealed class Startup
 
         services.AddHostedService<RedisSubscriberService>(); 
         services.AddHostedService<LcgKeepAlive>();
-        
+
+        services.AddSingleton<HubLifetimeManager>();
+
     }
 
     /// <summary>
@@ -246,29 +122,7 @@ public sealed class Startup
     public void Configure(IApplicationBuilder app, IWebHostEnvironment env, ILoggerFactory loggerFactory)
     {
         ApplicationLogging.LoggerFactory = loggerFactory;
-        foreach (var proxy in TrustedProxiesFetcher.GetTrustedProxies())
-        {
-            var split = proxy.Split('/');
-            _forwardedSettings.KnownNetworks.Add(new IPNetwork(IPAddress.Parse(split[0]), int.Parse(split[1])));
-        }
-
-        app.UseForwardedHeaders(_forwardedSettings);
-        app.UseSerilogRequestLogging();
-
-        app.ConfigureExceptionHandler();
-
-        // global cors policy
-        app.UseCors();
-        
-        // Redis
-        
-        var redisConnection = app.ApplicationServices.GetRequiredService<IRedisConnectionProvider>().Connection;
-        
-        redisConnection.CreateIndex(typeof(LoginSession));
-        redisConnection.CreateIndex(typeof(DeviceOnline));
-        redisConnection.CreateIndex(typeof(DevicePair));
-        redisConnection.CreateIndex(typeof(LcgNode));
-        
+        app.UseCommonOpenShockMiddleware();
 
         app.UseSwagger();
         var provider = app.ApplicationServices.GetRequiredService<IApiVersionDescriptionProvider>();
@@ -278,15 +132,7 @@ public sealed class Startup
                 c.SwaggerEndpoint($"/swagger/{description.GroupName}/swagger.json",
                     description.GroupName.ToUpperInvariant());
         });
-
-
-        app.UseWebSockets(new WebSocketOptions
-        {
-            KeepAliveInterval = TimeSpan.FromMinutes(1)
-        });
-        app.UseRouting();
-        app.UseAuthentication();
-        app.UseAuthorization();
+        
         app.UseEndpoints(endpoints =>
         {
             endpoints.MapControllers();

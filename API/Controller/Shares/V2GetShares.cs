@@ -1,4 +1,6 @@
 ﻿using System.Net;
+using System.Net.Mime;
+using Asp.Versioning;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using OpenShock.API.Models.Response;
@@ -7,12 +9,13 @@ using OpenShock.Common.Models;
 using OpenShock.Common.Problems;
 using OpenShock.Common.Utils;
 
-namespace OpenShock.API.Controller.Shares.V2;
+namespace OpenShock.API.Controller.Shares;
 
-public sealed partial class SharesV2Controller
+public sealed partial class SharesController
 {
     [HttpGet]
-    [ProducesSlimSuccess<IEnumerable<GenericIni>>]
+    [ProducesResponseType<IEnumerable<GenericIni>>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
+    [ApiVersion("2")]
     public async Task<IEnumerable<GenericIni>> GetSharesByUsers()
     {
         var sharedToUsers = await _db.ShockerShares.Where(x => x.Shocker.DeviceNavigation.Owner == CurrentUser.DbUser.Id)
@@ -26,8 +29,9 @@ public sealed partial class SharesV2Controller
     }
     
     [HttpGet("{userId:guid}")]
-    [ProducesSlimSuccess<ShareInfo>]
-    [ProducesProblem(HttpStatusCode.NotFound, "UserNotFound")]
+    [ProducesResponseType<ShareInfo>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
+    [ProducesResponseType<OpenShockProblem>(StatusCodes.Status404NotFound, MediaTypeNames.Application.ProblemJson)] // UserNotFound
+    [ApiVersion("2")]
     public async Task<IActionResult> GetSharesToUser(Guid userId)
     {
         var sharedWithUser = await _db.ShockerShares.Where(x => x.Shocker.DeviceNavigation.Owner == CurrentUser.DbUser.Id && x.SharedWith == userId)
@@ -56,6 +60,6 @@ public sealed partial class SharesV2Controller
             return Problem(ShareError.ShareGetNoShares);
         }
         
-        return RespondSlimSuccess(sharedWithUser);
+        return Ok(sharedWithUser);
     }
 }

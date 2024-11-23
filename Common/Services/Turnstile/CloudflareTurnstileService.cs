@@ -41,8 +41,7 @@ public sealed class CloudflareTurnstileService : ICloudflareTurnstileService
 
         if (remoteIpAddress != null) formUrlValues["remoteip"] = remoteIpAddress.ToString();
 
-        var httpContent = new FormUrlEncodedContent(formUrlValues);
-
+        using var httpContent = new FormUrlEncodedContent(formUrlValues);
 
         using var httpResponse = await _httpClient.PostAsync(SiteVerifyEndpoint, httpContent, cancellationToken);
         if (!httpResponse.IsSuccessStatusCode)

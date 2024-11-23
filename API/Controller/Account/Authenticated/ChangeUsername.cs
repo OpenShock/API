@@ -1,4 +1,5 @@
 ﻿using System.Net;
+using System.Net.Mime;
 using Microsoft.AspNetCore.Mvc;
 using OpenShock.API.Models.Requests;
 using OpenShock.Common.Errors;
@@ -16,17 +17,17 @@ public sealed partial class AuthenticatedAccountController
     /// <returns></returns>
     /// <exception cref="Exception"></exception>
     [HttpPost("username")]
-    [ProducesSlimSuccess]
-    [ProducesProblem(HttpStatusCode.Conflict, "UsernameTaken")]
-    [ProducesProblem(HttpStatusCode.BadRequest, "UsernameInvalid")]
-    [ProducesProblem(HttpStatusCode.Forbidden, "UsernameRecentlyChanged")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType<OpenShockProblem>(StatusCodes.Status409Conflict, MediaTypeNames.Application.ProblemJson)] // UsernameTaken
+    [ProducesResponseType<OpenShockProblem>(StatusCodes.Status400BadRequest, MediaTypeNames.Application.ProblemJson)] // UsernameInvalid
+    [ProducesResponseType<OpenShockProblem>(StatusCodes.Status403Forbidden, MediaTypeNames.Application.ProblemJson)] // UsernameRecentlyChanged
     public async Task<IActionResult> ChangeUsername(ChangeUsernameRequest data)
     {
         var result = await _accountService.ChangeUsername(CurrentUser.DbUser.Id, data.Username,
             CurrentUser.DbUser.Rank.IsAllowed(RankType.Staff));
 
-        return result.Match(
-            success => RespondSlimSuccess(),
+        return result.Match<IActionResult>(
+            success => Ok(),
             error => Problem(error.Value.Match(
                 taken => AccountError.UsernameTaken,
                 AccountError.UsernameInvalid,

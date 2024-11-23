@@ -2,18 +2,13 @@
 using Microsoft.EntityFrameworkCore;
 using OneOf;
 using OneOf.Types;
-using OpenShock.API.Models.Response;
 using OpenShock.API.Services.Email;
 using OpenShock.API.Services.Email.Mailjet.Mail;
-using OpenShock.API.Utils;
-using OpenShock.Common;
 using OpenShock.Common.Constants;
 using OpenShock.Common.OpenShockDb;
-using OpenShock.Common.Redis;
+using OpenShock.Common.Services.Session;
 using OpenShock.Common.Utils;
 using OpenShock.Common.Validation;
-using Redis.OM.Contracts;
-using Redis.OM.Searching;
 
 namespace OpenShock.API.Services.Account;
 
@@ -26,7 +21,7 @@ public sealed class AccountService : IAccountService
 
     private readonly OpenShockContext _db;
     private readonly IEmailService _emailService;
-    private readonly IRedisCollection<LoginSession> _loginSessions;
+    private readonly ISessionService _sessionService;
     private readonly ILogger<AccountService> _logger;
     private readonly ApiConfig _apiConfig;
 
@@ -35,17 +30,17 @@ public sealed class AccountService : IAccountService
     /// </summary>
     /// <param name="db"></param>
     /// <param name="emailService"></param>
-    /// <param name="redisConnectionProvider"></param>
+    /// <param name="sessionService"></param>
     /// <param name="logger"></param>
     /// <param name="apiConfig"></param>
     public AccountService(OpenShockContext db, IEmailService emailService,
-        IRedisConnectionProvider redisConnectionProvider, ILogger<AccountService> logger, ApiConfig apiConfig)
+        ISessionService sessionService, ILogger<AccountService> logger, ApiConfig apiConfig)
     {
         _db = db;
         _emailService = emailService;
         _logger = logger;
         _apiConfig = apiConfig;
-        _loginSessions = redisConnectionProvider.RedisCollection<LoginSession>(false);
+        _sessionService = sessionService;
     }
 
     /// <inheritdoc />
@@ -106,12 +101,12 @@ public sealed class AccountService : IAccountService
     }
 
     /// <inheritdoc />
-    public async Task<OneOf<Success<string>, NotFound>> Login(string emailOrUsername, string password,
+    public async Task<OneOf<Success<string>, NotFound>> Login(string usernameOrEmail, string password,
         LoginContext loginContext, CancellationToken cancellationToken = default)
     {
-        var lowercaseEmailOrUsername = emailOrUsername.ToLowerInvariant();
+        var lowercaseUsernameOrEmail = usernameOrEmail.ToLowerInvariant();
         var user = await _db.Users.FirstOrDefaultAsync(
-            x => x.Email == lowercaseEmailOrUsername || x.Name == lowercaseEmailOrUsername,
+            x => x.Email == lowercaseUsernameOrEmail || x.Name == lowercaseUsernameOrEmail,
             cancellationToken: cancellationToken);
         if (user == null)
         {
@@ -124,16 +119,7 @@ public sealed class AccountService : IAccountService
 
         var randomSessionId = CryptoUtils.RandomString(64);
 
-        await _loginSessions.InsertAsync(new LoginSession
-        {
-            Id = randomSessionId,
-            UserId = user.Id,
-            UserAgent = loginContext.UserAgent,
-            Ip = loginContext.Ip,
-            PublicId = Guid.NewGuid(),
-            Created = DateTime.UtcNow,
-            Expires = DateTime.UtcNow.Add(Duration.LoginSessionLifetime),
-        }, Duration.LoginSessionLifetime);
+        await _sessionService.CreateSessionAsync(randomSessionId, user.Id, loginContext.UserAgent, loginContext.Ip);
 
         return new Success<string>(randomSessionId);
     }

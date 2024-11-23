@@ -1,4 +1,5 @@
 ﻿using System.Net;
+using System.Net.Mime;
 using Asp.Versioning;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -22,8 +23,8 @@ public sealed partial class ShockerController
     /// <response code="404">Shocker does not exist</response>
     [HttpDelete("{shockerId}")]
     [TokenPermission(PermissionType.Shockers_Edit)]
-    [ProducesSuccess]
-    [ProducesProblem(HttpStatusCode.NotFound, "ShockerNotFound")]
+    [ProducesResponseType<BaseResponse<object>>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
+    [ProducesResponseType<OpenShockProblem>(StatusCodes.Status404NotFound, MediaTypeNames.Application.ProblemJson)] // ShockerNotFound
     [MapToApiVersion("1")]
     public async Task<IActionResult> RemoveShocker(
         [FromRoute] Guid shockerId,
@@ -44,6 +45,6 @@ public sealed partial class ShockerController
 
         await deviceUpdateService.UpdateDeviceForAllShared(CurrentUser.DbUser.Id, affected.Device, DeviceUpdateType.ShockerUpdated);
 
-        return RespondSuccessSimple("Shocker removed successfully");
+        return RespondSuccessLegacySimple("Shocker removed successfully");
     }
 }

@@ -1,4 +1,5 @@
-﻿using System.Security.Claims;
+﻿using System.Net.Mime;
+using System.Security.Claims;
 using System.Text.Encodings.Web;
 using System.Text.Json;
 using Microsoft.AspNetCore.Authentication;
@@ -9,6 +10,7 @@ using OpenShock.Common.Authentication.Services;
 using OpenShock.Common.Errors;
 using OpenShock.Common.OpenShockDb;
 using OpenShock.Common.Problems;
+using OpenShock.Common.Utils;
 
 namespace OpenShock.Common.Authentication.Handlers;
 
@@ -40,19 +42,10 @@ public sealed class DeviceAuthentication : AuthenticationHandler<AuthenticationS
 
     protected override async Task<AuthenticateResult> HandleAuthenticateAsync()
     {
-        string sessionKey;
-
-        if (Context.Request.Headers.TryGetValue("DeviceToken", out var sessionKeyHeader) &&
-            !string.IsNullOrEmpty(sessionKeyHeader))
+        if (!Context.TryGetDeviceTokenFromHeader(out string? sessionKey))
         {
-            sessionKey = sessionKeyHeader!;
+            return Fail(AuthResultError.CookieOrHeaderMissingOrInvalid);
         }
-        else if (Context.Request.Headers.TryGetValue("Device-Token", out var sessionKeyHeader2) &&
-                            !string.IsNullOrEmpty(sessionKeyHeader2))
-        {
-            sessionKey = sessionKeyHeader2!;
-        }
-        else return Fail(AuthResultError.HeaderMissingOrInvalid);
 
         var device = await _db.Devices.Where(x => x.Token == sessionKey).FirstOrDefaultAsync();
         if (device == null) return Fail(AuthResultError.TokenInvalid);
@@ -82,6 +75,6 @@ public sealed class DeviceAuthentication : AuthenticationHandler<AuthenticationS
         _authResultError ??= AuthResultError.UnknownError;
         Response.StatusCode = _authResultError.Status!.Value;
         _authResultError.AddContext(Context);
-        return Context.Response.WriteAsJsonAsync(_authResultError, _serializerOptions, contentType: "application/problem+json");
+        return Context.Response.WriteAsJsonAsync(_authResultError, _serializerOptions, contentType: MediaTypeNames.Application.ProblemJson);
     }
 }

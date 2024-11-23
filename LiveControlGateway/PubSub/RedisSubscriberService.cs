@@ -3,9 +3,6 @@ using OpenShock.Common.Redis.PubSub;
 using OpenShock.Common.Services.RedisPubSub;
 using OpenShock.Common.Utils;
 using OpenShock.LiveControlGateway.LifetimeManager;
-using OpenShock.LiveControlGateway.Websocket;
-using OpenShock.Serialization;
-using OpenShock.Serialization.Types;
 using StackExchange.Redis;
 
 namespace OpenShock.LiveControlGateway.PubSub;
@@ -15,15 +12,18 @@ namespace OpenShock.LiveControlGateway.PubSub;
 /// </summary>
 public sealed class RedisSubscriberService : IHostedService, IAsyncDisposable
 {
+    private readonly HubLifetimeManager _hubLifetimeManager;
     private readonly ISubscriber _subscriber;
 
     /// <summary>
     /// DI Constructor
     /// </summary>
     /// <param name="connectionMultiplexer"></param>
+    /// <param name="hubLifetimeManager"></param>
     public RedisSubscriberService(
-        IConnectionMultiplexer connectionMultiplexer)
+        IConnectionMultiplexer connectionMultiplexer, HubLifetimeManager hubLifetimeManager)
     {
+        _hubLifetimeManager = hubLifetimeManager;
         _subscriber = connectionMultiplexer.GetSubscriber();
     }
 
@@ -42,22 +42,22 @@ public sealed class RedisSubscriberService : IHostedService, IAsyncDisposable
             (_, message) => { LucTask.Run(() => DeviceOtaInstall(message)); });
     }
 
-    private static async Task DeviceControl(RedisValue value)
+    private async Task DeviceControl(RedisValue value)
     {
         if (!value.HasValue) return;
         var data = JsonSerializer.Deserialize<ControlMessage>(value.ToString());
         if (data == null) return;
 
-        await Task.WhenAll(data.ControlMessages.Select(x => DeviceLifetimeManager.Control(x.Key, x.Value)));
+        await Task.WhenAll(data.ControlMessages.Select(x => _hubLifetimeManager.Control(x.Key, x.Value)));
     }
 
-    private static async Task DeviceControlCaptive(RedisValue value)
+    private async Task DeviceControlCaptive(RedisValue value)
     {
         if (!value.HasValue) return;
         var data = JsonSerializer.Deserialize<CaptiveMessage>(value.ToString());
         if (data == null) return;
 
-        await DeviceLifetimeManager.ControlCaptive(data.DeviceId, data.Enabled);
+        await _hubLifetimeManager.ControlCaptive(data.DeviceId, data.Enabled);
     }
 
     /// <summary>
@@ -65,13 +65,13 @@ public sealed class RedisSubscriberService : IHostedService, IAsyncDisposable
     /// </summary>
     /// <param name="value"></param>
     /// <returns></returns>
-    private static async Task DeviceUpdate(RedisValue value)
+    private async Task DeviceUpdate(RedisValue value)
     {
         if (!value.HasValue) return;
         var data = JsonSerializer.Deserialize<DeviceUpdatedMessage>(value.ToString());
         if (data == null) return;
         
-        await DeviceLifetimeManager.UpdateDevice(data.Id);
+        await _hubLifetimeManager.UpdateDevice(data.Id);
     }
 
     /// <summary>
@@ -79,13 +79,13 @@ public sealed class RedisSubscriberService : IHostedService, IAsyncDisposable
     /// </summary>
     /// <param name="value"></param>
     /// <returns></returns>
-    private static async Task DeviceOtaInstall(RedisValue value)
+    private async Task DeviceOtaInstall(RedisValue value)
     {
         if (!value.HasValue) return;
         var data = JsonSerializer.Deserialize<DeviceOtaInstallMessage>(value.ToString());
         if (data == null) return;
         
-        await DeviceLifetimeManager.OtaInstall(data.Id, data.Version);
+        await _hubLifetimeManager.OtaInstall(data.Id, data.Version);
     }
 
 

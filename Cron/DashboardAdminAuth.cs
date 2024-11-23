@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using OpenShock.Common.Models;
 using OpenShock.Common.OpenShockDb;
 using OpenShock.Common.Redis;
+using OpenShock.Common.Utils;
 using Redis.OM.Contracts;
 using Redis.OM.Searching;
 
@@ -17,11 +18,14 @@ public sealed class DashboardAdminAuth : IDashboardAsyncAuthorizationFilter
         var redis = httpContext.RequestServices.GetRequiredService<IRedisConnectionProvider>();
         var userSessions = redis.RedisCollection<LoginSession>(false);
         var db = httpContext.RequestServices.GetRequiredService<OpenShockContext>();
-        
-        if (httpContext.Request.Cookies.TryGetValue("openShockSession", out var sessionKeyCookie) &&
-            !string.IsNullOrEmpty(sessionKeyCookie))
-            if (await SessionAuthAdmin(sessionKeyCookie!, userSessions, db))
+
+        if (httpContext.TryGetSessionKeyFromCookie(out var sessionKeyCookie))
+        {
+            if (await SessionAuthAdmin(sessionKeyCookie, userSessions, db))
+            {
                 return true;
+            }
+        }
 
         await context.Response.WriteAsync("Unauthorized, you need to be authenticated as admin to access this page.");
         

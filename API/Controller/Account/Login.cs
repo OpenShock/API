@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using OpenShock.API.Models.Requests;
 using System.Net;
+using System.Net.Mime;
 using Asp.Versioning;
 using OpenShock.API.Services.Account;
 using OpenShock.Common;
@@ -8,6 +9,7 @@ using OpenShock.Common.Constants;
 using OpenShock.Common.Errors;
 using OpenShock.Common.Problems;
 using OpenShock.Common.Utils;
+using OpenShock.Common.Models;
 
 namespace OpenShock.API.Controller.Account;
 
@@ -19,9 +21,9 @@ public sealed partial class AccountController
     /// <response code="200">User successfully logged in</response>
     /// <response code="401">Invalid username or password</response>
     [HttpPost("login")]
-    [ProducesSuccess]
-    [ProducesProblem(HttpStatusCode.Unauthorized, "InvalidCredentials")]
-    [ProducesProblem(HttpStatusCode.Forbidden, "InvalidDomain")]
+    [ProducesResponseType<BaseResponse<object>>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
+    [ProducesResponseType<OpenShockProblem>(StatusCodes.Status401Unauthorized, MediaTypeNames.Application.ProblemJson)] // InvalidCredentials
+    [ProducesResponseType<OpenShockProblem>(StatusCodes.Status403Forbidden, MediaTypeNames.Application.ProblemJson)] // InvalidDomain
     [MapToApiVersion("1")]
     public async Task<IActionResult> Login(
         [FromBody] Login body,
@@ -38,17 +40,9 @@ public sealed partial class AccountController
         }, cancellationToken);
 
         if (loginAction.IsT1) return Problem(LoginError.InvalidCredentials);
-        
 
-        HttpContext.Response.Cookies.Append("openShockSession", loginAction.AsT0.Value, new CookieOptions
-        {
-            Expires = new DateTimeOffset(DateTime.UtcNow.Add(Duration.LoginSessionLifetime)),
-            Secure = true,
-            HttpOnly = true,
-            SameSite = SameSiteMode.Strict,
-            Domain = "." + cookieDomainToUse
-        });
+        HttpContext.SetSessionKeyCookie(loginAction.AsT0.Value, "." + cookieDomainToUse);
 
-        return RespondSuccessSimple("Successfully logged in");
+        return RespondSuccessLegacySimple("Successfully logged in");
     }
 }

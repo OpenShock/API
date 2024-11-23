@@ -4,14 +4,18 @@ using Microsoft.EntityFrameworkCore;
 using OneOf;
 using OneOf.Types;
 using OpenShock.Common;
+using OpenShock.Common.Constants;
 using OpenShock.Common.Models;
 using OpenShock.Common.OpenShockDb;
+using OpenShock.Common.Redis;
 using OpenShock.Common.Redis.PubSub;
+using OpenShock.Common.Services.RedisPubSub;
 using OpenShock.Common.Utils;
 using OpenShock.LiveControlGateway.Controllers;
 using OpenShock.LiveControlGateway.Websocket;
 using OpenShock.Serialization.Gateway;
 using OpenShock.Serialization.Types;
+using Redis.OM.Contracts;
 using Semver;
 using ShockerModelType = OpenShock.Serialization.Types.ShockerModelType;
 
@@ -20,34 +24,42 @@ namespace OpenShock.LiveControlGateway.LifetimeManager;
 /// <summary>
 /// Handles all Business Logic for a single device
 /// </summary>
-public sealed class DeviceLifetime : IAsyncDisposable
+public sealed class HubLifetime : IAsyncDisposable
 {
     private readonly TimeSpan _waitBetweenTicks;
     private readonly ushort _commandDuration;
-    private static readonly ILogger<DeviceLifetime> Logger = ApplicationLogging.CreateLogger<DeviceLifetime>();
+    private static readonly ILogger<HubLifetime> Logger = ApplicationLogging.CreateLogger<HubLifetime>();
 
     private Dictionary<Guid, ShockerState> _shockerStates = new();
     private readonly byte _tps;
-    private readonly IDeviceController _deviceController;
+    private readonly IHubController _hubController;
     private readonly CancellationToken _cancellationToken;
 
     private readonly IDbContextFactory<OpenShockContext> _dbContextFactory;
+    private readonly IRedisConnectionProvider _redisConnectionProvider;
+    private readonly IRedisPubService _redisPubService;
 
     /// <summary>
     /// DI Constructor
     /// </summary>
     /// <param name="tps"></param>
-    /// <param name="deviceController"></param>
+    /// <param name="hubController"></param>
     /// <param name="dbContextFactory"></param>
+    /// <param name="redisPubService"></param>
     /// <param name="cancellationToken"></param>
-    public DeviceLifetime([Range(1, 10)] byte tps, IDeviceController deviceController,
+    /// <param name="redisConnectionProvider"></param>
+    public HubLifetime([Range(1, 10)] byte tps, IHubController hubController,
         IDbContextFactory<OpenShockContext> dbContextFactory,
+        IRedisConnectionProvider redisConnectionProvider,
+        IRedisPubService redisPubService,
         CancellationToken cancellationToken = default)
     {
         _tps = tps;
-        _deviceController = deviceController;
+        _hubController = hubController;
         _cancellationToken = cancellationToken;
         _dbContextFactory = dbContextFactory;
+        _redisConnectionProvider = redisConnectionProvider;
+        _redisPubService = redisPubService;
 
         _waitBetweenTicks = TimeSpan.FromMilliseconds(Math.Floor((float)1000 / tps));
         _commandDuration = (ushort)(_waitBetweenTicks.TotalMilliseconds * 2.5);
@@ -85,7 +97,7 @@ public sealed class DeviceLifetime : IAsyncDisposable
             var waitTime = _waitBetweenTicks - elapsed;
             if (waitTime.TotalMilliseconds < 1)
             {
-                Logger.LogWarning("Update loop running behind for device [{DeviceId}]", _deviceController.Id);
+                Logger.LogWarning("Update loop running behind for device [{DeviceId}]", _hubController.Id);
                 continue;
             }
 
@@ -114,7 +126,7 @@ public sealed class DeviceLifetime : IAsyncDisposable
 
         if (commandList == null) return;
 
-        await _deviceController.Control(commandList);
+        await _hubController.Control(commandList);
     }
 
     /// <summary>
@@ -126,7 +138,7 @@ public sealed class DeviceLifetime : IAsyncDisposable
         await UpdateShockers(db);
 
         foreach (var websocketController in
-                 WebsocketManager.LiveControlUsers.GetConnections(_deviceController.Id))
+                 WebsocketManager.LiveControlUsers.GetConnections(_hubController.Id))
             await websocketController.UpdatePermissions(db);
     }
 
@@ -135,8 +147,8 @@ public sealed class DeviceLifetime : IAsyncDisposable
     /// </summary>
     private async Task UpdateShockers(OpenShockContext db)
     {
-        Logger.LogDebug("Updating shockers for device [{DeviceId}]", _deviceController.Id);
-        var ownShockers = await db.Shockers.Where(x => x.Device == _deviceController.Id).Select(x => new ShockerState()
+        Logger.LogDebug("Updating shockers for device [{DeviceId}]", _hubController.Id);
+        var ownShockers = await db.Shockers.Where(x => x.Device == _hubController.Id).Select(x => new ShockerState()
         {
             Id = x.Id,
             Model = x.Model,
@@ -199,7 +211,7 @@ public sealed class DeviceLifetime : IAsyncDisposable
             });
         }
 
-        return _deviceController.Control(shocksTransformed);
+        return _hubController.Control(shocksTransformed);
     }
 
     /// <summary>
@@ -207,14 +219,159 @@ public sealed class DeviceLifetime : IAsyncDisposable
     /// </summary>
     /// <param name="enabled"></param>
     /// <returns></returns>
-    public ValueTask ControlCaptive(bool enabled) => _deviceController.CaptivePortal(enabled);
+    public ValueTask ControlCaptive(bool enabled) => _hubController.CaptivePortal(enabled);
 
     /// <summary>
     /// Ota install from redis
     /// </summary>
     /// <returns></returns>
-    public ValueTask OtaInstall(SemVersion semVersion) => _deviceController.OtaInstall(semVersion);
+    public ValueTask OtaInstall(SemVersion semVersion) => _hubController.OtaInstall(semVersion);
+
+    /// <summary>
+    /// Update self online status
+    /// </summary>
+    /// <param name="device"></param>
+    /// <param name="data"></param>
+    /// <returns></returns>
+    public async Task<OneOf<Success, OnlineStateUpdated>> Online(Guid device, SelfOnlineData data)
+    {
+        var deviceOnline = _redisConnectionProvider.RedisCollection<DeviceOnline>();
+        var deviceId = device.ToString();
+        var online = await deviceOnline.FindByIdAsync(deviceId);
+        if (online == null)
+        {
+            await deviceOnline.InsertAsync(new DeviceOnline
+            {
+                Id = device,
+                Owner = data.Owner,
+                FirmwareVersion = data.FirmwareVersion,
+                Gateway = data.Gateway,
+                ConnectedAt = data.ConnectedAt,
+                UserAgent = data.UserAgent,
+                BootedAt = data.BootedAt,
+                LatencyMs = data.LatencyMs,
+                Rssi = data.Rssi,
+            }, Duration.DeviceKeepAliveTimeout);
+
+            
+            await _redisPubService.SendDeviceOnlineStatus(device);
+            return new Success();
+        }
+
+        // We cannot rely on the json set anymore, since that also happens with uptime and latency
+        // as we don't want to send a device online status every time, we will do it here
+        online.BootedAt = data.BootedAt;
+        online.LatencyMs = data.LatencyMs;
+        online.Rssi = data.Rssi;
+
+        var sendOnlineStatusUpdate = false;
+        
+        if (online.FirmwareVersion != data.FirmwareVersion ||
+            online.Gateway != data.Gateway ||
+            online.ConnectedAt != data.ConnectedAt ||
+            online.UserAgent != data.UserAgent)
+        {
+            online.Gateway = data.Gateway;
+            online.FirmwareVersion = data.FirmwareVersion!;
+            online.ConnectedAt = data.ConnectedAt;
+            online.UserAgent = data.UserAgent;
+            
+            sendOnlineStatusUpdate = true;
+        }
+
+        await deviceOnline.UpdateAsync(online, Duration.DeviceKeepAliveTimeout);
+        
+        if (sendOnlineStatusUpdate)
+        {
+            await _redisPubService.SendDeviceOnlineStatus(device);
+            return new OnlineStateUpdated();
+        }
+
+        return new Success();
+    }
 
     /// <inheritdoc />
-    public ValueTask DisposeAsync() => _deviceController.DisposeAsync();
+    public ValueTask DisposeAsync() => _hubController.DisposeAsync();
+}
+
+/// <summary>
+/// Online state updated
+/// </summary>
+public readonly struct OnlineStateUpdated;
+
+/// <summary>
+/// Self online data struct
+/// </summary>
+public readonly struct SelfOnlineData
+{
+    /// <summary>
+    /// Man why do I need a constructor for this wtf
+    /// </summary>
+    /// <param name="owner"></param>
+    /// <param name="gateway"></param>
+    /// <param name="firmwareVersion"></param>
+    /// <param name="connectedAt"></param>
+    /// <param name="bootedAt"></param>
+    /// <param name="userAgent"></param>
+    /// <param name="latencyMs"></param>
+    /// <param name="rssi"></param>
+    public SelfOnlineData(
+        Guid owner,
+        string gateway,
+        SemVersion firmwareVersion,
+        DateTimeOffset connectedAt,
+        string userAgent,
+        DateTimeOffset bootedAt,
+        ushort? latencyMs = null,
+        int? rssi = null)
+    {
+        Owner = owner;
+        Gateway = gateway;
+        FirmwareVersion = firmwareVersion;
+        ConnectedAt = connectedAt;
+        UserAgent = userAgent;
+        BootedAt = bootedAt;
+        LatencyMs = latencyMs;
+        Rssi = rssi;
+    }
+    
+    /// <summary>
+    /// The owner of the device
+    /// </summary>
+    public required Guid Owner { get; init; }
+    
+    /// <summary>
+    /// Our gateway fqdn
+    /// </summary>
+    public required string Gateway { get; init; }
+    
+    /// <summary>
+    /// Firmware version sent by the hub
+    /// </summary>
+    public required SemVersion FirmwareVersion { get; init; }
+    
+    /// <summary>
+    /// When the websocket connected
+    /// </summary>
+    public required DateTimeOffset ConnectedAt { get; init; }
+    
+    /// <summary>
+    /// Raw useragent
+    /// </summary>
+    public string? UserAgent { get; init; } = null;
+    
+    /// <summary>
+    /// Hub uptime
+    /// </summary>
+    public DateTimeOffset BootedAt { get; init; }
+    
+    /// <summary>
+    /// Measured latency
+    /// </summary>
+    public ushort? LatencyMs { get; init; } = null;
+    
+    /// <summary>
+    /// Wifi rssi
+    /// </summary>
+    public int? Rssi { get; init; } = null;
 }

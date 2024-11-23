@@ -31,12 +31,12 @@ public interface IAccountService
     /// <summary>
     /// Login a user into his user session
     /// </summary>
-    /// <param name="emailOrUsername"></param>
+    /// <param name="usernameOrEmail"></param>
     /// <param name="password"></param>
     /// <param name="loginContext"></param>
     /// <param name="cancellationToken"></param>
     /// <returns></returns>
-    public Task<OneOf<Success<string>, NotFound>> Login(string emailOrUsername, string password, LoginContext loginContext, CancellationToken cancellationToken = default);
+    public Task<OneOf<Success<string>, NotFound>> Login(string usernameOrEmail, string password, LoginContext loginContext, CancellationToken cancellationToken = default);
     
     /// <summary>
     /// Check if a password reset request exists and the secret is valid

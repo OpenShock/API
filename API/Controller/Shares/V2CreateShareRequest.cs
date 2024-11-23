@@ -1,4 +1,6 @@
 ﻿using System.Net;
+using System.Net.Mime;
+using Asp.Versioning;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using OpenShock.API.Models.Requests;
@@ -7,15 +9,15 @@ using OpenShock.Common.OpenShockDb;
 using OpenShock.Common.Problems;
 using Z.EntityFramework.Plus;
 
-namespace OpenShock.API.Controller.Shares.V2;
+namespace OpenShock.API.Controller.Shares;
 
-public sealed partial class SharesV2Controller
+public sealed partial class SharesController
 {
     [HttpPost("requests")]
-    [ProducesSlimSuccess<Guid>]
-    [ProducesProblem(HttpStatusCode.NotFound, "UserNotFound")]
-    [ProducesProblem(HttpStatusCode.BadRequest, "ShareCreateCannotShareWithSelf")]
-    [ProducesProblem(HttpStatusCode.NotFound, "ShareCreateShockerNotFound")]
+    [ProducesResponseType<Guid>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
+    [ProducesResponseType<OpenShockProblem>(StatusCodes.Status404NotFound, MediaTypeNames.Application.ProblemJson)] // UserNotFound, ShareCreateShockerNotFound
+    [ProducesResponseType<OpenShockProblem>(StatusCodes.Status400BadRequest, MediaTypeNames.Application.ProblemJson)] // ShareCreateCannotShareWithSelf
+    [ApiVersion("2")]
     public async Task<IActionResult> CreateShare([FromBody] CreateShareRequest data)
     {
         if (data.User == CurrentUser.DbUser.Id)
@@ -73,6 +75,6 @@ public sealed partial class SharesV2Controller
 
         await transaction.CommitAsync();
 
-        return RespondSlimSuccess(shareRequest.Id);
+        return Ok(shareRequest.Id);
     }
 }

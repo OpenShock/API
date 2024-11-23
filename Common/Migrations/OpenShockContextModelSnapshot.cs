@@ -18,7 +18,7 @@ namespace OpenShock.Common.Migrations
 #pragma warning disable 612, 618
             modelBuilder
                 .HasAnnotation("Npgsql:CollationDefinition:public.ndcoll", "und-u-ks-level2,und-u-ks-level2,icu,False")
-                .HasAnnotation("ProductVersion", "8.0.10")
+                .HasAnnotation("ProductVersion", "9.0.0")
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "control_type", new[] { "sound", "vibrate", "shock", "stop" });
@@ -48,7 +48,7 @@ namespace OpenShock.Common.Migrations
                         .HasColumnType("character varying")
                         .HasColumnName("email");
 
-                    b.Property<bool>("EmailActived")
+                    b.Property<bool>("EmailActivated")
                         .HasColumnType("boolean")
                         .HasColumnName("email_actived");
 
@@ -137,7 +137,7 @@ namespace OpenShock.Common.Migrations
                         .HasColumnType("character varying(64)")
                         .HasColumnName("name");
 
-                    b.Property<int[]>("Permissions")
+                    b.PrimitiveCollection<int[]>("Permissions")
                         .IsRequired()
                         .HasColumnType("permission_type[]")
                         .HasColumnName("permissions");

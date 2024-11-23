@@ -1,8 +1,12 @@
-﻿using System.Net.WebSockets;
+﻿using System.Net.Mime;
+using System.Net.WebSockets;
 using System.Threading.Channels;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
+using OneOf;
+using OneOf.Types;
 using OpenShock.Common.Errors;
+using OpenShock.Common.Problems;
 using OpenShock.Common.Utils;
 using JsonOptions = Microsoft.AspNetCore.Http.Json.JsonOptions;
 
@@ -32,14 +36,17 @@ public abstract class WebsocketBaseController<T> : OpenShockControllerBase, IAsy
     /// <summary>
     /// When passing a cancellation token, pass this Linked token, it is a Link from ApplicationStopping and Close.
     /// </summary>
-    protected readonly CancellationTokenSource Linked;
+    protected readonly CancellationTokenSource LinkedSource;
+    protected readonly CancellationToken LinkedToken;
 
     /// <summary>
     /// Channel for multithreading thread safety of the websocket, MessageLoop is the only reader for this channel
     /// </summary>
     private readonly Channel<T> _channel = Channel.CreateUnbounded<T>();
 
+#pragma warning disable IDISP008
     protected WebSocket? WebSocket;
+#pragma warning restore IDISP008
 
     /// <summary>
     /// DI
@@ -49,7 +56,8 @@ public abstract class WebsocketBaseController<T> : OpenShockControllerBase, IAsy
     public WebsocketBaseController(ILogger<WebsocketBaseController<T>> logger, IHostApplicationLifetime lifetime)
     {
         Logger = logger;
-        Linked = CancellationTokenSource.CreateLinkedTokenSource(Close.Token, lifetime.ApplicationStopping);
+        LinkedSource = CancellationTokenSource.CreateLinkedTokenSource(Close.Token, lifetime.ApplicationStopping);
+        LinkedToken = LinkedSource.Token;
     }
 
 
@@ -61,8 +69,9 @@ public abstract class WebsocketBaseController<T> : OpenShockControllerBase, IAsy
 
     /// <inheritdoc />
     [NonAction]
-    public void Dispose()
+    public virtual void Dispose()
     {
+        // ReSharper disable once MethodSupportsCancellation
         DisposeAsync().AsTask().Wait();
     }
     
@@ -79,6 +88,7 @@ public abstract class WebsocketBaseController<T> : OpenShockControllerBase, IAsy
         _channel.Writer.Complete();
         await Close.CancelAsync();
         WebSocket?.Dispose();
+        LinkedSource.Dispose();
         Logger.LogTrace("Disposed websocket controller");
     }
     
@@ -102,17 +112,27 @@ public abstract class WebsocketBaseController<T> : OpenShockControllerBase, IAsy
             HttpContext.Response.StatusCode = StatusCodes.Status400BadRequest;
             var response = WebsocketError.NonWebsocketRequest;
             response.AddContext(HttpContext);
-            await HttpContext.Response.WriteAsJsonAsync(response, jsonOptions.Value.SerializerOptions, contentType: "application/problem+json");
+            await HttpContext.Response.WriteAsJsonAsync(response, jsonOptions.Value.SerializerOptions, contentType: MediaTypeNames.Application.ProblemJson);
+            await Close.CancelAsync();
             return;
         }
 
-        if (!await ConnectionPrecondition())
+        var connectionPrecondition = await ConnectionPrecondition();
+        if (connectionPrecondition.IsT1)
         {
+            var jsonOptions = HttpContext.RequestServices.GetRequiredService<IOptions<JsonOptions>>();
+            var response = connectionPrecondition.AsT1.Value;
+            HttpContext.Response.StatusCode = response.Status ?? StatusCodes.Status400BadRequest;
+            response.AddContext(HttpContext);
+            await HttpContext.Response.WriteAsJsonAsync(response, jsonOptions.Value.SerializerOptions, contentType: MediaTypeNames.Application.ProblemJson);
+            
             await Close.CancelAsync();
             return;
         }
 
         Logger.LogInformation("Opening websocket connection");
+        
+        WebSocket?.Dispose(); // This should never happen, but just in case
         WebSocket = await HttpContext.WebSockets.AcceptWebSocketAsync();
 
         await RegisterConnection();
@@ -138,11 +158,11 @@ public abstract class WebsocketBaseController<T> : OpenShockControllerBase, IAsy
     [NonAction]
     private async Task MessageLoop()
     {
-        await foreach (var msg in _channel.Reader.ReadAllAsync(Linked.Token))
+        await foreach (var msg in _channel.Reader.ReadAllAsync(LinkedToken))
         {
             try
             {
-                await SendWebSocketMessage(msg, WebSocket!, Linked.Token);
+                await SendWebSocketMessage(msg, WebSocket!, LinkedToken);
             }
             catch (Exception e)
             {
@@ -191,15 +211,11 @@ public abstract class WebsocketBaseController<T> : OpenShockControllerBase, IAsy
     /// </summary>
     [NonAction]
     protected virtual Task UnregisterConnection() => Task.CompletedTask;
-    
+
     /// <summary>
     /// Action when the websocket connection is destroyed to unregister the connection to a websocket manager
     /// </summary>
     [NonAction]
-    protected virtual Task<bool> ConnectionPrecondition() => Task.FromResult(true);
-    
-    ~WebsocketBaseController()
-    {
-        DisposeAsync().AsTask().Wait();
-    }
+    protected virtual Task<OneOf<Success, Error<OpenShockProblem>>> ConnectionPrecondition() =>
+        Task.FromResult(OneOf<Success, Error<OpenShockProblem>>.FromT0(new Success()));
 }

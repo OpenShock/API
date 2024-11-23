@@ -3,8 +3,10 @@ using Microsoft.EntityFrameworkCore;
 using OpenShock.API.Models.Requests;
 using OpenShock.API.Models.Response;
 using System.Net;
+using System.Net.Mime;
 using OpenShock.Common.Errors;
 using OpenShock.Common.Problems;
+using OpenShock.Common.Models;
 
 namespace OpenShock.API.Controller.Shares.Links;
 
@@ -20,9 +22,8 @@ public sealed partial class ShareLinksController
     /// <response code="404">Share link or shocker does not exist</response>
     /// <response code="400">Shocker does not exist in share link</response>
     [HttpPatch("{shareLinkId}/{shockerId}")]
-    [ProducesSuccess<ShareLinkResponse>]
-    [ProducesProblem(HttpStatusCode.NotFound, "ShareLinkNotFound")]
-    [ProducesProblem(HttpStatusCode.NotFound, "ShockerNotInShareLink")]
+    [ProducesResponseType<BaseResponse<ShareLinkResponse>>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
+    [ProducesResponseType<OpenShockProblem>(StatusCodes.Status404NotFound, MediaTypeNames.Application.ProblemJson)] // ShareLinkNotFound, ShockerNotInShareLink
     public async Task<IActionResult> EditShocker([FromRoute] Guid shareLinkId, [FromRoute] Guid shockerId, [FromBody] ShareLinkEditShocker body)
     {
         var exists = await _db.ShockerSharesLinks.AnyAsync(x => x.OwnerId == CurrentUser.DbUser.Id && x.Id == shareLinkId);
@@ -42,6 +43,6 @@ public sealed partial class ShareLinksController
         shocker.Cooldown = body.Cooldown;
 
         await _db.SaveChangesAsync();
-        return RespondSuccessSimple("Successfully updated shocker");
+        return RespondSuccessLegacySimple("Successfully updated shocker");
     }
 }

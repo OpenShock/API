@@ -4,8 +4,10 @@ using Microsoft.EntityFrameworkCore;
 using OpenShock.Common.Redis;
 using Redis.OM;
 using System.Net;
+using System.Net.Mime;
 using OpenShock.Common.Errors;
 using OpenShock.Common.Problems;
+using OpenShock.Common.Models;
 
 namespace OpenShock.API.Controller.Device;
 
@@ -20,8 +22,8 @@ public sealed partial class DeviceController
     [AllowAnonymous]
     [HttpGet("pair/{pairCode}", Name = "Pair")]
     [HttpGet("~/{version:apiVersion}/pair/{pairCode}", Name = "Pair_DEPRECATED")] // Backwards compatibility
-    [ProducesSuccess<string>]
-    [ProducesProblem(HttpStatusCode.NotFound, "PairCodeNotFound")]
+    [ProducesResponseType<BaseResponse<string>>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
+    [ProducesResponseType<OpenShockProblem>(StatusCodes.Status404NotFound, MediaTypeNames.Application.ProblemJson)] // PairCodeNotFound
     public async Task<IActionResult> Pair([FromRoute] string pairCode)
     {
         var devicePairs = _redis.RedisCollection<DevicePair>();
@@ -33,6 +35,6 @@ public sealed partial class DeviceController
         var device = await _db.Devices.FirstOrDefaultAsync(x => x.Id == pair.Id);
         if (device == null) throw new Exception("Device not found for pair code");
 
-        return RespondSuccess(device.Token);
+        return RespondSuccessLegacy(device.Token);
     }
 }

@@ -1,4 +1,5 @@
-﻿namespace OpenShock.Common.Models;
+﻿// ReSharper disable InconsistentNaming
+namespace OpenShock.Common.Models;
 
 public enum PasswordHashingAlgorithm
 {

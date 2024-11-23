@@ -18,6 +18,16 @@ public sealed class RedisPubService : IRedisPubService
         _subscriber = connectionMultiplexer.GetSubscriber();
     }
     
+    public Task SendDeviceOnlineStatus(Guid deviceId)
+    {
+        var redisMessage = new DeviceUpdatedMessage
+        {
+            Id = deviceId
+        };
+
+        return _subscriber.PublishAsync(RedisChannels.DeviceOnlineStatus, JsonSerializer.Serialize(redisMessage));
+    }
+    
     /// <inheritdoc />
     public Task SendDeviceControl(Guid sender, IDictionary<Guid, IList<ControlMessage.ShockerControlInfo>> controlMessages)
     {

@@ -1,4 +1,5 @@
-﻿using Asp.Versioning;
+﻿using System.Net.Mime;
+using Asp.Versioning;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using OpenShock.API.Models.Response;
@@ -14,9 +15,9 @@ public sealed partial class ShockerController
     /// </summary>
     /// <response code="200">The shockers were successfully retrieved.</response>
     [HttpGet("own")]
-    [ProducesSuccess<IEnumerable<ResponseDeviceWithShockers>>]
+    [ProducesResponseType<BaseResponse<IEnumerable<ResponseDeviceWithShockers>>>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
     [MapToApiVersion("1")]
-    public async Task<BaseResponse<IEnumerable<ResponseDeviceWithShockers>>> ListShockers()
+    public async Task<IActionResult> ListShockers()
     {
         var shockers = await _db.Devices.Where(x => x.Owner == CurrentUser.DbUser.Id).OrderBy(x => x.CreatedOn).Select(
             x => new ResponseDeviceWithShockers
@@ -35,9 +36,6 @@ public sealed partial class ShockerController
                 })
             }).ToListAsync();
 
-        return new BaseResponse<IEnumerable<ResponseDeviceWithShockers>>
-        {
-            Data = shockers
-        };
+        return RespondSuccessLegacy(shockers);
     }
 }

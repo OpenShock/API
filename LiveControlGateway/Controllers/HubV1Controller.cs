@@ -2,29 +2,27 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.SignalR;
-using Microsoft.EntityFrameworkCore;
 using OpenShock.Common.Authentication;
 using OpenShock.Common.Hubs;
 using OpenShock.Common.Models;
-using OpenShock.Common.OpenShockDb;
 using OpenShock.Common.Services.Ota;
 using OpenShock.Common.Utils;
+using OpenShock.LiveControlGateway.LifetimeManager;
 using OpenShock.Serialization.Deprecated.DoNotUse.V1;
 using OpenShock.Serialization.Types;
-using Redis.OM.Contracts;
 using Semver;
 using Serilog;
 
 namespace OpenShock.LiveControlGateway.Controllers;
 
 /// <summary>
-/// Communication with the devices aka ESP-32 micro controllers
+/// Communication with the hubs aka ESP-32 microcontrollers
 /// </summary>
 [ApiController]
 [Authorize(AuthenticationSchemes = OpenShockAuthSchemas.DeviceToken)]
 [ApiVersion("1")]
 [Route("/{version:apiVersion}/ws/device")]
-public sealed class DeviceV1Controller : DeviceControllerBase<HubToGatewayMessage, GatewayToHubMessage>
+public sealed class HubV1Controller : HubControllerBase<HubToGatewayMessage, GatewayToHubMessage>
 {
     private readonly IHubContext<UserHub, IUserHub> _userHubContext;
 
@@ -33,27 +31,25 @@ public sealed class DeviceV1Controller : DeviceControllerBase<HubToGatewayMessag
     /// </summary>
     /// <param name="logger"></param>
     /// <param name="lifetime"></param>
-    /// <param name="redisConnectionProvider"></param>
-    /// <param name="dbContextFactory"></param>
+    /// <param name="hubLifetimeManager"></param>
     /// <param name="userHubContext"></param>
     /// <param name="serviceProvider"></param>
     /// <param name="lcgConfig"></param>
-    public DeviceV1Controller(
-        ILogger<DeviceV1Controller> logger,
+    public HubV1Controller(
+        ILogger<HubV1Controller> logger,
         IHostApplicationLifetime lifetime,
-        IRedisConnectionProvider redisConnectionProvider,
-        IDbContextFactory<OpenShockContext> dbContextFactory,
+        HubLifetimeManager hubLifetimeManager,
         IHubContext<UserHub, IUserHub> userHubContext,
         IServiceProvider serviceProvider, LCGConfig lcgConfig)
-        : base(logger, lifetime, HubToGatewayMessage.Serializer, GatewayToHubMessage.Serializer, redisConnectionProvider, 
-            dbContextFactory, serviceProvider, lcgConfig)
+        : base(logger, lifetime, HubToGatewayMessage.Serializer, GatewayToHubMessage.Serializer, hubLifetimeManager,
+            serviceProvider, lcgConfig)
     {
         _userHubContext = userHubContext;
     }
     
     private OtaUpdateStatus? _lastStatus;
     
-    private IUserHub HcOwner => _userHubContext.Clients.User(CurrentDevice.Owner.ToString());
+    private IUserHub HcOwner => _userHubContext.Clients.User(CurrentHub.Owner.ToString());
     
     /// <inheritdoc />
     protected override async Task Handle(HubToGatewayMessage data)
@@ -64,21 +60,21 @@ public sealed class DeviceV1Controller : DeviceControllerBase<HubToGatewayMessag
         await using var scope = ServiceProvider.CreateAsyncScope(); 
         var otaService = scope.ServiceProvider.GetRequiredService<IOtaService>();
 
-        Logger.LogTrace("Received payload [{Kind}] from device [{DeviceId}]", payload.Kind, CurrentDevice.Id);
+        Logger.LogTrace("Received payload [{Kind}] from hub [{HubId}]", payload.Kind, CurrentHub.Id);
         switch (payload.Kind)
         {
             case HubToGatewayMessagePayload.ItemKind.KeepAlive:
-                await SelfOnline();
+                await SelfOnline(DateTimeOffset.UtcNow.Subtract(TimeSpan.FromMilliseconds(payload.KeepAlive.Uptime)));
                 break;
 
             case HubToGatewayMessagePayload.ItemKind.OtaInstallStarted:
                 _lastStatus = OtaUpdateStatus.Started;
                 await HcOwner.OtaInstallStarted(
-                    CurrentDevice.Id,
+                    CurrentHub.Id,
                     payload.OtaInstallStarted.UpdateId,
                     payload.OtaInstallStarted.Version!.ToSemVersion());
                 await otaService.Started(
-                    CurrentDevice.Id,
+                    CurrentHub.Id,
 
                     payload.OtaInstallStarted.UpdateId,
                     payload.OtaInstallStarted.Version!.ToSemVersion());
@@ -86,7 +82,7 @@ public sealed class DeviceV1Controller : DeviceControllerBase<HubToGatewayMessag
 
             case HubToGatewayMessagePayload.ItemKind.OtaInstallProgress:
                 await HcOwner.OtaInstallProgress(
-                    CurrentDevice.Id,
+                    CurrentHub.Id,
                     payload.OtaInstallProgress.UpdateId,
                     payload.OtaInstallProgress.Task,
                     payload.OtaInstallProgress.Progress);
@@ -94,19 +90,19 @@ public sealed class DeviceV1Controller : DeviceControllerBase<HubToGatewayMessag
                 if (_lastStatus == OtaUpdateStatus.Started)
                 {
                     _lastStatus = OtaUpdateStatus.Running;
-                    await otaService.Progress(CurrentDevice.Id, payload.OtaInstallProgress.UpdateId);
+                    await otaService.Progress(CurrentHub.Id, payload.OtaInstallProgress.UpdateId);
                 }
 
                 break;
 
             case HubToGatewayMessagePayload.ItemKind.OtaInstallFailed:
                 await HcOwner.OtaInstallFailed(
-                    CurrentDevice.Id,
+                    CurrentHub.Id,
                     payload.OtaInstallFailed.UpdateId,
                     payload.OtaInstallFailed.Fatal,
                     payload.OtaInstallFailed.Message!);
 
-                await otaService.Error(CurrentDevice.Id, payload.OtaInstallFailed.UpdateId,
+                await otaService.Error(CurrentHub.Id, payload.OtaInstallFailed.UpdateId,
                     payload.OtaInstallFailed.Fatal, payload.OtaInstallFailed.Message!);
 
                 _lastStatus = OtaUpdateStatus.Error;
@@ -116,9 +112,9 @@ public sealed class DeviceV1Controller : DeviceControllerBase<HubToGatewayMessag
                 if (payload.BootStatus.BootType == FirmwareBootType.NewFirmware)
                 {
                     await HcOwner.OtaInstallSucceeded(
-                        CurrentDevice.Id, payload.BootStatus.OtaUpdateId);
+                        CurrentHub.Id, payload.BootStatus.OtaUpdateId);
 
-                    var test = await otaService.Success(CurrentDevice.Id, payload.BootStatus.OtaUpdateId);
+                    var test = await otaService.Success(CurrentHub.Id, payload.BootStatus.OtaUpdateId);
                     _lastStatus = OtaUpdateStatus.Finished;
                     break;
                 }
@@ -126,10 +122,10 @@ public sealed class DeviceV1Controller : DeviceControllerBase<HubToGatewayMessag
                 if (payload.BootStatus.BootType == FirmwareBootType.Rollback)
                 {
                     await HcOwner.OtaRollback(
-                        CurrentDevice.Id, payload.BootStatus.OtaUpdateId);
+                        CurrentHub.Id, payload.BootStatus.OtaUpdateId);
 
-                    await otaService.Error(CurrentDevice.Id, payload.BootStatus.OtaUpdateId, false,
-                        "Device booted with firmware rollback");
+                    await otaService.Error(CurrentHub.Id, payload.BootStatus.OtaUpdateId, false,
+                        "Hub booted with firmware rollback");
                     _lastStatus = OtaUpdateStatus.Error;
                     break;
                 }
@@ -138,7 +134,7 @@ public sealed class DeviceV1Controller : DeviceControllerBase<HubToGatewayMessag
                 {
                     if (payload.BootStatus.OtaUpdateId == 0) break;
 
-                    var unfinished = await otaService.UpdateUnfinished(CurrentDevice.Id,
+                    var unfinished = await otaService.UpdateUnfinished(CurrentHub.Id,
                         payload.BootStatus.OtaUpdateId);
 
                     if (!unfinished) break;
@@ -146,10 +142,10 @@ public sealed class DeviceV1Controller : DeviceControllerBase<HubToGatewayMessag
                     Log.Warning("OTA update unfinished, rolling back");
 
                     await HcOwner.OtaRollback(
-                        CurrentDevice.Id, payload.BootStatus.OtaUpdateId);
+                        CurrentHub.Id, payload.BootStatus.OtaUpdateId);
 
-                    await otaService.Error(CurrentDevice.Id, payload.BootStatus.OtaUpdateId, false,
-                        "Device booted with normal boot, update seems unfinished");
+                    await otaService.Error(CurrentHub.Id, payload.BootStatus.OtaUpdateId, false,
+                        "Hub booted with normal boot, update seems unfinished");
                     _lastStatus = OtaUpdateStatus.Error;
                 }
 
@@ -172,7 +168,7 @@ public sealed class DeviceV1Controller : DeviceControllerBase<HubToGatewayMessag
                 {
                     Duration = x.Duration,
                     Type = x.Type,
-                    Id = x.Id,
+                    Id = x.Model == Serialization.Types.ShockerModelType.Petrainer998DR ? (ushort)(x.Id >> 1) : x.Id, // Fix for old hubs, their ids was serialized wrongly in the RFTransmitter, the V1 endpoint is being phased out, so this wont stay here forever
                     Intensity = x.Intensity,
                     Model = x.Model
                 }).ToList()
