@@ -77,7 +77,7 @@ public partial class OpenShockContext : DbContext
 
             entity.HasIndex(e => e.UserId).HasAnnotation("Npgsql:StorageParameter:deduplicate_items", "true");
             entity.HasIndex(e => e.ValidUntil).HasAnnotation("Npgsql:StorageParameter:deduplicate_items", "true");
-            entity.HasIndex(e => e.Token).IsUnique();
+            entity.HasIndex(e => e.TokenHash).IsUnique();
 
             entity.Property(e => e.Id)
                 .ValueGeneratedNever()
@@ -94,9 +94,9 @@ public partial class OpenShockContext : DbContext
             entity.Property(e => e.Name)
                 .HasMaxLength(HardLimits.ApiKeyNameMaxLength)
                 .HasColumnName("name");
-            entity.Property(e => e.Token)
-                .HasMaxLength(HardLimits.ApiKeyTokenMaxLength)
-                .HasColumnName("token");
+            entity.Property(e => e.TokenHash)
+                .HasMaxLength(HardLimits.Sha256HashHexLength)
+                .HasColumnName("token_hash");
             entity.Property(e => e.UserId).HasColumnName("user_id");
             entity.Property(e => e.ValidUntil).HasColumnName("valid_until");
 
