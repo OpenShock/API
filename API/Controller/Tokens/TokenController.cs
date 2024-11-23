@@ -107,7 +107,7 @@ public sealed partial class TokensController
     [ProducesResponseType<TokenCreatedResponse>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
     public async Task<TokenCreatedResponse> CreateToken([FromBody] CreateTokenRequest body)
     {
-        string token = CryptoUtils.RandomString(HardLimits.ApiKeyTokenMaxLength);
+        string token = CryptoUtils.RandomString(HardLimits.ApiKeyTokenLength);
 
         var tokenDto = new ApiToken
         {
@@ -155,7 +155,7 @@ public sealed partial class TokensController
 
     public class EditTokenRequest
     {
-        [StringLength(HardLimits.ApiKeyTokenMaxLength, MinimumLength = HardLimits.ApiKeyTokenMinLength, ErrorMessage = "API token length must be between {1} and {2}")]
+        [StringLength(HardLimits.ApiKeyNameMaxLength, MinimumLength = 1, ErrorMessage = "API token length must be between {1} and {2}")]
         public required string Name { get; set; }
         
         [MaxLength(HardLimits.ApiKeyMaxPermissions, ErrorMessage = "API token permissions must be between {1} and {2}")]

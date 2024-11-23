@@ -95,7 +95,7 @@ public partial class OpenShockContext : DbContext
                 .HasMaxLength(HardLimits.ApiKeyNameMaxLength)
                 .HasColumnName("name");
             entity.Property(e => e.TokenHash)
-                .HasMaxLength(HardLimits.ApiKeyTokenMaxLength)
+                .HasMaxLength(HardLimits.Sha256HashHexLength)
                 .HasColumnName("token_hash");
             entity.Property(e => e.UserId).HasColumnName("user_id");
             entity.Property(e => e.ValidUntil).HasColumnName("valid_until");

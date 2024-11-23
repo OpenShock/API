@@ -20,8 +20,7 @@ public static class HardLimits
     public const int UserAgentMaxLength = 1024;
     
     public const int ApiKeyNameMaxLength = 64;
-    public const int ApiKeyTokenMinLength = 1;
-    public const int ApiKeyTokenMaxLength = 64;
+    public const int ApiKeyTokenLength = 64;
     public const int ApiKeyMaxPermissions = 256;
     
     public const int HubNameMinLength = 1;
@@ -34,9 +33,10 @@ public static class HardLimits
     public const int ShockerShareLinkNameMinLength = 1;
     public const int ShockerShareLinkNameMaxLength = 64;
 
-    public const int IpAddressMaxLength = 40;
-
     public const int SemVerMaxLength = 64;
+    public const int IpAddressMaxLength = 40;
+    public const int Sha256HashHexLength = 64;
+
     public const int OtaUpdateMessageMaxLength = 128;
 
     public const int PasswordHashMaxLength = 100;
