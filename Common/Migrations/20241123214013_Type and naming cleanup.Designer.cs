@@ -3,6 +3,7 @@ using System;
 using System.Net;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using OpenShock.Common.OpenShockDb;
@@ -12,9 +13,11 @@ using OpenShock.Common.OpenShockDb;
 namespace OpenShock.Common.Migrations
 {
     [DbContext(typeof(OpenShockContext))]
-    partial class OpenShockContextModelSnapshot : ModelSnapshot
+    [Migration("20241123214013_Type and naming cleanup")]
+    partial class Typeandnamingcleanup
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder

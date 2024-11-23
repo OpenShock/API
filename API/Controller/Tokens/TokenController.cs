@@ -113,7 +113,7 @@ public sealed partial class TokensController
         {
             UserId = CurrentUser.DbUser.Id,
             TokenHash = HashingUtils.HashSha256(token),
-            CreatedByIp = HttpContext.GetRemoteIP().ToString(),
+            CreatedByIp = HttpContext.GetRemoteIP(),
             Permissions = body.Permissions.Distinct().ToList(),
             Id = Guid.NewGuid(),
             Name = body.Name,

@@ -16,7 +16,7 @@ public partial class User
 
     public DateTime CreatedAt { get; set; }
 
-    public bool EmailActived { get; set; }
+    public bool EmailActivated { get; set; }
 
     public RankType Rank { get; set; }
 

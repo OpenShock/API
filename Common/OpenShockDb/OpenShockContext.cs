@@ -83,7 +83,6 @@ public partial class OpenShockContext : DbContext
                 .ValueGeneratedNever()
                 .HasColumnName("id");
             entity.Property(e => e.CreatedByIp)
-                .VarCharWithLength(HardLimits.IpAddressMaxLength)
                 .HasColumnName("created_by_ip");
             entity.Property(e => e.CreatedOn)
                 .HasDefaultValueSql("CURRENT_TIMESTAMP")
@@ -456,9 +455,9 @@ public partial class OpenShockContext : DbContext
             entity.Property(e => e.Email)
                 .VarCharWithLength(HardLimits.EmailAddressMaxLength)
                 .HasColumnName("email");
-            entity.Property(e => e.EmailActived)
+            entity.Property(e => e.EmailActivated)
                 .HasDefaultValue(false)
-                .HasColumnName("email_actived");
+                .HasColumnName("email_activated");
             entity.Property(e => e.Name)
                 .UseCollation("ndcoll")
                 .VarCharWithLength(HardLimits.UsernameMaxLength)
@@ -577,7 +576,7 @@ public partial class OpenShockContext : DbContext
             entity.Property(e => e.CreatedAt)
                 .HasColumnName("created_at");
             entity.Property(e => e.EmailActivated)
-                .HasColumnName("email_actived");
+                .HasColumnName("email_activated");
             entity.Property(e => e.Rank)
                 .HasColumnType("rank_type")
                 .HasColumnName("rank");
