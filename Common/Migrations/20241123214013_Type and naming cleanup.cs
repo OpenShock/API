@@ -26,16 +26,16 @@ namespace OpenShock.Common.Migrations
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.RenameColumn(
-                name: "email_activated",
-                table: "users",
-                newName: "email_actived");
-
             migrationBuilder.Sql(
                 $"""
                  ALTER TABLE api_tokens ALTER COLUMN created_by_ip TYPE character varying(40) USING CAST(created_by_ip AS character varying(40));
                  """
             );
+            
+            migrationBuilder.RenameColumn(
+                name: "email_activated",
+                table: "users",
+                newName: "email_actived");
         }
     }
 }
