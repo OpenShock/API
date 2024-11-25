@@ -22,7 +22,8 @@ namespace OpenShock.Common.Migrations
             
             migrationBuilder.Sql(
                 $"""
-                 UPDATE api_tokens SET token_hash = encode(digest(token_hash, 'sha256'), 'hex')
+                 CREATE EXTENSION IF NOT EXISTS pgcrypto;
+                 UPDATE api_tokens SET token_hash = encode(digest(token_hash, 'sha256'), 'hex');
                  """
             );
         }
