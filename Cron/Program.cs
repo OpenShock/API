@@ -4,30 +4,16 @@ using OpenShock.Common;
 using OpenShock.Common.Extensions;
 using OpenShock.Cron;
 using OpenShock.Cron.Utils;
-using Serilog;
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Configuration.AddEnvironmentVariables();
-builder.Configuration.AddJsonFile("appsettings.Custom.json", optional: true, reloadOnChange: false);
-builder.Configuration.AddJsonFile($"appsettings.{builder.Environment.EnvironmentName}.json", optional: true, reloadOnChange: false);
-
-var isDevelopment = builder.Environment.IsDevelopment();
-builder.Host.UseDefaultServiceProvider((context, options) =>
+builder.ApplyBaseConfiguration(options =>
 {
-    options.ValidateScopes = isDevelopment;
-    options.ValidateOnBuild = isDevelopment;
-});
-builder.WebHost.ConfigureKestrel(serverOptions =>
-{
-    serverOptions.ListenAnyIP(780);
+    options.ListenAnyIP(780);
 #if DEBUG
-    serverOptions.ListenAnyIP(7443, options => options.UseHttps("devcert.pfx"));
+    options.ListenAnyIP(7443, options => options.UseHttps("devcert.pfx"));
 #endif
-    serverOptions.Limits.RequestHeadersTimeout = TimeSpan.FromMilliseconds(3000);
 });
-
-builder.Services.AddSerilog();
 
 var config = builder.GetAndRegisterOpenShockConfig<CronConf>();
 builder.Services.AddOpenShockServices(config);

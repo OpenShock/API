@@ -1,6 +1,5 @@
 ﻿using OpenShock.Common.Config;
 using Serilog;
-using System.ComponentModel.DataAnnotations;
 using System.Text;
 using System.Text.Json;
 

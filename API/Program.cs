@@ -17,30 +17,16 @@ using OpenShock.Common.Services.Ota;
 using OpenShock.Common.Services.Turnstile;
 using OpenShock.Common.Utils;
 using Scalar.AspNetCore;
-using Serilog;
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Configuration.AddEnvironmentVariables();
-builder.Configuration.AddJsonFile("appsettings.Custom.json", optional: true, reloadOnChange: false);
-builder.Configuration.AddJsonFile($"appsettings.{builder.Environment.EnvironmentName}.json", optional: true, reloadOnChange: false);
-
-var isDevelopment = builder.Environment.IsDevelopment();
-builder.Host.UseDefaultServiceProvider((context, options) =>
+builder.ApplyBaseConfiguration(options =>
 {
-    options.ValidateScopes = isDevelopment;
-    options.ValidateOnBuild = isDevelopment;
-});
-builder.WebHost.ConfigureKestrel(serverOptions =>
-{
-    serverOptions.ListenAnyIP(80);
+    options.ListenAnyIP(80);
 #if DEBUG
-    serverOptions.ListenAnyIP(443, options => options.UseHttps());
+    options.ListenAnyIP(443, options => options.UseHttps());
 #endif
-    serverOptions.Limits.RequestHeadersTimeout = TimeSpan.FromMilliseconds(3000);
 });
-
-builder.Services.AddSerilog();
 
 var config = builder.GetAndRegisterOpenShockConfig<ApiConfig>();
 var commonServices = builder.Services.AddOpenShockServices(config);

@@ -7,32 +7,18 @@ using OpenShock.Common.Utils;
 using OpenShock.LiveControlGateway;
 using OpenShock.LiveControlGateway.LifetimeManager;
 using OpenShock.LiveControlGateway.PubSub;
-using Serilog;
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Configuration.AddEnvironmentVariables();
-builder.Configuration.AddJsonFile("appsettings.Custom.json", optional: true, reloadOnChange: false);
-builder.Configuration.AddJsonFile($"appsettings.{builder.Environment.EnvironmentName}.json", optional: true, reloadOnChange: false);
-
-var isDevelopment = builder.Environment.IsDevelopment();
-builder.Host.UseDefaultServiceProvider((context, options) =>
-{
-    options.ValidateScopes = isDevelopment;
-    options.ValidateOnBuild = isDevelopment;
-});
-builder.WebHost.ConfigureKestrel(serverOptions =>
+builder.ApplyBaseConfiguration(options =>
 {
 #if DEBUG
-    serverOptions.ListenAnyIP(580);
-    serverOptions.ListenAnyIP(5443, options => options.UseHttps("devcert.pfx"));
+    options.ListenAnyIP(580);
+    options.ListenAnyIP(5443, options => options.UseHttps("devcert.pfx"));
 #else
-    serverOptions.ListenAnyIP(80);
+    options.ListenAnyIP(80);
 #endif
-    serverOptions.Limits.RequestHeadersTimeout = TimeSpan.FromMilliseconds(3000);
 });
-
-builder.Services.AddSerilog();
 
 var config = builder.GetAndRegisterOpenShockConfig<LCGConfig>();
 var commonService = builder.Services.AddOpenShockServices(config);
