@@ -1,12 +1,10 @@
-﻿using System.Runtime.CompilerServices;
-using Microsoft.Extensions.Logging;
+﻿using Serilog;
+using System.Runtime.CompilerServices;
 
 namespace OpenShock.Common.Utils;
 
 public static class LucTask
 {
-    private static readonly ILogger Logger = ApplicationLogging.CreateLogger(typeof(LucTask));
-    
     public static Task Run(Func<Task?> function, [CallerFilePath] string file = "",
         [CallerMemberName] string member = "", [CallerLineNumber] int line = -1) => Task.Run(function).ContinueWith(
         t =>
@@ -14,9 +12,9 @@ public static class LucTask
             if (!t.IsFaulted) return;
             var index = file.LastIndexOf('\\');
             if (index == -1) index = file.LastIndexOf('/');
-            Logger.LogError(t.Exception,
+            Log.Error(t.Exception,
                 "Error during task execution. {File}::{Member}:{Line} - Stack: {Stack}",
-                file.Substring(index + 1, file.Length - index - 1), member, line, t.Exception?.StackTrace);
+                file[(index + 1)..], member, line, t.Exception?.StackTrace);
             
         }, TaskContinuationOptions.OnlyOnFaulted);
 
@@ -27,9 +25,9 @@ public static class LucTask
             if (!t.IsFaulted) return;
             var index = file.LastIndexOf('\\');
             if (index == -1) index = file.LastIndexOf('/');
-            Logger.LogError(t.Exception,
+            Log.Error(t.Exception,
                 "Error during task execution. {File}::{Member}:{Line} - Stack: {Stack}",
-                file.Substring(index + 1, file.Length - index - 1), member, line, t.Exception?.StackTrace);
+                file[(index + 1)..], member, line, t.Exception?.StackTrace);
             
         }, TaskContinuationOptions.OnlyOnFaulted);
 }

@@ -169,7 +169,6 @@ public sealed class Startup
     public void Configure(IApplicationBuilder app, IWebHostEnvironment env, ILoggerFactory loggerFactory,
         ILogger<Startup> logger)
     {
-        ApplicationLogging.LoggerFactory = loggerFactory;
 
         app.UseCommonOpenShockMiddleware();
         

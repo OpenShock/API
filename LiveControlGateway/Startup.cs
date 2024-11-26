@@ -121,7 +121,6 @@ public sealed class Startup
     /// <param name="loggerFactory"></param>
     public void Configure(IApplicationBuilder app, IWebHostEnvironment env, ILoggerFactory loggerFactory)
     {
-        ApplicationLogging.LoggerFactory = loggerFactory;
         app.UseCommonOpenShockMiddleware();
 
         app.UseSwagger();
