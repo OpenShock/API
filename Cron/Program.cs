@@ -5,9 +5,7 @@ using OpenShock.Common.Extensions;
 using OpenShock.Cron;
 using OpenShock.Cron.Utils;
 
-var builder = WebApplication.CreateBuilder(args);
-
-builder.ApplyBaseConfiguration(options =>
+var builder = OpenShockApplication.CreateDefaultBuilder<Program>(args, options =>
 {
     options.ListenAnyIP(780);
 #if DEBUG

@@ -8,9 +8,7 @@ using OpenShock.LiveControlGateway;
 using OpenShock.LiveControlGateway.LifetimeManager;
 using OpenShock.LiveControlGateway.PubSub;
 
-var builder = WebApplication.CreateBuilder(args);
-
-builder.ApplyBaseConfiguration(options =>
+var builder = OpenShockApplication.CreateDefaultBuilder<Program>(args, options =>
 {
 #if DEBUG
     options.ListenAnyIP(580);

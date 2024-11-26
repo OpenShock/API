@@ -19,9 +19,7 @@ using OpenShock.Common.Utils;
 using Scalar.AspNetCore;
 using Serilog;
 
-var builder = WebApplication.CreateBuilder(args);
-
-builder.ApplyBaseConfiguration(options =>
+var builder = OpenShockApplication.CreateDefaultBuilder<Program>(args, options =>
 {
     options.ListenAnyIP(80);
 #if DEBUG
