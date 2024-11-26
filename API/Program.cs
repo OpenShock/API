@@ -17,6 +17,7 @@ using OpenShock.Common.Services.Ota;
 using OpenShock.Common.Services.Turnstile;
 using OpenShock.Common.Utils;
 using Scalar.AspNetCore;
+using Serilog;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -87,32 +88,29 @@ builder.Services.AddHostedService<RedisSubscriberService>();
 
 var app = builder.Build();
 
-var logger = app.Services.GetService<ILogger<Program>>();
-if (logger == null) throw new NullReferenceException(nameof(logger));
-
 app.UseCommonOpenShockMiddleware();
 
 if (!config.Db.SkipMigration)
 {
-    logger.LogInformation("Running database migrations...");
+    Log.Information("Running database migrations...");
     using var scope = app.Services.CreateScope();
     var openShockContext = scope.ServiceProvider.GetRequiredService<OpenShockContext>();
     var pendingMigrations = openShockContext.Database.GetPendingMigrations().ToList();
 
     if (pendingMigrations.Count > 0)
     {
-        logger.LogInformation("Found pending migrations, applying [{@Migrations}]", pendingMigrations);
+        Log.Information("Found pending migrations, applying [{@Migrations}]", pendingMigrations);
         openShockContext.Database.Migrate();
-        logger.LogInformation("Applied database migrations... proceeding with startup");
+        Log.Information("Applied database migrations... proceeding with startup");
     }
     else
     {
-        logger.LogInformation("No pending migrations found, proceeding with startup");
+        Log.Information("No pending migrations found, proceeding with startup");
     }
 }
 else
 {
-    logger.LogWarning("Skipping possible database migrations...");
+    Log.Warning("Skipping possible database migrations...");
 }
 
 app.UseSwaggerExt();
