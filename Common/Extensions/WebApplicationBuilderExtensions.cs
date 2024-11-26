@@ -23,6 +23,6 @@ public static class WebApplicationBuilderExtensions
             serverOptions.Limits.RequestHeadersTimeout = TimeSpan.FromMilliseconds(3000);
         });
 
-        builder.Services.AddSerilog();
+        builder.Host.UseSerilog((context, _, config) => config.ReadFrom.Configuration(context.Configuration));
     }
 }
