@@ -1,60 +1,59 @@
 using Hangfire;
+using Hangfire.PostgreSql;
+using OpenShock.Common;
+using OpenShock.Common.Extensions;
 using OpenShock.Cron;
-using OpenShock.Cron.Jobs;
 using OpenShock.Cron.Utils;
 using Serilog;
 
-HostBuilder builder = new();
-builder.UseContentRoot(Directory.GetCurrentDirectory())
-    .ConfigureHostConfiguration(config =>
-    {
-        config.AddEnvironmentVariables(prefix: "DOTNET_");
-        if (args is { Length: > 0 }) config.AddCommandLine(args);
-    })
-    .ConfigureAppConfiguration((context, config) =>
-    {
-        config.AddJsonFile("appsettings.json", optional: false, reloadOnChange: false)
-            .AddJsonFile($"appsettings.{context.HostingEnvironment.EnvironmentName}.json", optional: true,
-                reloadOnChange: false);
+var builder = WebApplication.CreateBuilder(args);
 
-        config.AddUserSecrets(typeof(Program).Assembly);
-        config.AddEnvironmentVariables();
-        if (args is { Length: > 0 }) config.AddCommandLine(args);
-    })
-    .UseDefaultServiceProvider((context, options) =>
-    {
-        var isDevelopment = context.HostingEnvironment.IsDevelopment();
-        options.ValidateScopes = isDevelopment;
-        options.ValidateOnBuild = isDevelopment;
-    })
-    .UseSerilog((context, _, config) => { config.ReadFrom.Configuration(context.Configuration); })
-    .ConfigureWebHostDefaults(webBuilder =>
-    {
-        webBuilder.UseKestrel();
-        webBuilder.ConfigureKestrel(serverOptions =>
-        {
-            serverOptions.ListenAnyIP(780);
+builder.Configuration.AddEnvironmentVariables();
+builder.Configuration.AddJsonFile("appsettings.Custom.json", optional: true, reloadOnChange: false);
+builder.Configuration.AddJsonFile($"appsettings.{builder.Environment.EnvironmentName}.json", optional: true, reloadOnChange: false);
+
+var isDevelopment = builder.Environment.IsDevelopment();
+builder.Host.UseDefaultServiceProvider((context, options) =>
+{
+    options.ValidateScopes = isDevelopment;
+    options.ValidateOnBuild = isDevelopment;
+});
+builder.WebHost.ConfigureKestrel(serverOptions =>
+{
+    serverOptions.ListenAnyIP(780);
 #if DEBUG
-            serverOptions.ListenAnyIP(7443, options => { options.UseHttps("devcert.pfx"); });
+    serverOptions.ListenAnyIP(7443, options => options.UseHttps("devcert.pfx"));
 #endif
-            serverOptions.Limits.RequestHeadersTimeout = TimeSpan.FromMilliseconds(3000);
-        });
-        webBuilder.UseStartup<Startup>();
-    });
-try
+    serverOptions.Limits.RequestHeadersTimeout = TimeSpan.FromMilliseconds(3000);
+});
+
+builder.Services.AddSerilog();
+
+var config = builder.GetAndRegisterOpenShockConfig<CronConf>();
+builder.Services.AddOpenShockServices(config);
+
+builder.Services.AddHangfire(hangfire =>
+    hangfire.UsePostgreSqlStorage(c =>
+        c.UseNpgsqlConnection(config.Db.Conn)));
+builder.Services.AddHangfireServer();
+
+var app = builder.Build();
+
+app.UseCommonOpenShockMiddleware();
+
+app.UseHangfireDashboard(options: new DashboardOptions
 {
-    var app = builder.Build();
+    AsyncAuthorization = [
+        new DashboardAdminAuth()
+    ]
+});
 
-    var jobManagerV2 = app.Services.GetRequiredService<IRecurringJobManagerV2>();
-    foreach (var cronJob in CronJobCollector.GetAllCronJobs())
-    {
-        jobManagerV2.AddOrUpdate(cronJob.Name, cronJob.Job, cronJob.Schedule);
-    }
+app.MapControllers();
 
-    await app.RunAsync();
-
-}
-catch (Exception e)
+var jobManager = app.Services.GetRequiredService<IRecurringJobManagerV2>();
+foreach (var cronJob in CronJobCollector.GetAllCronJobs())
 {
-    Console.WriteLine(e);
+    jobManager.AddOrUpdate(cronJob.Name, cronJob.Job, cronJob.Schedule);
 }
+
+app.Run();
