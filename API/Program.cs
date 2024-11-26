@@ -50,7 +50,6 @@ builder.Services.AddSingleton<ILCGNodeProvisioner, LCGNodeProvisioner>();
 
 builder.Services.AddSingleton(x =>
 {
-    var config = x.GetRequiredService<ApiConfig>();
     return new CloudflareTurnstileOptions
     {
         SecretKey = config.Turnstile.SecretKey ?? string.Empty,
