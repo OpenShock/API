@@ -27,7 +27,7 @@ public static class OpenShockApplication
         });
 
         // Since we use slim builders, this allows for HTTPS during local development
-        if (isDevelopment) builder.WebHost.UseKestrel();
+        if (isDevelopment) builder.WebHost.UseKestrelHttpsConfiguration();
         
         builder.WebHost.ConfigureKestrel(serverOptions =>
         {
