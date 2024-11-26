@@ -4,13 +4,7 @@
       "commandName": "Project",
       "dotnetRunMessages": true,
       "environmentVariables": {
-        "ASPNETCORE_ENVIRONMENT": "Development",
-        "OPENSHOCK__DB": "Host=docker-node;Port=1337;Database=openshock;Username=root;Password=root",
-        "OPENSHOCK__FQDN": "luc-lcg.lucheart.ovh",
-        "OPENSHOCK__COUNTRYCODE": "DE",
-        "OPENSHOCK__REDIS__HOST":"docker-node",
-        //"OPENSHOCK__REDIS__HOST":"localhost",
-        "OPENSHOCK__REDIS__PASSWORD": ""
+        "ASPNETCORE_ENVIRONMENT": "Development"
       }
     }
   }
