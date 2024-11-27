@@ -1,21 +1,18 @@
 ﻿using System.Net;
 using Microsoft.AspNetCore.Diagnostics;
-using Microsoft.AspNetCore.Http.Json;
-using Microsoft.Extensions.Options;
 using OpenShock.Common.Errors;
 
 namespace OpenShock.Common.ExceptionHandle;
 
 public sealed class OpenShockExceptionHandler : IExceptionHandler
 {
-    private static readonly ILogger Logger = ApplicationLogging.CreateLogger(typeof(OpenShockExceptionHandler));
-    private static readonly ILogger LoggerRequestInfo = ApplicationLogging.CreateLogger("RequestInfo");
-    
     private readonly IProblemDetailsService _problemDetailsService;
-
-    public OpenShockExceptionHandler(IProblemDetailsService problemDetailsService)
+    private readonly ILogger _logger;
+    
+    public OpenShockExceptionHandler(IProblemDetailsService problemDetailsService, ILoggerFactory loggerFactory)
     {
         _problemDetailsService = problemDetailsService;
+        _logger = loggerFactory.CreateLogger("RequestInfo");
     }
     
     public async ValueTask<bool> TryHandleAsync(HttpContext context, Exception exception, CancellationToken cancellationToken)
@@ -34,7 +31,7 @@ public sealed class OpenShockExceptionHandler : IExceptionHandler
         });
     }
     
-    private static async Task PrintRequestInfo(HttpContext context)
+    private async Task PrintRequestInfo(HttpContext context)
     {
         // Rewind our body reader, so we can read it again.
         context.Request.Body.Seek(0, SeekOrigin.Begin);
@@ -57,6 +54,6 @@ public sealed class OpenShockExceptionHandler : IExceptionHandler
         };
         
         // Finally log this object on Information level. 
-        LoggerRequestInfo.LogInformation("{@RequestInfo}", requestInfo);
+        _logger.LogInformation("{@RequestInfo}", requestInfo);
     }
 }

@@ -18,29 +18,33 @@ namespace OpenShock.LiveControlGateway.LifetimeManager;
 /// </summary>
 public sealed class HubLifetimeManager
 {
-    private readonly ILogger<HubLifetimeManager> _logger;
     private readonly IDbContextFactory<OpenShockContext> _dbContextFactory;
     private readonly IRedisConnectionProvider _redisConnectionProvider;
     private readonly IRedisPubService _redisPubService;
+    private readonly ILoggerFactory _loggerFactory;
+    private readonly ILogger<HubLifetimeManager> _logger;
     private readonly ConcurrentDictionary<Guid, HubLifetime> _managers = new();
 
     /// <summary>
     /// DI constructor
     /// </summary>
-    /// <param name="logger"></param>
     /// <param name="dbContextFactory"></param>
     /// <param name="redisConnectionProvider"></param>
     /// <param name="redisPubService"></param>
+    /// <param name="loggerFactory"></param>
     public HubLifetimeManager(
-        ILogger<HubLifetimeManager> logger,
         IDbContextFactory<OpenShockContext> dbContextFactory,
         IRedisConnectionProvider redisConnectionProvider,
-        IRedisPubService redisPubService)
+        IRedisPubService redisPubService,
+        ILoggerFactory loggerFactory
+        )
     {
-        _logger = logger;
         _dbContextFactory = dbContextFactory;
         _redisConnectionProvider = redisConnectionProvider;
         _redisPubService = redisPubService;
+        _loggerFactory = loggerFactory;
+
+        _logger = _loggerFactory.CreateLogger<HubLifetimeManager>();
     }
 
     /// <summary>
@@ -65,6 +69,7 @@ public sealed class HubLifetimeManager
                 _dbContextFactory,
                 _redisConnectionProvider,
                 _redisPubService,
+                _loggerFactory.CreateLogger<HubLifetime>(),
                 cancellationToken);
 
             await using var db = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
