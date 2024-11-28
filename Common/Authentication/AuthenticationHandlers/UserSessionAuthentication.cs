@@ -15,7 +15,7 @@ using System.Security.Claims;
 using System.Text.Encodings.Web;
 using System.Text.Json;
 
-namespace OpenShock.Common.Authentication.Handlers;
+namespace OpenShock.Common.Authentication.AuthenticationHandlers;
 
 public sealed class UserSessionAuthentication : AuthenticationHandler<AuthenticationSchemeOptions>
 {
@@ -77,14 +77,16 @@ public sealed class UserSessionAuthentication : AuthenticationHandler<Authentica
             DbUser = retrievedUser
         };
 
-        Context.Items["User"] = _authService.CurrentClient.DbUser.Id;
-
-        var claims = new List<Claim>
-        {
-            new(ClaimTypes.NameIdentifier, _authService.CurrentClient.DbUser.Id.ToString())
-        };
+        List<Claim> claims = [
+            new(ClaimTypes.AuthenticationMethod, OpenShockAuthSchemas.UserSessionCookie),
+            new(ClaimTypes.NameIdentifier, retrievedUser.Id.ToString()),
+            new(ClaimTypes.Role, retrievedUser.Rank.ToString())
+        ];
 
         var ident = new ClaimsIdentity(claims, nameof(UserSessionAuthentication));
+
+        Context.User = new ClaimsPrincipal(ident);
+
         var ticket = new AuthenticationTicket(new ClaimsPrincipal(ident), Scheme.Name);
 
         return AuthenticateResult.Success(ticket);

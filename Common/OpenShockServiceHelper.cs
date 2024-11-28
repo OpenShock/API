@@ -1,12 +1,15 @@
-﻿using System.Text.Json;
+﻿using System.Security.Claims;
+using System.Text.Json;
 using System.Text.Json.Serialization;
 using Asp.Versioning;
 using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using OpenShock.Common.Authentication;
-using OpenShock.Common.Authentication.Handlers;
+using OpenShock.Common.Authentication.AuthenticationHandlers;
+using OpenShock.Common.Authentication.Requirements;
 using OpenShock.Common.Authentication.Services;
 using OpenShock.Common.Config;
 using OpenShock.Common.ExceptionHandle;
@@ -26,6 +29,24 @@ namespace OpenShock.Common;
 
 public static class OpenShockServiceHelper
 {
+    // TODO: this is temporary while we still rely on enums for user ranks
+    static bool HandleRankCheck(AuthorizationHandlerContext context, RankType requiredRank)
+    {
+        var ranks = context.User.Identities.SelectMany(ident => ident.Claims.Where(claim => claim.Type == ident.RoleClaimType)).Select(claim => Enum.Parse<RankType>(claim.Value));
+
+        if (!ranks.Any())
+        {
+            return false;
+        }
+
+        if (ranks.Max() < requiredRank)
+        {
+            return false;
+        }
+
+        return true;
+    }
+
     /// <summary>
     /// Register all OpenShock services for PRODUCTION use
     /// </summary>
@@ -42,7 +63,8 @@ public static class OpenShockServiceHelper
         services.AddScoped<IClientAuthService<AuthenticatedUser>, ClientAuthService<AuthenticatedUser>>();
         services.AddScoped<IClientAuthService<Device>, ClientAuthService<Device>>();
         services.AddScoped<IUserReferenceService, UserReferenceService>();
-        
+
+        services.AddAuthenticationCore();
         new AuthenticationBuilder(services)
             .AddScheme<AuthenticationSchemeOptions, UserSessionAuthentication>(
                 OpenShockAuthSchemas.UserSessionCookie, _ => { })
@@ -51,8 +73,17 @@ public static class OpenShockServiceHelper
             .AddScheme<AuthenticationSchemeOptions, HubAuthentication>(
                 OpenShockAuthSchemas.HubToken, _ => { });
         
-        services.AddAuthenticationCore();
-        services.AddAuthorization();
+        services.AddAuthorization(options =>
+        {
+            options.AddPolicy(OpenShockAuthPolicies.SystemAccess, policy => policy.RequireRole(RankType.System.ToString()));
+            options.AddPolicy(OpenShockAuthPolicies.AdminAccess, policy => policy.RequireAssertion(context => HandleRankCheck(context, RankType.Admin)));
+            options.AddPolicy(OpenShockAuthPolicies.StaffAccess, policy => policy.RequireAssertion(context => HandleRankCheck(context, RankType.Staff)));
+            options.AddPolicy(OpenShockAuthPolicies.SupportAccess, policy => policy.RequireAssertion(context => HandleRankCheck(context, RankType.Support)));
+            options.AddPolicy(OpenShockAuthPolicies.UserAccess, policy => policy.RequireAssertion(context => HandleRankCheck(context, RankType.User)));
+
+            options.AddPolicy(OpenShockAuthPolicies.TokenSessionOnly, policy => policy.RequireClaim(ClaimTypes.AuthenticationMethod, OpenShockAuthSchemas.ApiToken));
+            // TODO: Add token permission policies
+        });
         
         services.Configure<ApiBehaviorOptions>(options =>
         {

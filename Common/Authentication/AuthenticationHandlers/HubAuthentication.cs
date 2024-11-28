@@ -12,7 +12,7 @@ using OpenShock.Common.OpenShockDb;
 using OpenShock.Common.Problems;
 using OpenShock.Common.Utils;
 
-namespace OpenShock.Common.Authentication.Handlers;
+namespace OpenShock.Common.Authentication.AuthenticationHandlers;
 
 /// <summary>
 /// Device / Box / The Thing / ESP32 authentication with DeviceToken header

@@ -14,7 +14,7 @@ using System.Security.Claims;
 using System.Text.Encodings.Web;
 using System.Text.Json;
 
-namespace OpenShock.Common.Authentication.Handlers;
+namespace OpenShock.Common.Authentication.AuthenticationHandlers;
 
 public sealed class ApiTokenAuthentication : AuthenticationHandler<AuthenticationSchemeOptions>
 {
@@ -62,15 +62,21 @@ public sealed class ApiTokenAuthentication : AuthenticationHandler<Authenticatio
         };
         _userReferenceService.AuthReference = tokenDto;
 
-        Context.Items["User"] = _authService.CurrentClient.DbUser.Id;
+        List<Claim> claims = [
+            new(ClaimTypes.AuthenticationMethod, OpenShockAuthSchemas.ApiToken),
+            new(ClaimTypes.NameIdentifier, tokenDto.User.Id.ToString()),
+            new(OpenShockAuthClaims.ApiTokenId, tokenDto.Id.ToString())
+        ];
 
-        var claims = new List<Claim>
+        foreach (var perm in tokenDto.Permissions)
         {
-            new(ClaimTypes.NameIdentifier, _authService.CurrentClient.DbUser.Id.ToString()),
-            new(ControlLogAdditionalItem.ApiTokenId, tokenDto.Id.ToString())
-        };
+            claims.Add(new(OpenShockAuthClaims.ApiTokenPermission, perm.ToString()));
+        }
 
         var ident = new ClaimsIdentity(claims, nameof(ApiTokenAuthentication));
+
+        Context.User = new ClaimsPrincipal(ident);
+
         var ticket = new AuthenticationTicket(new ClaimsPrincipal(ident), Scheme.Name);
 
         return AuthenticateResult.Success(ticket);
