@@ -44,7 +44,7 @@ public sealed class HubAuthentication : AuthenticationHandler<AuthenticationSche
     {
         if (!Context.TryGetDeviceTokenFromHeader(out string? sessionKey))
         {
-            return Fail(AuthResultError.CookieOrHeaderMissingOrInvalid);
+            return Fail(AuthResultError.HeaderMissingOrInvalid);
         }
 
         var device = await _db.Devices.Where(x => x.Token == sessionKey).FirstOrDefaultAsync();

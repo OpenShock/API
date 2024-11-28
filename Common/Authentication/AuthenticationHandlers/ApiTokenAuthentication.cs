@@ -46,7 +46,7 @@ public sealed class ApiTokenAuthentication : AuthenticationHandler<Authenticatio
     {
         if (!Context.TryGetApiTokenFromHeader(out var token))
         {
-            return Fail(AuthResultError.CookieOrHeaderMissingOrInvalid);
+            return Fail(AuthResultError.HeaderMissingOrInvalid);
         }
 
         string tokenHash = HashingUtils.HashSha256(token);

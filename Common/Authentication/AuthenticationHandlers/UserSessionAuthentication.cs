@@ -50,7 +50,7 @@ public sealed class UserSessionAuthentication : AuthenticationHandler<Authentica
     {
         if (!Context.TryGetUserSessionCookie(out var sessionKey))
         {
-            return Fail(AuthResultError.CookieOrHeaderMissingOrInvalid);
+            return Fail(AuthResultError.CookieMissingOrInvalid);
         }
 
         var session = await _sessionService.GetSessionById(sessionKey);
