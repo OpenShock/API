@@ -3,7 +3,6 @@ using OpenShock.Common.Extensions;
 using OpenShock.Common.JsonSerialization;
 using OpenShock.Common.Services.Device;
 using OpenShock.Common.Services.Ota;
-using OpenShock.Common.Utils;
 using OpenShock.LiveControlGateway;
 using OpenShock.LiveControlGateway.LifetimeManager;
 using OpenShock.LiveControlGateway.PubSub;
@@ -32,9 +31,8 @@ builder.Services.AddSignalR()
 builder.Services.AddScoped<IDeviceService, DeviceService>();
 builder.Services.AddScoped<IOtaService, OtaService>();
 
-builder.Services.AddSwaggerExt("OpenShock.LiveControlGateway");
+builder.Services.AddSwaggerExt<Program>();
 
-builder.Services.ConfigureOptions<ConfigureSwaggerOptions>();
 //services.AddHealthChecks().AddCheck<DatabaseHealthCheck>("database");
 
 builder.Services.AddHostedService<RedisSubscriberService>();

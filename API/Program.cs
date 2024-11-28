@@ -15,7 +15,6 @@ using OpenShock.Common.Services.Device;
 using OpenShock.Common.Services.LCGNodeProvisioner;
 using OpenShock.Common.Services.Ota;
 using OpenShock.Common.Services.Turnstile;
-using OpenShock.Common.Utils;
 using Scalar.AspNetCore;
 using Serilog;
 
@@ -43,7 +42,7 @@ builder.Services.AddScoped<IOtaService, OtaService>();
 builder.Services.AddScoped<IDeviceUpdateService, DeviceUpdateService>();
 builder.Services.AddScoped<IAccountService, AccountService>();
 
-builder.Services.AddSwaggerExt("OpenShock.API");
+builder.Services.AddSwaggerExt<Program>();
 
 builder.Services.AddSingleton<ILCGNodeProvisioner, LCGNodeProvisioner>();
 
@@ -79,7 +78,6 @@ switch (emailConfig.Type)
         throw new Exception("Unknown mail type");
 }
 
-builder.Services.ConfigureOptions<ConfigureSwaggerOptions>();
 //services.AddHealthChecks().AddCheck<DatabaseHealthCheck>("database");
 
 builder.Services.AddHostedService<RedisSubscriberService>();
