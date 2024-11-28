@@ -23,7 +23,6 @@ public sealed class ApiTokenAuthentication : AuthenticationHandler<Authenticatio
     private readonly IBatchUpdateService _batchUpdateService;
     private readonly OpenShockContext _db;
     private readonly JsonSerializerOptions _serializerOptions;
-    private OpenShockProblem? _authResultError = null;
 
     public ApiTokenAuthentication(
         IOptionsMonitor<AuthenticationSchemeOptions> options,
@@ -46,14 +45,14 @@ public sealed class ApiTokenAuthentication : AuthenticationHandler<Authenticatio
     {
         if (!Context.TryGetApiTokenFromHeader(out var token))
         {
-            return Fail(AuthResultError.HeaderMissingOrInvalid);
+            return AuthenticateResult.Fail(AuthResultError.HeaderMissingOrInvalid.Title!);
         }
 
         string tokenHash = HashingUtils.HashSha256(token);
 
         var tokenDto = await _db.ApiTokens.Include(x => x.User).FirstOrDefaultAsync(x => x.TokenHash == tokenHash &&
             (x.ValidUntil == null || x.ValidUntil >= DateTime.UtcNow));
-        if (tokenDto == null) return Fail(AuthResultError.TokenInvalid);
+        if (tokenDto == null) return AuthenticateResult.Fail(AuthResultError.TokenInvalid.Title!);
 
         _batchUpdateService.UpdateTokenLastUsed(tokenDto.Id);
         _authService.CurrentClient = new AuthenticatedUser
@@ -80,20 +79,5 @@ public sealed class ApiTokenAuthentication : AuthenticationHandler<Authenticatio
         var ticket = new AuthenticationTicket(new ClaimsPrincipal(ident), Scheme.Name);
 
         return AuthenticateResult.Success(ticket);
-    }
-
-    private AuthenticateResult Fail(OpenShockProblem reason)
-    {
-        _authResultError = reason;
-        return AuthenticateResult.Fail(reason.Type!);
-    }
-
-    /// <inheritdoc />
-    protected override Task HandleChallengeAsync(AuthenticationProperties properties)
-    {
-        _authResultError ??= AuthResultError.UnknownError;
-        Response.StatusCode = _authResultError.Status!.Value;
-        _authResultError.AddContext(Context);
-        return Context.Response.WriteAsJsonAsync(_authResultError, _serializerOptions, contentType: MediaTypeNames.Application.ProblemJson);
     }
 }

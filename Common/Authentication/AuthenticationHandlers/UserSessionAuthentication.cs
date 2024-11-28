@@ -25,7 +25,6 @@ public sealed class UserSessionAuthentication : AuthenticationHandler<Authentica
     private readonly OpenShockContext _db;
     private readonly ISessionService _sessionService;
     private readonly JsonSerializerOptions _serializerOptions;
-    private OpenShockProblem? _authResultError = null;
 
     public UserSessionAuthentication(
         IOptionsMonitor<AuthenticationSchemeOptions> options,
@@ -50,11 +49,11 @@ public sealed class UserSessionAuthentication : AuthenticationHandler<Authentica
     {
         if (!Context.TryGetUserSessionCookie(out var sessionKey))
         {
-            return Fail(AuthResultError.CookieMissingOrInvalid);
+            return AuthenticateResult.Fail(AuthResultError.CookieMissingOrInvalid.Type!);
         }
 
         var session = await _sessionService.GetSessionById(sessionKey);
-        if (session == null) return Fail(AuthResultError.SessionInvalid);
+        if (session == null) return AuthenticateResult.Fail(AuthResultError.SessionInvalid.Type!);
 
         if (session.Expires!.Value < DateTime.UtcNow.Subtract(Duration.LoginSessionExpansionAfter))
         {
@@ -90,21 +89,5 @@ public sealed class UserSessionAuthentication : AuthenticationHandler<Authentica
         var ticket = new AuthenticationTicket(new ClaimsPrincipal(ident), Scheme.Name);
 
         return AuthenticateResult.Success(ticket);
-    }
-    
-
-    private AuthenticateResult Fail(OpenShockProblem reason)
-    {
-        _authResultError = reason;
-        return AuthenticateResult.Fail(reason.Type!);
-    }
-
-    /// <inheritdoc />
-    protected override Task HandleChallengeAsync(AuthenticationProperties properties)
-    {
-        _authResultError ??= AuthResultError.UnknownError;
-        Response.StatusCode = _authResultError.Status!.Value;
-        _authResultError.AddContext(Context);
-        return Context.Response.WriteAsJsonAsync(_authResultError, _serializerOptions, contentType: MediaTypeNames.Application.ProblemJson);
     }
 }
