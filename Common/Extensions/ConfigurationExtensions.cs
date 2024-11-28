@@ -15,8 +15,8 @@ public static class ConfigurationExtensions
 
         var config = builder.Configuration
             .GetChildren()
-            .First(x => x.Key.Equals("openshock", StringComparison.InvariantCultureIgnoreCase))
-            .Get<T>() ?? throw new Exception("Couldn't bind config, check config file");
+            .FirstOrDefault(x => x.Key.Equals("openshock", StringComparison.InvariantCultureIgnoreCase))
+            ?.Get<T>() ?? throw new Exception("Couldn't bind config, check config file");
 
         MiniValidation.MiniValidator.TryValidate(config, true, true, out var errors);
         if (errors.Count > 0)
