@@ -4,7 +4,7 @@ using OpenShock.Common.Utils;
 
 namespace OpenShock.Common.Authentication;
 
-public sealed class LinkUser
+public sealed class AuthenticatedUser
 {
     public required User DbUser { get; set; }
 

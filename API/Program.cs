@@ -15,6 +15,7 @@ using OpenShock.Common.Services.Device;
 using OpenShock.Common.Services.LCGNodeProvisioner;
 using OpenShock.Common.Services.Ota;
 using OpenShock.Common.Services.Turnstile;
+using OpenShock.Common.Swagger;
 using Scalar.AspNetCore;
 using Serilog;
 

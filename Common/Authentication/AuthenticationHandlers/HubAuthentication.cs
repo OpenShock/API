@@ -12,12 +12,12 @@ using OpenShock.Common.OpenShockDb;
 using OpenShock.Common.Problems;
 using OpenShock.Common.Utils;
 
-namespace OpenShock.Common.Authentication.Handlers;
+namespace OpenShock.Common.Authentication.AuthenticationHandlers;
 
 /// <summary>
 /// Device / Box / The Thing / ESP32 authentication with DeviceToken header
 /// </summary>
-public sealed class DeviceAuthentication : AuthenticationHandler<AuthenticationSchemeOptions>
+public sealed class HubAuthentication : AuthenticationHandler<AuthenticationSchemeOptions>
 {
     private readonly IClientAuthService<Device> _authService;
     private readonly OpenShockContext _db;
@@ -26,7 +26,7 @@ public sealed class DeviceAuthentication : AuthenticationHandler<AuthenticationS
     private OpenShockProblem? _authResultError = null;
 
 
-    public DeviceAuthentication(
+    public HubAuthentication(
         IOptionsMonitor<AuthenticationSchemeOptions> options,
         ILoggerFactory logger,
         UrlEncoder encoder,
@@ -44,7 +44,7 @@ public sealed class DeviceAuthentication : AuthenticationHandler<AuthenticationS
     {
         if (!Context.TryGetDeviceTokenFromHeader(out string? sessionKey))
         {
-            return Fail(AuthResultError.CookieOrHeaderMissingOrInvalid);
+            return Fail(AuthResultError.HeaderMissingOrInvalid);
         }
 
         var device = await _db.Devices.Where(x => x.Token == sessionKey).FirstOrDefaultAsync();
@@ -57,7 +57,7 @@ public sealed class DeviceAuthentication : AuthenticationHandler<AuthenticationS
         {
             new Claim("id", _authService.CurrentClient.Id.ToString()),
         };
-        var ident = new ClaimsIdentity(claims, nameof(LoginSessionAuthentication));
+        var ident = new ClaimsIdentity(claims, nameof(HubAuthentication));
         var ticket = new AuthenticationTicket(new ClaimsPrincipal(ident), Scheme.Name);
 
         return AuthenticateResult.Success(ticket);

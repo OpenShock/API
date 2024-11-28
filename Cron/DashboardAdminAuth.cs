@@ -19,9 +19,9 @@ public sealed class DashboardAdminAuth : IDashboardAsyncAuthorizationFilter
         var userSessions = redis.RedisCollection<LoginSession>(false);
         var db = httpContext.RequestServices.GetRequiredService<OpenShockContext>();
 
-        if (httpContext.TryGetSessionKeyFromCookie(out var sessionKeyCookie))
+        if (httpContext.TryGetUserSessionCookie(out var userSessionCookie))
         {
-            if (await SessionAuthAdmin(sessionKeyCookie, userSessions, db))
+            if (await SessionAuthAdmin(userSessionCookie, userSessions, db))
             {
                 return true;
             }

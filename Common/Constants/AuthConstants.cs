@@ -2,8 +2,8 @@
 
 public static class AuthConstants
 {
-    public const string SessionCookieName = "openShockSession";
+    public const string UserSessionCookieName = "openShockSession";
     public const string SessionHeaderName = "OpenShockSession";
-    public const string AuthTokenHeaderName = "OpenShockToken";
-    public const string DeviceAuthTokenHeaderName = "DeviceToken";
+    public const string ApiTokenHeaderName = "OpenShockToken";
+    public const string HubTokenHeaderName = "DeviceToken";
 }

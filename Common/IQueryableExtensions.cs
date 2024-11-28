@@ -48,7 +48,7 @@ public static class IQueryableExtensions
         return WhereIsUser(source, navigationSelector, user.Id);
     }
 
-    public static IQueryable<TEntity> WhereIsUserOrRank<TEntity>(this IQueryable<TEntity> source, Expression<Func<TEntity, OpenShockDb.User>> navigationSelector, LinkUser user, RankType rank)
+    public static IQueryable<TEntity> WhereIsUserOrRank<TEntity>(this IQueryable<TEntity> source, Expression<Func<TEntity, OpenShockDb.User>> navigationSelector, AuthenticatedUser user, RankType rank)
     {
         return WhereIsUserOrRank(source, navigationSelector, user.DbUser, rank);
     }
@@ -58,7 +58,7 @@ public static class IQueryableExtensions
         return WhereIsUserOrRank(source, navigationSelector, user, RankType.Admin);
     }
 
-    public static IQueryable<TEntity> WhereIsUserOrAdmin<TEntity>(this IQueryable<TEntity> source, Expression<Func<TEntity, OpenShockDb.User>> navigationSelector, LinkUser user)
+    public static IQueryable<TEntity> WhereIsUserOrAdmin<TEntity>(this IQueryable<TEntity> source, Expression<Func<TEntity, OpenShockDb.User>> navigationSelector, AuthenticatedUser user)
     {
         return WhereIsUserOrRank(source, navigationSelector, user.DbUser, RankType.Admin);
     }

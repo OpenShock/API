@@ -4,9 +4,9 @@ namespace OpenShock.Common.Authentication;
 
 public static class OpenShockAuthSchemas
 {
-    // TODO: What is this for?
-    public const string SessionTokenCombo = "session-token-combo";
+    public const string UserSessionCookie = "UserSessionCookie";
+    public const string ApiToken = "ApiToken";
+    public const string HubToken = "HubToken";
 
-    /// TODO: Replace this with <see cref="AuthConstants.DeviceAuthTokenHeaderName"/>?
-    public const string DeviceToken = "device-token";
+    public const string UserSessionApiTokenCombo = $"{UserSessionCookie},{ApiToken}";
 }

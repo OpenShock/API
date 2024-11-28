@@ -3,6 +3,7 @@ using OpenShock.Common.Extensions;
 using OpenShock.Common.JsonSerialization;
 using OpenShock.Common.Services.Device;
 using OpenShock.Common.Services.Ota;
+using OpenShock.Common.Swagger;
 using OpenShock.LiveControlGateway;
 using OpenShock.LiveControlGateway.LifetimeManager;
 using OpenShock.LiveControlGateway.PubSub;

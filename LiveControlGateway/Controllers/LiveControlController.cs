@@ -33,7 +33,7 @@ namespace OpenShock.LiveControlGateway.Controllers;
 [ApiController]
 [Route("/{version:apiVersion}/ws/live/{hubId:guid}")]
 [TokenPermission(PermissionType.Shockers_Use)]
-[Authorize(AuthenticationSchemes = OpenShockAuthSchemas.SessionTokenCombo)]
+[Authorize(AuthenticationSchemes = OpenShockAuthSchemas.UserSessionApiTokenCombo)]
 public sealed class LiveControlController : WebsocketBaseController<IBaseResponse<LiveResponseType>>, IActionFilter
 {
     private readonly OpenShockContext _db;
@@ -51,7 +51,7 @@ public sealed class LiveControlController : WebsocketBaseController<IBaseRespons
         Live = true
     };
 
-    private LinkUser _currentUser = null!;
+    private AuthenticatedUser _currentUser = null!;
     private Guid? _hubId;
     private Device? _device;
     private Dictionary<Guid, LiveShockerPermission> _sharedShockers = new();
@@ -187,7 +187,7 @@ public sealed class LiveControlController : WebsocketBaseController<IBaseRespons
     [NonAction]
     public void OnActionExecuting(ActionExecutingContext context)
     {
-        _currentUser = ControllerContext.HttpContext.RequestServices.GetRequiredService<IClientAuthService<LinkUser>>()
+        _currentUser = ControllerContext.HttpContext.RequestServices.GetRequiredService<IClientAuthService<AuthenticatedUser>>()
             .CurrentClient;
     }
 
