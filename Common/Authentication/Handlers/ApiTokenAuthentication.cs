@@ -70,7 +70,7 @@ public sealed class ApiTokenAuthentication : AuthenticationHandler<Authenticatio
             new(ControlLogAdditionalItem.ApiTokenId, tokenDto.Id.ToString())
         };
 
-        var ident = new ClaimsIdentity(claims, nameof(UserSessionAuthentication));
+        var ident = new ClaimsIdentity(claims, nameof(ApiTokenAuthentication));
         var ticket = new AuthenticationTicket(new ClaimsPrincipal(ident), Scheme.Name);
 
         return AuthenticateResult.Success(ticket);

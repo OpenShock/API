@@ -57,7 +57,7 @@ public sealed class HubAuthentication : AuthenticationHandler<AuthenticationSche
         {
             new Claim("id", _authService.CurrentClient.Id.ToString()),
         };
-        var ident = new ClaimsIdentity(claims, nameof(UserSessionAuthentication));
+        var ident = new ClaimsIdentity(claims, nameof(HubAuthentication));
         var ticket = new AuthenticationTicket(new ClaimsPrincipal(ident), Scheme.Name);
 
         return AuthenticateResult.Success(ticket);
