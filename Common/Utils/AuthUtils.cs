@@ -6,18 +6,18 @@ namespace OpenShock.Common.Utils;
 public static class AuthUtils
 {
     private static readonly string[] TokenHeaderNames = [
-        AuthConstants.AuthTokenHeaderName,
+        AuthConstants.ApiTokenHeaderName,
         "Open-Shock-Token",
         "ShockLinkToken"
     ];
     private static readonly string[] DeviceTokenHeaderNames = [
-        AuthConstants.DeviceAuthTokenHeaderName,
+        AuthConstants.HubTokenHeaderName,
         "Device-Token"
     ];
 
     public static void SetSessionKeyCookie(this HttpContext context, string sessionKey, string domain)
     {
-        context.Response.Cookies.Append(AuthConstants.SessionCookieName, sessionKey, new CookieOptions
+        context.Response.Cookies.Append(AuthConstants.UserSessionCookieName, sessionKey, new CookieOptions
         {
             Expires = new DateTimeOffset(DateTime.UtcNow.Add(Duration.LoginSessionLifetime)),
             Secure = true,
@@ -29,7 +29,7 @@ public static class AuthUtils
 
     public static void RemoveSessionKeyCookie(this HttpContext context, string domain)
     {
-        context.Response.Cookies.Append(AuthConstants.SessionCookieName, string.Empty, new CookieOptions
+        context.Response.Cookies.Append(AuthConstants.UserSessionCookieName, string.Empty, new CookieOptions
         {
             Expires = DateTime.Now.AddDays(-1),
             Secure = true,
@@ -41,7 +41,7 @@ public static class AuthUtils
 
     public static bool TryGetUserSessionCookie(this HttpContext context, [NotNullWhen(true)] out string? sessionCookie)
     {
-        if (context.Request.Cookies.TryGetValue(AuthConstants.SessionCookieName, out sessionCookie) && !string.IsNullOrEmpty(sessionCookie))
+        if (context.Request.Cookies.TryGetValue(AuthConstants.UserSessionCookieName, out sessionCookie) && !string.IsNullOrEmpty(sessionCookie))
         {
             return true;
         }

@@ -47,7 +47,7 @@ public static class SwaggerGenExtensions
                 options.IncludeXmlComments(Path.Combine(AppContext.BaseDirectory, assemblyName + ".xml"), true);
                 options.AddSecurityDefinition(OpenShockAuthSchemas.UserSessionCookie, new OpenApiSecurityScheme
                 {
-                    Name = "User Session Cookie Authentication",
+                    Name = AuthConstants.UserSessionCookieName,
                     Description = "Enter user session cookie",
                     In = ParameterLocation.Cookie,
                     Type = SecuritySchemeType.ApiKey,
@@ -60,7 +60,7 @@ public static class SwaggerGenExtensions
                 });
                 options.AddSecurityDefinition(OpenShockAuthSchemas.ApiToken, new OpenApiSecurityScheme
                 {
-                    Name = "API Token Authentication",
+                    Name = AuthConstants.ApiTokenHeaderName,
                     Description = "Enter API Token",
                     In = ParameterLocation.Header,
                     Type = SecuritySchemeType.ApiKey,
@@ -73,7 +73,7 @@ public static class SwaggerGenExtensions
                 });
                 options.AddSecurityDefinition(OpenShockAuthSchemas.HubToken, new OpenApiSecurityScheme
                 {
-                    Name = "Hub Token Authentication",
+                    Name = AuthConstants.HubTokenHeaderName,
                     Description = "Enter hub token",
                     In = ParameterLocation.Header,
                     Type = SecuritySchemeType.ApiKey,
