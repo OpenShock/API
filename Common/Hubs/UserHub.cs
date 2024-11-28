@@ -16,7 +16,7 @@ using Semver;
 
 namespace OpenShock.Common.Hubs;
 
-[Authorize(AuthenticationSchemes = OpenShockAuthSchemas.ApiToken)]
+[Authorize(AuthenticationSchemes = OpenShockAuthSchemas.UserSessionApiTokenCombo)]
 public sealed class UserHub : Hub<IUserHub>
 {
     private readonly ILogger<UserHub> _logger;

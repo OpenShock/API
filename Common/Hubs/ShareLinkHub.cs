@@ -55,9 +55,9 @@ public sealed class ShareLinkHub : Hub<IShareLinkHub>
 
         GenericIni? user = null;
 
-        if (httpContext.TryGetUserSessionCookie(out var sessionKey))
+        if (httpContext.TryGetUserSessionCookie(out var sessionCookie))
         {
-            user = await SessionAuth(sessionKey);
+            user = await SessionAuth(sessionCookie);
         }
         
         // TODO: Add token auth
