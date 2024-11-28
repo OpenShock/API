@@ -43,64 +43,73 @@ public sealed class AttributeFilter : ISchemaFilter, IParameterFilter, IOperatio
 
         // Get Authorize attribute
         var attributes = context.MethodInfo?.DeclaringType?.GetCustomAttributes(true)
-                                .Union(context.MethodInfo.GetCustomAttributes(true))
-                                .OfType<AuthorizeAttribute>();
+            .Union(context.MethodInfo.GetCustomAttributes(true))
+            .OfType<AuthorizeAttribute>()
+            .ToList() ?? [];
 
-        if (attributes?.Any() ?? false)
+        if (attributes.Count != 0)
         {
-            var attr = attributes.First();
+            if (attributes.Count(attr => !string.IsNullOrEmpty(attr.AuthenticationSchemes)) > 1) throw new Exception("Dunno what to apply to this method (multiple authentication attributes with schemes set)");
+            
+            var scheme = attributes.Select(attr => attr.AuthenticationSchemes).SingleOrDefault(scheme => !string.IsNullOrEmpty(scheme));
+            var roles = attributes.Select(attr => attr.Roles).Where(roles => !string.IsNullOrEmpty(roles)).SelectMany(roles => roles!.Split(',')).Select(role => role.Trim()).ToList();
+            var policies = attributes.Select(attr => attr.Policy).Where(policies => !string.IsNullOrEmpty(policies)).SelectMany(policies => policies!.Split(',')).Select(policy => policy.Trim()).ToList();
 
             // Add what should be show inside the security section
-            List<string> securityInfos =
-            [
-                $"{nameof(AuthorizeAttribute.Policy)}:{attr.Policy}",
-                $"{nameof(AuthorizeAttribute.Roles)}:{attr.Roles}",
-                $"{nameof(AuthorizeAttribute.AuthenticationSchemes)}:{attr.AuthenticationSchemes}",
-            ];
+            List<string> securityInfos = [];
+            if (!string.IsNullOrEmpty(scheme)) securityInfos.Add($"{nameof(AuthorizeAttribute.AuthenticationSchemes)}:{scheme}");
+            if (roles.Count > 0) securityInfos.Add($"{nameof(AuthorizeAttribute.Roles)}:{string.Join(',', roles)}");
+            if (policies.Count > 0) securityInfos.Add($"{nameof(AuthorizeAttribute.Policy)}:{string.Join(',', policies)}");
 
-            operation.Security = attr.AuthenticationSchemes switch
+            List<OpenApiSecurityRequirement> securityRequirements = [];
+            foreach (var authenticationScheme in scheme?.Split(',').Select(s => s.Trim()) ?? [])
             {
-                var p when p == OpenShockAuthSchemas.UserSessionCookie => [
-                    new OpenApiSecurityRequirement() {{
-                        new OpenApiSecurityScheme
-                        {
-                            Reference = new OpenApiReference
+                securityRequirements.AddRange(authenticationScheme switch
+                {
+                    OpenShockAuthSchemas.UserSessionCookie => [
+                        new OpenApiSecurityRequirement {{
+                            new OpenApiSecurityScheme
                             {
-                                Id = OpenShockAuthSchemas.UserSessionCookie,
-                                Type = ReferenceType.SecurityScheme,
-                            }
-                        },
-                        securityInfos
-                    }}
-                ],
-                var p when p == OpenShockAuthSchemas.ApiToken => [
-                    new OpenApiSecurityRequirement() {{
-                        new OpenApiSecurityScheme
-                        {
-                            Reference = new OpenApiReference
+                                Reference = new OpenApiReference
+                                {
+                                    Id = OpenShockAuthSchemas.UserSessionCookie,
+                                    Type = ReferenceType.SecurityScheme,
+                                }
+                            },
+                            securityInfos
+                        }}
+                    ],
+                    OpenShockAuthSchemas.ApiToken => [
+                        new OpenApiSecurityRequirement {{
+                            new OpenApiSecurityScheme
                             {
-                                Id = OpenShockAuthSchemas.ApiToken,
-                                Type = ReferenceType.SecurityScheme,
-                            }
-                        },
-                        securityInfos
-                    }}
-                ],
-                var p when p == OpenShockAuthSchemas.HubToken => [
-                    new OpenApiSecurityRequirement() {{
-                        new OpenApiSecurityScheme
-                        {
-                            Reference = new OpenApiReference
+                                Reference = new OpenApiReference
+                                {
+                                    Id = OpenShockAuthSchemas.ApiToken,
+                                    Type = ReferenceType.SecurityScheme,
+                                }
+                            },
+                            securityInfos
+                        }}
+                    ],
+                    OpenShockAuthSchemas.HubToken => [
+                        new OpenApiSecurityRequirement {{
+                            new OpenApiSecurityScheme
                             {
-                                Id = OpenShockAuthSchemas.HubToken,
-                                Type = ReferenceType.SecurityScheme
-                            }
-                        },
-                        securityInfos
-                    }}
-                ],
-                _ => [],
-            };
+                                Reference = new OpenApiReference
+                                {
+                                    Id = OpenShockAuthSchemas.HubToken,
+                                    Type = ReferenceType.SecurityScheme
+                                }
+                            },
+                            securityInfos
+                        }}
+                    ],
+                    _ => [],
+                });
+            }
+
+            operation.Security = securityRequirements;
         }
         else
         {
