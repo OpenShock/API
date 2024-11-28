@@ -35,8 +35,6 @@ public sealed class ShareLinkHub : Hub<IShareLinkHub>
 
     public override async Task OnConnectedAsync()
     {
-        _tokenPermissions = _userReferenceService.AuthReference is not { IsT1: true } ? null : _userReferenceService.AuthReference.Value.AsT1.Permissions;
-        
         var httpContext = Context.GetHttpContext();
         if (httpContext?.GetRouteValue("Id") is not string param || !Guid.TryParse(param, out var id))
         {
@@ -44,6 +42,21 @@ public sealed class ShareLinkHub : Hub<IShareLinkHub>
             Context.Abort();
             return;
         }
+        
+        GenericIni? user = null;
+
+        if (httpContext.TryGetUserSessionCookie(out var sessionCookie))
+        {
+            user = await SessionAuth(sessionCookie);
+            if (user == null)
+            {
+                _logger.LogWarning("Connection tried authentication with invalid user session cookie, terminating connection...");
+                Context.Abort();
+                return;
+            }
+        }
+        
+        _tokenPermissions = _userReferenceService.AuthReference is not { IsT1: true } ? null : _userReferenceService.AuthReference.Value.AsT1.Permissions;
 
         var exists = await _db.ShockerSharesLinks.AnyAsync(x => x.Id == id && (x.ExpiresOn == null || x.ExpiresOn > DateTime.UtcNow));
         if (!exists)
@@ -51,13 +64,6 @@ public sealed class ShareLinkHub : Hub<IShareLinkHub>
             _logger.LogWarning("Aborting connection... share link not found");
             Context.Abort();
             return;
-        }
-
-        GenericIni? user = null;
-
-        if (httpContext.TryGetUserSessionCookie(out var sessionCookie))
-        {
-            user = await SessionAuth(sessionCookie);
         }
         
         // TODO: Add token auth
@@ -68,6 +74,7 @@ public sealed class ShareLinkHub : Hub<IShareLinkHub>
         {
             _logger.LogWarning("customName was not set nor was the user authenticated, terminating connection...");
             Context.Abort();
+            return;
         }
 
         var additionalItems = new Dictionary<string, object>
