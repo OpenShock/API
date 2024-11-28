@@ -39,43 +39,19 @@ public static class AuthUtils
         });
     }
 
-    public static bool TryGetSessionKeyFromCookie(this HttpContext context, [NotNullWhen(true)] out string? sessionKey)
+    public static bool TryGetUserSessionCookie(this HttpContext context, [NotNullWhen(true)] out string? sessionCookie)
     {
-        if (context.Request.Cookies.TryGetValue(AuthConstants.SessionCookieName, out sessionKey) && !string.IsNullOrEmpty(sessionKey))
+        if (context.Request.Cookies.TryGetValue(AuthConstants.SessionCookieName, out sessionCookie) && !string.IsNullOrEmpty(sessionCookie))
         {
             return true;
         }
 
-        sessionKey = null;
+        sessionCookie = null;
 
         return false;
     }
 
-    public static bool TryGetSessionAuthFromHeader(this HttpContext context, [NotNullWhen(true)] out string? sessionKey)
-    {
-        if (context.Request.Headers.TryGetValue(AuthConstants.SessionHeaderName, out var value) && !string.IsNullOrEmpty(value))
-        {
-            sessionKey = value!;
-
-            return true;
-        }
-
-        sessionKey = null;
-
-        return false;
-    }
-
-    public static bool TryGetSessionKey(this HttpContext context, [NotNullWhen(true)] out string? sessionKey)
-    {
-        if (TryGetSessionKeyFromCookie(context, out sessionKey)) return true;
-        if (TryGetSessionAuthFromHeader(context, out sessionKey)) return true;
-
-        sessionKey = null;
-
-        return false;
-    }
-
-    public static bool TryGetAuthTokenFromHeader(this HttpContext context, [NotNullWhen(true)] out string? token)
+    public static bool TryGetApiTokenFromHeader(this HttpContext context, [NotNullWhen(true)] out string? token)
     {
         foreach (string header in TokenHeaderNames)
         {

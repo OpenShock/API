@@ -8,7 +8,6 @@ namespace OpenShock.API.Controller.Public;
 
 [ApiController]
 [Route("/{version:apiVersion}/public")]
-[AllowAnonymous]
 public sealed partial class PublicController : OpenShockControllerBase
 {
     private readonly OpenShockContext _db;

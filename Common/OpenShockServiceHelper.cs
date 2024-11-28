@@ -39,15 +39,17 @@ public static class OpenShockServiceHelper
         // <---- ASP.NET ---->
         services.AddExceptionHandler<OpenShockExceptionHandler>();
         
-        services.AddScoped<IClientAuthService<LinkUser>, ClientAuthService<LinkUser>>();
+        services.AddScoped<IClientAuthService<AuthenticatedUser>, ClientAuthService<AuthenticatedUser>>();
         services.AddScoped<IClientAuthService<Device>, ClientAuthService<Device>>();
         services.AddScoped<IUserReferenceService, UserReferenceService>();
         
         new AuthenticationBuilder(services)
-            .AddScheme<AuthenticationSchemeOptions, LoginSessionAuthentication>(
-                OpenShockAuthSchemas.SessionTokenCombo, _ => { })
-            .AddScheme<AuthenticationSchemeOptions, DeviceAuthentication>(
-                OpenShockAuthSchemas.DeviceToken, _ => { });
+            .AddScheme<AuthenticationSchemeOptions, UserSessionAuthentication>(
+                OpenShockAuthSchemas.UserSessionCookie, _ => { })
+            .AddScheme<AuthenticationSchemeOptions, ApiTokenAuthentication>(
+                OpenShockAuthSchemas.ApiToken, _ => { })
+            .AddScheme<AuthenticationSchemeOptions, HubAuthentication>(
+                OpenShockAuthSchemas.HubToken, _ => { });
         
         services.AddAuthenticationCore();
         services.AddAuthorization();

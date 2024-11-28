@@ -1,4 +1,6 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using OpenShock.Common.Authentication;
 using OpenShock.Common.Authentication.ControllerBase;
 using OpenShock.Common.OpenShockDb;
 using Redis.OM.Contracts;
@@ -7,6 +9,7 @@ namespace OpenShock.API.Controller.Users;
 
 [ApiController]
 [Route("/{version:apiVersion}/users")]
+[Authorize(AuthenticationSchemes = OpenShockAuthSchemas.UserSessionApiTokenCombo)]
 public sealed partial class UsersController : AuthenticatedSessionControllerBase
 {
     private readonly OpenShockContext _db;

@@ -18,7 +18,7 @@ public sealed class RankAttribute : Attribute, IAuthorizationFilter
     
     public void OnAuthorization(AuthorizationFilterContext context)
     {
-        var user = context.HttpContext.RequestServices.GetService<IClientAuthService<LinkUser>>()?.CurrentClient;
+        var user = context.HttpContext.RequestServices.GetService<IClientAuthService<AuthenticatedUser>>()?.CurrentClient;
         if (user == null)
         {
             context.Result = new JsonResult(new BaseResponse<object>

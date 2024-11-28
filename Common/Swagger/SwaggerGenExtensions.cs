@@ -9,19 +9,21 @@ using Asp.Versioning;
 using Microsoft.AspNetCore.Mvc;
 using System.Reflection;
 using System.Linq;
+using OpenShock.Common.Extensions;
+using OpenShock.Common.Authentication;
 
-namespace OpenShock.Common.Extensions;
+namespace OpenShock.Common.Swagger;
 
 public static class SwaggerGenExtensions
 {
     public static IServiceCollection AddSwaggerExt<TProgram>(this IServiceCollection services) where TProgram : class
     {
         var assembly = typeof(TProgram).Assembly;
-       
+
         string assemblyName = assembly
                                 .GetName()
                                 .Name ?? throw new NullReferenceException("Assembly name");
-        
+
         var versions = assembly.GetAllControllerEndpointAttributes<ApiVersionAttribute>()
                         .SelectMany(type => type.Versions)
                         .Select(v => v.ToString())
@@ -35,40 +37,58 @@ public static class SwaggerGenExtensions
         }
 
         return services
-            .AddSwaggerGen(options => {
+            .AddSwaggerGen(options =>
+            {
                 options.CustomOperationIds(e =>
                     $"{e.ActionDescriptor.RouteValues["controller"]}_{e.ActionDescriptor.AttributeRouteInfo?.Name ?? e.ActionDescriptor.RouteValues["action"]}");
                 options.SchemaFilter<AttributeFilter>();
                 options.ParameterFilter<AttributeFilter>();
                 options.OperationFilter<AttributeFilter>();
                 options.IncludeXmlComments(Path.Combine(AppContext.BaseDirectory, assemblyName + ".xml"), true);
-                options.AddSecurityDefinition(AuthConstants.AuthTokenHeaderName, new OpenApiSecurityScheme
+                options.AddSecurityDefinition(OpenShockAuthSchemas.UserSessionCookie, new OpenApiSecurityScheme
                 {
-                    Name = AuthConstants.AuthTokenHeaderName,
+                    Name = "User Session Cookie Authentication",
+                    Description = "Enter user session cookie",
+                    In = ParameterLocation.Cookie,
                     Type = SecuritySchemeType.ApiKey,
-                    Scheme = "ApiKeyAuth",
-                    In = ParameterLocation.Header,
-                    Description = "API Token Authorization header."
-                });
-                options.AddSecurityRequirement(new OpenApiSecurityRequirement
+                    Scheme = OpenShockAuthSchemas.UserSessionCookie,
+                    Reference = new OpenApiReference
                     {
-                        {
-                            new OpenApiSecurityScheme
-                            {
-                                Reference = new OpenApiReference
-                                {
-                                    Type = ReferenceType.SecurityScheme,
-                                    Id = AuthConstants.AuthTokenHeaderName
-                                }
-                            },
-                            Array.Empty<string>()
-                        }
-                    });
+                        Id = OpenShockAuthSchemas.UserSessionCookie,
+                        Type = ReferenceType.SecurityScheme,
+                    }
+                });
+                options.AddSecurityDefinition(OpenShockAuthSchemas.ApiToken, new OpenApiSecurityScheme
+                {
+                    Name = "API Token Authentication",
+                    Description = "Enter API Token",
+                    In = ParameterLocation.Header,
+                    Type = SecuritySchemeType.ApiKey,
+                    Scheme = OpenShockAuthSchemas.ApiToken,
+                    Reference = new OpenApiReference
+                    {
+                        Id = OpenShockAuthSchemas.ApiToken,
+                        Type = ReferenceType.SecurityScheme,
+                    }
+                });
+                options.AddSecurityDefinition(OpenShockAuthSchemas.HubToken, new OpenApiSecurityScheme
+                {
+                    Name = "Hub Token Authentication",
+                    Description = "Enter hub token",
+                    In = ParameterLocation.Header,
+                    Type = SecuritySchemeType.ApiKey,
+                    Scheme = OpenShockAuthSchemas.HubToken,
+                    Reference = new OpenApiReference
+                    {
+                        Id = OpenShockAuthSchemas.HubToken,
+                        Type = ReferenceType.SecurityScheme,
+                    }
+                });
                 options.AddServer(new OpenApiServer { Url = "https://api.openshock.app" });
                 options.AddServer(new OpenApiServer { Url = "https://staging-api.openshock.app" });
-    #if DEBUG
+#if DEBUG
                 options.AddServer(new OpenApiServer { Url = "https://localhost" });
-    #endif
+#endif
                 foreach (var version in versions)
                 {
                     options.SwaggerDoc("v" + version, new OpenApiInfo { Title = "OpenShock", Version = version });
