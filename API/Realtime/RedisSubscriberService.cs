@@ -47,9 +47,8 @@ public sealed class RedisSubscriberService : IHostedService, IAsyncDisposable
     /// <inheritdoc />
     public async Task StartAsync(CancellationToken cancellationToken)
     {
-        await _subscriber.SubscribeAsync(RedisChannels.KeyEventExpired, (_, message) => { LucTask.Run(() => HandleKeyDelOrExpired(message)); });
+        await _subscriber.SubscribeAsync(RedisChannels.KeyEventExpired, (_, message) => { LucTask.Run(() => HandleKeyExpired(message)); });
         await _subscriber.SubscribeAsync(RedisChannels.DeviceOnlineStatus, (_, message) => { LucTask.Run(() => HandleDeviceOnlineStatus(message)); });
-        await _subscriber.SubscribeAsync(RedisChannels.KeyEventDel, (_, message) => { LucTask.Run(() => HandleKeyDelOrExpired(message)); });
     }
 
     private async Task HandleDeviceOnlineStatus(RedisValue message)
@@ -61,7 +60,7 @@ public sealed class RedisSubscriberService : IHostedService, IAsyncDisposable
         await LogicDeviceOnlineStatus(data.Id);
     }
     
-    private async Task HandleKeyDelOrExpired(RedisValue message)
+    private async Task HandleKeyExpired(RedisValue message)
     {
         if (!message.HasValue) return;
         var msg = message.ToString().Split(':');
