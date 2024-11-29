@@ -7,15 +7,14 @@ namespace OpenShock.Common.Services.Turnstile;
 
 public sealed class CloudflareTurnstileService : ICloudflareTurnstileService
 {
-    public const string BaseUrl = "https://challenges.cloudflare.com/turnstile/v0/";
+    private const string BaseUrl = "https://challenges.cloudflare.com/turnstile/v0/";
     private const string SiteVerifyEndpoint = "siteverify";
 
     private readonly HttpClient _httpClient;
     private readonly CloudflareTurnstileOptions _options;
     private readonly ILogger<CloudflareTurnstileService> _logger;
 
-    public CloudflareTurnstileService(HttpClient httpClient, IOptions<CloudflareTurnstileOptions> options,
-        ILogger<CloudflareTurnstileService> logger)
+    public CloudflareTurnstileService(HttpClient httpClient, IOptions<CloudflareTurnstileOptions> options, ILogger<CloudflareTurnstileService> logger)
     {
         _httpClient = httpClient;
         _httpClient.BaseAddress = new Uri(BaseUrl);
@@ -47,12 +46,14 @@ public sealed class CloudflareTurnstileService : ICloudflareTurnstileService
     public async Task<OneOf<Success, Error<CloduflareTurnstileError[]>>> VerifyUserResponseToken(
         string responseToken, IPAddress? remoteIpAddress, CancellationToken cancellationToken = default)
     {
+        if (!_options.Enabled) return new Success();
+        
         if (string.IsNullOrEmpty(responseToken)) return CreateError(CloduflareTurnstileError.MissingResponse);
 
 #if DEBUG
         if (responseToken == "dev-bypass") return new Success();
 #endif
-
+        
         var formUrlValues = new Dictionary<string, string>
         {
             { "secret", _options.SecretKey },

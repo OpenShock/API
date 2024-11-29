@@ -1,3 +1,4 @@
+using System.Configuration;
 using Microsoft.AspNetCore.Http.Connections;
 using Microsoft.EntityFrameworkCore;
 using OpenShock.API;
@@ -49,8 +50,14 @@ builder.Services.AddSingleton<ILCGNodeProvisioner, LCGNodeProvisioner>();
 
 builder.Services.AddSingleton(x =>
 {
+    if (config.Turnstile.Enabled && (string.IsNullOrWhiteSpace(config.Turnstile.SecretKey) || string.IsNullOrWhiteSpace(config.Turnstile.SecretKey)))
+    {
+        throw new ConfigurationErrorsException("Turnstile is enabled in config, but secretkey and/or token is missing or empty");
+    }
+    
     return new CloudflareTurnstileOptions
     {
+        Enabled = config.Turnstile.Enabled,
         SecretKey = config.Turnstile.SecretKey ?? string.Empty,
         SiteKey = config.Turnstile.SiteKey ?? string.Empty
     };
