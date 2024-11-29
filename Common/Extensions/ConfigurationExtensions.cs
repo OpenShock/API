@@ -30,7 +30,7 @@ public static class ConfigurationExtensions
                 sb.AppendLine($"Error on field [{error.Key}] reason: {string.Join(", ", error.Value)}");
             }
 
-            Log.Error(sb.ToString());
+            Console.WriteLine(sb.ToString());
             Environment.Exit(-10);
         }
 
