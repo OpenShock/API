@@ -1,9 +1,9 @@
-﻿using System.Net;
-using System.Net.Mime;
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using OpenShock.Common.Errors;
+using OpenShock.Common.Extensions;
 using OpenShock.Common.Models;
 using OpenShock.Common.Problems;
+using System.Net.Mime;
 
 namespace OpenShock.API.Controller.Sessions;
 
