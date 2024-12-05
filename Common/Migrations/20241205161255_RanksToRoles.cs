@@ -23,9 +23,9 @@ namespace OpenShock.Common.Migrations
                 SET roles = (
                     CASE
                         WHEN rank = 'support' THEN ARRAY['support']
-                        WHEN rank = 'staff'   THEN ARRAY['support', 'staff']
-                        WHEN rank = 'admin'   THEN ARRAY['support', 'staff', 'admin']
-                        WHEN rank = 'system'  THEN ARRAY['support', 'staff', 'admin', 'system']
+                        WHEN rank = 'staff'   THEN ARRAY['staff']
+                        WHEN rank = 'admin'   THEN ARRAY['staff', 'admin']
+                        WHEN rank = 'system'  THEN ARRAY['staff', 'admin', 'system']
                         ELSE ARRAY[]::text[]
                     END
                 );
