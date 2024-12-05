@@ -10,45 +10,38 @@ namespace OpenShock.Common.Migrations
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            // We need to drop the view to modify the target table
             migrationBuilder.Sql(
                 """
+                -- Drop the view temporarily to modify the underlying table
                 DROP VIEW admin_users_view;
-                ALTER TYPE rank_type RENAME TO role_type;
-                """
-            );
-            
-            migrationBuilder.AddColumn<int[]>(
-                name: "roles",
-                table: "users",
-                type: "role_type[]",
-                nullable: false,
-                defaultValue: Array.Empty<int>());
-
-            // Migrate data from 'rank' to 'roles'
-            migrationBuilder.Sql(
-                """
+                
+                -- Add the roles column as a text array to replace the rank enum
+                ALTER TABLE users ADD roles text[] NOT NULL DEFAULT ARRAY[]::text[];
+                
+                -- Migrate existing rank values into the roles array column
                 UPDATE users
-                SET roles = CAST((
+                SET roles = (
                     CASE
-                        WHEN rank = 'user' THEN ARRAY['user']
-                        WHEN rank = 'support' THEN ARRAY['user', 'support']
-                        WHEN rank = 'staff'   THEN ARRAY['user', 'support', 'staff']
-                        WHEN rank = 'admin'   THEN ARRAY['user', 'support', 'staff', 'admin']
-                        WHEN rank = 'system'  THEN ARRAY['user', 'support', 'staff', 'admin', 'system']
-                        ELSE CAST(ARRAY[] AS text[])
+                        WHEN rank = 'support' THEN ARRAY['support']
+                        WHEN rank = 'staff'   THEN ARRAY['support', 'staff']
+                        WHEN rank = 'admin'   THEN ARRAY['support', 'staff', 'admin']
+                        WHEN rank = 'system'  THEN ARRAY['support', 'staff', 'admin', 'system']
+                        ELSE ARRAY[]::text[]
                     END
-                ) AS role_type[]);
-                """
-            );
-            
-            migrationBuilder.DropColumn(
-                name: "rank",
-                table: "users");
-            
-            // Re-Create the view
-            migrationBuilder.Sql(
-                """
+                );
+                
+                -- Remove the rank column after migration
+                ALTER TABLE users DROP COLUMN rank;
+                
+                -- Replace the old rank_type enum with a new role_type enum, dropping 'user' in the process
+                DROP TYPE rank_type;
+                CREATE TYPE role_type AS ENUM ('support', 'staff', 'admin', 'system');
+                
+                -- Update the roles column to use the new role_type enum array
+                ALTER TABLE users ALTER COLUMN roles SET DEFAULT ARRAY[]::role_type[];
+                ALTER TABLE users ALTER COLUMN roles TYPE role_type[] USING CAST(roles as role_type[]);
+                
+                -- Recreate the admin_users_view to reflect the new roles structure
                 CREATE VIEW admin_users_view AS
                     SELECT
                         u.id,
@@ -77,24 +70,17 @@ namespace OpenShock.Common.Migrations
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
-            // We need to drop the view to modify the target table
             migrationBuilder.Sql(
                 """
+                -- Drop the view temporarily to modify the underlying table
                 DROP VIEW admin_users_view;
-                ALTER TYPE role_type RENAME TO rank_type;
-                """
-            );
-            
-            migrationBuilder.AddColumn<int>(
-                name: "rank",
-                table: "users",
-                type: "rank_type",
-                nullable: true);
-            
-            migrationBuilder.Sql(
-                """
+                
+                -- Add the rank column back as a temporary nullable text column
+                ALTER TABLE users ADD rank text;
+                
+                -- Migrate roles array values back into a single rank value
                 UPDATE users
-                SET rank = CAST((
+                SET rank = (
                     CASE
                         WHEN 'system'  = ANY(roles) THEN 'system'
                         WHEN 'admin'   = ANY(roles) THEN 'admin'
@@ -102,22 +88,20 @@ namespace OpenShock.Common.Migrations
                         WHEN 'support' = ANY(roles) THEN 'support'
                         ELSE 'user'
                     END
-                ) AS rank_type);
-                """
-            );
+                );
+                
+                -- Remove the roles column after migration
+                ALTER TABLE users DROP COLUMN roles;
+                
+                -- Restore the old rank_type enum
+                DROP TYPE role_type;
+                CREATE TYPE rank_type AS ENUM ('user', 'support', 'staff', 'admin', 'system');
+                
+                -- Change the rank column back to a non-nullable rank_type enum
+                ALTER TABLE users ALTER COLUMN rank TYPE rank_type USING CAST(rank as rank_type);
+                ALTER TABLE users ALTER COLUMN rank SET NOT NULL;
 
-            migrationBuilder.AlterColumn<int>(
-                name: "rank",
-                table: "users",
-                nullable: false);
-
-            migrationBuilder.DropColumn(
-                name: "roles",
-                table: "users");
-            
-            // Re-Create the view
-            migrationBuilder.Sql(
-                """
+                -- Recreate the admin_users_view to restore the original structure
                 CREATE VIEW admin_users_view AS
                     SELECT
                         u.id,

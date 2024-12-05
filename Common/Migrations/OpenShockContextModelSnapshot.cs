@@ -26,7 +26,7 @@ namespace OpenShock.Common.Migrations
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "ota_update_status", new[] { "started", "running", "finished", "error", "timeout" });
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "password_encryption_type", new[] { "pbkdf2", "bcrypt_enhanced" });
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "permission_type", new[] { "shockers.use", "shockers.edit", "shockers.pause", "devices.edit", "devices.auth" });
-            NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "role_type", new[] { "user", "support", "staff", "admin", "system" });
+            NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "role_type", new[] { "support", "staff", "admin", "system" });
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "shocker_model_type", new[] { "caiXianlin", "petTrainer", "petrainer998DR" });
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
