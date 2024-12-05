@@ -24,7 +24,7 @@ public sealed partial class AuthenticatedAccountController
     public async Task<IActionResult> ChangeUsername(ChangeUsernameRequest data)
     {
         var result = await _accountService.ChangeUsername(CurrentUser.Id, data.Username,
-            CurrentUser.Rank.IsAllowed(RankType.Staff));
+            CurrentUser.Roles.Any(r => r is RoleType.Staff or RoleType.Admin or RoleType.System));
 
         return result.Match<IActionResult>(
             success => Ok(),

@@ -29,24 +29,6 @@ namespace OpenShock.Common;
 
 public static class OpenShockServiceHelper
 {
-    // TODO: this is temporary while we still rely on enums for user ranks
-    static bool HandleRankCheck(AuthorizationHandlerContext context, RankType requiredRank)
-    {
-        var ranks = context.User.Identities.SelectMany(ident => ident.Claims.Where(claim => claim.Type == ident.RoleClaimType)).Select(claim => Enum.Parse<RankType>(claim.Value)).ToList();
-
-        if (!ranks.Any())
-        {
-            return false;
-        }
-
-        if (ranks.Max() < requiredRank)
-        {
-            return false;
-        }
-
-        return true;
-    }
-
     /// <summary>
     /// Register all OpenShock services for PRODUCTION use
     /// </summary>
@@ -75,12 +57,6 @@ public static class OpenShockServiceHelper
         
         services.AddAuthorization(options =>
         {
-            options.AddPolicy(OpenShockAuthPolicies.SystemAccess, policy => policy.RequireRole(RankType.System.ToString()));
-            options.AddPolicy(OpenShockAuthPolicies.AdminAccess, policy => policy.RequireAssertion(context => HandleRankCheck(context, RankType.Admin)));
-            options.AddPolicy(OpenShockAuthPolicies.StaffAccess, policy => policy.RequireAssertion(context => HandleRankCheck(context, RankType.Staff)));
-            options.AddPolicy(OpenShockAuthPolicies.SupportAccess, policy => policy.RequireAssertion(context => HandleRankCheck(context, RankType.Support)));
-            options.AddPolicy(OpenShockAuthPolicies.UserAccess, policy => policy.RequireAssertion(context => HandleRankCheck(context, RankType.User)));
-
             options.AddPolicy(OpenShockAuthPolicies.TokenSessionOnly, policy => policy.RequireClaim(ClaimTypes.AuthenticationMethod, OpenShockAuthSchemas.ApiToken));
             // TODO: Add token permission policies
         });
@@ -190,7 +166,7 @@ public static class OpenShockServiceHelper
         {
             builder.UseNpgsql(config.Db.Conn, optionsBuilder =>
             {
-                optionsBuilder.MapEnum<RankType>();
+                optionsBuilder.MapEnum<RoleType>();
                 optionsBuilder.MapEnum<ControlType>();
                 optionsBuilder.MapEnum<PermissionType>();
                 optionsBuilder.MapEnum<ShockerModelType>();

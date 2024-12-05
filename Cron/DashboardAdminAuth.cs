@@ -1,5 +1,6 @@
 ﻿using Hangfire.Dashboard;
 using Microsoft.EntityFrameworkCore;
+using OpenShock.Common.Extensions;
 using OpenShock.Common.Models;
 using OpenShock.Common.OpenShockDb;
 using OpenShock.Common.Redis;
@@ -37,6 +38,6 @@ public sealed class DashboardAdminAuth : IDashboardAsyncAuthorizationFilter
         var session = await loginSessions.FindByIdAsync(sessionKey);
         if (session == null) return false;
         var retrievedUser = await db.Users.FirstAsync(user => user.Id == session.UserId);
-        return retrievedUser.Rank == RankType.Admin;
+        return retrievedUser.IsRole(RoleType.Admin);
     }
 }

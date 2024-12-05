@@ -1,6 +1,6 @@
 ﻿namespace OpenShock.Common.Models;
 
-public enum RankType
+public enum RoleType
 {
     User = 0,
     Support = 1,

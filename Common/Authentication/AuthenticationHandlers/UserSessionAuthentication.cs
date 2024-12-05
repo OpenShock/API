@@ -76,8 +76,9 @@ public sealed class UserSessionAuthentication : AuthenticationHandler<Authentica
         List<Claim> claims = [
             new(ClaimTypes.AuthenticationMethod, OpenShockAuthSchemas.UserSessionCookie),
             new(ClaimTypes.NameIdentifier, retrievedUser.Id.ToString()),
-            new(ClaimTypes.Role, retrievedUser.Rank.ToString())
         ];
+
+        claims.AddRange(retrievedUser.Roles.Select(r => new Claim(ClaimTypes.Role, r.ToString())));
 
         var ident = new ClaimsIdentity(claims, nameof(UserSessionAuthentication));
 

@@ -27,7 +27,7 @@ public sealed partial class AdminController
             return Problem(AdminError.UserNotFound);
         }
 
-        if (user.Rank >= RankType.Admin)
+        if (user.Roles.Any(r => r is RoleType.Admin or RoleType.System))
         {
             return Problem(AdminError.CannotDeletePrivledgedAccount);
         }

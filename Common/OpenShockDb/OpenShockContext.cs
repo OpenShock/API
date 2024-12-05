@@ -65,7 +65,7 @@ public partial class OpenShockContext : DbContext
             .HasPostgresEnum("ota_update_status", new[] { "started", "running", "finished", "error", "timeout" })
             .HasPostgresEnum("password_encryption_type", new[] { "pbkdf2", "bcrypt_enhanced" })
             .HasPostgresEnum("permission_type", new[] { "shockers.use", "shockers.edit", "shockers.pause", "devices.edit", "devices.auth" })
-            .HasPostgresEnum("rank_type", new[] { "user", "support", "staff", "admin", "system" })
+            .HasPostgresEnum("role_type", new[] { "user", "support", "staff", "admin", "system" })
             .HasPostgresEnum("shocker_model_type", new[] { "caiXianlin", "petTrainer", "petrainer998DR" })
             .HasAnnotation("Npgsql:CollationDefinition:public.ndcoll", "und-u-ks-level2,und-u-ks-level2,icu,False");
 
@@ -465,9 +465,9 @@ public partial class OpenShockContext : DbContext
             entity.Property(e => e.PasswordHash)
                 .VarCharWithLength(HardLimits.PasswordHashMaxLength)
                 .HasColumnName("password_hash");
-            entity.Property(e => e.Rank)
-                .HasColumnType("rank_type")
-                .HasColumnName("rank");
+            entity.Property(e => e.Roles)
+                .HasColumnType("role_type[]")
+                .HasColumnName("roles");
         });
 
         modelBuilder.Entity<UsersActivation>(entity =>
@@ -577,9 +577,9 @@ public partial class OpenShockContext : DbContext
                 .HasColumnName("created_at");
             entity.Property(e => e.EmailActivated)
                 .HasColumnName("email_activated");
-            entity.Property(e => e.Rank)
-                .HasColumnType("rank_type")
-                .HasColumnName("rank");
+            entity.Property(e => e.Roles)
+                .HasColumnType("role_type[]")
+                .HasColumnName("roles");
             entity.Property(e => e.ApiTokenCount)
                 .HasColumnName("api_token_count");
             entity.Property(e => e.PasswordResetCount)
