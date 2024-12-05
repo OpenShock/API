@@ -19,7 +19,7 @@ namespace OpenShock.Common.Authentication.AuthenticationHandlers;
 
 public sealed class UserSessionAuthentication : AuthenticationHandler<AuthenticationSchemeOptions>
 {
-    private readonly IClientAuthService<AuthenticatedUser> _authService;
+    private readonly IClientAuthService<User> _authService;
     private readonly IUserReferenceService _userReferenceService;
     private readonly IBatchUpdateService _batchUpdateService;
     private readonly OpenShockContext _db;
@@ -30,7 +30,7 @@ public sealed class UserSessionAuthentication : AuthenticationHandler<Authentica
         IOptionsMonitor<AuthenticationSchemeOptions> options,
         ILoggerFactory logger,
         UrlEncoder encoder,
-        IClientAuthService<AuthenticatedUser> clientAuth,
+        IClientAuthService<User> clientAuth,
         IUserReferenceService userReferenceService,
         OpenShockContext db,
         ISessionService sessionService,
@@ -70,11 +70,8 @@ public sealed class UserSessionAuthentication : AuthenticationHandler<Authentica
 
         var retrievedUser = await _db.Users.FirstAsync(user => user.Id == session.UserId);
 
+        _authService.CurrentClient = retrievedUser;
         _userReferenceService.AuthReference = session;
-        _authService.CurrentClient = new AuthenticatedUser
-        {
-            DbUser = retrievedUser
-        };
 
         List<Claim> claims = [
             new(ClaimTypes.AuthenticationMethod, OpenShockAuthSchemas.UserSessionCookie),

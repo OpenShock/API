@@ -32,7 +32,7 @@ public sealed partial class DevicesController
     {
         // Check if user owns device or has a share
         var deviceExistsAndYouHaveAccess = await _db.Devices.AnyAsync(x =>
-            x.Id == deviceId && x.Owner == CurrentUser.DbUser.Id);
+            x.Id == deviceId && x.Owner == CurrentUser.Id);
         if (!deviceExistsAndYouHaveAccess) return Problem(DeviceError.DeviceNotFound);
 
         return RespondSuccessLegacy(await otaService.GetUpdates(deviceId));

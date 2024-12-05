@@ -36,9 +36,9 @@ public sealed partial class ShockerController
     {
         var sender = new ControlLogSender
         {
-            Id = CurrentUser.DbUser.Id,
-            Name = CurrentUser.DbUser.Name,
-            Image = GravatarUtils.GetImageUrl(CurrentUser.DbUser.Email),
+            Id = CurrentUser.Id,
+            Name = CurrentUser.Name,
+            Image = GravatarUtils.GetImageUrl(CurrentUser.Email),
             ConnectionId = HttpContext.Connection.Id,
             AdditionalItems = EmptyDic,
             CustomName = body.CustomName

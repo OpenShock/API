@@ -11,7 +11,7 @@ public sealed partial class SessionsController
     [ProducesResponseType<IEnumerable<LoginSessionResponse>>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
     public async Task<IEnumerable<LoginSessionResponse>> ListSessions()
     {
-        var sessions = await _sessionService.ListSessionsByUserId(CurrentUser.DbUser.Id);
+        var sessions = await _sessionService.ListSessionsByUserId(CurrentUser.Id);
 
         return sessions.Select(LoginSessionResponse.MapFrom);
     }

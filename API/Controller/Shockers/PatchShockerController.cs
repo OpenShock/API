@@ -32,10 +32,10 @@ public sealed partial class ShockerController
         [FromBody] NewShocker body, 
         [FromServices] IDeviceUpdateService deviceUpdateService)
     {
-        var device = await _db.Devices.AnyAsync(x => x.Owner == CurrentUser.DbUser.Id && x.Id == body.Device);
+        var device = await _db.Devices.AnyAsync(x => x.Owner == CurrentUser.Id && x.Id == body.Device);
         if (!device) return Problem(DeviceError.DeviceNotFound);
 
-        var shocker = await _db.Shockers.Where(x => x.DeviceNavigation.Owner == CurrentUser.DbUser.Id && x.Id == shockerId)
+        var shocker = await _db.Shockers.Where(x => x.DeviceNavigation.Owner == CurrentUser.Id && x.Id == shockerId)
             .FirstOrDefaultAsync();
         if (shocker == null) return Problem(ShockerError.ShockerNotFound);
         var oldDevice = shocker.Device;
@@ -48,9 +48,9 @@ public sealed partial class ShockerController
         await _db.SaveChangesAsync();
         
         if (oldDevice != body.Device) 
-            await deviceUpdateService.UpdateDeviceForAllShared(CurrentUser.DbUser.Id, oldDevice, DeviceUpdateType.ShockerUpdated);
+            await deviceUpdateService.UpdateDeviceForAllShared(CurrentUser.Id, oldDevice, DeviceUpdateType.ShockerUpdated);
         
-        await deviceUpdateService.UpdateDeviceForAllShared(CurrentUser.DbUser.Id, body.Device, DeviceUpdateType.ShockerUpdated);
+        await deviceUpdateService.UpdateDeviceForAllShared(CurrentUser.Id, body.Device, DeviceUpdateType.ShockerUpdated);
         
         return RespondSuccessLegacySimple("Shocker updated successfully");
     }

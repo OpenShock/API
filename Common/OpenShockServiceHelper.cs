@@ -60,7 +60,7 @@ public static class OpenShockServiceHelper
         // <---- ASP.NET ---->
         services.AddExceptionHandler<OpenShockExceptionHandler>();
         
-        services.AddScoped<IClientAuthService<AuthenticatedUser>, ClientAuthService<AuthenticatedUser>>();
+        services.AddScoped<IClientAuthService<User>, ClientAuthService<User>>();
         services.AddScoped<IClientAuthService<Device>, ClientAuthService<Device>>();
         services.AddScoped<IUserReferenceService, UserReferenceService>();
 

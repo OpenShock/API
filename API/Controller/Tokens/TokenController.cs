@@ -30,7 +30,7 @@ public sealed partial class TokensController
     public async Task<IEnumerable<TokenResponse>> ListTokens()
     {
         var apiTokens = await _db.ApiTokens
-            .Where(x => x.UserId == CurrentUser.DbUser.Id && (x.ValidUntil == null || x.ValidUntil > DateTime.UtcNow))
+            .Where(x => x.UserId == CurrentUser.Id && (x.ValidUntil == null || x.ValidUntil > DateTime.UtcNow))
             .OrderBy(x => x.CreatedOn)
             .Select(x => new TokenResponse
         {
@@ -58,7 +58,7 @@ public sealed partial class TokensController
     public async Task<IActionResult> GetTokenById([FromRoute] Guid tokenId)
     {
         var apiToken = await _db.ApiTokens
-            .Where(x => x.UserId == CurrentUser.DbUser.Id && x.Id == tokenId && (x.ValidUntil == null || x.ValidUntil > DateTime.UtcNow))
+            .Where(x => x.UserId == CurrentUser.Id && x.Id == tokenId && (x.ValidUntil == null || x.ValidUntil > DateTime.UtcNow))
             .Select(x => new TokenResponse
         {
             CreatedOn = x.CreatedOn,
@@ -113,7 +113,7 @@ public sealed partial class TokensController
 
         var tokenDto = new ApiToken
         {
-            UserId = CurrentUser.DbUser.Id,
+            UserId = CurrentUser.Id,
             TokenHash = HashingUtils.HashSha256(token),
             CreatedByIp = HttpContext.GetRemoteIP(),
             Permissions = body.Permissions.Distinct().ToList(),
@@ -145,7 +145,7 @@ public sealed partial class TokensController
     public async Task<IActionResult> EditToken([FromRoute] Guid tokenId, [FromBody] EditTokenRequest body)
     {
         var token = await _db.ApiTokens
-            .FirstOrDefaultAsync(x => x.UserId == CurrentUser.DbUser.Id && x.Id == tokenId && (x.ValidUntil == null || x.ValidUntil > DateTime.UtcNow));
+            .FirstOrDefaultAsync(x => x.UserId == CurrentUser.Id && x.Id == tokenId && (x.ValidUntil == null || x.ValidUntil > DateTime.UtcNow));
         if (token == null) return Problem(ApiTokenError.ApiTokenNotFound);
 
         token.Name = body.Name;

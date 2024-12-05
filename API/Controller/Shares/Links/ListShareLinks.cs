@@ -17,7 +17,7 @@ public sealed partial class ShareLinksController
     [ProducesResponseType<BaseResponse<IEnumerable<ShareLinkResponse>>>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
     public async Task<IActionResult> List()
     {
-        var ownShareLinks = await _db.ShockerSharesLinks.Where(x => x.OwnerId == CurrentUser.DbUser.Id)
+        var ownShareLinks = await _db.ShockerSharesLinks.Where(x => x.OwnerId == CurrentUser.Id)
             .Select(x => ShareLinkResponse.GetFromEf(x)).ToListAsync();
 
         return RespondSuccessLegacy(ownShareLinks);

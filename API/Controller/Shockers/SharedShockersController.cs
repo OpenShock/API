@@ -20,7 +20,7 @@ public sealed partial class ShockerController
     [MapToApiVersion("1")]
     public async Task<IActionResult> ListSharedShockers()
     {
-        var sharedShockersRaw = await _db.ShockerShares.Where(x => x.SharedWith == CurrentUser.DbUser.Id).Select(x =>
+        var sharedShockersRaw = await _db.ShockerShares.Where(x => x.SharedWith == CurrentUser.Id).Select(x =>
             new
             {
                 OwnerId = x.Shocker.DeviceNavigation.OwnerNavigation.Id,

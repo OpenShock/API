@@ -2,17 +2,18 @@
 using Microsoft.AspNetCore.Mvc.Filters;
 using OpenShock.Common.Authentication.Services;
 using OpenShock.Common.Models;
+using OpenShock.Common.OpenShockDb;
 
 namespace OpenShock.Common.Authentication.ControllerBase;
 
 public class AuthenticatedSessionControllerBase : OpenShockControllerBase, IActionFilter
 {
-    public AuthenticatedUser CurrentUser = null!;
+    public User CurrentUser = null!;
 
     [NonAction]
     public void OnActionExecuting(ActionExecutingContext context)
     {
-        CurrentUser = ControllerContext.HttpContext.RequestServices.GetRequiredService<IClientAuthService<AuthenticatedUser>>().CurrentClient;
+        CurrentUser = ControllerContext.HttpContext.RequestServices.GetRequiredService<IClientAuthService<User>>().CurrentClient;
     }
 
     [NonAction]

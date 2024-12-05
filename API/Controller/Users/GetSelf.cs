@@ -1,7 +1,7 @@
-﻿using System.Net.Mime;
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
+using OpenShock.Common.Extensions;
 using OpenShock.Common.Models;
-using OpenShock.Common.Problems;
+using System.Net.Mime;
 
 namespace OpenShock.API.Controller.Users;
 
@@ -17,11 +17,11 @@ public sealed partial class UsersController
     {
         Data = new SelfResponse
         {
-            Id = CurrentUser.DbUser.Id,
-            Name = CurrentUser.DbUser.Name,
-            Email = CurrentUser.DbUser.Email,
+            Id = CurrentUser.Id,
+            Name = CurrentUser.Name,
+            Email = CurrentUser.Email,
             Image = CurrentUser.GetImageLink(),
-            Rank = CurrentUser.DbUser.Rank
+            Rank = CurrentUser.Rank
         }
     };
     public sealed class SelfResponse

@@ -27,7 +27,7 @@ public sealed partial class DevicesController
     [MapToApiVersion("1")]
     public async Task<IActionResult> ListDevices()
     {
-        var devices = await _db.Devices.Where(x => x.Owner == CurrentUser.DbUser.Id)
+        var devices = await _db.Devices.Where(x => x.Owner == CurrentUser.Id)
             .Select(x => new Models.Response.ResponseDevice
             {
                 Id = x.Id,
@@ -52,7 +52,7 @@ public sealed partial class DevicesController
         var hasAuthPerms = IsAllowed(PermissionType.Devices_Auth);
         
         
-        var device = await _db.Devices.Where(x => x.Owner == CurrentUser.DbUser.Id && x.Id == deviceId)
+        var device = await _db.Devices.Where(x => x.Owner == CurrentUser.Id && x.Id == deviceId)
             .Select(x => new Models.Response.ResponseDeviceWithToken
             {
                 Id = x.Id,
@@ -80,14 +80,14 @@ public sealed partial class DevicesController
     [MapToApiVersion("1")]
     public async Task<IActionResult> EditDevice([FromRoute] Guid deviceId, [FromBody] HubEditRequest body, [FromServices] IDeviceUpdateService updateService)
     {
-        var device = await _db.Devices.Where(x => x.Owner == CurrentUser.DbUser.Id && x.Id == deviceId)
+        var device = await _db.Devices.Where(x => x.Owner == CurrentUser.Id && x.Id == deviceId)
             .FirstOrDefaultAsync();
         if (device == null) return Problem(DeviceError.DeviceNotFound);
 
         device.Name = body.Name;
         await _db.SaveChangesAsync();
 
-        await updateService.UpdateDeviceForAllShared(CurrentUser.DbUser.Id, device.Id, DeviceUpdateType.Updated);
+        await updateService.UpdateDeviceForAllShared(CurrentUser.Id, device.Id, DeviceUpdateType.Updated);
 
         return Ok();
     }
@@ -106,7 +106,7 @@ public sealed partial class DevicesController
     [MapToApiVersion("1")]
     public async Task<IActionResult> RegenerateDeviceToken([FromRoute] Guid deviceId)
     {
-        var device = await _db.Devices.Where(x => x.Owner == CurrentUser.DbUser.Id && x.Id == deviceId)
+        var device = await _db.Devices.Where(x => x.Owner == CurrentUser.Id && x.Id == deviceId)
             .FirstOrDefaultAsync();
         if (device == null) return Problem(DeviceError.DeviceNotFound);
 
@@ -135,7 +135,7 @@ public sealed partial class DevicesController
         var affected = await _db.Devices.Where(x => x.Id == deviceId).WhereIsUserOrAdmin(x => x.OwnerNavigation, CurrentUser).ExecuteDeleteAsync();
         if (affected <= 0) return Problem(DeviceError.DeviceNotFound);
         
-        await updateService.UpdateDeviceForAllShared(CurrentUser.DbUser.Id, deviceId, DeviceUpdateType.Deleted);
+        await updateService.UpdateDeviceForAllShared(CurrentUser.Id, deviceId, DeviceUpdateType.Deleted);
         
         return Ok();
     }
@@ -168,14 +168,14 @@ public sealed partial class DevicesController
         var device = new Common.OpenShockDb.Device
         {
             Id = Guid.NewGuid(),
-            Owner = CurrentUser.DbUser.Id,
+            Owner = CurrentUser.Id,
             Name = data.Name,
             Token = CryptoUtils.RandomString(256)
         };
         _db.Devices.Add(device);
         await _db.SaveChangesAsync();
         
-        await updateService.UpdateDevice(CurrentUser.DbUser.Id, device.Id, DeviceUpdateType.Created);
+        await updateService.UpdateDevice(CurrentUser.Id, device.Id, DeviceUpdateType.Created);
 
         Response.StatusCode = (int)HttpStatusCode.Created;
         return device.Id;
@@ -196,7 +196,7 @@ public sealed partial class DevicesController
     {
         var devicePairs = _redis.RedisCollection<DevicePair>();
 
-        var deviceExists = await _db.Devices.AnyAsync(x => x.Id == deviceId && x.Owner == CurrentUser.DbUser.Id);
+        var deviceExists = await _db.Devices.AnyAsync(x => x.Id == deviceId && x.Owner == CurrentUser.Id);
         if (!deviceExists) Problem(DeviceError.DeviceNotFound);
         // replace with unlink?
         var existing = await devicePairs.FindByIdAsync(deviceId.ToString());
@@ -232,8 +232,8 @@ public sealed partial class DevicesController
     {
         // Check if user owns device or has a share
         var deviceExistsAndYouHaveAccess = await _db.Devices.AnyAsync(x =>
-            x.Id == deviceId && (x.Owner == CurrentUser.DbUser.Id || x.Shockers.Any(y => y.ShockerShares.Any(
-                z => z.SharedWith == CurrentUser.DbUser.Id))));
+            x.Id == deviceId && (x.Owner == CurrentUser.Id || x.Shockers.Any(y => y.ShockerShares.Any(
+                z => z.SharedWith == CurrentUser.Id))));
         if (!deviceExistsAndYouHaveAccess) return Problem(DeviceError.DeviceNotFound);
 
         // Check if device is online

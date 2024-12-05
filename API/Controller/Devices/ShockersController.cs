@@ -24,7 +24,7 @@ public sealed partial class DevicesController
     [MapToApiVersion("1")]
     public async Task<IActionResult> GetShockers([FromRoute] Guid deviceId)
     {
-        var deviceExists = await _db.Devices.AnyAsync(x => x.Owner == CurrentUser.DbUser.Id && x.Id == deviceId);
+        var deviceExists = await _db.Devices.AnyAsync(x => x.Owner == CurrentUser.Id && x.Id == deviceId);
         if (!deviceExists) return Problem(DeviceError.DeviceNotFound);
         var shockers = await _db.Shockers.Where(x => x.Device == deviceId).Select(x => new ShockerResponse
         {

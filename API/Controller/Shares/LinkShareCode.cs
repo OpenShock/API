@@ -37,13 +37,13 @@ public sealed partial class SharesController
             Share = x, x.Shocker.DeviceNavigation.Owner, x.Shocker.Device
         }).FirstOrDefaultAsync();
         if (shareCode == null) return Problem(ShareCodeError.ShareCodeNotFound);
-        if (shareCode.Owner == CurrentUser.DbUser.Id) return Problem(ShareCodeError.CantLinkOwnShareCode);
-        if (await _db.ShockerShares.AnyAsync(x => x.ShockerId == shareCodeId && x.SharedWith == CurrentUser.DbUser.Id))
+        if (shareCode.Owner == CurrentUser.Id) return Problem(ShareCodeError.CantLinkOwnShareCode);
+        if (await _db.ShockerShares.AnyAsync(x => x.ShockerId == shareCodeId && x.SharedWith == CurrentUser.Id))
             return Problem(ShareCodeError.ShockerAlreadyLinked);
         
         _db.ShockerShares.Add(new ShockerShare
         {
-            SharedWith = CurrentUser.DbUser.Id,
+            SharedWith = CurrentUser.Id,
             ShockerId = shareCode.Share.ShockerId,
             PermSound = shareCode.Share.PermSound,
             PermVibrate = shareCode.Share.PermVibrate,
@@ -56,7 +56,7 @@ public sealed partial class SharesController
 
         if (await _db.SaveChangesAsync() <= 1) throw new Exception("Error while linking share code to your account");
 
-        await deviceUpdateService.UpdateDevice(shareCode.Owner, shareCode.Device, DeviceUpdateType.ShockerUpdated, CurrentUser.DbUser.Id);
+        await deviceUpdateService.UpdateDevice(shareCode.Owner, shareCode.Device, DeviceUpdateType.ShockerUpdated, CurrentUser.Id);
 
         return RespondSuccessLegacySimple("Successfully linked share code");
     }

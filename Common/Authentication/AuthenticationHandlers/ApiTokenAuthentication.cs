@@ -4,12 +4,9 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using OpenShock.Common.Authentication.Services;
 using OpenShock.Common.Errors;
-using OpenShock.Common.Models;
 using OpenShock.Common.OpenShockDb;
-using OpenShock.Common.Problems;
 using OpenShock.Common.Services.BatchUpdate;
 using OpenShock.Common.Utils;
-using System.Net.Mime;
 using System.Security.Claims;
 using System.Text.Encodings.Web;
 using System.Text.Json;
@@ -18,7 +15,7 @@ namespace OpenShock.Common.Authentication.AuthenticationHandlers;
 
 public sealed class ApiTokenAuthentication : AuthenticationHandler<AuthenticationSchemeOptions>
 {
-    private readonly IClientAuthService<AuthenticatedUser> _authService;
+    private readonly IClientAuthService<User> _authService;
     private readonly IUserReferenceService _userReferenceService;
     private readonly IBatchUpdateService _batchUpdateService;
     private readonly OpenShockContext _db;
@@ -28,7 +25,7 @@ public sealed class ApiTokenAuthentication : AuthenticationHandler<Authenticatio
         IOptionsMonitor<AuthenticationSchemeOptions> options,
         ILoggerFactory logger,
         UrlEncoder encoder,
-        IClientAuthService<AuthenticatedUser> clientAuth,
+        IClientAuthService<User> clientAuth,
         IUserReferenceService userReferenceService,
         OpenShockContext db,
         IOptions<JsonOptions> jsonOptions, IBatchUpdateService batchUpdateService)
@@ -55,10 +52,7 @@ public sealed class ApiTokenAuthentication : AuthenticationHandler<Authenticatio
         if (tokenDto == null) return AuthenticateResult.Fail(AuthResultError.TokenInvalid.Title!);
 
         _batchUpdateService.UpdateTokenLastUsed(tokenDto.Id);
-        _authService.CurrentClient = new AuthenticatedUser
-        {
-            DbUser = tokenDto.User
-        };
+        _authService.CurrentClient = tokenDto.User;
         _userReferenceService.AuthReference = tokenDto;
 
         List<Claim> claims = [

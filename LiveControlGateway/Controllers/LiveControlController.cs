@@ -51,7 +51,7 @@ public sealed class LiveControlController : WebsocketBaseController<IBaseRespons
         Live = true
     };
 
-    private AuthenticatedUser _currentUser = null!;
+    private User _currentUser = null!;
     private Guid? _hubId;
     private Device? _device;
     private Dictionary<Guid, LiveShockerPermission> _sharedShockers = new();
@@ -106,9 +106,9 @@ public sealed class LiveControlController : WebsocketBaseController<IBaseRespons
     public async Task UpdatePermissions(OpenShockContext db)
     {
         Logger.LogDebug("Updating shared permissions for hub [{HubId}] for user [{User}]", Id,
-            _currentUser.DbUser.Id);
+            _currentUser.Id);
         
-        if (_device!.Owner == _currentUser.DbUser.Id)
+        if (_device!.Owner == _currentUser.Id)
         {
             Logger.LogTrace("User is owner of hub");
             _sharedShockers = await db.Shockers.Where(x => x.Device == Id).ToDictionaryAsync(x => x.Id, x => new LiveShockerPermission()
@@ -120,7 +120,7 @@ public sealed class LiveControlController : WebsocketBaseController<IBaseRespons
         }
         
         _sharedShockers = await db.ShockerShares
-            .Where(x => x.Shocker.Device == Id && x.SharedWith == _currentUser.DbUser.Id).Select(x => new
+            .Where(x => x.Shocker.Device == Id && x.SharedWith == _currentUser.Id).Select(x => new
             {
                 x.ShockerId,
                 Lsp = new LiveShockerPermission
@@ -153,8 +153,8 @@ public sealed class LiveControlController : WebsocketBaseController<IBaseRespons
         _hubId = id;
 
         var hubExistsAndYouHaveAccess = await _db.Devices.AnyAsync(x =>
-            x.Id == _hubId && (x.Owner == _currentUser.DbUser.Id || x.Shockers.Any(y => y.ShockerShares.Any(
-                z => z.SharedWith == _currentUser.DbUser.Id && z.PermLive))));
+            x.Id == _hubId && (x.Owner == _currentUser.Id || x.Shockers.Any(y => y.ShockerShares.Any(
+                z => z.SharedWith == _currentUser.Id && z.PermLive))));
 
         if (!hubExistsAndYouHaveAccess)
         {
@@ -187,7 +187,7 @@ public sealed class LiveControlController : WebsocketBaseController<IBaseRespons
     [NonAction]
     public void OnActionExecuting(ActionExecutingContext context)
     {
-        _currentUser = ControllerContext.HttpContext.RequestServices.GetRequiredService<IClientAuthService<AuthenticatedUser>>()
+        _currentUser = ControllerContext.HttpContext.RequestServices.GetRequiredService<IClientAuthService<User>>()
             .CurrentClient;
     }
 
@@ -550,7 +550,7 @@ public sealed class LiveControlController : WebsocketBaseController<IBaseRespons
         if (WebSocket is not { State: WebSocketState.Open }) return;
 
         if (Logger.IsEnabled(LogLevel.Debug))
-            Logger.LogDebug("Sending ping to live control user [{UserId}] for hub [{HubId}]", _currentUser.DbUser.Id,
+            Logger.LogDebug("Sending ping to live control user [{UserId}] for hub [{HubId}]", _currentUser.Id,
                 Id);
 
         _pingTimestamp = Stopwatch.GetTimestamp();
