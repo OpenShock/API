@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using OpenShock.API.Models.Response;
 using OpenShock.Common.Errors;
+using OpenShock.Common.Extensions;
 using OpenShock.Common.Models;
 using OpenShock.Common.Problems;
 using OpenShock.Common.Utils;
@@ -52,7 +53,7 @@ public sealed partial class ShockerController
                     {
                         Id = x.ControlledByNavigation.Id,
                         Name = x.ControlledByNavigation.Name,
-                        Image = GravatarUtils.GetImageUrl(x.ControlledByNavigation.Email),
+                        Image = x.ControlledByNavigation.GetImageUrl(),
                         CustomName = x.CustomName
                     }
             }).ToListAsync();

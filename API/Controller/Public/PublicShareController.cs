@@ -5,6 +5,7 @@ using Microsoft.EntityFrameworkCore;
 using OpenShock.API.Models.Response;
 using OpenShock.API.Utils;
 using OpenShock.Common.Errors;
+using OpenShock.Common.Extensions;
 using OpenShock.Common.Models;
 using OpenShock.Common.Problems;
 using OpenShock.Common.Utils;
@@ -30,7 +31,7 @@ public sealed partial class PublicController
             {
                 Id = x.Owner.Id,
                 Name = x.Owner.Name,
-                Image = GravatarUtils.GetImageUrl(x.Owner.Email)
+                Image = x.Owner.GetImageUrl()
             },
             x.Id,
             x.Name,

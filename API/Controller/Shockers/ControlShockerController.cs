@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.SignalR;
 using OpenShock.Common.Authentication.Attributes;
 using OpenShock.Common.DeviceControl;
 using OpenShock.Common.Errors;
+using OpenShock.Common.Extensions;
 using OpenShock.Common.Hubs;
 using OpenShock.Common.Models;
 using OpenShock.Common.Problems;
@@ -38,7 +39,7 @@ public sealed partial class ShockerController
         {
             Id = CurrentUser.Id,
             Name = CurrentUser.Name,
-            Image = GravatarUtils.GetImageUrl(CurrentUser.Email),
+            Image = CurrentUser.GetImageUrl(),
             ConnectionId = HttpContext.Connection.Id,
             AdditionalItems = EmptyDic,
             CustomName = body.CustomName

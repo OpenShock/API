@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using OpenShock.API.Models.Response;
 using OpenShock.Common.Errors;
+using OpenShock.Common.Extensions;
 using OpenShock.Common.Models;
 using OpenShock.Common.Problems;
 using OpenShock.Common.Utils;
@@ -22,7 +23,7 @@ public sealed partial class SharesController
             .Select(x => new GenericIni
             {
                 Id = x.SharedWithNavigation.Id,
-                Image = x.SharedWithNavigation.GetImage(),
+                Image = x.SharedWithNavigation.GetImageUrl(),
                 Name = x.SharedWithNavigation.Name
             }).OrderBy(x => x.Name).Distinct().ToListAsync();
         return sharedToUsers;
