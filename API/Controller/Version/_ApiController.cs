@@ -15,7 +15,6 @@ namespace OpenShock.API.Controller.Version;
 /// Version stuff
 /// </summary>
 [ApiController]
-[AllowAnonymous]
 [Route("/{version:apiVersion}")]
 public sealed partial class VersionController : OpenShockControllerBase
 {

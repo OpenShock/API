@@ -20,7 +20,7 @@ public sealed partial class ShareLinksController
         var entity = new ShockerSharesLink
         {
             Id = Guid.NewGuid(),
-            Owner = CurrentUser.DbUser,
+            Owner = CurrentUser,
             ExpiresOn = body.ExpiresOn == null ? null : DateTime.SpecifyKind(body.ExpiresOn.Value, DateTimeKind.Utc),
             Name = body.Name
         };

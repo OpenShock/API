@@ -18,7 +18,7 @@ public sealed partial class SharesController
     [ApiVersion("2")]
     public async Task<IEnumerable<GenericIni>> GetSharesByUsers()
     {
-        var sharedToUsers = await _db.ShockerShares.Where(x => x.Shocker.DeviceNavigation.Owner == CurrentUser.DbUser.Id)
+        var sharedToUsers = await _db.ShockerShares.Where(x => x.Shocker.DeviceNavigation.Owner == CurrentUser.Id)
             .Select(x => new GenericIni
             {
                 Id = x.SharedWithNavigation.Id,
@@ -34,7 +34,7 @@ public sealed partial class SharesController
     [ApiVersion("2")]
     public async Task<IActionResult> GetSharesToUser(Guid userId)
     {
-        var sharedWithUser = await _db.ShockerShares.Where(x => x.Shocker.DeviceNavigation.Owner == CurrentUser.DbUser.Id && x.SharedWith == userId)
+        var sharedWithUser = await _db.ShockerShares.Where(x => x.Shocker.DeviceNavigation.Owner == CurrentUser.Id && x.SharedWith == userId)
             .Select(x => new UserShareInfo
             {
                 Id = x.Shocker.Id,

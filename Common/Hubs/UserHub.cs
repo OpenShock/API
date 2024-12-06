@@ -16,7 +16,7 @@ using Semver;
 
 namespace OpenShock.Common.Hubs;
 
-[Authorize(AuthenticationSchemes = OpenShockAuthSchemas.SessionTokenCombo)]
+[Authorize(AuthenticationSchemes = OpenShockAuthSchemas.UserSessionApiTokenCombo)]
 public sealed class UserHub : Hub<IUserHub>
 {
     private readonly ILogger<UserHub> _logger;
@@ -78,8 +78,8 @@ public sealed class UserHub : Hub<IUserHub>
         if (!_tokenPermissions.IsAllowedAllowOnNull(PermissionType.Shockers_Use)) return;
 
         var additionalItems = new Dictionary<string, object>();
-        var apiTokenId = Context.User?.FindFirst(ControlLogAdditionalItem.ApiTokenId);
-        if (apiTokenId != null) additionalItems[ControlLogAdditionalItem.ApiTokenId] = apiTokenId.Value;
+        var apiTokenId = Context.User?.FindFirst(OpenShockAuthClaims.ApiTokenId);
+        if (apiTokenId != null) additionalItems[OpenShockAuthClaims.ApiTokenId] = apiTokenId.Value;
 
         var sender = await _db.Users.Where(x => x.Id == UserId).Select(x => new ControlLogSender
         {

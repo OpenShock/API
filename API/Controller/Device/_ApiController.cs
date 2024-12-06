@@ -1,4 +1,6 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using OpenShock.Common.Authentication;
 using OpenShock.Common.Authentication.ControllerBase;
 using OpenShock.Common.OpenShockDb;
 using Redis.OM.Contracts;
@@ -10,7 +12,8 @@ namespace OpenShock.API.Controller.Device;
 /// </summary>
 [ApiController]
 [Route("/{version:apiVersion}/device")]
-public sealed partial class DeviceController : AuthenticatedDeviceControllerBase
+[Authorize(AuthenticationSchemes = OpenShockAuthSchemas.HubToken)]
+public sealed partial class DeviceController : AuthenticatedHubControllerBase
 {
     private readonly OpenShockContext _db;
     private readonly IRedisConnectionProvider _redis;

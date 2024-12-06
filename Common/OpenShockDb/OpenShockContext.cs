@@ -77,13 +77,12 @@ public partial class OpenShockContext : DbContext
 
             entity.HasIndex(e => e.UserId).HasAnnotation("Npgsql:StorageParameter:deduplicate_items", "true");
             entity.HasIndex(e => e.ValidUntil).HasAnnotation("Npgsql:StorageParameter:deduplicate_items", "true");
-            entity.HasIndex(e => e.Token).IsUnique();
+            entity.HasIndex(e => e.TokenHash).IsUnique();
 
             entity.Property(e => e.Id)
                 .ValueGeneratedNever()
                 .HasColumnName("id");
             entity.Property(e => e.CreatedByIp)
-                .VarCharWithLength(HardLimits.IpAddressMaxLength)
                 .HasColumnName("created_by_ip");
             entity.Property(e => e.CreatedOn)
                 .HasDefaultValueSql("CURRENT_TIMESTAMP")
@@ -94,9 +93,9 @@ public partial class OpenShockContext : DbContext
             entity.Property(e => e.Name)
                 .HasMaxLength(HardLimits.ApiKeyNameMaxLength)
                 .HasColumnName("name");
-            entity.Property(e => e.Token)
-                .HasMaxLength(HardLimits.ApiKeyTokenMaxLength)
-                .HasColumnName("token");
+            entity.Property(e => e.TokenHash)
+                .HasMaxLength(HardLimits.Sha256HashHexLength)
+                .HasColumnName("token_hash");
             entity.Property(e => e.UserId).HasColumnName("user_id");
             entity.Property(e => e.ValidUntil).HasColumnName("valid_until");
 
@@ -456,9 +455,9 @@ public partial class OpenShockContext : DbContext
             entity.Property(e => e.Email)
                 .VarCharWithLength(HardLimits.EmailAddressMaxLength)
                 .HasColumnName("email");
-            entity.Property(e => e.EmailActived)
+            entity.Property(e => e.EmailActivated)
                 .HasDefaultValue(false)
-                .HasColumnName("email_actived");
+                .HasColumnName("email_activated");
             entity.Property(e => e.Name)
                 .UseCollation("ndcoll")
                 .VarCharWithLength(HardLimits.UsernameMaxLength)
@@ -577,7 +576,7 @@ public partial class OpenShockContext : DbContext
             entity.Property(e => e.CreatedAt)
                 .HasColumnName("created_at");
             entity.Property(e => e.EmailActivated)
-                .HasColumnName("email_actived");
+                .HasColumnName("email_activated");
             entity.Property(e => e.Rank)
                 .HasColumnType("rank_type")
                 .HasColumnName("rank");

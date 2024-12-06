@@ -6,8 +6,8 @@ using OpenShock.Common.OpenShockDb;
 
 namespace OpenShock.Common.Authentication.ControllerBase;
 
-[Authorize(AuthenticationSchemes = OpenShockAuthSchemas.DeviceToken)]
-public class AuthenticatedDeviceControllerBase : OpenShockControllerBase, IActionFilter
+[Authorize(AuthenticationSchemes = OpenShockAuthSchemas.HubToken)]
+public class AuthenticatedHubControllerBase : OpenShockControllerBase, IActionFilter
 {
     public Device CurrentDevice = null!;
 

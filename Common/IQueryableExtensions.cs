@@ -1,5 +1,5 @@
-﻿using OpenShock.Common.Authentication;
-using OpenShock.Common.Models;
+﻿using OpenShock.Common.Models;
+using OpenShock.Common.OpenShockDb;
 using System.Linq.Expressions;
 
 namespace OpenShock.Common;
@@ -23,7 +23,7 @@ public static class IQueryableExtensions
     private static BinaryExpression UserIdMatchesExpr(InvocationExpression userExpression, Guid userId)
     {
         return Expression.Equal(
-            Expression.Property(userExpression, nameof(OpenShockDb.User.Id)),
+            Expression.Property(userExpression, nameof(User.Id)),
             Expression.Constant(userId)
         );
     }
@@ -38,7 +38,7 @@ public static class IQueryableExtensions
         return source.Where(IsUserMatchExpr<TEntity>(navigationSelector, userId));
     }
 
-    public static IQueryable<TEntity> WhereIsUserOrRank<TEntity>(this IQueryable<TEntity> source, Expression<Func<TEntity, OpenShockDb.User>> navigationSelector, OpenShockDb.User user, RankType rank)
+    public static IQueryable<TEntity> WhereIsUserOrRank<TEntity>(this IQueryable<TEntity> source, Expression<Func<TEntity, User>> navigationSelector, User user, RankType rank)
     {
         if (user.Rank >= rank)
         {
@@ -48,18 +48,8 @@ public static class IQueryableExtensions
         return WhereIsUser(source, navigationSelector, user.Id);
     }
 
-    public static IQueryable<TEntity> WhereIsUserOrRank<TEntity>(this IQueryable<TEntity> source, Expression<Func<TEntity, OpenShockDb.User>> navigationSelector, LinkUser user, RankType rank)
-    {
-        return WhereIsUserOrRank(source, navigationSelector, user.DbUser, rank);
-    }
-
-    public static IQueryable<TEntity> WhereIsUserOrAdmin<TEntity>(this IQueryable<TEntity> source, Expression<Func<TEntity, OpenShockDb.User>> navigationSelector, OpenShockDb.User user)
+    public static IQueryable<TEntity> WhereIsUserOrAdmin<TEntity>(this IQueryable<TEntity> source, Expression<Func<TEntity, User>> navigationSelector, User user)
     {
         return WhereIsUserOrRank(source, navigationSelector, user, RankType.Admin);
-    }
-
-    public static IQueryable<TEntity> WhereIsUserOrAdmin<TEntity>(this IQueryable<TEntity> source, Expression<Func<TEntity, OpenShockDb.User>> navigationSelector, LinkUser user)
-    {
-        return WhereIsUserOrRank(source, navigationSelector, user.DbUser, RankType.Admin);
     }
 }

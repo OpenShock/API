@@ -12,22 +12,17 @@ namespace OpenShock.API.Controller.Account;
 /// User account management
 /// </summary>
 [ApiController]
-[AllowAnonymous]
 [ApiVersion("1")]
 [ApiVersion("2")]
 [Route("/{version:apiVersion}/account")]
 public sealed partial class AccountController : OpenShockControllerBase
 {
-    private readonly OpenShockContext _db;
-    private readonly IRedisConnectionProvider _redis;
-    private readonly ILogger<Authenticated.AuthenticatedAccountController> _logger;
     private readonly IAccountService _accountService;
+    private readonly ILogger<AccountController> _logger;
 
-    public AccountController(OpenShockContext db, IRedisConnectionProvider redis, ILogger<Authenticated.AuthenticatedAccountController> logger, IAccountService accountService)
+    public AccountController(IAccountService accountService, ILogger<AccountController> logger)
     {
-        _db = db;
-        _redis = redis;
-        _logger = logger;
         _accountService = accountService;
+        _logger = logger;
     }
 }

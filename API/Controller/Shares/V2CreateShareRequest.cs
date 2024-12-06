@@ -20,14 +20,14 @@ public sealed partial class SharesController
     [ApiVersion("2")]
     public async Task<IActionResult> CreateShare([FromBody] CreateShareRequest data)
     {
-        if (data.User == CurrentUser.DbUser.Id)
+        if (data.User == CurrentUser.Id)
         {
             return Problem(ShareError.ShareRequestCreateCannotShareWithSelf);
         }
         
         var providedShockerIds = data.Shockers.Select(x => x.Id).ToArray();
         var belongsToUsFuture = _db.Shockers.AsNoTracking().Where(x =>
-            x.DeviceNavigation.Owner == CurrentUser.DbUser.Id && providedShockerIds.Contains(x.Id)).Select(x => x.Id).Future();
+            x.DeviceNavigation.Owner == CurrentUser.Id && providedShockerIds.Contains(x.Id)).Select(x => x.Id).Future();
         
         if (data.User != null)
         {
@@ -51,7 +51,7 @@ public sealed partial class SharesController
         var shareRequest = new ShareRequest
         {
             Id = Guid.NewGuid(),
-            Owner = CurrentUser.DbUser.Id,
+            Owner = CurrentUser.Id,
             User = data.User
         };
         _db.ShareRequests.Add(shareRequest);

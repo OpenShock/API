@@ -1,51 +1,52 @@
+using OpenShock.Common;
+using OpenShock.Common.Extensions;
+using OpenShock.Common.JsonSerialization;
+using OpenShock.Common.Services.Device;
+using OpenShock.Common.Services.Ota;
+using OpenShock.Common.Swagger;
 using OpenShock.LiveControlGateway;
-using Serilog;
+using OpenShock.LiveControlGateway.LifetimeManager;
+using OpenShock.LiveControlGateway.PubSub;
 
-HostBuilder builder = new();
-builder.UseContentRoot(Directory.GetCurrentDirectory())
-    .ConfigureHostConfiguration(config =>
-    {
-        config.AddEnvironmentVariables(prefix: "DOTNET_");
-        if (args is { Length: > 0 }) config.AddCommandLine(args);
-    })
-    .ConfigureAppConfiguration((context, config) =>
-    {
-        config.AddJsonFile("appsettings.json", optional: false, reloadOnChange: false)
-            .AddJsonFile("appsettings.Custom.json", optional: true, reloadOnChange: false)
-            .AddJsonFile($"appsettings.{context.HostingEnvironment.EnvironmentName}.json", optional: true, reloadOnChange: false);
-
-        config.AddUserSecrets(typeof(Program).Assembly);
-        config.AddEnvironmentVariables();
-        if (args is { Length: > 0 }) config.AddCommandLine(args);
-    })
-    .UseDefaultServiceProvider((context, options) =>
-    {
-        var isDevelopment = context.HostingEnvironment.IsDevelopment();
-        options.ValidateScopes = isDevelopment;
-        options.ValidateOnBuild = isDevelopment;
-    })
-    .UseSerilog((context, _, config) => { config.ReadFrom.Configuration(context.Configuration); })
-    .ConfigureWebHostDefaults(webBuilder =>
-    {
-        webBuilder.UseKestrel();
-        webBuilder.ConfigureKestrel(serverOptions =>
-        {
-
+var builder = OpenShockApplication.CreateDefaultBuilder<Program>(args, options =>
+{
 #if DEBUG
-            serverOptions.ListenAnyIP(580);
-            serverOptions.ListenAnyIP(5443, options => { options.UseHttps("devcert.pfx"); });
+    options.ListenAnyIP(580);
+    options.ListenAnyIP(5443, options => options.UseHttps("devcert.pfx"));
 #else
-            serverOptions.ListenAnyIP(80);
+    options.ListenAnyIP(80);
 #endif
-            serverOptions.Limits.RequestHeadersTimeout = TimeSpan.FromMilliseconds(3000);
-        });
-        webBuilder.UseStartup<Startup>();
+});
+
+var config = builder.GetAndRegisterOpenShockConfig<LCGConfig>();
+var commonService = builder.Services.AddOpenShockServices(config);
+
+builder.Services.AddSignalR()
+    .AddOpenShockStackExchangeRedis(options => { options.Configuration = commonService.RedisConfig; })
+    .AddJsonProtocol(options =>
+    {
+        options.PayloadSerializerOptions.PropertyNameCaseInsensitive = true;
+        options.PayloadSerializerOptions.Converters.Add(new SemVersionJsonConverter());
     });
-try
-{
-    await builder.Build().RunAsync();
-}
-catch (Exception e)
-{
-    Console.WriteLine(e);
-}
+
+builder.Services.AddScoped<IDeviceService, DeviceService>();
+builder.Services.AddScoped<IOtaService, OtaService>();
+
+builder.Services.AddSwaggerExt<Program>();
+
+//services.AddHealthChecks().AddCheck<DatabaseHealthCheck>("database");
+
+builder.Services.AddHostedService<RedisSubscriberService>();
+builder.Services.AddHostedService<LcgKeepAlive>();
+
+builder.Services.AddSingleton<HubLifetimeManager>();
+
+var app = builder.Build();
+
+app.UseCommonOpenShockMiddleware();
+
+app.UseSwaggerExt();
+
+app.MapControllers();
+
+app.Run();

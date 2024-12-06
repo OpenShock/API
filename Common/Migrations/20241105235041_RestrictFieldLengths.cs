@@ -11,8 +11,11 @@ namespace OpenShock.Common.Migrations
         protected override void Up(MigrationBuilder migrationBuilder)
         {
             // Truncate shocker sharelinks names to 64 characters
-            migrationBuilder.Sql("UPDATE public.shocker_shares_links SET name = LEFT(name, 64) WHERE LENGTH(name) > 64");
-            migrationBuilder.Sql("UPDATE public.shocker_control_logs SET custom_name = LEFT(custom_name, 64) WHERE LENGTH(custom_name) > 64");
+            migrationBuilder.Sql(
+                $"""
+                 UPDATE public.shocker_shares_links SET name = LEFT(name, 64) WHERE LENGTH(name) > 64;
+                 UPDATE public.shocker_control_logs SET custom_name = LEFT(custom_name, 64) WHERE LENGTH(custom_name) > 64;
+                 """);
             
             // We need to drop the view to modify the target table
             migrationBuilder.Sql(AddAdminUsersView.AdminUsersViewDropQuery);

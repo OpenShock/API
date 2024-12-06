@@ -1,4 +1,4 @@
-﻿using OpenShock.Common.Authentication.Handlers;
+﻿using OpenShock.Common.Authentication.AuthenticationHandlers;
 using OpenShock.Common.Constants;
 using OpenShock.Common.Redis;
 using Redis.OM;

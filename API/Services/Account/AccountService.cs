@@ -64,7 +64,7 @@ public sealed class AccountService : IAccountService
             Name = username,
             Email = email.ToLowerInvariant(),
             PasswordHash = PasswordHashingUtils.HashPassword(password),
-            EmailActived = emailActivated
+            EmailActivated = emailActivated
         };
         _db.Users.Add(user);
 

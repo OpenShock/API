@@ -19,7 +19,7 @@ public sealed partial class ShockerController
     [MapToApiVersion("1")]
     public async Task<IActionResult> ListShockers()
     {
-        var shockers = await _db.Devices.Where(x => x.Owner == CurrentUser.DbUser.Id).OrderBy(x => x.CreatedOn).Select(
+        var shockers = await _db.Devices.Where(x => x.Owner == CurrentUser.Id).OrderBy(x => x.CreatedOn).Select(
             x => new ResponseDeviceWithShockers
             {
                 Id = x.Id,

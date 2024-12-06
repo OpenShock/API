@@ -18,12 +18,12 @@ public sealed partial class AuthenticatedAccountController
     [ProducesResponseType(StatusCodes.Status200OK)]
     public async Task<IActionResult> ChangePassword(ChangePasswordRequest data)
     {
-        if (!PasswordHashingUtils.VerifyPassword(data.OldPassword, CurrentUser.DbUser.PasswordHash).Verified)
+        if (!PasswordHashingUtils.VerifyPassword(data.OldPassword, CurrentUser.PasswordHash).Verified)
         {
             return Problem(AccountError.PasswordChangeInvalidPassword);
         }
         
-        var result = await _accountService.ChangePassword(CurrentUser.DbUser.Id, data.NewPassword);
+        var result = await _accountService.ChangePassword(CurrentUser.Id, data.NewPassword);
 
         return result.Match(success => Ok(),
             notFound => throw new Exception("Unexpected result, apparently our current user does not exist..."));

@@ -38,7 +38,14 @@ public sealed partial class AccountController
         var remoteIP = HttpContext.GetRemoteIP();
 
         var turnStile = await turnstileService.VerifyUserResponseToken(body.TurnstileResponse, remoteIP, cancellationToken);
-        if (!turnStile.IsT0) return Problem(TurnstileError.InvalidTurnstile);
+        if (!turnStile.IsT0)
+        {
+            var cfErrors = turnStile.AsT1.Value!;
+            if (cfErrors.All(err => err == CloduflareTurnstileError.InvalidResponse))
+                return Problem(TurnstileError.InvalidTurnstile);
+
+            return Problem(new OpenShockProblem("InternalServerError", "Internal Server Error", HttpStatusCode.InternalServerError));
+        }
             
         var loginAction = await _accountService.Login(body.UsernameOrEmail, body.Password, new LoginContext
         {

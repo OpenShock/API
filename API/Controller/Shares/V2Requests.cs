@@ -19,7 +19,7 @@ public sealed partial class SharesController
     [ApiVersion("2")]
     public async Task<IEnumerable<ShareRequestBaseItem>> GetOutstandingRequestsList()
     {
-        var outstandingShares = await _db.ShareRequests.Where(x => x.Owner == CurrentUser.DbUser.Id)
+        var outstandingShares = await _db.ShareRequests.Where(x => x.Owner == CurrentUser.Id)
             .Select(x => new ShareRequestBaseItem()
         {
             Id = x.Id,
@@ -52,7 +52,7 @@ public sealed partial class SharesController
     [ApiVersion("2")]
     public async Task<IEnumerable<ShareRequestBaseItem>> GetIncomingRequestsList()
     {
-        var outstandingShares = await _db.ShareRequests.Where(x => x.User == CurrentUser.DbUser.Id)
+        var outstandingShares = await _db.ShareRequests.Where(x => x.User == CurrentUser.Id)
             .Select(x => new ShareRequestBaseItem
             {
                 Id = x.Id,
@@ -86,7 +86,7 @@ public sealed partial class SharesController
     [ApiVersion("2")]
     public async Task<IActionResult> GetRequest(Guid id)
     {
-        var outstandingShare = await _db.ShareRequests.Where(x => x.Id == id && (x.Owner == CurrentUser.DbUser.Id || x.User == CurrentUser.DbUser.Id))
+        var outstandingShare = await _db.ShareRequests.Where(x => x.Id == id && (x.Owner == CurrentUser.Id || x.User == CurrentUser.Id))
             .Select(x => new ShareRequestBaseDetails()
             {
                 Id = x.Id,
@@ -135,7 +135,7 @@ public sealed partial class SharesController
     public async Task<IActionResult> DeleteRequest(Guid id)
     {
         var deletedShareRequest = await _db.ShareRequests
-            .Where(x => x.Id == id && x.Owner == CurrentUser.DbUser.Id).ExecuteDeleteAsync();
+            .Where(x => x.Id == id && x.Owner == CurrentUser.Id).ExecuteDeleteAsync();
         
         if (deletedShareRequest <= 0) return Problem(ShareError.ShareRequestNotFound);
         
@@ -149,7 +149,7 @@ public sealed partial class SharesController
     public async Task<IActionResult> DenyRequest(Guid id)
     {
         var deletedShareRequest = await _db.ShareRequests
-            .Where(x => x.Id == id && x.User == CurrentUser.DbUser.Id).ExecuteDeleteAsync();
+            .Where(x => x.Id == id && x.User == CurrentUser.Id).ExecuteDeleteAsync();
         
         if (deletedShareRequest <= 0) return Problem(ShareError.ShareRequestNotFound);
         
@@ -163,11 +163,11 @@ public sealed partial class SharesController
     // public async Task<IActionResult> RedeemRequest(Guid id)
     // {
     //     var shareRequest = await _db.ShareRequests
-    //         .Where(x => x.Id == id && (x.User == null || x.User == CurrentUser.DbUser.Id)).Include(x => x.ShareRequestsShockers).FirstOrDefaultAsync();
+    //         .Where(x => x.Id == id && (x.User == null || x.User == CurrentUser.Id)).Include(x => x.ShareRequestsShockers).FirstOrDefaultAsync();
     //     
     //     if (shareRequest == null) return Problem(ShareError.ShareRequestNotFound);
     //     
-    //     var alreadySharedShockers = await _db.ShockerShares.Where(x => x.Shocker.DeviceNavigation.OwnerNavigation.Id == shareRequest.Owner && x.SharedWith == CurrentUser.DbUser.Id).Select(x => x.ShockerId).ToArrayAsync();
+    //     var alreadySharedShockers = await _db.ShockerShares.Where(x => x.Shocker.DeviceNavigation.OwnerNavigation.Id == shareRequest.Owner && x.SharedWith == CurrentUser.Id).Select(x => x.ShockerId).ToArrayAsync();
     //     
     //     foreach (var shareRequestShareRequestsShocker in shareRequest.ShareRequestsShockers)
     //     {

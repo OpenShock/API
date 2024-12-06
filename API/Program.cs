@@ -1,49 +1,129 @@
+using System.Configuration;
+using Microsoft.AspNetCore.Http.Connections;
+using Microsoft.EntityFrameworkCore;
 using OpenShock.API;
+using OpenShock.API.Realtime;
+using OpenShock.API.Services;
+using OpenShock.API.Services.Account;
+using OpenShock.API.Services.Email.Mailjet;
+using OpenShock.API.Services.Email.Smtp;
+using OpenShock.Common;
+using OpenShock.Common.Extensions;
+using OpenShock.Common.Hubs;
+using OpenShock.Common.JsonSerialization;
+using OpenShock.Common.OpenShockDb;
+using OpenShock.Common.Services.Device;
+using OpenShock.Common.Services.LCGNodeProvisioner;
+using OpenShock.Common.Services.Ota;
+using OpenShock.Common.Services.Turnstile;
+using OpenShock.Common.Swagger;
+using Scalar.AspNetCore;
 using Serilog;
 
-HostBuilder builder = new();
-builder.UseContentRoot(Directory.GetCurrentDirectory())
-    .ConfigureHostConfiguration(config =>
-    {
-        config.AddEnvironmentVariables(prefix: "DOTNET_");
-        if (args is { Length: > 0 }) config.AddCommandLine(args);
-    })
-    .ConfigureAppConfiguration((context, config) =>
-    {
-        config.AddJsonFile("appsettings.json", optional: false, reloadOnChange: false)
-            .AddJsonFile("appsettings.Custom.json", optional: true, reloadOnChange: false)
-            .AddJsonFile($"appsettings.{context.HostingEnvironment.EnvironmentName}.json", optional: true,
-                reloadOnChange: false);
-
-        config.AddUserSecrets(typeof(Program).Assembly);
-        config.AddEnvironmentVariables();
-        if (args is { Length: > 0 }) config.AddCommandLine(args);
-    })
-    .UseDefaultServiceProvider((context, options) =>
-    {
-        var isDevelopment = context.HostingEnvironment.IsDevelopment();
-        options.ValidateScopes = isDevelopment;
-        options.ValidateOnBuild = isDevelopment;
-    })
-    .UseSerilog((context, _, config) => { config.ReadFrom.Configuration(context.Configuration); })
-    .ConfigureWebHostDefaults(webBuilder =>
-    {
-        webBuilder.UseKestrel();
-        webBuilder.ConfigureKestrel(serverOptions =>
-        {
-            serverOptions.ListenAnyIP(80);
+var builder = OpenShockApplication.CreateDefaultBuilder<Program>(args, options =>
+{
+    options.ListenAnyIP(80);
 #if DEBUG
-            serverOptions.ListenAnyIP(443, options => { options.UseHttps(); });
+    options.ListenAnyIP(443, options => options.UseHttps());
 #endif
-            serverOptions.Limits.RequestHeadersTimeout = TimeSpan.FromMilliseconds(3000);
-        });
-        webBuilder.UseStartup<Startup>();
+});
+
+var config = builder.GetAndRegisterOpenShockConfig<ApiConfig>();
+var commonServices = builder.Services.AddOpenShockServices(config);
+
+builder.Services.AddSignalR()
+    .AddOpenShockStackExchangeRedis(options => { options.Configuration = commonServices.RedisConfig; })
+    .AddJsonProtocol(options =>
+    {
+        options.PayloadSerializerOptions.PropertyNameCaseInsensitive = true;
+        options.PayloadSerializerOptions.Converters.Add(new SemVersionJsonConverter());
     });
-try
+
+builder.Services.AddScoped<IDeviceService, DeviceService>();
+builder.Services.AddScoped<IOtaService, OtaService>();
+builder.Services.AddScoped<IDeviceUpdateService, DeviceUpdateService>();
+builder.Services.AddScoped<IAccountService, AccountService>();
+
+builder.Services.AddSwaggerExt<Program>();
+
+builder.Services.AddSingleton<ILCGNodeProvisioner, LCGNodeProvisioner>();
+
+builder.Services.AddSingleton(x =>
 {
-    await builder.Build().RunAsync();
-}
-catch (Exception e)
+    if (config.Turnstile.Enabled && (string.IsNullOrWhiteSpace(config.Turnstile.SecretKey) || string.IsNullOrWhiteSpace(config.Turnstile.SecretKey)))
+    {
+        throw new ConfigurationErrorsException("Turnstile is enabled in config, but secretkey and/or token is missing or empty");
+    }
+    
+    return new CloudflareTurnstileOptions
+    {
+        Enabled = config.Turnstile.Enabled,
+        SecretKey = config.Turnstile.SecretKey ?? string.Empty,
+        SiteKey = config.Turnstile.SiteKey ?? string.Empty
+    };
+});
+builder.Services.AddHttpClient<ICloudflareTurnstileService, CloudflareTurnstileService>();
+
+// ----------------- MAIL SETUP -----------------
+var emailConfig = config.Mail;
+switch (emailConfig.Type)
 {
-    Console.WriteLine(e);
+    case ApiConfig.MailConfig.MailType.Mailjet:
+        if (emailConfig.Mailjet == null)
+            throw new Exception("Mailjet config is null but mailjet is selected as mail type");
+        builder.Services.AddMailjetEmailService(emailConfig.Mailjet, emailConfig.Sender);
+        break;
+    case ApiConfig.MailConfig.MailType.Smtp:
+        if (emailConfig.Smtp == null)
+            throw new Exception("SMTP config is null but SMTP is selected as mail type");
+        builder.Services.AddSmtpEmailService(emailConfig.Smtp, emailConfig.Sender, new SmtpServiceTemplates
+        {
+            PasswordReset = SmtpTemplate.ParseFromFileThrow("SmtpTemplates/PasswordReset.liquid").Result,
+            EmailVerification = SmtpTemplate.ParseFromFileThrow("SmtpTemplates/EmailVerification.liquid").Result
+        });
+        break;
+    default:
+        throw new Exception("Unknown mail type");
 }
+
+//services.AddHealthChecks().AddCheck<DatabaseHealthCheck>("database");
+
+builder.Services.AddHostedService<RedisSubscriberService>();
+
+var app = builder.Build();
+
+app.UseCommonOpenShockMiddleware();
+
+if (!config.Db.SkipMigration)
+{
+    Log.Information("Running database migrations...");
+    using var scope = app.Services.CreateScope();
+    var openShockContext = scope.ServiceProvider.GetRequiredService<OpenShockContext>();
+    var pendingMigrations = openShockContext.Database.GetPendingMigrations().ToList();
+
+    if (pendingMigrations.Count > 0)
+    {
+        Log.Information("Found pending migrations, applying [{@Migrations}]", pendingMigrations);
+        openShockContext.Database.Migrate();
+        Log.Information("Applied database migrations... proceeding with startup");
+    }
+    else
+    {
+        Log.Information("No pending migrations found, proceeding with startup");
+    }
+}
+else
+{
+    Log.Warning("Skipping possible database migrations...");
+}
+
+app.UseSwaggerExt();
+
+app.MapControllers();
+
+app.MapHub<UserHub>("/1/hubs/user", options => options.Transports = HttpTransportType.WebSockets);
+app.MapHub<ShareLinkHub>("/1/hubs/share/link/{id:guid}", options => options.Transports = HttpTransportType.WebSockets);
+
+app.MapScalarApiReference(options => options.OpenApiRoutePattern = "/swagger/{documentName}/swagger.json");
+
+app.Run();

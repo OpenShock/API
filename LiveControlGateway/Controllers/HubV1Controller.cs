@@ -19,9 +19,9 @@ namespace OpenShock.LiveControlGateway.Controllers;
 /// Communication with the hubs aka ESP-32 microcontrollers
 /// </summary>
 [ApiController]
-[Authorize(AuthenticationSchemes = OpenShockAuthSchemas.DeviceToken)]
 [ApiVersion("1")]
 [Route("/{version:apiVersion}/ws/device")]
+[Authorize(AuthenticationSchemes = OpenShockAuthSchemas.HubToken)]
 public sealed class HubV1Controller : HubControllerBase<HubToGatewayMessage, GatewayToHubMessage>
 {
     private readonly IHubContext<UserHub, IUserHub> _userHubContext;
@@ -168,7 +168,7 @@ public sealed class HubV1Controller : HubControllerBase<HubToGatewayMessage, Gat
                 {
                     Duration = x.Duration,
                     Type = x.Type,
-                    Id = x.Id,
+                    Id = x.Model == Serialization.Types.ShockerModelType.Petrainer998DR ? (ushort)(x.Id >> 1) : x.Id, // Fix for old hubs, their ids was serialized wrongly in the RFTransmitter, the V1 endpoint is being phased out, so this wont stay here forever
                     Intensity = x.Intensity,
                     Model = x.Model
                 }).ToList()

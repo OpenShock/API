@@ -1,6 +1,8 @@
 ﻿using System.Net.Mime;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using OpenShock.API.Models.Response;
+using OpenShock.Common.Authentication;
 using OpenShock.Common.Authentication.Attributes;
 using OpenShock.Common.Authentication.Services;
 using OpenShock.Common.OpenShockDb;
@@ -17,7 +19,7 @@ public sealed partial class TokensController
     /// <returns></returns>
     /// <exception cref="Exception"></exception>
     [HttpGet("self")]
-    [TokenOnly]
+    [Authorize(Policy = OpenShockAuthPolicies.TokenSessionOnly)]
     [ProducesResponseType<TokenResponse>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
     public TokenResponse GetSelfToken([FromServices] IUserReferenceService userReferenceService)
     {

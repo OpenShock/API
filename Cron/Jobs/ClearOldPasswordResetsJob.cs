@@ -7,32 +7,35 @@ using OpenShock.Cron.Attributes;
 namespace OpenShock.Cron.Jobs;
 
 /// <summary>
-/// Deletes old password requests if they have expired their lifetime and havent been used
+/// Deletes old password requests if they have expired their lifetime and haven't been used
 /// </summary>
 [CronJob("0 0 * * *")] // Every day at midnight (https://crontab.guru/)
 public sealed class ClearOldPasswordResetsJob
 {
     private readonly OpenShockContext _db;
+    private readonly ILogger<ClearOldPasswordResetsJob> _logger;
 
     /// <summary>
     /// DI constructor
     /// </summary>
-    /// <param name="db"></param>
-    public ClearOldPasswordResetsJob(OpenShockContext db)
+    /// <param name="db"/>
+    /// <param name="logger"/>
+    public ClearOldPasswordResetsJob(OpenShockContext db, ILogger<ClearOldPasswordResetsJob> logger)
     {
         _db = db;
+        _logger = logger;
     }
 
     public async Task Execute()
     {
-        // Delete all password reset requests that have not been used and are older than the lifetime.
-        // Leave expired requests that have been used for 14 days for moderation purposes.
-        var earliestCreatedOn = DateTime.Now - (Duration.PasswordResetRequestLifetime + TimeSpan.FromDays(14));
-        var earliestCreatedOnUtc = DateTime.SpecifyKind(earliestCreatedOn, DateTimeKind.Utc);
+        var expiredAtUtc = DateTime.UtcNow - Duration.PasswordResetRequestLifetime;
+        var earliestCreatedOnUtc = expiredAtUtc - Duration.AuditRetentionTime;
 
         // Run the delete query
-        await _db.PasswordResets
-            .Where(x => x.UsedOn == null && x.CreatedOn < earliestCreatedOnUtc)
-            .ExecuteDeleteAsync();
+        int nDeleted = await _db.PasswordResets
+                                    .Where(x => x.UsedOn == null && x.CreatedOn < earliestCreatedOnUtc)
+                                    .ExecuteDeleteAsync();
+        
+        _logger.LogInformation("Deleted {deletedCount} expired password resets since {earliestCreatedOnUtc}", nDeleted, earliestCreatedOnUtc);
     }
 }

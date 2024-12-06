@@ -1,11 +1,13 @@
 ﻿using System.ComponentModel.DataAnnotations;
 using System.Net;
 using System.Net.Mime;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using OpenShock.API.Models.Response;
 using OpenShock.API.Utils;
 using OpenShock.Common;
+using OpenShock.Common.Authentication;
 using OpenShock.Common.Authentication.Attributes;
 using OpenShock.Common.Constants;
 using OpenShock.Common.Errors;
@@ -23,12 +25,12 @@ public sealed partial class TokensController
     /// </summary>
     /// <response code="200">All tokens for the current user</response>
     [HttpGet]
-    [UserSessionOnly]
+    [Authorize(Policy = OpenShockAuthPolicies.UserAccess)]
     [ProducesResponseType<IEnumerable<TokenResponse>>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
     public async Task<IEnumerable<TokenResponse>> ListTokens()
     {
         var apiTokens = await _db.ApiTokens
-            .Where(x => x.UserId == CurrentUser.DbUser.Id && (x.ValidUntil == null || x.ValidUntil > DateTime.UtcNow))
+            .Where(x => x.UserId == CurrentUser.Id && (x.ValidUntil == null || x.ValidUntil > DateTime.UtcNow))
             .OrderBy(x => x.CreatedOn)
             .Select(x => new TokenResponse
         {
@@ -50,13 +52,13 @@ public sealed partial class TokensController
     /// <response code="200">The token</response>
     /// <response code="404">The token does not exist or you do not have access to it.</response>
     [HttpGet("{tokenId}")]
-    [UserSessionOnly]
+    [Authorize(Policy = OpenShockAuthPolicies.UserAccess)]
     [ProducesResponseType<TokenResponse>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status404NotFound, MediaTypeNames.Application.ProblemJson)] // ApiTokenNotFound    
     public async Task<IActionResult> GetTokenById([FromRoute] Guid tokenId)
     {
         var apiToken = await _db.ApiTokens
-            .Where(x => x.UserId == CurrentUser.DbUser.Id && x.Id == tokenId && (x.ValidUntil == null || x.ValidUntil > DateTime.UtcNow))
+            .Where(x => x.UserId == CurrentUser.Id && x.Id == tokenId && (x.ValidUntil == null || x.ValidUntil > DateTime.UtcNow))
             .Select(x => new TokenResponse
         {
             CreatedOn = x.CreatedOn,
@@ -79,7 +81,7 @@ public sealed partial class TokensController
     /// <response code="200">Successfully deleted token</response>
     /// <response code="404">The token does not exist or you do not have access to it.</response>
     [HttpDelete("{tokenId}")]
-    [UserSessionOnly]
+    [Authorize(Policy = OpenShockAuthPolicies.UserAccess)]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status404NotFound, MediaTypeNames.Application.ProblemJson)] // ApiTokenNotFound    
     public async Task<IActionResult> DeleteToken([FromRoute] Guid tokenId)
@@ -103,27 +105,29 @@ public sealed partial class TokensController
     /// <param name="body"></param>
     /// <response code="200">The created token</response>
     [HttpPost]
-    [UserSessionOnly]
+    [Authorize(Policy = OpenShockAuthPolicies.UserAccess)]
     [ProducesResponseType<TokenCreatedResponse>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
     public async Task<TokenCreatedResponse> CreateToken([FromBody] CreateTokenRequest body)
     {
-        var token = new ApiToken
+        string token = CryptoUtils.RandomString(HardLimits.ApiKeyTokenLength);
+
+        var tokenDto = new ApiToken
         {
-            UserId = CurrentUser.DbUser.Id,
-            Token = CryptoUtils.RandomString(HardLimits.ApiKeyTokenMaxLength),
-            CreatedByIp = HttpContext.GetRemoteIP().ToString(),
+            UserId = CurrentUser.Id,
+            TokenHash = HashingUtils.HashSha256(token),
+            CreatedByIp = HttpContext.GetRemoteIP(),
             Permissions = body.Permissions.Distinct().ToList(),
             Id = Guid.NewGuid(),
             Name = body.Name,
             ValidUntil = body.ValidUntil?.ToUniversalTime()
         };
-        _db.ApiTokens.Add(token);
+        _db.ApiTokens.Add(tokenDto);
         await _db.SaveChangesAsync();
 
         return new TokenCreatedResponse
         {
-            Token = token.Token,
-            Id = token.Id
+            Token = token,
+            Id = tokenDto.Id
         };
     }
 
@@ -135,13 +139,13 @@ public sealed partial class TokensController
     /// <response code="200">The edited token</response>
     /// <response code="404">The token does not exist or you do not have access to it.</response>
     [HttpPatch("{tokenId}")]
-    [UserSessionOnly]
+    [Authorize(Policy = OpenShockAuthPolicies.UserAccess)]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status404NotFound, MediaTypeNames.Application.ProblemJson)] // ApiTokenNotFound    
     public async Task<IActionResult> EditToken([FromRoute] Guid tokenId, [FromBody] EditTokenRequest body)
     {
         var token = await _db.ApiTokens
-            .FirstOrDefaultAsync(x => x.UserId == CurrentUser.DbUser.Id && x.Id == tokenId && (x.ValidUntil == null || x.ValidUntil > DateTime.UtcNow));
+            .FirstOrDefaultAsync(x => x.UserId == CurrentUser.Id && x.Id == tokenId && (x.ValidUntil == null || x.ValidUntil > DateTime.UtcNow));
         if (token == null) return Problem(ApiTokenError.ApiTokenNotFound);
 
         token.Name = body.Name;
@@ -153,7 +157,7 @@ public sealed partial class TokensController
 
     public class EditTokenRequest
     {
-        [StringLength(HardLimits.ApiKeyTokenMaxLength, MinimumLength = HardLimits.ApiKeyTokenMinLength, ErrorMessage = "API token length must be between {1} and {2}")]
+        [StringLength(HardLimits.ApiKeyNameMaxLength, MinimumLength = 1, ErrorMessage = "API token length must be between {1} and {2}")]
         public required string Name { get; set; }
         
         [MaxLength(HardLimits.ApiKeyMaxPermissions, ErrorMessage = "API token permissions must be between {1} and {2}")]

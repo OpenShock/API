@@ -2,6 +2,8 @@
 
 public static class Duration
 {
+    public static readonly TimeSpan AuditRetentionTime = TimeSpan.FromDays(90);
+    
     public static readonly TimeSpan PasswordResetRequestLifetime = TimeSpan.FromHours(1);
 
     public static readonly TimeSpan NameChangeCooldown = TimeSpan.FromDays(7);

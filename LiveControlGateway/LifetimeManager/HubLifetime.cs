@@ -28,7 +28,6 @@ public sealed class HubLifetime : IAsyncDisposable
 {
     private readonly TimeSpan _waitBetweenTicks;
     private readonly ushort _commandDuration;
-    private static readonly ILogger<HubLifetime> Logger = ApplicationLogging.CreateLogger<HubLifetime>();
 
     private Dictionary<Guid, ShockerState> _shockerStates = new();
     private readonly byte _tps;
@@ -39,19 +38,23 @@ public sealed class HubLifetime : IAsyncDisposable
     private readonly IRedisConnectionProvider _redisConnectionProvider;
     private readonly IRedisPubService _redisPubService;
 
+    private readonly ILogger<HubLifetime> _logger;
+
     /// <summary>
     /// DI Constructor
     /// </summary>
     /// <param name="tps"></param>
     /// <param name="hubController"></param>
     /// <param name="dbContextFactory"></param>
-    /// <param name="redisPubService"></param>
-    /// <param name="cancellationToken"></param>
     /// <param name="redisConnectionProvider"></param>
+    /// <param name="redisPubService"></param>
+    /// <param name="logger"></param>
+    /// <param name="cancellationToken"></param>
     public HubLifetime([Range(1, 10)] byte tps, IHubController hubController,
         IDbContextFactory<OpenShockContext> dbContextFactory,
         IRedisConnectionProvider redisConnectionProvider,
         IRedisPubService redisPubService,
+        ILogger<HubLifetime> logger,
         CancellationToken cancellationToken = default)
     {
         _tps = tps;
@@ -60,6 +63,7 @@ public sealed class HubLifetime : IAsyncDisposable
         _dbContextFactory = dbContextFactory;
         _redisConnectionProvider = redisConnectionProvider;
         _redisPubService = redisPubService;
+        _logger = logger;
 
         _waitBetweenTicks = TimeSpan.FromMilliseconds(Math.Floor((float)1000 / tps));
         _commandDuration = (ushort)(_waitBetweenTicks.TotalMilliseconds * 2.5);
@@ -90,14 +94,14 @@ public sealed class HubLifetime : IAsyncDisposable
             }
             catch (Exception e)
             {
-                Logger.LogError(e, "Error in Update()");
+                _logger.LogError(e, "Error in Update()");
             }
 
             var elapsed = stopwatch.Elapsed;
             var waitTime = _waitBetweenTicks - elapsed;
             if (waitTime.TotalMilliseconds < 1)
             {
-                Logger.LogWarning("Update loop running behind for device [{DeviceId}]", _hubController.Id);
+                _logger.LogWarning("Update loop running behind for device [{DeviceId}]", _hubController.Id);
                 continue;
             }
 
@@ -147,7 +151,7 @@ public sealed class HubLifetime : IAsyncDisposable
     /// </summary>
     private async Task UpdateShockers(OpenShockContext db)
     {
-        Logger.LogDebug("Updating shockers for device [{DeviceId}]", _hubController.Id);
+        _logger.LogDebug("Updating shockers for device [{DeviceId}]", _hubController.Id);
         var ownShockers = await db.Shockers.Where(x => x.Device == _hubController.Id).Select(x => new ShockerState()
         {
             Id = x.Id,
@@ -196,7 +200,7 @@ public sealed class HubLifetime : IAsyncDisposable
         {
             if (!_shockerStates.TryGetValue(shock.Id, out var state)) continue;
 
-            Logger.LogTrace(
+            _logger.LogTrace(
                 "Control exclusive: {Exclusive}, type: {Type}, duration: {Duration}, intensity: {Intensity}",
                 shock.Exclusive, shock.Type, shock.Duration, shock.Intensity);
             state.ExclusiveUntil = shock.Exclusive && shock.Type != ControlType.Stop

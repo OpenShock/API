@@ -29,7 +29,7 @@ public sealed partial class ShockerController
     public async Task<IActionResult> GetShockerLogs([FromRoute] Guid shockerId, [FromQuery] uint offset = 0,
         [FromQuery] [Range(1, 500)] uint limit = 100)
     {
-        var exists = await _db.Shockers.AnyAsync(x => x.DeviceNavigation.Owner == CurrentUser.DbUser.Id && x.Id == shockerId);
+        var exists = await _db.Shockers.AnyAsync(x => x.DeviceNavigation.Owner == CurrentUser.Id && x.Id == shockerId);
         if (!exists) return Problem(ShockerError.ShockerNotFound);
 
         var logs = await _db.ShockerControlLogs.Where(x => x.ShockerId == shockerId)
