@@ -14,6 +14,6 @@ public static class HashingUtils
     {
         Span<byte> tempSpan = stackalloc byte[32];
         SHA256.HashData(Encoding.UTF8.GetBytes(str), tempSpan);
-        return Convert.ToHexString(tempSpan);
+        return Convert.ToHexString(tempSpan).ToLowerInvariant();
     }
 }
