@@ -47,7 +47,7 @@ public sealed class UserSessionAuthentication : AuthenticationHandler<Authentica
 
     protected override async Task<AuthenticateResult> HandleAuthenticateAsync()
     {
-        if (!Context.TryGetUserSessionCookie(out var sessionKey))
+        if (!Context.TryGetUserSession(out var sessionKey))
         {
             return AuthenticateResult.Fail(AuthResultError.CookieMissingOrInvalid.Type!);
         }

@@ -39,14 +39,20 @@ public static class AuthUtils
         });
     }
 
-    public static bool TryGetUserSessionCookie(this HttpContext context, [NotNullWhen(true)] out string? sessionCookie)
+    public static bool TryGetUserSession(this HttpContext context, [NotNullWhen(true)] out string? sessionToken)
     {
-        if (context.Request.Cookies.TryGetValue(AuthConstants.UserSessionCookieName, out sessionCookie) && !string.IsNullOrEmpty(sessionCookie))
+        if (context.Request.Cookies.TryGetValue(AuthConstants.UserSessionCookieName, out sessionToken) && !string.IsNullOrEmpty(sessionToken))
         {
             return true;
         }
+        
+        if(context.Request.Headers.TryGetValue(AuthConstants.UserSessionHeaderName, out var headerSessionCookie) && !string.IsNullOrEmpty(headerSessionCookie))
+        {
+            sessionToken = headerSessionCookie.ToString();
+            return true;
+        }
 
-        sessionCookie = null;
+        sessionToken = null;
 
         return false;
     }

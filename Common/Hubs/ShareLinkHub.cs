@@ -45,7 +45,7 @@ public sealed class ShareLinkHub : Hub<IShareLinkHub>
         
         GenericIni? user = null;
 
-        if (httpContext.TryGetUserSessionCookie(out var sessionCookie))
+        if (httpContext.TryGetUserSession(out var sessionCookie))
         {
             user = await SessionAuth(sessionCookie);
             if (user == null)
