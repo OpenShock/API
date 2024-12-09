@@ -13,7 +13,7 @@
   <ItemGroup>
     <PackageReference Include="Testcontainers.PostgreSql" Version="4.0.0" />
     <PackageReference Include="Testcontainers.Redis" Version="4.0.0" />
-    <PackageReference Include="TUnit" Version="0.4.45" />
+    <PackageReference Include="TUnit" Version="0.4.86" />
   </ItemGroup>
 
   <ItemGroup>
