@@ -13,8 +13,8 @@ using OpenShock.Common.OpenShockDb;
 namespace OpenShock.Common.Migrations
 {
     [DbContext(typeof(OpenShockContext))]
-    [Migration("20241123214013_Type and naming cleanup")]
-    partial class Typeandnamingcleanup
+    [Migration("20241219115917_FixAdminUsersView")]
+    partial class FixAdminUsersView
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -54,7 +54,7 @@ namespace OpenShock.Common.Migrations
 
                     b.Property<bool>("EmailActivated")
                         .HasColumnType("boolean")
-                        .HasColumnName("email_actived");
+                        .HasColumnName("email_activated");
 
                     b.Property<int>("EmailChangeRequestCount")
                         .HasColumnType("integer")
