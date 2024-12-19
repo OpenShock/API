@@ -12,12 +12,17 @@ namespace OpenShock.Common.Migrations
         {
             migrationBuilder.Sql(
                 """
-                IF EXISTS(SELECT *
-                    FROM information_schema.columns
-                    WHERE table_name='admin_users_view' and column_name='email_actived')
-                THEN
-                    ALTER VIEW admin_users_view RENAME COLUMN email_actived TO email_activated;
-                END IF;
+                DO $$
+                BEGIN
+                    IF EXISTS (
+                        SELECT 1
+                        FROM information_schema.columns
+                        WHERE table_name  = 'admin_users_view'
+                          AND column_name = 'email_actived'
+                    ) THEN
+                        ALTER VIEW admin_users_view RENAME COLUMN email_actived TO email_activated;
+                    END IF;
+                END $$;
                 """
             );
         }
