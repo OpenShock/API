@@ -35,7 +35,7 @@
         <PackageReference Include="NRedisStack" Version="0.13.1" />
         <PackageReference Include="OpenShock.Serialization.Flatbuffers" Version="2.0.0-preview.5" />
         <PackageReference Include="OpenTelemetry.Exporter.Prometheus.AspNetCore" Version="1.10.0-beta.1" />
-        <PackageReference Include="OpenTelemetry.Extensions.Hosting" Version="1.11.0" />
+        <PackageReference Include="OpenTelemetry.Extensions.Hosting" Version="1.11.1" />
         <PackageReference Include="OpenTelemetry.Instrumentation.AspNetCore" Version="1.10.1" />
         <PackageReference Include="OpenTelemetry.Instrumentation.Http" Version="1.10.0" />
         <PackageReference Include="OpenTelemetry.Instrumentation.Runtime" Version="1.10.0" />
