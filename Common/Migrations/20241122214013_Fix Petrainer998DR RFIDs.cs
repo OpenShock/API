@@ -17,7 +17,8 @@ namespace OpenShock.Common.Migrations
                     rf_id = ((rf_id)::bit(32) << 1)::integer
                 WHERE
                     model = 'petrainer998DR'
-                """
+                """,
+                true
             );
         }
 
@@ -31,7 +32,8 @@ namespace OpenShock.Common.Migrations
                     rf_id = ((rf_id)::bit(32) >> 1)::integer
                 WHERE
                     model = 'petrainer998DR'
-                """
+                """,
+                true
             );
         }
     }
