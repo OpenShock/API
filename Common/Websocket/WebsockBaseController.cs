@@ -22,8 +22,6 @@ public abstract class WebsocketBaseController<T> : OpenShockControllerBase, IAsy
     /// <inheritdoc />
     public abstract Guid Id { get; }
 
-    public virtual int MaxChunkSize => 256;
-
     /// <summary>
     /// Logger
     /// </summary>
@@ -182,7 +180,7 @@ public abstract class WebsocketBaseController<T> : OpenShockControllerBase, IAsy
     /// <returns></returns>
     [NonAction]
     protected virtual Task SendWebSocketMessage(T message, WebSocket websocket, CancellationToken cancellationToken) =>
-        JsonWebSocketUtils.SendFullMessage(message, websocket, cancellationToken, MaxChunkSize);
+        JsonWebSocketUtils.SendFullMessage(message, websocket, cancellationToken);
 
 
     #endregion
