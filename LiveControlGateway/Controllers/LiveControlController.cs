@@ -85,14 +85,14 @@ public sealed class LiveControlController : WebsocketBaseController<IBaseRespons
     }
 
     /// <inheritdoc />
-    protected override Task RegisterConnection()
+    protected override Task ConnectionCreated()
     {
         WebsocketManager.LiveControlUsers.RegisterConnection(this);
         return Task.CompletedTask;
     }
 
     /// <inheritdoc />
-    protected override Task UnregisterConnection()
+    protected override Task ConnectionDestroyed()
     {
         WebsocketManager.LiveControlUsers.UnregisterConnection(this);
         return Task.CompletedTask;

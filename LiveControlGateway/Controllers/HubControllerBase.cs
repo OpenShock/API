@@ -130,20 +130,26 @@ public abstract class HubControllerBase<TIn, TOut> : FlatbuffersWebsocketBaseCon
 
         return Task.FromResult(OneOf<Success, Error<OpenShockProblem>>.FromT0(new Success()));
     }
-
-    /// <inheritdoc />
-    protected override async Task RegisterConnection()
+    
+    
+    /// <summary>
+    /// Register to the hub lifetime manager
+    /// </summary>
+    /// <returns></returns>
+    protected override async Task ConnectionCreated()
     {
         await _hubLifetimeManager.AddDeviceConnection(5, this, LinkedToken);
     }
-    
-    /// <inheritdoc />
-    protected override async Task UnregisterConnection()
+
+    /// <summary>
+    /// When the connection is destroyed
+    /// </summary>
+    protected override async Task ConnectionDestroyed()
     {
-        Logger.LogDebug("Unregistering hub connection [{HubId}]", Id);
+        if (_newConnection) return; // We dont want to call this here, as it would lead to a deadlock, this is already taken care of in the manager
         await _hubLifetimeManager.RemoveDeviceConnection(this);
     }
-    
+
     /// <inheritdoc />
     public abstract ValueTask Control(List<ShockerCommand> controlCommands);
 
@@ -152,7 +158,23 @@ public abstract class HubControllerBase<TIn, TOut> : FlatbuffersWebsocketBaseCon
 
     /// <inheritdoc />
     public abstract ValueTask OtaInstall(SemVersion version);
+
+    /// <summary>
+    /// When we are disposing the controller because there is a new connection already
+    /// </summary>
+    private bool _newConnection = false;
     
+    /// <summary>
+    /// Called by the hub lifetime manager to dispose the connection because there is a new connection
+    /// This is a direct replacement for DisposeAsync
+    /// </summary>
+    /// <returns></returns>
+    public ValueTask DisposeForNewConnection()
+    {
+        _newConnection = true;
+        return DisposeAsync();
+    }
+
     /// <summary>
     /// Keep the hub online
     /// </summary>

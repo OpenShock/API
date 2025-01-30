@@ -24,6 +24,9 @@ public sealed class HubLifetimeManager
     private readonly ILoggerFactory _loggerFactory;
     private readonly ILogger<HubLifetimeManager> _logger;
     private readonly ConcurrentDictionary<Guid, HubLifetime> _managers = new();
+    private readonly ConcurrentDictionary<Guid, SemaphoreSlim> _hubLocks = new();
+    private readonly ConcurrentDictionary<IHubController, Guid> _pendingConnections = new();
+    private readonly SemaphoreSlim _pendingConnectionLock = new(1);
 
     /// <summary>
     /// DI constructor
@@ -37,7 +40,7 @@ public sealed class HubLifetimeManager
         IRedisConnectionProvider redisConnectionProvider,
         IRedisPubService redisPubService,
         ILoggerFactory loggerFactory
-        )
+    )
     {
         _dbContextFactory = dbContextFactory;
         _redisConnectionProvider = redisConnectionProvider;
@@ -54,45 +57,100 @@ public sealed class HubLifetimeManager
     /// <param name="hubController"></param>
     /// <param name="cancellationToken"></param>
     /// <returns></returns>
-    public async Task<HubLifetime> AddDeviceConnection(byte tps, IHubController hubController, CancellationToken cancellationToken)
+    public async Task<HubLifetime> AddDeviceConnection(byte tps, IHubController hubController,
+        CancellationToken cancellationToken)
     {
-            if (_managers.TryGetValue(hubController.Id, out var oldController))
+        await _pendingConnectionLock.WaitAsync(cancellationToken);
+        _pendingConnections[hubController] = hubController.Id;
+        _pendingConnectionLock.Release();
+        
+        var hubLock = _hubLocks.GetOrAdd(hubController.Id, new SemaphoreSlim(1)); // This is thread safe
+        await hubLock.WaitAsync(cancellationToken); // Any only one thread is allowed here, per hub, and that is what we want.
+
+        if (hubLock != _hubLocks[hubController.Id])
+        {
+            _logger.LogWarning("Hub lock not found for hub [{HubId}] after waiting for it", hubController.Id);
+        }
+
+        try
+        {
+            if (_managers.TryGetValue(hubController.Id, out var oldControllerLifetime))
             {
-                _logger.LogDebug("Disposing old device controller");
-                await oldController.DisposeAsync();
+                _logger.LogDebug("Disposing old hub controller");
+                await oldControllerLifetime
+                    .DisposeForNewConnection(); // Use this to not call the remove connection method from the controller
+                
+                foreach (var websocketController in WebsocketManager.LiveControlUsers.GetConnections(hubController.Id))
+                    await websocketController.UpdateConnectedState(false);
             }
-            _logger.LogInformation("New device connected, creating lifetime [{DeviceId}]", hubController.Id);
-            
-            var deviceLifetime = new HubLifetime(
-                tps,
-                hubController,
-                _dbContextFactory,
-                _redisConnectionProvider,
-                _redisPubService,
-                _loggerFactory.CreateLogger<HubLifetime>(),
-                cancellationToken);
+
+            var hubLifetime = GetLifetime(tps, hubController, cancellationToken);
+            _managers[hubController.Id] = hubLifetime;
 
             await using var db = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
-        
-            await deviceLifetime.InitAsync(db);
-            _managers[hubController.Id] = deviceLifetime;
-            
-            foreach (var websocketController in WebsocketManager.LiveControlUsers.GetConnections(hubController.Id)) 
+
+            await hubLifetime.InitAsync(db);
+
+            foreach (var websocketController in WebsocketManager.LiveControlUsers.GetConnections(hubController.Id))
                 await websocketController.UpdateConnectedState(true);
-            
-            return deviceLifetime;
+
+            return hubLifetime;
+        }
+        finally
+        {
+            _pendingConnections.TryRemove(hubController, out _);
+            hubLock.Release();
+        }
+    }
+
+    private HubLifetime GetLifetime(byte tps, IHubController hubController, CancellationToken cancellationToken)
+    {
+        _logger.LogInformation("New device connected, creating lifetime [{DeviceId}]", hubController.Id);
+
+        var deviceLifetime = new HubLifetime(
+            tps,
+            hubController,
+            _dbContextFactory,
+            _redisConnectionProvider,
+            _redisPubService,
+            _loggerFactory.CreateLogger<HubLifetime>(),
+            cancellationToken);
+
+        return deviceLifetime;
     }
 
     /// <summary>
-    /// Remove device from Lifetime Manager, called on dispose of device controller
+    /// Remove device from Lifetime Manager, called on dispose of device controller, this is the actual end of life of the hub
     /// </summary>
     /// <param name="hubController"></param>
     public async Task RemoveDeviceConnection(IHubController hubController)
     {
-        foreach (var websocketController in WebsocketManager.LiveControlUsers.GetConnections(hubController.Id)) 
-            await websocketController.UpdateConnectedState(false);
-        
-        _managers.Remove(hubController.Id, out _);
+        if (!_hubLocks.TryGetValue(hubController.Id, out var hubLock))
+        {
+            // Our lock doesnt exist, this shouldn't happen
+            _logger.LogWarning("Hub lock not found for hub [{HubId}]", hubController.Id);
+            return;
+        }
+
+        await hubLock.WaitAsync();
+
+        try
+        {
+            if(!_managers.TryGetValue(hubController.Id, out var oldControllerLifetime)) return;
+            
+            if(oldControllerLifetime.HubController != hubController) return;
+            
+            foreach (var websocketController in WebsocketManager.LiveControlUsers.GetConnections(hubController.Id))
+                await websocketController.UpdateConnectedState(false);
+        }
+        finally
+        {
+            await _pendingConnectionLock.WaitAsync();
+            if(!_pendingConnections.Values.Contains(hubController.Id)) _hubLocks.TryRemove(hubController.Id, out _);
+            _pendingConnectionLock.Release();
+            
+            hubLock.Release();
+        }
     }
 
     /// <summary>
@@ -116,8 +174,8 @@ public sealed class HubLifetimeManager
     {
         if (!_managers.TryGetValue(device, out var deviceLifetime)) return new DeviceNotFound();
         var receiveFrameAction = deviceLifetime.ReceiveFrame(shocker, type, intensity, tps);
-        if(receiveFrameAction.IsT0) return new Success();
-        if(receiveFrameAction.IsT1) return new ShockerNotFound();
+        if (receiveFrameAction.IsT0) return new Success();
+        if (receiveFrameAction.IsT1) return new ShockerNotFound();
         return receiveFrameAction.AsT2;
     }
 
@@ -139,7 +197,8 @@ public sealed class HubLifetimeManager
     /// <param name="device"></param>
     /// <param name="shocks"></param>
     /// <returns></returns>
-    public async Task<OneOf<Success, DeviceNotFound>> Control(Guid device, IEnumerable<ControlMessage.ShockerControlInfo> shocks)
+    public async Task<OneOf<Success, DeviceNotFound>> Control(Guid device,
+        IEnumerable<ControlMessage.ShockerControlInfo> shocks)
     {
         if (!_managers.TryGetValue(device, out var deviceLifetime)) return new DeviceNotFound();
         await deviceLifetime.Control(shocks);
@@ -199,5 +258,3 @@ public readonly struct ShockerNotFound;
 /// OneOf
 /// </summary>
 public readonly record struct ShockerExclusive(DateTimeOffset Until);
-
-

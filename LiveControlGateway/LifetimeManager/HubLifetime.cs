@@ -31,7 +31,7 @@ public sealed class HubLifetime : IAsyncDisposable
 
     private Dictionary<Guid, ShockerState> _shockerStates = new();
     private readonly byte _tps;
-    private readonly IHubController _hubController;
+    public IHubController HubController { get; }
     private readonly CancellationToken _cancellationToken;
 
     private readonly IDbContextFactory<OpenShockContext> _dbContextFactory;
@@ -58,7 +58,7 @@ public sealed class HubLifetime : IAsyncDisposable
         CancellationToken cancellationToken = default)
     {
         _tps = tps;
-        _hubController = hubController;
+        HubController = hubController;
         _cancellationToken = cancellationToken;
         _dbContextFactory = dbContextFactory;
         _redisConnectionProvider = redisConnectionProvider;
@@ -101,7 +101,7 @@ public sealed class HubLifetime : IAsyncDisposable
             var waitTime = _waitBetweenTicks - elapsed;
             if (waitTime.TotalMilliseconds < 1)
             {
-                _logger.LogWarning("Update loop running behind for device [{DeviceId}]", _hubController.Id);
+                _logger.LogWarning("Update loop running behind for device [{DeviceId}]", HubController.Id);
                 continue;
             }
 
@@ -130,7 +130,7 @@ public sealed class HubLifetime : IAsyncDisposable
 
         if (commandList == null) return;
 
-        await _hubController.Control(commandList);
+        await HubController.Control(commandList);
     }
 
     /// <summary>
@@ -142,7 +142,7 @@ public sealed class HubLifetime : IAsyncDisposable
         await UpdateShockers(db);
 
         foreach (var websocketController in
-                 WebsocketManager.LiveControlUsers.GetConnections(_hubController.Id))
+                 WebsocketManager.LiveControlUsers.GetConnections(HubController.Id))
             await websocketController.UpdatePermissions(db);
     }
 
@@ -151,8 +151,8 @@ public sealed class HubLifetime : IAsyncDisposable
     /// </summary>
     private async Task UpdateShockers(OpenShockContext db)
     {
-        _logger.LogDebug("Updating shockers for device [{DeviceId}]", _hubController.Id);
-        var ownShockers = await db.Shockers.Where(x => x.Device == _hubController.Id).Select(x => new ShockerState()
+        _logger.LogDebug("Updating shockers for device [{DeviceId}]", HubController.Id);
+        var ownShockers = await db.Shockers.Where(x => x.Device == HubController.Id).Select(x => new ShockerState()
         {
             Id = x.Id,
             Model = x.Model,
@@ -215,7 +215,7 @@ public sealed class HubLifetime : IAsyncDisposable
             });
         }
 
-        return _hubController.Control(shocksTransformed);
+        return HubController.Control(shocksTransformed);
     }
 
     /// <summary>
@@ -223,13 +223,13 @@ public sealed class HubLifetime : IAsyncDisposable
     /// </summary>
     /// <param name="enabled"></param>
     /// <returns></returns>
-    public ValueTask ControlCaptive(bool enabled) => _hubController.CaptivePortal(enabled);
+    public ValueTask ControlCaptive(bool enabled) => HubController.CaptivePortal(enabled);
 
     /// <summary>
     /// Ota install from redis
     /// </summary>
     /// <returns></returns>
-    public ValueTask OtaInstall(SemVersion semVersion) => _hubController.OtaInstall(semVersion);
+    public ValueTask OtaInstall(SemVersion semVersion) => HubController.OtaInstall(semVersion);
 
     /// <summary>
     /// Update self online status
@@ -295,7 +295,10 @@ public sealed class HubLifetime : IAsyncDisposable
     }
 
     /// <inheritdoc />
-    public ValueTask DisposeAsync() => _hubController.DisposeAsync();
+    public ValueTask DisposeAsync() => HubController.DisposeAsync();
+
+    /// <inheritdoc />
+    public ValueTask DisposeForNewConnection() => HubController.DisposeForNewConnection();
 }
 
 /// <summary>

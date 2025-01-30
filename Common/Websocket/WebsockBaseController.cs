@@ -82,12 +82,14 @@ public abstract class WebsocketBaseController<T> : OpenShockControllerBase, IAsy
         Logger.LogTrace("Disposing websocket controller..");
         _disposed = true;
         await DisposeControllerAsync();
-        await UnregisterConnection();
+        await ConnectionDestroyed();
         
         _channel.Writer.Complete();
         await Close.CancelAsync();
         WebSocket?.Dispose();
         LinkedSource.Dispose();
+        
+        GC.SuppressFinalize(this);
         Logger.LogTrace("Disposed websocket controller");
     }
     
@@ -134,7 +136,7 @@ public abstract class WebsocketBaseController<T> : OpenShockControllerBase, IAsy
         WebSocket?.Dispose(); // This should never happen, but just in case
         WebSocket = await HttpContext.WebSockets.AcceptWebSocketAsync();
 
-        await RegisterConnection();
+        await ConnectionCreated();
 
 #pragma warning disable CS4014
         LucTask.Run(MessageLoop);
@@ -144,7 +146,10 @@ public abstract class WebsocketBaseController<T> : OpenShockControllerBase, IAsy
         
         await Logic();
         
-        await UnregisterConnection();
+        
+        if(_disposed) return;
+        
+        await ConnectionDestroyed();
 
         await Close.CancelAsync();
     }
@@ -200,16 +205,16 @@ public abstract class WebsocketBaseController<T> : OpenShockControllerBase, IAsy
     protected virtual Task SendInitialData() => Task.CompletedTask;
 
     /// <summary>
-    /// Action when the websocket connection is created to register the connection to a websocket manager
+    /// Action when the websocket connection is created
     /// </summary>
     [NonAction]
-    protected virtual Task RegisterConnection() => Task.CompletedTask;
+    protected virtual Task ConnectionCreated() => Task.CompletedTask;
 
     /// <summary>
-    /// Action when the websocket connection is destroyed to unregister the connection to a websocket manager
+    /// Action when the websocket connection is finished or disposed
     /// </summary>
     [NonAction]
-    protected virtual Task UnregisterConnection() => Task.CompletedTask;
+    protected virtual Task ConnectionDestroyed() => Task.CompletedTask;
 
     /// <summary>
     /// Action when the websocket connection is destroyed to unregister the connection to a websocket manager
