@@ -162,6 +162,8 @@ public sealed class HubLifetimeManager
             
             if(oldControllerLifetime.HubController != hubController) return;
             
+            _lifetimes.TryRemove(hubController.Id, out _);
+            
             foreach (var websocketController in WebsocketManager.LiveControlUsers.GetConnections(hubController.Id))
                 await websocketController.UpdateConnectedState(false);
         }
