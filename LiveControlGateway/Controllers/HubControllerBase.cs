@@ -136,15 +136,15 @@ public abstract class HubControllerBase<TIn, TOut> : FlatbuffersWebsocketBaseCon
     /// Register to the hub lifetime manager
     /// </summary>
     /// <returns></returns>
-    protected override async Task ConnectionCreated()
+    protected override async Task<bool> TryRegisterConnection()
     {
-        await _hubLifetimeManager.AddDeviceConnection(5, this, LinkedToken);
+        return await _hubLifetimeManager.TryAddDeviceConnection(5, this, LinkedToken);
     }
 
     /// <summary>
     /// When the connection is destroyed
     /// </summary>
-    protected override async Task ConnectionDestroyed()
+    protected override async Task UnregisterConnection()
     {
         if (_newConnection) return; // We dont want to call this here, as it would lead to a deadlock, this is already taken care of in the manager
         await _hubLifetimeManager.RemoveDeviceConnection(this);

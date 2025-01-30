@@ -79,10 +79,12 @@ public abstract class WebsocketBaseController<T> : OpenShockControllerBase, IAsy
     public virtual async ValueTask DisposeAsync()
     {
         if(_disposed) return;
-        Logger.LogTrace("Disposing websocket controller..");
         _disposed = true;
+        
+        Logger.LogTrace("Disposing websocket controller..");
+        
         await DisposeControllerAsync();
-        await ConnectionDestroyed();
+        await UnregisterConnection();
         
         _channel.Writer.Complete();
         await Close.CancelAsync();
@@ -136,20 +138,22 @@ public abstract class WebsocketBaseController<T> : OpenShockControllerBase, IAsy
         WebSocket?.Dispose(); // This should never happen, but just in case
         WebSocket = await HttpContext.WebSockets.AcceptWebSocketAsync();
 
-        await ConnectionCreated();
-
+        if (await TryRegisterConnection())
+        {
 #pragma warning disable CS4014
-        LucTask.Run(MessageLoop);
+            LucTask.Run(MessageLoop);
 #pragma warning restore CS4014
 
-        await SendInitialData();
+            await SendInitialData();
         
-        await Logic();
+            await Logic();
         
         
-        if(_disposed) return;
+            if(_disposed) return;
         
-        await ConnectionDestroyed();
+            await UnregisterConnection();
+        }
+
 
         await Close.CancelAsync();
     }
@@ -208,13 +212,13 @@ public abstract class WebsocketBaseController<T> : OpenShockControllerBase, IAsy
     /// Action when the websocket connection is created
     /// </summary>
     [NonAction]
-    protected virtual Task ConnectionCreated() => Task.CompletedTask;
+    protected virtual Task<bool> TryRegisterConnection() => Task.FromResult(true);
 
     /// <summary>
     /// Action when the websocket connection is finished or disposed
     /// </summary>
     [NonAction]
-    protected virtual Task ConnectionDestroyed() => Task.CompletedTask;
+    protected virtual Task UnregisterConnection() => Task.CompletedTask;
 
     /// <summary>
     /// Action when the websocket connection is destroyed to unregister the connection to a websocket manager

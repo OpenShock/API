@@ -23,10 +23,11 @@ public sealed class HubLifetimeManager
     private readonly IRedisPubService _redisPubService;
     private readonly ILoggerFactory _loggerFactory;
     private readonly ILogger<HubLifetimeManager> _logger;
-    private readonly ConcurrentDictionary<Guid, HubLifetime> _managers = new();
+    private readonly ConcurrentDictionary<Guid, HubLifetime> _lifetimes = new();
     private readonly ConcurrentDictionary<Guid, SemaphoreSlim> _hubLocks = new();
-    private readonly ConcurrentDictionary<IHubController, Guid> _pendingConnections = new();
-    private readonly SemaphoreSlim _pendingConnectionLock = new(1);
+    
+    private readonly HashSet<Guid> _pendingHubs = [];
+    private readonly SemaphoreSlim _pendingHubsLock = new(1);
 
     /// <summary>
     /// DI constructor
@@ -57,49 +58,70 @@ public sealed class HubLifetimeManager
     /// <param name="hubController"></param>
     /// <param name="cancellationToken"></param>
     /// <returns></returns>
-    public async Task<HubLifetime> AddDeviceConnection(byte tps, IHubController hubController,
+    public async Task<bool> TryAddDeviceConnection(byte tps, IHubController hubController,
         CancellationToken cancellationToken)
     {
-        await _pendingConnectionLock.WaitAsync(cancellationToken);
-        _pendingConnections[hubController] = hubController.Id;
-        _pendingConnectionLock.Release();
-        
-        var hubLock = _hubLocks.GetOrAdd(hubController.Id, new SemaphoreSlim(1)); // This is thread safe
-        await hubLock.WaitAsync(cancellationToken); // Any only one thread is allowed here, per hub, and that is what we want.
-
-        if (hubLock != _hubLocks[hubController.Id])
-        {
-            _logger.LogWarning("Hub lock not found for hub [{HubId}] after waiting for it", hubController.Id);
-        }
-
+        // Try finally for _pendingHubs Add <-> Remove scope
         try
         {
-            if (_managers.TryGetValue(hubController.Id, out var oldControllerLifetime))
+            await _pendingHubsLock.WaitAsync(cancellationToken);
+            try
             {
-                _logger.LogDebug("Disposing old hub controller");
-                await oldControllerLifetime
-                    .DisposeForNewConnection(); // Use this to not call the remove connection method from the controller
-                
-                foreach (var websocketController in WebsocketManager.LiveControlUsers.GetConnections(hubController.Id))
-                    await websocketController.UpdateConnectedState(false);
+                if (!_pendingHubs.Add(hubController.Id)) return false; // Another hub is already queued here
             }
+            finally
+            {
+                _pendingHubsLock.Release();
+            }
+            
+            var hubLock = _hubLocks.GetOrAdd(hubController.Id, new SemaphoreSlim(1)); // This is thread safe
+            await hubLock.WaitAsync(cancellationToken); // Any only one thread is allowed here, per hub, and that is what we want.
+            try
+            {
+                if (hubLock != _hubLocks[hubController.Id])
+                {
+                    _logger.LogWarning("Hub lock not found for hub [{HubId}] after waiting for it", hubController.Id);
+                }
 
-            var hubLifetime = GetLifetime(tps, hubController, cancellationToken);
-            _managers[hubController.Id] = hubLifetime;
+                if (_lifetimes.TryGetValue(hubController.Id, out var oldControllerLifetime))
+                {
+                    _logger.LogDebug("Disposing old hub controller");
+                    await oldControllerLifetime
+                        .DisposeForNewConnection(); // Use this to not call the remove connection method from the controller
 
-            await using var db = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
+                    foreach (var websocketController in WebsocketManager.LiveControlUsers.GetConnections(hubController
+                                 .Id))
+                        await websocketController.UpdateConnectedState(false);
+                }
 
-            await hubLifetime.InitAsync(db);
+                var hubLifetime = GetLifetime(tps, hubController, cancellationToken);
+                _lifetimes[hubController.Id] = hubLifetime;
 
-            foreach (var websocketController in WebsocketManager.LiveControlUsers.GetConnections(hubController.Id))
-                await websocketController.UpdateConnectedState(true);
+                await using var db = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
 
-            return hubLifetime;
+                await hubLifetime.InitAsync(db);
+
+                foreach (var websocketController in WebsocketManager.LiveControlUsers.GetConnections(hubController.Id))
+                    await websocketController.UpdateConnectedState(true);
+
+                return true;
+            }
+            finally
+            {
+                hubLock.Release();
+            }
         }
         finally
         {
-            _pendingConnections.TryRemove(hubController, out _);
-            hubLock.Release();
+            await _pendingHubsLock.WaitAsync(cancellationToken);
+            try
+            {
+                _pendingHubs.Remove(hubController.Id);
+            }
+            finally
+            {
+                _pendingHubsLock.Release();
+            }
         }
     }
 
@@ -136,7 +158,7 @@ public sealed class HubLifetimeManager
 
         try
         {
-            if(!_managers.TryGetValue(hubController.Id, out var oldControllerLifetime)) return;
+            if(!_lifetimes.TryGetValue(hubController.Id, out var oldControllerLifetime)) return;
             
             if(oldControllerLifetime.HubController != hubController) return;
             
@@ -145,9 +167,15 @@ public sealed class HubLifetimeManager
         }
         finally
         {
-            await _pendingConnectionLock.WaitAsync();
-            if(!_pendingConnections.Values.Contains(hubController.Id)) _hubLocks.TryRemove(hubController.Id, out _);
-            _pendingConnectionLock.Release();
+            await _pendingHubsLock.WaitAsync();
+            try
+            {
+                if(!_pendingHubs.Contains(hubController.Id)) _hubLocks.TryRemove(hubController.Id, out _);
+            }
+            finally
+            {
+                _pendingHubsLock.Release();
+            }
             
             hubLock.Release();
         }
@@ -158,7 +186,7 @@ public sealed class HubLifetimeManager
     /// </summary>
     /// <param name="device"></param>
     /// <returns></returns>
-    public bool IsConnected(Guid device) => _managers.ContainsKey(device);
+    public bool IsConnected(Guid device) => _lifetimes.ContainsKey(device);
 
     /// <summary>
     /// Receive a control frame by a client, this implies that limits and permissions have been checked before
@@ -172,7 +200,7 @@ public sealed class HubLifetimeManager
     public OneOf<Success, DeviceNotFound, ShockerNotFound, ShockerExclusive> ReceiveFrame(Guid device, Guid shocker,
         ControlType type, byte intensity, byte tps)
     {
-        if (!_managers.TryGetValue(device, out var deviceLifetime)) return new DeviceNotFound();
+        if (!_lifetimes.TryGetValue(device, out var deviceLifetime)) return new DeviceNotFound();
         var receiveFrameAction = deviceLifetime.ReceiveFrame(shocker, type, intensity, tps);
         if (receiveFrameAction.IsT0) return new Success();
         if (receiveFrameAction.IsT1) return new ShockerNotFound();
@@ -186,7 +214,7 @@ public sealed class HubLifetimeManager
     /// <returns></returns>
     public async Task<OneOf<Success, DeviceNotFound>> UpdateDevice(Guid device)
     {
-        if (!_managers.TryGetValue(device, out var deviceLifetime)) return new DeviceNotFound();
+        if (!_lifetimes.TryGetValue(device, out var deviceLifetime)) return new DeviceNotFound();
         await deviceLifetime.UpdateDevice();
         return new Success();
     }
@@ -200,7 +228,7 @@ public sealed class HubLifetimeManager
     public async Task<OneOf<Success, DeviceNotFound>> Control(Guid device,
         IEnumerable<ControlMessage.ShockerControlInfo> shocks)
     {
-        if (!_managers.TryGetValue(device, out var deviceLifetime)) return new DeviceNotFound();
+        if (!_lifetimes.TryGetValue(device, out var deviceLifetime)) return new DeviceNotFound();
         await deviceLifetime.Control(shocks);
         return new Success();
     }
@@ -213,7 +241,7 @@ public sealed class HubLifetimeManager
     /// <returns></returns>
     public async Task<OneOf<Success, DeviceNotFound>> ControlCaptive(Guid device, bool enabled)
     {
-        if (!_managers.TryGetValue(device, out var deviceLifetime)) return new DeviceNotFound();
+        if (!_lifetimes.TryGetValue(device, out var deviceLifetime)) return new DeviceNotFound();
         await deviceLifetime.ControlCaptive(enabled);
         return new Success();
     }
@@ -226,7 +254,7 @@ public sealed class HubLifetimeManager
     /// <returns></returns>
     public async Task<OneOf<Success, DeviceNotFound>> OtaInstall(Guid device, SemVersion version)
     {
-        if (!_managers.TryGetValue(device, out var deviceLifetime)) return new DeviceNotFound();
+        if (!_lifetimes.TryGetValue(device, out var deviceLifetime)) return new DeviceNotFound();
         await deviceLifetime.OtaInstall(version);
         return new Success();
     }
@@ -238,7 +266,7 @@ public sealed class HubLifetimeManager
     /// <param name="data"></param>
     public async Task<OneOf<Success, DeviceNotFound>> DeviceOnline(Guid device, SelfOnlineData data)
     {
-        if (!_managers.TryGetValue(device, out var deviceLifetime)) return new DeviceNotFound();
+        if (!_lifetimes.TryGetValue(device, out var deviceLifetime)) return new DeviceNotFound();
         await deviceLifetime.Online(device, data);
         return new Success();
     }
