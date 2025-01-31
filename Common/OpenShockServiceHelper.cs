@@ -34,17 +34,8 @@ public static class OpenShockServiceHelper
     {
         var ranks = context.User.Identities.SelectMany(ident => ident.Claims.Where(claim => claim.Type == ident.RoleClaimType)).Select(claim => Enum.Parse<RankType>(claim.Value)).ToList();
 
-        if (!ranks.Any())
-        {
-            return false;
-        }
-
-        if (ranks.Max() < requiredRank)
-        {
-            return false;
-        }
-
-        return true;
+        // Has any rank that is higher than required rank
+        return ranks.Count != 0 && ranks.Max() >= requiredRank;
     }
 
     /// <summary>

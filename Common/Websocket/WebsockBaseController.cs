@@ -22,8 +22,6 @@ public abstract class WebsocketBaseController<T> : OpenShockControllerBase, IAsy
     /// <inheritdoc />
     public abstract Guid Id { get; }
 
-    public virtual int MaxChunkSize => 256;
-
     /// <summary>
     /// Logger
     /// </summary>
@@ -81,8 +79,10 @@ public abstract class WebsocketBaseController<T> : OpenShockControllerBase, IAsy
     public virtual async ValueTask DisposeAsync()
     {
         if(_disposed) return;
-        Logger.LogTrace("Disposing websocket controller..");
         _disposed = true;
+        
+        Logger.LogTrace("Disposing websocket controller..");
+        
         await DisposeControllerAsync();
         await UnregisterConnection();
         
@@ -90,6 +90,8 @@ public abstract class WebsocketBaseController<T> : OpenShockControllerBase, IAsy
         await Close.CancelAsync();
         WebSocket?.Dispose();
         LinkedSource.Dispose();
+        
+        GC.SuppressFinalize(this);
         Logger.LogTrace("Disposed websocket controller");
     }
     
@@ -136,17 +138,22 @@ public abstract class WebsocketBaseController<T> : OpenShockControllerBase, IAsy
         WebSocket?.Dispose(); // This should never happen, but just in case
         WebSocket = await HttpContext.WebSockets.AcceptWebSocketAsync();
 
-        await RegisterConnection();
-
+        if (await TryRegisterConnection())
+        {
 #pragma warning disable CS4014
-        LucTask.Run(MessageLoop);
+            LucTask.Run(MessageLoop);
 #pragma warning restore CS4014
 
-        await SendInitialData();
+            await SendInitialData();
         
-        await Logic();
+            await Logic();
         
-        await UnregisterConnection();
+        
+            if(_disposed) return;
+        
+            await UnregisterConnection();
+        }
+
 
         await Close.CancelAsync();
     }
@@ -182,7 +189,7 @@ public abstract class WebsocketBaseController<T> : OpenShockControllerBase, IAsy
     /// <returns></returns>
     [NonAction]
     protected virtual Task SendWebSocketMessage(T message, WebSocket websocket, CancellationToken cancellationToken) =>
-        JsonWebSocketUtils.SendFullMessage(message, websocket, cancellationToken, MaxChunkSize);
+        JsonWebSocketUtils.SendFullMessage(message, websocket, cancellationToken);
 
 
     #endregion
@@ -202,13 +209,13 @@ public abstract class WebsocketBaseController<T> : OpenShockControllerBase, IAsy
     protected virtual Task SendInitialData() => Task.CompletedTask;
 
     /// <summary>
-    /// Action when the websocket connection is created to register the connection to a websocket manager
+    /// Action when the websocket connection is created
     /// </summary>
     [NonAction]
-    protected virtual Task RegisterConnection() => Task.CompletedTask;
+    protected virtual Task<bool> TryRegisterConnection() => Task.FromResult(true);
 
     /// <summary>
-    /// Action when the websocket connection is destroyed to unregister the connection to a websocket manager
+    /// Action when the websocket connection is finished or disposed
     /// </summary>
     [NonAction]
     protected virtual Task UnregisterConnection() => Task.CompletedTask;

@@ -26,13 +26,24 @@ namespace OpenShock.LiveControlGateway.LifetimeManager;
 /// </summary>
 public sealed class HubLifetime : IAsyncDisposable
 {
+    
+    public enum HubLifetimeState
+    {
+        Idle,
+        SettingUp,
+        Swapping,
+        Removing
+    }
+
+    private volatile HubLifetimeState _state = HubLifetimeState.SettingUp;
+    public IHubController HubController { get; private set; }
+    
     private readonly TimeSpan _waitBetweenTicks;
     private readonly ushort _commandDuration;
 
     private Dictionary<Guid, ShockerState> _shockerStates = new();
     private readonly byte _tps;
-    private readonly IHubController _hubController;
-    private readonly CancellationToken _cancellationToken;
+    private readonly CancellationTokenSource _cancellationSource;
 
     private readonly IDbContextFactory<OpenShockContext> _dbContextFactory;
     private readonly IRedisConnectionProvider _redisConnectionProvider;
@@ -49,17 +60,15 @@ public sealed class HubLifetime : IAsyncDisposable
     /// <param name="redisConnectionProvider"></param>
     /// <param name="redisPubService"></param>
     /// <param name="logger"></param>
-    /// <param name="cancellationToken"></param>
     public HubLifetime([Range(1, 10)] byte tps, IHubController hubController,
         IDbContextFactory<OpenShockContext> dbContextFactory,
         IRedisConnectionProvider redisConnectionProvider,
         IRedisPubService redisPubService,
-        ILogger<HubLifetime> logger,
-        CancellationToken cancellationToken = default)
+        ILogger<HubLifetime> logger)
     {
         _tps = tps;
-        _hubController = hubController;
-        _cancellationToken = cancellationToken;
+        HubController = hubController;
+        _cancellationSource = new CancellationTokenSource();
         _dbContextFactory = dbContextFactory;
         _redisConnectionProvider = redisConnectionProvider;
         _redisPubService = redisPubService;
@@ -72,21 +81,79 @@ public sealed class HubLifetime : IAsyncDisposable
     /// <summary>
     /// Call on creation to setup shockers for the first time
     /// </summary>
-    /// <param name="db"></param>
-    public async Task InitAsync(OpenShockContext db)
+    public async Task<bool> InitAsync(CancellationToken cancellationToken)
     {
-        await UpdateShockers(db);
+        try
+        {
+            await using var db = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
+            await UpdateShockers(db, cancellationToken);
+        }
+        catch (Exception e)
+        {
+            // (╯°□°)╯︵ ┻━┻
+            _logger.LogError(e, "Error initializing OpenShock Hub lifetime");
+            return false;
+        }
+        
 #pragma warning disable CS4014
         LucTask.Run(UpdateLoop);
 #pragma warning restore CS4014
+        
+        _state = HubLifetimeState.Idle; // We are fully setup, we can go back to idle state
+        return true;
+    }
+    
+    /// <summary>
+    /// Swap to a new underlying controller
+    /// </summary>
+    /// <param name="newController"></param>
+    public async Task Swap(IHubController newController)
+    {
+        var oldController = HubController;
+
+        try
+        {
+            await oldController.DisposeAsync();
+        }
+        catch (Exception e)
+        {
+            _logger.LogError(e, "Error disposing old controller");
+        }
+
+        HubController = newController;
+
+        _state = HubLifetimeState.Idle; // Swap is done, return to (~~monke~~) idle
+    }
+
+    /// <summary>
+    /// Try to mark the lifetime as swapping
+    /// This needs external synchronization
+    /// </summary>
+    /// <returns>true if the lifetime is not busy, false if it is. Consider rejecting the connection</returns>
+    public bool TryMarkSwapping()
+    {
+        if (_state != HubLifetimeState.Idle) return false;
+        _state = HubLifetimeState.Swapping;
+        return true;
+    }
+
+    /// <summary>
+    /// Mark the lifetime as removing
+    /// This needs external synchronization
+    /// </summary>
+    /// <returns>true if the lifetime is not swapping or already removing</returns>
+    public bool TryMarkRemoving()
+    {
+        if (_state is HubLifetimeState.Swapping or HubLifetimeState.Removing) return false;
+        _state = HubLifetimeState.Removing;
+        return true;
     }
 
     private async Task UpdateLoop()
     {
-        var stopwatch = Stopwatch.StartNew();
-        while (!_cancellationToken.IsCancellationRequested)
+        while (!_cancellationSource.IsCancellationRequested)
         {
-            stopwatch.Restart();
+            var startingTime = Stopwatch.GetTimestamp();
 
             try
             {
@@ -97,15 +164,16 @@ public sealed class HubLifetime : IAsyncDisposable
                 _logger.LogError(e, "Error in Update()");
             }
 
-            var elapsed = stopwatch.Elapsed;
+
+            var elapsed = Stopwatch.GetElapsedTime(startingTime);
             var waitTime = _waitBetweenTicks - elapsed;
             if (waitTime.TotalMilliseconds < 1)
             {
-                _logger.LogWarning("Update loop running behind for device [{DeviceId}]", _hubController.Id);
+                _logger.LogWarning("Update loop running behind for device [{DeviceId}]", HubController.Id);
                 continue;
             }
 
-            await Task.Delay(waitTime, _cancellationToken);
+            await Task.Delay(waitTime, _cancellationSource.Token);
         }
     }
 
@@ -130,7 +198,7 @@ public sealed class HubLifetime : IAsyncDisposable
 
         if (commandList == null) return;
 
-        await _hubController.Control(commandList);
+        await HubController.Control(commandList);
     }
 
     /// <summary>
@@ -138,27 +206,27 @@ public sealed class HubLifetime : IAsyncDisposable
     /// </summary>
     public async Task UpdateDevice()
     {
-        await using var db = await _dbContextFactory.CreateDbContextAsync(_cancellationToken);
-        await UpdateShockers(db);
+        await using var db = await _dbContextFactory.CreateDbContextAsync(_cancellationSource.Token);
+        await UpdateShockers(db, _cancellationSource.Token);
 
         foreach (var websocketController in
-                 WebsocketManager.LiveControlUsers.GetConnections(_hubController.Id))
+                 WebsocketManager.LiveControlUsers.GetConnections(HubController.Id))
             await websocketController.UpdatePermissions(db);
     }
 
     /// <summary>
     /// Update all shockers config
     /// </summary>
-    private async Task UpdateShockers(OpenShockContext db)
+    private async Task UpdateShockers(OpenShockContext db, CancellationToken cancellationToken)
     {
-        _logger.LogDebug("Updating shockers for device [{DeviceId}]", _hubController.Id);
-        var ownShockers = await db.Shockers.Where(x => x.Device == _hubController.Id).Select(x => new ShockerState()
+        _logger.LogDebug("Updating shockers for device [{DeviceId}]", HubController.Id);
+        
+        _shockerStates = await db.Shockers.Where(x => x.Device == HubController.Id).Select(x => new ShockerState()
         {
             Id = x.Id,
             Model = x.Model,
             RfId = x.RfId
-        }).ToListAsync(cancellationToken: _cancellationToken);
-        _shockerStates = ownShockers.ToDictionary(x => x.Id, x => x);
+        }).ToDictionaryAsync(x => x.Id, x => x, cancellationToken);
     }
 
     /// <summary>
@@ -215,7 +283,7 @@ public sealed class HubLifetime : IAsyncDisposable
             });
         }
 
-        return _hubController.Control(shocksTransformed);
+        return HubController.Control(shocksTransformed);
     }
 
     /// <summary>
@@ -223,13 +291,13 @@ public sealed class HubLifetime : IAsyncDisposable
     /// </summary>
     /// <param name="enabled"></param>
     /// <returns></returns>
-    public ValueTask ControlCaptive(bool enabled) => _hubController.CaptivePortal(enabled);
+    public ValueTask ControlCaptive(bool enabled) => HubController.CaptivePortal(enabled);
 
     /// <summary>
     /// Ota install from redis
     /// </summary>
     /// <returns></returns>
-    public ValueTask OtaInstall(SemVersion semVersion) => _hubController.OtaInstall(semVersion);
+    public ValueTask OtaInstall(SemVersion semVersion) => HubController.OtaInstall(semVersion);
 
     /// <summary>
     /// Update self online status
@@ -294,8 +362,17 @@ public sealed class HubLifetime : IAsyncDisposable
         return new Success();
     }
 
+    private bool _disposed = false;
+    
     /// <inheritdoc />
-    public ValueTask DisposeAsync() => _hubController.DisposeAsync();
+    public async ValueTask DisposeAsync()
+    {
+        if(_disposed) return;
+        _disposed = true;
+        
+        await _cancellationSource.CancelAsync();
+    }
+    
 }
 
 /// <summary>
