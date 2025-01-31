@@ -137,7 +137,7 @@ public sealed class HubLifetimeManager
             // this might happen when remove is called after a swap has been fully done
             if(hubLifetime.HubController != hubController) return;
 
-            if (hubLifetime.TryMarkRemoving())
+            if (!hubLifetime.TryMarkRemoving())
             {
                 return;
             }

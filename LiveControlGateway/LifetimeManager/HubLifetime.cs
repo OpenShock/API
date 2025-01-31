@@ -103,7 +103,7 @@ public sealed class HubLifetime : IAsyncDisposable
         await oldController.DisposeAsync();
         
         HubController = newController;
-        await UpdateDevice();
+        await UpdateDevice(); // TODO: Remove me
 
         _state = HubLifetimeState.Idle; // Swap is done, return to (~~monke~~) idle
     }
