@@ -24,8 +24,8 @@ public sealed class HubLifetimeManager
     private readonly IRedisPubService _redisPubService;
     private readonly ILoggerFactory _loggerFactory;
     private readonly ILogger<HubLifetimeManager> _logger;
+    
     private readonly Dictionary<Guid, HubLifetime> _lifetimes = new();
-
     private readonly SemaphoreSlim _lifetimesLock = new(1);
 
     /// <summary>
@@ -91,7 +91,12 @@ public sealed class HubLifetimeManager
         }
         else
         {
-            await hubLifetime.InitAsync();
+            if (!await hubLifetime.InitAsync(cancellationToken))
+            {
+                // If we fail to initialize, the hub must be removed
+                await RemoveDeviceConnection(hubController, false); // Here be dragons?
+                return false;
+            }
 
             foreach (var websocketController in WebsocketManager.LiveControlUsers.GetConnections(hubLifetime
                          .HubController.Id))
@@ -121,7 +126,8 @@ public sealed class HubLifetimeManager
     /// this is the actual end of life of the hub
     /// </summary>
     /// <param name="hubController"></param>
-    public async Task RemoveDeviceConnection(IHubController hubController)
+    /// <param name="notifyLiveControlClients"></param>
+    public async Task RemoveDeviceConnection(IHubController hubController, bool notifyLiveControlClients = true)
     {
         HubLifetime? hubLifetime;
         
@@ -142,9 +148,12 @@ public sealed class HubLifetimeManager
                 return;
             }
         }
-        
-        foreach (var websocketController in WebsocketManager.LiveControlUsers.GetConnections(hubController.Id))
-            await websocketController.UpdateConnectedState(false);
+
+        if (notifyLiveControlClients)
+        {
+            foreach (var websocketController in WebsocketManager.LiveControlUsers.GetConnections(hubController.Id))
+                await websocketController.UpdateConnectedState(false);
+        }
         
         await hubLifetime.DisposeAsync();
         

@@ -43,7 +43,7 @@ public sealed class HubLifetime : IAsyncDisposable
 
     private Dictionary<Guid, ShockerState> _shockerStates = new();
     private readonly byte _tps;
-    private readonly CancellationTokenSource _cancellationToken;
+    private readonly CancellationTokenSource _cancellationSource;
 
     private readonly IDbContextFactory<OpenShockContext> _dbContextFactory;
     private readonly IRedisConnectionProvider _redisConnectionProvider;
@@ -68,7 +68,7 @@ public sealed class HubLifetime : IAsyncDisposable
     {
         _tps = tps;
         HubController = hubController;
-        _cancellationToken = new CancellationTokenSource();
+        _cancellationSource = new CancellationTokenSource();
         _dbContextFactory = dbContextFactory;
         _redisConnectionProvider = redisConnectionProvider;
         _redisPubService = redisPubService;
@@ -81,15 +81,24 @@ public sealed class HubLifetime : IAsyncDisposable
     /// <summary>
     /// Call on creation to setup shockers for the first time
     /// </summary>
-    public async Task InitAsync()
+    public async Task<bool> InitAsync(CancellationToken cancellationToken)
     {
-        await using var db = await _dbContextFactory.CreateDbContextAsync(_cancellationToken.Token);
-        await UpdateShockers(db);
+        try
+        {
+            await using var db = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
+            await UpdateShockers(db, cancellationToken);
 #pragma warning disable CS4014
-        LucTask.Run(UpdateLoop);
+            LucTask.Run(UpdateLoop);
 #pragma warning restore CS4014
+        }
+        catch (Exception e)
+        {
+            _logger.LogError(e, "Error initializing OpenShock Hub lifetime");
+            return false;
+        }
         
         _state = HubLifetimeState.Idle; // We are fully setup, we can go back to idle state
+        return true;
     }
     
     /// <summary>
@@ -134,7 +143,7 @@ public sealed class HubLifetime : IAsyncDisposable
 
     private async Task UpdateLoop()
     {
-        while (!_cancellationToken.IsCancellationRequested)
+        while (!_cancellationSource.IsCancellationRequested)
         {
             var startingTime = Stopwatch.GetTimestamp();
 
@@ -156,7 +165,7 @@ public sealed class HubLifetime : IAsyncDisposable
                 continue;
             }
 
-            await Task.Delay(waitTime, _cancellationToken.Token);
+            await Task.Delay(waitTime, _cancellationSource.Token);
         }
     }
 
@@ -189,8 +198,8 @@ public sealed class HubLifetime : IAsyncDisposable
     /// </summary>
     public async Task UpdateDevice()
     {
-        await using var db = await _dbContextFactory.CreateDbContextAsync(_cancellationToken.Token);
-        await UpdateShockers(db);
+        await using var db = await _dbContextFactory.CreateDbContextAsync(_cancellationSource.Token);
+        await UpdateShockers(db, _cancellationSource.Token);
 
         foreach (var websocketController in
                  WebsocketManager.LiveControlUsers.GetConnections(HubController.Id))
@@ -200,7 +209,7 @@ public sealed class HubLifetime : IAsyncDisposable
     /// <summary>
     /// Update all shockers config
     /// </summary>
-    private async Task UpdateShockers(OpenShockContext db)
+    private async Task UpdateShockers(OpenShockContext db, CancellationToken cancellationToken)
     {
         _logger.LogDebug("Updating shockers for device [{DeviceId}]", HubController.Id);
         
@@ -209,7 +218,7 @@ public sealed class HubLifetime : IAsyncDisposable
             Id = x.Id,
             Model = x.Model,
             RfId = x.RfId
-        }).ToDictionaryAsync(x => x.Id, x => x, cancellationToken: _cancellationToken.Token);
+        }).ToDictionaryAsync(x => x.Id, x => x, cancellationToken);
     }
 
     /// <summary>
@@ -353,7 +362,7 @@ public sealed class HubLifetime : IAsyncDisposable
         if(_disposed) return;
         _disposed = true;
         
-        await _cancellationToken.CancelAsync();
+        await _cancellationSource.CancelAsync();
     }
     
 }
