@@ -24,11 +24,9 @@ public sealed class HubLifetimeManager
     private readonly IRedisPubService _redisPubService;
     private readonly ILoggerFactory _loggerFactory;
     private readonly ILogger<HubLifetimeManager> _logger;
-    private readonly ConcurrentDictionary<Guid, HubLifetime> _lifetimes = new();
-    private readonly ConcurrentDictionary<Guid, SemaphoreSlim> _hubLocks = new();
-    
-    private readonly HashSet<Guid> _pendingHubs = [];
-    private readonly SemaphoreSlim _pendingHubsLock = new(1);
+    private readonly Dictionary<Guid, HubLifetime> _lifetimes = new();
+
+    private readonly SemaphoreSlim _lifetimesLock = new(1);
 
     /// <summary>
     /// DI constructor
@@ -62,52 +60,50 @@ public sealed class HubLifetimeManager
     public async Task<bool> TryAddDeviceConnection(byte tps, IHubController hubController,
         CancellationToken cancellationToken)
     {
-        // Try finally for _pendingHubs Add <-> Remove scope
-        try
-        {
-            using (await _pendingHubsLock.LockAsyncScoped(cancellationToken))
-            {
-                if (!_pendingHubs.Add(hubController.Id)) return false; // Another hub is already queued here
-            }
-            
-            using (await _hubLocks.GetOrAdd(hubController.Id, new SemaphoreSlim(1)).LockAsyncScoped(cancellationToken)) // Any only one thread is allowed here, per hub, and that is what we want.
-            {
-                if (_lifetimes.TryGetValue(hubController.Id, out var oldControllerLifetime))
-                {
-                    _logger.LogDebug("Disposing old hub controller");
-                    await oldControllerLifetime
-                        .DisposeForNewConnection(); // Use this to not call the remove connection method from the controller
+        var isSwapping = false;
+        HubLifetime? hubLifetime;
 
-                    foreach (var websocketController in WebsocketManager.LiveControlUsers.GetConnections(hubController
-                                 .Id))
-                        await websocketController.UpdateConnectedState(false);
+        using (await _lifetimesLock.LockAsyncScoped(cancellationToken))
+        {
+            if (_lifetimes.TryGetValue(hubController.Id, out hubLifetime))
+            {
+                // There already is a hub lifetime, lets swap!
+                if (!hubLifetime.TryMarkSwapping())
+                {
+                    return
+                        false; // Tell the controller that we are busy right now TODO: Tell the connecting client why it failed
                 }
 
-                var hubLifetime = GetLifetime(tps, hubController, cancellationToken);
-                _lifetimes[hubController.Id] = hubLifetime;
-
-                await using var db = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
-
-                await hubLifetime.InitAsync(db);
-
-                foreach (var websocketController in WebsocketManager.LiveControlUsers.GetConnections(hubController.Id))
-                    await websocketController.UpdateConnectedState(true);
-
-                return true;
+                isSwapping = true;
             }
-        }
-        finally
-        {
-            using (await _pendingHubsLock.LockAsyncScoped(cancellationToken))
+            else
             {
-                _pendingHubs.Remove(hubController.Id);
+                // This is a fresh connection with no existing lifetime, create one!
+                hubLifetime = CreateNewLifetime(tps, hubController);
+                _lifetimes[hubController.Id] = hubLifetime;
             }
         }
+
+
+        if (isSwapping)
+        {
+            await hubLifetime.Swap(hubController);
+        }
+        else
+        {
+            await hubLifetime.InitAsync();
+
+            foreach (var websocketController in WebsocketManager.LiveControlUsers.GetConnections(hubLifetime
+                         .HubController.Id))
+                await websocketController.UpdateConnectedState(true);
+        }
+
+        return true;
     }
 
-    private HubLifetime GetLifetime(byte tps, IHubController hubController, CancellationToken cancellationToken)
+    private HubLifetime CreateNewLifetime(byte tps, IHubController hubController)
     {
-        _logger.LogInformation("New device connected, creating lifetime [{DeviceId}]", hubController.Id);
+        _logger.LogInformation("New hub connected, creating lifetime [{DeviceId}]", hubController.Id);
 
         var deviceLifetime = new HubLifetime(
             tps,
@@ -115,47 +111,48 @@ public sealed class HubLifetimeManager
             _dbContextFactory,
             _redisConnectionProvider,
             _redisPubService,
-            _loggerFactory.CreateLogger<HubLifetime>(),
-            cancellationToken);
+            _loggerFactory.CreateLogger<HubLifetime>());
 
         return deviceLifetime;
     }
 
     /// <summary>
-    /// Remove device from Lifetime Manager, called on dispose of device controller, this is the actual end of life of the hub
+    /// Remove device from Lifetime Manager, called on dispose of device controller,
+    /// this is the actual end of life of the hub
     /// </summary>
     /// <param name="hubController"></param>
     public async Task RemoveDeviceConnection(IHubController hubController)
     {
-        if (!_hubLocks.TryGetValue(hubController.Id, out var hubLock))
+        HubLifetime? hubLifetime;
+        
+        using (await _lifetimesLock.LockAsyncScoped())
         {
-            // Our lock doesnt exist, this shouldn't happen
-            _logger.LogWarning("Hub lock not found for hub [{HubId}]", hubController.Id);
-            return;
-        }
-
-        using (await hubLock.LockAsyncScoped())
-        {
-            try
+            if (!_lifetimes.TryGetValue(hubController.Id, out hubLifetime))
             {
-                if(!_lifetimes.TryGetValue(hubController.Id, out var oldControllerLifetime)) return;
-            
-                if(oldControllerLifetime.HubController != hubController) return;
-            
-                _lifetimes.TryRemove(hubController.Id, out _);
-            
-                foreach (var websocketController in WebsocketManager.LiveControlUsers.GetConnections(hubController.Id))
-                    await websocketController.UpdateConnectedState(false);
+                _logger.LogError("Hub lifetime not found for hub [{HubId}]", hubController.Id);
+                return;
             }
-            finally
+            
+            // Dont remove a hub lifetime that has a different hub controller,
+            // this might happen when remove is called after a swap has been fully done
+            if(hubLifetime.HubController != hubController) return;
+
+            if (hubLifetime.TryMarkRemoving())
             {
-                using (await _pendingHubsLock.LockAsyncScoped())
-                {
-                    if (!_pendingHubs.Contains(hubController.Id))
-                    {
-                        _hubLocks.TryRemove(hubController.Id, out _);
-                    }
-                }
+                return;
+            }
+        }
+        
+        foreach (var websocketController in WebsocketManager.LiveControlUsers.GetConnections(hubController.Id))
+            await websocketController.UpdateConnectedState(false);
+        
+        await hubLifetime.DisposeAsync();
+        
+        using (await _lifetimesLock.LockAsyncScoped())
+        {
+            if (!_lifetimes.Remove(hubController.Id))
+            {
+                _logger.LogError("Failed to remove hub lifetime [{HubId}], this shouldnt happen WTF?!", hubController.Id);
             }
         }
     }

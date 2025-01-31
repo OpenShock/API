@@ -26,13 +26,24 @@ namespace OpenShock.LiveControlGateway.LifetimeManager;
 /// </summary>
 public sealed class HubLifetime : IAsyncDisposable
 {
+    
+    public enum HubLifetimeState
+    {
+        Idle,
+        SettingUp,
+        Swapping,
+        Removing
+    }
+
+    private volatile HubLifetimeState _state = HubLifetimeState.SettingUp;
+    public IHubController HubController { get; private set; }
+    
     private readonly TimeSpan _waitBetweenTicks;
     private readonly ushort _commandDuration;
 
     private Dictionary<Guid, ShockerState> _shockerStates = new();
     private readonly byte _tps;
-    public IHubController HubController { get; }
-    private readonly CancellationToken _cancellationToken;
+    private readonly CancellationTokenSource _cancellationToken;
 
     private readonly IDbContextFactory<OpenShockContext> _dbContextFactory;
     private readonly IRedisConnectionProvider _redisConnectionProvider;
@@ -49,17 +60,15 @@ public sealed class HubLifetime : IAsyncDisposable
     /// <param name="redisConnectionProvider"></param>
     /// <param name="redisPubService"></param>
     /// <param name="logger"></param>
-    /// <param name="cancellationToken"></param>
     public HubLifetime([Range(1, 10)] byte tps, IHubController hubController,
         IDbContextFactory<OpenShockContext> dbContextFactory,
         IRedisConnectionProvider redisConnectionProvider,
         IRedisPubService redisPubService,
-        ILogger<HubLifetime> logger,
-        CancellationToken cancellationToken = default)
+        ILogger<HubLifetime> logger)
     {
         _tps = tps;
         HubController = hubController;
-        _cancellationToken = cancellationToken;
+        _cancellationToken = new CancellationTokenSource();
         _dbContextFactory = dbContextFactory;
         _redisConnectionProvider = redisConnectionProvider;
         _redisPubService = redisPubService;
@@ -72,21 +81,62 @@ public sealed class HubLifetime : IAsyncDisposable
     /// <summary>
     /// Call on creation to setup shockers for the first time
     /// </summary>
-    /// <param name="db"></param>
-    public async Task InitAsync(OpenShockContext db)
+    public async Task InitAsync()
     {
+        await using var db = await _dbContextFactory.CreateDbContextAsync(_cancellationToken.Token);
         await UpdateShockers(db);
 #pragma warning disable CS4014
         LucTask.Run(UpdateLoop);
 #pragma warning restore CS4014
+        
+        _state = HubLifetimeState.Idle; // We are fully setup, we can go back to idle state
+    }
+    
+    /// <summary>
+    /// Swap to a new underlying controller
+    /// </summary>
+    /// <param name="newController"></param>
+    public async Task Swap(IHubController newController)
+    {
+        var oldController = HubController;
+
+        await oldController.DisposeAsync();
+        
+        HubController = newController;
+        await UpdateDevice();
+
+        _state = HubLifetimeState.Idle; // Swap is done, return to (~~monke~~) idle
+    }
+
+    /// <summary>
+    /// Try to mark the lifetime as swapping
+    /// This needs external synchronization
+    /// </summary>
+    /// <returns>true if the lifetime is not busy, false if it is. Consider rejecting the connection</returns>
+    public bool TryMarkSwapping()
+    {
+        if (_state != HubLifetimeState.Idle) return false;
+        _state = HubLifetimeState.Swapping;
+        return true;
+    }
+
+    /// <summary>
+    /// Mark the lifetime as removing
+    /// This needs external synchronization
+    /// </summary>
+    /// <returns>true if the lifetime is not swapping or already removing</returns>
+    public bool TryMarkRemoving()
+    {
+        if (_state is HubLifetimeState.Swapping or HubLifetimeState.Removing) return false;
+        _state = HubLifetimeState.Removing;
+        return true;
     }
 
     private async Task UpdateLoop()
     {
-        var stopwatch = Stopwatch.StartNew();
         while (!_cancellationToken.IsCancellationRequested)
         {
-            stopwatch.Restart();
+            var startingTime = Stopwatch.GetTimestamp();
 
             try
             {
@@ -97,7 +147,8 @@ public sealed class HubLifetime : IAsyncDisposable
                 _logger.LogError(e, "Error in Update()");
             }
 
-            var elapsed = stopwatch.Elapsed;
+
+            var elapsed = Stopwatch.GetElapsedTime(startingTime);
             var waitTime = _waitBetweenTicks - elapsed;
             if (waitTime.TotalMilliseconds < 1)
             {
@@ -105,7 +156,7 @@ public sealed class HubLifetime : IAsyncDisposable
                 continue;
             }
 
-            await Task.Delay(waitTime, _cancellationToken);
+            await Task.Delay(waitTime, _cancellationToken.Token);
         }
     }
 
@@ -138,7 +189,7 @@ public sealed class HubLifetime : IAsyncDisposable
     /// </summary>
     public async Task UpdateDevice()
     {
-        await using var db = await _dbContextFactory.CreateDbContextAsync(_cancellationToken);
+        await using var db = await _dbContextFactory.CreateDbContextAsync(_cancellationToken.Token);
         await UpdateShockers(db);
 
         foreach (var websocketController in
@@ -158,7 +209,7 @@ public sealed class HubLifetime : IAsyncDisposable
             Id = x.Id,
             Model = x.Model,
             RfId = x.RfId
-        }).ToDictionaryAsync(x => x.Id, x => x, cancellationToken: _cancellationToken);
+        }).ToDictionaryAsync(x => x.Id, x => x, cancellationToken: _cancellationToken.Token);
     }
 
     /// <summary>
@@ -294,11 +345,17 @@ public sealed class HubLifetime : IAsyncDisposable
         return new Success();
     }
 
+    private bool _disposed = false;
+    
     /// <inheritdoc />
-    public ValueTask DisposeAsync() => HubController.DisposeAsync();
-
-    /// <inheritdoc />
-    public ValueTask DisposeForNewConnection() => HubController.DisposeForNewConnection();
+    public async ValueTask DisposeAsync()
+    {
+        if(_disposed) return;
+        _disposed = true;
+        
+        await _cancellationToken.CancelAsync();
+    }
+    
 }
 
 /// <summary>

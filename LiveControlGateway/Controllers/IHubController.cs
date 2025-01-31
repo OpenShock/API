@@ -34,10 +34,4 @@ public interface IHubController : IAsyncDisposable
     /// <param name="version"></param>
     /// <returns></returns>
     public ValueTask OtaInstall(SemVersion version);
-
-    /// <summary>
-    /// Dispose the current hub controller because a new connection has been established
-    /// </summary>
-    /// <returns></returns>
-    public ValueTask DisposeForNewConnection();
 }

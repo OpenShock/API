@@ -146,7 +146,6 @@ public abstract class HubControllerBase<TIn, TOut> : FlatbuffersWebsocketBaseCon
     /// </summary>
     protected override async Task UnregisterConnection()
     {
-        if (_newConnection) return; // We dont want to call this here, as it would lead to a deadlock, this is already taken care of in the manager
         await _hubLifetimeManager.RemoveDeviceConnection(this);
     }
 
@@ -159,21 +158,6 @@ public abstract class HubControllerBase<TIn, TOut> : FlatbuffersWebsocketBaseCon
     /// <inheritdoc />
     public abstract ValueTask OtaInstall(SemVersion version);
 
-    /// <summary>
-    /// When we are disposing the controller because there is a new connection already
-    /// </summary>
-    private bool _newConnection = false;
-    
-    /// <summary>
-    /// Called by the hub lifetime manager to dispose the connection because there is a new connection
-    /// This is a direct replacement for DisposeAsync
-    /// </summary>
-    /// <returns></returns>
-    public ValueTask DisposeForNewConnection()
-    {
-        _newConnection = true;
-        return DisposeAsync();
-    }
 
     /// <summary>
     /// Keep the hub online
