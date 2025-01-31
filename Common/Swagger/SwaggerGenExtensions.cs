@@ -105,7 +105,7 @@ public static class SwaggerGenExtensions
     public static IApplicationBuilder UseSwaggerExt(this WebApplication app)
     {
         var provider = app.Services.GetRequiredService<IApiVersionDescriptionProvider>();
-        var groupNames = provider.ApiVersionDescriptions.Select(d => d.GroupName).ToList();
+        var groupNames = provider.ApiVersionDescriptions.Select(d => d.GroupName);
 
         return app
             .UseSwagger()

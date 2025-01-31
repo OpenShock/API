@@ -152,13 +152,13 @@ public sealed class HubLifetime : IAsyncDisposable
     private async Task UpdateShockers(OpenShockContext db)
     {
         _logger.LogDebug("Updating shockers for device [{DeviceId}]", HubController.Id);
-        var ownShockers = await db.Shockers.Where(x => x.Device == HubController.Id).Select(x => new ShockerState()
+        
+        _shockerStates = await db.Shockers.Where(x => x.Device == HubController.Id).Select(x => new ShockerState()
         {
             Id = x.Id,
             Model = x.Model,
             RfId = x.RfId
-        }).ToListAsync(cancellationToken: _cancellationToken);
-        _shockerStates = ownShockers.ToDictionary(x => x.Id, x => x);
+        }).ToDictionaryAsync(x => x.Id, x => x, cancellationToken: _cancellationToken);
     }
 
     /// <summary>
