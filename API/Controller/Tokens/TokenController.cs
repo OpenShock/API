@@ -26,10 +26,10 @@ public sealed partial class TokensController
     /// <response code="200">All tokens for the current user</response>
     [HttpGet]
     [Authorize(Policy = OpenShockAuthPolicies.UserAccess)]
-    [ProducesResponseType<IEnumerable<TokenResponse>>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
-    public async Task<IEnumerable<TokenResponse>> ListTokens()
+    [ProducesResponseType<TokenResponse[]>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
+    public async Task<TokenResponse[]> ListTokens()
     {
-        var apiTokens = await _db.ApiTokens
+        return await _db.ApiTokens
             .Where(x => x.UserId == CurrentUser.Id && (x.ValidUntil == null || x.ValidUntil > DateTime.UtcNow))
             .OrderBy(x => x.CreatedOn)
             .Select(x => new TokenResponse
@@ -40,9 +40,7 @@ public sealed partial class TokensController
             Permissions = x.Permissions,
             Name = x.Name,
             Id = x.Id
-        }).ToListAsync();
-
-        return apiTokens;
+        }).ToArrayAsync();
     }
 
     /// <summary>

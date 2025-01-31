@@ -17,7 +17,7 @@ public sealed partial class SharesController
     [HttpGet]
     [ProducesResponseType<IEnumerable<GenericIni>>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
     [ApiVersion("2")]
-    public async Task<IEnumerable<GenericIni>> GetSharesByUsers()
+    public async Task<GenericIni[]> GetSharesByUsers()
     {
         var sharedToUsers = await _db.ShockerShares.Where(x => x.Shocker.DeviceNavigation.Owner == CurrentUser.Id)
             .Select(x => new GenericIni
@@ -25,12 +25,12 @@ public sealed partial class SharesController
                 Id = x.SharedWithNavigation.Id,
                 Image = x.SharedWithNavigation.GetImageUrl(),
                 Name = x.SharedWithNavigation.Name
-            }).OrderBy(x => x.Name).Distinct().ToListAsync();
+            }).OrderBy(x => x.Name).Distinct().ToArrayAsync();
         return sharedToUsers;
     }
     
     [HttpGet("{userId:guid}")]
-    [ProducesResponseType<ShareInfo>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
+    [ProducesResponseType<UserShareInfo[]>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status404NotFound, MediaTypeNames.Application.ProblemJson)] // UserNotFound
     [ApiVersion("2")]
     public async Task<IActionResult> GetSharesToUser(Guid userId)
@@ -54,9 +54,9 @@ public sealed partial class SharesController
                     Intensity = x.LimitIntensity
                 },
                 Paused = x.Paused
-            }).ToListAsync();
+            }).ToArrayAsync();
         
-        if(sharedWithUser.Count == 0)
+        if(sharedWithUser.Length == 0)
         {
             return Problem(ShareError.ShareGetNoShares);
         }

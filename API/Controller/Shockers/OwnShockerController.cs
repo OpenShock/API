@@ -34,7 +34,7 @@ public sealed partial class ShockerController
                     Model = y.Model,
                     IsPaused = y.Paused
                 })
-            }).ToListAsync();
+            }).ToArrayAsync();
 
         return RespondSuccessLegacy(shockers);
     }

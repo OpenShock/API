@@ -56,7 +56,7 @@ public sealed partial class ShockerController
                         Image = x.ControlledByNavigation.GetImageUrl(),
                         CustomName = x.CustomName
                     }
-            }).ToListAsync();
+            }).ToArrayAsync();
 
         return RespondSuccessLegacy(logs);
     }

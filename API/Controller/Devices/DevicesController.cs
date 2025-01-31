@@ -23,7 +23,7 @@ public sealed partial class DevicesController
     /// </summary>
     /// <response code="200">All devices for the current user</response>
     [HttpGet]
-    [ProducesResponseType<BaseResponse<IEnumerable<Models.Response.ResponseDevice>>>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
+    [ProducesResponseType<BaseResponse<Models.Response.ResponseDevice[]>>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
     [MapToApiVersion("1")]
     public async Task<IActionResult> ListDevices()
     {
@@ -33,7 +33,7 @@ public sealed partial class DevicesController
                 Id = x.Id,
                 Name = x.Name,
                 CreatedOn = x.CreatedOn
-            }).ToListAsync();
+            }).ToArrayAsync();
 
         return RespondSuccessLegacy(devices);
     }
