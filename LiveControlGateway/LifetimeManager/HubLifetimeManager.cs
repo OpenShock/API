@@ -60,6 +60,7 @@ public sealed class HubLifetimeManager
     public async Task<bool> TryAddDeviceConnection(byte tps, IHubController hubController,
         CancellationToken cancellationToken)
     {
+        _logger.LogDebug("Adding hub lifetime [{HubId}]", hubController.Id);
         var isSwapping = false;
         HubLifetime? hubLifetime;
 
@@ -87,10 +88,12 @@ public sealed class HubLifetimeManager
 
         if (isSwapping)
         {
+            _logger.LogTrace("Swapping hub lifetime [{HubId}]", hubController.Id);
             await hubLifetime.Swap(hubController);
         }
         else
         {
+            _logger.LogTrace("Initializing hub lifetime [{HubId}]", hubController.Id);
             if (!await hubLifetime.InitAsync(cancellationToken))
             {
                 // If we fail to initialize, the hub must be removed
@@ -129,6 +132,7 @@ public sealed class HubLifetimeManager
     /// <param name="notifyLiveControlClients"></param>
     public async Task RemoveDeviceConnection(IHubController hubController, bool notifyLiveControlClients = true)
     {
+        _logger.LogDebug("Removing hub lifetime [{HubId}]", hubController.Id);
         HubLifetime? hubLifetime;
         
         using (await _lifetimesLock.LockAsyncScoped())
