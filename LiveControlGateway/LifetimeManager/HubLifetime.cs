@@ -87,15 +87,17 @@ public sealed class HubLifetime : IAsyncDisposable
         {
             await using var db = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
             await UpdateShockers(db, cancellationToken);
-#pragma warning disable CS4014
-            LucTask.Run(UpdateLoop);
-#pragma warning restore CS4014
         }
         catch (Exception e)
         {
+            // (╯°□°)╯︵ ┻━┻
             _logger.LogError(e, "Error initializing OpenShock Hub lifetime");
             return false;
         }
+        
+#pragma warning disable CS4014
+        LucTask.Run(UpdateLoop);
+#pragma warning restore CS4014
         
         _state = HubLifetimeState.Idle; // We are fully setup, we can go back to idle state
         return true;
