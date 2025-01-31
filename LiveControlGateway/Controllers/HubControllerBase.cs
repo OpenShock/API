@@ -141,11 +141,17 @@ public abstract class HubControllerBase<TIn, TOut> : FlatbuffersWebsocketBaseCon
         return await _hubLifetimeManager.TryAddDeviceConnection(5, this, LinkedToken);
     }
 
+    private bool _unregistered;
+    
     /// <summary>
     /// When the connection is destroyed
     /// </summary>
     protected override async Task UnregisterConnection()
     {
+        if (_unregistered)
+            return;
+        _unregistered = true;
+        
         await _hubLifetimeManager.RemoveDeviceConnection(this);
     }
 
