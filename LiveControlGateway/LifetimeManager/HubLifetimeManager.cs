@@ -2,6 +2,7 @@
 using Microsoft.EntityFrameworkCore;
 using OneOf;
 using OneOf.Types;
+using OpenShock.Common.Extensions;
 using OpenShock.Common.Models;
 using OpenShock.Common.OpenShockDb;
 using OpenShock.Common.Redis.PubSub;
@@ -64,25 +65,13 @@ public sealed class HubLifetimeManager
         // Try finally for _pendingHubs Add <-> Remove scope
         try
         {
-            await _pendingHubsLock.WaitAsync(cancellationToken);
-            try
+            using (await _pendingHubsLock.LockAsyncScoped(cancellationToken))
             {
                 if (!_pendingHubs.Add(hubController.Id)) return false; // Another hub is already queued here
             }
-            finally
-            {
-                _pendingHubsLock.Release();
-            }
             
-            var hubLock = _hubLocks.GetOrAdd(hubController.Id, new SemaphoreSlim(1)); // This is thread safe
-            await hubLock.WaitAsync(cancellationToken); // Any only one thread is allowed here, per hub, and that is what we want.
-            try
+            using (await _hubLocks.GetOrAdd(hubController.Id, new SemaphoreSlim(1)).LockAsyncScoped(cancellationToken)) // Any only one thread is allowed here, per hub, and that is what we want.
             {
-                if (hubLock != _hubLocks[hubController.Id])
-                {
-                    _logger.LogWarning("Hub lock not found for hub [{HubId}] after waiting for it", hubController.Id);
-                }
-
                 if (_lifetimes.TryGetValue(hubController.Id, out var oldControllerLifetime))
                 {
                     _logger.LogDebug("Disposing old hub controller");
@@ -106,21 +95,12 @@ public sealed class HubLifetimeManager
 
                 return true;
             }
-            finally
-            {
-                hubLock.Release();
-            }
         }
         finally
         {
-            await _pendingHubsLock.WaitAsync(cancellationToken);
-            try
+            using (await _pendingHubsLock.LockAsyncScoped(cancellationToken))
             {
                 _pendingHubs.Remove(hubController.Id);
-            }
-            finally
-            {
-                _pendingHubsLock.Release();
             }
         }
     }
@@ -154,32 +134,29 @@ public sealed class HubLifetimeManager
             return;
         }
 
-        await hubLock.WaitAsync();
-
-        try
+        using (await hubLock.LockAsyncScoped())
         {
-            if(!_lifetimes.TryGetValue(hubController.Id, out var oldControllerLifetime)) return;
-            
-            if(oldControllerLifetime.HubController != hubController) return;
-            
-            _lifetimes.TryRemove(hubController.Id, out _);
-            
-            foreach (var websocketController in WebsocketManager.LiveControlUsers.GetConnections(hubController.Id))
-                await websocketController.UpdateConnectedState(false);
-        }
-        finally
-        {
-            await _pendingHubsLock.WaitAsync();
             try
             {
-                if(!_pendingHubs.Contains(hubController.Id)) _hubLocks.TryRemove(hubController.Id, out _);
+                if(!_lifetimes.TryGetValue(hubController.Id, out var oldControllerLifetime)) return;
+            
+                if(oldControllerLifetime.HubController != hubController) return;
+            
+                _lifetimes.TryRemove(hubController.Id, out _);
+            
+                foreach (var websocketController in WebsocketManager.LiveControlUsers.GetConnections(hubController.Id))
+                    await websocketController.UpdateConnectedState(false);
             }
             finally
             {
-                _pendingHubsLock.Release();
+                using (await _pendingHubsLock.LockAsyncScoped())
+                {
+                    if (!_pendingHubs.Contains(hubController.Id))
+                    {
+                        _hubLocks.TryRemove(hubController.Id, out _);
+                    }
+                }
             }
-            
-            hubLock.Release();
         }
     }
 
