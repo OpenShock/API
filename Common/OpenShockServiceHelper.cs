@@ -76,15 +76,6 @@ public static class OpenShockServiceHelper
             // TODO: Add token permission policies
         });
         
-        services.Configure<ApiBehaviorOptions>(options =>
-        {
-            options.InvalidModelStateResponseFactory = context =>
-            {
-                var problemDetails = new ValidationProblem(context.ModelState);
-                return problemDetails.ToObjectResult(context.HttpContext);
-            };
-        });
-        
         services.ConfigureHttpJsonOptions(options =>
         {
             options.SerializerOptions.PropertyNameCaseInsensitive = true;
@@ -132,6 +123,16 @@ public static class OpenShockServiceHelper
                 builder.AllowAnyMethod();
                 builder.SetPreflightMaxAge(TimeSpan.FromHours(24));
             });
+        });
+        
+        // This needs to be at this position, earlier will break validation error responses
+        services.Configure<ApiBehaviorOptions>(options =>
+        {
+            options.InvalidModelStateResponseFactory = context =>
+            {
+                var problemDetails = new ValidationProblem(context.ModelState);
+                return problemDetails.ToObjectResult(context.HttpContext);
+            };
         });
         
         // OpenTelemetry
