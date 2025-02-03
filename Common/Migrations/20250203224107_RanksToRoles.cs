@@ -24,8 +24,8 @@ namespace OpenShock.Common.Migrations
                     CASE
                         WHEN rank = 'support' THEN ARRAY['support']
                         WHEN rank = 'staff'   THEN ARRAY['staff']
-                        WHEN rank = 'admin'   THEN ARRAY['staff', 'admin']
-                        WHEN rank = 'system'  THEN ARRAY['staff', 'admin', 'system']
+                        WHEN rank = 'admin'   THEN ARRAY['admin']
+                        WHEN rank = 'system'  THEN ARRAY['system']
                         ELSE ARRAY[]::text[]
                     END
                 );
