@@ -2,5 +2,5 @@
 
 public static class OpenShockAuthPolicies
 {
-    public const string TokenSessionOnly = "ApiTokenOnly";
+    public const string AdminOnly = "AdminOnly";
 }

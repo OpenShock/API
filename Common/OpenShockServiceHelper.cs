@@ -57,7 +57,7 @@ public static class OpenShockServiceHelper
         
         services.AddAuthorization(options =>
         {
-            options.AddPolicy(OpenShockAuthPolicies.TokenSessionOnly, policy => policy.RequireClaim(ClaimTypes.AuthenticationMethod, OpenShockAuthSchemas.ApiToken));
+            options.AddPolicy(OpenShockAuthPolicies.AdminOnly, policy => policy.RequireRole("Admin", "System"));
             // TODO: Add token permission policies
         });
         
