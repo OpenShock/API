@@ -8,70 +8,42 @@ public sealed class SimpleWebsocketCollection<T, TR> where T : class, IWebsocket
 
     public void RegisterConnection(T controller)
     {
-        var list = _websockets.GetOrAdd(controller.Id,
-            new List<T> { controller });
+        var list = _websockets.GetOrAdd(controller.Id, [controller]);
+
         lock (list)
         {
             if (!list.Contains(controller)) list.Add(controller);
         }
     }
 
-    public void UnregisterConnection(T controller)
+    public bool UnregisterConnection(T controller)
     {
         var key = controller.Id;
-        if (!_websockets.TryGetValue(key, out var list)) return;
+        if (!_websockets.TryGetValue(key, out var list)) return false;
 
         lock (list)
         {
-            list.Remove(controller);
-            if (list.Count <= 0) _websockets.TryRemove(key, out _);
+            if (!list.Remove(controller)) return false;
+            if (list.Count == 0)
+            {
+                _websockets.TryRemove(key, out _);
+            }
         }
+
+        return true;
     }
 
     public bool IsConnected(Guid id) => _websockets.ContainsKey(id);
 
-    public IList<T> GetConnections(Guid id)
+    public T[] GetConnections(Guid id)
     {
-        if (_websockets.TryGetValue(id, out var list))
-            return list;
-        return Array.Empty<T>();
-    }
+        if (!_websockets.TryGetValue(id, out var list)) return [];
 
-    public async ValueTask SendMessageTo(Guid id, TR msg)
-    {
-        var list = GetConnections(id);
-
-        // ReSharper disable once ForCanBeConvertedToForeach
-        for (var i = 0; i < list.Count; i++)
+        lock (list)
         {
-            var conn = list[i];
-            await conn.QueueMessage(msg);
+            return list.ToArray();
         }
     }
 
-    public Task SendMessageTo(TR msg, params Guid[] id) => SendMessageTo(id, msg);
-
-    public Task SendMessageTo(IEnumerable<Guid> id, TR msg)
-    {
-        var tasks = id.Select(x => SendMessageTo(x, msg).AsTask());
-        return Task.WhenAll(tasks);
-    }
-
-    public async ValueTask SendMessageToAll(TR msg)
-    {
-        // Im cloning a moment-in-time snapshot on purpose here, so we dont miss any connections.
-        // This is fine since this is not regularly called, and does not need to be realtime.
-        foreach (var (_, list) in _websockets.ToArray())
-        foreach (var websocketController in list)
-            await websocketController.QueueMessage(msg);
-    }
-
-    public IEnumerable<T> GetConnectedById(IEnumerable<Guid> ids)
-    {
-        var found = new List<T>();
-        foreach (var id in ids) found.AddRange(GetConnections(id));
-        return found;
-    }
-
-    public uint Count => (uint)_websockets.Sum(x => x.Value.Count);
+    public uint Count => (uint)_websockets.Sum(kvp => { lock (kvp.Value) { return kvp.Value.Count; } });
 }

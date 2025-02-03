@@ -20,7 +20,7 @@ public sealed partial class UsersController
             Id = CurrentUser.Id,
             Name = CurrentUser.Name,
             Email = CurrentUser.Email,
-            Image = CurrentUser.GetImageLink(),
+            Image = CurrentUser.GetImageUrl(),
             Roles = CurrentUser.Roles
         }
     };

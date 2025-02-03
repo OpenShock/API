@@ -2,6 +2,7 @@
 using Microsoft.EntityFrameworkCore;
 using OpenShock.Common.Authentication.Services;
 using OpenShock.Common.DeviceControl;
+using OpenShock.Common.Extensions;
 using OpenShock.Common.Models;
 using OpenShock.Common.OpenShockDb;
 using OpenShock.Common.Redis;
@@ -38,19 +39,19 @@ public sealed class ShareLinkHub : Hub<IShareLinkHub>
         var httpContext = Context.GetHttpContext();
         if (httpContext?.GetRouteValue("Id") is not string param || !Guid.TryParse(param, out var id))
         {
-            _logger.LogWarning("Aborting connection... id not found");
+            _logger.LogDebug("Aborting connection... id not found");
             Context.Abort();
             return;
         }
         
         GenericIni? user = null;
 
-        if (httpContext.TryGetUserSessionCookie(out var sessionCookie))
+        if (httpContext.TryGetUserSession(out var sessionCookie))
         {
             user = await SessionAuth(sessionCookie);
             if (user == null)
             {
-                _logger.LogWarning("Connection tried authentication with invalid user session cookie, terminating connection...");
+                _logger.LogDebug("Connection tried authentication with invalid user session cookie, terminating connection...");
                 Context.Abort();
                 return;
             }
@@ -61,7 +62,7 @@ public sealed class ShareLinkHub : Hub<IShareLinkHub>
         var exists = await _db.ShockerSharesLinks.AnyAsync(x => x.Id == id && (x.ExpiresOn == null || x.ExpiresOn > DateTime.UtcNow));
         if (!exists)
         {
-            _logger.LogWarning("Aborting connection... share link not found");
+            _logger.LogDebug("Aborting connection... share link not found");
             Context.Abort();
             return;
         }
@@ -72,7 +73,7 @@ public sealed class ShareLinkHub : Hub<IShareLinkHub>
 
         if (user == null && customName == null)
         {
-            _logger.LogWarning("customName was not set nor was the user authenticated, terminating connection...");
+            _logger.LogDebug("customName was not set nor was the user authenticated, terminating connection...");
             Context.Abort();
             return;
         }
@@ -129,7 +130,7 @@ public sealed class ShareLinkHub : Hub<IShareLinkHub>
         return await _db.Users.Select(x => new GenericIni
         {
             Id = x.Id,
-            Image = GravatarUtils.GetImageUrl(x.Email),
+            Image = x.GetImageUrl(),
             Name = x.Name
         }).FirstAsync(user => user.Id == session.UserId);
     }

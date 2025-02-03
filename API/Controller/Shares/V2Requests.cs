@@ -6,6 +6,7 @@ using Microsoft.EntityFrameworkCore;
 using OpenShock.API.Models.Requests;
 using OpenShock.API.Models.Response;
 using OpenShock.Common.Errors;
+using OpenShock.Common.Extensions;
 using OpenShock.Common.Models;
 using OpenShock.Common.Problems;
 using OpenShock.Common.Utils;
@@ -28,7 +29,7 @@ public sealed partial class SharesController
             {
                 Id = x.OwnerNavigation.Id,
                 Name = x.OwnerNavigation.Name,
-                Image = x.OwnerNavigation.GetImage()
+                Image = x.OwnerNavigation.GetImageUrl()
             },
             SharedWith = x.UserNavigation == null
                 ? null
@@ -36,7 +37,7 @@ public sealed partial class SharesController
                 {
                     Id = x.UserNavigation.Id,
                     Name = x.UserNavigation.Name,
-                    Image = x.UserNavigation.GetImage()
+                    Image = x.UserNavigation.GetImageUrl()
                 },
             Counts = new ShareRequestBaseItem.ShareRequestCounts
             {
@@ -61,7 +62,7 @@ public sealed partial class SharesController
                 {
                     Id = x.OwnerNavigation.Id,
                     Name = x.OwnerNavigation.Name,
-                    Image = x.OwnerNavigation.GetImage()
+                    Image = x.OwnerNavigation.GetImageUrl()
                 },
                 SharedWith = x.UserNavigation == null
                     ? null
@@ -69,7 +70,7 @@ public sealed partial class SharesController
                     {
                         Id = x.UserNavigation.Id,
                         Name = x.UserNavigation.Name,
-                        Image = x.UserNavigation.GetImage()
+                        Image = x.UserNavigation.GetImageUrl()
                     },
                 Counts = new ShareRequestBaseItem.ShareRequestCounts
                 {
@@ -95,7 +96,7 @@ public sealed partial class SharesController
                 {
                     Id = x.OwnerNavigation.Id,
                     Name = x.OwnerNavigation.Name,
-                    Image = x.OwnerNavigation.GetImage()
+                    Image = x.OwnerNavigation.GetImageUrl()
                 },
                 SharedWith = x.UserNavigation == null
                     ? null
@@ -103,7 +104,7 @@ public sealed partial class SharesController
                     {
                         Id = x.UserNavigation.Id,
                         Name = x.UserNavigation.Name,
-                        Image = x.UserNavigation.GetImage()
+                        Image = x.UserNavigation.GetImageUrl()
                     },
                 Shockers = x.ShareRequestsShockers.Select(y => new ShockerPermLimitPairWithId
                 {

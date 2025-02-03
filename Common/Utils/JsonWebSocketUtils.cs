@@ -1,4 +1,5 @@
 ﻿using System.Buffers;
+using System.IO.Pipelines;
 using System.Net.WebSockets;
 using System.Text.Json;
 using Microsoft.IO;
@@ -53,16 +54,16 @@ public static class JsonWebSocketUtils
         }
     }
 
-    public static Task SendFullMessage<T>(T obj, WebSocket socket, CancellationToken cancelToken, int maxChunkSize = 256) =>
-        SendFullMessageBytes(JsonSerializer.SerializeToUtf8Bytes(obj), socket, cancelToken);
+    public static Task SendFullMessage<T>(T obj, WebSocket socket, CancellationToken cancelToken, int bufferSize = 4096) =>
+        SendFullMessageBytes(JsonSerializer.SerializeToUtf8Bytes(obj), socket, cancelToken, bufferSize);
 
-    public static async Task SendFullMessageBytes(byte[] msg, WebSocket socket, CancellationToken cancelToken, int maxChunkSize = 256)
+    public static async Task SendFullMessageBytes(byte[] msg, WebSocket socket, CancellationToken cancelToken, int bufferSize)
     {
         var doneBytes = 0;
 
         while (doneBytes < msg.Length)
         {
-            var bytesProcessing = Math.Min(maxChunkSize, msg.Length - doneBytes);
+            var bytesProcessing = Math.Min(bufferSize, msg.Length - doneBytes);
             var buffer = msg.AsMemory(doneBytes, bytesProcessing);
 
             doneBytes += bytesProcessing;

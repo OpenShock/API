@@ -7,14 +7,14 @@
         <AssemblyName>OpenShock.Cron</AssemblyName>
         <RootNamespace>OpenShock.Cron</RootNamespace>
         <Company>OpenShock</Company>
-        <AssemblyVersion>3.6.0</AssemblyVersion>
+        <AssemblyVersion>3.8.0</AssemblyVersion>
       <UserSecretsId>a2109c1e-fb11-44d7-8127-346ef60cb9a5</UserSecretsId>
   </PropertyGroup>
 
     <ItemGroup>
-        <PackageReference Include="Hangfire.AspNetCore" Version="1.8.16" />
+        <PackageReference Include="Hangfire.AspNetCore" Version="1.8.17" />
         <PackageReference Include="Hangfire.PostgreSql" Version="1.20.10" />
-        <PackageReference Include="Microsoft.Extensions.Hosting" Version="9.0.0" />
+        <PackageReference Include="Microsoft.Extensions.Hosting" Version="9.0.1" />
     </ItemGroup>
 
     <ItemGroup>

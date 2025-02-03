@@ -130,20 +130,31 @@ public abstract class HubControllerBase<TIn, TOut> : FlatbuffersWebsocketBaseCon
 
         return Task.FromResult(OneOf<Success, Error<OpenShockProblem>>.FromT0(new Success()));
     }
-
-    /// <inheritdoc />
-    protected override async Task RegisterConnection()
-    {
-        await _hubLifetimeManager.AddDeviceConnection(5, this, LinkedToken);
-    }
     
-    /// <inheritdoc />
+    
+    /// <summary>
+    /// Register to the hub lifetime manager
+    /// </summary>
+    /// <returns></returns>
+    protected override async Task<bool> TryRegisterConnection()
+    {
+        return await _hubLifetimeManager.TryAddDeviceConnection(5, this, LinkedToken);
+    }
+
+    private bool _unregistered;
+    
+    /// <summary>
+    /// When the connection is destroyed
+    /// </summary>
     protected override async Task UnregisterConnection()
     {
-        Logger.LogDebug("Unregistering hub connection [{HubId}]", Id);
+        if (_unregistered)
+            return;
+        _unregistered = true;
+        
         await _hubLifetimeManager.RemoveDeviceConnection(this);
     }
-    
+
     /// <inheritdoc />
     public abstract ValueTask Control(List<ShockerCommand> controlCommands);
 
@@ -152,7 +163,8 @@ public abstract class HubControllerBase<TIn, TOut> : FlatbuffersWebsocketBaseCon
 
     /// <inheritdoc />
     public abstract ValueTask OtaInstall(SemVersion version);
-    
+
+
     /// <summary>
     /// Keep the hub online
     /// </summary>

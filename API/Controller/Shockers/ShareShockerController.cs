@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using OpenShock.API.Models.Requests;
 using OpenShock.API.Models.Response;
 using OpenShock.API.Services;
+using OpenShock.Common.Extensions;
 using OpenShock.Common.Models;
 using OpenShock.Common.OpenShockDb;
 using System.Net;
@@ -40,7 +41,7 @@ public sealed partial class ShockerController
                     {
                         Name = x.SharedWithNavigation.Name,
                         Id = x.SharedWith,
-                        Image = GravatarUtils.GetImageUrl(x.SharedWithNavigation.Email)
+                        Image = x.SharedWithNavigation.GetImageUrl()
                     },
                     CreatedOn = x.CreatedOn,
                     Permissions = new ShockerPermissions

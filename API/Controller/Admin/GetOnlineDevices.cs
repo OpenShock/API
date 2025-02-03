@@ -1,6 +1,7 @@
 ﻿using System.Net.Mime;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using OpenShock.Common.Extensions;
 using OpenShock.Common.Models;
 using OpenShock.Common.Redis;
 using OpenShock.Common.Utils;
@@ -35,7 +36,7 @@ public sealed partial class AdminController
                     Owner = new GenericIni
                     {
                         Id = x.OwnerNavigation.Id,
-                        Image = x.OwnerNavigation.GetImage(),
+                        Image = x.OwnerNavigation.GetImageUrl(),
                         Name = x.OwnerNavigation.Name
                     }
                 }).ToListAsync();

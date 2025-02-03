@@ -16,7 +16,7 @@ public sealed partial class AccountController
         [FromServices] ApiConfig apiConfig)
     {
         // Remove session if valid
-        if (HttpContext.TryGetUserSessionCookie(out var sessionCookie))
+        if (HttpContext.TryGetUserSession(out var sessionCookie))
         {
             await sessionService.DeleteSessionById(sessionCookie);
         }

@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using OpenShock.Common.Authentication;
 using OpenShock.Common.Authentication.Services;
 using OpenShock.Common.DeviceControl;
+using OpenShock.Common.Extensions;
 using OpenShock.Common.Models;
 using OpenShock.Common.Models.WebSocket;
 using OpenShock.Common.OpenShockDb;
@@ -85,7 +86,7 @@ public sealed class UserHub : Hub<IUserHub>
         {
             Id = x.Id,
             Name = x.Name,
-            Image = GravatarUtils.GetImageUrl(x.Email),
+            Image = x.GetImageUrl(),
             ConnectionId = Context.ConnectionId,
             AdditionalItems = additionalItems,
             CustomName = customName
