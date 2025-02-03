@@ -101,8 +101,7 @@ public sealed class HubLifetimeManager
                 return false;
             }
 
-            foreach (var websocketController in WebsocketManager.LiveControlUsers.GetConnections(hubLifetime
-                         .HubController.Id))
+            foreach (var websocketController in await WebsocketManager.LiveControlUsers.GetConnections(hubLifetime.HubController.Id))
                 await websocketController.UpdateConnectedState(true);
         }
 
@@ -155,7 +154,7 @@ public sealed class HubLifetimeManager
 
         if (notifyLiveControlClients)
         {
-            foreach (var websocketController in WebsocketManager.LiveControlUsers.GetConnections(hubController.Id))
+            foreach (var websocketController in await WebsocketManager.LiveControlUsers.GetConnections(hubController.Id))
                 await websocketController.UpdateConnectedState(false);
         }
         
