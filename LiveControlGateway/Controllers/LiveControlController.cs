@@ -92,10 +92,9 @@ public sealed class LiveControlController : WebsocketBaseController<IBaseRespons
     }
 
     /// <inheritdoc />
-    protected override Task UnregisterConnection()
+    protected override async Task UnregisterConnection()
     {
-        WebsocketManager.LiveControlUsers.UnregisterConnection(this);
-        return Task.CompletedTask;
+        await WebsocketManager.LiveControlUsers.UnregisterConnection(this);
     }
 
     /// <summary>
