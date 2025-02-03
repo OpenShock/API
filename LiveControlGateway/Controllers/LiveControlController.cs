@@ -34,7 +34,7 @@ namespace OpenShock.LiveControlGateway.Controllers;
 [Route("/{version:apiVersion}/ws/live/{hubId:guid}")]
 [TokenPermission(PermissionType.Shockers_Use)]
 [Authorize(AuthenticationSchemes = OpenShockAuthSchemas.UserSessionApiTokenCombo)]
-public sealed class LiveControlController : WebsocketBaseController<IBaseResponse<LiveResponseType>>, IActionFilter
+public sealed class LiveControlController : WebsocketBaseController<LiveControlResponse<LiveResponseType>>, IActionFilter
 {
     private readonly OpenShockContext _db;
     private readonly HubLifetimeManager _hubLifetimeManager;
@@ -206,7 +206,7 @@ public sealed class LiveControlController : WebsocketBaseController<IBaseRespons
     /// <inheritdoc />
     protected override async Task SendInitialData()
     {
-        await QueueMessage(new Common.Models.WebSocket.BaseResponse<LiveResponseType>
+        await QueueMessage(new LiveControlResponse<LiveResponseType>
         {
             ResponseType = LiveResponseType.TPS,
             Data = new TpsData
@@ -234,7 +234,7 @@ public sealed class LiveControlController : WebsocketBaseController<IBaseRespons
         _lastIsConnected = isConnected;
         try
         {
-            await QueueMessage(new Common.Models.WebSocket.BaseResponse<LiveResponseType>
+            await QueueMessage(new LiveControlResponse<LiveResponseType>
             {
                 ResponseType = _lastIsConnected
                     ? LiveResponseType.DeviceConnected
@@ -317,7 +317,7 @@ public sealed class LiveControlController : WebsocketBaseController<IBaseRespons
             LiveRequestType.Pong => IntakePong(request.Data),
             LiveRequestType.Frame => IntakeFrame(request.Data),
             LiveRequestType.BulkFrame => IntakeBulkFrame(request.Data),
-            _ => QueueMessage(new Common.Models.WebSocket.BaseResponse<LiveResponseType>()
+            _ => QueueMessage(new LiveControlResponse<LiveResponseType>()
             {
                 ResponseType = LiveResponseType.RequestTypeNotFound
             }).AsTask()
@@ -344,7 +344,7 @@ public sealed class LiveControlController : WebsocketBaseController<IBaseRespons
         if (Logger.IsEnabled(LogLevel.Trace))
             Logger.LogTrace("Latency: {Latency}ms", _latencyMs);
 
-        await QueueMessage(new Common.Models.WebSocket.BaseResponse<LiveResponseType>
+        await QueueMessage(new LiveControlResponse<LiveResponseType>
         {
             ResponseType = LiveResponseType.LatencyAnnounce,
             Data = new LatencyAnnounceData
@@ -370,7 +370,7 @@ public sealed class LiveControlController : WebsocketBaseController<IBaseRespons
             if (frames is not { Length: > 0 })
             {
                 Logger.LogWarning("Error while deserializing bulk frame");
-                await QueueMessage(new Common.Models.WebSocket.BaseResponse<LiveResponseType>
+                await QueueMessage(new LiveControlResponse<LiveResponseType>
                 {
                     ResponseType = LiveResponseType.InvalidData
                 });
@@ -380,7 +380,7 @@ public sealed class LiveControlController : WebsocketBaseController<IBaseRespons
         catch (Exception e)
         {
             Logger.LogWarning(e, "Error while deserializing frame");
-            await QueueMessage(new Common.Models.WebSocket.BaseResponse<LiveResponseType>
+            await QueueMessage(new LiveControlResponse<LiveResponseType>
             {
                 ResponseType = LiveResponseType.InvalidData
             });
@@ -414,7 +414,7 @@ public sealed class LiveControlController : WebsocketBaseController<IBaseRespons
             if (frame == null)
             {
                 Logger.LogWarning("Error while deserializing frame");
-                await QueueMessage(new Common.Models.WebSocket.BaseResponse<LiveResponseType>
+                await QueueMessage(new LiveControlResponse<LiveResponseType>
                 {
                     ResponseType = LiveResponseType.InvalidData
                 });
@@ -424,7 +424,7 @@ public sealed class LiveControlController : WebsocketBaseController<IBaseRespons
         catch (Exception e)
         {
             Logger.LogWarning(e, "Error while deserializing frame");
-            await QueueMessage(new Common.Models.WebSocket.BaseResponse<LiveResponseType>
+            await QueueMessage(new LiveControlResponse<LiveResponseType>
             {
                 ResponseType = LiveResponseType.InvalidData
             });
@@ -441,7 +441,7 @@ public sealed class LiveControlController : WebsocketBaseController<IBaseRespons
         var permCheck = CheckFramePermissions(frame.Shocker, frame.Type);
         if (permCheck.IsT1)
         {
-            await QueueMessage(new Common.Models.WebSocket.BaseResponse<LiveResponseType>
+            await QueueMessage(new LiveControlResponse<LiveResponseType>
             {
                 ResponseType = LiveResponseType.ShockerNotFound
             });
@@ -450,7 +450,7 @@ public sealed class LiveControlController : WebsocketBaseController<IBaseRespons
 
         if (permCheck.IsT2)
         {
-            await QueueMessage(new Common.Models.WebSocket.BaseResponse<LiveResponseType>
+            await QueueMessage(new LiveControlResponse<LiveResponseType>
             {
                 ResponseType = LiveResponseType.ShockerMissingLivePermission
             });
@@ -459,7 +459,7 @@ public sealed class LiveControlController : WebsocketBaseController<IBaseRespons
 
         if (permCheck.IsT3)
         {
-            await QueueMessage(new Common.Models.WebSocket.BaseResponse<LiveResponseType>
+            await QueueMessage(new LiveControlResponse<LiveResponseType>
             {
                 ResponseType = LiveResponseType.ShockerMissingPermission
             });
@@ -468,7 +468,7 @@ public sealed class LiveControlController : WebsocketBaseController<IBaseRespons
 
         if (permCheck.IsT4)
         {
-            await QueueMessage(new Common.Models.WebSocket.BaseResponse<LiveResponseType>()
+            await QueueMessage(new LiveControlResponse<LiveResponseType>()
             {
                 ResponseType = LiveResponseType.ShockerPaused
             });
@@ -489,7 +489,7 @@ public sealed class LiveControlController : WebsocketBaseController<IBaseRespons
 
         if (result.IsT1)
         {
-            await QueueMessage(new Common.Models.WebSocket.BaseResponse<LiveResponseType>
+            await QueueMessage(new LiveControlResponse<LiveResponseType>
             {
                 ResponseType = LiveResponseType.DeviceNotConnected
             });
@@ -498,7 +498,7 @@ public sealed class LiveControlController : WebsocketBaseController<IBaseRespons
 
         if (result.IsT2)
         {
-            await QueueMessage(new Common.Models.WebSocket.BaseResponse<LiveResponseType>
+            await QueueMessage(new LiveControlResponse<LiveResponseType>
             {
                 ResponseType = LiveResponseType.ShockerNotFound
             });
@@ -507,7 +507,7 @@ public sealed class LiveControlController : WebsocketBaseController<IBaseRespons
         
         if (result.IsT3)
         {
-            await QueueMessage(new Common.Models.WebSocket.BaseResponse<LiveResponseType>
+            await QueueMessage(new LiveControlResponse<LiveResponseType>
             {
                 ResponseType = LiveResponseType.ShockerExclusive,
                 Data = result.AsT3.Until
@@ -554,7 +554,7 @@ public sealed class LiveControlController : WebsocketBaseController<IBaseRespons
                 Id);
 
         _pingTimestamp = Stopwatch.GetTimestamp();
-        await QueueMessage(new Common.Models.WebSocket.BaseResponse<LiveResponseType>
+        await QueueMessage(new LiveControlResponse<LiveResponseType>
         {
             ResponseType = LiveResponseType.Ping,
             Data = new LcgLiveControlPing
