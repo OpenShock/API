@@ -61,7 +61,7 @@ public sealed partial class AdminController
 
         return Ok(new Paginated<AdminUsersView>
         {
-            Data = await deferredUsers.ToListAsync(),
+            Data = await deferredUsers.ToArrayAsync(),
             Offset = offset,
             Limit = limit,
             Total = await deferredCount.ValueAsync(),

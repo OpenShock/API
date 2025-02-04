@@ -32,10 +32,10 @@ public static class OpenShockServiceHelper
     // TODO: this is temporary while we still rely on enums for user ranks
     static bool HandleRankCheck(AuthorizationHandlerContext context, RankType requiredRank)
     {
-        var ranks = context.User.Identities.SelectMany(ident => ident.Claims.Where(claim => claim.Type == ident.RoleClaimType)).Select(claim => Enum.Parse<RankType>(claim.Value)).ToList();
+        var ranks = context.User.Identities.SelectMany(ident => ident.Claims.Where(claim => claim.Type == ident.RoleClaimType)).Select(claim => Enum.Parse<RankType>(claim.Value)).ToArray();
 
         // Has any rank that is higher than required rank
-        return ranks.Count != 0 && ranks.Max() >= requiredRank;
+        return ranks.Length != 0 && ranks.Max() >= requiredRank;
     }
 
     /// <summary>

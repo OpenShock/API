@@ -29,7 +29,7 @@ public static class SwaggerGenExtensions
                         .Select(v => v.ToString())
                         .ToHashSet()
                         .OrderBy(v => v)
-                        .ToList();
+                        .ToArray();
 
         if (versions.Any(v => !int.TryParse(v, out _)))
         {

@@ -16,9 +16,9 @@ namespace OpenShock.API.Controller.Shares;
 public sealed partial class SharesController
 {
     [HttpGet("requests/outstanding")]
-    [ProducesResponseType<IEnumerable<ShareRequestBaseItem>>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
+    [ProducesResponseType<ShareRequestBaseItem[]>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
     [ApiVersion("2")]
-    public async Task<IEnumerable<ShareRequestBaseItem>> GetOutstandingRequestsList()
+    public async Task<ShareRequestBaseItem[]> GetOutstandingRequestsList()
     {
         var outstandingShares = await _db.ShareRequests.Where(x => x.Owner == CurrentUser.Id)
             .Select(x => new ShareRequestBaseItem()
@@ -43,15 +43,15 @@ public sealed partial class SharesController
             {
                 Shockers = x.ShareRequestsShockers.Count
             }
-        }).ToListAsync();
+        }).ToArrayAsync();
         
         return outstandingShares;
     }
     
     [HttpGet("requests/incoming")]
-    [ProducesResponseType<IEnumerable<ShareRequestBaseItem>>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
+    [ProducesResponseType<ShareRequestBaseItem[]>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
     [ApiVersion("2")]
-    public async Task<IEnumerable<ShareRequestBaseItem>> GetIncomingRequestsList()
+    public async Task<ShareRequestBaseItem[]> GetIncomingRequestsList()
     {
         var outstandingShares = await _db.ShareRequests.Where(x => x.User == CurrentUser.Id)
             .Select(x => new ShareRequestBaseItem
@@ -76,7 +76,7 @@ public sealed partial class SharesController
                 {
                     Shockers = x.ShareRequestsShockers.Count
                 }
-            }).ToListAsync();
+            }).ToArrayAsync();
         
         return outstandingShares;
     }
