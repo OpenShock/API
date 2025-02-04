@@ -72,6 +72,7 @@ public sealed class HubAuthentication : AuthenticationHandler<AuthenticationSche
     /// <inheritdoc />
     protected override Task HandleChallengeAsync(AuthenticationProperties properties)
     {
+        if (Context.Response.HasStarted) return Task.CompletedTask;
         _authResultError ??= AuthResultError.UnknownError;
         Response.StatusCode = _authResultError.Status!.Value;
         _authResultError.AddContext(Context);

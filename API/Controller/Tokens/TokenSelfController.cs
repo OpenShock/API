@@ -19,7 +19,7 @@ public sealed partial class TokensController
     /// <returns></returns>
     /// <exception cref="Exception"></exception>
     [HttpGet("self")]
-    [Authorize(AuthenticationSchemes = OpenShockAuthSchemas.ApiToken)]
+    [Authorize(Policy = OpenShockAuthPolicies.TokenOnly)]
     [ProducesResponseType<TokenResponse>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
     public TokenResponse GetSelfToken([FromServices] IUserReferenceService userReferenceService)
     {

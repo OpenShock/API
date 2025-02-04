@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Authentication;
+﻿using System.Net.Mime;
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Http.Json;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
@@ -10,6 +11,7 @@ using OpenShock.Common.Utils;
 using System.Security.Claims;
 using System.Text.Encodings.Web;
 using System.Text.Json;
+using OpenShock.Common.Problems;
 
 namespace OpenShock.Common.Authentication.AuthenticationHandlers;
 
@@ -20,6 +22,7 @@ public sealed class ApiTokenAuthentication : AuthenticationHandler<Authenticatio
     private readonly IBatchUpdateService _batchUpdateService;
     private readonly OpenShockContext _db;
     private readonly JsonSerializerOptions _serializerOptions;
+    private OpenShockProblem? _authResultError = null;
 
     public ApiTokenAuthentication(
         IOptionsMonitor<AuthenticationSchemeOptions> options,
@@ -42,14 +45,14 @@ public sealed class ApiTokenAuthentication : AuthenticationHandler<Authenticatio
     {
         if (!Context.TryGetApiTokenFromHeader(out var token))
         {
-            return AuthenticateResult.Fail(AuthResultError.HeaderMissingOrInvalid.Title!);
+            return Fail(AuthResultError.HeaderMissingOrInvalid);
         }
 
-        string tokenHash = HashingUtils.HashSha256(token);
+        var tokenHash = HashingUtils.HashSha256(token);
 
         var tokenDto = await _db.ApiTokens.Include(x => x.User).FirstOrDefaultAsync(x => x.TokenHash == tokenHash &&
             (x.ValidUntil == null || x.ValidUntil >= DateTime.UtcNow));
-        if (tokenDto == null) return AuthenticateResult.Fail(AuthResultError.TokenInvalid.Title!);
+        if (tokenDto == null) return Fail(AuthResultError.TokenInvalid);
 
         _batchUpdateService.UpdateTokenLastUsed(tokenDto.Id);
         _authService.CurrentClient = tokenDto.User;
@@ -73,5 +76,21 @@ public sealed class ApiTokenAuthentication : AuthenticationHandler<Authenticatio
         var ticket = new AuthenticationTicket(new ClaimsPrincipal(ident), Scheme.Name);
 
         return AuthenticateResult.Success(ticket);
+    }
+
+    private AuthenticateResult Fail(OpenShockProblem reason)
+    {
+        _authResultError = reason;
+        return AuthenticateResult.Fail(reason.Type!);
+    }
+
+    /// <inheritdoc />
+    protected override Task HandleChallengeAsync(AuthenticationProperties properties)
+    {
+        if (Context.Response.HasStarted) return Task.CompletedTask;
+        _authResultError ??= AuthResultError.UnknownError;
+        Response.StatusCode = _authResultError.Status!.Value;
+        _authResultError.AddContext(Context);
+        return Context.Response.WriteAsJsonAsync(_authResultError, _serializerOptions, contentType: MediaTypeNames.Application.ProblemJson);
     }
 }
