@@ -12,7 +12,7 @@ using OpenShock.Common.OpenShockDb;
 
 namespace OpenShock.Common.Migrations
 {
-    [DbContext(typeof(OpenShockContext))]
+    [DbContext(typeof(MigrationOpenShockContext))]
     [Migration("20241219115917_FixAdminUsersView")]
     partial class FixAdminUsersView
     {

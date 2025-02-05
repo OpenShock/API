@@ -167,19 +167,7 @@ public static class OpenShockServiceHelper
         
         services.AddDbContextPool<OpenShockContext>(builder =>
         {
-            builder.UseNpgsql(config.Db.Conn, optionsBuilder =>
-            {
-                optionsBuilder.MapEnum<RoleType>();
-                optionsBuilder.MapEnum<ControlType>();
-                optionsBuilder.MapEnum<PermissionType>();
-                optionsBuilder.MapEnum<ShockerModelType>();
-                optionsBuilder.MapEnum<OtaUpdateStatus>();
-            });
-            if (config.Db.Debug)
-            {
-                builder.EnableSensitiveDataLogging();
-                builder.EnableDetailedErrors();
-            }
+            OpenShockContext.ConfigureOptionsBuilder(builder, config.Db.Conn, config.Db.Debug);
         });
 
         services.AddPooledDbContextFactory<OpenShockContext>(builder =>
