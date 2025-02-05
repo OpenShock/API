@@ -99,7 +99,10 @@ if (!config.Db.SkipMigration)
     Log.Information("Running database migrations...");
     using var scope = app.Services.CreateScope();
     
-    await using var migrationContext = new MigrationOpenShockContext(config.Db.Conn, config.Db.Debug);
+    await using var migrationContext = new MigrationOpenShockContext(
+        config.Db.Conn,
+        config.Db.Debug, 
+        scope.ServiceProvider.GetRequiredService<ILoggerFactory>());
     var pendingMigrations = migrationContext.Database.GetPendingMigrations().ToArray();
 
     if (pendingMigrations.Length > 0)
