@@ -132,7 +132,7 @@ public sealed partial class DevicesController
     [MapToApiVersion("1")]
     public async Task<IActionResult> RemoveDevice([FromRoute] Guid deviceId, [FromServices] IDeviceUpdateService updateService)
     {
-        var affected = await _db.Devices.Where(x => x.Id == deviceId).WhereIsUserOrAdmin(x => x.OwnerNavigation, CurrentUser).ExecuteDeleteAsync();
+        var affected = await _db.Devices.Where(x => x.Id == deviceId).WhereIsUserOrPrivileged(x => x.OwnerNavigation, CurrentUser).ExecuteDeleteAsync();
         if (affected <= 0) return Problem(DeviceError.DeviceNotFound);
         
         await updateService.UpdateDeviceForAllShared(CurrentUser.Id, deviceId, DeviceUpdateType.Deleted);

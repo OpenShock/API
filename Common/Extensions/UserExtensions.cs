@@ -18,22 +18,18 @@ public static class UserExtensions
         return user == otherUser || user.Id == otherUser.Id;
     }
 
-    public static bool IsRank(this User user, RankType rank)
+    public static bool IsRole(this User user, RoleType role)
     {
-        return user.Rank >= rank;
+        return user.Roles.Contains(role);
     }
 
-    public static bool IsUserOrRank(this User user, User otherUser, RankType rank)
+    public static bool IsUserOrRole(this User user, Guid otherUserId, RoleType role)
     {
-        if (user.IsUser(otherUser)) return true;
-
-        return user.Rank >= rank;
+        return user.IsUser(otherUserId) || user.IsRole(role);
     }
 
-    public static bool IsUserOrRank(this User user, Guid otherUserId, RankType rank)
+    public static bool IsUserOrRole(this User user, User otherUser, RoleType role)
     {
-        if (user.IsUser(otherUserId)) return true;
-
-        return user.Rank >= rank;
+        return user.IsUser(otherUser) || user.IsRole(role);
     }
 }

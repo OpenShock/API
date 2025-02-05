@@ -38,18 +38,13 @@ public static class IQueryableExtensions
         return source.Where(IsUserMatchExpr<TEntity>(navigationSelector, userId));
     }
 
-    public static IQueryable<TEntity> WhereIsUserOrRank<TEntity>(this IQueryable<TEntity> source, Expression<Func<TEntity, User>> navigationSelector, User user, RankType rank)
+    public static IQueryable<TEntity> WhereIsUserOrPrivileged<TEntity>(this IQueryable<TEntity> source, Expression<Func<TEntity, User>> navigationSelector, User user)
     {
-        if (user.Rank >= rank)
+        if (user.Roles.Any(r => r is RoleType.Admin or RoleType.System))
         {
             return source;
         }
 
         return WhereIsUser(source, navigationSelector, user.Id);
-    }
-
-    public static IQueryable<TEntity> WhereIsUserOrAdmin<TEntity>(this IQueryable<TEntity> source, Expression<Func<TEntity, User>> navigationSelector, User user)
-    {
-        return WhereIsUserOrRank(source, navigationSelector, user, RankType.Admin);
     }
 }

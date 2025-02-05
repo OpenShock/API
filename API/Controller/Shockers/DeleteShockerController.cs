@@ -32,7 +32,7 @@ public sealed partial class ShockerController
     {
         var affected = await _db.Shockers
             .Where(x => x.Id == shockerId)
-            .WhereIsUserOrAdmin(x => x.DeviceNavigation.OwnerNavigation, CurrentUser)
+            .WhereIsUserOrPrivileged(x => x.DeviceNavigation.OwnerNavigation, CurrentUser)
             .FirstOrDefaultAsync();
 
         if (affected == null)

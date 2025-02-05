@@ -21,7 +21,7 @@ public sealed partial class UsersController
             Name = CurrentUser.Name,
             Email = CurrentUser.Email,
             Image = CurrentUser.GetImageUrl(),
-            Rank = CurrentUser.Rank
+            Roles = CurrentUser.Roles
         }
     };
     public sealed class SelfResponse
@@ -30,6 +30,6 @@ public sealed partial class UsersController
         public required string Name { get; set; }
         public required string Email { get; set; }
         public required Uri Image { get; set; }
-        public required RankType Rank { get; set; }
+        public required List<RoleType> Roles { get; set; }
     }
 }

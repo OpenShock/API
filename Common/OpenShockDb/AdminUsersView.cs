@@ -18,7 +18,7 @@ public class AdminUsersView
 
     public required bool EmailActivated { get; set; }
 
-    public required RankType Rank { get; set; }
+    public required List<RoleType> Roles { get; set; }
 
     public required int ApiTokenCount { get; set; }
 
