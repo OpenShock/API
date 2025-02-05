@@ -25,7 +25,6 @@ public sealed partial class TokensController
     /// </summary>
     /// <response code="200">All tokens for the current user</response>
     [HttpGet]
-    [Authorize(AuthenticationSchemes = OpenShockAuthSchemas.UserSessionCookie)]
     [ProducesResponseType<IEnumerable<TokenResponse>>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
     public async Task<IEnumerable<TokenResponse>> ListTokens()
     {
@@ -52,7 +51,6 @@ public sealed partial class TokensController
     /// <response code="200">The token</response>
     /// <response code="404">The token does not exist or you do not have access to it.</response>
     [HttpGet("{tokenId}")]
-    [Authorize(AuthenticationSchemes = OpenShockAuthSchemas.UserSessionCookie)]
     [ProducesResponseType<TokenResponse>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status404NotFound, MediaTypeNames.Application.ProblemJson)] // ApiTokenNotFound    
     public async Task<IActionResult> GetTokenById([FromRoute] Guid tokenId)
@@ -81,7 +79,6 @@ public sealed partial class TokensController
     /// <response code="200">Successfully deleted token</response>
     /// <response code="404">The token does not exist or you do not have access to it.</response>
     [HttpDelete("{tokenId}")]
-    [Authorize(AuthenticationSchemes = OpenShockAuthSchemas.UserSessionCookie)]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status404NotFound, MediaTypeNames.Application.ProblemJson)] // ApiTokenNotFound    
     public async Task<IActionResult> DeleteToken([FromRoute] Guid tokenId)
@@ -105,7 +102,6 @@ public sealed partial class TokensController
     /// <param name="body"></param>
     /// <response code="200">The created token</response>
     [HttpPost]
-    [Authorize(AuthenticationSchemes = OpenShockAuthSchemas.UserSessionCookie)]
     [ProducesResponseType<TokenCreatedResponse>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
     public async Task<TokenCreatedResponse> CreateToken([FromBody] CreateTokenRequest body)
     {
@@ -139,7 +135,6 @@ public sealed partial class TokensController
     /// <response code="200">The edited token</response>
     /// <response code="404">The token does not exist or you do not have access to it.</response>
     [HttpPatch("{tokenId}")]
-    [Authorize(AuthenticationSchemes = OpenShockAuthSchemas.UserSessionCookie)]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status404NotFound, MediaTypeNames.Application.ProblemJson)] // ApiTokenNotFound    
     public async Task<IActionResult> EditToken([FromRoute] Guid tokenId, [FromBody] EditTokenRequest body)

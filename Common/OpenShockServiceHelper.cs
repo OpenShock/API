@@ -57,12 +57,11 @@ public static class OpenShockServiceHelper
         
         services.AddAuthorization(options =>
         {
-            options.AddPolicy(OpenShockAuthPolicies.TokenOnly, policy => policy.RequireClaim(ClaimTypes.AuthenticationMethod, OpenShockAuthSchemas.ApiToken));
-            options.AddPolicy(OpenShockAuthPolicies.UserOnly, policy => policy.RequireClaim(ClaimTypes.AuthenticationMethod, OpenShockAuthSchemas.UserSessionCookie));
-            
             options.AddPolicy(OpenShockAuthPolicies.RankAdmin, policy => policy.RequireRole("Admin", "System"));
             // TODO: Add token permission policies
         });
+        
+        services.AddSingleton<IAuthorizationMiddlewareResultHandler, OpenShockAuthorizationMiddlewareResultHandler>();
         
         services.ConfigureHttpJsonOptions(options =>
         {

@@ -1,4 +1,5 @@
 ﻿using System.Net;
+using Microsoft.AspNetCore.Authorization;
 using OpenShock.Common.Models;
 using OpenShock.Common.Problems;
 using OpenShock.Common.Problems.CustomProblems;
@@ -20,4 +21,6 @@ public static class AuthorizationError
         IEnumerable<PermissionType> grantedPermissions) => new("Authorization.Token.PermissionMissing",
         $"You do not have the required permission to access this endpoint. Missing permission: {requiredPermission.ToString()}",
         requiredPermission, grantedPermissions, HttpStatusCode.Forbidden);
+    
+    public static PolicyNotMetProblem PolicyNotMet(IEnumerable<string> failedRequirements) => new PolicyNotMetProblem(failedRequirements);
 }

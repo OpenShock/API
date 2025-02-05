@@ -4,13 +4,17 @@ using Microsoft.AspNetCore.Mvc;
 using OpenShock.API.Models.Response;
 using OpenShock.Common.Authentication;
 using OpenShock.Common.Authentication.Attributes;
+using OpenShock.Common.Authentication.ControllerBase;
 using OpenShock.Common.Authentication.Services;
 using OpenShock.Common.OpenShockDb;
 using OpenShock.Common.Problems;
 
 namespace OpenShock.API.Controller.Tokens;
 
-public sealed partial class TokensController
+[ApiController]
+[Route("/{version:apiVersion}/tokens")]
+[Authorize(AuthenticationSchemes = OpenShockAuthSchemas.ApiToken)]
+public sealed partial class TokensSelfController : AuthenticatedSessionControllerBase
 {
     /// <summary>
     /// Gets information about the current token used to access this endpoint
@@ -19,7 +23,6 @@ public sealed partial class TokensController
     /// <returns></returns>
     /// <exception cref="Exception"></exception>
     [HttpGet("self")]
-    [Authorize(Policy = OpenShockAuthPolicies.TokenOnly)]
     [ProducesResponseType<TokenResponse>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
     public TokenResponse GetSelfToken([FromServices] IUserReferenceService userReferenceService)
     {
