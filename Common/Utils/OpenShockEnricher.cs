@@ -1,4 +1,6 @@
-﻿using Microsoft.Net.Http.Headers;
+﻿using System.Security.Claims;
+using Microsoft.Net.Http.Headers;
+using OpenShock.Common.Authentication;
 using Serilog;
 using Serilog.Configuration;
 using Serilog.Core;
@@ -32,16 +34,25 @@ public sealed class OpenShockEnricher : ILogEventEnricher
         logEvent.AddOrUpdateProperty(new LogEventProperty("CF-IPCountry", new ScalarValue(ctx.GetCFIPCountry())));
     
         //logEvent.AddOrUpdateProperty(new LogEventProperty("Headers", new DictionaryValue(ctx.Request.Headers.Select(x => new KeyValuePair<ScalarValue, LogEventPropertyValue>(new ScalarValue(x.Key), new ScalarValue(x.Value))))));
-    
-        TryAddVar(logEvent, ctx, "User");
-        TryAddVar(logEvent, ctx, "Device");
+
+        foreach (var claim in ctx.User.Claims)
+        {
+            switch (claim.Type)
+            {
+                case ClaimTypes.NameIdentifier:
+                    AddVar(logEvent, "User", claim.Value);
+                    break;
+                case OpenShockAuthClaims.ApiTokenId:
+                    AddVar(logEvent, "ApiToken", claim.Value);
+                    break;
+                
+            }
+        }
     }
 
-    private void TryAddVar(LogEvent logEvent, HttpContext ctx, string name)
+    private void AddVar(LogEvent logEvent, string key, string value)
     {
-        var user = ctx.Items[name];
-        if (user == null) return;
-        var propertyId = new LogEventProperty(name, new ScalarValue(user));
+        var propertyId = new LogEventProperty(key, new ScalarValue(value));
         logEvent.AddOrUpdateProperty(propertyId);
     }
 }
