@@ -46,7 +46,7 @@ public sealed partial class ShockerController
                         Intensity = x.LimitIntensity
                     }
                 }
-            }).ToListAsync();
+            }).ToArrayAsync();
 
         var shared = new Dictionary<Guid, OwnerShockerResponse>();
         foreach (var shocker in sharedShockersRaw)

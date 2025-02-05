@@ -74,7 +74,7 @@ public static class PermissionTypeBindings
             var parents = field.GetCustomAttributes<ParentPermissionAttribute>().Select(x => x.PermissionType);
             var name = field.GetCustomAttribute<PgNameAttribute>()!.PgName;
 
-            yield return new PermissionTypeRecord(permissionType, name, parents.ToList());
+            yield return new PermissionTypeRecord(permissionType, name, parents.ToArray());
         }
     }
 }

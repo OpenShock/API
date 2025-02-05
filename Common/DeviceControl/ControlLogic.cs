@@ -48,7 +48,7 @@ public static class ControlLogic
                     Duration = x.LimitDuration,
                     Intensity = x.LimitIntensity
                 }
-            }).ToListAsync();
+            }).ToArrayAsync();
 
         ownShockers.AddRange(sharedShockers);
 
@@ -77,7 +77,8 @@ public static class ControlLogic
                 Duration = x.LimitDuration,
                 Intensity = x.LimitIntensity
             }
-        }).ToListAsync();
+        }).ToArrayAsync();
+        
         return await ControlInternal(shocks, db, sender, hubClients, shareLinkShockers, redisPubService);
     }
     
