@@ -579,7 +579,8 @@ public partial class OpenShockContext : DbContext
                 .HasColumnName("email_activated");
             entity.Property(e => e.Roles)
                 .HasColumnType("role_type[]")
-                .HasColumnName("roles");
+                .HasColumnName("roles")
+                .HasConversion(x => x.ToArray(), x => x.ToList());
             entity.Property(e => e.ApiTokenCount)
                 .HasColumnName("api_token_count");
             entity.Property(e => e.PasswordResetCount)
