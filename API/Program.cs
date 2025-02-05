@@ -98,13 +98,14 @@ if (!config.Db.SkipMigration)
 {
     Log.Information("Running database migrations...");
     using var scope = app.Services.CreateScope();
-    var openShockContext = scope.ServiceProvider.GetRequiredService<OpenShockContext>();
-    var pendingMigrations = openShockContext.Database.GetPendingMigrations().ToArray();
+    
+    await using var migrationContext = new MigrationOpenShockContext(config.Db.Conn, config.Db.Debug);
+    var pendingMigrations = migrationContext.Database.GetPendingMigrations().ToArray();
 
     if (pendingMigrations.Length > 0)
     {
         Log.Information("Found pending migrations, applying [{@Migrations}]", pendingMigrations);
-        openShockContext.Database.Migrate();
+        migrationContext.Database.Migrate();
         Log.Information("Applied database migrations... proceeding with startup");
     }
     else
