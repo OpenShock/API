@@ -14,7 +14,6 @@ public sealed class ClearOldShockerControlLogs
 {
     private readonly OpenShockContext _db;
     private readonly ILogger<ClearOldShockerControlLogs> _logger;
-    private const int MaxLogCount = 1_000_000;
 
     /// <summary>
     /// DI constructor
@@ -39,28 +38,34 @@ public sealed class ClearOldShockerControlLogs
         
         _logger.LogInformation("Deleted {deletedCount} shocker control logs older than {retentionThreshold:O}.", deletedByAge, retentionThreshold);
         
-        // Check the remaining number of logs to ensure it does not exceed the maximum allowed.
-        var remainingLogsCount = await _db.ShockerControlLogs.CountAsync();
-        
-        if (remainingLogsCount > MaxLogCount)
-        {
-            _logger.LogInformation("Log count exceeds the maximum limit: {RemainingLogsCount} logs present, but the limit is {MaxLogCount}.", remainingLogsCount, MaxLogCount);
-            
-            // Identify the timestamp of the oldest log that should be retained to meet the log count limit.
-            var oldestLogToKeep = await _db.ShockerControlLogs
-                .OrderByDescending(log => log.CreatedOn)
-                .Select(log => log.CreatedOn)
-                .Skip(MaxLogCount)
-                .FirstAsync();
-            
-            _logger.LogInformation("Preparing to delete logs created before {OldestLogToKeep:O} to enforce the log count limit.", oldestLogToKeep);
+        var userLogsCounts = await _db.ShockerControlLogs
+            .GroupBy(log => log.Shocker.DeviceNavigation.Owner)
+            .Select(group => new
+            {
+                UserId = group.Key,
+                Count = group.Count(),
+                DeleteBefore = _db.ShockerControlLogs
+                    .Where(log => log.Shocker.DeviceNavigation.Owner == group.Key)
+                    .OrderByDescending(log => log.CreatedOn)
+                    .Skip(HardLimits.MaxShockerControlLogsPerUser)
+                    .Take(1)
+                    .FirstOrDefault()
+            })
+            .Where(log => log.DeleteBefore != null)
+            .ToArrayAsync();
 
-            // Delete logs that were created before the identified cutoff date.
-            var deletedByCount = await _db.ShockerControlLogs
-                .Where(log => log.CreatedOn < oldestLogToKeep)
-                .ExecuteDeleteAsync();
-            
-            _logger.LogInformation("Deleted {DeletedByCount} additional logs older than {OldestLogToKeep:O}.", deletedByCount, oldestLogToKeep);
+        if (userLogsCounts.Length != 0)
+        {
+            _logger.LogInformation("A total of {totalLogsToDelete} logs will be deleted to enforce per-user limits.", userLogsCounts.Sum(x => x.Count));
+        
+            foreach (var userLogCount in userLogsCounts)
+            {
+                await _db.ShockerControlLogs
+                    .Where(log => log.Shocker.DeviceNavigation.Owner == userLogCount.UserId && log.CreatedOn < userLogCount.DeleteBefore!.CreatedOn)
+                    .ExecuteDeleteAsync();
+            }
         }
+
+        _logger.LogInformation("Done!");
     }
 }
