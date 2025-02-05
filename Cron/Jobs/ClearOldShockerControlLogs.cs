@@ -44,14 +44,13 @@ public sealed class ClearOldShockerControlLogs
             {
                 UserId = group.Key,
                 CountToDelete = Math.Max(0, group.Count() - HardLimits.MaxShockerControlLogsPerUser),
-                DeleteBefore = _db.ShockerControlLogs
-                    .Where(log => log.Shocker.DeviceNavigation.Owner == group.Key)
+                DeleteBeforeDate = group
                     .OrderByDescending(log => log.CreatedOn)
                     .Skip(HardLimits.MaxShockerControlLogsPerUser)
-                    .Take(1)
+                    .Select(log => log.CreatedOn)
                     .FirstOrDefault()
             })
-            .Where(log => log.DeleteBefore != null)
+            .Where(result => result.CountToDelete > 0)
             .ToArrayAsync();
 
         if (userLogsCounts.Length != 0)
@@ -61,7 +60,7 @@ public sealed class ClearOldShockerControlLogs
             foreach (var userLogCount in userLogsCounts)
             {
                 await _db.ShockerControlLogs
-                    .Where(log => log.Shocker.DeviceNavigation.Owner == userLogCount.UserId && log.CreatedOn < userLogCount.DeleteBefore!.CreatedOn)
+                    .Where(log => log.Shocker.DeviceNavigation.Owner == userLogCount.UserId && log.CreatedOn < userLogCount.DeleteBeforeDate)
                     .ExecuteDeleteAsync();
             }
         }
