@@ -1,12 +1,1 @@
-﻿using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
-using OpenShock.Common.OpenShockDb;
-
-HostBuilder builder = new();
-builder.ConfigureServices(collection =>
-{
-    collection.AddDbContext<OpenShockContext>();
-});
-
-var host = builder.Build();
-await host.RunAsync();
+﻿Console.WriteLine("This is an empty project to add / remove migrations <3");

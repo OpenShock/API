@@ -12,9 +12,15 @@ namespace OpenShock.Common.OpenShockDb;
 /// </summary>
 public class MigrationOpenShockContext : OpenShockContext
 {
-    private readonly string _connectionString;
+    private readonly string _connectionString = string.Empty;
     private readonly bool _debug;
-
+    private readonly bool _migrationTool;
+    
+    public MigrationOpenShockContext()
+    {
+        _migrationTool = true;
+    }
+    
     public MigrationOpenShockContext(string connectionString, bool debug)
     {
         _connectionString = connectionString;
@@ -23,6 +29,11 @@ public class MigrationOpenShockContext : OpenShockContext
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {
+        if (_migrationTool)
+        {
+            ConfigureOptionsBuilder(optionsBuilder, "Host=localhost;Database=openshock;Username=openshock;Password=openshock", true);
+            return;
+        }
         ConfigureOptionsBuilder(optionsBuilder, _connectionString, _debug);
     }
 }
