@@ -43,7 +43,7 @@ public sealed class ClearOldShockerControlLogs
             .Select(group => new
             {
                 UserId = group.Key,
-                Count = group.Count(),
+                CountToDelete = Math.Max(0, group.Count() - HardLimits.MaxShockerControlLogsPerUser),
                 DeleteBefore = _db.ShockerControlLogs
                     .Where(log => log.Shocker.DeviceNavigation.Owner == group.Key)
                     .OrderByDescending(log => log.CreatedOn)
@@ -56,7 +56,7 @@ public sealed class ClearOldShockerControlLogs
 
         if (userLogsCounts.Length != 0)
         {
-            _logger.LogInformation("A total of {totalLogsToDelete} logs will be deleted to enforce per-user limits.", userLogsCounts.Sum(x => x.Count));
+            _logger.LogInformation("A total of {totalLogsToDelete} logs will be deleted to enforce per-user limits.", userLogsCounts.Sum(x => x.CountToDelete));
         
             foreach (var userLogCount in userLogsCounts)
             {
