@@ -1,0 +1,14 @@
+<Project>
+    <PropertyGroup>
+        <TargetFramework>net9.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <Company>OpenShock</Company>
+        <Product>$(Company).$(MSBuildProjectName)</Product>
+        <AssemblyName>$(Product)</AssemblyName>
+        <RootNamespace>$(Product.Replace(" ", "_"))</RootNamespace>
+        <AssemblyVersion>3.10.3</AssemblyVersion>
+        <FileVersion>$(AssemblyVersion)</FileVersion>
+        <UserSecretsId>a2109c1e-fb11-44d7-8127-346ef60cb9a5</UserSecretsId>
+    </PropertyGroup>
+</Project>
