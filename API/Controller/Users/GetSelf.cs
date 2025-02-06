@@ -31,5 +31,6 @@ public sealed partial class UsersController
         public required string Email { get; set; }
         public required Uri Image { get; set; }
         public required List<RoleType> Roles { get; set; }
+        public string Rank => Roles.Max().ToString();
     }
 }
