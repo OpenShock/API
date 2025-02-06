@@ -7,7 +7,7 @@
         <AssemblyName>OpenShock.Cron</AssemblyName>
         <RootNamespace>OpenShock.Cron</RootNamespace>
         <Company>OpenShock</Company>
-        <AssemblyVersion>3.10.2</AssemblyVersion>
+        <AssemblyVersion>3.10.3</AssemblyVersion>
       <UserSecretsId>a2109c1e-fb11-44d7-8127-346ef60cb9a5</UserSecretsId>
   </PropertyGroup>
 
