@@ -4,18 +4,18 @@
         <Product>$(Company).$(MSBuildProjectName)</Product>
         <Version>3.10.3</Version>
         
-        <RepositoryUrl>https://github.com/openshock/api</RepositoryUrl>
+        <RepositoryUrl>https://github.com/OpenShock/API</RepositoryUrl>
         <PackageReadmeFile>README.md</PackageReadmeFile>
         <PackageLicenseFile>LICENSE</PackageLicenseFile>
         <PackageRequireLicenseAcceptance>True</PackageRequireLicenseAcceptance>
     </PropertyGroup>
 
     <ItemGroup>
-        <None Include="README.md">
+        <None Include="../README.md">
             <Pack>True</Pack>
             <PackagePath>\</PackagePath>
         </None>
-        <None Include="LICENSE">
+        <None Include="../LICENSE">
             <Pack>True</Pack>
             <PackagePath>\</PackagePath>
         </None>
