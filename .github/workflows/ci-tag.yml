@@ -34,21 +34,3 @@ jobs:
           body_path: README.md
           tag_name: ${{ github.ref_name }}
           prerelease: ${{ contains(github.ref_name, '-rc') }}
-
-  deploy-production:
-    runs-on: ubuntu-latest
-    needs: release
-    if: ${{ !contains(github.ref_name, '-rc') }}
-    environment: production
-
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          sparse-checkout: |
-            .github
-
-      - uses: ./.github/actions/kubernetes-rollout-restart
-        with:
-          apiurl: ${{ secrets.KUBERNETES_APIURL }}
-          token: ${{ secrets.KUBERNETES_TOKEN }}
-          deployments: ${{ vars.DEPLOYMENT_NAMES }}
