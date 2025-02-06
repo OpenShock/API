@@ -32,9 +32,7 @@ public sealed class OpenShockEnricher : ILogEventEnricher
         logEvent.AddOrUpdateProperty(new LogEventProperty("RequestHost", new ScalarValue(ctx.Request.Headers[HeaderNames.Host].FirstOrDefault())));
         logEvent.AddOrUpdateProperty(new LogEventProperty("RequestReferer", new ScalarValue(ctx.Request.Headers[HeaderNames.Referer].FirstOrDefault())));
         logEvent.AddOrUpdateProperty(new LogEventProperty("CF-IPCountry", new ScalarValue(ctx.GetCFIPCountry())));
-    
-        //logEvent.AddOrUpdateProperty(new LogEventProperty("Headers", new DictionaryValue(ctx.Request.Headers.Select(x => new KeyValuePair<ScalarValue, LogEventPropertyValue>(new ScalarValue(x.Key), new ScalarValue(x.Value))))));
-
+        
         foreach (var claim in ctx.User.Claims)
         {
             switch (claim.Type)
@@ -45,7 +43,9 @@ public sealed class OpenShockEnricher : ILogEventEnricher
                 case OpenShockAuthClaims.ApiTokenId:
                     AddVar(logEvent, "ApiToken", claim.Value);
                     break;
-                
+                case OpenShockAuthClaims.HubId:
+                    AddVar(logEvent, "Hub", claim.Value);
+                    break;
             }
         }
     }
