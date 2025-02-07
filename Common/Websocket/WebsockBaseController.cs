@@ -62,7 +62,7 @@ public abstract class WebsocketBaseController<T> : OpenShockControllerBase, IAsy
 
     /// <inheritdoc />
     [NonAction]
-    public ValueTask QueueMessage(T data) => _channel.Writer.WriteAsync(data);
+    public ValueTask QueueMessage(T data) => _channel.Writer.WriteAsync(data, LinkedToken);
 
     private bool _disposed;
 
