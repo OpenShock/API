@@ -64,6 +64,14 @@ public interface IAccountService
     public Task<OneOf<Success, NotFound, SecretInvalid>> PasswordResetComplete(Guid passwordResetId, string secret, string newPassword);
     
     /// <summary>
+    /// Check the availability of a email
+    /// </summary>
+    /// <param name="username"></param>
+    /// <param name="cancellationToken"></param>
+    /// <returns></returns>
+    public Task<OneOf<Success, EmailTaken>> CheckEmailAvailability(string email, CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Check the availability of a username
     /// </summary>
     /// <param name="username"></param>
@@ -81,6 +89,14 @@ public interface IAccountService
     public Task<OneOf<Success, Error<OneOf<UsernameTaken, UsernameError, RecentlyChanged>>, NotFound>> ChangeUsername(Guid userId, string username, bool ignoreLimit = false);
     
     /// <summary>
+    /// Change the email of a user
+    /// </summary>
+    /// <param name="userId"></param>
+    /// <param name="email"></param>
+    /// <returns><see cref="Error{UsernameCheckResult}"/> only returns when the result is != Available</returns>
+    public Task<OneOf<Success, EmailTaken, EmailInvalid, NotFound>> ChangeEmail(Guid userId, string email);
+
+    /// <summary>
     /// Change the password of a user
     /// </summary>
     /// <param name="userId"></param>
@@ -94,5 +110,8 @@ public readonly struct TooManyPasswordResets;
 public readonly struct SecretInvalid;
 
 public readonly struct UsernameTaken;
+
+public readonly struct EmailTaken;
+public readonly struct EmailInvalid;
 
 public readonly struct RecentlyChanged;

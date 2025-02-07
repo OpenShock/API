@@ -10,6 +10,7 @@ using OpenShock.Common.OpenShockDb;
 using OpenShock.Common.Services.Session;
 using OpenShock.Common.Utils;
 using OpenShock.Common.Validation;
+using System.Net.Mail;
 
 namespace OpenShock.API.Services.Account;
 
@@ -189,6 +190,16 @@ public sealed class AccountService : IAccountService
     }
 
     /// <inheritdoc />
+    public async Task<OneOf<Success, EmailTaken>> CheckEmailAvailability(string email,
+        CancellationToken cancellationToken = default)
+    {
+        var isTaken = await _db.Users.AnyAsync(x => x.Email == email, cancellationToken: cancellationToken);
+        if (isTaken) return new EmailTaken();
+
+        return new Success();
+    }
+
+    /// <inheritdoc />
     public async Task<OneOf<Success, UsernameTaken, UsernameError>> CheckUsernameAvailability(string username,
         CancellationToken cancellationToken = default)
     {
@@ -238,6 +249,29 @@ public sealed class AccountService : IAccountService
         await _db.SaveChangesAsync();
 
         await transaction.CommitAsync();
+
+        return new Success();
+    }
+
+    /// <inheritdoc />
+    public async Task<OneOf<Success, EmailTaken, EmailInvalid, NotFound>>
+        ChangeEmail(Guid userId, string email)
+    {
+
+        if (!MailAddress.TryCreate(email, out _))
+            return new EmailInvalid();
+
+        var availability = await CheckEmailAvailability(email);
+        if (availability.IsT1)
+            return new EmailTaken();
+
+        var user = await _db.Users.FirstOrDefaultAsync(x => x.Id == userId);
+        if (user == null)
+            return new NotFound();
+
+        user.Email = email;
+
+        await _db.SaveChangesAsync();
 
         return new Success();
     }
