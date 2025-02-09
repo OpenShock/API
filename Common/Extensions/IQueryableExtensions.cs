@@ -1,6 +1,7 @@
 ﻿using System.Linq.Expressions;
+using OpenShock.Common.Utils;
 
-namespace OpenShock.Common.Utils;
+namespace OpenShock.Common.Extensions;
 
 public static class IQueryableExtensions
 {
