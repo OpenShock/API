@@ -1,6 +1,7 @@
 ﻿using System.Linq.Expressions;
 using System.Reflection;
 using System.Runtime.Serialization;
+using System.Text;
 using System.Text.RegularExpressions;
 using Microsoft.EntityFrameworkCore;
 
@@ -136,6 +137,81 @@ public static partial class ExpressionBuilder
         };
     }
 
+    public readonly record struct ParseResult(string Value, int Consumed);
+    static ParseResult ParseQuotedString(ReadOnlySpan<char> input)
+    {
+        const char QuoteChar = '\'';
+        const char EscapeChar = '\\';
+
+        if (input.Length <= 0)
+            throw new FormatException("Closing quote not found.");
+
+        if (input.Length == 1)
+        {
+            if (input[0] != '\'')
+                throw new FormatException("Closing quote not found.");
+
+            return new ParseResult(string.Empty, 1);
+        }
+
+        // Look for either a backslash or a closing quote.
+        int firstOccurrence = input.IndexOfAny(QuoteChar, EscapeChar);
+        if (firstOccurrence == -1)
+            throw new FormatException("Closing quote not found.");
+
+        // Fast path: if the first occurrence is a closing quote and no escapes were encountered.
+        if (input[firstOccurrence] == QuoteChar)
+        {
+            // Return the substring with the closing quote consumed.
+            return new ParseResult(input[..firstOccurrence].ToString(), firstOccurrence + 1);
+        }
+
+        // Otherwise, fall back to the slower character-by-character parse.
+        var sb = new StringBuilder();
+
+        int i = firstOccurrence, start = firstOccurrence;
+
+        if (firstOccurrence > 0) sb.Append(input[..i]);
+
+        while (i < input.Length)
+        {
+            char c = input[i];
+            if (c == QuoteChar)
+            {
+                if (i > start) sb.Append(input[start..i]);
+
+                // Return the substring with the closing quote consumed.
+                return new ParseResult(sb.ToString(), i + 1);
+            }
+            else if (c == '\\')
+            {
+                if (i > start) sb.Append(input[start..i]);
+
+                if (++i >= input.Length)
+                    throw new FormatException("Incomplete escape sequence at end of input.");
+
+                sb.Append(input[i++] switch
+                {
+                    QuoteChar => QuoteChar,
+                    EscapeChar => EscapeChar,
+                    'n' => '\n',
+                    'r' => '\r',
+                    't' => '\t',
+                    _ => throw new FormatException("Invalid escape sequence.")
+                });
+
+                start = i;
+            }
+            else
+            {
+                i++;
+            }
+        }
+
+        throw new FormatException("Closing quote not found in input.");
+    }
+
+
     private static List<string> GetFilterWords(ReadOnlySpan<char> query)
     {
         query = query.Trim();
@@ -146,17 +222,10 @@ public static partial class ExpressionBuilder
             int index;
             if (query[0] == '\'')
             {
-                // Remove quote
-                query = query[1..];
-
-                // Look for next quote
-                index = query.IndexOf('\'');
-
-                if (index < 0)
-                {
-                    // No more quotes, throw error
-                    throw new ExpressionException("Invalid query string, unterminated quote found.");
-                }
+                var result = ParseQuotedString(query[1..]);
+                query = query[(result.Consumed + 1)..];
+                words.Add(result.Value);
+                continue;
             }
             else
             {
