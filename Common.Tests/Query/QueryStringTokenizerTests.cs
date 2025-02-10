@@ -4,6 +4,16 @@ namespace OpenShock.Common.Tests.Query;
 public class QueryStringTokenizerTests
 {
     [Test]
+    public async Task EmptyString_ReturnsMatching()
+    {
+        // Act
+        var result = QueryStringTokenizer.ParseQueryTokens("   ");
+
+        // Assert
+        await Assert.That(result).IsEmpty();
+    }
+    
+    [Test]
     public async Task SimpleString_ReturnsMatching()
     {
         // Act
