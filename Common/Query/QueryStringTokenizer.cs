@@ -75,6 +75,8 @@ public static class QueryStringTokenizer
                 query = query[(i + 1)..].TrimStart();
                 continue;
             }
+            
+            query = query[1..];
 
             // Otherwise, fall back to the slower character-by-character parse.
             var sb = new StringBuilder();
