@@ -17,10 +17,10 @@ public class QueryStringTokenizerTests
     public async Task SimpleString_ReturnsMatching()
     {
         // Act
-        var result = QueryStringTokenizer.ParseQueryTokens("testing");
+        var result = QueryStringTokenizer.ParseQueryTokens("  testing    ");
 
         // Assert
-        await Assert.That(result).IsEqualTo(["testing"]);
+        await Assert.That(result).IsEquivalentTo(["testing"]);
     }
 
     [Test]
@@ -30,7 +30,7 @@ public class QueryStringTokenizerTests
         var result = QueryStringTokenizer.ParseQueryTokens("testing tokenizer");
 
         // Assert
-        await Assert.That(result).IsEqualTo(["testing", "tokenizer"]);
+        await Assert.That(result).IsEquivalentTo(["testing", "tokenizer"]);
     }
 
     [Test]
@@ -40,16 +40,16 @@ public class QueryStringTokenizerTests
         var result = QueryStringTokenizer.ParseQueryTokens("'testing tokenizer'");
 
         // Assert
-        await Assert.That(result).IsEqualTo(["testing tokenizer"]);
+        await Assert.That(result).IsEquivalentTo(["testing tokenizer"]);
     }
 
     [Test]
     public async Task QuotedAndEscapedString_ReturnsMatching()
     {
         // Act
-        var result = QueryStringTokenizer.ParseQueryTokens("'this shouldn\'t fail'");
+        var result = QueryStringTokenizer.ParseQueryTokens("'this shouldn\\'t fail'");
 
         // Assert
-        await Assert.That(result).IsEqualTo(["this shouldn't fail"]);
+        await Assert.That(result).IsEquivalentTo(["this shouldn't fail"]);
     }
 }
