@@ -1,5 +1,6 @@
 ﻿using System.Linq.Expressions;
 using OpenShock.Common.Utils;
+using OpenShock.Common.Query;
 
 namespace OpenShock.Common.Extensions;
 
@@ -7,14 +8,9 @@ public static class IQueryableExtensions
 {
     public static IQueryable<T> ApplyFilter<T>(this IQueryable<T> query, string filterQuery) where T : class
     {
-        var filter = ExpressionBuilder.GetFilterExpression<T>(filterQuery);
-
-        if (filter != null)
-        {
-            query = query.Where(filter);
-        }
+        if (string.IsNullOrWhiteSpace(filterQuery)) return query;
         
-        return query;
+        return query.Where(DBExpressionBuilder.GetFilterExpression<T>(filterQuery));
     }
 
     public static IOrderedQueryable<T> ApplyOrderBy<T>(this IQueryable<T> query, string orderbyQuery) where T : class
@@ -28,9 +24,7 @@ public static class IQueryableExtensions
         
         var entityType = typeof(T);
         
-        var memberInfo = ExpressionBuilder.GetPropertyOrField(entityType, propOrFieldName);
-        if (memberInfo == null)
-            throw new ExpressionBuilder.ExpressionException($"'{propOrFieldName}' is not a valid property");
+        var (memberInfo, memberType) = DBExpressionBuilderUtils.GetPropertyOrField(entityType, propOrFieldName);
 
         var parameterExpr = Expression.Parameter(entityType, "x");
         var memberExpr = Expression.MakeMemberAccess(parameterExpr, memberInfo);
@@ -42,10 +36,6 @@ public static class IQueryableExtensions
             "desc" => "OrderByDescending",
             _ => throw new ArgumentException(),
         };
-
-        var memberType = ExpressionBuilder.GetPropertyOrFieldType(memberInfo);
-        if (memberType == null)
-            throw new ExpressionBuilder.ExpressionException("Unknown error occured");
         
         // Get the appropriate Queryable method (OrderBy or OrderByDescending)
         var method = typeof(Queryable).GetMethods()

@@ -8,6 +8,7 @@ using OpenShock.Common.Models;
 using OpenShock.Common.Utils;
 using Z.EntityFramework.Plus;
 using OpenShock.Common.OpenShockDb;
+using OpenShock.Common.Query;
 
 namespace OpenShock.API.Controller.Admin;
 
@@ -47,7 +48,11 @@ public sealed partial class AdminController
                 query = query.OrderBy(u => u.CreatedAt);
             }
         }
-        catch (ExpressionBuilder.ExpressionException e)
+        catch (QueryStringTokenizerException e)
+        {
+            return Problem(ExpressionError.QueryStringInvalidError(e.Message));
+        }
+        catch (DBExpressionBuilderException e)
         {
             return Problem(ExpressionError.ExpressionExceptionError(e.Message));
         }
