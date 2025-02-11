@@ -1,4 +1,5 @@
-﻿using System.Text;
+﻿using System.Buffers;
+using System.Text;
 
 namespace OpenShock.Common.Query;
 
@@ -9,9 +10,11 @@ public sealed class QueryStringTokenizerException : Exception
 
 public static class QueryStringTokenizer
 {
-    private const char QuerySpaceChar = ' ';
     private const char QueryQuoteChar = '\'';
     private const char QueryEscapeChar = '\\';
+
+    // In unquoted strings, search for quotes and escapes. If these are found we should fail the parsing.
+    private static readonly SearchValues<char> unquotedSearchValues = SearchValues.Create(' ', '\r', '\n', '\t', QueryQuoteChar, QueryEscapeChar);
 
     /// <summary>
     /// Parses a query string into a list of words, handling spaces, quoted strings, and escape sequences.
@@ -44,7 +47,7 @@ public static class QueryStringTokenizer
             int i;
             if (query[0] != QueryQuoteChar)
             {
-                i = query.IndexOfAny(QuerySpaceChar, QueryQuoteChar, QueryEscapeChar);
+                i = query.IndexOfAny(unquotedSearchValues);
                 if (i < 0)
                 {
                     // End of query
@@ -52,8 +55,8 @@ public static class QueryStringTokenizer
                     break;
                 }
 
-                // Error on non-space syntax character
-                if (query[i] != QuerySpaceChar)
+                // Error on non-whitespace syntax character
+                if (!char.IsWhiteSpace(query[i]))
                     throw new QueryStringTokenizerException("Invalid unquoted string in query.");
 
                 // Next space seperated part
@@ -89,11 +92,11 @@ public static class QueryStringTokenizer
                 if (i > 0) sb.Append(query[..i]);
 
                 // Needs space for escape sequence and end of string
-                if (i + 3 >= query.Length)
+                if (i + 2 >= query.Length)
                     throw new QueryStringTokenizerException("Invalid end of query.");
 
                 // Add escape
-                sb.Append(query[++i] switch
+                sb.Append(query[i + 1] switch
                 {
                     QueryQuoteChar => QueryQuoteChar,
                     QueryEscapeChar => QueryEscapeChar,
@@ -104,10 +107,11 @@ public static class QueryStringTokenizer
                 });
 
                 // Skip past escape sequence
-                query = query[(i + 1)..];
+                query = query[(i + 2)..];
 
                 i = query.IndexOfAny(QueryQuoteChar, QueryEscapeChar);
-                if (i <= 0) throw new QueryStringTokenizerException("Closing quote not found.");
+                if (i < 0)
+                    throw new QueryStringTokenizerException("Closing quote not found.");
 
                 if (query[i] == QueryQuoteChar)
                 {
@@ -117,7 +121,7 @@ public static class QueryStringTokenizer
                     // Finish off string
                     tokens.Add(sb.ToString());
 
-                    query = query[(i + 1)..];
+                    query = query[(i + 1)..].TrimStart();
                     break;
                 }
 
