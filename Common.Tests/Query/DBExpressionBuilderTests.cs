@@ -81,7 +81,29 @@ public class DBExpressionBuilderTests
         var result = TestArray.AsQueryable().Where(expression).ToArray();
 
         // Assert
-        await Assert.That(result).HasCount().EqualTo(1); // Should only match the single Guid
+        await Assert.That(result).ContainsOnly(x => x.Id == testGuid);
+    }
+
+    [Test]
+    public async Task Integer_GreaterThanOrEquals()
+    {
+        // Act
+        var expression = DBExpressionBuilder.GetFilterExpression<TestClass>("age gte 42");
+        var result = TestArray.AsQueryable().Where(expression).ToArray();
+
+        // Assert
+        await Assert.That(result).ContainsOnly(x => x.Age >= 42);
+    }
+
+    [Test]
+    public async Task Integer_LessThanOrEquals()
+    {
+        // Act
+        var expression = DBExpressionBuilder.GetFilterExpression<TestClass>("age lte 51");
+        var result = TestArray.AsQueryable().Where(expression).ToArray();
+
+        // Assert
+        await Assert.That(result).ContainsOnly(x => x.Age <= 51);
     }
 
     // TODO: Make enums work
@@ -115,7 +137,7 @@ public class DBExpressionBuilderTests
         var result = TestArray.AsQueryable().Where(expression).ToArray();
 
         // Assert
-        await Assert.That(result).HasCount().GreaterThan(0);
+        await Assert.That(result).ContainsOnly(x => x.IsActive == true);
     }
 
     [Test]
@@ -126,31 +148,31 @@ public class DBExpressionBuilderTests
         var result = TestArray.AsQueryable().Where(expression).ToArray();
 
         // Assert
-        await Assert.That(result).HasCount().GreaterThan(0);
+        await Assert.That(result).ContainsOnly(x => x.IsActive == false);
     }
 
     [Test]
     public async Task DateTime_ExactMatch()
     {
         // Act
-        var testDate = TestArray.First().CreatedAt;
+        var testDate = TestArray[20].CreatedAt;
         var expression = DBExpressionBuilder.GetFilterExpression<TestClass>($"createdAt eq {testDate:O}");
         var result = TestArray.AsQueryable().Where(expression).ToArray();
 
         // Assert
-        await Assert.That(result).HasCount().EqualTo(1);
+        await Assert.That(result).ContainsOnly(x => x.CreatedAt == testDate);
     }
 
     [Test]
     public async Task DateTime_LessThan()
     {
         // Act
-        var referenceDate = DateTime.UtcNow;
+        var referenceDate = DateTime.UtcNow.AddMonths(-6);
         var expression = DBExpressionBuilder.GetFilterExpression<TestClass>($"createdAt lt {referenceDate:O}");
         var result = TestArray.AsQueryable().Where(expression).ToArray();
 
         // Assert
-        await Assert.That(result).HasCount().GreaterThan(0);
+        await Assert.That(result).ContainsOnly(x => x.CreatedAt < referenceDate);
     }
 
     [Test]
@@ -161,7 +183,7 @@ public class DBExpressionBuilderTests
         var result = TestArray.AsQueryable().Where(expression).ToArray();
 
         // Assert
-        await Assert.That(result).HasCount().GreaterThan(0);
+        await Assert.That(result).ContainsOnly(x => x.Score > 50f);
     }
 
     [Test]
@@ -172,6 +194,6 @@ public class DBExpressionBuilderTests
         var result = TestArray.AsQueryable().Where(expression).ToArray();
 
         // Assert
-        await Assert.That(result).HasCount().GreaterThan(0);
+        await Assert.That(result).ContainsOnly(x => x.Precision < 50f);
     }
 }
