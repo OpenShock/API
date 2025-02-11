@@ -1,6 +1,8 @@
 ﻿using OpenShock.Common.Query;
+using TUnit.Assertions.AssertConditions.Throws;
 
 namespace OpenShock.Common.Tests.Query;
+
 public class QueryStringTokenizerTests
 {
     [Test]
@@ -87,10 +89,9 @@ public class QueryStringTokenizerTests
     public async Task UnmatchedQuote_ThrowsException()
     {
         // Act & Assert
-        await Assert.ThrowsAsync<QueryStringTokenizerException>(async () =>
-        {
-            QueryStringTokenizer.ParseQueryTokens("'hello world");
-        });
+        await Assert
+            .That(() => QueryStringTokenizer.ParseQueryTokens("'hello world"))
+            .ThrowsExactly<QueryStringTokenizerException>();
     }
 
     [Test]
@@ -137,10 +138,9 @@ public class QueryStringTokenizerTests
     public async Task EscapeAtEndOfQuotedString_ThrowsException()
     {
         // Act & Assert
-        await Assert.ThrowsAsync<QueryStringTokenizerException>(async () =>
-        {
-            QueryStringTokenizer.ParseQueryTokens("'hello world\\'");
-        });
+        await Assert
+            .That(() => QueryStringTokenizer.ParseQueryTokens("'hello world\\'"))
+            .ThrowsExactly<QueryStringTokenizerException>();
     }
 
     [Test]
@@ -157,30 +157,27 @@ public class QueryStringTokenizerTests
     public async Task QuoteInsideUnquotedString_ThrowsException()
     {
         // Act & Assert
-        await Assert.ThrowsAsync<QueryStringTokenizerException>(async () =>
-        {
-            QueryStringTokenizer.ParseQueryTokens("This won't work");
-        });
+        await Assert
+            .That(() => QueryStringTokenizer.ParseQueryTokens("This won't work"))
+            .ThrowsExactly<QueryStringTokenizerException>();
     }
 
     [Test]
     public async Task UnquotedEscapeCharacter_ThrowsException()
     {
         // Act & Assert
-        await Assert.ThrowsAsync<QueryStringTokenizerException>(async () =>
-        {
-            QueryStringTokenizer.ParseQueryTokens("hello \\ world");
-        });
+        await Assert
+            .That(() => QueryStringTokenizer.ParseQueryTokens("hello \\ world"))
+            .ThrowsExactly<QueryStringTokenizerException>();
     }
 
     [Test]
     public async Task OnlyEscapeCharacter_ThrowsException()
     {
         // Act & Assert
-        await Assert.ThrowsAsync<QueryStringTokenizerException>(async () =>
-        {
-            QueryStringTokenizer.ParseQueryTokens("\\");
-        });
+        await Assert
+            .That(() => QueryStringTokenizer.ParseQueryTokens("\\"))
+            .ThrowsExactly<QueryStringTokenizerException>();
     }
 
     [Test]
@@ -222,9 +219,8 @@ public class QueryStringTokenizerTests
     public async Task InvalidEscapeCharacters_ThrowsException(string invalidString)
     {
         // Act & Assert
-        await Assert.ThrowsAsync<QueryStringTokenizerException>(async () =>
-        {
-            QueryStringTokenizer.ParseQueryTokens(invalidString);
-        });
+        await Assert
+            .That(() => QueryStringTokenizer.ParseQueryTokens(invalidString))
+            .ThrowsExactly<QueryStringTokenizerException>();
     }
 }

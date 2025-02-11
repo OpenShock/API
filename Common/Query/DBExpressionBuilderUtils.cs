@@ -8,6 +8,7 @@ namespace OpenShock.Common.Query;
 public static class DBExpressionBuilderUtils
 {
     private static readonly MethodInfo EfFunctionsCollateMethodInfo = typeof(RelationalDbFunctionsExtensions).GetMethod("Collate")?.MakeGenericMethod(typeof(string)) ?? throw new MissingMethodException("EF.Functions", "Collate(string,string)");
+    private static readonly MethodInfo EfFunctionsLikeMethodInfo = typeof(NpgsqlDbFunctionsExtensions).GetMethod("Like", [typeof(DbFunctions), typeof(string), typeof(string)]) ?? throw new MissingMethodException("EF.Functions", "Like(string,string)");
     private static readonly MethodInfo EfFunctionsILikeMethodInfo = typeof(NpgsqlDbFunctionsExtensions).GetMethod("ILike", [typeof(DbFunctions), typeof(string), typeof(string)]) ?? throw new MissingMethodException("EF.Functions", "ILike(string,string)");
     private static readonly MethodInfo StringEqualsMethodInfo = typeof(string).GetMethod("Equals", [typeof(string)]) ?? throw new MissingMethodException("string", "Equals(string,StringComparison)");
     private static readonly MethodInfo StringStartsWithMethodInfo = typeof(string).GetMethod("StartsWith", [typeof(string)]) ?? throw new MissingMethodException("string", "StartsWith(string)");
@@ -43,15 +44,51 @@ public static class DBExpressionBuilderUtils
 
     private static ConstantExpression GetConstant(Type type, string value)
     {
-        /* Currently this causes a really weird bug which persists across subsequent requests
-        if (type.IsEnum)
+        static object? HandleUnknown(Type type, string value)
         {
-            var enumValue = Enum.Parse(type, value, ignoreCase: true);
-            return Expression.Constant(enumValue, type);
-        }
-        */
+            /* Currently this causes a really weird bug which persists across subsequent requests
+            if (type.IsEnum)
+            {
+                var enumValue = Enum.Parse(type, value, ignoreCase: true);
+                return Expression.Constant(enumValue, type);
+            }
+            */
 
-        return Expression.Constant(value, type);
+            throw new NotImplementedException();
+        }
+
+        return Expression.Constant(Type.GetTypeCode(type) switch
+        {
+            TypeCode.Empty => throw new NotImplementedException(),
+            TypeCode.Object => throw new NotImplementedException(),
+            TypeCode.DBNull => throw new NotImplementedException(),
+            TypeCode.Boolean => Boolean.Parse(value),
+            TypeCode.Char => Char.Parse(value),
+            TypeCode.SByte => SByte.Parse(value),
+            TypeCode.Byte => Byte.Parse(value),
+            TypeCode.Int16 => Int16.Parse(value),
+            TypeCode.UInt16 => UInt16.Parse(value),
+            TypeCode.Int32 => Int32.Parse(value),
+            TypeCode.UInt32 => UInt32.Parse(value),
+            TypeCode.Int64 => Int64.Parse(value),
+            TypeCode.UInt64 => UInt64.Parse(value),
+            TypeCode.Single => Single.Parse(value),
+            TypeCode.Double => Double.Parse(value),
+            TypeCode.Decimal => Decimal.Parse(value),
+            TypeCode.DateTime => DateTime.Parse(value),
+            TypeCode.String => value,
+            _ => HandleUnknown(type, value),
+        });
+    }
+
+    public static MethodCallExpression? BuildEfFunctionsLikeExpression(Type memberType, Expression memberExpr, string value)
+    {
+        if (memberType != typeof(string)) return null;
+
+        var valueConstant = Expression.Constant(value, typeof(string));
+        var efFunctionsConstant = Expression.Constant(EF.Functions, typeof(DbFunctions));
+
+        return Expression.Call(null, EfFunctionsLikeMethodInfo, efFunctionsConstant, memberExpr, valueConstant);
     }
 
     public static MethodCallExpression? BuildEfFunctionsCollatedILikeExpression(Type memberType, Expression memberExpr, string value)
@@ -92,12 +129,12 @@ public static class DBExpressionBuilderUtils
     public static BinaryExpression? BuildLessThanOrEqualExpression(Type memberType, Expression memberExpr, string value)
     {
         if (memberType is { IsPrimitive: false, IsEnum: false }) return null;
-        return Expression.LessThan(memberExpr, GetConstant(memberType, value));
+        return Expression.LessThanOrEqual(memberExpr, GetConstant(memberType, value));
     }
 
     public static BinaryExpression? BuildGreaterThanOrEqualExpression(Type memberType, Expression memberExpr, string value)
     {
         if (memberType is { IsPrimitive: false, IsEnum: false }) return null;
-        return Expression.GreaterThan(memberExpr, GetConstant(memberType, value));
+        return Expression.GreaterThanOrEqual(memberExpr, GetConstant(memberType, value));
     }
 }
