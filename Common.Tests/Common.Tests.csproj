@@ -5,6 +5,7 @@
         <PackageReference Include="Testcontainers" Version="4.1.0" />
         <PackageReference Include="Testcontainers.PostgreSql" Version="4.1.0" />
         <PackageReference Include="Testcontainers.Redis" Version="4.1.0" />
+        <PackageReference Include="Bogus" Version="35.6.1" />
         <PackageReference Include="TUnit" Version="0.11.0" />
     </ItemGroup>
 
