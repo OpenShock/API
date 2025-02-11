@@ -44,15 +44,29 @@ public static class DBExpressionBuilderUtils
 
     private static ConstantExpression GetConstant(Type type, string value)
     {
-        static object? HandleUnknown(Type type, string value)
+        if (type.IsEnum)
         {
-            /* Currently this causes a really weird bug which persists across subsequent requests
-            if (type.IsEnum)
-            {
+            //Currently this causes a really weird bug which persists across subsequent requests
+            /*
                 var enumValue = Enum.Parse(type, value, ignoreCase: true);
                 return Expression.Constant(enumValue, type);
-            }
             */
+
+            throw new NotImplementedException();
+        }
+
+        static object? HandleObject(Type type, string value)
+        {
+            if (type == typeof(Guid))
+            {
+                return Guid.Parse(value);
+            }
+
+            throw new NotImplementedException();
+        }
+
+        static object? HandleUnknown(Type type, string value)
+        {
 
             throw new NotImplementedException();
         }
@@ -60,7 +74,7 @@ public static class DBExpressionBuilderUtils
         return Expression.Constant(Type.GetTypeCode(type) switch
         {
             TypeCode.Empty => throw new NotImplementedException(),
-            TypeCode.Object => throw new NotImplementedException(),
+            TypeCode.Object => HandleObject(type, value),
             TypeCode.DBNull => throw new NotImplementedException(),
             TypeCode.Boolean => Boolean.Parse(value),
             TypeCode.Char => Char.Parse(value),
@@ -116,25 +130,25 @@ public static class DBExpressionBuilderUtils
 
     public static BinaryExpression? BuildLessThanExpression(Type memberType, Expression memberExpr, string value)
     {
-        if (memberType is { IsPrimitive: false, IsEnum: false }) return null;
+        if (memberType is { IsPrimitive: false, IsEnum: false } && Type.GetTypeCode(memberType) != TypeCode.DateTime) return null;
         return Expression.LessThan(memberExpr, GetConstant(memberType, value));
     }
 
     public static BinaryExpression? BuildGreaterThanExpression(Type memberType, Expression memberExpr, string value)
     {
-        if (memberType is { IsPrimitive: false, IsEnum: false }) return null;
+        if (memberType is { IsPrimitive: false, IsEnum: false } && Type.GetTypeCode(memberType) != TypeCode.DateTime) return null;
         return Expression.GreaterThan(memberExpr, GetConstant(memberType, value));
     }
 
     public static BinaryExpression? BuildLessThanOrEqualExpression(Type memberType, Expression memberExpr, string value)
     {
-        if (memberType is { IsPrimitive: false, IsEnum: false }) return null;
+        if (memberType is { IsPrimitive: false, IsEnum: false } && Type.GetTypeCode(memberType) != TypeCode.DateTime) return null;
         return Expression.LessThanOrEqual(memberExpr, GetConstant(memberType, value));
     }
 
     public static BinaryExpression? BuildGreaterThanOrEqualExpression(Type memberType, Expression memberExpr, string value)
     {
-        if (memberType is { IsPrimitive: false, IsEnum: false }) return null;
+        if (memberType is { IsPrimitive: false, IsEnum: false } && Type.GetTypeCode(memberType) != TypeCode.DateTime) return null;
         return Expression.GreaterThanOrEqual(memberExpr, GetConstant(memberType, value));
     }
 }
