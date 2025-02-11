@@ -19,9 +19,10 @@ public static partial class DBExpressionBuilder
 
         var memberExpr = Expression.MakeMemberAccess(parameterExpr, memberInfo);
 
+        // ReSharper disable once StringLiteralTypo
         Expression? resultExpr = operation switch
         {
-            "like" => DBExpressionBuilderUtils.BuildEfFunctionsLikeExpression(memberType, memberExpr, value),
+            //"like" => DBExpressionBuilderUtils.BuildEfFunctionsLikeExpression(memberType, memberExpr, value),
             "ilike" => DBExpressionBuilderUtils.BuildEfFunctionsCollatedILikeExpression(memberType, memberExpr, value),
             "==" or "eq" => DBExpressionBuilderUtils.BuildEqualExpression(memberType, memberExpr, value),
             "!=" or "neq" => DBExpressionBuilderUtils.BuildNotEqualExpression(memberType, memberExpr, value),

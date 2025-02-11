@@ -106,17 +106,26 @@ public class DBExpressionBuilderTests
         await Assert.That(result).ContainsOnly(x => x.Age <= 51);
     }
 
-    // TODO: Make enums work
-    /*
     [Test]
-    public async Task Enum_ChecksValidValues()
+    public async Task Enum_Equals_ChecksValidValues()
     {
         // Act
         var expression = DBExpressionBuilder.GetFilterExpression<TestClass>("status eq Active");
         var result = TestArray.AsQueryable().Where(expression).ToArray();
 
         // Assert
-        await Assert.That(result).HasCount().GreaterThan(0);
+        await Assert.That(result).ContainsOnly(x => x.Status == TestEnum.Active);
+    }
+
+    [Test]
+    public async Task Enum_NotEquals_ChecksValidValues()
+    {
+        // Act
+        var expression = DBExpressionBuilder.GetFilterExpression<TestClass>("status != Active");
+        var result = TestArray.AsQueryable().Where(expression).ToArray();
+
+        // Assert
+        await Assert.That(result).DoesNotContain(x => x.Status == TestEnum.Active);
     }
 
     [Test]
@@ -125,9 +134,8 @@ public class DBExpressionBuilderTests
         // Act & Assert
         await Assert
             .That(() => DBExpressionBuilder.GetFilterExpression<TestClass>("status eq Invalid"))
-            .ThrowsExactly<DBExpressionBuilderException>();
+            .ThrowsExactly<FormatException>();
     }
-    */
 
     [Test]
     public async Task Boolean_TrueMatches()

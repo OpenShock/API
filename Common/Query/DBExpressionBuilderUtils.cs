@@ -8,7 +8,7 @@ namespace OpenShock.Common.Query;
 public static class DBExpressionBuilderUtils
 {
     private static readonly MethodInfo EfFunctionsCollateMethodInfo = typeof(RelationalDbFunctionsExtensions).GetMethod("Collate")?.MakeGenericMethod(typeof(string)) ?? throw new MissingMethodException("EF.Functions", "Collate(string,string)");
-    private static readonly MethodInfo EfFunctionsLikeMethodInfo = typeof(NpgsqlDbFunctionsExtensions).GetMethod("Like", [typeof(DbFunctions), typeof(string), typeof(string)]) ?? throw new MissingMethodException("EF.Functions", "Like(string,string)");
+    //private static readonly MethodInfo EfFunctionsLikeMethodInfo = typeof(NpgsqlDbFunctionsExtensions).GetMethod("Like", [typeof(DbFunctions), typeof(string), typeof(string)]) ?? throw new MissingMethodException("EF.Functions", "Like(string,string)");
     private static readonly MethodInfo EfFunctionsILikeMethodInfo = typeof(NpgsqlDbFunctionsExtensions).GetMethod("ILike", [typeof(DbFunctions), typeof(string), typeof(string)]) ?? throw new MissingMethodException("EF.Functions", "ILike(string,string)");
     private static readonly MethodInfo StringEqualsMethodInfo = typeof(string).GetMethod("Equals", [typeof(string)]) ?? throw new MissingMethodException("string", "Equals(string,StringComparison)");
     private static readonly MethodInfo StringStartsWithMethodInfo = typeof(string).GetMethod("StartsWith", [typeof(string)]) ?? throw new MissingMethodException("string", "StartsWith(string)");
@@ -82,7 +82,7 @@ public static class DBExpressionBuilderUtils
             TypeCode.Single => Single.Parse(value),
             TypeCode.Double => Double.Parse(value),
             TypeCode.Decimal => Decimal.Parse(value),
-            TypeCode.DateTime => DateTime.Parse(value),
+            TypeCode.DateTime => DateTime.Parse(value).ToUniversalTime(),
             TypeCode.String => value,
             _ => HandleUnknown(type, value),
         });
@@ -106,6 +106,7 @@ public static class DBExpressionBuilderUtils
         }
     }
 
+    /*
     public static MethodCallExpression? BuildEfFunctionsLikeExpression(Type memberType, Expression memberExpr, string value)
     {
         if (memberType != typeof(string)) return null;
@@ -115,6 +116,7 @@ public static class DBExpressionBuilderUtils
 
         return Expression.Call(null, EfFunctionsLikeMethodInfo, efFunctionsConstant, memberExpr, valueConstant);
     }
+    */
 
     public static MethodCallExpression? BuildEfFunctionsCollatedILikeExpression(Type memberType, Expression memberExpr, string value)
     {
