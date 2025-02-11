@@ -56,6 +56,10 @@ public sealed partial class AdminController
         {
             return Problem(ExpressionError.ExpressionExceptionError(e.Message));
         }
+        catch (FormatException e)
+        {
+            return Problem(ExpressionError.ExpressionExceptionError(e.Message));
+        }
 
         if (offset != 0)
         {

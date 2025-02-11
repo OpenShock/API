@@ -46,31 +46,24 @@ public static class DBExpressionBuilderUtils
     {
         if (type.IsEnum)
         {
-            //Currently this causes a really weird bug which persists across subsequent requests
-            /*
-                var enumValue = Enum.Parse(type, value, ignoreCase: true);
-                return Expression.Constant(enumValue, type);
-            */
-
-            throw new NotImplementedException();
-        }
-
-        static object? HandleObject(Type type, string value)
-        {
-            if (type == typeof(Guid))
+            if (string.IsNullOrWhiteSpace(value))
             {
-                return Guid.Parse(value);
+                throw new FormatException($"'{type.Name}' cannot be null or empty");
             }
-
-            throw new NotImplementedException();
+            
+            object enumValue;
+            try
+            {
+                enumValue = Enum.Parse(type, value, ignoreCase: true);
+            }
+            catch (ArgumentException e)
+            {
+                throw new FormatException($"'{value}' is not a valid value for type {type.Name}", e);
+            }
+            return Expression.Constant(enumValue, type);
         }
 
-        static object? HandleUnknown(Type type, string value)
-        {
-
-            throw new NotImplementedException();
-        }
-
+        // ReSharper disable BuiltInTypeReferenceStyleForMemberAccess
         return Expression.Constant(Type.GetTypeCode(type) switch
         {
             TypeCode.Empty => throw new NotImplementedException(),
@@ -93,6 +86,24 @@ public static class DBExpressionBuilderUtils
             TypeCode.String => value,
             _ => HandleUnknown(type, value),
         });
+
+        static object? HandleObject(Type type, string value)
+        {
+            if (type == typeof(Guid))
+            {
+                return Guid.Parse(value);
+            }
+
+            throw new NotImplementedException();
+        }
+
+        // ReSharper restore BuiltInTypeReferenceStyleForMemberAccess
+
+        static object? HandleUnknown(Type type, string value)
+        {
+
+            throw new NotImplementedException();
+        }
     }
 
     public static MethodCallExpression? BuildEfFunctionsLikeExpression(Type memberType, Expression memberExpr, string value)
