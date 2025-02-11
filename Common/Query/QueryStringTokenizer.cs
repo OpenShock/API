@@ -63,24 +63,26 @@ public static class QueryStringTokenizer
                 continue;
             }
 
-            i = query[1..].IndexOfAny(QueryQuoteChar, QueryEscapeChar) + 1;
-            if (i <= 0)
+            // Skip quote char
+            query = query[1..];
+
+            // Find next quote or escape char
+            i = query.IndexOfAny(QueryQuoteChar, QueryEscapeChar);
+            if (i < 0)
                 throw new QueryStringTokenizerException("Closing quote not found.");
 
             // Fast path: string contains no escapes
             if (query[i] == QueryQuoteChar)
             {
                 // If i is 1 then its empty quotes
-                tokens.Add(i == 1 ? string.Empty : query[1..i].ToString());
+                tokens.Add(i == 0 ? string.Empty : query[..i].ToString());
                 query = query[(i + 1)..].TrimStart();
                 continue;
             }
-            
-            query = query[1..];
 
-            // Otherwise, fall back to the slower character-by-character parse.
             var sb = new StringBuilder();
 
+            // Parse escaped string
             while (true)
             {
                 // Add everything before escape
@@ -102,7 +104,7 @@ public static class QueryStringTokenizer
                 });
 
                 // Skip past escape sequence
-                query = query[(i + 1)..].TrimStart();
+                query = query[(i + 1)..];
 
                 i = query.IndexOfAny(QueryQuoteChar, QueryEscapeChar);
                 if (i <= 0) throw new QueryStringTokenizerException("Closing quote not found.");
@@ -114,6 +116,8 @@ public static class QueryStringTokenizer
 
                     // Finish off string
                     tokens.Add(sb.ToString());
+
+                    query = query[(i + 1)..];
                     break;
                 }
 
