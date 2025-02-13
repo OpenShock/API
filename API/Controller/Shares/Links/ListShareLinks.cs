@@ -15,7 +15,7 @@ public sealed partial class ShareLinksController
     /// <response code="200">All share links for the current user</response>
     [HttpGet]
     [ProducesResponseType<BaseResponse<IAsyncEnumerable<ShareLinkResponse>>>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
-    public async Task<IActionResult> List()
+    public IActionResult List()
     {
         var ownShareLinks = _db.ShockerSharesLinks
             .Where(x => x.OwnerId == CurrentUser.Id)
