@@ -22,7 +22,6 @@ public sealed partial class TokensController
     /// <param name="cancellationToken"></param>
     /// <response code="200">The tokens were deleted if found</response>
     [HttpPost("report")]
-    [Authorize(Policy = OpenShockAuthPolicies.UserAccess)]
     [ProducesResponseType(StatusCodes.Status200OK)]
     public async Task<IActionResult> ReportTokens(
         [FromBody] ReportTokensRequest body,
