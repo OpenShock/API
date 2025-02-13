@@ -25,7 +25,7 @@ public sealed partial class ShockerController
     /// </summary>
     /// <response code="200">The shockers were successfully retrieved.</response>
     [HttpGet("shared")]
-    [ProducesResponseType<BaseResponse<OwnerShockerResponse[]>>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
+    [ProducesResponseType<BaseResponse<IEnumerable<OwnerShockerResponse>>>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
     [MapToApiVersion("1")]
     public async Task<IActionResult> ListSharedShockers()
     {
@@ -79,8 +79,7 @@ public sealed partial class ShockerController
                             .ToArray(),
                     })
                     .ToArray()
-            })
-            .ToArray();
+            });
 
         return RespondSuccessLegacy(sharesResponse);
     }

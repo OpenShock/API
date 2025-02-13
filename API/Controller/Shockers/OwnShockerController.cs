@@ -15,12 +15,13 @@ public sealed partial class ShockerController
     /// </summary>
     /// <response code="200">The shockers were successfully retrieved.</response>
     [HttpGet("own")]
-    [ProducesResponseType<BaseResponse<ResponseDeviceWithShockers[]>>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
+    [ProducesResponseType<BaseResponse<IAsyncEnumerable<ResponseDeviceWithShockers>>>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
     [MapToApiVersion("1")]
     public async Task<IActionResult> ListShockers()
     {
-        var shockers = await _db.Devices.Where(x => x.Owner == CurrentUser.Id).OrderBy(x => x.CreatedOn).Select(
-            x => new ResponseDeviceWithShockers
+        var shockers = _db.Devices
+            .Where(x => x.Owner == CurrentUser.Id)
+            .OrderBy(x => x.CreatedOn).Select(x => new ResponseDeviceWithShockers
             {
                 Id = x.Id,
                 Name = x.Name,
@@ -37,7 +38,8 @@ public sealed partial class ShockerController
                         IsPaused = y.Paused
                     })
                     .ToArray()
-            }).ToArrayAsync();
+            })
+            .AsAsyncEnumerable();
 
         return RespondSuccessLegacy(shockers);
     }
