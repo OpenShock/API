@@ -121,7 +121,7 @@ public sealed partial class SharesController
                         Vibrate = y.PermVibrate,
                         Live = y.PermLive
                     }
-                })
+                }).ToArray()
             }).FirstOrDefaultAsync();
         
         if (outstandingShare == null) return Problem(ShareError.ShareRequestNotFound);
@@ -199,5 +199,5 @@ public sealed class ShareRequestBaseItem : ShareRequestBase
 
 public sealed class ShareRequestBaseDetails : ShareRequestBase
 {
-    public required IEnumerable<ShockerPermLimitPairWithId> Shockers { get; set; }
+    public required ShockerPermLimitPairWithId[] Shockers { get; set; }
 }

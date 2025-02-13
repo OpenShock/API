@@ -15,7 +15,7 @@ public sealed partial class ShockerController
     /// </summary>
     /// <response code="200">The shockers were successfully retrieved.</response>
     [HttpGet("own")]
-    [ProducesResponseType<BaseResponse<IEnumerable<ResponseDeviceWithShockers>>>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
+    [ProducesResponseType<BaseResponse<ResponseDeviceWithShockers[]>>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
     [MapToApiVersion("1")]
     public async Task<IActionResult> ListShockers()
     {
@@ -25,15 +25,18 @@ public sealed partial class ShockerController
                 Id = x.Id,
                 Name = x.Name,
                 CreatedOn = x.CreatedOn,
-                Shockers = x.Shockers.OrderBy(y => y.CreatedOn).Select(y => new ShockerResponse
-                {
-                    Id = y.Id,
-                    Name = y.Name,
-                    RfId = y.RfId,
-                    CreatedOn = y.CreatedOn,
-                    Model = y.Model,
-                    IsPaused = y.Paused
-                })
+                Shockers = x.Shockers
+                    .OrderBy(y => y.CreatedOn)
+                    .Select(y => new ShockerResponse
+                    {
+                        Id = y.Id,
+                        Name = y.Name,
+                        RfId = y.RfId,
+                        CreatedOn = y.CreatedOn,
+                        Model = y.Model,
+                        IsPaused = y.Paused
+                    })
+                    .ToArray()
             }).ToArrayAsync();
 
         return RespondSuccessLegacy(shockers);

@@ -20,7 +20,7 @@ public sealed partial class AdminController
     /// <response code="200">All online devices</response>
     /// <response code="401">Unauthorized</response>
     [HttpGet("monitoring/onlineDevices")]
-    [ProducesResponseType<BaseResponse<IEnumerable<AdminOnlineDeviceResponse>>>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
+    [ProducesResponseType<BaseResponse<AdminOnlineDeviceResponse[]>>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
     public async Task<IActionResult> GetOnlineDevices()
     {
         var devicesOnline = _redis.RedisCollection<DeviceOnline>(false);
@@ -41,23 +41,26 @@ public sealed partial class AdminController
                     }
                 }).ToArrayAsync();
 
-        return RespondSuccessLegacy(allOnlineDevices.Select(x =>
-            {
-                var dbItem = dbLookup.First(y => y.Id == x.Id);
-                return new AdminOnlineDeviceResponse
+        return RespondSuccessLegacy(
+            allOnlineDevices
+                .Select(x =>
                 {
-                    Id = x.Id,
-                    FirmwareVersion = x.FirmwareVersion,
-                    Gateway = x.Gateway,
-                    Owner = dbItem.Owner,
-                    Name = dbItem.Name,
-                    ConnectedAt = x.ConnectedAt,
-                    UserAgent = x.UserAgent,
-                    BootedAt = x.BootedAt,
-                    LatencyMs = x.LatencyMs,
-                    Rssi = x.Rssi,
-                };
-            })
+                    var dbItem = dbLookup.First(y => y.Id == x.Id);
+                    return new AdminOnlineDeviceResponse
+                    {
+                        Id = x.Id,
+                        FirmwareVersion = x.FirmwareVersion,
+                        Gateway = x.Gateway,
+                        Owner = dbItem.Owner,
+                        Name = dbItem.Name,
+                        ConnectedAt = x.ConnectedAt,
+                        UserAgent = x.UserAgent,
+                        BootedAt = x.BootedAt,
+                        LatencyMs = x.LatencyMs,
+                        Rssi = x.Rssi,
+                    };
+                })
+                .ToArray()
         );
     }
 

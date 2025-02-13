@@ -25,7 +25,7 @@ public sealed partial class ShockerController
     /// <response code="200">OK</response>
     /// <response code="404">The shocker does not exist or you do not have access to it.</response>
     [HttpGet("{shockerId}/shares")]
-    [ProducesResponseType<BaseResponse<IEnumerable<ShareInfo>>>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
+    [ProducesResponseType<BaseResponse<ShareInfo[]>>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status404NotFound, MediaTypeNames.Application.ProblemJson)] // ShockerNotFound    
     [MapToApiVersion("1")]
     public async Task<IActionResult> GetShockerShares([FromRoute] Guid shockerId)
@@ -68,7 +68,7 @@ public sealed partial class ShockerController
     /// <param name="shockerId"></param>
     /// <response code="200">OK</response>
     [HttpGet("{shockerId}/shareCodes")]
-    [ProducesResponseType<BaseResponse<IEnumerable<ShareCodeInfo>>>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
+    [ProducesResponseType<BaseResponse<ShareCodeInfo[]>>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status404NotFound, MediaTypeNames.Application.ProblemJson)] // ShockerNotFound    
     [MapToApiVersion("1")]
     public async Task<IActionResult> ShockerShareCodeList([FromRoute] Guid shockerId)

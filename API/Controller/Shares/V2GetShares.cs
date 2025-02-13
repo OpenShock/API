@@ -15,7 +15,7 @@ namespace OpenShock.API.Controller.Shares;
 public sealed partial class SharesController
 {
     [HttpGet]
-    [ProducesResponseType<IEnumerable<GenericIni>>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
+    [ProducesResponseType<GenericIni[]>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
     [ApiVersion("2")]
     public async Task<GenericIni[]> GetSharesByUsers()
     {
