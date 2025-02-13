@@ -113,7 +113,7 @@ public sealed partial class TokensController
             TokenHash = HashingUtils.HashSha256(token),
             CreatedByIp = HttpContext.GetRemoteIP(),
             Permissions = body.Permissions.Distinct().ToList(),
-            Id = Guid.NewGuid(),
+            Id = Guid.CreateVersion7(),
             Name = body.Name,
             ValidUntil = body.ValidUntil?.ToUniversalTime()
         };

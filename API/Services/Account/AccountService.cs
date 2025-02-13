@@ -58,7 +58,7 @@ public sealed class AccountService : IAccountService
         if (await _db.Users.AnyAsync(x => x.Email == email.ToLowerInvariant() || x.Name == username))
             return new AccountWithEmailOrUsernameExists();
 
-        var newGuid = Guid.NewGuid();
+        var newGuid = Guid.CreateVersion7();
         var user = new User
         {
             Id = newGuid,
@@ -84,7 +84,7 @@ public sealed class AccountService : IAccountService
 
         var user = accountCreate.AsT0.Value;
 
-        var id = Guid.NewGuid();
+        var id = Guid.CreateVersion7();
         var secret = CryptoUtils.RandomString(32);
         var secretHash = BCrypt.Net.BCrypt.EnhancedHashPassword(secret, HashAlgo);
 
@@ -157,7 +157,7 @@ public sealed class AccountService : IAccountService
         var hash = BCrypt.Net.BCrypt.EnhancedHashPassword(secret, HashAlgo);
         var passwordReset = new PasswordReset
         {
-            Id = Guid.NewGuid(),
+            Id = Guid.CreateVersion7(),
             Secret = hash,
             User = user.User
         };

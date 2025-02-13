@@ -124,7 +124,7 @@ public static class ControlLogic
 
             db.ShockerControlLogs.Add(new ShockerControlLog
             {
-                Id = Guid.NewGuid(),
+                Id = Guid.CreateVersion7(),
                 ShockerId = shockerInfo.Id,
                 ControlledBy = sender.Id == Guid.Empty ? null : sender.Id,
                 CreatedOn = curTime,
