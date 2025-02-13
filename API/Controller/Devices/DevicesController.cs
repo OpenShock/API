@@ -23,7 +23,7 @@ public sealed partial class DevicesController
     /// </summary>
     /// <response code="200">All devices for the current user</response>
     [HttpGet]
-    [ProducesResponseType<BaseResponse<IEnumerable<Models.Response.ResponseDevice>>>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
+    [ProducesResponseType<BaseResponse<Models.Response.ResponseDevice[]>>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
     [MapToApiVersion("1")]
     public async Task<IActionResult> ListDevices()
     {
@@ -33,7 +33,7 @@ public sealed partial class DevicesController
                 Id = x.Id,
                 Name = x.Name,
                 CreatedOn = x.CreatedOn
-            }).ToListAsync();
+            }).ToArrayAsync();
 
         return RespondSuccessLegacy(devices);
     }
@@ -132,7 +132,7 @@ public sealed partial class DevicesController
     [MapToApiVersion("1")]
     public async Task<IActionResult> RemoveDevice([FromRoute] Guid deviceId, [FromServices] IDeviceUpdateService updateService)
     {
-        var affected = await _db.Devices.Where(x => x.Id == deviceId).WhereIsUserOrAdmin(x => x.OwnerNavigation, CurrentUser).ExecuteDeleteAsync();
+        var affected = await _db.Devices.Where(x => x.Id == deviceId).WhereIsUserOrPrivileged(x => x.OwnerNavigation, CurrentUser).ExecuteDeleteAsync();
         if (affected <= 0) return Problem(DeviceError.DeviceNotFound);
         
         await updateService.UpdateDeviceForAllShared(CurrentUser.Id, deviceId, DeviceUpdateType.Deleted);
@@ -167,7 +167,7 @@ public sealed partial class DevicesController
     {
         var device = new Common.OpenShockDb.Device
         {
-            Id = Guid.NewGuid(),
+            Id = Guid.CreateVersion7(),
             Owner = CurrentUser.Id,
             Name = data.Name,
             Token = CryptoUtils.RandomString(256)

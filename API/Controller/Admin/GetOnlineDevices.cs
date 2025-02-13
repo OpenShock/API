@@ -25,7 +25,7 @@ public sealed partial class AdminController
     {
         var devicesOnline = _redis.RedisCollection<DeviceOnline>(false);
 
-        var allOnlineDevices = await devicesOnline.ToListAsync();
+        var allOnlineDevices = await devicesOnline.ToArrayAsync();
         var dbLookup = await _db.Devices.Where(x => allOnlineDevices.Select(y => y.Id)
             .Contains(x.Id)).Select(
             x =>
@@ -39,7 +39,7 @@ public sealed partial class AdminController
                         Image = x.OwnerNavigation.GetImageUrl(),
                         Name = x.OwnerNavigation.Name
                     }
-                }).ToListAsync();
+                }).ToArrayAsync();
 
         return RespondSuccessLegacy(allOnlineDevices.Select(x =>
             {

@@ -40,7 +40,7 @@ public sealed partial class ShockerController
 
         var shocker = new Shocker
         {
-            Id = Guid.NewGuid(),
+            Id = Guid.CreateVersion7(),
             Name = body.Name,
             RfId = body.RfId,
             Device = body.Device,

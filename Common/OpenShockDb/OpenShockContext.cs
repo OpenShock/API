@@ -1,11 +1,51 @@
-﻿using System;
-using System.Collections.Generic;
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using OpenShock.Common.Constants;
-using OpenShock.Common.Utils;
+using OpenShock.Common.Extensions;
+using OpenShock.Common.Models;
 
 namespace OpenShock.Common.OpenShockDb;
 
+/// <summary>
+/// This is meant for use in migrations only.
+/// </summary>
+public class MigrationOpenShockContext : OpenShockContext
+{
+    private readonly string? _connectionString = null;
+    private readonly bool _debug;
+    private readonly bool _migrationTool;
+    private readonly ILoggerFactory? _loggerFactory = null;
+    
+    public MigrationOpenShockContext()
+    {
+        _migrationTool = true;
+    }
+    
+    public MigrationOpenShockContext(string connectionString, bool debug, ILoggerFactory loggerFactory)
+    {
+        _connectionString = connectionString;
+        _debug = debug;
+        _loggerFactory = loggerFactory;
+    }
+
+    protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
+    {
+        if (_migrationTool)
+        {
+            ConfigureOptionsBuilder(optionsBuilder, "Host=localhost;Database=openshock;Username=openshock;Password=openshock", true);
+            return;
+        }
+        if(string.IsNullOrWhiteSpace(_connectionString))
+            throw new InvalidOperationException("Connection string is not set.");
+        ConfigureOptionsBuilder(optionsBuilder, _connectionString, _debug);
+        
+        if (_loggerFactory != null)
+            optionsBuilder.UseLoggerFactory(_loggerFactory);
+    }
+}
+
+/// <summary>
+/// Main OpenShock DB Context
+/// </summary>
 public partial class OpenShockContext : DbContext
 {
     public OpenShockContext()
@@ -15,6 +55,25 @@ public partial class OpenShockContext : DbContext
     public OpenShockContext(DbContextOptions<OpenShockContext> options)
         : base(options)
     {
+    }
+    
+    public static void ConfigureOptionsBuilder(DbContextOptionsBuilder optionsBuilder, string connectionString,
+        bool debug)
+    {
+        optionsBuilder.UseNpgsql(connectionString, npgsqlBuilder =>
+        {
+            npgsqlBuilder.MapEnum<RoleType>();
+            npgsqlBuilder.MapEnum<ControlType>();
+            npgsqlBuilder.MapEnum<PermissionType>();
+            npgsqlBuilder.MapEnum<ShockerModelType>();
+            npgsqlBuilder.MapEnum<OtaUpdateStatus>();
+        });
+
+        if (debug)
+        {
+            optionsBuilder.EnableSensitiveDataLogging();
+            optionsBuilder.EnableDetailedErrors();
+        }
     }
 
     public virtual DbSet<ApiToken> ApiTokens { get; set; }
@@ -60,14 +119,16 @@ public partial class OpenShockContext : DbContext
             optionsBuilder.UseNpgsql("Host=localhost;Database=openshock;Username=openshock;Password=openshock");
         }
     }
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder
             .HasPostgresEnum("control_type", new[] { "sound", "vibrate", "shock", "stop" })
             .HasPostgresEnum("ota_update_status", new[] { "started", "running", "finished", "error", "timeout" })
             .HasPostgresEnum("password_encryption_type", new[] { "pbkdf2", "bcrypt_enhanced" })
-            .HasPostgresEnum("permission_type", new[] { "shockers.use", "shockers.edit", "shockers.pause", "devices.edit", "devices.auth" })
-            .HasPostgresEnum("rank_type", new[] { "user", "support", "staff", "admin", "system" })
+            .HasPostgresEnum("permission_type",
+                new[] { "shockers.use", "shockers.edit", "shockers.pause", "devices.edit", "devices.auth" })
+            .HasPostgresEnum("role_type", new[] { "support", "staff", "admin", "system" })
             .HasPostgresEnum("shocker_model_type", new[] { "caiXianlin", "petTrainer", "petrainer998DR" })
             .HasAnnotation("Npgsql:CollationDefinition:public.ndcoll", "und-u-ks-level2,und-u-ks-level2,icu,False");
 
@@ -160,7 +221,8 @@ public partial class OpenShockContext : DbContext
 
             entity.ToTable("device_ota_updates");
 
-            entity.HasIndex(e => e.CreatedOn, "device_ota_updates_created_on_idx").HasAnnotation("Npgsql:StorageParameter:deduplicate_items", "true");
+            entity.HasIndex(e => e.CreatedOn, "device_ota_updates_created_on_idx")
+                .HasAnnotation("Npgsql:StorageParameter:deduplicate_items", "true");
 
             entity.Property(e => e.Device).HasColumnName("device");
             entity.Property(e => e.UpdateId).HasColumnName("update_id");
@@ -173,9 +235,9 @@ public partial class OpenShockContext : DbContext
             entity.Property(e => e.Version)
                 .VarCharWithLength(HardLimits.SemVerMaxLength)
                 .HasColumnName("version");
-            
+
             entity.Property(e => e.Status).HasColumnType("ota_update_status").HasColumnName("status");
-            
+
 
             entity.HasOne(d => d.DeviceNavigation).WithMany(p => p.DeviceOtaUpdates)
                 .HasForeignKey(d => d.Device)
@@ -187,7 +249,7 @@ public partial class OpenShockContext : DbContext
             entity.HasKey(e => e.Id).HasName("password_resets_pkey");
 
             entity.ToTable("password_resets");
-            
+
             entity.HasIndex(e => e.UserId).HasAnnotation("Npgsql:StorageParameter:deduplicate_items", "true");
 
             entity.Property(e => e.Id)
@@ -213,7 +275,7 @@ public partial class OpenShockContext : DbContext
             entity.HasKey(e => e.Id).HasName("shares_codes_pkey");
 
             entity.ToTable("share_requests");
-            
+
             entity.HasIndex(e => e.Owner).HasAnnotation("Npgsql:StorageParameter:deduplicate_items", "true");
 
             entity.Property(e => e.Id)
@@ -272,7 +334,7 @@ public partial class OpenShockContext : DbContext
             entity.HasKey(e => e.Id).HasName("shockers_pkey");
 
             entity.ToTable("shockers");
-            
+
             entity.HasIndex(e => e.Device).HasAnnotation("Npgsql:StorageParameter:deduplicate_items", "true");
 
             entity.Property(e => e.Id)
@@ -301,7 +363,7 @@ public partial class OpenShockContext : DbContext
             entity.HasKey(e => e.Id).HasName("shocker_control_logs_pkey");
 
             entity.ToTable("shocker_control_logs");
-            
+
             entity.HasIndex(e => e.ShockerId).HasAnnotation("Npgsql:StorageParameter:deduplicate_items", "true");
 
             entity.Property(e => e.Id)
@@ -337,7 +399,7 @@ public partial class OpenShockContext : DbContext
             entity.HasKey(e => new { e.ShockerId, e.SharedWith }).HasName("shocker_shares_pkey");
 
             entity.ToTable("shocker_shares");
-            
+
             entity.HasIndex(e => e.SharedWith).HasAnnotation("Npgsql:StorageParameter:deduplicate_items", "true");
 
             entity.Property(e => e.ShockerId).HasColumnName("shocker_id");
@@ -407,7 +469,7 @@ public partial class OpenShockContext : DbContext
             entity.HasKey(e => e.Id).HasName("shocker_shares_links_pkey");
 
             entity.ToTable("shocker_shares_links");
-            
+
             entity.HasIndex(e => e.OwnerId).HasAnnotation("Npgsql:StorageParameter:deduplicate_items", "true");
 
             entity.Property(e => e.Id)
@@ -485,9 +547,9 @@ public partial class OpenShockContext : DbContext
             entity.Property(e => e.PasswordHash)
                 .VarCharWithLength(HardLimits.PasswordHashMaxLength)
                 .HasColumnName("password_hash");
-            entity.Property(e => e.Rank)
-                .HasColumnType("rank_type")
-                .HasColumnName("rank");
+            entity.Property(e => e.Roles)
+                .HasColumnType("role_type[]")
+                .HasColumnName("roles");
         });
 
         modelBuilder.Entity<UsersActivation>(entity =>
@@ -495,7 +557,7 @@ public partial class OpenShockContext : DbContext
             entity.HasKey(e => e.Id).HasName("users_activation_pkey");
 
             entity.ToTable("users_activation");
-            
+
             entity.HasIndex(e => e.UserId);
 
             entity.Property(e => e.Id)
@@ -520,7 +582,7 @@ public partial class OpenShockContext : DbContext
             entity.HasKey(e => e.Id).HasName("users_email_change_pkey");
 
             entity.ToTable("users_email_changes");
-            
+
             entity.HasIndex(e => e.UserId);
 
             entity.HasIndex(e => e.CreatedOn).HasAnnotation("Npgsql:StorageParameter:deduplicate_items", "true");
@@ -556,7 +618,7 @@ public partial class OpenShockContext : DbContext
             entity.HasIndex(e => e.CreatedOn).HasAnnotation("Npgsql:StorageParameter:deduplicate_items", "true");
 
             entity.HasIndex(e => e.OldName).HasAnnotation("Npgsql:StorageParameter:deduplicate_items", "true");
-            
+
             entity.HasIndex(e => e.UserId).HasAnnotation("Npgsql:StorageParameter:deduplicate_items", "true");
 
             entity.Property(e => e.Id)
@@ -597,9 +659,10 @@ public partial class OpenShockContext : DbContext
                 .HasColumnName("created_at");
             entity.Property(e => e.EmailActivated)
                 .HasColumnName("email_activated");
-            entity.Property(e => e.Rank)
-                .HasColumnType("rank_type")
-                .HasColumnName("rank");
+            entity.Property(e => e.Roles)
+                .HasColumnType("role_type[]")
+                .HasColumnName("roles")
+                .HasConversion(x => x.ToArray(), x => x.ToList());
             entity.Property(e => e.ApiTokenCount)
                 .HasColumnName("api_token_count");
             entity.Property(e => e.PasswordResetCount)

@@ -11,7 +11,7 @@ using OpenShock.Common.OpenShockDb;
 
 namespace OpenShock.Common.Migrations
 {
-    [DbContext(typeof(OpenShockContext))]
+    [DbContext(typeof(MigrationOpenShockContext))]
     [Migration("20241122214013_Fix Petrainer998DR RFIDs")]
     partial class FixPetrainer998DRRFIDs
     {

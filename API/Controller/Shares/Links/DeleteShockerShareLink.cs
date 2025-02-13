@@ -26,7 +26,7 @@ public sealed partial class ShareLinksController
     {
         var exists = await _db.ShockerSharesLinks
             .Where(x => x.Id == shareLinkId)
-            .WhereIsUserOrAdmin(x => x.Owner, CurrentUser)
+            .WhereIsUserOrPrivileged(x => x.Owner, CurrentUser)
             .AnyAsync();
         if (!exists)
         {

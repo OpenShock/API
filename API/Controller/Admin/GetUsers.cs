@@ -3,11 +3,12 @@ using System.Net.Mime;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using OpenShock.Common.Errors;
+using OpenShock.Common.Extensions;
 using OpenShock.Common.Models;
 using OpenShock.Common.Utils;
-using OpenShock.Common.Problems;
 using Z.EntityFramework.Plus;
 using OpenShock.Common.OpenShockDb;
+using OpenShock.Common.Query;
 
 namespace OpenShock.API.Controller.Admin;
 
@@ -47,7 +48,15 @@ public sealed partial class AdminController
                 query = query.OrderBy(u => u.CreatedAt);
             }
         }
-        catch (ExpressionBuilder.ExpressionException e)
+        catch (QueryStringTokenizerException e)
+        {
+            return Problem(ExpressionError.QueryStringInvalidError(e.Message));
+        }
+        catch (DBExpressionBuilderException e)
+        {
+            return Problem(ExpressionError.ExpressionExceptionError(e.Message));
+        }
+        catch (FormatException e)
         {
             return Problem(ExpressionError.ExpressionExceptionError(e.Message));
         }
@@ -61,7 +70,7 @@ public sealed partial class AdminController
 
         return Ok(new Paginated<AdminUsersView>
         {
-            Data = await deferredUsers.ToListAsync(),
+            Data = await deferredUsers.ToArrayAsync(),
             Offset = offset,
             Limit = limit,
             Total = await deferredCount.ValueAsync(),

@@ -1,7 +1,7 @@
 ﻿using OpenShock.Serialization.Types;
 using Semver;
 
-namespace OpenShock.Common.Utils;
+namespace OpenShock.Common.Extensions;
 
 public static class SemVersionExtensions
 {

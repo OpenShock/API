@@ -42,20 +42,24 @@ public sealed class HubAuthentication : AuthenticationHandler<AuthenticationSche
 
     protected override async Task<AuthenticateResult> HandleAuthenticateAsync()
     {
-        if (!Context.TryGetDeviceTokenFromHeader(out string? sessionKey))
+        if (!Context.TryGetDeviceTokenFromHeader(out var sessionKey))
         {
             return Fail(AuthResultError.HeaderMissingOrInvalid);
         }
 
-        var device = await _db.Devices.Where(x => x.Token == sessionKey).FirstOrDefaultAsync();
-        if (device == null) return Fail(AuthResultError.TokenInvalid);
+        var device = await _db.Devices.FirstOrDefaultAsync(x => x.Token == sessionKey);
+        if (device == null)
+        {
+            return Fail(AuthResultError.TokenInvalid);
+        }
 
         _authService.CurrentClient = device;
-        Context.Items["Device"] = _authService.CurrentClient.Id;
 
         var claims = new[]
         {
-            new Claim("id", _authService.CurrentClient.Id.ToString()),
+            new(ClaimTypes.AuthenticationMethod, OpenShockAuthSchemas.HubToken),
+            new Claim(ClaimTypes.NameIdentifier, device.Owner.ToString()),
+            new Claim(OpenShockAuthClaims.HubId, _authService.CurrentClient.Id.ToString()),
         };
         var ident = new ClaimsIdentity(claims, nameof(HubAuthentication));
         var ticket = new AuthenticationTicket(new ClaimsPrincipal(ident), Scheme.Name);
@@ -72,6 +76,7 @@ public sealed class HubAuthentication : AuthenticationHandler<AuthenticationSche
     /// <inheritdoc />
     protected override Task HandleChallengeAsync(AuthenticationProperties properties)
     {
+        if (Context.Response.HasStarted) return Task.CompletedTask;
         _authResultError ??= AuthResultError.UnknownError;
         Response.StatusCode = _authResultError.Status!.Value;
         _authResultError.AddContext(Context);

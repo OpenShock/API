@@ -24,7 +24,7 @@ public sealed partial class ShareLinksController
     {
         var result = await _db.ShockerSharesLinks
             .Where(x => x.Id == shareLinkId)
-            .WhereIsUserOrAdmin(x => x.Owner, CurrentUser)
+            .WhereIsUserOrPrivileged(x => x.Owner, CurrentUser)
             .ExecuteDeleteAsync();
 
         return result > 0

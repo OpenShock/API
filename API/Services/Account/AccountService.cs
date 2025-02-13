@@ -5,6 +5,7 @@ using OneOf.Types;
 using OpenShock.API.Services.Email;
 using OpenShock.API.Services.Email.Mailjet.Mail;
 using OpenShock.Common.Constants;
+using OpenShock.Common.Models;
 using OpenShock.Common.OpenShockDb;
 using OpenShock.Common.Services.Session;
 using OpenShock.Common.Utils;
@@ -57,14 +58,15 @@ public sealed class AccountService : IAccountService
         if (await _db.Users.AnyAsync(x => x.Email == email.ToLowerInvariant() || x.Name == username))
             return new AccountWithEmailOrUsernameExists();
 
-        var newGuid = Guid.NewGuid();
+        var newGuid = Guid.CreateVersion7();
         var user = new User
         {
             Id = newGuid,
             Name = username,
             Email = email.ToLowerInvariant(),
             PasswordHash = PasswordHashingUtils.HashPassword(password),
-            EmailActivated = emailActivated
+            EmailActivated = emailActivated,
+            Roles = []
         };
         _db.Users.Add(user);
 
@@ -82,7 +84,7 @@ public sealed class AccountService : IAccountService
 
         var user = accountCreate.AsT0.Value;
 
-        var id = Guid.NewGuid();
+        var id = Guid.CreateVersion7();
         var secret = CryptoUtils.RandomString(32);
         var secretHash = BCrypt.Net.BCrypt.EnhancedHashPassword(secret, HashAlgo);
 
@@ -155,7 +157,7 @@ public sealed class AccountService : IAccountService
         var hash = BCrypt.Net.BCrypt.EnhancedHashPassword(secret, HashAlgo);
         var passwordReset = new PasswordReset
         {
-            Id = Guid.NewGuid(),
+            Id = Guid.CreateVersion7(),
             Secret = hash,
             User = user.User
         };
@@ -201,21 +203,21 @@ public sealed class AccountService : IAccountService
     }
 
     /// <inheritdoc />
-    public async Task<OneOf<Success, Error<OneOf<UsernameTaken, UsernameError, RecentlyChanged>>, NotFound>>
+    public async Task<OneOf<Success, OneOf.Types.Error<OneOf<UsernameTaken, UsernameError, RecentlyChanged>>, NotFound>>
         ChangeUsername(Guid userId,
             string username, bool ignoreLimit = false)
     {
         var cooldownSubtracted = DateTime.UtcNow.Subtract(Duration.NameChangeCooldown);
         if (!ignoreLimit && await _db.UsersNameChanges.Where(x => x.UserId == userId && x.CreatedOn >= cooldownSubtracted).AnyAsync())
         {
-            return new Error<OneOf<UsernameTaken, UsernameError, RecentlyChanged>>(new RecentlyChanged());
+            return new OneOf.Types.Error<OneOf<UsernameTaken, UsernameError, RecentlyChanged>>(new RecentlyChanged());
         }
 
         var availability = await CheckUsernameAvailability(username);
         if (availability.IsT1)
-            return new Error<OneOf<UsernameTaken, UsernameError, RecentlyChanged>>(availability.AsT1);
+            return new OneOf.Types.Error<OneOf<UsernameTaken, UsernameError, RecentlyChanged>>(availability.AsT1);
         if (availability.IsT2)
-            return new Error<OneOf<UsernameTaken, UsernameError, RecentlyChanged>>(availability.AsT2);
+            return new OneOf.Types.Error<OneOf<UsernameTaken, UsernameError, RecentlyChanged>>(availability.AsT2);
 
         await using var transaction = await _db.Database.BeginTransactionAsync();
 

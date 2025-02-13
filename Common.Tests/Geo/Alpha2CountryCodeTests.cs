@@ -1,4 +1,5 @@
 ﻿using OpenShock.Common.Geo;
+using TUnit.Assertions.AssertConditions.Throws;
 
 namespace OpenShock.Common.Tests.Geo;
 
@@ -22,15 +23,13 @@ public class Alpha2CountryCodeTests
     [Arguments("INVALID")]
     public async Task InvalidCharCount_ShouldThrow_InvalidLength(string str)
     {
-        // Act
-        var ex = await Assert.ThrowsAsync<ArgumentException>(() =>
-        {
-            Alpha2CountryCode c = str;
-            return Task.CompletedTask;
-        });
-
-        // Assert
-        await Assert.That(ex.Message).IsEqualTo("Country code must be exactly 2 characters long (Parameter 'str')");
+        // Act & Assert
+        await Assert.That(() =>
+            {
+                Alpha2CountryCode c = str;
+            })
+            .ThrowsExactly<ArgumentOutOfRangeException>()
+            .WithMessage("Country code must be exactly 2 characters long (Parameter 'str')");
     }
 
     [Test]
@@ -44,15 +43,13 @@ public class Alpha2CountryCodeTests
     [Arguments(":D")]
     public async Task InvalidCharTypes_ShouldThrow(string str)
     {
-        // Act
-        var ex = await Assert.ThrowsAsync<ArgumentException>(() =>
-        {
-            Alpha2CountryCode c = str;
-            return Task.CompletedTask;
-        });
-
-        // Assert
-        await Assert.That(ex.Message).IsEqualTo("Country code must be uppercase ASCII characters only (Parameter 'str')");
+        // Act & Assert
+        await Assert.That(() =>
+            {
+                Alpha2CountryCode c = str;
+            })
+            .ThrowsExactly<ArgumentOutOfRangeException>()
+            .WithMessage("Country code must be uppercase ASCII characters only (Parameter 'str')");
     }
 
     [Test]

@@ -11,7 +11,7 @@ using OpenShock.Common.OpenShockDb;
 
 namespace OpenShock.Common.Migrations
 {
-    [DbContext(typeof(OpenShockContext))]
+    [DbContext(typeof(MigrationOpenShockContext))]
     [Migration("20241105235041_RestrictFieldLengths")]
     partial class RestrictFieldLengths
     {

@@ -13,23 +13,29 @@ public sealed partial class UsersController
     /// <response code="200">The user's information was successfully retrieved.</response>
     [HttpGet("self")]
     [ProducesResponseType<BaseResponse<SelfResponse>>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
-    public BaseResponse<SelfResponse> GetSelf() => new()
+    public BaseResponse<SelfResponse> GetSelf()
     {
-        Data = new SelfResponse
+        return new BaseResponse<SelfResponse>
         {
-            Id = CurrentUser.Id,
-            Name = CurrentUser.Name,
-            Email = CurrentUser.Email,
-            Image = CurrentUser.GetImageUrl(),
-            Rank = CurrentUser.Rank
-        }
-    };
+            Data = new SelfResponse
+            {
+                Id = CurrentUser.Id,
+                Name = CurrentUser.Name,
+                Email = CurrentUser.Email,
+                Image = CurrentUser.GetImageUrl(),
+                Roles = CurrentUser.Roles,
+                Rank = CurrentUser.Roles.Count > 0 ? CurrentUser.Roles.Max().ToString() : "User"
+            }
+        };
+    }
+
     public sealed class SelfResponse
     {
         public required Guid Id { get; set; }
         public required string Name { get; set; }
         public required string Email { get; set; }
         public required Uri Image { get; set; }
-        public required RankType Rank { get; set; }
+        public required List<RoleType> Roles { get; set; }
+        public required string Rank { get; set; }
     }
 }

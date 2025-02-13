@@ -18,7 +18,7 @@ public partial class User
 
     public bool EmailActivated { get; set; }
 
-    public RankType Rank { get; set; }
+    public List<RoleType> Roles { get; set; } = null!;
 
     public virtual ICollection<ApiToken> ApiTokens { get; set; } = new List<ApiToken>();
 

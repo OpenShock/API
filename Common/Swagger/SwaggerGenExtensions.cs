@@ -29,7 +29,7 @@ public static class SwaggerGenExtensions
                         .Select(v => v.ToString())
                         .ToHashSet()
                         .OrderBy(v => v)
-                        .ToList();
+                        .ToArray();
 
         if (versions.Any(v => !int.TryParse(v, out _)))
         {
@@ -85,7 +85,7 @@ public static class SwaggerGenExtensions
                     }
                 });
                 options.AddServer(new OpenApiServer { Url = "https://api.openshock.app" });
-                options.AddServer(new OpenApiServer { Url = "https://staging-api.openshock.app" });
+                options.AddServer(new OpenApiServer { Url = "https://api.openshock.dev" });
 #if DEBUG
                 options.AddServer(new OpenApiServer { Url = "https://localhost" });
 #endif

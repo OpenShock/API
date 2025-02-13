@@ -209,8 +209,7 @@ public sealed class HubLifetime : IAsyncDisposable
         await using var db = await _dbContextFactory.CreateDbContextAsync(_cancellationSource.Token);
         await UpdateShockers(db, _cancellationSource.Token);
 
-        foreach (var websocketController in
-                 WebsocketManager.LiveControlUsers.GetConnections(HubController.Id))
+        foreach (var websocketController in WebsocketManager.LiveControlUsers.GetConnections(HubController.Id))
             await websocketController.UpdatePermissions(db);
     }
 

@@ -48,7 +48,7 @@ public static class ControlLogic
                     Duration = x.LimitDuration,
                     Intensity = x.LimitIntensity
                 }
-            }).ToListAsync();
+            }).ToArrayAsync();
 
         ownShockers.AddRange(sharedShockers);
 
@@ -77,7 +77,8 @@ public static class ControlLogic
                 Duration = x.LimitDuration,
                 Intensity = x.LimitIntensity
             }
-        }).ToListAsync();
+        }).ToArrayAsync();
+        
         return await ControlInternal(shocks, db, sender, hubClients, shareLinkShockers, redisPubService);
     }
     
@@ -123,7 +124,7 @@ public static class ControlLogic
 
             db.ShockerControlLogs.Add(new ShockerControlLog
             {
-                Id = Guid.NewGuid(),
+                Id = Guid.CreateVersion7(),
                 ShockerId = shockerInfo.Id,
                 ControlledBy = sender.Id == Guid.Empty ? null : sender.Id,
                 CreatedOn = curTime,

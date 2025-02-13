@@ -57,7 +57,7 @@ public sealed partial class ShockerController
                         Intensity = x.LimitIntensity
                     }
                 }
-            ).ToListAsync();
+            ).ToArrayAsync();
 
         return RespondSuccessLegacy(shares);
     }
@@ -82,7 +82,7 @@ public sealed partial class ShockerController
                     CreatedOn = x.CreatedOn,
                     Id = x.Id
                 }
-            ).ToListAsync();
+            ).ToArrayAsync();
 
         return RespondSuccessLegacy(shares);
     }
@@ -119,7 +119,7 @@ public sealed partial class ShockerController
 
         var newCode = new ShockerShareCode
         {
-            Id = Guid.NewGuid(),
+            Id = Guid.CreateVersion7(),
             ShockerId = shockerId,
             PermVibrate = body.Permissions.Vibrate,
             PermSound = body.Permissions.Sound,
