@@ -58,7 +58,7 @@ public sealed partial class ShockerController
                 {
                     Id = shocker.OwnerId,
                     Name = shocker.OwnerName,
-                    Image = GravatarUtils.GetImageUrl(shocker.OwnerEmail)
+                    Image = GravatarUtils.GetUserImageUrl(shocker.OwnerEmail)
                 };
 
             var sharedUser = shared[shocker.OwnerId];

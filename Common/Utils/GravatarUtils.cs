@@ -1,5 +1,6 @@
 ﻿using OpenShock.Common.OpenShockDb;
 using System.Web;
+using Z.Expressions;
 
 namespace OpenShock.Common.Utils;
 
@@ -7,5 +8,9 @@ public static class GravatarUtils
 {
     private static readonly string DefaultImageUrl = HttpUtility.UrlEncode("https://openshock.app/static/images/Icon512.png");
 
-    public static Uri GetImageUrl(string email) => new Uri($"https://www.gravatar.com/avatar/{HashingUtils.HashSha256(email)}?d={DefaultImageUrl}");
+    private static Uri GetImageUrl(string id) => new Uri($"https://www.gravatar.com/avatar/{id}?d={DefaultImageUrl}");
+
+    public static readonly Uri GuestImageUrl = GetImageUrl("0");
+
+    public static Uri GetUserImageUrl(string email) => GetImageUrl(HashingUtils.HashSha256(email));
 }
