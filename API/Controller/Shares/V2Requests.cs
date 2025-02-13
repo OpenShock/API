@@ -16,44 +16,45 @@ namespace OpenShock.API.Controller.Shares;
 public sealed partial class SharesController
 {
     [HttpGet("requests/outstanding")]
-    [ProducesResponseType<ShareRequestBaseItem[]>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
+    [ProducesResponseType<IAsyncEnumerable<ShareRequestBaseItem>>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
     [ApiVersion("2")]
-    public async Task<ShareRequestBaseItem[]> GetOutstandingRequestsList()
+    public IAsyncEnumerable<ShareRequestBaseItem> GetOutstandingRequestsList()
     {
-        var outstandingShares = await _db.ShareRequests.Where(x => x.Owner == CurrentUser.Id)
+        return _db.ShareRequests
+            .Where(x => x.Owner == CurrentUser.Id)
             .Select(x => new ShareRequestBaseItem()
-        {
-            Id = x.Id,
-            CreatedOn = x.CreatedOn,
-            Owner = new GenericIni
             {
-                Id = x.OwnerNavigation.Id,
-                Name = x.OwnerNavigation.Name,
-                Image = x.OwnerNavigation.GetImageUrl()
-            },
-            SharedWith = x.UserNavigation == null
-                ? null
-                : new GenericIni
+                Id = x.Id,
+                CreatedOn = x.CreatedOn,
+                Owner = new GenericIni
                 {
-                    Id = x.UserNavigation.Id,
-                    Name = x.UserNavigation.Name,
-                    Image = x.UserNavigation.GetImageUrl()
+                    Id = x.OwnerNavigation.Id,
+                    Name = x.OwnerNavigation.Name,
+                    Image = x.OwnerNavigation.GetImageUrl()
                 },
-            Counts = new ShareRequestBaseItem.ShareRequestCounts
-            {
-                Shockers = x.ShareRequestsShockers.Count
-            }
-        }).ToArrayAsync();
-        
-        return outstandingShares;
+                SharedWith = x.UserNavigation == null
+                    ? null
+                    : new GenericIni
+                    {
+                        Id = x.UserNavigation.Id,
+                        Name = x.UserNavigation.Name,
+                        Image = x.UserNavigation.GetImageUrl()
+                    },
+                Counts = new ShareRequestBaseItem.ShareRequestCounts
+                {
+                    Shockers = x.ShareRequestsShockers.Count
+                }
+            })
+            .AsAsyncEnumerable();
     }
     
     [HttpGet("requests/incoming")]
-    [ProducesResponseType<ShareRequestBaseItem[]>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
+    [ProducesResponseType<IAsyncEnumerable<ShareRequestBaseItem>>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
     [ApiVersion("2")]
-    public async Task<ShareRequestBaseItem[]> GetIncomingRequestsList()
+    public IAsyncEnumerable<ShareRequestBaseItem> GetIncomingRequestsList()
     {
-        var outstandingShares = await _db.ShareRequests.Where(x => x.User == CurrentUser.Id)
+        return _db.ShareRequests
+            .Where(x => x.User == CurrentUser.Id)
             .Select(x => new ShareRequestBaseItem
             {
                 Id = x.Id,
@@ -76,9 +77,8 @@ public sealed partial class SharesController
                 {
                     Shockers = x.ShareRequestsShockers.Count
                 }
-            }).ToArrayAsync();
-        
-        return outstandingShares;
+            })
+            .AsAsyncEnumerable();
     }
     
     [HttpGet("requests/{id:guid}")]
