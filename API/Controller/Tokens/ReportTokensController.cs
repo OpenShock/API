@@ -41,7 +41,14 @@ public sealed partial class TokensController
             return Problem(new OpenShockProblem("InternalServerError", "Internal Server Error", HttpStatusCode.InternalServerError));
         }
 
-        _db.ApiTokensReports.Add(new Common.OpenShockDb.ApiTokenReport { Id = Guid.CreateVersion7(), ReportedByUserId = CurrentUser.Id, ReportedByIp = remoteIP, ReportedByUser = CurrentUser });
+        _db.ApiTokensReports.Add(new Common.OpenShockDb.ApiTokenReport {
+            Id = Guid.CreateVersion7(),
+            ReportedAt = DateTimeOffset.UtcNow,
+            ReportedByUserId = CurrentUser.Id,
+            ReportedByIp = remoteIP,
+            ReportedByIpCountry = HttpContext.GetCFIPCountry(),
+            ReportedByUser = CurrentUser
+        });
         await _db.SaveChangesAsync(cancellationToken);
 
         var hashes = body.Secrets.Select(HashingUtils.HashSha256).ToArray();
