@@ -103,7 +103,8 @@ public sealed class LiveControlController : WebsocketBaseController<LiveControlR
         if(_unregistered) return;
         _unregistered = true;
         
-        if (!await HubLifetime.RemoveLiveControlClient(this))
+        if(_hubLifetime == null) return;
+        if (!await _hubLifetime.RemoveLiveControlClient(this))
         {
             _logger.LogError("Failed to remove live control client from hub lifetime {HubId} {CurrentUserId}", HubId, _currentUser.Id);
         }

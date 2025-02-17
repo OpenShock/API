@@ -135,11 +135,12 @@ public abstract class WebsocketBaseController<T> : OpenShockControllerBase, IAsy
 
         Logger.LogInformation("Opening websocket connection");
         
-        WebSocket?.Dispose(); // This should never happen, but just in case
-        WebSocket = await HttpContext.WebSockets.AcceptWebSocketAsync();
+        WebSocket?.Dispose(); // This should never happen, suppresses warning
 
         if (await TryRegisterConnection())
         {
+            WebSocket = await HttpContext.WebSockets.AcceptWebSocketAsync();
+            
 #pragma warning disable CS4014
             LucTask.Run(MessageLoop);
 #pragma warning restore CS4014
@@ -155,7 +156,7 @@ public abstract class WebsocketBaseController<T> : OpenShockControllerBase, IAsy
         }
 
 
-        await Close.CancelAsync();
+        await DisposeAsync();
     }
 
     #region Send Loop
