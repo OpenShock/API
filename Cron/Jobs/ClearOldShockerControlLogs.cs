@@ -28,16 +28,6 @@ public sealed class ClearOldShockerControlLogs
 
     public async Task Execute()
     {
-        // Calculate the retention threshold based on configured retention time.
-        var retentionThreshold = DateTime.UtcNow - Duration.ShockerControlLogRetentionTime;
-
-        // Delete logs older than the retention threshold.
-        var deletedByAge = await _db.ShockerControlLogs
-            .Where(log => log.CreatedOn < retentionThreshold)
-            .ExecuteDeleteAsync();
-        
-        _logger.LogInformation("Deleted {deletedCount} shocker control logs older than {retentionThreshold:O}.", deletedByAge, retentionThreshold);
-        
         var userLogsCounts = await _db.ShockerControlLogs
             .GroupBy(log => log.Shocker.DeviceNavigation.Owner)
             .Select(group => new
