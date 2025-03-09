@@ -26,7 +26,7 @@ public sealed class SessionService : ISessionService
 
     public async Task<Guid> CreateSessionAsync(string sessionId, Guid userId, string userAgent, string ipAddress)
     {
-        Guid publicId = Guid.NewGuid();
+        Guid publicId = Guid.CreateVersion7();
 
         await _loginSessions.InsertAsync(new LoginSession
         {
@@ -114,7 +114,7 @@ public sealed class SessionService : ISessionService
 
         if (session.PublicId == null)
         {
-            session.PublicId = Guid.NewGuid();
+            session.PublicId = Guid.CreateVersion7();
             save = true;
         }
 

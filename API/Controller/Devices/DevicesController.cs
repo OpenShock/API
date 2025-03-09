@@ -169,7 +169,7 @@ public sealed partial class DevicesController
     {
         var device = new Common.OpenShockDb.Device
         {
-            Id = Guid.NewGuid(),
+            Id = Guid.CreateVersion7(),
             Owner = CurrentUser.Id,
             Name = data.Name,
             Token = CryptoUtils.RandomString(256)

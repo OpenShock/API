@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using OneOf;
 using OneOf.Types;
 using OpenShock.Common.Constants;
+using OpenShock.Common.Extensions;
 using OpenShock.Common.Hubs;
 using OpenShock.Common.Models;
 using OpenShock.Common.Models.WebSocket.User;
@@ -102,10 +103,12 @@ public static class ControlLogic
             var durationMax = shockerInfo.PermsAndLimits?.Duration ?? HardLimits.MaxControlDuration;
             var intensityMax = shockerInfo.PermsAndLimits?.Intensity ?? HardLimits.MaxControlIntensity;
 
+            var deviceGroup = finalMessages.GetValueOrAddDefault(shockerInfo.Device, []);
+
             var intensity = Math.Clamp(shock.Intensity, HardLimits.MinControlIntensity, intensityMax);
             var duration = Math.Clamp(shock.Duration, HardLimits.MinControlDuration, durationMax);
 
-            var shockerControlInfo = new ControlMessage.ShockerControlInfo
+            deviceGroup.Add(new ControlMessage.ShockerControlInfo
             {
                 Id = shockerInfo.Id,
                 RfId = shockerInfo.RfId,
@@ -114,21 +117,11 @@ public static class ControlLogic
                 Type = shock.Type,
                 Model = shockerInfo.Model,
                 Exclusive = shock.Exclusive
-            };
-
-            if (finalMessages.TryGetValue(shockerInfo.Device, out var deviceGroup))
-            {
-                deviceGroup.Add(shockerControlInfo);
-            }
-            else
-            {
-                deviceGroup = [shockerControlInfo];
-                finalMessages[shockerInfo.Device] = deviceGroup;
-            }
+            });
 
             db.ShockerControlLogs.Add(new ShockerControlLog
             {
-                Id = Guid.NewGuid(),
+                Id = Guid.CreateVersion7(),
                 ShockerId = shockerInfo.Id,
                 ControlledBy = sender.Id == Guid.Empty ? null : sender.Id,
                 CreatedOn = curTime,
@@ -138,11 +131,7 @@ public static class ControlLogic
                 CustomName = sender.CustomName
             });
 
-            if (!logs.TryGetValue(shockerInfo.Owner, out var ownerLog))
-            {
-                ownerLog = [];
-                logs[shockerInfo.Owner] = ownerLog;
-            }
+            var ownerLog = logs.GetValueOrAddDefault(shockerInfo.Owner, []);
 
             ownerLog.Add(new ControlLog
             {

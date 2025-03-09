@@ -123,7 +123,7 @@ public sealed partial class ShockerController
 
         var newCode = new ShockerShareCode
         {
-            Id = Guid.NewGuid(),
+            Id = Guid.CreateVersion7(),
             ShockerId = shockerId,
             PermVibrate = body.Permissions.Vibrate,
             PermSound = body.Permissions.Sound,
