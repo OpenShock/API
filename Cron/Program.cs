@@ -27,9 +27,12 @@ app.UseCommonOpenShockMiddleware();
 
 app.UseHangfireDashboard(options: new DashboardOptions
 {
-    AsyncAuthorization = [
+#if !DEBUG
+    AsyncAuthorization =
+    [
         new DashboardAdminAuth()
     ]
+#endif
 });
 
 app.MapControllers();

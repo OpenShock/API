@@ -47,4 +47,6 @@ public static class HardLimits
     public const int ShockerControlLogCustomNameMaxLength = 64;
     
     public const int CreateShareRequestMaxShockers = 128;
+    
+    public const int MaxShockerControlLogsPerUser = 2048;
 }

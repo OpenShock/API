@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using OneOf;
 using OneOf.Types;
 using OpenShock.Common.Constants;
+using OpenShock.Common.Extensions;
 using OpenShock.Common.Hubs;
 using OpenShock.Common.Models;
 using OpenShock.Common.Models.WebSocket.User;
@@ -102,11 +103,7 @@ public static class ControlLogic
             var durationMax = shockerInfo.PermsAndLimits?.Duration ?? HardLimits.MaxControlDuration;
             var intensityMax = shockerInfo.PermsAndLimits?.Intensity ?? HardLimits.MaxControlIntensity;
 
-            if (!finalMessages.TryGetValue(shockerInfo.Device, out var deviceGroup))
-            {
-                deviceGroup = [];
-                finalMessages[shockerInfo.Device] = deviceGroup;
-            }
+            var deviceGroup = finalMessages.GetValueOrAddDefault(shockerInfo.Device, []);
 
             var intensity = Math.Clamp(shock.Intensity, HardLimits.MinControlIntensity, intensityMax);
             var duration = Math.Clamp(shock.Duration, HardLimits.MinControlDuration, durationMax);
@@ -134,11 +131,7 @@ public static class ControlLogic
                 CustomName = sender.CustomName
             });
 
-            if (!logs.TryGetValue(shockerInfo.Owner, out var ownerLog))
-            {
-                ownerLog = [];
-                logs[shockerInfo.Owner] = ownerLog;
-            }
+            var ownerLog = logs.GetValueOrAddDefault(shockerInfo.Owner, []);
 
             ownerLog.Add(new ControlLog
             {
