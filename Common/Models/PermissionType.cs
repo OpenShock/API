@@ -23,16 +23,16 @@ public enum PermissionType
 
 public static class PermissionTypeExtensions
 {
-    public static bool IsAllowed(this PermissionType permissionType, IReadOnlyCollection<PermissionType> permissions) =>
+    public static bool IsAllowed(this PermissionType permissionType, IReadOnlyList<PermissionType> permissions) =>
         IsAllowedInternal(permissions, permissionType);
 
-    public static bool IsAllowed(this IReadOnlyCollection<PermissionType> permissions, PermissionType permissionType) =>
+    public static bool IsAllowed(this IReadOnlyList<PermissionType> permissions, PermissionType permissionType) =>
         IsAllowedInternal(permissions, permissionType);
     
-    public static bool IsAllowedAllowOnNull(this IReadOnlyCollection<PermissionType>? permissions,
+    public static bool IsAllowedAllowOnNull(this IReadOnlyList<PermissionType>? permissions,
         PermissionType permissionType) => permissions == null || IsAllowedInternal(permissions, permissionType);
     
-    private static bool IsAllowedInternal(IReadOnlyCollection<PermissionType> permissions, PermissionType permissionType)
+    private static bool IsAllowedInternal(IReadOnlyList<PermissionType> permissions, PermissionType permissionType)
     {
         // ReSharper disable once PossibleMultipleEnumeration
         return permissions.Contains(permissionType) || permissions.Any(x =>
@@ -85,4 +85,4 @@ public static class PermissionTypeBindings
     }
 }
 
-public record PermissionTypeRecord(PermissionType PermissionType, string Name, ICollection<PermissionType> Parents);
+public record PermissionTypeRecord(PermissionType PermissionType, string Name, IReadOnlyList<PermissionType> Parents);

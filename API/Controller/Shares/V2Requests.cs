@@ -88,7 +88,7 @@ public sealed partial class SharesController
     public async Task<IActionResult> GetRequest(Guid id)
     {
         var outstandingShare = await _db.ShareRequests.Where(x => x.Id == id && (x.Owner == CurrentUser.Id || x.User == CurrentUser.Id))
-            .Select(x => new ShareRequestBaseDetails()
+            .Select(x => new ShareRequestBaseDetails
             {
                 Id = x.Id,
                 CreatedOn = x.CreatedOn,
@@ -121,7 +121,7 @@ public sealed partial class SharesController
                         Vibrate = y.PermVibrate,
                         Live = y.PermLive
                     }
-                }).ToArray()
+                })
             }).FirstOrDefaultAsync();
         
         if (outstandingShare == null) return Problem(ShareError.ShareRequestNotFound);
@@ -199,5 +199,5 @@ public sealed class ShareRequestBaseItem : ShareRequestBase
 
 public sealed class ShareRequestBaseDetails : ShareRequestBase
 {
-    public required ShockerPermLimitPairWithId[] Shockers { get; set; }
+    public required IEnumerable<ShockerPermLimitPairWithId> Shockers { get; set; }
 }

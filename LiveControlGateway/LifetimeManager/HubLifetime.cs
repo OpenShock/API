@@ -260,7 +260,7 @@ public sealed class HubLifetime : IAsyncDisposable
     /// </summary>
     /// <param name="shocks"></param>
     /// <returns></returns>
-    public ValueTask Control(IList<ControlMessage.ShockerControlInfo> shocks)
+    public ValueTask Control(IReadOnlyList<ControlMessage.ShockerControlInfo> shocks)
     {
         var shocksTransformed = new List<ShockerCommand>();
         foreach (var shock in shocks)

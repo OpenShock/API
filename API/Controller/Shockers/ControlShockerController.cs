@@ -1,5 +1,4 @@
-﻿using System.Net;
-using System.Net.Mime;
+﻿using System.Net.Mime;
 using Asp.Versioning;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.SignalR;
@@ -11,7 +10,6 @@ using OpenShock.Common.Hubs;
 using OpenShock.Common.Models;
 using OpenShock.Common.Problems;
 using OpenShock.Common.Services.RedisPubSub;
-using OpenShock.Common.Utils;
 
 namespace OpenShock.API.Controller.Shockers;
 
@@ -65,7 +63,7 @@ public sealed partial class ShockerController
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status412PreconditionFailed, MediaTypeNames.Application.ProblemJson)] // Shocker is paused
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status403Forbidden, MediaTypeNames.Application.ProblemJson)] // You don't have permission to control this shocker
     public Task<IActionResult> SendControl_DEPRECATED(
-        [FromBody] Common.Models.WebSocket.User.Control[] body,
+        [FromBody] IReadOnlyList<Common.Models.WebSocket.User.Control> body,
         [FromServices] IHubContext<UserHub, IUserHub> userHub,
         [FromServices] IRedisPubService redisPubService)
     {

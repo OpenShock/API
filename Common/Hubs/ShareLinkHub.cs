@@ -21,7 +21,7 @@ public sealed class ShareLinkHub : Hub<IShareLinkHub>
     private readonly ILogger<ShareLinkHub> _logger;
     private readonly IRedisPubService _redisPubService;
     private readonly IUserReferenceService _userReferenceService;
-    private IReadOnlyCollection<PermissionType>? _tokenPermissions = null;
+    private IReadOnlyList<PermissionType>? _tokenPermissions = null;
 
     public ShareLinkHub(OpenShockContext db, IHubContext<UserHub, IUserHub> userHub, ILogger<ShareLinkHub> logger,
         IRedisConnectionProvider provider, IRedisPubService redisPubService, IUserReferenceService userReferenceService)
@@ -112,7 +112,7 @@ public sealed class ShareLinkHub : Hub<IShareLinkHub>
         await Clients.Caller.Welcome(user != null ? AuthType.Authenticated : AuthType.Guest);
     }
 
-    public Task Control(Models.WebSocket.User.Control[] shocks)
+    public Task Control(IReadOnlyList<Models.WebSocket.User.Control> shocks)
     {
         if (!_tokenPermissions.IsAllowedAllowOnNull(PermissionType.Shockers_Use)) return Task.CompletedTask;
         

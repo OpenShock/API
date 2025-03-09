@@ -42,7 +42,7 @@ public sealed class SessionService : ISessionService
         return publicId;
     }
 
-    public async Task<LoginSession[]> ListSessionsByUserId(Guid userId)
+    public async Task<IReadOnlyList<LoginSession>> ListSessionsByUserId(Guid userId)
     {
         var sessions = await _loginSessions.Where(x => x.UserId == userId).ToArrayAsync();
 

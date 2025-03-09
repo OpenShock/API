@@ -15,7 +15,7 @@ namespace OpenShock.Common.DeviceControl;
 
 public static class ControlLogic
 {
-    public static async Task<OneOf<Success, ShockerNotFoundOrNoAccess, ShockerPaused, ShockerNoPermission>> ControlByUser(Control[] shocks, OpenShockContext db, ControlLogSender sender,
+    public static async Task<OneOf<Success, ShockerNotFoundOrNoAccess, ShockerPaused, ShockerNoPermission>> ControlByUser(IReadOnlyList<Control> shocks, OpenShockContext db, ControlLogSender sender,
         IHubClients<IUserHub> hubClients, IRedisPubService redisPubService)
     {
         var ownShockers = await db.Shockers.Where(x => x.DeviceNavigation.Owner == sender.Id).Select(x =>
@@ -56,7 +56,7 @@ public static class ControlLogic
         return await ControlInternal(shocks, db, sender, hubClients, ownShockers, redisPubService);
     }
 
-    public static async Task<OneOf<Success, ShockerNotFoundOrNoAccess, ShockerPaused, ShockerNoPermission>> ControlShareLink(Control[] shocks, OpenShockContext db,
+    public static async Task<OneOf<Success, ShockerNotFoundOrNoAccess, ShockerPaused, ShockerNoPermission>> ControlShareLink(IReadOnlyList<Control> shocks, OpenShockContext db,
         ControlLogSender sender,
         IHubClients<IUserHub> hubClients, Guid shareLinkId, IRedisPubService redisPubService)
     {
@@ -83,7 +83,7 @@ public static class ControlLogic
         return await ControlInternal(shocks, db, sender, hubClients, shareLinkShockers, redisPubService);
     }
     
-    private static async Task<OneOf<Success, ShockerNotFoundOrNoAccess, ShockerPaused, ShockerNoPermission>> ControlInternal(Control[] shocks, OpenShockContext db, ControlLogSender sender,
+    private static async Task<OneOf<Success, ShockerNotFoundOrNoAccess, ShockerPaused, ShockerNoPermission>> ControlInternal(IReadOnlyList<Control> shocks, OpenShockContext db, ControlLogSender sender,
         IHubClients<IUserHub> hubClients, IReadOnlyCollection<ControlShockerObj> allowedShockers, IRedisPubService redisPubService)
     {
         var finalMessages = new Dictionary<Guid, IList<ControlMessage.ShockerControlInfo>>();
