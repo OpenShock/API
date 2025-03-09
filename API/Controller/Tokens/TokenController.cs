@@ -1,14 +1,8 @@
 ﻿using System.ComponentModel.DataAnnotations;
-using System.Net;
 using System.Net.Mime;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using OpenShock.API.Models.Response;
-using OpenShock.API.Utils;
-using OpenShock.Common;
-using OpenShock.Common.Authentication;
-using OpenShock.Common.Authentication.Attributes;
 using OpenShock.Common.Constants;
 using OpenShock.Common.Errors;
 using OpenShock.Common.Models;
@@ -70,30 +64,6 @@ public sealed partial class TokensController
         if (apiToken == null) return Problem(ApiTokenError.ApiTokenNotFound);
         
         return Ok(apiToken);
-    }
-
-    /// <summary>
-    /// Revoke a token from the current user
-    /// </summary>
-    /// <param name="tokenId"></param>
-    /// <response code="200">Successfully deleted token</response>
-    /// <response code="404">The token does not exist or you do not have access to it.</response>
-    [HttpDelete("{tokenId}")]
-    [ProducesResponseType(StatusCodes.Status200OK)]
-    [ProducesResponseType<OpenShockProblem>(StatusCodes.Status404NotFound, MediaTypeNames.Application.ProblemJson)] // ApiTokenNotFound    
-    public async Task<IActionResult> DeleteToken([FromRoute] Guid tokenId)
-    {
-        var apiToken = await _db.ApiTokens
-            .Where(x => x.Id == tokenId)
-            .WhereIsUserOrPrivileged(x => x.User, CurrentUser)
-            .ExecuteDeleteAsync();
-        
-        if (apiToken <= 0)
-        {
-            return Problem(ApiTokenError.ApiTokenNotFound);
-        }
-        
-        return Ok();
     }
 
     /// <summary>

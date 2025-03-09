@@ -1,5 +1,6 @@
 ﻿using OpenShock.Common.Constants;
 using System.Diagnostics.CodeAnalysis;
+using System.Security.Claims;
 
 namespace OpenShock.Common.Utils;
 
@@ -89,4 +90,15 @@ public static class AuthUtils
         return false;
     }
 
+    public static string GetAuthenticationMethod(this HttpContext context)
+    {
+        var authMethodClaim = context.User.Claims.FirstOrDefault(x => x.Type == ClaimTypes.AuthenticationMethod);
+        if (authMethodClaim == null)
+        {
+            throw new Exception("No authentication method claim found, this should not happen and is a bug!");
+        }
+
+        return authMethodClaim.Value;
+    }
+    
 }
