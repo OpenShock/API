@@ -7,11 +7,11 @@ public sealed class TokenPermissionProblem(
     string type,
     string title,
     PermissionType requiredPermission,
-    List<PermissionType> grantedPermissions,
+    IEnumerable<PermissionType> grantedPermissions,
     HttpStatusCode status = HttpStatusCode.BadRequest,
     string? detail = null)
     : OpenShockProblem(type, title, status, detail)
 {
     public PermissionType RequiredPermission { get; set; } = requiredPermission;
-    public List<PermissionType> GrantedPermissions { get; set; } = grantedPermissions;
+    public IEnumerable<PermissionType> GrantedPermissions { get; set; } = grantedPermissions;
 }

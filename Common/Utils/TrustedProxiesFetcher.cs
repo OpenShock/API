@@ -58,7 +58,7 @@ public static class TrustedProxiesFetcher
 
     private static readonly char[] NewLineSeperators = [' ', '\r', '\n', '\t'];
     
-    private static async Task<List<IPNetwork>> FetchCloudflareIPs(Uri uri, CancellationToken ct)
+    private static async Task<IReadOnlyList<IPNetwork>> FetchCloudflareIPs(Uri uri, CancellationToken ct)
     {
         using var response = await Client.GetAsync(uri, ct);
         var stringResponse = await response.Content.ReadAsStringAsync(ct);
@@ -66,7 +66,7 @@ public static class TrustedProxiesFetcher
         return ParseNetworks(stringResponse.AsSpan());
     }
 
-    private static List<IPNetwork> ParseNetworks(ReadOnlySpan<char> response)
+    private static IReadOnlyList<IPNetwork> ParseNetworks(ReadOnlySpan<char> response)
     {
         var ranges = response.Split(NewLineSeperators);
 
@@ -80,7 +80,7 @@ public static class TrustedProxiesFetcher
         return networks;
     }
     
-    private static async Task<IPNetwork[]> FetchCloudflareIPs()
+    private static async Task<IReadOnlyList<IPNetwork>> FetchCloudflareIPs()
     {
         try
         {
@@ -100,14 +100,14 @@ public static class TrustedProxiesFetcher
         }
     }
 
-    public static async Task<IPNetwork[]> GetTrustedNetworksAsync(bool fetch = true)
+    public static async Task<IReadOnlyList<IPNetwork>> GetTrustedNetworksAsync(bool fetch = true)
     {
         var cfProxies = fetch ? await FetchCloudflareIPs() : PrefetchedCloudflareProxies;
 
         return [.. PrivateNetworksParsed, .. cfProxies];
     }
 
-    public static IPNetwork[] GetTrustedNetworks(bool fetch = true)
+    public static IReadOnlyList<IPNetwork> GetTrustedNetworks(bool fetch = true)
     {
         return GetTrustedNetworksAsync(fetch).Result;
     }
