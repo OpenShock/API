@@ -11,7 +11,7 @@ public sealed class ControlMessage
     /// <summary>
     /// Guid is the device id
     /// </summary>
-    public required IDictionary<Guid, IList<ShockerControlInfo>> ControlMessages { get; set; }
+    public required IDictionary<Guid, IReadOnlyList<ShockerControlInfo>> ControlMessages { get; set; }
 
     public sealed class ShockerControlInfo
     {

@@ -25,7 +25,7 @@ public sealed class UserHub : Hub<IUserHub>
     private readonly IRedisConnectionProvider _provider;
     private readonly IRedisPubService _redisPubService;
     private readonly IUserReferenceService _userReferenceService;
-    private IReadOnlyCollection<PermissionType>? _tokenPermissions = null;
+    private IReadOnlyList<PermissionType>? _tokenPermissions = null;
 
     public UserHub(ILogger<UserHub> logger, OpenShockContext db, IRedisConnectionProvider provider,
         IRedisPubService redisPubService, IUserReferenceService userReferenceService)
@@ -69,12 +69,12 @@ public sealed class UserHub : Hub<IUserHub>
         await Clients.Caller.DeviceStatus(final);
     }
 
-    public Task Control(IEnumerable<Common.Models.WebSocket.User.Control> shocks)
+    public Task Control(IReadOnlyList<Models.WebSocket.User.Control> shocks)
     {
         return ControlV2(shocks, null);
     }
 
-    public async Task ControlV2(IEnumerable<Common.Models.WebSocket.User.Control> shocks, string? customName)
+    public async Task ControlV2(IReadOnlyList<Models.WebSocket.User.Control> shocks, string? customName)
     {
         if (!_tokenPermissions.IsAllowedAllowOnNull(PermissionType.Shockers_Use)) return;
 

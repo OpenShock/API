@@ -15,7 +15,7 @@ namespace OpenShock.Common.DeviceControl;
 
 public static class ControlLogic
 {
-    public static async Task<OneOf<Success, ShockerNotFoundOrNoAccess, ShockerPaused, ShockerNoPermission>> ControlByUser(IEnumerable<Control> shocks, OpenShockContext db, ControlLogSender sender,
+    public static async Task<OneOf<Success, ShockerNotFoundOrNoAccess, ShockerPaused, ShockerNoPermission>> ControlByUser(IReadOnlyList<Control> shocks, OpenShockContext db, ControlLogSender sender,
         IHubClients<IUserHub> hubClients, IRedisPubService redisPubService)
     {
         var ownShockers = await db.Shockers.Where(x => x.DeviceNavigation.Owner == sender.Id).Select(x =>
@@ -56,7 +56,7 @@ public static class ControlLogic
         return await ControlInternal(shocks, db, sender, hubClients, ownShockers, redisPubService);
     }
 
-    public static async Task<OneOf<Success, ShockerNotFoundOrNoAccess, ShockerPaused, ShockerNoPermission>> ControlShareLink(IEnumerable<Control> shocks, OpenShockContext db,
+    public static async Task<OneOf<Success, ShockerNotFoundOrNoAccess, ShockerPaused, ShockerNoPermission>> ControlShareLink(IReadOnlyList<Control> shocks, OpenShockContext db,
         ControlLogSender sender,
         IHubClients<IUserHub> hubClients, Guid shareLinkId, IRedisPubService redisPubService)
     {
@@ -83,10 +83,10 @@ public static class ControlLogic
         return await ControlInternal(shocks, db, sender, hubClients, shareLinkShockers, redisPubService);
     }
     
-    private static async Task<OneOf<Success, ShockerNotFoundOrNoAccess, ShockerPaused, ShockerNoPermission>> ControlInternal(IEnumerable<Control> shocks, OpenShockContext db, ControlLogSender sender,
+    private static async Task<OneOf<Success, ShockerNotFoundOrNoAccess, ShockerPaused, ShockerNoPermission>> ControlInternal(IReadOnlyList<Control> shocks, OpenShockContext db, ControlLogSender sender,
         IHubClients<IUserHub> hubClients, IReadOnlyCollection<ControlShockerObj> allowedShockers, IRedisPubService redisPubService)
     {
-        var finalMessages = new Dictionary<Guid, IList<ControlMessage.ShockerControlInfo>>();
+        var finalMessages = new Dictionary<Guid, List<ControlMessage.ShockerControlInfo>>();
         var curTime = DateTime.UtcNow;
         var distinctShocks = shocks.DistinctBy(x => x.Id);
         var logs = new Dictionary<Guid, List<ControlLog>>();
@@ -147,7 +147,9 @@ public static class ControlLogic
             });
         }
 
-        var redisTask =  redisPubService.SendDeviceControl(sender.Id, finalMessages);
+        var redisTask = redisPubService.SendDeviceControl(sender.Id, finalMessages
+            .ToDictionary(kvp => kvp.Key, IReadOnlyList<ControlMessage.ShockerControlInfo> (kvp) => kvp.Value));
+        
         var logSends = logs.Select(x => hubClients.User(x.Key.ToString()).Log(sender, x.Value));
 
         await Task.WhenAll([
