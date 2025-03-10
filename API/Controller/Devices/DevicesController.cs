@@ -25,7 +25,7 @@ public sealed partial class DevicesController
     [HttpGet]
     [ProducesResponseType<BaseResponse<IAsyncEnumerable<Models.Response.ResponseDevice>>>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
     [MapToApiVersion("1")]
-    public async Task<IActionResult> ListDevices()
+    public IActionResult ListDevices()
     {
         var devices = _db.Devices
             .Where(x => x.Owner == CurrentUser.Id)

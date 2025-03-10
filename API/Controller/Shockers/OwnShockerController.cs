@@ -17,7 +17,7 @@ public sealed partial class ShockerController
     [HttpGet("own")]
     [ProducesResponseType<BaseResponse<IAsyncEnumerable<ResponseDeviceWithShockers>>>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
     [MapToApiVersion("1")]
-    public async Task<IActionResult> ListShockers()
+    public IActionResult ListShockers()
     {
         var shockers = _db.Devices
             .Where(x => x.Owner == CurrentUser.Id)
