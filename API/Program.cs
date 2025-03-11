@@ -1,5 +1,9 @@
 using System.Configuration;
+using System.Net;
+using System.Security.Claims;
+using System.Threading.RateLimiting;
 using Microsoft.AspNetCore.Http.Connections;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using OpenShock.API;
 using OpenShock.API.Realtime;
@@ -17,6 +21,7 @@ using OpenShock.Common.Services.LCGNodeProvisioner;
 using OpenShock.Common.Services.Ota;
 using OpenShock.Common.Services.Turnstile;
 using OpenShock.Common.Swagger;
+using OpenShock.Common.Utils;
 using Scalar.AspNetCore;
 using Serilog;
 
@@ -30,6 +35,58 @@ var builder = OpenShockApplication.CreateDefaultBuilder<Program>(args, options =
 
 var config = builder.GetAndRegisterOpenShockConfig<ApiConfig>();
 var commonServices = builder.Services.AddOpenShockServices(config);
+
+builder.Services.AddRateLimiter(limiterOptions =>
+{
+    limiterOptions.OnRejected = (context, cancellationToken) =>
+    {
+        return new ValueTask();
+    };
+
+    limiterOptions.AddPolicy(policyName: "user", partitioner: httpContext =>
+    {
+        if (httpContext.User.HasClaim(claim => claim is { Type: ClaimTypes.Role, Value: "Admin" or "System" }))
+        {
+            return RateLimitPartition.GetNoLimiter("user privileged");
+        }
+        
+        var username = "user anonymous";
+
+        var userIdClaim = httpContext.User.FindFirst(c => c.Type == ClaimTypes.NameIdentifier);
+        if (userIdClaim is not null)
+        {
+            username = $"user {userIdClaim.Value}";
+        }
+        
+        return RateLimitPartition.GetSlidingWindowLimiter(username, _ => new SlidingWindowRateLimiterOptions
+        {
+            PermitLimit = 300,
+            Window = TimeSpan.FromMinutes(1),
+            SegmentsPerWindow = 6,
+            QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
+            QueueLimit = 0
+        });
+    });
+
+    limiterOptions.GlobalLimiter = PartitionedRateLimiter.Create<HttpContext, IPAddress>(context =>
+    {
+        var remoteIpAddress = context.GetRemoteIP();
+
+        if (!IPAddress.IsLoopback(remoteIpAddress!))
+        {
+            return RateLimitPartition.GetSlidingWindowLimiter(remoteIpAddress, _ => new SlidingWindowRateLimiterOptions
+            {
+                PermitLimit = 1000,
+                Window = TimeSpan.FromMinutes(1),
+                SegmentsPerWindow = 6,
+                QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
+                QueueLimit = 0
+            });
+        }
+
+        return RateLimitPartition.GetNoLimiter(IPAddress.Loopback);
+    });
+});
 
 builder.Services.AddSignalR()
     .AddOpenShockStackExchangeRedis(options => { options.Configuration = commonServices.RedisConfig; })
