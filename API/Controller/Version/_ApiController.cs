@@ -26,6 +26,7 @@ public sealed partial class VersionController : OpenShockControllerBase
     /// </summary>
     /// <response code="200">The version was successfully retrieved.</response>
     [HttpGet]
+    [ResponseCache(Duration = 60, Location = ResponseCacheLocation.Any)]
     [ProducesResponseType<BaseResponse<RootResponse>>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
     public IActionResult GetBackendVersion([FromServices] ApiConfig apiConfig)
     {

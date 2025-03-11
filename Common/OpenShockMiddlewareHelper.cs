@@ -51,6 +51,7 @@ public static class OpenShockMiddlewareHelper
             KeepAliveInterval = TimeSpan.FromMinutes(1)
         });
         app.UseRouting();
+        app.UseResponseCaching();
         app.UseAuthentication();
         app.UseAuthorization();
         
