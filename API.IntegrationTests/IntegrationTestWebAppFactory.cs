@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.TestHost;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Hosting;
 using OpenShock.Common.OpenShockDb;
 using StackExchange.Redis;
 using Testcontainers.PostgreSql;
@@ -14,7 +15,7 @@ namespace API.IntegrationTests;
 public class IntegrationTestWebAppFactory : WebApplicationFactory<Program>
 {
     private readonly PostgreSqlContainer _dbContainer = new PostgreSqlBuilder()
-        .WithImage("postgresql:latest")
+        .WithImage("postgres:latest")
         .WithDatabase("openshock")
         .WithUsername("openshock")
         .WithPassword("superSecurePassword")
@@ -26,6 +27,9 @@ public class IntegrationTestWebAppFactory : WebApplicationFactory<Program>
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
+        _dbContainer.StartAsync().ConfigureAwait(false).GetAwaiter().GetResult();
+        _redisContainer.StartAsync().ConfigureAwait(false).GetAwaiter().GetResult();
+        
         builder.ConfigureTestServices(services =>
         {
             services.RemoveAll<DbContextOptions<OpenShockContext>>();
@@ -34,5 +38,12 @@ public class IntegrationTestWebAppFactory : WebApplicationFactory<Program>
             services.RemoveAll<IConnectionMultiplexer>();
             services.AddSingleton<IConnectionMultiplexer>(ConnectionMultiplexer.Connect(_redisContainer.GetConnectionString()));
         });
+    }
+
+    public override async ValueTask DisposeAsync()
+    {
+        await _dbContainer.DisposeAsync();
+        await _redisContainer.DisposeAsync();
+        await base.DisposeAsync();
     }
 }
