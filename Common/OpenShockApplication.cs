@@ -11,13 +11,21 @@ public static class OpenShockApplication
         var builder = WebApplication.CreateSlimBuilder(args);
         
         builder.Configuration.Sources.Clear();
-        builder.Configuration
-            .AddJsonFile("appsettings.json", optional: true, reloadOnChange: false)
-            .AddJsonFile($"appsettings.{builder.Environment.EnvironmentName}.json", optional: true, reloadOnChange: false)
-            .AddJsonFile("appsettings.Custom.json", optional: true, reloadOnChange: false)
-            .AddEnvironmentVariables()
-            .AddUserSecrets<TProgram>(true)
-            .AddCommandLine(args);
+        if (Environment.GetEnvironmentVariable("ASPNETCORE_UNDER_INTEGRATION_TEST") == "1")
+        {
+            builder.Configuration
+                .AddEnvironmentVariables();
+        }
+        else
+        {
+            builder.Configuration
+                .AddJsonFile("appsettings.json", optional: true, reloadOnChange: false)
+                .AddJsonFile($"appsettings.{builder.Environment.EnvironmentName}.json", optional: true, reloadOnChange: false)
+                .AddJsonFile("appsettings.Custom.json", optional: true, reloadOnChange: false)
+                .AddEnvironmentVariables()
+                .AddUserSecrets<TProgram>(true)
+                .AddCommandLine(args);
+        }
 
         var isDevelopment = builder.Environment.IsDevelopment();
         builder.Host.UseDefaultServiceProvider((_, options) =>

@@ -22,21 +22,64 @@ public class IntegrationTestWebAppFactory : WebApplicationFactory<Program>
         .Build();
 
     private readonly RedisContainer _redisContainer = new RedisBuilder()
-        .WithImage("redis:latest")
+        .WithImage("redis/redis-stack-server:latest")
         .Build();
 
-    protected override void ConfigureWebHost(IWebHostBuilder builder)
+    protected override IWebHostBuilder? CreateWebHostBuilder()
     {
         _dbContainer.StartAsync().ConfigureAwait(false).GetAwaiter().GetResult();
         _redisContainer.StartAsync().ConfigureAwait(false).GetAwaiter().GetResult();
+    
+        var environmentVariables = new Dictionary<string, string>
+        {
+            { "ASPNETCORE_UNDER_INTEGRATION_TEST", "1" },
+            
+            { "OPENSHOCK__DB__CONN", _dbContainer.GetConnectionString() },
+            { "OPENSHOCK__DB__SKIPMIGRATION", "false" },
+            { "OPENSHOCK__DB__DEBUG", "false" },
+            
+            { "OPENSHOCK__REDIS__CONN", _redisContainer.GetConnectionString() },
+            { "OPENSHOCK__REDIS__HOST", "" },
+            { "OPENSHOCK__REDIS__USER", "" },
+            { "OPENSHOCK__REDIS__PASSWORD", "" },
+            { "OPENSHOCK__REDIS__PORT", "6379" },
+            
+            { "OPENSHOCK__FRONTEND__BASEURL", "https://openshock.app" },
+            { "OPENSHOCK__FRONTEND__SHORTURL", "https://openshock.app" },
+            { "OPENSHOCK__FRONTEND__COOKIEDOMAIN", "openshock.app" },
+            
+            { "OPENSHOCK__MAIL__TYPE", "MAILJET" },
+            { "OPENSHOCK__MAIL__SENDER__EMAIL", "system@openshock.org" },
+            { "OPENSHOCK__MAIL__SENDER__NAME", "OpenShock" },
+            { "OPENSHOCK__MAIL__MAILJET__KEY", "mailjet-key" },
+            { "OPENSHOCK__MAIL__MAILJET__SECRET", "mailjet-secret" },
+            { "OPENSHOCK__MAIL__MAILJET__TEMPLATE__PASSWORDRESET", "12345678" },
+            { "OPENSHOCK__MAIL__MAILJET__TEMPLATE__PASSWORDRESETCOMPLETE", "87654321" },
+            { "OPENSHOCK__MAIL__MAILJET__TEMPLATE__VERIFYEMAIL", "11223344" },
+            { "OPENSHOCK__MAIL__MAILJET__TEMPLATE__VERIFYEMAILCOMPLETE", "44332211" },
+            
+            { "OPENSHOCK__TURNSTILE__ENABLED", "true" },
+            { "OPENSHOCK__TURNSTILE__SECRETKEY", "turnstile-secret-key" },
+            { "OPENSHOCK__TURNSTILE__SITEKEY", "turnstile-site-key" },
+            
+            { "OPENSHOCK__LCG__FQDN", "de1-gateway.my-openshock-instance.net" },
+            { "OPENSHOCK__LCG__COUNTRYCODE", "DE" }
+        };
+    
+        foreach (var envVar in environmentVariables)
+        {
+            Environment.SetEnvironmentVariable(envVar.Key, envVar.Value);
+        }
+    
+        return base.CreateWebHostBuilder();
+    }
+
+    protected override void ConfigureWebHost(IWebHostBuilder builder)
+    {
         
         builder.ConfigureTestServices(services =>
         {
-            services.RemoveAll<DbContextOptions<OpenShockContext>>();
-            services.AddDbContext<OpenShockContext>(options => options.UseNpgsql(_dbContainer.GetConnectionString()));
-
-            services.RemoveAll<IConnectionMultiplexer>();
-            services.AddSingleton<IConnectionMultiplexer>(ConnectionMultiplexer.Connect(_redisContainer.GetConnectionString()));
+            // We can replace services here
         });
     }
 
