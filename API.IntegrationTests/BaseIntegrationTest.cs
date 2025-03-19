@@ -1,5 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using OpenShock.API.Services.Account;
 using OpenShock.Common.OpenShockDb;
 
 namespace API.IntegrationTests;
@@ -8,6 +9,7 @@ public abstract class BaseIntegrationTest : IClassFixture<IntegrationTestWebAppF
 {
     private readonly IServiceScope _scope;
     protected readonly OpenShockContext DbContext;
+    protected readonly IAccountService  AccountService;
 
     protected BaseIntegrationTest(IntegrationTestWebAppFactory factory)
     {
@@ -19,5 +21,7 @@ public abstract class BaseIntegrationTest : IClassFixture<IntegrationTestWebAppF
         {
             DbContext.Database.Migrate();
         }
+        
+        AccountService = _scope.ServiceProvider.GetRequiredService<IAccountService>();
     }
 }
