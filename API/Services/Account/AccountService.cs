@@ -1,12 +1,13 @@
 ﻿using BCrypt.Net;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 using OneOf;
 using OneOf.Types;
 using OpenShock.API.Services.Email;
 using OpenShock.API.Services.Email.Mailjet.Mail;
 using OpenShock.Common.Constants;
-using OpenShock.Common.Models;
 using OpenShock.Common.OpenShockDb;
+using OpenShock.Common.Options;
 using OpenShock.Common.Services.Session;
 using OpenShock.Common.Utils;
 using OpenShock.Common.Validation;
@@ -24,7 +25,7 @@ public sealed class AccountService : IAccountService
     private readonly IEmailService _emailService;
     private readonly ISessionService _sessionService;
     private readonly ILogger<AccountService> _logger;
-    private readonly ApiConfig _apiConfig;
+    private readonly FrontendOptions _frontendConfig;
 
     /// <summary>
     /// DI Constructor
@@ -33,14 +34,14 @@ public sealed class AccountService : IAccountService
     /// <param name="emailService"></param>
     /// <param name="sessionService"></param>
     /// <param name="logger"></param>
-    /// <param name="apiConfig"></param>
+    /// <param name="options"></param>
     public AccountService(OpenShockContext db, IEmailService emailService,
-        ISessionService sessionService, ILogger<AccountService> logger, ApiConfig apiConfig)
+        ISessionService sessionService, ILogger<AccountService> logger, IOptions<FrontendOptions> options)
     {
         _db = db;
         _emailService = emailService;
         _logger = logger;
-        _apiConfig = apiConfig;
+        _frontendConfig = options.Value;
         _sessionService = sessionService;
     }
 
@@ -98,7 +99,7 @@ public sealed class AccountService : IAccountService
         await _db.SaveChangesAsync();
 
         await _emailService.VerifyEmail(new Contact(email, username),
-            new Uri(_apiConfig.Frontend.BaseUrl, $"/#/account/activate/{id}/{secret}"));
+            new Uri(_frontendConfig.BaseUrl, $"/#/account/activate/{id}/{secret}"));
         return new Success<User>(user);
     }
 
@@ -165,7 +166,7 @@ public sealed class AccountService : IAccountService
         await _db.SaveChangesAsync();
 
         await _emailService.PasswordReset(new Contact(user.User.Email, user.User.Name),
-            new Uri(_apiConfig.Frontend.BaseUrl, $"/#/account/password/recover/{passwordReset.Id}/{secret}"));
+            new Uri(_frontendConfig.BaseUrl, $"/#/account/password/recover/{passwordReset.Id}/{secret}"));
 
         return new Success();
     }

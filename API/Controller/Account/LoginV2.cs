@@ -11,6 +11,8 @@ using OpenShock.Common.Problems;
 using OpenShock.Common.Services.Turnstile;
 using OpenShock.Common.Utils;
 using OpenShock.Common.Models;
+using Microsoft.Extensions.Options;
+using OpenShock.Common.Options;
 
 namespace OpenShock.API.Controller.Account;
 
@@ -29,10 +31,10 @@ public sealed partial class AccountController
     public async Task<IActionResult> LoginV2(
         [FromBody] LoginV2 body,
         [FromServices] ICloudflareTurnstileService turnstileService,
-        [FromServices] ApiConfig apiConfig,
+        [FromServices] IOptions<FrontendOptions> options,
         CancellationToken cancellationToken)
     {
-        var cookieDomainToUse = apiConfig.Frontend.CookieDomain.Split(',').FirstOrDefault(domain => Request.Headers.Host.ToString().EndsWith(domain, StringComparison.OrdinalIgnoreCase));
+        var cookieDomainToUse = options.Value.CookieDomain.Split(',').FirstOrDefault(domain => Request.Headers.Host.ToString().EndsWith(domain, StringComparison.OrdinalIgnoreCase));
         if (cookieDomainToUse == null) return Problem(LoginError.InvalidDomain);
 
         var remoteIP = HttpContext.GetRemoteIP();

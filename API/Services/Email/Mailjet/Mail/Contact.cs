@@ -7,6 +7,7 @@ public sealed class Contact
 {
     [Required(AllowEmptyStrings = false)]
     public required string Email { get; set; }
+
     [Required(AllowEmptyStrings = false)]
     public required string Name { get; set; }
 

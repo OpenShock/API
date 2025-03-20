@@ -2,7 +2,6 @@ using Hangfire;
 using Hangfire.PostgreSql;
 using OpenShock.Common;
 using OpenShock.Common.Extensions;
-using OpenShock.Cron;
 using OpenShock.Cron.Utils;
 
 var builder = OpenShockApplication.CreateDefaultBuilder<Program>(args, options =>
@@ -13,12 +12,16 @@ var builder = OpenShockApplication.CreateDefaultBuilder<Program>(args, options =
 #endif
 });
 
-var config = builder.GetAndRegisterOpenShockConfig<CronConf>();
-builder.Services.AddOpenShockServices(config);
+builder.RegisterCommonOpenShockOptions();
+
+var databaseConfig = builder.Configuration.GetDatabaseOptions();
+var redisConfig = builder.Configuration.GetRedisConfigurationOptions();
+
+builder.Services.AddOpenShockServices(databaseConfig, redisConfig);
 
 builder.Services.AddHangfire(hangfire =>
     hangfire.UsePostgreSqlStorage(c =>
-        c.UseNpgsqlConnection(config.Db.Conn)));
+        c.UseNpgsqlConnection(databaseConfig.Conn)));
 builder.Services.AddHangfireServer();
 
 var app = builder.Build();
