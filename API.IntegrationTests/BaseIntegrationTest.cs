@@ -1,27 +1,30 @@
-﻿using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.DependencyInjection;
+﻿using Microsoft.Extensions.DependencyInjection;
 using OpenShock.API.Services.Account;
-using OpenShock.Common.OpenShockDb;
 
 namespace API.IntegrationTests;
 
-public abstract class BaseIntegrationTest : IClassFixture<IntegrationTestWebAppFactory>
+public abstract class BaseIntegrationTest
 {
-    private readonly IServiceScope _scope;
-    protected readonly OpenShockContext DbContext;
-    protected readonly IAccountService  AccountService;
-
-    protected BaseIntegrationTest(IntegrationTestWebAppFactory factory)
+    public BaseIntegrationTest()
     {
-        _scope = factory.Services.CreateScope();
+        Console.WriteLine("Constructor!");
+    }
 
-        DbContext = _scope.ServiceProvider.GetRequiredService<OpenShockContext>();
+    [ClassDataSource<IntegrationTestWebAppFactory>(Shared = SharedType.PerAssembly)]
+    public required IntegrationTestWebAppFactory WebAppFactory { get; init; }
+    public IServiceScope ServiceScope { get; set; }
 
-        if (DbContext.Database.GetPendingMigrations().Any())
-        {
-            DbContext.Database.Migrate();
-        }
-        
-        AccountService = _scope.ServiceProvider.GetRequiredService<IAccountService>();
+    public IAccountService AccountService { get; set; }
+
+    [Before(Test)]
+    public Task Initialize()
+    {
+        Console.WriteLine("Initialize!");
+
+        ServiceScope = WebAppFactory.Services.CreateScope();
+
+        AccountService = ServiceScope.ServiceProvider.GetRequiredService<IAccountService>();
+
+        return Task.CompletedTask;
     }
 }

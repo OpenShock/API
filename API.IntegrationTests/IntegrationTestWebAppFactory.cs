@@ -1,18 +1,13 @@
 ﻿using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.TestHost;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.DependencyInjection.Extensions;
-using Microsoft.Extensions.Hosting;
-using OpenShock.Common.OpenShockDb;
-using StackExchange.Redis;
 using Testcontainers.PostgreSql;
 using Testcontainers.Redis;
+using TUnit.Core.Interfaces;
 
 namespace API.IntegrationTests;
 
-public class IntegrationTestWebAppFactory : WebApplicationFactory<Program>
+public class IntegrationTestWebAppFactory : WebApplicationFactory<Program>, IAsyncInitializer
 {
     private readonly PostgreSqlContainer _dbContainer = new PostgreSqlBuilder()
         .WithImage("postgres:latest")
@@ -25,11 +20,15 @@ public class IntegrationTestWebAppFactory : WebApplicationFactory<Program>
         .WithImage("redis/redis-stack-server:latest")
         .Build();
 
+
+    public async Task InitializeAsync()
+    {
+        await _dbContainer.StartAsync();
+        await _redisContainer.StartAsync();
+    }
+
     protected override IWebHostBuilder? CreateWebHostBuilder()
     {
-        _dbContainer.StartAsync().ConfigureAwait(false).GetAwaiter().GetResult();
-        _redisContainer.StartAsync().ConfigureAwait(false).GetAwaiter().GetResult();
-    
         var environmentVariables = new Dictionary<string, string>
         {
             { "ASPNETCORE_UNDER_INTEGRATION_TEST", "1" },
