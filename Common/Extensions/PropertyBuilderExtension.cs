@@ -1,7 +1,7 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
-namespace OpenShock.Common.Utils;
+namespace OpenShock.Common.Extensions;
 
 public static class PropertyBuilderExtension
 {

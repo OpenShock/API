@@ -11,14 +11,15 @@ public interface IRedisPubService
     /// <param name="deviceId"></param>
     /// <returns></returns>
     public Task SendDeviceOnlineStatus(Guid deviceId);
-    
+
     /// <summary>
     /// General shocker control
     /// </summary>
     /// <param name="sender"></param>
     /// <param name="controlMessages"></param>
     /// <returns></returns>
-    Task SendDeviceControl(Guid sender, IDictionary<Guid, IList<ControlMessage.ShockerControlInfo>> controlMessages);
+    Task SendDeviceControl(Guid sender,
+        IDictionary<Guid, IReadOnlyList<ControlMessage.ShockerControlInfo>> controlMessages);
     
     /// <summary>
     /// Toggle captive portal

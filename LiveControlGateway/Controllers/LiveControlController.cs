@@ -62,7 +62,7 @@ public sealed class LiveControlController : WebsocketBaseController<LiveControlR
     /// <summary>
     /// Connection Id for this connection, unique and random per connection
     /// </summary>
-    public Guid ConnectionId => Guid.NewGuid();
+    public Guid ConnectionId => Guid.CreateVersion7();
 
     private readonly Timer _pingTimer = new(PingInterval);
 

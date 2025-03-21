@@ -85,7 +85,7 @@ public static class SwaggerGenExtensions
                     }
                 });
                 options.AddServer(new OpenApiServer { Url = "https://api.openshock.app" });
-                options.AddServer(new OpenApiServer { Url = "https://staging-api.openshock.app" });
+                options.AddServer(new OpenApiServer { Url = "https://api.openshock.dev" });
 #if DEBUG
                 options.AddServer(new OpenApiServer { Url = "https://localhost" });
 #endif

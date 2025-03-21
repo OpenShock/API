@@ -1,14 +1,8 @@
 ﻿using System.ComponentModel.DataAnnotations;
-using System.Net;
 using System.Net.Mime;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using OpenShock.API.Models.Response;
-using OpenShock.API.Utils;
-using OpenShock.Common;
-using OpenShock.Common.Authentication;
-using OpenShock.Common.Authentication.Attributes;
 using OpenShock.Common.Constants;
 using OpenShock.Common.Errors;
 using OpenShock.Common.Models;
@@ -25,23 +19,22 @@ public sealed partial class TokensController
     /// </summary>
     /// <response code="200">All tokens for the current user</response>
     [HttpGet]
-    [ProducesResponseType<IEnumerable<TokenResponse>>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
-    public async Task<IEnumerable<TokenResponse>> ListTokens()
+    [ProducesResponseType<IAsyncEnumerable<TokenResponse>>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
+    public IAsyncEnumerable<TokenResponse> ListTokens()
     {
-        var apiTokens = await _db.ApiTokens
+        return _db.ApiTokens
             .Where(x => x.UserId == CurrentUser.Id && (x.ValidUntil == null || x.ValidUntil > DateTime.UtcNow))
             .OrderBy(x => x.CreatedOn)
             .Select(x => new TokenResponse
-        {
-            CreatedOn = x.CreatedOn,
-            ValidUntil = x.ValidUntil,
-            LastUsed = x.LastUsed,
-            Permissions = x.Permissions,
-            Name = x.Name,
-            Id = x.Id
-        }).ToListAsync();
-
-        return apiTokens;
+            {
+                CreatedOn = x.CreatedOn,
+                ValidUntil = x.ValidUntil,
+                LastUsed = x.LastUsed,
+                Permissions = x.Permissions,
+                Name = x.Name,
+                Id = x.Id
+            })
+            .AsAsyncEnumerable();
     }
 
     /// <summary>
@@ -73,30 +66,6 @@ public sealed partial class TokensController
     }
 
     /// <summary>
-    /// Revoke a token from the current user
-    /// </summary>
-    /// <param name="tokenId"></param>
-    /// <response code="200">Successfully deleted token</response>
-    /// <response code="404">The token does not exist or you do not have access to it.</response>
-    [HttpDelete("{tokenId}")]
-    [ProducesResponseType(StatusCodes.Status200OK)]
-    [ProducesResponseType<OpenShockProblem>(StatusCodes.Status404NotFound, MediaTypeNames.Application.ProblemJson)] // ApiTokenNotFound    
-    public async Task<IActionResult> DeleteToken([FromRoute] Guid tokenId)
-    {
-        var apiToken = await _db.ApiTokens
-            .Where(x => x.Id == tokenId)
-            .WhereIsUserOrPrivileged(x => x.User, CurrentUser)
-            .ExecuteDeleteAsync();
-        
-        if (apiToken <= 0)
-        {
-            return Problem(ApiTokenError.ApiTokenNotFound);
-        }
-        
-        return Ok();
-    }
-
-    /// <summary>
     /// Create a new token
     /// </summary>
     /// <param name="body"></param>
@@ -113,7 +82,7 @@ public sealed partial class TokensController
             TokenHash = HashingUtils.HashSha256(token),
             CreatedByIp = HttpContext.GetRemoteIP(),
             Permissions = body.Permissions.Distinct().ToList(),
-            Id = Guid.NewGuid(),
+            Id = Guid.CreateVersion7(),
             Name = body.Name,
             ValidUntil = body.ValidUntil?.ToUniversalTime()
         };

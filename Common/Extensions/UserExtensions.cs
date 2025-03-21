@@ -6,7 +6,7 @@ namespace OpenShock.Common.Extensions;
 
 public static class UserExtensions
 {
-    public static Uri GetImageUrl(this User user) => GravatarUtils.GetImageUrl(user.Email);
+    public static Uri GetImageUrl(this User user) => GravatarUtils.GetUserImageUrl(user.Email);
 
     public static bool IsUser(this User user, Guid otherUserId)
     {
