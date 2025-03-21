@@ -8,7 +8,6 @@ namespace OpenShock.Common.Services.Turnstile;
 
 public sealed class CloudflareTurnstileService : ICloudflareTurnstileService
 {
-    private const string BaseUrl = "https://challenges.cloudflare.com/turnstile/v0/";
     private const string SiteVerifyEndpoint = "siteverify";
 
     private readonly HttpClient _httpClient;
@@ -18,7 +17,6 @@ public sealed class CloudflareTurnstileService : ICloudflareTurnstileService
     public CloudflareTurnstileService(HttpClient httpClient, IOptions<CloudflareTurnstileOptions> options, ILogger<CloudflareTurnstileService> logger)
     {
         _httpClient = httpClient;
-        _httpClient.BaseAddress = new Uri(BaseUrl);
         _options = options.Value;
         _logger = logger;
     }

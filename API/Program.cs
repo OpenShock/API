@@ -51,11 +51,7 @@ builder.Services.AddSwaggerExt<Program>();
 
 builder.Services.AddSingleton<ILCGNodeProvisioner, LCGNodeProvisioner>();
 
-// Cloudflare Turnstile
-builder.Services.Configure<CloudflareTurnstileOptions>(builder.Configuration.GetRequiredSection(CloudflareTurnstileOptions.Turnstile));
-builder.Services.AddSingleton<IValidateOptions<CloudflareTurnstileOptions>, CloudflareTurnstileOptionsValidator>();
-builder.Services.AddHttpClient<ICloudflareTurnstileService, CloudflareTurnstileService>();
-
+builder.AddCloudflareTurnstileService();
 builder.AddEmailService();
 
 //services.AddHealthChecks().AddCheck<DatabaseHealthCheck>("database");
