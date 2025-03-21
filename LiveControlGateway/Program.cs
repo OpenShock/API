@@ -49,7 +49,7 @@ var app = builder.Build();
 
 app.UseCommonOpenShockMiddleware();
 
-app.UseSwaggerExt();
+app.UseSwagger();
 
 app.MapControllers();
 

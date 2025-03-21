@@ -101,20 +101,4 @@ public static class SwaggerGenExtensions
             })
             .ConfigureOptions<ConfigureSwaggerOptions>();
     }
-
-    public static IApplicationBuilder UseSwaggerExt(this WebApplication app)
-    {
-        var provider = app.Services.GetRequiredService<IApiVersionDescriptionProvider>();
-        var groupNames = provider.ApiVersionDescriptions.Select(d => d.GroupName).ToArray();
-
-        return app
-            .UseSwagger()
-            .UseSwaggerUI(c =>
-        {
-            foreach (var groupName in groupNames)
-            {
-                c.SwaggerEndpoint($"/swagger/{groupName}/swagger.json", groupName.ToUpperInvariant());
-            }
-        });
-    }
 }

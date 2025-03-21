@@ -89,7 +89,7 @@ else
     Log.Warning("Skipping possible database migrations...");
 }
 
-app.UseSwaggerExt();
+app.UseSwagger();
 
 app.MapControllers();
 
