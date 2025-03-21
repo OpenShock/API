@@ -18,11 +18,15 @@ var builder = OpenShockApplication.CreateDefaultBuilder<Program>(args, options =
 #endif
 });
 
-var config = builder.GetAndRegisterOpenShockConfig<LCGConfig>();
-var commonService = builder.Services.AddOpenShockServices(config);
+builder.RegisterCommonOpenShockOptions();
+
+var databaseConfig = builder.Configuration.GetDatabaseOptions();
+var redisConfig = builder.Configuration.GetRedisConfigurationOptions();
+
+builder.Services.AddOpenShockServices(databaseConfig, redisConfig);
 
 builder.Services.AddSignalR()
-    .AddOpenShockStackExchangeRedis(options => { options.Configuration = commonService.RedisConfig; })
+    .AddOpenShockStackExchangeRedis(options => { options.Configuration = redisConfig; })
     .AddJsonProtocol(options =>
     {
         options.PayloadSerializerOptions.PropertyNameCaseInsensitive = true;

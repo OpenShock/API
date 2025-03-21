@@ -1,5 +1,7 @@
-﻿using OpenShock.Common.Redis;
+﻿using Microsoft.Extensions.Options;
+using OpenShock.Common.Redis;
 using OpenShock.Common.Utils;
+using OpenShock.LiveControlGateway.Options;
 using Redis.OM.Contracts;
 using Redis.OM.Searching;
 
@@ -10,10 +12,10 @@ namespace OpenShock.LiveControlGateway;
 /// </summary>
 public sealed class LcgKeepAlive : IHostedService
 {
-    private readonly ILogger<LcgKeepAlive> _logger;
-    private readonly IWebHostEnvironment _env;
-    private readonly LCGConfig _lcgConfig;
     private readonly IRedisConnectionProvider _redisConnectionProvider;
+    private readonly IWebHostEnvironment _env;
+    private readonly LcgOptions _options;
+    private readonly ILogger<LcgKeepAlive> _logger;
     private readonly IRedisCollection<LcgNode> _lcgNodes;
     
     private const uint KeepAliveInterval = 35; // 35 seconds
@@ -22,40 +24,40 @@ public sealed class LcgKeepAlive : IHostedService
     /// DI Constructor
     /// </summary>
     /// <param name="redisConnectionProvider"></param>
-    /// <param name="logger"></param>
     /// <param name="env"></param>
-    /// <param name="lcgConfig"></param>
-    public LcgKeepAlive(IRedisConnectionProvider redisConnectionProvider, ILogger<LcgKeepAlive> logger, IWebHostEnvironment env, LCGConfig lcgConfig)
+    /// <param name="options"></param>
+    /// <param name="logger"></param>
+    public LcgKeepAlive(IRedisConnectionProvider redisConnectionProvider, IWebHostEnvironment env, IOptions<LcgOptions> options, ILogger<LcgKeepAlive> logger)
     {
         _redisConnectionProvider = redisConnectionProvider;
-        _logger = logger;
         _env = env;
-        _lcgConfig = lcgConfig;
+        _options = options.Value;
+        _logger = logger;
         _lcgNodes = redisConnectionProvider.RedisCollection<LcgNode>(false);
     }
 
     private async Task SelfOnline()
     {
-        var online = await _lcgNodes.FindByIdAsync(_lcgConfig.Lcg.Fqdn);
+        var online = await _lcgNodes.FindByIdAsync(_options.Fqdn);
         if (online == null)
         {
             await _lcgNodes.InsertAsync(new LcgNode
             {
-                Fqdn = _lcgConfig.Lcg.Fqdn,
-                Country = _lcgConfig.Lcg.CountryCode,
+                Fqdn = _options.Fqdn,
+                Country = _options.CountryCode,
                 Load = 0,
                 Environment = _env.EnvironmentName
             }, TimeSpan.FromSeconds(35));
             return;
         }
 
-        if (online.Country != _lcgConfig.Lcg.CountryCode)
+        if (online.Country != _options.CountryCode)
         {
             var changeTracker = _redisConnectionProvider.RedisCollection<LcgNode>();
-            var tracked = await changeTracker.FindByIdAsync(_lcgConfig.Lcg.Fqdn);
+            var tracked = await changeTracker.FindByIdAsync(_options.Fqdn);
             if (tracked != null)
             {
-                tracked.Country = _lcgConfig.Lcg.CountryCode;
+                tracked.Country = _options.CountryCode;
                 await changeTracker.SaveAsync();
                 _logger.LogInformation("Updated firmware version of online device");
             }
@@ -65,7 +67,7 @@ public sealed class LcgKeepAlive : IHostedService
         }
 
         await _redisConnectionProvider.Connection.ExecuteAsync("EXPIRE",
-            $"{typeof(LcgNode).FullName}:{_lcgConfig.Lcg.Fqdn}", KeepAliveInterval);
+            $"{typeof(LcgNode).FullName}:{_options.Fqdn}", KeepAliveInterval);
     }
 
     private async Task Loop()

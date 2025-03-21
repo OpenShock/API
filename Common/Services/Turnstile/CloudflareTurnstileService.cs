@@ -2,6 +2,7 @@
 using Microsoft.Extensions.Options;
 using OneOf;
 using OneOf.Types;
+using OpenShock.Common.Options;
 
 namespace OpenShock.Common.Services.Turnstile;
 

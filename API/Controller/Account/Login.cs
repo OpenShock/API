@@ -1,15 +1,14 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Asp.Versioning;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Options;
 using OpenShock.API.Models.Requests;
-using System.Net;
-using System.Net.Mime;
-using Asp.Versioning;
 using OpenShock.API.Services.Account;
-using OpenShock.Common;
-using OpenShock.Common.Constants;
 using OpenShock.Common.Errors;
+using OpenShock.Common.Models;
+using OpenShock.Common.Options;
 using OpenShock.Common.Problems;
 using OpenShock.Common.Utils;
-using OpenShock.Common.Models;
+using System.Net.Mime;
 
 namespace OpenShock.API.Controller.Account;
 
@@ -27,12 +26,12 @@ public sealed partial class AccountController
     [MapToApiVersion("1")]
     public async Task<IActionResult> Login(
         [FromBody] Login body,
-        [FromServices] ApiConfig apiConfig,
+        [FromServices] IOptions<FrontendOptions> options,
         CancellationToken cancellationToken)
     {
-        var cookieDomainToUse = apiConfig.Frontend.CookieDomain.Split(',').FirstOrDefault(domain => Request.Headers.Host.ToString().EndsWith(domain, StringComparison.OrdinalIgnoreCase));
+        var cookieDomainToUse = options.Value.CookieDomain.Split(',').FirstOrDefault(domain => Request.Headers.Host.ToString().EndsWith(domain, StringComparison.OrdinalIgnoreCase));
         if (cookieDomainToUse == null) return Problem(LoginError.InvalidDomain);
-        
+
         var loginAction = await _accountService.Login(body.Email, body.Password, new LoginContext
         {
             Ip = HttpContext.GetRemoteIP().ToString(),
