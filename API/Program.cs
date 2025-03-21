@@ -103,3 +103,6 @@ app.MapHub<ShareLinkHub>("/1/hubs/share/link/{id:guid}", options => options.Tran
 app.MapScalarApiReference(options => options.OpenApiRoutePattern = "/swagger/{documentName}/swagger.json");
 
 app.Run();
+
+// Expose Program class for integrationtests
+public partial class Program;

@@ -1,5 +1,4 @@
-﻿using Microsoft.Extensions.Primitives;
-using System.Diagnostics.CodeAnalysis;
+﻿using System.Diagnostics.CodeAnalysis;
 using System.Net;
 
 namespace OpenShock.Common.Utils;
@@ -8,7 +7,7 @@ public static class ConnectionDetailsFetcher
 {
     public static IPAddress GetRemoteIP(this HttpContext context)
     {
-        return context.Connection?.RemoteIpAddress ?? throw new NullReferenceException("Unable to get any IP address, underlying transport type is not TCP???"); // This should never happen, as the underlying transport type will always be TCP
+        return context.Connection?.RemoteIpAddress ?? IPAddress.Loopback; // IPAddress is null under integration testing
     }
 
     public static string GetUserAgent(this HttpContext context)
