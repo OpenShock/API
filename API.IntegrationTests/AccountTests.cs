@@ -16,7 +16,7 @@ public class AccountTests : BaseIntegrationTest
             username = "Bob",
             password = "SecurePassword123#",
             email = "bob@example.com",
-            turnstileresponse = "lmao"
+            turnstileresponse = "valid-token"
         });
 
 
