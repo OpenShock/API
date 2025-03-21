@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Http;
 using OpenShock.API.IntegrationTests.HttpMessageHandlers;
 using OpenShock.Common.Services.Turnstile;
 using Testcontainers.PostgreSql;
@@ -82,10 +83,7 @@ public class IntegrationTestWebAppFactory : WebApplicationFactory<Program>, IAsy
         
         builder.ConfigureTestServices(services =>
         {
-            services.RemoveAll<CloudflareTurnstileService>();
-            services.AddHttpClient<ICloudflareTurnstileService, CloudflareTurnstileService>()
-                .AddHttpMessageHandler<CloudflareTurnstileHttpMessageHandler>();
-            // We can replace services here
+            services.AddTransient<HttpMessageHandlerBuilder, InterceptedHttpMessageHandlerBuilder>();
         });
     }
 

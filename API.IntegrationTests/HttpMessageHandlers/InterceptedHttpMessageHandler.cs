@@ -4,15 +4,10 @@ using System.Web;
 
 namespace OpenShock.API.IntegrationTests.HttpMessageHandlers;
 
-sealed class CloudflareTurnstileHttpMessageHandler : DelegatingHandler
+sealed class InterceptedHttpMessageHandler : DelegatingHandler
 {
-    protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+    private async Task<HttpResponseMessage> HandleCloudflareTurnstileRequest(HttpRequestMessage request, CancellationToken cancellationToken)
     {
-        if (request.RequestUri is null || !request.RequestUri.AbsoluteUri.EndsWith("siteverify"))
-        {
-            return new HttpResponseMessage(HttpStatusCode.NotFound);
-        }
-
         var formData = request.Content != null ? await request.Content.ReadAsStringAsync(cancellationToken) : string.Empty;
         var parsedForm = HttpUtility.ParseQueryString(formData);
         var responseToken = parsedForm["response"];
@@ -56,6 +51,21 @@ sealed class CloudflareTurnstileHttpMessageHandler : DelegatingHandler
         };
 
         return responseMessage;
+    }
+
+    private async Task<HttpResponseMessage> HandleMailJetApiHost(HttpRequestMessage request, CancellationToken cancellationToken)
+    {
+        return new HttpResponseMessage(HttpStatusCode.NotFound);
+    }
+
+    protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+    {
+        return request.RequestUri switch
+        {
+            { Host: "challenges.cloudflare.com", AbsolutePath: "/turnstile/v0/siteverify" } => await HandleCloudflareTurnstileRequest(request, cancellationToken),
+            { Host: "api.mailjet.com" } => await HandleMailJetApiHost(request, cancellationToken),
+            _ => new HttpResponseMessage(HttpStatusCode.NotFound)
+        };
     }
 
     private class CloudflareTurnstileVerifyResponseDto
