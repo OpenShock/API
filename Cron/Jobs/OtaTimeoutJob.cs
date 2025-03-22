@@ -5,7 +5,7 @@ using OpenShock.Cron.Attributes;
 
 namespace OpenShock.Cron.Jobs;
 
-[CronJob("0 */1 * * * ?")]
+[CronJob("0 */5 * * * ?")]
 public sealed class OtaTimeoutJob
 {
     private readonly OpenShockContext _db;
