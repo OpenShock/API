@@ -96,7 +96,7 @@ public sealed class HubLifetime : IAsyncDisposable
         }
         
 #pragma warning disable CS4014
-        LucTask.Run(UpdateLoop);
+        OsTask.Run(UpdateLoop);
 #pragma warning restore CS4014
         
         _state = HubLifetimeState.Idle; // We are fully setup, we can go back to idle state

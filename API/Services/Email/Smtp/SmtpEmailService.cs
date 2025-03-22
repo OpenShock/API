@@ -72,7 +72,7 @@ public sealed class SmtpEmailService : IEmailService
 
     private void SendMailAndForget<T>(Contact to, SmtpTemplate template, T data,
         CancellationToken cancellationToken = default) =>
-        LucTask.Run(() => SendMail(to, template, data, cancellationToken));
+        OsTask.Run(() => SendMail(to, template, data, cancellationToken));
 
 
     private async Task SendMail<T>(Contact to, SmtpTemplate template, T data,

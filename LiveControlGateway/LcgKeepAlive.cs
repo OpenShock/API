@@ -91,7 +91,7 @@ public sealed class LcgKeepAlive : IHostedService
     /// <inheritdoc />
     public Task StartAsync(CancellationToken cancellationToken)
     {
-        LucTask.Run(Loop);
+        OsTask.Run(Loop);
 
         return Task.CompletedTask;
     }

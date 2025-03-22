@@ -59,7 +59,7 @@ public sealed class UserSessionAuthentication : AuthenticationHandler<Authentica
         if (session.Expires!.Value < DateTime.UtcNow.Subtract(Duration.LoginSessionExpansionAfter))
         {
 #pragma warning disable CS4014
-            LucTask.Run(async () =>
+            OsTask.Run(async () =>
 #pragma warning restore CS4014
             {
                 session.Expires = DateTime.UtcNow.Add(Duration.LoginSessionLifetime);
