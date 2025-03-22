@@ -12,6 +12,11 @@ namespace OpenShock.LiveControlGateway.Options;
 public sealed class LcgOptions
 {
     /// <summary>
+    /// IConfiguration section path
+    /// </summary>
+    public const string SectionName = "OpenShock:LCG";
+    
+    /// <summary>
     /// FQDN of the LCG
     /// </summary>
     [Required(AllowEmptyStrings = false)]
