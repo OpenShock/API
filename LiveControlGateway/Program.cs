@@ -10,15 +10,7 @@ using OpenShock.LiveControlGateway.LifetimeManager;
 using OpenShock.LiveControlGateway.Options;
 using OpenShock.LiveControlGateway.PubSub;
 
-var builder = OpenShockApplication.CreateDefaultBuilder<Program>(args, options =>
-{
-#if DEBUG
-    options.ListenAnyIP(580);
-    options.ListenAnyIP(5443, options => options.UseHttps("devcert.pfx"));
-#else
-    options.ListenAnyIP(80);
-#endif
-});
+var builder = OpenShockApplication.CreateDefaultBuilder<Program>(args);
 
 builder.RegisterCommonOpenShockOptions();
 

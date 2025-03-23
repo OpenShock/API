@@ -5,13 +5,7 @@ using OpenShock.Common.Extensions;
 using OpenShock.Cron;
 using OpenShock.Cron.Utils;
 
-var builder = OpenShockApplication.CreateDefaultBuilder<Program>(args, options =>
-{
-    options.ListenAnyIP(780);
-#if DEBUG
-    options.ListenAnyIP(7443, options => options.UseHttps("devcert.pfx"));
-#endif
-});
+var builder = OpenShockApplication.CreateDefaultBuilder<Program>(args);
 
 builder.RegisterCommonOpenShockOptions();
 

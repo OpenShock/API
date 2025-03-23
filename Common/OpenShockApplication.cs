@@ -6,7 +6,7 @@ namespace OpenShock.Common;
 
 public static class OpenShockApplication
 {
-    public static WebApplicationBuilder CreateDefaultBuilder<TProgram>(string[] args, Action<KestrelServerOptions> configurePorts) where TProgram : class
+    public static WebApplicationBuilder CreateDefaultBuilder<TProgram>(string[] args) where TProgram : class
     {
         var builder = WebApplication.CreateSlimBuilder(args);
         
@@ -39,7 +39,6 @@ public static class OpenShockApplication
         
         builder.WebHost.ConfigureKestrel(serverOptions =>
         {
-            configurePorts(serverOptions);
             serverOptions.Limits.RequestHeadersTimeout = TimeSpan.FromMilliseconds(3000);
         });
 
