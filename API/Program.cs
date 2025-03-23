@@ -19,13 +19,7 @@ using OpenShock.Common.Swagger;
 using Scalar.AspNetCore;
 using Serilog;
 
-var builder = OpenShockApplication.CreateDefaultBuilder<Program>(args, options =>
-{
-    options.ListenAnyIP(80);
-#if DEBUG
-    options.ListenAnyIP(443, options => options.UseHttps());
-#endif
-});
+var builder = OpenShockApplication.CreateDefaultBuilder<Program>(args);
 
 builder.RegisterCommonOpenShockOptions();
 
