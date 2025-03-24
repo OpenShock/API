@@ -6,7 +6,7 @@ using OpenShock.Common.Extensions;
 
 namespace OpenShock.Common.Tests.Query;
 
-public class DBExpressionBuilderTests
+public class ExpressionBuilderTests
 {
     public sealed class TestClass
     {
@@ -30,7 +30,7 @@ public class DBExpressionBuilderTests
 
     private readonly TestClass[] TestArray;
 
-    public DBExpressionBuilderTests()
+    public ExpressionBuilderTests()
     {
         var faker = new Faker<TestClass>()
             .UseSeed(12345)
