@@ -1,4 +1,5 @@
 ﻿using System.Linq.Expressions;
+using System.Reflection;
 using OpenShock.Common.Models;
 using OpenShock.Common.OpenShockDb;
 using OpenShock.Common.Query;
@@ -7,6 +8,57 @@ namespace OpenShock.Common.Extensions;
 
 public static class IQueryableExtensions
 {
+    private static MethodInfo[] PublicQueryableMethods => typeof(Queryable).GetMethods(BindingFlags.Static | BindingFlags.Public);
+    private static readonly MethodInfo OrderByAscendingMethodInfo = PublicQueryableMethods.Single(m => m.Name == "OrderBy" && m.GetParameters().Length == 2);
+    private static readonly MethodInfo OrderByDescendingMethodInfo = PublicQueryableMethods.Single(m => m.Name == "OrderByDescending" && m.GetParameters().Length == 2);
+    private static readonly MethodInfo OrderThenByAscendingMethodInfo = PublicQueryableMethods.Single(m => m.Name == "ThenBy" && m.GetParameters().Length == 2);
+    private static readonly MethodInfo OrderThenByDescendingMethodInfo = PublicQueryableMethods.Single(m => m.Name == "ThenByDescending" && m.GetParameters().Length == 2);
+
+    private record struct OrderByItem(string Name, bool Descending);
+
+    private static OrderByItem ParseOrderByPart(string str)
+    {
+        var parts = str.Split(' ');
+        if (parts.Length == 1)
+        {
+            return new OrderByItem(str, false);
+        }
+
+        if (parts.Length == 2)
+        {
+            bool descending = parts[1].ToLower() switch
+            {
+                "asc" => false,
+                "desc" => true,
+                _ => throw new InvalidOperationException("Direction if specified must be 'asc' or 'desc'."),
+            };
+
+            return new OrderByItem(parts[0], descending);
+        }
+
+        throw new InvalidOperationException("Invalid orderby query.");
+    }
+
+    private static IOrderedQueryable<T> OrderBy<T>(this IQueryable<T> source, LambdaExpression keySelector, bool descending = false)
+    {
+        var method = (descending ? OrderByDescendingMethodInfo : OrderByAscendingMethodInfo)
+            .MakeGenericMethod(typeof(T), keySelector.Body.Type);
+
+        var call = Expression.Call(null, method, source.Expression, Expression.Quote(keySelector));
+
+        return (IOrderedQueryable<T>)source.Provider.CreateQuery(call);
+    }
+
+    private static IOrderedQueryable<T> ThenBy<T>(this IOrderedQueryable<T> source, LambdaExpression keySelector, bool descending = false)
+    {
+        var method = (descending ? OrderThenByDescendingMethodInfo : OrderThenByAscendingMethodInfo)
+            .MakeGenericMethod(typeof(T), keySelector.Body.Type);
+
+        var call = Expression.Call(null, method, source.Expression, Expression.Quote(keySelector));
+
+        return (IOrderedQueryable<T>)source.Provider.CreateQuery(call);
+    }
+
     public static IQueryable<TEntity> WhereUserIdMatches<TEntity>(this IQueryable<TEntity> source, Expression<Func<TEntity, User>> userNavigation, Guid userId)
     {
         var userIdConstant = Expression.Constant(userId);
@@ -31,35 +83,26 @@ public static class IQueryableExtensions
 
     public static IQueryable<T> ApplyFilter<T>(this IQueryable<T> query, string filterQuery) where T : class
     {
-        if (string.IsNullOrWhiteSpace(filterQuery)) return query;
-        
+        ArgumentException.ThrowIfNullOrWhiteSpace(filterQuery, nameof(filterQuery));
+
         return query.Where(DBExpressionBuilder.GetFilterExpression<T>(filterQuery));
     }
 
-
-    public static IQueryable<T> ApplyOrderBy<T>(this IQueryable<T> query, string orderbyQuery) where T : class
+    public static IOrderedQueryable<T> ApplyOrderBy<T>(this IQueryable<T> query, string orderbyQuery) where T : class
     {
-        if (string.IsNullOrWhiteSpace(orderbyQuery))
-            return query;
+        ArgumentException.ThrowIfNullOrWhiteSpace(orderbyQuery, nameof(orderbyQuery));
 
-        // Split the query into property name and direction
-        if (orderbyQuery.Split(' ') is not [string propOrFieldName, string direction])
-            throw new ArgumentException($"{nameof(orderbyQuery)} should contain a property name and a direction (asc or desc).", nameof(orderbyQuery));
+        var parts = orderbyQuery.Split(',');
 
-        var entityType = typeof(T);
+        var parsed = ParseOrderByPart(parts[0]);
+        var orderedQuery = query.OrderBy(DBExpressionBuilderUtils.CreatePropertyOrFieldAccessorExpression<T>(parsed.Name), parsed.Descending);
 
-        var parameterExpr = Expression.Parameter(entityType, "x");
-        var memberExpr = Expression.PropertyOrField(parameterExpr, propOrFieldName);
-        var lambda = Expression.Lambda(memberExpr, parameterExpr);
-
-        // Use the helper method to build the expression
-        var orderByCall = direction.ToLower() switch
+        for (int i = 1; i < parts.Length; ++i)
         {
-            "asc" => DBExpressionBuilderUtils.BuildOrderBy(query, lambda, descending: false),
-            "desc" => DBExpressionBuilderUtils.BuildOrderBy(query, lambda, descending: true),
-            _ => throw new ArgumentException("Direction must be 'asc' or 'desc'.", nameof(orderbyQuery))
-        };
+            parsed = ParseOrderByPart(parts[i]);
+            orderedQuery = orderedQuery.ThenBy(DBExpressionBuilderUtils.CreatePropertyOrFieldAccessorExpression<T>(parsed.Name), parsed.Descending);
+        }
 
-        return query.Provider.CreateQuery<T>(orderByCall);
+        return orderedQuery;
     }
 }
