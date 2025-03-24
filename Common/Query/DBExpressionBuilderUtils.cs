@@ -50,6 +50,15 @@ public static class DBExpressionBuilderUtils
 
     private static ConstantExpression GetConstant(Type type, string value)
     {
+        // Handling of nullable types
+        if (Nullable.GetUnderlyingType(type) is { } underlyingType)
+        {
+            if (string.IsNullOrWhiteSpace(value))
+                return Expression.Constant(null, type); // null literal
+
+            return GetConstant(underlyingType, value); // recurse with unwrapped
+        }
+
         if (type.IsEnum)
         {
             if (string.IsNullOrWhiteSpace(value))
