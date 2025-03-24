@@ -2,10 +2,10 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using OpenShock.Common;
 using OpenShock.Common.Authentication;
 using OpenShock.Common.Authentication.ControllerBase;
 using OpenShock.Common.Errors;
+using OpenShock.Common.Extensions;
 using OpenShock.Common.OpenShockDb;
 using OpenShock.Common.Problems;
 using OpenShock.Common.Utils;

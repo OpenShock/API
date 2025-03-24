@@ -1,12 +1,11 @@
-﻿using System.Net;
-using System.Net.Mime;
+﻿using System.Net.Mime;
 using Asp.Versioning;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using OpenShock.API.Services;
-using OpenShock.Common;
 using OpenShock.Common.Authentication.Attributes;
 using OpenShock.Common.Errors;
+using OpenShock.Common.Extensions;
 using OpenShock.Common.Models;
 using OpenShock.Common.Problems;
 
