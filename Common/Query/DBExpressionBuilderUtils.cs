@@ -7,6 +7,8 @@ namespace OpenShock.Common.Query;
 
 public static class DBExpressionBuilderUtils
 {
+    private static MethodInfo[] PublicQueryableMethods => typeof(Queryable).GetMethods(BindingFlags.Static | BindingFlags.Public);
+
     private static readonly MethodInfo EfFunctionsCollateMethodInfo = typeof(RelationalDbFunctionsExtensions).GetMethod("Collate")?.MakeGenericMethod(typeof(string)) ?? throw new MissingMethodException("EF.Functions", "Collate(string,string)");
     //private static readonly MethodInfo EfFunctionsLikeMethodInfo = typeof(NpgsqlDbFunctionsExtensions).GetMethod("Like", [typeof(DbFunctions), typeof(string), typeof(string)]) ?? throw new MissingMethodException("EF.Functions", "Like(string,string)");
     private static readonly MethodInfo EfFunctionsILikeMethodInfo = typeof(NpgsqlDbFunctionsExtensions).GetMethod("ILike", [typeof(DbFunctions), typeof(string), typeof(string)]) ?? throw new MissingMethodException("EF.Functions", "ILike(string,string)");
@@ -14,6 +16,10 @@ public static class DBExpressionBuilderUtils
     private static readonly MethodInfo StringStartsWithMethodInfo = typeof(string).GetMethod("StartsWith", [typeof(string)]) ?? throw new MissingMethodException("string", "StartsWith(string)");
     private static readonly MethodInfo StringEndsWithMethodInfo = typeof(string).GetMethod("EndsWith", [typeof(string)]) ?? throw new MissingMethodException("string", "EndsWith(string)");
     private static readonly MethodInfo StringContainsMethodInfo = typeof(string).GetMethod("Contains", [typeof(string)]) ?? throw new MissingMethodException("string","Contains(string)");
+    private static readonly MethodInfo OrderByAscendingMethodInfo = PublicQueryableMethods.Single(m => m.Name == "OrderBy" && m.GetParameters().Length == 2);
+    private static readonly MethodInfo OrderByDescendingMethodInfo = PublicQueryableMethods.Single(m => m.Name == "OrderByDescending" && m.GetParameters().Length == 2);
+    private static readonly MethodInfo OrderThenByAscendingMethodInfo = PublicQueryableMethods.Single(m => m.Name == "ThenBy" && m.GetParameters().Length == 2);
+    private static readonly MethodInfo OrderThenByDescendingMethodInfo = PublicQueryableMethods.Single(m => m.Name == "ThenByDescending" && m.GetParameters().Length == 2);
 
     /// <summary>
     /// To not let whoever's requesting to explore hidden data structures, we return same exception for all errors here
@@ -163,5 +169,17 @@ public static class DBExpressionBuilderUtils
     {
         if (memberType is { IsPrimitive: false, IsEnum: false } && Type.GetTypeCode(memberType) != TypeCode.DateTime) return null;
         return Expression.GreaterThanOrEqual(memberExpr, GetConstant(memberType, value));
+    }
+
+    public static MethodCallExpression BuildOrderBy<T>(IQueryable<T> source, LambdaExpression keySelector, bool descending = false)
+    {
+        var method = descending ? OrderByDescendingMethodInfo : OrderByAscendingMethodInfo;
+        return Expression.Call(method.MakeGenericMethod(typeof(T), keySelector.ReturnType), source.Expression, Expression.Quote(keySelector));
+    }
+
+    public static MethodCallExpression BuildThenBy<T>(IOrderedQueryable<T> source, LambdaExpression keySelector, bool descending = false)
+    {
+        var method = descending ? OrderThenByDescendingMethodInfo : OrderThenByAscendingMethodInfo;
+        return Expression.Call(method.MakeGenericMethod(source.ElementType, keySelector.ReturnType), source.Expression, Expression.Quote(keySelector));
     }
 }

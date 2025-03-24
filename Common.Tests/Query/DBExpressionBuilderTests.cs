@@ -1,6 +1,7 @@
 ﻿using OpenShock.Common.Query;
 using TUnit.Assertions.AssertConditions.Throws;
 using Bogus;
+using System.Linq.Expressions;
 
 namespace OpenShock.Common.Tests.Query;
 
@@ -203,5 +204,70 @@ public class DBExpressionBuilderTests
 
         // Assert
         await Assert.That(result).ContainsOnly(x => x.Precision < 50f);
+    }
+
+    [Test]
+    public async Task OrderByAscending_SortsCorrectly()
+    {
+        // Arrange
+        var queryable = TestArray.AsQueryable();
+        var param = Expression.Parameter(typeof(TestClass), "x");
+        var member = typeof(TestClass).GetProperty("Age")!;
+        var memberExpr = Expression.MakeMemberAccess(param, member);
+        var lambda = Expression.Lambda(memberExpr, param);
+
+        // Act
+        var expr = DBExpressionBuilderUtils.BuildOrderBy(queryable, lambda, descending: false);
+        var result = queryable.Provider.CreateQuery<TestClass>(expr).ToArray();
+
+        // Assert
+        await Assert.That(result).IsOrderedBy(x => x.Age);
+    }
+
+    [Test]
+    public async Task OrderByDescending_SortsCorrectly()
+    {
+        var queryable = TestArray.AsQueryable();
+        var param = Expression.Parameter(typeof(TestClass), "x");
+        var member = typeof(TestClass).GetProperty("Name")!;
+        var memberExpr = Expression.MakeMemberAccess(param, member);
+        var lambda = Expression.Lambda(memberExpr, param);
+
+        var expr = DBExpressionBuilderUtils.BuildOrderBy(queryable, lambda, descending: true);
+        var result = queryable.Provider.CreateQuery<TestClass>(expr).ToArray();
+
+        await Assert.That(result).IsOrderedByDescending(x => x.Name);
+    }
+
+    [Test]
+    public async Task ThenByAscending_SortsCorrectly()
+    {
+        var queryable = TestArray.AsQueryable().OrderBy(x => x.Age);
+        var param = Expression.Parameter(typeof(TestClass), "x");
+        var member = typeof(TestClass).GetProperty("CreatedAt")!;
+        var memberExpr = Expression.MakeMemberAccess(param, member);
+        var lambda = Expression.Lambda(memberExpr, param);
+
+        var expr = DBExpressionBuilderUtils.BuildThenBy((IOrderedQueryable<TestClass>)queryable, lambda, descending: false);
+        var result = queryable.Provider.CreateQuery<TestClass>(expr).ToArray();
+
+        var expected = TestArray.OrderBy(x => x.Age).ThenBy(x => x.CreatedAt).ToArray();
+        await Assert.That(result).IsEquivalentTo(expected);
+    }
+
+    [Test]
+    public async Task ThenByDescending_SortsCorrectly()
+    {
+        var queryable = TestArray.AsQueryable().OrderBy(x => x.Age);
+        var param = Expression.Parameter(typeof(TestClass), "x");
+        var member = typeof(TestClass).GetProperty("Name")!;
+        var memberExpr = Expression.MakeMemberAccess(param, member);
+        var lambda = Expression.Lambda(memberExpr, param);
+
+        var expr = DBExpressionBuilderUtils.BuildThenBy((IOrderedQueryable<TestClass>)queryable, lambda, descending: true);
+        var result = queryable.Provider.CreateQuery<TestClass>(expr).ToArray();
+
+        var expected = TestArray.OrderBy(x => x.Age).ThenByDescending(x => x.Name).ToArray();
+        await Assert.That(result).IsEquivalentTo(expected);
     }
 }
