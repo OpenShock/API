@@ -1,6 +1,5 @@
-﻿using Microsoft.Extensions.Options;
+﻿using System.ComponentModel.DataAnnotations;
 using OpenShock.API.Services.Email.Mailjet.Mail;
-using System.ComponentModel.DataAnnotations;
 
 namespace OpenShock.API.Options;
 
@@ -13,19 +12,12 @@ public sealed class MailOptions
     [Required]
     public required MailType Type { get; init; }
 
-    [Required]
-    [ValidateObjectMembers]
-    public required Contact Sender { get; init; }
-
-    [ValidateObjectMembers]
-    public MailJetOptions? Mailjet {  get; init; }
-
-    [ValidateObjectMembers]
-    public SmtpOptions? Smtp { get; init; }
-
     public enum MailType
     {
         Mailjet = 0,
-        Smtp = 1
+        Smtp = 1,
+        None = 2
     }
+
+    public sealed class MailSenderContact : Contact;
 }

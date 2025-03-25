@@ -10,26 +10,26 @@ namespace OpenShock.API.Services.Email.Mailjet;
 public sealed class MailjetEmailService : IEmailService, IDisposable
 {
     private readonly HttpClient _httpClient;
-    private readonly Contact _sender;
     private readonly MailJetOptions _options;
     private readonly ILogger<MailjetEmailService> _logger;
+    private readonly MailOptions.MailSenderContact _sender;
 
     /// <summary>
     /// DI Constructor
     /// </summary>
     /// <param name="httpClient"></param>
-    /// <param name="senderOptions"></param>
     /// <param name="options"></param>
+    /// <param name="sender"></param>
     /// <param name="logger"></param>
     public MailjetEmailService(
             HttpClient httpClient,
-            IOptionsSnapshot<Contact> senderOptions,
             IOptions<MailJetOptions> options,
+            IOptions<MailOptions.MailSenderContact> sender,
             ILogger<MailjetEmailService> logger
         )
     {
         _httpClient = httpClient;
-        _sender = senderOptions.Get(MailOptions.SenderOptionName);
+        _sender = sender.Value;
         _options = options.Value;
         _logger = logger;
     }

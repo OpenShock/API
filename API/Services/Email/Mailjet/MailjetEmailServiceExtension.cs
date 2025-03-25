@@ -1,6 +1,7 @@
 ﻿using OpenShock.API.Options;
 using System.Net.Http.Headers;
 using System.Text;
+using Microsoft.Extensions.Options;
 
 namespace OpenShock.API.Services.Email.Mailjet;
 
@@ -11,7 +12,7 @@ public static class MailjetEmailServiceExtension
         var section = builder.Configuration.GetRequiredSection(MailJetOptions.SectionName);
 
         builder.Services.Configure<MailJetOptions>(section);
-        builder.Services.AddSingleton<MailJetOptionsValidator>();
+        builder.Services.AddSingleton<IValidateOptions<MailJetOptions>, MailJetOptionsValidator>();
 
         var options = section.Get<MailJetOptions>() ?? throw new NullReferenceException("MailJetOptions is null!");
         var basicAuthValue = Convert.ToBase64String(Encoding.UTF8.GetBytes($"{options.Key}:{options.Secret}"));
