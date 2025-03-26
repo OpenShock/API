@@ -1,4 +1,6 @@
-FROM openshock.local/openshock/build-common AS build-api
+# syntax = devthefuture/dockerfile-x
+
+FROM ./docker/Base.Dockerfile AS build-api
 
 COPY --link API/*.csproj API/
 RUN dotnet restore API/API.csproj

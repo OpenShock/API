@@ -1,4 +1,6 @@
-FROM openshock.local/openshock/build-common AS build-gateway
+# syntax = devthefuture/dockerfile-x
+
+FROM ./docker/Base.Dockerfile AS build-gateway
 
 COPY --link LiveControlGateway/*.csproj LiveControlGateway/
 RUN dotnet restore LiveControlGateway/LiveControlGateway.csproj
