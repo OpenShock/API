@@ -1,4 +1,4 @@
-FROM build-common AS build-api
+FROM openshock.local/openshock/build-common AS build-api
 
 COPY --link API/*.csproj API/
 RUN dotnet restore API/API.csproj
@@ -16,6 +16,6 @@ RUN chmod +x /entrypoint.sh
 RUN apk update && apk add --no-cache openssl
 
 COPY --link --from=build-api /app .
-COPY appsettings.API.json /app/appsettings.Container.json
+COPY docker/appsettings.API.json /app/appsettings.Container.json
 
 ENTRYPOINT ["/bin/ash", "/entrypoint.sh", "OpenShock.API.dll"]

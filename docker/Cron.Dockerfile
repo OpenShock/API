@@ -1,4 +1,4 @@
-FROM build-common AS build-cron
+FROM openshock.local/openshock/build-common AS build-cron
 
 COPY --link Cron/*.csproj Cron/
 RUN dotnet restore Cron/Cron.csproj

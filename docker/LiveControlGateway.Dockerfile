@@ -1,4 +1,4 @@
-FROM build-common AS build-gateway
+FROM openshock.local/openshock/build-common AS build-gateway
 
 COPY --link LiveControlGateway/*.csproj LiveControlGateway/
 RUN dotnet restore LiveControlGateway/LiveControlGateway.csproj
