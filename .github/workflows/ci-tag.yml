@@ -16,6 +16,8 @@ jobs:
   # Delegate building and containerizing to a single workflow.
   build-and-containerize:
     uses: ./.github/workflows/ci-build.yml
+    with:
+      platforms: linux/amd64,linux/arm64
   
   release:
     runs-on: ubuntu-latest

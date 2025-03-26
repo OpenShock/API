@@ -9,6 +9,11 @@ on:
       - develop
     types: [ opened, reopened, synchronize ]
   workflow_call:
+    inputs:
+      platforms:
+        description: 'Platforms to build for'
+        required: false
+        type: string
   workflow_dispatch:
 
 name: ci-build
@@ -41,6 +46,7 @@ jobs:
           dockerfile: docker/API.Dockerfile
           push: ${{ github.event_name != 'pull_request' }}
           image: api
+          platforms: ${{ inputs.platforms || 'linux/amd64' }}
           
       - name: Build LiveControlGateway
         uses: ./.github/actions/build-app
@@ -48,6 +54,7 @@ jobs:
           dockerfile: docker/LiveControlGateway.Dockerfile
           push: ${{ github.event_name != 'pull_request' }}
           image: live-control-gateway
+          platforms: ${{ inputs.platforms || 'linux/amd64' }}
           
       - name: Build Cron
         uses: ./.github/actions/build-app
@@ -55,6 +62,7 @@ jobs:
           dockerfile: docker/Cron.Dockerfile
           push: ${{ github.event_name != 'pull_request' }}
           image: cron
+          platforms: ${{ inputs.platforms || 'linux/amd64' }}
           
   deploy-production:
     runs-on: ubuntu-latest
