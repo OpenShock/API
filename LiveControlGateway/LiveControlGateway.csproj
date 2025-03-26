@@ -5,17 +5,6 @@
         <GenerateDocumentationFile>true</GenerateDocumentationFile>
     </PropertyGroup>
 
-    <ItemGroup>
-        <PackageReference Include="Asp.Versioning.Mvc.ApiExplorer" Version="8.1.0" />
-        <PackageReference Include="Microsoft.AspNetCore.SignalR.StackExchangeRedis" Version="9.0.1" />
-        <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="9.0.3" />
-        <PackageReference Include="OneOf" Version="3.0.271" />
-        <PackageReference Include="Redis.OM" Version="0.7.6" />
-        <PackageReference Include="Serilog.AspNetCore" Version="9.0.0" />
-        <PackageReference Include="Serilog.Sinks.Grafana.Loki" Version="8.3.0" />
-        <PackageReference Include="Swashbuckle.AspNetCore" Version="7.2.0" />
-    </ItemGroup>
-
     <Target Name="SetSourceRevisionId" BeforeTargets="InitializeSourceControlInformation">
         <Exec Command="git rev-parse HEAD" IgnoreExitCode="False">
             <Output PropertyName="SourceRevisionId" TaskParameter="ConsoleOutput" />

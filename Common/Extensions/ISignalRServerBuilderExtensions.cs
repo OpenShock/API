@@ -1,9 +1,9 @@
 ﻿using Microsoft.AspNetCore.SignalR;
 using Microsoft.AspNetCore.SignalR.StackExchangeRedis;
 
-namespace OpenShock.Common;
+namespace OpenShock.Common.Extensions;
 
-public static class SignalRExtensions
+public static class ISignalRServerBuilderExtensions
 {
     /// <summary>
     /// Adds scale-out to a <see cref="ISignalRServerBuilder"/>, using a shared Redis server.

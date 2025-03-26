@@ -96,7 +96,7 @@ public sealed class HubLifetime : IAsyncDisposable
         }
         
 #pragma warning disable CS4014
-        LucTask.Run(UpdateLoop);
+        OsTask.Run(UpdateLoop);
 #pragma warning restore CS4014
         
         _state = HubLifetimeState.Idle; // We are fully setup, we can go back to idle state
@@ -260,7 +260,7 @@ public sealed class HubLifetime : IAsyncDisposable
     /// </summary>
     /// <param name="shocks"></param>
     /// <returns></returns>
-    public ValueTask Control(IEnumerable<ControlMessage.ShockerControlInfo> shocks)
+    public ValueTask Control(IReadOnlyList<ControlMessage.ShockerControlInfo> shocks)
     {
         var shocksTransformed = new List<ShockerCommand>();
         foreach (var shock in shocks)

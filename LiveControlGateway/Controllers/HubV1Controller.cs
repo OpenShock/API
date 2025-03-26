@@ -2,12 +2,14 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.SignalR;
+using Microsoft.Extensions.Options;
 using OpenShock.Common.Authentication;
+using OpenShock.Common.Extensions;
 using OpenShock.Common.Hubs;
 using OpenShock.Common.Models;
 using OpenShock.Common.Services.Ota;
-using OpenShock.Common.Utils;
 using OpenShock.LiveControlGateway.LifetimeManager;
+using OpenShock.LiveControlGateway.Options;
 using OpenShock.Serialization.Deprecated.DoNotUse.V1;
 using OpenShock.Serialization.Types;
 using Semver;
@@ -29,20 +31,21 @@ public sealed class HubV1Controller : HubControllerBase<HubToGatewayMessage, Gat
     /// <summary>
     /// DI
     /// </summary>
-    /// <param name="logger"></param>
     /// <param name="lifetime"></param>
     /// <param name="hubLifetimeManager"></param>
     /// <param name="userHubContext"></param>
     /// <param name="serviceProvider"></param>
-    /// <param name="lcgConfig"></param>
+    /// <param name="options"></param>
+    /// <param name="logger"></param>
     public HubV1Controller(
-        ILogger<HubV1Controller> logger,
-        IHostApplicationLifetime lifetime,
-        HubLifetimeManager hubLifetimeManager,
-        IHubContext<UserHub, IUserHub> userHubContext,
-        IServiceProvider serviceProvider, LCGConfig lcgConfig)
-        : base(logger, lifetime, HubToGatewayMessage.Serializer, GatewayToHubMessage.Serializer, hubLifetimeManager,
-            serviceProvider, lcgConfig)
+            IHostApplicationLifetime lifetime,
+            HubLifetimeManager hubLifetimeManager,
+            IHubContext<UserHub, IUserHub> userHubContext,
+            IServiceProvider serviceProvider,
+            IOptions<LcgOptions> options,
+            ILogger<HubV1Controller> logger
+        )
+        : base(lifetime, HubToGatewayMessage.Serializer, GatewayToHubMessage.Serializer, hubLifetimeManager, serviceProvider, options, logger)
     {
         _userHubContext = userHubContext;
     }

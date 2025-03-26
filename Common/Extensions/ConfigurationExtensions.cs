@@ -1,45 +1,27 @@
-﻿using OpenShock.Common.Config;
-using Serilog;
-using System.Text;
-using System.Text.Json;
+﻿using Microsoft.Extensions.Options;
+using OpenShock.Common.Options;
 
 namespace OpenShock.Common.Extensions;
 
 public static class ConfigurationExtensions
 {
-    public static T GetAndRegisterOpenShockConfig<T>(this WebApplicationBuilder builder) where T : BaseConfig
+    public static WebApplicationBuilder RegisterCommonOpenShockOptions(this WebApplicationBuilder builder)
     {
 #if DEBUG
         Console.WriteLine(builder.Configuration.GetDebugView());
 #endif
+        builder.Services.Configure<DatabaseOptions>(builder.Configuration.GetRequiredSection(DatabaseOptions.SectionName));
+        builder.Services.AddSingleton<IValidateOptions<DatabaseOptions>, DatabaseOptionsValidator>();
+        
+        builder.Services.Configure<RedisOptions>(builder.Configuration.GetRequiredSection(RedisOptions.SectionName));
+        builder.Services.AddSingleton<IValidateOptions<RedisOptions>, RedisOptionsValidator>();
+        
+        builder.Services.Configure<FrontendOptions>(builder.Configuration.GetRequiredSection(FrontendOptions.SectionName));
+        builder.Services.AddSingleton<IValidateOptions<FrontendOptions>, FrontendOptionsValidator>();
+        
+        builder.Services.Configure<MetricsOptions>(builder.Configuration.GetSection(MetricsOptions.SectionName));
+        builder.Services.AddSingleton<IValidateOptions<MetricsOptions>, MetricsOptionsValidator>();
 
-        var config = builder.Configuration
-            .GetChildren()
-            .FirstOrDefault(x => x.Key.Equals("openshock", StringComparison.InvariantCultureIgnoreCase))
-            ?.Get<T>() ?? throw new Exception("Couldn't bind config, check config file");
-
-        MiniValidation.MiniValidator.TryValidate(config, true, true, out var errors);
-        if (errors.Count > 0)
-        {
-            var sb = new StringBuilder();
-
-            sb.AppendLine("Error validating config, please fix your configuration / environment variables");
-            sb.AppendLine("Found the following errors:");
-            foreach (var error in errors)
-            {
-                sb.AppendLine($"Error on field [{error.Key}] reason: {string.Join(", ", error.Value)}");
-            }
-
-            Console.WriteLine(sb.ToString());
-            Environment.Exit(-10);
-        }
-
-#if DEBUG
-        Console.WriteLine(JsonSerializer.Serialize(config, new JsonSerializerOptions { WriteIndented = true }));
-#endif
-
-        builder.Services.AddSingleton<T>(config);
-
-        return config;
+        return builder;
     }
 }

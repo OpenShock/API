@@ -141,7 +141,7 @@ public abstract class WebsocketBaseController<T> : OpenShockControllerBase, IAsy
         if (await TryRegisterConnection())
         {
 #pragma warning disable CS4014
-            LucTask.Run(MessageLoop);
+            OsTask.Run(MessageLoop);
 #pragma warning restore CS4014
 
             await SendInitialData();

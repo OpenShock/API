@@ -1,11 +1,10 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using System.Net;
 using System.Net.Mime;
-using OpenShock.Common;
 using OpenShock.Common.Errors;
 using OpenShock.Common.Problems;
 using OpenShock.Common.Models;
+using OpenShock.Common.Extensions;
 
 namespace OpenShock.API.Controller.Shares.Links;
 

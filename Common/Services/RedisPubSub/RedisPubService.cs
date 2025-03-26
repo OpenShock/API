@@ -29,7 +29,7 @@ public sealed class RedisPubService : IRedisPubService
     }
     
     /// <inheritdoc />
-    public Task SendDeviceControl(Guid sender, IDictionary<Guid, IList<ControlMessage.ShockerControlInfo>> controlMessages)
+    public Task SendDeviceControl(Guid sender, IDictionary<Guid, IReadOnlyList<ControlMessage.ShockerControlInfo>> controlMessages)
     {
         var redisMessage = new ControlMessage
         {

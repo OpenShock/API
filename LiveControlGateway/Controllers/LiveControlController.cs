@@ -62,7 +62,7 @@ public sealed class LiveControlController : WebsocketBaseController<LiveControlR
     /// <summary>
     /// Connection Id for this connection, unique and random per connection
     /// </summary>
-    public Guid ConnectionId => Guid.NewGuid();
+    public Guid ConnectionId => Guid.CreateVersion7();
 
     private readonly Timer _pingTimer = new(PingInterval);
 
@@ -81,7 +81,7 @@ public sealed class LiveControlController : WebsocketBaseController<LiveControlR
     {
         _db = db;
         _hubLifetimeManager = hubLifetimeManager;
-        _pingTimer.Elapsed += (_, _) => LucTask.Run(SendPing);
+        _pingTimer.Elapsed += (_, _) => OsTask.Run(SendPing);
     }
 
     /// <inheritdoc />
@@ -287,7 +287,7 @@ public sealed class LiveControlController : WebsocketBaseController<LiveControlR
                 message.Switch(wsRequest =>
                     {
                         if (wsRequest?.Data == null) return;
-                        LucTask.Run(() => ProcessResult(wsRequest));
+                        OsTask.Run(() => ProcessResult(wsRequest));
                     },
                     failed => { Logger.LogWarning(failed.Exception, "Deserialization failed for websocket message"); },
                     _ => { });

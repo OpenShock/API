@@ -3,13 +3,15 @@ using Asp.Versioning;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.SignalR;
+using Microsoft.Extensions.Options;
 using OpenShock.Common.Authentication;
 using OpenShock.Common.Constants;
+using OpenShock.Common.Extensions;
 using OpenShock.Common.Hubs;
 using OpenShock.Common.Models;
 using OpenShock.Common.Services.Ota;
-using OpenShock.Common.Utils;
 using OpenShock.LiveControlGateway.LifetimeManager;
+using OpenShock.LiveControlGateway.Options;
 using OpenShock.Serialization.Gateway;
 using OpenShock.Serialization.Types;
 using Semver;
@@ -34,19 +36,21 @@ public sealed class HubV2Controller : HubControllerBase<HubToGatewayMessage, Gat
     /// <summary>
     /// DI
     /// </summary>
-    /// <param name="logger"></param>
     /// <param name="lifetime"></param>
     /// <param name="hubLifetimeManager"></param>
     /// <param name="userHubContext"></param>
     /// <param name="serviceProvider"></param>
-    /// <param name="lcgConfig"></param>
+    /// <param name="options"></param>
+    /// <param name="logger"></param>
     public HubV2Controller(
-        ILogger<HubV2Controller> logger,
         IHostApplicationLifetime lifetime,
         HubLifetimeManager hubLifetimeManager,
         IHubContext<UserHub, IUserHub> userHubContext,
-        IServiceProvider serviceProvider, LCGConfig lcgConfig)
-        : base(logger, lifetime, HubToGatewayMessage.Serializer, GatewayToHubMessage.Serializer, hubLifetimeManager, serviceProvider, lcgConfig)
+        IServiceProvider serviceProvider,
+        IOptions<LcgOptions> options,
+        ILogger<HubV2Controller> logger
+        )
+        : base(lifetime, HubToGatewayMessage.Serializer, GatewayToHubMessage.Serializer, hubLifetimeManager, serviceProvider, options, logger)
     {
         _userHubContext = userHubContext;
         _pingTimer = new Timer(PingTimerElapsed, null, Duration.DevicePingInitialDelay, Duration.DevicePingPeriod);
