@@ -1,0 +1,38 @@
+name: build-app
+description: Build and Push Docker Image
+inputs:
+  dockerfile:
+    required: true
+    description: Dockerfile path
+  push:
+    required: true
+    description: Push image to registry
+  image:
+    required: true
+    description: Image name
+
+runs:
+  using: composite
+  
+  steps:
+    - name: Extract metadata (tags, labels) for Docker
+      id: meta
+      uses: docker/metadata-action@v5
+      with:
+        images: ${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ inputs.image }}
+        flavor: |
+          latest=false
+        tags: |
+          type=raw,value={{branch}},enable=${{ github.ref_type == 'branch' && github.event_name != 'pull_request' }}
+          type=ref,event=branch
+          type=ref,event=pr
+
+    - name: Build and push
+      uses: docker/build-push-action@v6
+      with:
+        context: .
+        file: ${{ inputs.dockerfile }}
+        push: ${{ inputs.push }}
+        tags: ${{ steps.meta.outputs.tags }}
+        labels: ${{ steps.meta.outputs.labels }}
+        platforms: linux/amd64,linux/arm64
