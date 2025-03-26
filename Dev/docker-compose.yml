@@ -31,6 +31,16 @@ services:
       - openshock
     ports:
       - 6379:6379
+        
+  webui:
+    image: ghcr.io/openshock/webui:latest
+    environment:
+      OPENSHOCK_NAME: "OpenShock Local"
+      OPENSHOCK_URL: "http://localhost:8080"
+      OPENSHOCK_API_URL: "http://localhost:80"
+      OPENSHOCK_SHARE_URL: "http://localhost:8080"
+    ports:
+        - 8080:80
 
 networks:
   openshock:
