@@ -36,31 +36,54 @@ var builder = OpenShockApplication.CreateDefaultBuilder<Program>(args, options =
 var config = builder.GetAndRegisterOpenShockConfig<ApiConfig>();
 var commonServices = builder.Services.AddOpenShockServices(config);
 
-builder.Services.AddRateLimiter(limiterOptions =>
+builder.Services.AddRateLimiter(options =>
 {
-    limiterOptions.OnRejected = (context, cancellationToken) =>
+    options.OnRejected = async (context, cancellationToken) =>
     {
-        return new ValueTask();
+        var logger = context.HttpContext.RequestServices.GetRequiredService<ILoggerFactory>()
+            .CreateLogger("RateLimiting");
+
+        context.HttpContext.Response.StatusCode = StatusCodes.Status429TooManyRequests;
+
+        if (!context.Lease.TryGetMetadata(MetadataName.RetryAfter, out var retryAfter))
+        {
+            retryAfter = TimeSpan.FromMinutes(1);
+        }
+
+        var retryAfterSeconds = Math.Ceiling(retryAfter.TotalSeconds).ToString("F0");
+
+        context.HttpContext.Response.Headers["Retry-After"] = retryAfterSeconds;
+
+        logger.LogWarning("Rate limit hit. IP: {IP}, Path: {Path}, User: {User}, Retry-After: {RetryAfter}s",
+            context.HttpContext.Connection.RemoteIpAddress,
+            context.HttpContext.Request.Path,
+            context.HttpContext.User.Identity?.Name ?? "Anonymous",
+            retryAfterSeconds);
+
+        await context.HttpContext.Response.WriteAsync("Too Many Requests. Please retry after the specified time.", cancellationToken);
     };
 
-    limiterOptions.AddPolicy(policyName: "user", partitioner: httpContext =>
-    {
-        if (httpContext.User.HasClaim(claim => claim is { Type: ClaimTypes.Role, Value: "Admin" or "System" }))
+    // Global fallback limiter
+    // Fixed window at 10k requests allows 20k bursts if burst occurs at window boundry
+    options.GlobalLimiter = PartitionedRateLimiter.Create<HttpContext, string>(_ =>
+        RateLimitPartition.GetFixedWindowLimiter("global", _ => new FixedWindowRateLimiterOptions
         {
-            return RateLimitPartition.GetNoLimiter("user privileged");
-        }
-        
-        var username = "user anonymous";
+            PermitLimit = 10000,
+            Window = TimeSpan.FromMinutes(1)
+        }));
 
-        var userIdClaim = httpContext.User.FindFirst(c => c.Type == ClaimTypes.NameIdentifier);
-        if (userIdClaim is not null)
+    // Per-IP limiter
+    options.AddPolicy("PerIpPolicy", context =>
+    {
+        var ip = context.GetRemoteIP();
+        if (IPAddress.IsLoopback(ip))
         {
-            username = $"user {userIdClaim.Value}";
+            return RateLimitPartition.GetNoLimiter(IPAddress.Loopback);
         }
-        
-        return RateLimitPartition.GetSlidingWindowLimiter(username, _ => new SlidingWindowRateLimiterOptions
+
+        return RateLimitPartition.GetSlidingWindowLimiter(ip, _ => new SlidingWindowRateLimiterOptions
         {
-            PermitLimit = 300,
+            PermitLimit = 1000,
             Window = TimeSpan.FromMinutes(1),
             SegmentsPerWindow = 6,
             QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
@@ -68,24 +91,55 @@ builder.Services.AddRateLimiter(limiterOptions =>
         });
     });
 
-    limiterOptions.GlobalLimiter = PartitionedRateLimiter.Create<HttpContext, IPAddress>(context =>
+    // Per-user limiter
+    options.AddPolicy("PerUserPolicy", context =>
     {
-        var remoteIpAddress = context.GetRemoteIP();
+        var user = context.User;
+        var userId = user.FindFirstValue(ClaimTypes.NameIdentifier) ?? "anonymous";
 
-        if (!IPAddress.IsLoopback(remoteIpAddress!))
+        if (user.HasClaim(claim => claim is { Type: ClaimTypes.Role, Value: "Admin" or "System" }))
         {
-            return RateLimitPartition.GetSlidingWindowLimiter(remoteIpAddress, _ => new SlidingWindowRateLimiterOptions
-            {
-                PermitLimit = 1000,
-                Window = TimeSpan.FromMinutes(1),
-                SegmentsPerWindow = 6,
-                QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
-                QueueLimit = 0
-            });
+            return RateLimitPartition.GetNoLimiter($"user-{userId}-privileged");
         }
 
-        return RateLimitPartition.GetNoLimiter(IPAddress.Loopback);
+        return RateLimitPartition.GetSlidingWindowLimiter($"user-{userId}", _ => new SlidingWindowRateLimiterOptions
+        {
+            PermitLimit = 600,
+            Window = TimeSpan.FromMinutes(1),
+            SegmentsPerWindow = 6,
+            QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
+            QueueLimit = 0
+        });
     });
+
+    // Authentication endpoints limiter
+    options.AddPolicy("AuthEndpointsPolicy", context =>
+    {
+        var ip = context.GetRemoteIP();
+        return RateLimitPartition.GetFixedWindowLimiter(ip, _ => new FixedWindowRateLimiterOptions
+        {
+            PermitLimit = 10,
+            Window = TimeSpan.FromMinutes(1)
+        });
+    });
+
+    // Token reporting endpoint concurrency limiter
+    options.AddPolicy("TokenReportingConcurrencyPolicy", _ =>
+        RateLimitPartition.GetConcurrencyLimiter("token-reporting", _ => new ConcurrencyLimiterOptions
+        {
+            PermitLimit = 5,
+            QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
+            QueueLimit = 10
+        }));
+
+    // Log fetching endpoint concurrency limiter
+    options.AddPolicy("LogFetchingConcurrencyPolicy", _ =>
+        RateLimitPartition.GetConcurrencyLimiter("log-fetching", _ => new ConcurrencyLimiterOptions
+        {
+            PermitLimit = 10,
+            QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
+            QueueLimit = 20
+        }));
 });
 
 builder.Services.AddSignalR()
