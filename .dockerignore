@@ -4,6 +4,7 @@
 **/out/
 
 # files
+**/appsettings.Development.json
 Dockerfile*
 **/*.md
 dev/
