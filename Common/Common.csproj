@@ -29,7 +29,7 @@
         <PackageReference Include="Microsoft.AspNetCore.SignalR.StackExchangeRedis" Version="9.0.3" />
         <PackageReference Include="OneOf" Version="3.0.271" />
         <PackageReference Include="Serilog.AspNetCore" Version="9.0.0" />
-        <PackageReference Include="Swashbuckle.AspNetCore.SwaggerGen" Version="8.0.0" />
+        <PackageReference Include="Swashbuckle.AspNetCore.SwaggerGen" Version="8.1.0" />
         <PackageReference Include="Z.EntityFramework.Plus.EFCore" Version="9.103.7.2" />
     </ItemGroup>
 </Project>
