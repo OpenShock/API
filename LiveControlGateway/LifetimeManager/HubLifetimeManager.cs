@@ -259,9 +259,4 @@ public readonly struct DeviceNotFound;
 /// <summary>
 /// OneOf
 /// </summary>
-public readonly struct ShockerNotFound;
-
-/// <summary>
-/// OneOf
-/// </summary>
 public readonly record struct ShockerExclusive(DateTimeOffset Until);

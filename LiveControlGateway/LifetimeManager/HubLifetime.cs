@@ -90,7 +90,12 @@ public sealed class HubLifetime : IAsyncDisposable
     {
         using (await _liveControlClientsLock.LockAsyncScoped())
         {
-            if (_liveControlClients.Contains(controller)) return null;
+            if (_liveControlClients.Contains(controller)) 
+            {
+                _logger.LogWarning("Client already registered, not sure how this happened, probably a bug");
+                return null;
+            }
+            
             _liveControlClients = _liveControlClients.Add(controller);
         }
 
