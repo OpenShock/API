@@ -51,9 +51,8 @@ public abstract class HubControllerBase<TIn, TOut> : FlatbuffersWebsocketBaseCon
     /// <summary>
     /// Hub lifetime
     /// </summary>
-    /// <exception cref="Exception"></exception>
-    protected HubLifetime HubLifetime => _hubLifetime ?? throw new Exception("Hub lifetime is null but was tried to access");
-
+    /// <exception cref="InvalidOperationException"></exception>
+    protected HubLifetime HubLifetime => _hubLifetime ?? throw new InvalidOperationException("Hub lifetime is null but was tried to access");
     private readonly LcgOptions _options;
 
     private readonly HubLifetimeManager _hubLifetimeManager;
