@@ -1,13 +1,13 @@
-﻿using System.ComponentModel.DataAnnotations;
-using System.Net.Mime;
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using OpenShock.Common.Errors;
+using OpenShock.Common.Extensions;
 using OpenShock.Common.Models;
-using OpenShock.Common.Utils;
-using OpenShock.Common.Problems;
-using Z.EntityFramework.Plus;
 using OpenShock.Common.OpenShockDb;
+using OpenShock.Common.Query;
+using System.ComponentModel.DataAnnotations;
+using System.Net.Mime;
+using Z.EntityFramework.Plus;
 
 namespace OpenShock.API.Controller.Admin;
 
@@ -23,8 +23,8 @@ public sealed partial class AdminController
     public async Task<IActionResult> GetUsers(
         [FromQuery(Name = "$filter")] string filterQuery = "",
         [FromQuery(Name = "$orderby")] string orderbyQuery = "",
-        [FromQuery(Name = "$offset")] [Range(0, int.MaxValue)] int offset = 0,
-        [FromQuery(Name = "$limit")] [Range(1, 1000)] int limit = 100
+        [FromQuery(Name = "$offset")][Range(0, int.MaxValue)] int offset = 0,
+        [FromQuery(Name = "$limit")][Range(1, 1000)] int limit = 100
         )
     {
         var deferredCount = _db.Users.DeferredLongCount().FutureValue();
@@ -47,7 +47,15 @@ public sealed partial class AdminController
                 query = query.OrderBy(u => u.CreatedAt);
             }
         }
-        catch (ExpressionBuilder.ExpressionException e)
+        catch (QueryStringTokenizerException e)
+        {
+            return Problem(ExpressionError.QueryStringInvalidError(e.Message));
+        }
+        catch (DBExpressionBuilderException e)
+        {
+            return Problem(ExpressionError.ExpressionExceptionError(e.Message));
+        }
+        catch (FormatException e)
         {
             return Problem(ExpressionError.ExpressionExceptionError(e.Message));
         }
@@ -56,7 +64,7 @@ public sealed partial class AdminController
         {
             query = query.Skip(offset);
         }
-        
+
         var deferredUsers = query.Take(limit).Future();
 
         return Ok(new Paginated<AdminUsersView>

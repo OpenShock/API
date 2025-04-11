@@ -1,4 +1,5 @@
-﻿using OpenShock.Common.Authentication.AuthenticationHandlers;
+﻿using Microsoft.EntityFrameworkCore;
+using OpenShock.Common.Authentication.AuthenticationHandlers;
 using OpenShock.Common.Constants;
 using OpenShock.Common.Redis;
 using Redis.OM;
@@ -25,7 +26,7 @@ public sealed class SessionService : ISessionService
 
     public async Task<Guid> CreateSessionAsync(string sessionId, Guid userId, string userAgent, string ipAddress)
     {
-        Guid publicId = Guid.NewGuid();
+        Guid publicId = Guid.CreateVersion7();
 
         await _loginSessions.InsertAsync(new LoginSession
         {
@@ -41,9 +42,9 @@ public sealed class SessionService : ISessionService
         return publicId;
     }
 
-    public async Task<IEnumerable<LoginSession>> ListSessionsByUserId(Guid userId)
+    public async Task<IReadOnlyList<LoginSession>> ListSessionsByUserId(Guid userId)
     {
-        var sessions = await _loginSessions.Where(x => x.UserId == userId).ToListAsync();
+        var sessions = await _loginSessions.Where(x => x.UserId == userId).ToArrayAsync();
 
         var needsSave = false;
         foreach (var session in sessions)
@@ -113,7 +114,7 @@ public sealed class SessionService : ISessionService
 
         if (session.PublicId == null)
         {
-            session.PublicId = Guid.NewGuid();
+            session.PublicId = Guid.CreateVersion7();
             save = true;
         }
 

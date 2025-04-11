@@ -50,7 +50,7 @@ public sealed partial class SharesController
 
         var shareRequest = new ShareRequest
         {
-            Id = Guid.NewGuid(),
+            Id = Guid.CreateVersion7(),
             Owner = CurrentUser.Id,
             User = data.User
         };

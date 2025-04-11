@@ -1,0 +1,1 @@
+cat ./testData.sql | docker exec -i openshock-postgres psql -U openshock -d openshock -a

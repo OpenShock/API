@@ -1,6 +1,6 @@
-﻿using System.Net;
-using Microsoft.AspNetCore.HttpOverrides;
-using OpenShock.Common.Config;
+﻿using Microsoft.AspNetCore.HttpOverrides;
+using Microsoft.Extensions.Options;
+using OpenShock.Common.Options;
 using OpenShock.Common.Redis;
 using OpenShock.Common.Utils;
 using Redis.OM;
@@ -22,8 +22,8 @@ public static class OpenShockMiddlewareHelper
     
     public static IApplicationBuilder UseCommonOpenShockMiddleware(this IApplicationBuilder app)
     {
-        var config = app.ApplicationServices.GetRequiredService<BaseConfig>();
-        
+        var metricsOptions = app.ApplicationServices.GetRequiredService<IOptions<MetricsOptions>>().Value;
+
         foreach (var proxy in TrustedProxiesFetcher.GetTrustedNetworks())
         {
             ForwardedSettings.KnownNetworks.Add(proxy);
@@ -62,8 +62,8 @@ public static class OpenShockMiddlewareHelper
         redisConnection.CreateIndex(typeof(DevicePair));
         redisConnection.CreateIndex(typeof(LcgNode));
 
-        var metricsAllowedIpNetworks = config.Metrics.AllowedNetworks.Select(x => IPNetwork.Parse(x));
-        
+        var metricsAllowedIpNetworks = metricsOptions.AllowedNetworks.Select(x => IPNetwork.Parse(x));
+
         app.UseOpenTelemetryPrometheusScrapingEndpoint(context =>
         {
             if(context.Request.Path != "/metrics") return false;

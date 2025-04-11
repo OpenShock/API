@@ -1,40 +1,37 @@
-﻿using System.Net.Http.Headers;
+﻿using Microsoft.Extensions.Options;
+using OpenShock.API.Options;
+using OpenShock.API.Services.Email.Mailjet.Mail;
 using System.Net.Mime;
 using System.Text;
 using System.Text.Json;
-using OpenShock.API.Services.Email.Mailjet.Mail;
 
 namespace OpenShock.API.Services.Email.Mailjet;
 
 public sealed class MailjetEmailService : IEmailService, IDisposable
 {
     private readonly HttpClient _httpClient;
+    private readonly MailJetOptions _options;
     private readonly ILogger<MailjetEmailService> _logger;
-    private readonly ApiConfig.MailConfig.MailjetConfig _mailjetConfig;
-    private readonly Contact _sender;
+    private readonly MailOptions.MailSenderContact _sender;
 
     /// <summary>
     /// DI Constructor
     /// </summary>
-    /// <param name="logger"></param>
-    /// <param name="mailjetConfig"></param>
+    /// <param name="httpClient"></param>
+    /// <param name="options"></param>
     /// <param name="sender"></param>
+    /// <param name="logger"></param>
     public MailjetEmailService(
-        ILogger<MailjetEmailService> logger,
-        ApiConfig.MailConfig.MailjetConfig mailjetConfig,
-        Contact sender)
+            HttpClient httpClient,
+            IOptions<MailJetOptions> options,
+            IOptions<MailOptions.MailSenderContact> sender,
+            ILogger<MailjetEmailService> logger
+        )
     {
+        _httpClient = httpClient;
+        _sender = sender.Value;
+        _options = options.Value;
         _logger = logger;
-        _mailjetConfig = mailjetConfig;
-        _sender = sender;
-        _httpClient = new HttpClient
-        {
-            BaseAddress = new Uri("https://api.mailjet.com/v3.1/"),
-            DefaultRequestHeaders = { Authorization = new AuthenticationHeaderValue("Basic",
-                Convert.ToBase64String(
-                    Encoding.UTF8.GetBytes(
-                        $"{mailjetConfig.Key}:{mailjetConfig.Secret}"))) }
-        };
     }
 
     #region Interface methods
@@ -47,7 +44,7 @@ public sealed class MailjetEmailService : IEmailService, IDisposable
             From = _sender,
             Subject = "Password reset request",
             To = [to],
-            TemplateId = _mailjetConfig.Template.PasswordReset,
+            TemplateId = _options.Template.PasswordReset,
             Variables = new Dictionary<string, string>
             {
                 {"link", resetLink.ToString() },
@@ -63,7 +60,7 @@ public sealed class MailjetEmailService : IEmailService, IDisposable
             From = _sender,
             Subject = "Verify your Email Address",
             To = [to],
-            TemplateId = _mailjetConfig.Template.VerifyEmail,
+            TemplateId = _options.Template.VerifyEmail,
             Variables = new Dictionary<string, string>
             {
                 {"link", activationLink.ToString() },
@@ -72,15 +69,16 @@ public sealed class MailjetEmailService : IEmailService, IDisposable
     }
 
     #endregion
-    
-    private Task SendMail(MailBase templateMail, CancellationToken cancellationToken = default) => SendMails(new[] { templateMail }, cancellationToken);
 
-    private static readonly JsonSerializerOptions Options = new JsonSerializerOptions {
+    private Task SendMail(MailBase templateMail, CancellationToken cancellationToken = default) => SendMails([templateMail], cancellationToken);
+
+    private static readonly JsonSerializerOptions Options = new JsonSerializerOptions
+    {
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase
     };
 
-    
-    private async Task SendMails(IEnumerable<MailBase> mails, CancellationToken cancellationToken = default)
+
+    private async Task SendMails(MailBase[] mails, CancellationToken cancellationToken = default)
     {
         if (_logger.IsEnabled(LogLevel.Debug)) _logger.LogDebug("Sending mails {@Mails}", mails);
 
@@ -88,7 +86,7 @@ public sealed class MailjetEmailService : IEmailService, IDisposable
         {
             Messages = mails
         }, Options);
-        
+
         var response = await _httpClient.PostAsync("send",
             new StringContent(json, Encoding.UTF8, MediaTypeNames.Application.Json), cancellationToken);
         if (!response.IsSuccessStatusCode)
@@ -98,7 +96,7 @@ public sealed class MailjetEmailService : IEmailService, IDisposable
         }
         else _logger.LogDebug("Successfully sent mail");
     }
-    
+
     public void Dispose()
     {
         _httpClient.Dispose();

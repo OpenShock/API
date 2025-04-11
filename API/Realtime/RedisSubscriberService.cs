@@ -47,8 +47,8 @@ public sealed class RedisSubscriberService : IHostedService, IAsyncDisposable
     /// <inheritdoc />
     public async Task StartAsync(CancellationToken cancellationToken)
     {
-        await _subscriber.SubscribeAsync(RedisChannels.KeyEventExpired, (_, message) => { LucTask.Run(() => HandleKeyExpired(message)); });
-        await _subscriber.SubscribeAsync(RedisChannels.DeviceOnlineStatus, (_, message) => { LucTask.Run(() => HandleDeviceOnlineStatus(message)); });
+        await _subscriber.SubscribeAsync(RedisChannels.KeyEventExpired, (_, message) => { OsTask.Run(() => HandleKeyExpired(message)); });
+        await _subscriber.SubscribeAsync(RedisChannels.DeviceOnlineStatus, (_, message) => { OsTask.Run(() => HandleDeviceOnlineStatus(message)); });
     }
 
     private async Task HandleDeviceOnlineStatus(RedisValue message)

@@ -85,7 +85,7 @@ public static class SwaggerGenExtensions
                     }
                 });
                 options.AddServer(new OpenApiServer { Url = "https://api.openshock.app" });
-                options.AddServer(new OpenApiServer { Url = "https://staging-api.openshock.app" });
+                options.AddServer(new OpenApiServer { Url = "https://api.openshock.dev" });
 #if DEBUG
                 options.AddServer(new OpenApiServer { Url = "https://localhost" });
 #endif
@@ -100,21 +100,5 @@ public static class SwaggerGenExtensions
                 options.SupportNonNullableReferenceTypes();
             })
             .ConfigureOptions<ConfigureSwaggerOptions>();
-    }
-
-    public static IApplicationBuilder UseSwaggerExt(this WebApplication app)
-    {
-        var provider = app.Services.GetRequiredService<IApiVersionDescriptionProvider>();
-        var groupNames = provider.ApiVersionDescriptions.Select(d => d.GroupName).ToArray();
-
-        return app
-            .UseSwagger()
-            .UseSwaggerUI(c =>
-        {
-            foreach (var groupName in groupNames)
-            {
-                c.SwaggerEndpoint($"/swagger/{groupName}/swagger.json", groupName.ToUpperInvariant());
-            }
-        });
     }
 }

@@ -1,12 +1,11 @@
-﻿using System.Net.Mime;
-using System.Reflection;
-using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Mvc;
-using OpenShock.API.Utils;
+﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Options;
 using OpenShock.Common;
 using OpenShock.Common.Models;
-using OpenShock.Common.Problems;
+using OpenShock.Common.Options;
 using OpenShock.Common.Utils;
+using System.Net.Mime;
+using System.Reflection;
 
 namespace OpenShock.API.Controller.Version;
 
@@ -27,16 +26,23 @@ public sealed partial class VersionController : OpenShockControllerBase
     /// <response code="200">The version was successfully retrieved.</response>
     [HttpGet]
     [ProducesResponseType<BaseResponse<RootResponse>>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
-    public IActionResult GetBackendVersion([FromServices] ApiConfig apiConfig)
+    public IActionResult GetBackendVersion(
+        [FromServices] IOptions<FrontendOptions> frontendOptions,
+        [FromServices] IOptions<CloudflareTurnstileOptions> turnstileOptions
+        )
     {
+        var frontendConfig = frontendOptions.Value;
+        var turnstileConfig = turnstileOptions.Value;
+
         return RespondSuccessLegacy(
-            data: new RootResponse {
+            data: new RootResponse
+            {
                 Version = OpenShockBackendVersion,
                 Commit = GitHashAttribute.FullHash,
                 CurrentTime = DateTimeOffset.UtcNow,
-                FrontendUrl = apiConfig.Frontend.BaseUrl,
-                ShortLinkUrl = apiConfig.Frontend.ShortUrl,
-                TurnstileSiteKey = apiConfig.Turnstile.SiteKey
+                FrontendUrl = frontendConfig.BaseUrl,
+                ShortLinkUrl = frontendConfig.ShortUrl,
+                TurnstileSiteKey = turnstileConfig.SiteKey
             },
             message: "OpenShock"
         );

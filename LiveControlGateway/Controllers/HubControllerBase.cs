@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 using OneOf;
 using OneOf.Types;
 using OpenShock.Common;
@@ -19,6 +20,7 @@ using OpenShock.Common.Redis;
 using OpenShock.Common.Services.RedisPubSub;
 using OpenShock.Common.Utils;
 using OpenShock.LiveControlGateway.LifetimeManager;
+using OpenShock.LiveControlGateway.Options;
 using OpenShock.LiveControlGateway.Websocket;
 using OpenShock.Serialization.Gateway;
 using Redis.OM.Contracts;
@@ -52,7 +54,7 @@ public abstract class HubControllerBase<TIn, TOut> : FlatbuffersWebsocketBaseCon
     /// <exception cref="Exception"></exception>
     protected HubLifetime HubLifetime => _hubLifetime ?? throw new Exception("Hub lifetime is null but was tried to access");
 
-    private readonly LCGConfig _lcgConfig;
+    private readonly LcgOptions _options;
 
     private readonly HubLifetimeManager _hubLifetimeManager;
 
@@ -87,26 +89,26 @@ public abstract class HubControllerBase<TIn, TOut> : FlatbuffersWebsocketBaseCon
     /// <summary>
     /// Base for hub websocket controllers
     /// </summary>
-    /// <param name="logger"></param>
     /// <param name="lifetime"></param>
     /// <param name="incomingSerializer"></param>
     /// <param name="outgoingSerializer"></param>
     /// <param name="hubLifetimeManager"></param>
     /// <param name="serviceProvider"></param>
-    /// <param name="lcgConfig"></param>
+    /// <param name="options"></param>
+    /// <param name="logger"></param>
     protected HubControllerBase(
-        ILogger<FlatbuffersWebsocketBaseController<TIn, TOut>> logger,
         IHostApplicationLifetime lifetime,
         ISerializer<TIn> incomingSerializer,
         ISerializer<TOut> outgoingSerializer,
         HubLifetimeManager hubLifetimeManager,
         IServiceProvider serviceProvider,
-        LCGConfig lcgConfig
+        IOptions<LcgOptions> options,
+        ILogger<FlatbuffersWebsocketBaseController<TIn, TOut>> logger
         ) : base(logger, lifetime, incomingSerializer, outgoingSerializer)
     {
         _hubLifetimeManager = hubLifetimeManager;
         ServiceProvider = serviceProvider;
-        _lcgConfig = lcgConfig;
+        _options = options.Value;
         _keepAliveTimeoutTimer.Elapsed += async (sender, args) =>
         {
             Logger.LogInformation("Keep alive timeout reached, closing websocket connection");
@@ -187,7 +189,7 @@ public abstract class HubControllerBase<TIn, TOut> : FlatbuffersWebsocketBaseCon
         await HubLifetime.Online(CurrentHub.Id, new SelfOnlineData()
         {
             Owner = CurrentHub.Owner,
-            Gateway = _lcgConfig.Lcg.Fqdn,
+            Gateway = _options.Fqdn,
             FirmwareVersion = _firmwareVersion!,
             ConnectedAt = _connected,
             UserAgent = _userAgent,

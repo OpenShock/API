@@ -3,14 +3,13 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using OpenShock.API.Models.Requests;
 using OpenShock.API.Services;
-using OpenShock.Common;
 using OpenShock.Common.Authentication.Attributes;
 using OpenShock.Common.Errors;
+using OpenShock.Common.Extensions;
 using OpenShock.Common.Models;
 using OpenShock.Common.Problems;
 using OpenShock.Common.Redis;
 using OpenShock.Common.Utils;
-using System.Linq.Expressions;
 using System.Net;
 using System.Net.Mime;
 
@@ -23,17 +22,19 @@ public sealed partial class DevicesController
     /// </summary>
     /// <response code="200">All devices for the current user</response>
     [HttpGet]
-    [ProducesResponseType<BaseResponse<Models.Response.ResponseDevice[]>>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
+    [ProducesResponseType<BaseResponse<IAsyncEnumerable<Models.Response.ResponseDevice>>>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
     [MapToApiVersion("1")]
-    public async Task<IActionResult> ListDevices()
+    public IActionResult ListDevices()
     {
-        var devices = await _db.Devices.Where(x => x.Owner == CurrentUser.Id)
+        var devices = _db.Devices
+            .Where(x => x.Owner == CurrentUser.Id)
             .Select(x => new Models.Response.ResponseDevice
             {
                 Id = x.Id,
                 Name = x.Name,
                 CreatedOn = x.CreatedOn
-            }).ToArrayAsync();
+            })
+            .AsAsyncEnumerable();
 
         return RespondSuccessLegacy(devices);
     }
@@ -167,7 +168,7 @@ public sealed partial class DevicesController
     {
         var device = new Common.OpenShockDb.Device
         {
-            Id = Guid.NewGuid(),
+            Id = Guid.CreateVersion7(),
             Owner = CurrentUser.Id,
             Name = data.Name,
             Token = CryptoUtils.RandomString(256)

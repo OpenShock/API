@@ -16,7 +16,10 @@ using OpenShock.Common.Services.Ota;
 
 namespace OpenShock.API.Controller.Devices;
 
+[ApiController]
 [Authorize(AuthenticationSchemes = OpenShockAuthSchemas.UserSessionCookie)]
+[ApiVersion("1")]
+[Route("/{version:apiVersion}/devices")]
 public sealed class DevicesOtaController : AuthenticatedSessionControllerBase
 {
     private readonly OpenShockContext _db;

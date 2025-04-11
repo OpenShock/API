@@ -1,15 +1,25 @@
-﻿using OpenShock.API.Services.Email.Mailjet.Mail;
+﻿using Microsoft.Extensions.Options;
+using OpenShock.API.Options;
 
 namespace OpenShock.API.Services.Email.Smtp;
 
 public static class SmtpEmailServiceExtension
 {
-    public static IServiceCollection AddSmtpEmailService(this IServiceCollection services,
-        ApiConfig.MailConfig.SmtpConfig smtpConfig,
-        Contact sender, SmtpServiceTemplates templates)
+    public static WebApplicationBuilder AddSmtpEmailService(this WebApplicationBuilder builder)
     {
-        services.AddSingleton<IEmailService, SmtpEmailService>(provider =>
-            new SmtpEmailService(provider.GetRequiredService<ILogger<SmtpEmailService>>(), smtpConfig, sender, templates));
-        return services;
+        var section = builder.Configuration.GetRequiredSection(SmtpOptions.SectionName);
+
+        builder.Services.Configure<SmtpOptions>(section);
+        builder.Services.AddSingleton<IValidateOptions<SmtpOptions>, SmtpOptionsValidator>();
+
+        builder.Services.AddSingleton(new SmtpServiceTemplates
+        {
+            PasswordReset = SmtpTemplate.ParseFromFileThrow("SmtpTemplates/PasswordReset.liquid").Result,
+            EmailVerification = SmtpTemplate.ParseFromFileThrow("SmtpTemplates/EmailVerification.liquid").Result
+        });
+
+        builder.Services.AddSingleton<IEmailService, SmtpEmailService>();
+
+        return builder;
     }
 }
