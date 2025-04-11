@@ -17,7 +17,8 @@ namespace OpenShock.Common.Websocket;
 /// Base for json serialized websocket controller, you can override the SendMessageMethod to implement a different serializer
 /// </summary>
 /// <typeparam name="T"></typeparam>
-public abstract class WebsocketBaseController<T> : OpenShockControllerBase, IAsyncDisposable, IDisposable, IWebsocketController<T> where T : class
+public abstract class WebsocketBaseController<T> : OpenShockControllerBase, IAsyncDisposable, IDisposable,
+    IWebsocketController<T> where T : class
 {
     /// <inheritdoc />
     public abstract Guid Id { get; }
@@ -36,6 +37,7 @@ public abstract class WebsocketBaseController<T> : OpenShockControllerBase, IAsy
     /// When passing a cancellation token, pass this Linked token, it is a Link from ApplicationStopping and Close.
     /// </summary>
     protected readonly CancellationTokenSource LinkedSource;
+
     protected readonly CancellationToken LinkedToken;
 
     /// <summary>
@@ -73,28 +75,28 @@ public abstract class WebsocketBaseController<T> : OpenShockControllerBase, IAsy
         // ReSharper disable once MethodSupportsCancellation
         DisposeAsync().AsTask().Wait();
     }
-    
+
     /// <inheritdoc />
     [NonAction]
     public virtual async ValueTask DisposeAsync()
     {
-        if(_disposed) return;
+        if (_disposed) return;
         _disposed = true;
-        
+
         Logger.LogTrace("Disposing websocket controller..");
-        
+
         await DisposeControllerAsync();
         await UnregisterConnection();
-        
+
         _channel.Writer.Complete();
         await Close.CancelAsync();
         WebSocket?.Dispose();
         LinkedSource.Dispose();
-        
+
         GC.SuppressFinalize(this);
         Logger.LogTrace("Disposed websocket controller");
     }
-    
+
     /// <summary>
     /// Dispose function for any inheriting controller
     /// </summary>
@@ -115,7 +117,9 @@ public abstract class WebsocketBaseController<T> : OpenShockControllerBase, IAsy
             HttpContext.Response.StatusCode = StatusCodes.Status400BadRequest;
             var response = WebsocketError.NonWebsocketRequest;
             response.AddContext(HttpContext);
-            await HttpContext.Response.WriteAsJsonAsync(response, jsonOptions.Value.SerializerOptions, contentType: MediaTypeNames.Application.ProblemJson);
+            // ReSharper disable once MethodSupportsCancellation
+            await HttpContext.Response.WriteAsJsonAsync(response, jsonOptions.Value.SerializerOptions,
+                contentType: MediaTypeNames.Application.ProblemJson);
             await Close.CancelAsync();
             return;
         }
@@ -127,34 +131,30 @@ public abstract class WebsocketBaseController<T> : OpenShockControllerBase, IAsy
             var response = connectionPrecondition.AsT1.Value;
             HttpContext.Response.StatusCode = response.Status ?? StatusCodes.Status400BadRequest;
             response.AddContext(HttpContext);
-            await HttpContext.Response.WriteAsJsonAsync(response, jsonOptions.Value.SerializerOptions, contentType: MediaTypeNames.Application.ProblemJson);
-            
+            // ReSharper disable once MethodSupportsCancellation
+            await HttpContext.Response.WriteAsJsonAsync(response, jsonOptions.Value.SerializerOptions,
+                contentType: MediaTypeNames.Application.ProblemJson);
+
             await Close.CancelAsync();
             return;
         }
 
         Logger.LogInformation("Opening websocket connection");
-        
         WebSocket?.Dispose(); // This should never happen, suppresses warning
+        WebSocket = await HttpContext.WebSockets.AcceptWebSocketAsync();
 
-        if (await TryRegisterConnection())
-        {
-            WebSocket = await HttpContext.WebSockets.AcceptWebSocketAsync();
-            
 #pragma warning disable CS4014
-            OsTask.Run(MessageLoop);
+        OsTask.Run(MessageLoop);
 #pragma warning restore CS4014
 
-            await SendInitialData();
-        
-            await Logic();
-        
-        
-            if(_disposed) return;
-        
-            await UnregisterConnection();
-        }
+        await SendInitialData();
 
+        await Logic();
+
+
+        if (_disposed) return;
+
+        await UnregisterConnection();
 
         await DisposeAsync();
     }
@@ -192,7 +192,6 @@ public abstract class WebsocketBaseController<T> : OpenShockControllerBase, IAsy
     protected virtual Task SendWebSocketMessage(T message, WebSocket websocket, CancellationToken cancellationToken) =>
         JsonWebSocketUtils.SendFullMessage(message, websocket, cancellationToken);
 
-
     #endregion
 
     /// <summary>
@@ -201,19 +200,13 @@ public abstract class WebsocketBaseController<T> : OpenShockControllerBase, IAsy
     /// <returns></returns>
     [NonAction]
     protected abstract Task Logic();
-    
+
     /// <summary>
     /// Send initial data to the client
     /// </summary>
     /// <returns></returns>
     [NonAction]
     protected virtual Task SendInitialData() => Task.CompletedTask;
-
-    /// <summary>
-    /// Action when the websocket connection is created
-    /// </summary>
-    [NonAction]
-    protected virtual Task<bool> TryRegisterConnection() => Task.FromResult(true);
 
     /// <summary>
     /// Action when the websocket connection is finished or disposed

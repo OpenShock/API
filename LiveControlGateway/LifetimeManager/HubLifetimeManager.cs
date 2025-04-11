@@ -47,13 +47,18 @@ public sealed class HubLifetimeManager
     }
 
     /// <summary>
+    /// When the hub lifetime is busy, we cannot add a new device connection
+    /// </summary>
+    public readonly struct Busy;
+
+    /// <summary>
     /// Add device to lifetime manager, called on successful connect of device
     /// </summary>
     /// <param name="tps"></param>
     /// <param name="hubController"></param>
     /// <param name="cancellationToken"></param>
     /// <returns></returns>
-    public async Task<HubLifetime?> TryAddDeviceConnection(byte tps, IHubController hubController,
+    public async Task<OneOf.OneOf<HubLifetime, Busy, Error>> TryAddDeviceConnection(byte tps, IHubController hubController,
         CancellationToken cancellationToken)
     {
         _logger.LogDebug("Adding hub lifetime [{HubId}]", hubController.Id);
@@ -67,8 +72,7 @@ public sealed class HubLifetimeManager
                 // There already is a hub lifetime, lets swap!
                 if (!hubLifetime.TryMarkSwapping())
                 {
-                    return
-                        null; // Tell the controller that we are busy right now TODO: Tell the connecting client why it failed
+                    return new Busy(); 
                 }
 
                 isSwapping = true;
@@ -94,7 +98,8 @@ public sealed class HubLifetimeManager
             {
                 // If we fail to initialize, the hub must be removed
                 await RemoveDeviceConnection(hubController); // Here be dragons?
-                return null;
+                _logger.LogError("Failed to initialize hub lifetime [{HubId}]", hubController.Id);
+                return new Error();
             }
         }
 
@@ -168,22 +173,23 @@ public sealed class HubLifetimeManager
     /// <param name="liveControlController"></param>
     /// <returns></returns>
     /// <exception cref="ArgumentNullException"></exception>
-    public async Task<HubLifetime?> AddLiveControlConnection(LiveControlController liveControlController)
+    public async Task<OneOf.OneOf<HubLifetime, NotFound, Busy>> AddLiveControlConnection(LiveControlController liveControlController)
     {
         if(liveControlController.HubId == null) throw new ArgumentNullException(nameof(liveControlController), "HubId is null");
         
         using (await _lifetimesLock.LockAsyncScoped())
         {
-            if(_lifetimes.TryGetValue(liveControlController.HubId!.Value, out var hubLifetime))
+            if (!_lifetimes.TryGetValue(liveControlController.HubId!.Value, out var hubLifetime)) return new NotFound();
+            
+            if (hubLifetime.State == HubLifetimeState.Removing)
             {
-                if(hubLifetime.State == HubLifetimeState.Removing) return null; // TODO: better error handling
-                
-                await hubLifetime.AddLiveControlClient(liveControlController);
-                return hubLifetime;
+                _logger.LogDebug("Hub lifetime [{HubId}] is removing, cannot add live control connection", liveControlController.HubId);
+                return new Busy();
             }
+                
+            await hubLifetime.AddLiveControlClient(liveControlController);
+            return hubLifetime;
         }
-
-        return null;
     }
     
         /// <summary>

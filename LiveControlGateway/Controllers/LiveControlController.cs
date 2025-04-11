@@ -87,14 +87,7 @@ public sealed class LiveControlController : WebsocketBaseController<LiveControlR
         _pingTimer.Elapsed += (_, _) => OsTask.Run(SendPing);
     }
 
-    /// <inheritdoc />
-    protected override async Task<bool> TryRegisterConnection()
-    {
-        _hubLifetime = await _hubLifetimeManager.AddLiveControlConnection(this);
-        
-        return _hubLifetime != null;
-    }
-    
+
     private bool _unregistered;
 
     /// <inheritdoc />
@@ -188,6 +181,22 @@ public sealed class LiveControlController : WebsocketBaseController<LiveControlR
                 }
             }
         }
+        
+        var hubLifetimeResult = await _hubLifetimeManager.AddLiveControlConnection(this);
+
+        if (hubLifetimeResult.IsT1)
+        {
+            _logger.LogDebug("No such hub with id [{HubId}] connected", HubId);
+        }
+        
+        if (hubLifetimeResult.IsT2)
+        {
+            _logger.LogDebug("Hub is busy, cannot connect [{HubId}]", HubId);
+            return new OneOf.Types.Error<OpenShockProblem>(WebsocketError.WebsocketLiveControlHubLifetimeBusy);
+        }
+        
+        _hubLifetime = hubLifetimeResult.AsT0;
+        
 
         return new Success();
     }

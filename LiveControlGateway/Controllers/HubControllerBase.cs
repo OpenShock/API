@@ -121,7 +121,7 @@ public abstract class HubControllerBase<TIn, TOut> : FlatbuffersWebsocketBaseCon
     private SemVersion? _firmwareVersion;
 
     /// <inheritdoc />
-    protected override Task<OneOf<Success, Error<OpenShockProblem>>> ConnectionPrecondition()
+    protected override async Task<OneOf<Success, Error<OpenShockProblem>>> ConnectionPrecondition()
     {
         _connected = DateTimeOffset.UtcNow;
 
@@ -133,25 +133,29 @@ public abstract class HubControllerBase<TIn, TOut> : FlatbuffersWebsocketBaseCon
         else
         {
             var err = new Error<OpenShockProblem>(WebsocketError.WebsocketHubFirmwareVersionInvalid);
-            return Task.FromResult(OneOf<Success, Error<OpenShockProblem>>.FromT1(err));
+            return err;
         }
         
         _userAgent = HttpContext.Request.Headers.UserAgent.ToString().Truncate(256);
+        var hubLifetimeResult = await _hubLifetimeManager.TryAddDeviceConnection(5, this, LinkedToken);
 
-        return Task.FromResult(OneOf<Success, Error<OpenShockProblem>>.FromT0(new Success()));
+        if (hubLifetimeResult.IsT1)
+        {
+            Logger.LogWarning("Hub lifetime busy, closing connection");
+            return new Error<OpenShockProblem>(ExceptionError.Exception);
+        }
+        
+        if (hubLifetimeResult.IsT2)
+        {
+            Logger.LogError("Hub lifetime error, closing connection");
+            return new Error<OpenShockProblem>();
+        }
+        
+        _hubLifetime = hubLifetimeResult.AsT0;
+        
+        return new Success();
     }
     
-    
-    /// <summary>
-    /// Register to the hub lifetime manager
-    /// </summary>
-    /// <returns></returns>
-    protected override async Task<bool> TryRegisterConnection()
-    {
-        _hubLifetime = await _hubLifetimeManager.TryAddDeviceConnection(5, this, LinkedToken);
-        return _hubLifetime != null;
-    }
-
     private bool _unregistered;
     
     /// <summary>
