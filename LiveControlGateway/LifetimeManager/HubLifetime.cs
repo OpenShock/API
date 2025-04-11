@@ -1,10 +1,11 @@
-﻿using System.ComponentModel.DataAnnotations;
+﻿using System.Collections.Immutable;
+using System.ComponentModel.DataAnnotations;
 using System.Diagnostics;
 using Microsoft.EntityFrameworkCore;
 using OneOf;
 using OneOf.Types;
-using OpenShock.Common;
 using OpenShock.Common.Constants;
+using OpenShock.Common.Extensions;
 using OpenShock.Common.Models;
 using OpenShock.Common.OpenShockDb;
 using OpenShock.Common.Redis;
@@ -12,7 +13,6 @@ using OpenShock.Common.Redis.PubSub;
 using OpenShock.Common.Services.RedisPubSub;
 using OpenShock.Common.Utils;
 using OpenShock.LiveControlGateway.Controllers;
-using OpenShock.LiveControlGateway.Websocket;
 using OpenShock.Serialization.Gateway;
 using OpenShock.Serialization.Types;
 using Redis.OM.Contracts;
@@ -26,18 +26,18 @@ namespace OpenShock.LiveControlGateway.LifetimeManager;
 /// </summary>
 public sealed class HubLifetime : IAsyncDisposable
 {
-    
-    public enum HubLifetimeState
-    {
-        Idle,
-        SettingUp,
-        Swapping,
-        Removing
-    }
-
     private volatile HubLifetimeState _state = HubLifetimeState.SettingUp;
+
+    /// <summary>
+    /// Current state of the lifetime
+    /// </summary>
+    public HubLifetimeState State => _state;
+
+    /// <summary>
+    /// The current Hub Controller
+    /// </summary>
     public IHubController HubController { get; private set; }
-    
+
     private readonly TimeSpan _waitBetweenTicks;
     private readonly ushort _commandDuration;
 
@@ -50,6 +50,9 @@ public sealed class HubLifetime : IAsyncDisposable
     private readonly IRedisPubService _redisPubService;
 
     private readonly ILogger<HubLifetime> _logger;
+
+    private ImmutableArray<LiveControlController> _liveControlClients = ImmutableArray<LiveControlController>.Empty;
+    private readonly SemaphoreSlim _liveControlClientsLock = new(1);
 
     /// <summary>
     /// DI Constructor
@@ -79,6 +82,63 @@ public sealed class HubLifetime : IAsyncDisposable
     }
 
     /// <summary>
+    /// Add a live control client to the lifetime
+    /// </summary>
+    /// <param name="controller"></param>
+    /// <returns></returns>
+    public async Task<HubLifetime?> AddLiveControlClient(LiveControlController controller)
+    {
+        using (await _liveControlClientsLock.LockAsyncScoped())
+        {
+            if (_liveControlClients.Contains(controller)) 
+            {
+                _logger.LogWarning("Client already registered, not sure how this happened, probably a bug");
+                return null;
+            }
+            
+            _liveControlClients = _liveControlClients.Add(controller);
+        }
+
+        return this;
+    }
+
+    /// <summary>
+    /// Remove a live control client from the lifetime
+    /// </summary>
+    /// <param name="controller"></param>
+    /// <returns></returns>
+    public async Task<bool> RemoveLiveControlClient(LiveControlController controller)
+    {
+        using (await _liveControlClientsLock.LockAsyncScoped())
+        {
+            if (!_liveControlClients.Contains(controller)) return false;
+            _liveControlClients = _liveControlClients.Remove(controller);
+        }
+
+        return true;
+    }
+
+    private async Task DisposeLiveControlClients()
+    {
+        foreach (var client in _liveControlClients)
+        {
+            try
+            {
+                await client.DisposeAsync();
+            }
+            catch (Exception e)
+            {
+                _logger.LogError(e, "Error disposing live control client");
+            }
+        }
+
+        using (await _liveControlClientsLock.LockAsyncScoped())
+        {
+            _liveControlClients = _liveControlClients.Clear();
+        }
+    }
+
+    /// <summary>
     /// Call on creation to setup shockers for the first time
     /// </summary>
     public async Task<bool> InitAsync(CancellationToken cancellationToken)
@@ -94,15 +154,16 @@ public sealed class HubLifetime : IAsyncDisposable
             _logger.LogError(e, "Error initializing OpenShock Hub lifetime");
             return false;
         }
-        
+
 #pragma warning disable CS4014
         OsTask.Run(UpdateLoop);
 #pragma warning restore CS4014
-        
+
         _state = HubLifetimeState.Idle; // We are fully setup, we can go back to idle state
+        
         return true;
     }
-    
+
     /// <summary>
     /// Swap to a new underlying controller
     /// </summary>
@@ -208,8 +269,8 @@ public sealed class HubLifetime : IAsyncDisposable
     {
         await using var db = await _dbContextFactory.CreateDbContextAsync(_cancellationSource.Token);
         await UpdateShockers(db, _cancellationSource.Token);
-
-        foreach (var websocketController in WebsocketManager.LiveControlUsers.GetConnections(HubController.Id))
+        
+        foreach (var websocketController in _liveControlClients)
             await websocketController.UpdatePermissions(db);
     }
 
@@ -219,7 +280,7 @@ public sealed class HubLifetime : IAsyncDisposable
     private async Task UpdateShockers(OpenShockContext db, CancellationToken cancellationToken)
     {
         _logger.LogDebug("Updating shockers for device [{DeviceId}]", HubController.Id);
-        
+
         _shockerStates = await db.Shockers.Where(x => x.Device == HubController.Id).Select(x => new ShockerState()
         {
             Id = x.Id,
@@ -324,7 +385,7 @@ public sealed class HubLifetime : IAsyncDisposable
                 Rssi = data.Rssi,
             }, Duration.DeviceKeepAliveTimeout);
 
-            
+
             await _redisPubService.SendDeviceOnlineStatus(device);
             return new Success();
         }
@@ -336,7 +397,7 @@ public sealed class HubLifetime : IAsyncDisposable
         online.Rssi = data.Rssi;
 
         var sendOnlineStatusUpdate = false;
-        
+
         if (online.FirmwareVersion != data.FirmwareVersion ||
             online.Gateway != data.Gateway ||
             online.ConnectedAt != data.ConnectedAt ||
@@ -346,12 +407,12 @@ public sealed class HubLifetime : IAsyncDisposable
             online.FirmwareVersion = data.FirmwareVersion!;
             online.ConnectedAt = data.ConnectedAt;
             online.UserAgent = data.UserAgent;
-            
+
             sendOnlineStatusUpdate = true;
         }
 
         await deviceOnline.UpdateAsync(online, Duration.DeviceKeepAliveTimeout);
-        
+
         if (sendOnlineStatusUpdate)
         {
             await _redisPubService.SendDeviceOnlineStatus(device);
@@ -362,14 +423,15 @@ public sealed class HubLifetime : IAsyncDisposable
     }
 
     private bool _disposed = false;
-    
+
     /// <inheritdoc />
     public async ValueTask DisposeAsync()
     {
-        if(_disposed) return;
+        if (_disposed) return;
         _disposed = true;
         
         await _cancellationSource.CancelAsync();
+        await DisposeLiveControlClients();
     }
     
 }
@@ -414,42 +476,42 @@ public readonly struct SelfOnlineData
         LatencyMs = latencyMs;
         Rssi = rssi;
     }
-    
+
     /// <summary>
     /// The owner of the device
     /// </summary>
     public required Guid Owner { get; init; }
-    
+
     /// <summary>
     /// Our gateway fqdn
     /// </summary>
     public required string Gateway { get; init; }
-    
+
     /// <summary>
     /// Firmware version sent by the hub
     /// </summary>
     public required SemVersion FirmwareVersion { get; init; }
-    
+
     /// <summary>
     /// When the websocket connected
     /// </summary>
     public required DateTimeOffset ConnectedAt { get; init; }
-    
+
     /// <summary>
     /// Raw useragent
     /// </summary>
     public string? UserAgent { get; init; } = null;
-    
+
     /// <summary>
     /// Hub uptime
     /// </summary>
     public DateTimeOffset BootedAt { get; init; }
-    
+
     /// <summary>
     /// Measured latency
     /// </summary>
     public ushort? LatencyMs { get; init; } = null;
-    
+
     /// <summary>
     /// Wifi rssi
     /// </summary>

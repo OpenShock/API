@@ -22,7 +22,6 @@ using OpenShock.Common.Utils;
 using OpenShock.Common.Websocket;
 using OpenShock.LiveControlGateway.LifetimeManager;
 using OpenShock.LiveControlGateway.Models;
-using OpenShock.LiveControlGateway.Websocket;
 using Timer = System.Timers.Timer;
 
 namespace OpenShock.LiveControlGateway.Controllers;
@@ -37,6 +36,7 @@ namespace OpenShock.LiveControlGateway.Controllers;
 public sealed class LiveControlController : WebsocketBaseController<LiveControlResponse<LiveResponseType>>, IActionFilter
 {
     private readonly OpenShockContext _db;
+    private readonly ILogger<LiveControlController> _logger;
     private readonly HubLifetimeManager _hubLifetimeManager;
 
     private static readonly TimeSpan PingInterval = TimeSpan.FromSeconds(5);
@@ -52,12 +52,14 @@ public sealed class LiveControlController : WebsocketBaseController<LiveControlR
     };
 
     private User _currentUser = null!;
-    private Guid? _hubId;
+    public Guid? HubId { get; private set; }
     private Device? _device;
     private Dictionary<Guid, LiveShockerPermission> _sharedShockers = new();
     private byte _tps = 10;
     private long _pingTimestamp = Stopwatch.GetTimestamp();
     private ushort _latencyMs = 0;
+    private HubLifetime? _hubLifetime = null;
+    private HubLifetime HubLifetime => _hubLifetime ?? throw new InvalidOperationException("Hub lifetime is null but was accessed");
     
     /// <summary>
     /// Connection Id for this connection, unique and random per connection
@@ -80,22 +82,25 @@ public sealed class LiveControlController : WebsocketBaseController<LiveControlR
         HubLifetimeManager hubLifetimeManager) : base(logger, lifetime)
     {
         _db = db;
+        _logger = logger;
         _hubLifetimeManager = hubLifetimeManager;
         _pingTimer.Elapsed += (_, _) => OsTask.Run(SendPing);
     }
 
-    /// <inheritdoc />
-    protected override Task<bool> TryRegisterConnection()
-    {
-        WebsocketManager.LiveControlUsers.RegisterConnection(this);
-        return Task.FromResult(true);
-    }
+
+    private bool _unregistered;
 
     /// <inheritdoc />
-    protected override Task UnregisterConnection()
+    protected override async Task UnregisterConnection()
     {
-        WebsocketManager.LiveControlUsers.UnregisterConnection(this);
-        return Task.CompletedTask;
+        if(_unregistered) return;
+        _unregistered = true;
+        
+        if(_hubLifetime == null) return;
+        if (!await _hubLifetime.RemoveLiveControlClient(this))
+        {
+            _logger.LogError("Failed to remove live control client from hub lifetime {HubId} {CurrentUserId}", HubId, _currentUser.Id);
+        }
     }
 
     /// <summary>
@@ -150,10 +155,10 @@ public sealed class LiveControlController : WebsocketBaseController<LiveControlR
             return new OneOf.Types.Error<OpenShockProblem>(WebsocketError.WebsocketLiveControlHubIdInvalid);
         }
 
-        _hubId = id;
+        HubId = id;
 
         var hubExistsAndYouHaveAccess = await _db.Devices.AnyAsync(x =>
-            x.Id == _hubId && (x.Owner == _currentUser.Id || x.Shockers.Any(y => y.ShockerShares.Any(
+            x.Id == HubId && (x.Owner == _currentUser.Id || x.Shockers.Any(y => y.ShockerShares.Any(
                 z => z.SharedWith == _currentUser.Id && z.PermLive))));
 
         if (!hubExistsAndYouHaveAccess)
@@ -161,7 +166,7 @@ public sealed class LiveControlController : WebsocketBaseController<LiveControlR
             return new OneOf.Types.Error<OpenShockProblem>(WebsocketError.WebsocketLiveControlHubNotFound);
         }
         
-        _device = await _db.Devices.FirstOrDefaultAsync(x => x.Id == _hubId);
+        _device = await _db.Devices.FirstOrDefaultAsync(x => x.Id == HubId);
 
         await UpdatePermissions(_db);
         
@@ -176,6 +181,22 @@ public sealed class LiveControlController : WebsocketBaseController<LiveControlR
                 }
             }
         }
+        
+        var hubLifetimeResult = await _hubLifetimeManager.AddLiveControlConnection(this);
+
+        if (hubLifetimeResult.IsT1)
+        {
+            _logger.LogDebug("No such hub with id [{HubId}] connected", HubId);
+        }
+        
+        if (hubLifetimeResult.IsT2)
+        {
+            _logger.LogDebug("Hub is busy, cannot connect [{HubId}]", HubId);
+            return new OneOf.Types.Error<OpenShockProblem>(WebsocketError.WebsocketLiveControlHubLifetimeBusy);
+        }
+        
+        _hubLifetime = hubLifetimeResult.AsT0;
+        
 
         return new Success();
     }
@@ -201,7 +222,7 @@ public sealed class LiveControlController : WebsocketBaseController<LiveControlR
     }
 
     /// <inheritdoc />
-    public override Guid Id => _hubId ?? throw new Exception("Hub id is null");
+    public override Guid Id => HubId ?? throw new Exception("Hub id is null");
 
     /// <inheritdoc />
     protected override async Task SendInitialData()
@@ -214,29 +235,19 @@ public sealed class LiveControlController : WebsocketBaseController<LiveControlR
                 Client = _tps
             }
         });
-        await UpdateConnectedState(_hubLifetimeManager.IsConnected(Id), true);
+        await UpdateConnectedState(true);
     }
-
-    private bool _lastIsConnected;
-
-    /// <summary>
-    /// Update the connected state of the hub if different from what was last sent
-    /// </summary>
-    /// <param name="isConnected"></param>
-    /// <param name="force"></param>
+    
     [NonAction]
-    public async Task UpdateConnectedState(bool isConnected, bool force = false)
+    private async Task UpdateConnectedState(bool isConnected)
     {
-        if (_lastIsConnected == isConnected && !force) return;
-
         Logger.LogTrace("Sending connection update for hub [{HubId}] [{State}]", Id, isConnected);
-
-        _lastIsConnected = isConnected;
+        
         try
         {
             await QueueMessage(new LiveControlResponse<LiveResponseType>
             {
-                ResponseType = _lastIsConnected
+                ResponseType = isConnected
                     ? LiveResponseType.DeviceConnected
                     : LiveResponseType.DeviceNotConnected,
             });
@@ -481,7 +492,7 @@ public sealed class LiveControlController : WebsocketBaseController<LiveControlR
         // Clamp to limits
         var intensity = Math.Clamp(frame.Intensity, HardLimits.MinControlIntensity, perms.Intensity ?? HardLimits.MaxControlIntensity);
 
-        var result = _hubLifetimeManager.ReceiveFrame(Id, frame.Shocker, frame.Type, intensity, _tps);
+        var result = HubLifetime.ReceiveFrame(frame.Shocker, frame.Type, intensity, _tps);
         if (result.IsT0)
         {
             Logger.LogTrace("Successfully received frame");
@@ -491,26 +502,17 @@ public sealed class LiveControlController : WebsocketBaseController<LiveControlR
         {
             await QueueMessage(new LiveControlResponse<LiveResponseType>
             {
-                ResponseType = LiveResponseType.DeviceNotConnected
-            });
-            return;
-        }
-
-        if (result.IsT2)
-        {
-            await QueueMessage(new LiveControlResponse<LiveResponseType>
-            {
                 ResponseType = LiveResponseType.ShockerNotFound
             });
             return;
         }
         
-        if (result.IsT3)
+        if (result.IsT2)
         {
             await QueueMessage(new LiveControlResponse<LiveResponseType>
             {
                 ResponseType = LiveResponseType.ShockerExclusive,
-                Data = result.AsT3.Until
+                Data = result.AsT2.Until
             });
             return;
         }
@@ -565,11 +567,12 @@ public sealed class LiveControlController : WebsocketBaseController<LiveControlR
     }
 
     /// <inheritdoc />
-    public override ValueTask DisposeControllerAsync()
+    public override async ValueTask DisposeControllerAsync()
     {
         Logger.LogTrace("Disposing controller timer");
         _pingTimer.Dispose();
-        return base.DisposeControllerAsync();
+        await UpdateConnectedState(false);
+        await base.DisposeControllerAsync();
     }
 }
 

@@ -45,7 +45,14 @@ public abstract class HubControllerBase<TIn, TOut> : FlatbuffersWebsocketBaseCon
     /// Service provider
     /// </summary>
     protected readonly IServiceProvider ServiceProvider;
-
+    
+    private HubLifetime? _hubLifetime = null;
+    
+    /// <summary>
+    /// Hub lifetime
+    /// </summary>
+    /// <exception cref="InvalidOperationException"></exception>
+    protected HubLifetime HubLifetime => _hubLifetime ?? throw new InvalidOperationException("Hub lifetime is null but was tried to access");
     private readonly LcgOptions _options;
 
     private readonly HubLifetimeManager _hubLifetimeManager;
@@ -113,7 +120,7 @@ public abstract class HubControllerBase<TIn, TOut> : FlatbuffersWebsocketBaseCon
     private SemVersion? _firmwareVersion;
 
     /// <inheritdoc />
-    protected override Task<OneOf<Success, Error<OpenShockProblem>>> ConnectionPrecondition()
+    protected override async Task<OneOf<Success, Error<OpenShockProblem>>> ConnectionPrecondition()
     {
         _connected = DateTimeOffset.UtcNow;
 
@@ -125,24 +132,29 @@ public abstract class HubControllerBase<TIn, TOut> : FlatbuffersWebsocketBaseCon
         else
         {
             var err = new Error<OpenShockProblem>(WebsocketError.WebsocketHubFirmwareVersionInvalid);
-            return Task.FromResult(OneOf<Success, Error<OpenShockProblem>>.FromT1(err));
+            return err;
         }
         
         _userAgent = HttpContext.Request.Headers.UserAgent.ToString().Truncate(256);
+        var hubLifetimeResult = await _hubLifetimeManager.TryAddDeviceConnection(5, this, LinkedToken);
 
-        return Task.FromResult(OneOf<Success, Error<OpenShockProblem>>.FromT0(new Success()));
+        if (hubLifetimeResult.IsT1)
+        {
+            Logger.LogWarning("Hub lifetime busy, closing connection");
+            return new Error<OpenShockProblem>(ExceptionError.Exception);
+        }
+        
+        if (hubLifetimeResult.IsT2)
+        {
+            Logger.LogError("Hub lifetime error, closing connection");
+            return new Error<OpenShockProblem>();
+        }
+        
+        _hubLifetime = hubLifetimeResult.AsT0;
+        
+        return new Success();
     }
     
-    
-    /// <summary>
-    /// Register to the hub lifetime manager
-    /// </summary>
-    /// <returns></returns>
-    protected override async Task<bool> TryRegisterConnection()
-    {
-        return await _hubLifetimeManager.TryAddDeviceConnection(5, this, LinkedToken);
-    }
-
     private bool _unregistered;
     
     /// <summary>
@@ -177,7 +189,7 @@ public abstract class HubControllerBase<TIn, TOut> : FlatbuffersWebsocketBaseCon
         // Reset the keep alive timeout
         _keepAliveTimeoutTimer.Interval = Duration.DeviceKeepAliveTimeout.TotalMilliseconds;
 
-        var result = await _hubLifetimeManager.DeviceOnline(CurrentHub.Id, new SelfOnlineData()
+        await HubLifetime.Online(CurrentHub.Id, new SelfOnlineData()
         {
             Owner = CurrentHub.Owner,
             Gateway = _options.Fqdn,
@@ -188,15 +200,6 @@ public abstract class HubControllerBase<TIn, TOut> : FlatbuffersWebsocketBaseCon
             LatencyMs = latency,
             Rssi = rssi
         });
-        
-        if (result.IsT1)
-        {
-            Logger.LogError("Error while updating hub online status [{HubId}], we dont exist in the managers list", CurrentHub.Id);
-            await Close.CancelAsync();
-            if (WebSocket != null)
-                await WebSocket.CloseAsync(WebSocketCloseStatus.InternalServerError, "Hub not found in manager",
-                    CancellationToken.None);
-        }
     }
     
     /// <inheritdoc />
