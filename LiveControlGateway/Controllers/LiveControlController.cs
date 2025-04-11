@@ -59,7 +59,7 @@ public sealed class LiveControlController : WebsocketBaseController<LiveControlR
     private long _pingTimestamp = Stopwatch.GetTimestamp();
     private ushort _latencyMs = 0;
     private HubLifetime? _hubLifetime = null;
-    private HubLifetime HubLifetime => _hubLifetime ?? throw new Exception("Hub lifetime is null but was accessed");
+    private HubLifetime HubLifetime => _hubLifetime ?? throw new InvalidOperationException("Hub lifetime is null but was accessed");
     
     /// <summary>
     /// Connection Id for this connection, unique and random per connection
