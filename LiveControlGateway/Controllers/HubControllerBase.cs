@@ -194,7 +194,7 @@ public abstract class HubControllerBase<TIn, TOut> : FlatbuffersWebsocketBaseCon
         var bootedAt = GetBootedAtFromUptimeMs(uptimeMs);
         if (!bootedAt.HasValue)
         {
-            Logger.LogDebug("Client attempted to abuse reported boot time, uptime indicated that hub [{}] booted prior to 2024", CurrentHub.Id);
+            Logger.LogDebug("Client attempted to abuse reported boot time, uptime indicated that hub [{HubId}] booted prior to 2024", CurrentHub.Id);
             await DisposeAsync();
             return;
         }
