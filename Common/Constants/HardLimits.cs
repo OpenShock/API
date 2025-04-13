@@ -49,4 +49,6 @@ public static class HardLimits
     public const int CreateShareRequestMaxShockers = 128;
     
     public const int MaxShockerControlLogsPerUser = 2048;
+    
+    public static readonly TimeSpan FirmwareMaxUptime = DateTime.UtcNow - new DateTime(2024, 1, 1);
 }

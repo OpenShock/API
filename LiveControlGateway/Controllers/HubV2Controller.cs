@@ -101,7 +101,7 @@ public sealed class HubV2Controller : HubControllerBase<HubToGatewayMessage, Gat
                 
                 _latencyMs = (ushort)Math.Min(Stopwatch.GetElapsedTime(_pingTimestamp).TotalMilliseconds, ushort.MaxValue); // If someone has a ping higher than 65 seconds, they are messing with us. Cap it to 65 seconds
                 _pingTimestamp = 0;
-                await SelfOnline(DateTimeOffset.UtcNow.Subtract(TimeSpan.FromMilliseconds(payload.Pong.Uptime)), _latencyMs, payload.Pong.Rssi);
+                await SelfOnline(payload.Pong.Uptime, _latencyMs, payload.Pong.Rssi);
                 break;
 
             case HubToGatewayMessagePayload.ItemKind.OtaUpdateStarted:

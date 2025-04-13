@@ -67,7 +67,7 @@ public sealed class HubV1Controller : HubControllerBase<HubToGatewayMessage, Gat
         switch (payload.Kind)
         {
             case HubToGatewayMessagePayload.ItemKind.KeepAlive:
-                await SelfOnline(DateTimeOffset.UtcNow.Subtract(TimeSpan.FromMilliseconds(payload.KeepAlive.Uptime)));
+                await SelfOnline(payload.KeepAlive.Uptime);
                 break;
 
             case HubToGatewayMessagePayload.ItemKind.OtaInstallStarted:

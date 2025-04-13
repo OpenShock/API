@@ -177,13 +177,28 @@ public abstract class HubControllerBase<TIn, TOut> : FlatbuffersWebsocketBaseCon
 
     /// <inheritdoc />
     public abstract ValueTask OtaInstall(SemVersion version);
+    
+    private static DateTimeOffset? GetBootedAtFromUptimeMs(ulong uptimeMs)
+    {
+        var uptime = TimeSpan.FromMilliseconds(uptimeMs);
+        if (uptime > HardLimits.FirmwareMaxUptime) return null; // Yeah, ok bro.
 
-
+        return DateTimeOffset.UtcNow.Subtract(uptime);
+    }
+    
     /// <summary>
     /// Keep the hub online
     /// </summary>
-    protected async Task SelfOnline(DateTimeOffset bootedAt, ushort? latency = null, int? rssi = null)
+    protected async Task SelfOnline(ulong uptimeMs, ushort? latency = null, int? rssi = null)
     {
+        var bootedAt = GetBootedAtFromUptimeMs(uptimeMs);
+        if (!bootedAt.HasValue)
+        {
+            Logger.LogDebug("Client attempted to abuse reported boot time, uptime indicated that hub [{}] booted prior to 2024", CurrentHub.Id);
+            await DisposeAsync();
+            return;
+        }
+        
         Logger.LogDebug("Received keep alive from hub [{HubId}]", CurrentHub.Id);
 
         // Reset the keep alive timeout
@@ -196,7 +211,7 @@ public abstract class HubControllerBase<TIn, TOut> : FlatbuffersWebsocketBaseCon
             FirmwareVersion = _firmwareVersion!,
             ConnectedAt = _connected,
             UserAgent = _userAgent,
-            BootedAt = bootedAt,
+            BootedAt = bootedAt.Value,
             LatencyMs = latency,
             Rssi = rssi
         });
