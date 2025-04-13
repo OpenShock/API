@@ -141,13 +141,13 @@ public abstract class HubControllerBase<TIn, TOut> : FlatbuffersWebsocketBaseCon
         if (hubLifetimeResult.IsT1)
         {
             Logger.LogWarning("Hub lifetime busy, closing connection");
-            return new Error<OpenShockProblem>(ExceptionError.Exception);
+            return new Error<OpenShockProblem>(WebsocketError.WebsocketHubLifetimeBusy);
         }
         
         if (hubLifetimeResult.IsT2)
         {
             Logger.LogError("Hub lifetime error, closing connection");
-            return new Error<OpenShockProblem>();
+            return new Error<OpenShockProblem>(ExceptionError.Exception);
         }
         
         _hubLifetime = hubLifetimeResult.AsT0;

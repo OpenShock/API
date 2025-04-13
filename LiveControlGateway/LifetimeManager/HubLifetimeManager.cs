@@ -135,7 +135,8 @@ public sealed class HubLifetimeManager
         {
             if (!_lifetimes.TryGetValue(hubController.Id, out hubLifetime))
             {
-                _logger.LogError("Hub lifetime not found for hub [{HubId}]", hubController.Id);
+                // its fine, this is also the case when a precondition is not met for example.
+                _logger.LogDebug("Hub lifetime not found for hub [{HubId}]", hubController.Id); 
                 return;
             }
             
