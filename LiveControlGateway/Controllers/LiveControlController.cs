@@ -187,6 +187,7 @@ public sealed class LiveControlController : WebsocketBaseController<LiveControlR
         if (hubLifetimeResult.IsT1)
         {
             _logger.LogDebug("No such hub with id [{HubId}] connected", HubId);
+            return new OneOf.Types.Error<OpenShockProblem>(WebsocketError.WebsocketLiveControlHubNotConnected); 
         }
         
         if (hubLifetimeResult.IsT2)
