@@ -50,5 +50,7 @@ public static class HardLimits
     
     public const int MaxShockerControlLogsPerUser = 2048;
     
-    public static readonly TimeSpan FirmwareMaxUptime = DateTime.UtcNow - new DateTime(2024, 1, 1);
+    // Don't allow any firmware prior to 2024.
+    // Ridiculous edgecase: environment reports year at or prior to 2024, revert to 10 year limit just to be on the safe side
+    public static readonly TimeSpan FirmwareMaxUptime = DateTime.Now.Year <= 2024 ? TimeSpan.FromDays(365 * 10) : DateTime.Now - new DateTime(2024, 1, 1);
 }
