@@ -21,10 +21,17 @@ using Serilog;
 
 var builder = OpenShockApplication.CreateDefaultBuilder<Program>(args);
 
+#region Config
+
 builder.RegisterCommonOpenShockOptions();
+
+builder.Services.Configure<FrontendOptions>(builder.Configuration.GetRequiredSection(FrontendOptions.SectionName));
+builder.Services.AddSingleton<IValidateOptions<FrontendOptions>, FrontendOptionsValidator>();
 
 var databaseConfig = builder.Configuration.GetDatabaseOptions();
 var redisConfig = builder.Configuration.GetRedisConfigurationOptions();
+
+#endregion
 
 builder.Services.AddOpenShockServices(databaseConfig, redisConfig);
 
