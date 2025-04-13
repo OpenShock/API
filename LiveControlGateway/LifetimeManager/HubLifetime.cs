@@ -90,12 +90,12 @@ public sealed class HubLifetime : IAsyncDisposable
     {
         using (await _liveControlClientsLock.LockAsyncScoped())
         {
-            if (_liveControlClients.Contains(controller)) 
+            if (_liveControlClients.Contains(controller))
             {
                 _logger.LogWarning("Client already registered, not sure how this happened, probably a bug");
                 return null;
             }
-            
+
             _liveControlClients = _liveControlClients.Add(controller);
         }
 
@@ -120,21 +120,21 @@ public sealed class HubLifetime : IAsyncDisposable
 
     private async Task DisposeLiveControlClients()
     {
-        foreach (var client in _liveControlClients)
-        {
-            try
-            {
-                await client.DisposeAsync();
-            }
-            catch (Exception e)
-            {
-                _logger.LogError(e, "Error disposing live control client");
-            }
-        }
-
+        ImmutableArray<LiveControlController> liveControlClients;
         using (await _liveControlClientsLock.LockAsyncScoped())
         {
-            _liveControlClients = _liveControlClients.Clear();
+            liveControlClients = _liveControlClients;
+            _liveControlClients = _liveControlClients.Clear(); // Returns just an empty lol
+        }
+
+        try
+        {
+            await Task.WhenAll(liveControlClients.Select(client => client.HubDisconnected()));
+        }
+        catch (Exception e)
+        {
+            // We dont expect any errors here, but if there is a bug then this might happen, and it would be cat
+            _logger.LogError(e, "Error disposing live control client");
         }
     }
 
@@ -160,7 +160,7 @@ public sealed class HubLifetime : IAsyncDisposable
 #pragma warning restore CS4014
 
         _state = HubLifetimeState.Idle; // We are fully setup, we can go back to idle state
-        
+
         return true;
     }
 
@@ -269,7 +269,7 @@ public sealed class HubLifetime : IAsyncDisposable
     {
         await using var db = await _dbContextFactory.CreateDbContextAsync(_cancellationSource.Token);
         await UpdateShockers(db, _cancellationSource.Token);
-        
+
         foreach (var websocketController in _liveControlClients)
             await websocketController.UpdatePermissions(db);
     }
@@ -429,11 +429,10 @@ public sealed class HubLifetime : IAsyncDisposable
     {
         if (_disposed) return;
         _disposed = true;
-        
+
         await _cancellationSource.CancelAsync();
         await DisposeLiveControlClients();
     }
-    
 }
 
 /// <summary>

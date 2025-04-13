@@ -88,7 +88,7 @@ public sealed class LiveControlController : WebsocketBaseController<LiveControlR
     }
 
 
-    private bool _unregistered;
+    private volatile bool _unregistered;
 
     /// <inheritdoc />
     protected override async Task UnregisterConnection()
@@ -566,13 +566,36 @@ public sealed class LiveControlController : WebsocketBaseController<LiveControlR
             }
         });
     }
+    
+    /// <summary>
+    /// Called by a hub lifetime when the hub is disconnected and this controller needs to die
+    /// </summary>
+    [NonAction]
+    public async Task HubDisconnected()
+    {
+        _unregistered = true;
+        
+        Logger.LogTrace("Hub disconnected, disposing controller");
+        try
+        {
+            await SendWebSocketMessage(new LiveControlResponse<LiveResponseType>
+            {
+                ResponseType = LiveResponseType.DeviceNotConnected,
+            }, WebSocket!, LinkedToken);
+        }
+        catch (Exception e)
+        {
+            // We don't really care if this fails
+            Logger.LogDebug(e, "Error while sending disconnect message");
+        }
+        await DisposeAsync();
+    }
 
     /// <inheritdoc />
-    public override async ValueTask DisposeControllerAsync()
+    protected override async ValueTask DisposeControllerAsync()
     {
         Logger.LogTrace("Disposing controller timer");
         _pingTimer.Dispose();
-        await UpdateConnectedState(false);
         await base.DisposeControllerAsync();
     }
 }

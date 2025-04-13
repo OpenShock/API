@@ -102,7 +102,7 @@ public abstract class WebsocketBaseController<T> : OpenShockControllerBase, IAsy
     /// </summary>
     /// <returns></returns>
     [NonAction]
-    public virtual ValueTask DisposeControllerAsync() => ValueTask.CompletedTask;
+    protected virtual ValueTask DisposeControllerAsync() => ValueTask.CompletedTask;
 
     /// <summary>
     /// Initial get request to the websocket route - rewrite to websocket connection

@@ -203,7 +203,7 @@ public abstract class HubControllerBase<TIn, TOut> : FlatbuffersWebsocketBaseCon
     }
     
     /// <inheritdoc />
-    public override ValueTask DisposeControllerAsync()
+    protected override ValueTask DisposeControllerAsync()
     {
         Logger.LogTrace("Disposing controller timer");
         _keepAliveTimeoutTimer.Dispose();

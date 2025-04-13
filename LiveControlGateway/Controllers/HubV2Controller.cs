@@ -226,7 +226,7 @@ public sealed class HubV2Controller : HubControllerBase<HubToGatewayMessage, Gat
 
 
     /// <inheritdoc />
-    public override async ValueTask DisposeControllerAsync()
+    protected override async ValueTask DisposeControllerAsync()
     {
         await _pingTimer.DisposeAsync();
         await base.DisposeControllerAsync();
