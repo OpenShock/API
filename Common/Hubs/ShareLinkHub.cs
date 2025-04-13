@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using OpenShock.Common.Authentication.Services;
+using OpenShock.Common.Constants;
 using OpenShock.Common.DeviceControl;
 using OpenShock.Common.Extensions;
 using OpenShock.Common.Models;
@@ -74,6 +75,13 @@ public sealed class ShareLinkHub : Hub<IShareLinkHub>
         if (user == null && customName == null)
         {
             _logger.LogDebug("customName was not set nor was the user authenticated, terminating connection...");
+            Context.Abort();
+            return;
+        }
+
+        if (customName is { Length: > HardLimits.UsernameMaxLength })
+        {
+            _logger.LogDebug("Custom name is too long, terminating connection...");
             Context.Abort();
             return;
         }
