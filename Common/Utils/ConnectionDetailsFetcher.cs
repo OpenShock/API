@@ -1,5 +1,6 @@
 ﻿using System.Diagnostics.CodeAnalysis;
 using System.Net;
+// ReSharper disable InconsistentNaming
 
 namespace OpenShock.Common.Utils;
 
