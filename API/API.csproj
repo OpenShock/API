@@ -16,7 +16,7 @@
     <ItemGroup>
         <PackageReference Include="Fluid.Core" Version="2.21.0" />
         <PackageReference Include="MailKit" Version="4.11.0" />
-        <PackageReference Include="Scalar.AspNetCore" Version="2.1.6" />
+        <PackageReference Include="Scalar.AspNetCore" Version="2.1.13" />
     </ItemGroup>
 
     <Target Name="SetSourceRevisionId" BeforeTargets="InitializeSourceControlInformation">
