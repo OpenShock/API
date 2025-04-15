@@ -514,6 +514,8 @@ public partial class OpenShockContext : DbContext
             entity.Property(e => e.CreatedAt)
                 .HasDefaultValueSql("CURRENT_TIMESTAMP")
                 .HasColumnName("created_at");
+            entity.Property(e => e.DeletedAt)
+                .HasColumnName("deleted_at");
             entity.Property(e => e.Email)
                 .VarCharWithLength(HardLimits.EmailAddressMaxLength)
                 .HasColumnName("email");

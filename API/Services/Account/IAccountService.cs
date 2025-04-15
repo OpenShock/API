@@ -18,6 +18,12 @@ public interface IAccountService
     /// <param name="password"></param>
     /// <returns></returns>
     public Task<OneOf<Success<User>, AccountWithEmailOrUsernameExists>> CreateAccount(string email, string username, string password);
+    
+    public Task<OneOf<Success, NotFound>> DeactivateAccount(Guid userId);
+    
+    public Task<OneOf<Success, NotFound>> ReactivateAccount(Guid userId);
+    
+    public Task<OneOf<Success, NotFound>> DeleteAccount(Guid userId);
 
     /// <summary>
     /// When a user uses the signup form, this also handles email verification mail

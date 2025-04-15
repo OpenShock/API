@@ -6,11 +6,14 @@ using OneOf.Types;
 using OpenShock.API.Services.Email;
 using OpenShock.API.Services.Email.Mailjet.Mail;
 using OpenShock.Common.Constants;
+using OpenShock.Common.Extensions;
+using OpenShock.Common.Models;
 using OpenShock.Common.OpenShockDb;
 using OpenShock.Common.Options;
 using OpenShock.Common.Services.Session;
 using OpenShock.Common.Utils;
 using OpenShock.Common.Validation;
+using Z.EntityFramework.Plus;
 
 namespace OpenShock.API.Services.Account;
 
@@ -50,6 +53,42 @@ public sealed class AccountService : IAccountService
         string password)
     {
         return CreateAccount(email, username, password, true);
+    }
+
+    public async Task<OneOf<Success, NotFound>> DeactivateAccount(Guid userId)
+    {
+        var user = await _db.Users.Where(u => u.Id == userId).FirstOrDefaultAsync();
+        if (user == null) return new NotFound();
+        
+        if (user.Roles.Any(r => r is RoleType.Admin or RoleType.System))
+        {
+            throw new NotImplementedException();
+        }
+
+        if (user.DeletedAt.HasValue)
+        {
+            throw new NotImplementedException();
+        }
+        
+        user.DeletedAt = DateTime.UtcNow;
+
+        await _db.SaveChangesAsync();
+
+        return new Success();
+    }
+
+    public Task<OneOf<Success, NotFound>> ReactivateAccount(Guid userId)
+    {
+        throw new NotImplementedException();
+    }
+
+    public async Task<OneOf<Success, NotFound>> DeleteAccount(Guid userId)
+    {
+        var nDeleted = await _db.Users.Where(u => u.Id == userId).DeleteAsync();
+
+        throw new NotImplementedException();
+        
+        return new Success();
     }
 
     private async Task<OneOf<Success<User>, AccountWithEmailOrUsernameExists>> CreateAccount(string email,

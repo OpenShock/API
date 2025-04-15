@@ -15,6 +15,8 @@ public partial class User
     public string PasswordHash { get; set; } = null!;
 
     public DateTime CreatedAt { get; set; }
+    
+    public DateTimeOffset? DeletedAt { get; set; }
 
     public bool EmailActivated { get; set; }
 
