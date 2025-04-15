@@ -9,13 +9,22 @@ namespace OpenShock.API.Services.Email;
 /// </summary>
 public class NoneEmailService : IEmailService
 {
+    private readonly ILogger<NoneEmailService> _logger;
+
+    public NoneEmailService(ILogger<NoneEmailService> logger)
+    {
+        _logger = logger;
+    }
+    
     public Task PasswordReset(Contact to, Uri resetLink, CancellationToken cancellationToken = default)
     {
+        _logger.LogError("Password reset email not sent, this is a noop implementation of the email service");
         return Task.CompletedTask;
     }
 
     public Task VerifyEmail(Contact to, Uri activationLink, CancellationToken cancellationToken = default)
     {
+        _logger.LogError("Email verification email not sent, this is a noop implementation of the email service");
         return Task.CompletedTask;
     }
 }
