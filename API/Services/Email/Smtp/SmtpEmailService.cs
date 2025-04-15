@@ -24,18 +24,18 @@ public sealed class SmtpEmailService : IEmailService
     /// DI Constructor
     /// </summary>
     /// <param name="templates"></param>
-    /// <param name="senderOptions"></param>
+    /// <param name="sender"></param>
     /// <param name="options"></param>
     /// <param name="logger"></param>
     public SmtpEmailService(
             SmtpServiceTemplates templates,
-            IOptionsSnapshot<Contact> senderOptions,
+            IOptions<MailOptions.MailSenderContact> sender,
             IOptions<SmtpOptions> options,
             ILogger<SmtpEmailService> logger
         )
     {
         _templates = templates;
-        _sender = senderOptions.Get(MailOptions.SenderOptionName).ToMailAddress();
+        _sender = sender.Value.ToMailAddress();
         _options = options.Value;
         _logger = logger;
 

@@ -7,7 +7,6 @@ public sealed class MailOptions
 {
     public const string SectionName = "OpenShock:Mail";
     public const string SenderSectionName = SectionName + ":Sender";
-    public const string SenderOptionName = "EmailSender";
 
     [Required]
     public required MailType Type { get; init; }
