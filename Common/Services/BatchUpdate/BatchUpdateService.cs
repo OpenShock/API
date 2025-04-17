@@ -4,7 +4,6 @@ using Microsoft.EntityFrameworkCore;
 using NRedisStack.RedisStackCommands;
 using OpenShock.Common.OpenShockDb;
 using OpenShock.Common.Redis;
-using Redis.OM.Contracts;
 using StackExchange.Redis;
 using Timer = System.Timers.Timer;
 
@@ -17,18 +16,16 @@ public sealed class BatchUpdateService : IHostedService, IBatchUpdateService
     private readonly IDbContextFactory<OpenShockContext> _dbFactory;
     private readonly ILogger<BatchUpdateService> _logger;
     private readonly IConnectionMultiplexer _connectionMultiplexer;
-    private readonly IRedisConnectionProvider _redisConnectionProvider;
     private readonly Timer _updateTimer;
 
     private readonly ConcurrentDictionary<Guid, bool> _tokenLastUsed = new();
     private readonly ConcurrentDictionary<string, DateTimeOffset> _sessionLastUsed = new();
 
-    public BatchUpdateService(IDbContextFactory<OpenShockContext> dbFactory, ILogger<BatchUpdateService> logger, IConnectionMultiplexer connectionMultiplexer, IRedisConnectionProvider redisConnectionProvider)
+    public BatchUpdateService(IDbContextFactory<OpenShockContext> dbFactory, ILogger<BatchUpdateService> logger, IConnectionMultiplexer connectionMultiplexer)
     {
         _dbFactory = dbFactory;
         _logger = logger;
         _connectionMultiplexer = connectionMultiplexer;
-        _redisConnectionProvider = redisConnectionProvider;
 
         _updateTimer = new Timer(Interval);
         _updateTimer.Elapsed += UpdateTimerOnElapsed;

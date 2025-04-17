@@ -4,8 +4,6 @@ using System.Net;
 using System.Net.Mime;
 using Asp.Versioning;
 using OpenShock.API.Services.Account;
-using OpenShock.Common;
-using OpenShock.Common.Constants;
 using OpenShock.Common.Errors;
 using OpenShock.Common.Problems;
 using OpenShock.Common.Services.Turnstile;
@@ -42,7 +40,7 @@ public sealed partial class AccountController
         var turnStile = await turnstileService.VerifyUserResponseToken(body.TurnstileResponse, remoteIP, cancellationToken);
         if (!turnStile.IsT0)
         {
-            var cfErrors = turnStile.AsT1.Value!;
+            var cfErrors = turnStile.AsT1.Value;
             if (cfErrors.All(err => err == CloduflareTurnstileError.InvalidResponse))
                 return Problem(TurnstileError.InvalidTurnstile);
 

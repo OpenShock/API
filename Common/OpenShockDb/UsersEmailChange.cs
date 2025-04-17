@@ -1,7 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-
-namespace OpenShock.Common.OpenShockDb;
+﻿namespace OpenShock.Common.OpenShockDb;
 
 public partial class UsersEmailChange
 {

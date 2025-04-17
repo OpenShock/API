@@ -2,7 +2,6 @@ using Hangfire;
 using Hangfire.PostgreSql;
 using OpenShock.Common;
 using OpenShock.Common.Extensions;
-using OpenShock.Cron;
 using OpenShock.Cron.Utils;
 
 var builder = OpenShockApplication.CreateDefaultBuilder<Program>(args);

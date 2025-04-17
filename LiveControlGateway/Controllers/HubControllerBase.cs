@@ -1,29 +1,19 @@
-﻿using System.Net.WebSockets;
-using FlatSharp;
-using Microsoft.AspNetCore.Authorization;
+﻿using FlatSharp;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
-using Microsoft.AspNetCore.SignalR;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using OneOf;
 using OneOf.Types;
-using OpenShock.Common;
-using OpenShock.Common.Authentication;
 using OpenShock.Common.Authentication.Services;
 using OpenShock.Common.Constants;
 using OpenShock.Common.Errors;
-using OpenShock.Common.Hubs;
 using OpenShock.Common.OpenShockDb;
 using OpenShock.Common.Problems;
-using OpenShock.Common.Redis;
-using OpenShock.Common.Services.RedisPubSub;
 using OpenShock.Common.Utils;
 using OpenShock.LiveControlGateway.LifetimeManager;
 using OpenShock.LiveControlGateway.Options;
 using OpenShock.LiveControlGateway.Websocket;
 using OpenShock.Serialization.Gateway;
-using Redis.OM.Contracts;
 using Semver;
 using Timer = System.Timers.Timer;
 
@@ -46,7 +36,7 @@ public abstract class HubControllerBase<TIn, TOut> : FlatbuffersWebsocketBaseCon
     /// </summary>
     protected readonly IServiceProvider ServiceProvider;
     
-    private HubLifetime? _hubLifetime = null;
+    private HubLifetime? _hubLifetime;
     
     /// <summary>
     /// Hub lifetime
@@ -108,7 +98,7 @@ public abstract class HubControllerBase<TIn, TOut> : FlatbuffersWebsocketBaseCon
         _hubLifetimeManager = hubLifetimeManager;
         ServiceProvider = serviceProvider;
         _options = options.Value;
-        _keepAliveTimeoutTimer.Elapsed += async (sender, args) =>
+        _keepAliveTimeoutTimer.Elapsed += async (_, _) =>
         {
             Logger.LogInformation("Keep alive timeout reached, closing websocket connection");
             await Close.CancelAsync();

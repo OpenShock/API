@@ -42,7 +42,6 @@ public sealed class HubLifetime : IAsyncDisposable
     private readonly ushort _commandDuration;
 
     private Dictionary<Guid, ShockerState> _shockerStates = new();
-    private readonly byte _tps;
     private readonly CancellationTokenSource _cancellationSource;
 
     private readonly IDbContextFactory<OpenShockContext> _dbContextFactory;
@@ -69,7 +68,6 @@ public sealed class HubLifetime : IAsyncDisposable
         IRedisPubService redisPubService,
         ILogger<HubLifetime> logger)
     {
-        _tps = tps;
         HubController = hubController;
         _cancellationSource = new CancellationTokenSource();
         _dbContextFactory = dbContextFactory;
@@ -241,7 +239,7 @@ public sealed class HubLifetime : IAsyncDisposable
     private async Task Update()
     {
         List<ShockerCommand>? commandList = null;
-        foreach (var (id, state) in _shockerStates)
+        foreach (var (_, state) in _shockerStates)
         {
             var cur = DateTimeOffset.UtcNow;
             if (state.ActiveUntil < cur || state.ExclusiveUntil >= cur) continue;
@@ -404,7 +402,7 @@ public sealed class HubLifetime : IAsyncDisposable
             online.UserAgent != data.UserAgent)
         {
             online.Gateway = data.Gateway;
-            online.FirmwareVersion = data.FirmwareVersion!;
+            online.FirmwareVersion = data.FirmwareVersion;
             online.ConnectedAt = data.ConnectedAt;
             online.UserAgent = data.UserAgent;
 
@@ -422,7 +420,7 @@ public sealed class HubLifetime : IAsyncDisposable
         return new Success();
     }
 
-    private bool _disposed = false;
+    private bool _disposed;
 
     /// <inheritdoc />
     public async ValueTask DisposeAsync()

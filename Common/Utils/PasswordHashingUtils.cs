@@ -1,6 +1,4 @@
 ﻿using BCrypt.Net;
-using System.Security.Cryptography;
-using System.Text;
 using OpenShock.Common.Models;
 
 namespace OpenShock.Common.Utils;
@@ -10,7 +8,7 @@ public static class PasswordHashingUtils
     private const string BCryptPrefix = "bcrypt";
     private const string PBKDF2Prefix = "pbkdf2";
 
-    private const HashType BCryptHashType = BCrypt.Net.HashType.SHA512;
+    private const HashType BCryptHashType = HashType.SHA512;
 
     public readonly record struct VerifyPasswordResult(bool Verified, bool NeedsRehash);
 

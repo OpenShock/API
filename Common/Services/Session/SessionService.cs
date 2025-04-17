@@ -1,5 +1,4 @@
 ﻿using Microsoft.EntityFrameworkCore;
-using OpenShock.Common.Authentication.AuthenticationHandlers;
 using OpenShock.Common.Constants;
 using OpenShock.Common.Redis;
 using Redis.OM;

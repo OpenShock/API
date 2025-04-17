@@ -14,14 +14,14 @@ public static class QueryStringTokenizer
     private const char QueryEscapeChar = '\\';
 
     // In unquoted strings, search for quotes and escapes. If these are found we should fail the parsing.
-    private static readonly SearchValues<char> unquotedSearchValues = SearchValues.Create(' ', '\r', '\n', '\t', QueryQuoteChar, QueryEscapeChar);
+    private static readonly SearchValues<char> UnquotedSearchValues = SearchValues.Create(' ', '\r', '\n', '\t', QueryQuoteChar, QueryEscapeChar);
 
     /// <summary>
     /// Parses a query string into a list of words, handling spaces, quoted strings, and escape sequences.
     /// </summary>
     /// <param name="query">The input query as a <see cref="ReadOnlySpan{char}"/>.</param>
     /// <returns>A list of parsed words from the query.</returns>
-    /// <exception cref="ExpressionException">
+    /// <exception cref="QueryStringTokenizerException">
     /// Thrown when the query contains an invalid escape sequence, an unclosed quoted string, or other syntax errors.
     /// </exception>
     /// <example>
@@ -47,7 +47,7 @@ public static class QueryStringTokenizer
             int i;
             if (query[0] != QueryQuoteChar)
             {
-                i = query.IndexOfAny(unquotedSearchValues);
+                i = query.IndexOfAny(UnquotedSearchValues);
                 if (i < 0)
                 {
                     // End of query

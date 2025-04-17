@@ -13,7 +13,7 @@ public static partial class DBExpressionBuilder
     [GeneratedRegex(@"^[A-Za-z][A-Za-z0-9]*$")]
     private static partial Regex ValidMemberNameRegex();
 
-    private static Expression CreateMemberCompareExpression<T>(Type entityType, ParameterExpression parameterExpr, string propOrFieldName, string operation, string value) where T : class
+    private static Expression CreateMemberCompareExpression(Type entityType, ParameterExpression parameterExpr, string propOrFieldName, string operation, string value)
     {
         var (memberInfo, memberType) = DBExpressionBuilderUtils.GetPropertyOrField(entityType, propOrFieldName);
 
@@ -90,24 +90,12 @@ public static partial class DBExpressionBuilder
 
     public static Expression<Func<T, bool>> GetFilterExpression<T>(string filterQuery) where T : class
     {
-        Expression? completeExpr = null;
-
         var entityType = typeof(T);
         var parameterExpr = Expression.Parameter(entityType, "x");
 
-        foreach (var filter in ParseFilters(filterQuery))
-        {
-            var memberExpr = CreateMemberCompareExpression<T>(entityType, parameterExpr, filter.MemberName, filter.Operation, filter.Value);
-
-            if (completeExpr == null)
-            {
-                completeExpr = memberExpr;
-            }
-            else
-            {
-                completeExpr = Expression.And(completeExpr, memberExpr);
-            }
-        }
+        var completeExpr = ParseFilters(filterQuery)
+            .Select(filter => CreateMemberCompareExpression(entityType, parameterExpr, filter.MemberName, filter.Operation, filter.Value))
+            .Aggregate<Expression, Expression?>(null, (prev, next) => prev == null ? next : Expression.And(prev, next));
 
         return Expression.Lambda<Func<T, bool>>(completeExpr ?? Expression.Constant(true), parameterExpr);
     }

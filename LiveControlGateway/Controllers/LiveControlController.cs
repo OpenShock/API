@@ -52,13 +52,17 @@ public sealed class LiveControlController : WebsocketBaseController<LiveControlR
     };
 
     private User _currentUser = null!;
+    
+    /// <summary>
+    /// ID of the connected hub
+    /// </summary>
     public Guid? HubId { get; private set; }
     private Device? _device;
     private Dictionary<Guid, LiveShockerPermission> _sharedShockers = new();
     private byte _tps = 10;
     private long _pingTimestamp = Stopwatch.GetTimestamp();
-    private ushort _latencyMs = 0;
-    private HubLifetime? _hubLifetime = null;
+    private ushort _latencyMs;
+    private HubLifetime? _hubLifetime;
     private HubLifetime HubLifetime => _hubLifetime ?? throw new InvalidOperationException("Hub lifetime is null but was accessed");
     
     /// <summary>
@@ -338,8 +342,7 @@ public sealed class LiveControlController : WebsocketBaseController<LiveControlR
     /// <summary>
     /// Pong callback from the client, we can calculate latency from this
     /// </summary>
-    /// <param name="requestData"></param>
-    private async Task IntakePong(JsonDocument? requestData)
+    private async Task IntakePong(JsonDocument? _)
     {
         Logger.LogTrace("Intake pong");
         
@@ -494,29 +497,23 @@ public sealed class LiveControlController : WebsocketBaseController<LiveControlR
         var intensity = Math.Clamp(frame.Intensity, HardLimits.MinControlIntensity, perms.Intensity ?? HardLimits.MaxControlIntensity);
 
         var result = HubLifetime.ReceiveFrame(frame.Shocker, frame.Type, intensity, _tps);
-        if (result.IsT0)
-        {
-            Logger.LogTrace("Successfully received frame");
-        }
 
-        if (result.IsT1)
-        {
-            await QueueMessage(new LiveControlResponse<LiveResponseType>
+        await result.Match(
+            _ =>
+            {
+                Logger.LogTrace("Successfully received frame");
+                return ValueTask.CompletedTask;
+            },
+            _ => QueueMessage(new LiveControlResponse<LiveResponseType>
             {
                 ResponseType = LiveResponseType.ShockerNotFound
-            });
-            return;
-        }
-        
-        if (result.IsT2)
-        {
-            await QueueMessage(new LiveControlResponse<LiveResponseType>
+            }),
+            shockerExclusive => QueueMessage(new LiveControlResponse<LiveResponseType>
             {
                 ResponseType = LiveResponseType.ShockerExclusive,
-                Data = result.AsT2.Until
-            });
-            return;
-        }
+                Data = shockerExclusive.Until
+            })
+        );
     }
 
     private OneOf<Success<SharePermsAndLimitsLive>, NotFound, LiveNotEnabled, NoPermission, ShockerPaused> CheckFramePermissions(

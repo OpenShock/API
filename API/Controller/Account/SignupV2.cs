@@ -35,7 +35,7 @@ public sealed partial class AccountController
         var turnStile = await turnstileService.VerifyUserResponseToken(body.TurnstileResponse, HttpContext.GetRemoteIP(), cancellationToken);
         if (!turnStile.IsT0)
         {
-            var cfErrors = turnStile.AsT1.Value!;
+            var cfErrors = turnStile.AsT1.Value;
             if (cfErrors.All(err => err == CloduflareTurnstileError.InvalidResponse))
                 return Problem(TurnstileError.InvalidTurnstile);
 
@@ -43,9 +43,9 @@ public sealed partial class AccountController
         }
 
         var creationAction = await _accountService.Signup(body.Email, body.Username, body.Password);
-        if (creationAction.IsT1)
-            return Problem(SignupError.EmailAlreadyExists);
-
-        return RespondSuccessLegacySimple("Successfully signed up");
+        return creationAction.Match(
+            _ => RespondSuccessLegacySimple("Successfully signed up"),
+            _ => Problem(SignupError.EmailAlreadyExists)
+        );
     }
 }

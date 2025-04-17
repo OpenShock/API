@@ -1,5 +1,4 @@
 ﻿using Microsoft.Extensions.Options;
-using System.ComponentModel.DataAnnotations;
 
 namespace OpenShock.Common.Options;
 

@@ -1,5 +1,4 @@
-﻿using OpenShock.Common.Redis.PubSub;
-using OpenShock.Serialization.Gateway;
+﻿using OpenShock.Serialization.Gateway;
 using Semver;
 
 namespace OpenShock.LiveControlGateway.Controllers;

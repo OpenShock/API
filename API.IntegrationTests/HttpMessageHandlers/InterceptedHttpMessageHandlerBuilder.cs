@@ -5,7 +5,7 @@ namespace OpenShock.API.IntegrationTests.HttpMessageHandlers;
 sealed class InterceptedHttpMessageHandlerBuilder : HttpMessageHandlerBuilder
 {
     public override string? Name { get; set; }
-    public override HttpMessageHandler PrimaryHandler { get; set; }
+    public override required HttpMessageHandler PrimaryHandler { get; set; }
     public override IList<DelegatingHandler> AdditionalHandlers => [];
 
 

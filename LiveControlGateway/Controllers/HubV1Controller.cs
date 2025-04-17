@@ -117,7 +117,7 @@ public sealed class HubV1Controller : HubControllerBase<HubToGatewayMessage, Gat
                     await HcOwner.OtaInstallSucceeded(
                         CurrentHub.Id, payload.BootStatus.OtaUpdateId);
 
-                    var test = await otaService.Success(CurrentHub.Id, payload.BootStatus.OtaUpdateId);
+                    await otaService.Success(CurrentHub.Id, payload.BootStatus.OtaUpdateId);
                     _lastStatus = OtaUpdateStatus.Finished;
                     break;
                 }

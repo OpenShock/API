@@ -2,7 +2,6 @@
 using System.Net.Mime;
 using Microsoft.AspNetCore.Mvc;
 using OpenShock.API.Models.Requests;
-using OpenShock.Common.Problems;
 using OpenShock.Common.Validation;
 
 namespace OpenShock.API.Controller.Account;

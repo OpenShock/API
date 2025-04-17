@@ -53,9 +53,9 @@ public abstract class FlatbuffersWebsocketBaseController<TIn, TOut> : WebsocketB
         {
             try
             {
-                if (WebSocket?.State == WebSocketState.Aborted) return;
+                if (WebSocket is null or { State: WebSocketState.Aborted }) return;
                 var message =
-                    await FlatbufferWebSocketUtils.ReceiveFullMessageAsyncNonAlloc(WebSocket!,
+                    await FlatbufferWebSocketUtils.ReceiveFullMessageAsyncNonAlloc(WebSocket,
                         _incomingSerializer, LinkedToken);
 
                 // All is good, normal message, deserialize and handle
@@ -70,20 +70,18 @@ public abstract class FlatbuffersWebsocketBaseController<TIn, TOut> : WebsocketB
                     {
                         Logger.LogError(e, "Error while handling device message");
                     }
-
-                    continue;
                 }
 
                 // Deserialization failed, log and continue
-                if (message.IsT1)
+                else if (message.IsT1)
                 {
                     Logger.LogWarning(message.AsT1.Exception, "Deserialization failed for websocket message");
                 }
 
                 // Device sent closure, close connection
-                if (message.IsT2)
+                else if (message.IsT2)
                 {
-                    if (WebSocket!.State != WebSocketState.Open)
+                    if (WebSocket.State != WebSocketState.Open)
                     {
                         Logger.LogTrace("Client sent closure, but connection state is not open");
                         break;
@@ -101,6 +99,10 @@ public abstract class FlatbuffersWebsocketBaseController<TIn, TOut> : WebsocketB
 
                     Logger.LogInformation("Closing websocket connection");
                     break;
+                }
+                else
+                {
+                    throw new NotImplementedException(); // message.T? is not implemented
                 }
             }
             catch (OperationCanceledException)

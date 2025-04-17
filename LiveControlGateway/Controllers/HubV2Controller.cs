@@ -31,7 +31,7 @@ public sealed class HubV2Controller : HubControllerBase<HubToGatewayMessage, Gat
     private readonly IHubContext<UserHub, IUserHub> _userHubContext;
     private readonly Timer _pingTimer;
     private long _pingTimestamp = Stopwatch.GetTimestamp();
-    private ushort _latencyMs = 0;
+    private ushort _latencyMs;
 
     /// <summary>
     /// DI
@@ -150,7 +150,7 @@ public sealed class HubV2Controller : HubControllerBase<HubToGatewayMessage, Gat
                     await HcOwner.OtaInstallSucceeded(
                         CurrentHub.Id, payload.BootStatus.OtaUpdateId);
 
-                    var test = await otaService.Success(CurrentHub.Id, payload.BootStatus.OtaUpdateId);
+                    await otaService.Success(CurrentHub.Id, payload.BootStatus.OtaUpdateId);
                     _lastStatus = OtaUpdateStatus.Finished;
                     break;
                 }

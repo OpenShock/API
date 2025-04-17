@@ -1,4 +1,4 @@
-﻿namespace API.IntegrationTests;
+﻿namespace OpenShock.API.IntegrationTests;
 
 public abstract class BaseIntegrationTest
 {
