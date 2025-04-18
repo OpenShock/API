@@ -43,7 +43,7 @@ public abstract class WebsocketBaseController<T> : OpenShockControllerBase, IAsy
     /// <summary>
     /// Channel for multithreading thread safety of the websocket, MessageLoop is the only reader for this channel
     /// </summary>
-    private readonly Channel<T> _channel = Channel.CreateUnbounded<T>();
+    protected readonly Channel<T> Channel = System.Threading.Channels.Channel.CreateUnbounded<T>();
 
 #pragma warning disable IDISP008
     protected WebSocket? WebSocket;
@@ -64,7 +64,7 @@ public abstract class WebsocketBaseController<T> : OpenShockControllerBase, IAsy
 
     /// <inheritdoc />
     [NonAction]
-    public ValueTask QueueMessage(T data) => _channel.Writer.WriteAsync(data, LinkedToken);
+    public ValueTask QueueMessage(T data) => Channel.Writer.WriteAsync(data, LinkedToken);
 
     private bool _disposed;
 
@@ -88,7 +88,7 @@ public abstract class WebsocketBaseController<T> : OpenShockControllerBase, IAsy
         await DisposeControllerAsync();
         await UnregisterConnection();
 
-        _channel.Writer.Complete();
+        Channel.Writer.TryComplete();
         await Close.CancelAsync();
         WebSocket?.Dispose();
         LinkedSource.Dispose();
@@ -167,7 +167,7 @@ public abstract class WebsocketBaseController<T> : OpenShockControllerBase, IAsy
     [NonAction]
     private async Task MessageLoop()
     {
-        await foreach (var msg in _channel.Reader.ReadAllAsync(LinkedToken))
+        await foreach (var msg in Channel.Reader.ReadAllAsync(LinkedToken))
         {
             try
             {

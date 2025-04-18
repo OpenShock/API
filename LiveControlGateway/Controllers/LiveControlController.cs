@@ -280,23 +280,21 @@ public sealed class LiveControlController : WebsocketBaseController<LiveControlR
 
                 if (message.IsT2)
                 {
-                    if (WebSocket.State != WebSocketState.Open)
-                    {
-                        Logger.LogTrace("Client sent closure, but connection state is not open");
-                        break;
-                    }
-
                     try
                     {
-                        await WebSocket.CloseAsync(WebSocketCloseStatus.NormalClosure, "Normal close",
-                            LinkedToken);
+                        if (WebSocket.State is WebSocketState.Open or WebSocketState.CloseReceived
+                            or WebSocketState.CloseSent)
+                        {
+                            await WebSocket.CloseAsync(WebSocketCloseStatus.NormalClosure, "Normal close",
+                                LinkedToken);
+                        }
                     }
                     catch (OperationCanceledException e)
                     {
                         Logger.LogError(e, "Error during close handshake");
                     }
 
-                    Logger.LogInformation("Closing websocket connection");
+                    Logger.LogTrace("Closing websocket connection");
                     break;
                 }
 
@@ -573,18 +571,26 @@ public sealed class LiveControlController : WebsocketBaseController<LiveControlR
         _unregistered = true;
         
         Logger.LogTrace("Hub disconnected, disposing controller");
+
+        Channel.Writer.TryComplete(); // Complete the channel so we stop sending messages
+        
         try
         {
+            var cts = new CancellationTokenSource(TimeSpan.FromSeconds(10));
+            
             await SendWebSocketMessage(new LiveControlResponse<LiveResponseType>
             {
                 ResponseType = LiveResponseType.DeviceNotConnected,
-            }, WebSocket!, LinkedToken);
+            }, WebSocket!, cts.Token);
+            
+            await WebSocket!.CloseAsync(WebSocketCloseStatus.NormalClosure, "Hub is connecting from a different location", cts.Token);
         }
         catch (Exception e)
         {
             // We don't really care if this fails
-            Logger.LogDebug(e, "Error while sending disconnect message");
+            Logger.LogDebug(e, "Error while sending disconnect message or closing websocket");
         }
+        
         await DisposeAsync();
     }
 
