@@ -49,9 +49,9 @@ public abstract class FlatbuffersWebsocketBaseController<TIn, TOut> : WebsocketB
     /// <inheritdoc />
     protected override async Task Logic()
     {
-        while (!LinkedToken.IsCancellationRequested)
+        try
         {
-            try
+            while (!LinkedToken.IsCancellationRequested)
             {
                 if (WebSocket is null or { State: WebSocketState.Aborted }) return;
                 var message =
@@ -61,25 +61,20 @@ public abstract class FlatbuffersWebsocketBaseController<TIn, TOut> : WebsocketB
                 // All is good, normal message, deserialize and handle
                 if (message.IsT0)
                 {
-                    try
-                    {
-                        var serverMessage = message.AsT0;
-                        await Handle(serverMessage);
-                    }
-                    catch (Exception e)
-                    {
-                        Logger.LogError(e, "Error while handling device message");
-                    }
+                    var serverMessage = message.AsT0;
+                    await Handle(serverMessage);
+                    continue;
                 }
 
-                // Deserialization failed, log and continue
-                else if (message.IsT1)
+                // Deserialization failed, log and exit
+                if (message.IsT1)
                 {
-                    Logger.LogWarning(message.AsT1.Exception, "Deserialization failed for websocket message");
+                    await WebSocket.CloseAsync(WebSocketCloseStatus.ProtocolError, "Invalid flatbuffers message", LinkedToken);
+                    break;
                 }
 
                 // Device sent closure, close connection
-                else if (message.IsT2)
+                if (message.IsT2)
                 {
                     if (WebSocket.State != WebSocketState.Open)
                     {
@@ -87,41 +82,29 @@ public abstract class FlatbuffersWebsocketBaseController<TIn, TOut> : WebsocketB
                         break;
                     }
 
-                    try
-                    {
-                        await WebSocket.CloseAsync(WebSocketCloseStatus.NormalClosure, "Normal close",
-                            LinkedToken);
-                    }
-                    catch (OperationCanceledException e)
-                    {
-                        Logger.LogError(e, "Error during close handshake");
-                    }
+                    await WebSocket.CloseAsync(WebSocketCloseStatus.NormalClosure, "Normal close", LinkedToken);
 
                     Logger.LogInformation("Closing websocket connection");
                     break;
                 }
-                else
-                {
-                    throw new NotImplementedException(); // message.T? is not implemented
-                }
-            }
-            catch (OperationCanceledException)
-            {
-                Logger.LogInformation("WebSocket connection terminated due to close or shutdown");
-                break;
-            }
-            catch (WebSocketException e)
-            {
-                if (e.WebSocketErrorCode != WebSocketError.ConnectionClosedPrematurely)
-                    Logger.LogError(e, "Error in receive loop, websocket exception");
-            }
-            catch (Exception ex)
-            {
-                Logger.LogError(ex, "Exception while processing websocket request");
+                
+                throw new NotImplementedException(); // message.T? is not implemented
             }
         }
-
-        await Close.CancelAsync();
+        catch (OperationCanceledException)
+        {
+            Logger.LogInformation("WebSocket connection terminated due to close or shutdown");
+        }
+        catch (WebSocketException e)
+        {
+            if (e.WebSocketErrorCode != WebSocketError.ConnectionClosedPrematurely)
+            {
+                Logger.LogError(e, "Error in receive loop, websocket exception");
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Exception while processing websocket request");
+        }
     }
-    
 }
