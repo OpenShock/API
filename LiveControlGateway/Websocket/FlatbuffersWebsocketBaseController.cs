@@ -68,13 +68,10 @@ public abstract class FlatbuffersWebsocketBaseController<TIn, TOut> : WebsocketB
                     },
                     async _ =>
                     {
-                        if (WebSocket.State != WebSocketState.Open)
+                        if (WebSocket.State is WebSocketState.Open or WebSocketState.CloseReceived or WebSocketState.CloseSent)
                         {
-                            Logger.LogTrace("Client sent closure, but connection state is not open");
-                            return false;
+                            await WebSocket.CloseAsync(WebSocketCloseStatus.NormalClosure, "Normal close", LinkedToken);
                         }
-
-                        await WebSocket.CloseAsync(WebSocketCloseStatus.NormalClosure, "Normal close", LinkedToken);
 
                         Logger.LogInformation("Closing websocket connection");
                         return false;
