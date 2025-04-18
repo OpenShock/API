@@ -43,8 +43,8 @@ public abstract class FlatbuffersWebsocketBaseController<TIn, TOut> : WebsocketB
     /// Handle the incoming message
     /// </summary>
     /// <param name="data"></param>
-    /// <returns></returns>
-    protected abstract Task Handle(TIn data);
+    /// <returns>false if message is invalid</returns>
+    protected abstract Task<bool> Handle(TIn data);
     
     /// <inheritdoc />
     protected override async Task Logic()
@@ -57,38 +57,30 @@ public abstract class FlatbuffersWebsocketBaseController<TIn, TOut> : WebsocketB
                 var message =
                     await FlatbufferWebSocketUtils.ReceiveFullMessageAsyncNonAlloc(WebSocket,
                         _incomingSerializer, LinkedToken);
-
-                // All is good, normal message, deserialize and handle
-                if (message.IsT0)
-                {
-                    var serverMessage = message.AsT0;
-                    await Handle(serverMessage);
-                    continue;
-                }
-
-                // Deserialization failed, log and exit
-                if (message.IsT1)
-                {
-                    await WebSocket.CloseAsync(WebSocketCloseStatus.ProtocolError, "Invalid flatbuffers message", LinkedToken);
-                    break;
-                }
-
-                // Device sent closure, close connection
-                if (message.IsT2)
-                {
-                    if (WebSocket.State != WebSocketState.Open)
-                    {
-                        Logger.LogTrace("Client sent closure, but connection state is not open");
-                        break;
-                    }
-
-                    await WebSocket.CloseAsync(WebSocketCloseStatus.NormalClosure, "Normal close", LinkedToken);
-
-                    Logger.LogInformation("Closing websocket connection");
-                    break;
-                }
                 
-                throw new NotImplementedException(); // message.T? is not implemented
+                
+                bool ok = await message.Match(
+                    Handle,
+                    async _ =>
+                    {
+                        await WebSocket.CloseAsync(WebSocketCloseStatus.ProtocolError, "Invalid flatbuffers message", LinkedToken);
+                        return false;
+                    },
+                    async _ =>
+                    {
+                        if (WebSocket.State != WebSocketState.Open)
+                        {
+                            Logger.LogTrace("Client sent closure, but connection state is not open");
+                            return false;
+                        }
+
+                        await WebSocket.CloseAsync(WebSocketCloseStatus.NormalClosure, "Normal close", LinkedToken);
+
+                        Logger.LogInformation("Closing websocket connection");
+                        return false;
+                    });
+
+                if (!ok) break;
             }
         }
         catch (OperationCanceledException)

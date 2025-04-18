@@ -55,9 +55,9 @@ public sealed class HubV1Controller : HubControllerBase<HubToGatewayMessage, Gat
     private IUserHub HcOwner => _userHubContext.Clients.User(CurrentHub.Owner.ToString());
     
     /// <inheritdoc />
-    protected override async Task Handle(HubToGatewayMessage data)
+    protected override async Task<bool> Handle(HubToGatewayMessage data)
     {
-        if(data.Payload == null) return;
+        if(!data.Payload.HasValue) return false;
         var payload = data.Payload.Value;
 
         await using var scope = ServiceProvider.CreateAsyncScope(); 
@@ -67,7 +67,10 @@ public sealed class HubV1Controller : HubControllerBase<HubToGatewayMessage, Gat
         switch (payload.Kind)
         {
             case HubToGatewayMessagePayload.ItemKind.KeepAlive:
-                await SelfOnline(payload.KeepAlive.Uptime);
+                if (!await SelfOnline(payload.KeepAlive.Uptime))
+                {
+                    return false;
+                }
                 break;
 
             case HubToGatewayMessagePayload.ItemKind.OtaInstallStarted:
@@ -157,8 +160,10 @@ public sealed class HubV1Controller : HubControllerBase<HubToGatewayMessage, Gat
             case HubToGatewayMessagePayload.ItemKind.NONE:
             default:
                 Logger.LogWarning("Payload kind not defined [{Kind}]", payload.Kind);
-                break;
+                return false;
         }
+
+        return true;
     }
 
     /// <inheritdoc />

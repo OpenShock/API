@@ -179,14 +179,13 @@ public abstract class HubControllerBase<TIn, TOut> : FlatbuffersWebsocketBaseCon
     /// <summary>
     /// Keep the hub online
     /// </summary>
-    protected async Task SelfOnline(ulong uptimeMs, ushort? latency = null, int? rssi = null)
+    protected async Task<bool> SelfOnline(ulong uptimeMs, ushort? latency = null, int? rssi = null)
     {
         var bootedAt = GetBootedAtFromUptimeMs(uptimeMs);
         if (!bootedAt.HasValue)
         {
             Logger.LogDebug("Client attempted to abuse reported boot time, uptime indicated that hub [{HubId}] booted prior to 2024", CurrentHub.Id);
-            await DisposeAsync();
-            return;
+            return false;
         }
         
         Logger.LogDebug("Received keep alive from hub [{HubId}]", CurrentHub.Id);
@@ -205,6 +204,8 @@ public abstract class HubControllerBase<TIn, TOut> : FlatbuffersWebsocketBaseCon
             LatencyMs = latency,
             Rssi = rssi
         });
+
+        return true;
     }
     
     /// <inheritdoc />
