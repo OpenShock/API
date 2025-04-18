@@ -43,85 +43,60 @@ public abstract class FlatbuffersWebsocketBaseController<TIn, TOut> : WebsocketB
     /// Handle the incoming message
     /// </summary>
     /// <param name="data"></param>
-    /// <returns></returns>
-    protected abstract Task Handle(TIn data);
+    /// <returns>false if message is invalid</returns>
+    protected abstract Task<bool> Handle(TIn data);
     
     /// <inheritdoc />
     protected override async Task Logic()
     {
-        while (!LinkedToken.IsCancellationRequested)
+        try
         {
-            try
+            while (!LinkedToken.IsCancellationRequested)
             {
                 if (WebSocket is null or { State: WebSocketState.Aborted }) return;
                 var message =
                     await FlatbufferWebSocketUtils.ReceiveFullMessageAsyncNonAlloc(WebSocket,
                         _incomingSerializer, LinkedToken);
-
-                // All is good, normal message, deserialize and handle
-                if (message.IsT0)
-                {
-                    try
+                
+                
+                bool ok = await message.Match(
+                    Handle,
+                    async _ =>
                     {
-                        var serverMessage = message.AsT0;
-                        await Handle(serverMessage);
-                    }
-                    catch (Exception e)
+                        await WebSocket.CloseAsync(WebSocketCloseStatus.ProtocolError, "Invalid flatbuffers message", LinkedToken);
+                        return false;
+                    },
+                    async _ =>
                     {
-                        Logger.LogError(e, "Error while handling device message");
-                    }
-                }
+                        if (WebSocket.State != WebSocketState.Open)
+                        {
+                            Logger.LogTrace("Client sent closure, but connection state is not open");
+                            return false;
+                        }
 
-                // Deserialization failed, log and continue
-                else if (message.IsT1)
-                {
-                    Logger.LogWarning(message.AsT1.Exception, "Deserialization failed for websocket message");
-                }
+                        await WebSocket.CloseAsync(WebSocketCloseStatus.NormalClosure, "Normal close", LinkedToken);
 
-                // Device sent closure, close connection
-                else if (message.IsT2)
-                {
-                    if (WebSocket.State != WebSocketState.Open)
-                    {
-                        Logger.LogTrace("Client sent closure, but connection state is not open");
-                        break;
-                    }
+                        Logger.LogInformation("Closing websocket connection");
+                        return false;
+                    });
 
-                    try
-                    {
-                        await WebSocket.CloseAsync(WebSocketCloseStatus.NormalClosure, "Normal close",
-                            LinkedToken);
-                    }
-                    catch (OperationCanceledException e)
-                    {
-                        Logger.LogError(e, "Error during close handshake");
-                    }
-
-                    Logger.LogInformation("Closing websocket connection");
-                    break;
-                }
-                else
-                {
-                    throw new NotImplementedException(); // message.T? is not implemented
-                }
-            }
-            catch (OperationCanceledException)
-            {
-                Logger.LogInformation("WebSocket connection terminated due to close or shutdown");
-                break;
-            }
-            catch (WebSocketException e)
-            {
-                if (e.WebSocketErrorCode != WebSocketError.ConnectionClosedPrematurely)
-                    Logger.LogError(e, "Error in receive loop, websocket exception");
-            }
-            catch (Exception ex)
-            {
-                Logger.LogError(ex, "Exception while processing websocket request");
+                if (!ok) break;
             }
         }
-
-        await Close.CancelAsync();
+        catch (OperationCanceledException)
+        {
+            Logger.LogInformation("WebSocket connection terminated due to close or shutdown");
+        }
+        catch (WebSocketException e)
+        {
+            if (e.WebSocketErrorCode != WebSocketError.ConnectionClosedPrematurely)
+            {
+                Logger.LogError(e, "Error in receive loop, websocket exception");
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Exception while processing websocket request");
+        }
     }
-    
 }

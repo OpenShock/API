@@ -80,7 +80,7 @@ public sealed class HubV2Controller : HubControllerBase<HubToGatewayMessage, Gat
     private IUserHub HcOwner => _userHubContext.Clients.User(CurrentHub.Owner.ToString());
     
     /// <inheritdoc />
-    protected override async Task Handle(HubToGatewayMessage data)
+    protected override async Task<bool> Handle(HubToGatewayMessage data)
     {
         var payload = data.Payload;
 
@@ -96,12 +96,15 @@ public sealed class HubV2Controller : HubControllerBase<HubToGatewayMessage, Gat
                 if (_pingTimestamp == 0)
                 {
                     // TODO: Kick or warn client.
-                    return;
+                    return false;
                 }
                 
                 _latencyMs = (ushort)Math.Min(Stopwatch.GetElapsedTime(_pingTimestamp).TotalMilliseconds, ushort.MaxValue); // If someone has a ping higher than 65 seconds, they are messing with us. Cap it to 65 seconds
                 _pingTimestamp = 0;
-                await SelfOnline(payload.Pong.Uptime, _latencyMs, payload.Pong.Rssi);
+                if (!await SelfOnline(payload.Pong.Uptime, _latencyMs, payload.Pong.Rssi))
+                {
+                    return false;
+                }
                 break;
 
             case HubToGatewayMessagePayload.ItemKind.OtaUpdateStarted:
@@ -190,8 +193,10 @@ public sealed class HubV2Controller : HubControllerBase<HubToGatewayMessage, Gat
             case HubToGatewayMessagePayload.ItemKind.NONE:
             default:
                 Logger.LogWarning("Payload kind not defined [{Kind}]", payload.Kind);
-                break;
+                return false;
         }
+
+        return true;
     }
 
     /// <inheritdoc />
