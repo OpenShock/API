@@ -10,7 +10,7 @@ public partial class UsersEmailChange
 
     public DateTime? UsedOn { get; set; }
 
-    public string Secret { get; set; } = null!;
+    public string SecretHash { get; set; } = null!;
 
     public string Email { get; set; } = null!;
 

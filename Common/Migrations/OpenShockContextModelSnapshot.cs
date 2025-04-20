@@ -266,7 +266,7 @@ namespace OpenShock.Common.Migrations
                         .HasColumnName("created_on")
                         .HasDefaultValueSql("CURRENT_TIMESTAMP");
 
-                    b.Property<string>("Secret")
+                    b.Property<string>("SecretHash")
                         .IsRequired()
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)")
@@ -739,7 +739,7 @@ namespace OpenShock.Common.Migrations
                         .HasColumnName("created_on")
                         .HasDefaultValueSql("CURRENT_TIMESTAMP");
 
-                    b.Property<string>("Secret")
+                    b.Property<string>("SecretHash")
                         .IsRequired()
                         .HasMaxLength(128)
                         .HasColumnType("character varying(128)")
@@ -779,7 +779,7 @@ namespace OpenShock.Common.Migrations
                         .HasColumnType("character varying(320)")
                         .HasColumnName("email");
 
-                    b.Property<string>("Secret")
+                    b.Property<string>("SecretHash")
                         .IsRequired()
                         .HasMaxLength(128)
                         .HasColumnType("character varying(128)")

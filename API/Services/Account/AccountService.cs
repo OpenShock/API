@@ -90,7 +90,7 @@ public sealed class AccountService : IAccountService
         {
             Id = id,
             UserId = user.Id,
-            Secret = secretHash
+            SecretHash = secretHash
         });
 
         await _db.SaveChangesAsync();
@@ -135,7 +135,7 @@ public sealed class AccountService : IAccountService
 
         if (reset == null) return new NotFound();
 
-        var result = HashingUtils.VerifyToken(secret, reset.Secret);
+        var result = HashingUtils.VerifyToken(secret, reset.SecretHash);
         if (!result.Verified) return new SecretInvalid();
         
         return new Success();
@@ -155,11 +155,11 @@ public sealed class AccountService : IAccountService
         if (user.PasswordResetCount >= 3) return new TooManyPasswordResets();
 
         var secret = CryptoUtils.RandomString(32);
-        var hash = HashingUtils.HashToken(secret);
+        var secretHash = HashingUtils.HashToken(secret);
         var passwordReset = new PasswordReset
         {
             Id = Guid.CreateVersion7(),
-            Secret = hash,
+            SecretHash = secretHash,
             User = user.User
         };
         _db.PasswordResets.Add(passwordReset);
@@ -182,7 +182,7 @@ public sealed class AccountService : IAccountService
 
         if (reset == null) return new NotFound();
 
-        var result = HashingUtils.VerifyToken(secret, reset.Secret);
+        var result = HashingUtils.VerifyToken(secret, reset.SecretHash);
         if (!result.Verified) return new SecretInvalid();
 
         reset.UsedOn = DateTime.UtcNow;
