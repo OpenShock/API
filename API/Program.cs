@@ -97,7 +97,14 @@ app.MapControllers();
 app.MapHub<UserHub>("/1/hubs/user", options => options.Transports = HttpTransportType.WebSockets);
 app.MapHub<ShareLinkHub>("/1/hubs/share/link/{id:guid}", options => options.Transports = HttpTransportType.WebSockets);
 
-app.MapScalarApiReference(options => options.OpenApiRoutePattern = "/swagger/{documentName}/swagger.json");
+Action<ScalarOptions> scalarOptions = options =>
+    options
+        .WithOpenApiRoutePattern("/swagger/{documentName}/swagger.json")
+        .AddDocument("1", "Version 1")
+        .AddDocument("2", "Version 2");
+app.MapScalarApiReference("/scalar/viewer", scalarOptions);
+// Routing for /scalar, E.g: /scalar/1 and /scalar/2
+app.MapScalarApiReference(scalarOptions);
 
 app.Run();
 
