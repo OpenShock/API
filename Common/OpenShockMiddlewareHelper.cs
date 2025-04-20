@@ -5,6 +5,7 @@ using OpenShock.Common.Redis;
 using OpenShock.Common.Utils;
 using Redis.OM;
 using Redis.OM.Contracts;
+using Scalar.AspNetCore;
 using Serilog;
 using IPNetwork = Microsoft.AspNetCore.HttpOverrides.IPNetwork;
 
@@ -20,9 +21,9 @@ public static class OpenShockMiddlewareHelper
         ForwardedForHeaderName = "CF-Connecting-IP"
     };
     
-    public static IApplicationBuilder UseCommonOpenShockMiddleware(this IApplicationBuilder app)
+    public static IApplicationBuilder UseCommonOpenShockMiddleware(this WebApplication app)
     {
-        var metricsOptions = app.ApplicationServices.GetRequiredService<IOptions<MetricsOptions>>().Value;
+        var metricsOptions = app.Services.GetRequiredService<IOptions<MetricsOptions>>().Value;
 
         foreach (var proxy in TrustedProxiesFetcher.GetTrustedNetworks())
         {
@@ -55,7 +56,7 @@ public static class OpenShockMiddlewareHelper
         app.UseAuthorization();
         
         // Redis
-        var redisConnection = app.ApplicationServices.GetRequiredService<IRedisConnectionProvider>().Connection;
+        var redisConnection = app.Services.GetRequiredService<IRedisConnectionProvider>().Connection;
 
         redisConnection.CreateIndex(typeof(LoginSession));
         redisConnection.CreateIndex(typeof(DeviceOnline));
@@ -71,6 +72,18 @@ public static class OpenShockMiddlewareHelper
             var remoteIp = context.Connection.RemoteIpAddress;
             return remoteIp != null && metricsAllowedIpNetworks.Any(x => x.Contains(remoteIp));
         });
+        
+        app.UseSwagger();
+        
+        Action<ScalarOptions> scalarOptions = options =>
+            options
+                .WithOpenApiRoutePattern("/swagger/{documentName}/swagger.json")
+                .AddDocument("1", "Version 1")
+                .AddDocument("2", "Version 2");
+        
+        app.MapScalarApiReference("/scalar/viewer", scalarOptions);
+        
+        app.MapControllers();
         
         return app;
     }

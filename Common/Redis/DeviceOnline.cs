@@ -10,8 +10,8 @@ public sealed class DeviceOnline
 {
     public const string IndexName = "device-online";
     
-    [RedisIdField] [Indexed] public required Guid Id { get; set; }
-    [Indexed] public required Guid Owner { get; set; }
+    [RedisIdField] [Indexed(IndexEmptyAndMissing = false)] public required Guid Id { get; set; }
+    [Indexed(IndexEmptyAndMissing = false)] public required Guid Owner { get; set; }
     [JsonConverter(typeof(SemVersionJsonConverter))]
     public required SemVersion FirmwareVersion { get; set; }
     public required string Gateway { get; set; }

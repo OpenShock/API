@@ -9,6 +9,40 @@ using Timer = System.Timers.Timer;
 
 namespace OpenShock.Common.Services.BatchUpdate;
 
+internal sealed class ConcurrentUniqueBatchQueue<TKey, TValue> where TKey : notnull
+{
+    private readonly ReaderWriterLockSlim _lock = new();
+    private readonly ConcurrentDictionary<TKey, TValue> _dictionary = new();
+
+    public void Enqueue(TKey key, TValue value)
+    {
+        _lock.EnterReadLock();
+        try
+        {
+            _dictionary[key] = value;
+        }
+        finally
+        {
+            _lock.ExitReadLock();
+        }
+    }
+
+    public KeyValuePair<TKey, TValue>[] DequeueAll()
+    {
+        _lock.EnterWriteLock();
+        try
+        {
+            var items = _dictionary.ToArray();
+            _dictionary.Clear();
+            return items;
+        }
+        finally
+        {
+            _lock.ExitWriteLock();
+        }
+    }
+}
+
 public sealed class BatchUpdateService : IHostedService, IBatchUpdateService
 {
     private static readonly TimeSpan Interval = TimeSpan.FromSeconds(10);
@@ -18,8 +52,8 @@ public sealed class BatchUpdateService : IHostedService, IBatchUpdateService
     private readonly IConnectionMultiplexer _connectionMultiplexer;
     private readonly Timer _updateTimer;
 
-    private readonly ConcurrentDictionary<Guid, bool> _tokenLastUsed = new();
-    private readonly ConcurrentDictionary<string, DateTimeOffset> _sessionLastUsed = new();
+    private readonly ConcurrentUniqueBatchQueue<Guid, bool> _tokenLastUsed = new();
+    private readonly ConcurrentUniqueBatchQueue<string, DateTimeOffset> _sessionLastUsed = new();
 
     public BatchUpdateService(IDbContextFactory<OpenShockContext> dbFactory, ILogger<BatchUpdateService> logger, IConnectionMultiplexer connectionMultiplexer)
     {
@@ -45,13 +79,10 @@ public sealed class BatchUpdateService : IHostedService, IBatchUpdateService
 
     private async Task UpdateTokens()
     {
-        var keys = _tokenLastUsed.Keys.ToArray();
+        var keys = _tokenLastUsed.DequeueAll().Select(x => x.Key).ToArray();
 
         // Skip if there is nothing
         if (keys.Length < 1) return;
-
-        // Yeah
-        foreach (var guid in keys) _tokenLastUsed.TryRemove(guid, out _);
             
         await using var db = await _dbFactory.CreateDbContextAsync();
         await db.ApiTokens.Where(x => keys.Contains(x.Id))
@@ -66,9 +97,8 @@ public sealed class BatchUpdateService : IHostedService, IBatchUpdateService
         
         var json = _connectionMultiplexer.GetDatabase().JSON();
         
-        foreach (var sessionKey in _sessionLastUsed.Keys)
+        foreach (var (sessionKey, lastUsed) in _sessionLastUsed.DequeueAll())
         {
-            if (!_sessionLastUsed.TryRemove(sessionKey, out var lastUsed)) return;
             sessionsToUpdate.Add(json.SetAsync(typeof(LoginSession).FullName + ":" + sessionKey, "LastUsed", lastUsed.ToUnixTimeMilliseconds(), When.Always));
         }
 
@@ -83,12 +113,12 @@ public sealed class BatchUpdateService : IHostedService, IBatchUpdateService
 
     public void UpdateTokenLastUsed(Guid tokenId)
     {
-        _tokenLastUsed[tokenId] = false;
+        _tokenLastUsed.Enqueue(tokenId, false);
     }
     
     public void UpdateSessionLastUsed(string sessionKey, DateTimeOffset lastUsed)
     {
-        _sessionLastUsed[sessionKey] = lastUsed;
+        _sessionLastUsed.Enqueue(sessionKey, lastUsed);
     }
 
     public Task StartAsync(CancellationToken cancellationToken)

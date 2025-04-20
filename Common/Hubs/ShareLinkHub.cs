@@ -8,6 +8,7 @@ using OpenShock.Common.Models;
 using OpenShock.Common.OpenShockDb;
 using OpenShock.Common.Redis;
 using OpenShock.Common.Services.RedisPubSub;
+using OpenShock.Common.Services.Session;
 using OpenShock.Common.Utils;
 using Redis.OM.Contracts;
 using Redis.OM.Searching;
@@ -16,7 +17,7 @@ namespace OpenShock.Common.Hubs;
 
 public sealed class ShareLinkHub : Hub<IShareLinkHub>
 {
-    private readonly IRedisCollection<LoginSession> _userSessions;
+    private readonly ISessionService _sessionService;
     private readonly OpenShockContext _db;
     private readonly IHubContext<UserHub, IUserHub> _userHub;
     private readonly ILogger<ShareLinkHub> _logger;
@@ -25,14 +26,14 @@ public sealed class ShareLinkHub : Hub<IShareLinkHub>
     private IReadOnlyList<PermissionType>? _tokenPermissions = null;
 
     public ShareLinkHub(OpenShockContext db, IHubContext<UserHub, IUserHub> userHub, ILogger<ShareLinkHub> logger,
-        IRedisConnectionProvider provider, IRedisPubService redisPubService, IUserReferenceService userReferenceService)
+        ISessionService sessionService, IRedisPubService redisPubService, IUserReferenceService userReferenceService)
     {
         _db = db;
         _userHub = userHub;
         _logger = logger;
         _redisPubService = redisPubService;
         _userReferenceService = userReferenceService;
-        _userSessions = provider.RedisCollection<LoginSession>(false);
+        _sessionService = sessionService;
     }
 
     public override async Task OnConnectedAsync()
@@ -133,8 +134,9 @@ public sealed class ShareLinkHub : Hub<IShareLinkHub>
 
     private async Task<GenericIni?> SessionAuth(string sessionKey)
     {
-        var session = await _userSessions.FindByIdAsync(sessionKey);
+        var session = await _sessionService.GetSessionById(sessionKey);
         if (session == null) return null;
+        
         return await _db.Users.Select(x => new GenericIni
         {
             Id = x.Id,

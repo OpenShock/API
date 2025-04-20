@@ -46,8 +46,4 @@ var app = builder.Build();
 
 app.UseCommonOpenShockMiddleware();
 
-app.UseSwagger();
-
-app.MapControllers();
-
 app.Run();

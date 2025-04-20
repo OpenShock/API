@@ -43,38 +43,17 @@ public sealed class SessionService : ISessionService
 
     public async Task<IReadOnlyList<LoginSession>> ListSessionsByUserId(Guid userId)
     {
-        var sessions = await _loginSessions.Where(x => x.UserId == userId).ToArrayAsync();
-
-        var needsSave = false;
-        foreach (var session in sessions)
-        {
-            needsSave |= UpdateOlderSessions(session);
-        }
-
-        if (needsSave)
-        {
-            await _loginSessions.SaveAsync();
-        }
-
-        return sessions;
+        return await _loginSessions.Where(x => x.UserId == userId).ToArrayAsync();
     }
 
     public async Task<LoginSession?> GetSessionById(string sessionId)
     {
-        var session = await _loginSessions.FindByIdAsync(sessionId);
-
-        if (UpdateOlderSessions(session)) await _loginSessions.SaveAsync();
-
-        return session;
+        return await _loginSessions.FindByIdAsync(sessionId);
     }
 
     public async Task<LoginSession?> GetSessionByPulbicId(Guid publicSessionId)
     {
-        var session = await _loginSessions.Where(x => x.PublicId == publicSessionId).FirstOrDefaultAsync();
-
-        if (UpdateOlderSessions(session)) await _loginSessions.SaveAsync();
-
-        return session;
+        return await _loginSessions.Where(x => x.PublicId == publicSessionId).FirstOrDefaultAsync();
     }
 
     public async Task UpdateSession(LoginSession session, TimeSpan ttl)
@@ -103,32 +82,5 @@ public sealed class SessionService : ISessionService
     public async Task DeleteSession(LoginSession loginSession)
     {
         await _loginSessions.DeleteAsync(loginSession);
-    }
-
-    private static bool UpdateOlderSessions(LoginSession? session)
-    {
-        if (session == null) return false;
-
-        var save = false;
-
-        if (session.PublicId == null)
-        {
-            session.PublicId = Guid.CreateVersion7();
-            save = true;
-        }
-
-        if (session.Created == null)
-        {
-            session.Created = DateTime.UtcNow;
-            save = true;
-        }
-
-        if (session.Expires == null)
-        {
-            session.Expires = DateTime.UtcNow;
-            save = true;
-        }
-
-        return save;
     }
 }
