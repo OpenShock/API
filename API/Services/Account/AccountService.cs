@@ -65,7 +65,7 @@ public sealed class AccountService : IAccountService
             Id = newGuid,
             Name = username,
             Email = email.ToLowerInvariant(),
-            PasswordHash = PasswordHashingUtils.HashPassword(password),
+            PasswordHash = HashingUtils.HashPassword(password),
             EmailActivated = emailActivated,
             Roles = []
         };
@@ -184,7 +184,7 @@ public sealed class AccountService : IAccountService
         if (!BCrypt.Net.BCrypt.EnhancedVerify(secret, reset.Secret, HashAlgo)) return new SecretInvalid();
 
         reset.UsedOn = DateTime.UtcNow;
-        reset.User.PasswordHash = PasswordHashingUtils.HashPassword(newPassword);
+        reset.User.PasswordHash = HashingUtils.HashPassword(newPassword);
         await _db.SaveChangesAsync();
         return new Success();
     }
@@ -248,7 +248,7 @@ public sealed class AccountService : IAccountService
     public async Task<OneOf<Success, NotFound>> ChangePassword(Guid userId, string newPassword)
     {
         var user = await _db.Users.Where(x => x.Id == userId).ExecuteUpdateAsync(calls =>
-            calls.SetProperty(x => x.PasswordHash, PasswordHashingUtils.HashPassword(newPassword)));
+            calls.SetProperty(x => x.PasswordHash, HashingUtils.HashPassword(newPassword)));
         return user switch
         {
             <= 0 => new NotFound(),
@@ -260,7 +260,7 @@ public sealed class AccountService : IAccountService
 
     private async Task<bool> CheckPassword(string password, User user)
     {
-        var result = PasswordHashingUtils.VerifyPassword(password, user.PasswordHash);
+        var result = HashingUtils.VerifyPassword(password, user.PasswordHash);
 
         if (!result.Verified)
         {
@@ -271,7 +271,7 @@ public sealed class AccountService : IAccountService
         if (result.NeedsRehash)
         {
             _logger.LogInformation("Rehashing password for user ID: [{Id}]", user.Id);
-            user.PasswordHash = PasswordHashingUtils.HashPassword(password);
+            user.PasswordHash = HashingUtils.HashPassword(password);
             await _db.SaveChangesAsync();
         }
 

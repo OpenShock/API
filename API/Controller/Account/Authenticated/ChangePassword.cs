@@ -17,7 +17,7 @@ public sealed partial class AuthenticatedAccountController
     [ProducesResponseType(StatusCodes.Status200OK)]
     public async Task<IActionResult> ChangePassword(ChangePasswordRequest data)
     {
-        if (!PasswordHashingUtils.VerifyPassword(data.OldPassword, CurrentUser.PasswordHash).Verified)
+        if (!HashingUtils.VerifyPassword(data.OldPassword, CurrentUser.PasswordHash).Verified)
         {
             return Problem(AccountError.PasswordChangeInvalidPassword);
         }
