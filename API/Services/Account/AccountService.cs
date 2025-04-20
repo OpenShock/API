@@ -1,5 +1,4 @@
-﻿using BCrypt.Net;
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using OneOf;
 using OneOf.Types;
@@ -19,8 +18,6 @@ namespace OpenShock.API.Services.Account;
 /// </summary>
 public sealed class AccountService : IAccountService
 {
-    private const HashType HashAlgo = HashType.SHA512;
-
     private readonly OpenShockContext _db;
     private readonly IEmailService _emailService;
     private readonly ISessionService _sessionService;
@@ -87,7 +84,7 @@ public sealed class AccountService : IAccountService
 
         var id = Guid.CreateVersion7();
         var secret = CryptoUtils.RandomString(32);
-        var secretHash = BCrypt.Net.BCrypt.EnhancedHashPassword(secret, HashAlgo);
+        var secretHash = HashingUtils.HashToken(secret);
 
         _db.UsersActivations.Add(new UsersActivation()
         {
@@ -137,7 +134,10 @@ public sealed class AccountService : IAccountService
             cancellationToken: cancellationToken);
 
         if (reset == null) return new NotFound();
-        if (!BCrypt.Net.BCrypt.EnhancedVerify(secret, reset.Secret, HashAlgo)) return new SecretInvalid();
+
+        var result = HashingUtils.VerifyToken(secret, reset.Secret);
+        if (!result.Verified) return new SecretInvalid();
+        
         return new Success();
     }
 
@@ -155,7 +155,7 @@ public sealed class AccountService : IAccountService
         if (user.PasswordResetCount >= 3) return new TooManyPasswordResets();
 
         var secret = CryptoUtils.RandomString(32);
-        var hash = BCrypt.Net.BCrypt.EnhancedHashPassword(secret, HashAlgo);
+        var hash = HashingUtils.HashToken(secret);
         var passwordReset = new PasswordReset
         {
             Id = Guid.CreateVersion7(),
@@ -181,7 +181,9 @@ public sealed class AccountService : IAccountService
             x.Id == passwordResetId && x.UsedOn == null && x.CreatedOn < validUntil);
 
         if (reset == null) return new NotFound();
-        if (!BCrypt.Net.BCrypt.EnhancedVerify(secret, reset.Secret, HashAlgo)) return new SecretInvalid();
+
+        var result = HashingUtils.VerifyToken(secret, reset.Secret);
+        if (!result.Verified) return new SecretInvalid();
 
         reset.UsedOn = DateTime.UtcNow;
         reset.User.PasswordHash = HashingUtils.HashPassword(newPassword);

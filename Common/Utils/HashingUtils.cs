@@ -102,4 +102,22 @@ public static class HashingUtils
         
         return VerifyHashFailureResult;
     }
+
+    public static string HashToken(string token)
+    {
+        return HashSha256(token);
+    }
+    public static VerifyHashResult VerifyToken(string token, string hashedToken)
+    {
+        if (string.IsNullOrEmpty(token)) return VerifyHashFailureResult;
+
+        bool isOldHashType = hashedToken[0] == '$';
+        if (isOldHashType)
+        {
+            bool matches = BCrypt.Net.BCrypt.EnhancedVerify(token, hashedToken, BCryptHashType);
+            return new VerifyHashResult(matches, true);
+        }
+        
+        return new VerifyHashResult(HashToken(token) == hashedToken, false);
+    }
 }
