@@ -111,11 +111,9 @@ public static class HashingUtils
     {
         if (string.IsNullOrEmpty(token)) return VerifyHashFailureResult;
 
-        bool isOldHashType = hashedToken[0] == '$';
-        if (isOldHashType)
+        if (hashedToken.Contains('$'))
         {
-            bool matches = BCrypt.Net.BCrypt.EnhancedVerify(token, hashedToken, BCryptHashType);
-            return new VerifyHashResult(matches, true);
+            return VerifyPassword(token, hashedToken) with { NeedsRehash = true };
         }
         
         return new VerifyHashResult(HashToken(token) == hashedToken, false);
