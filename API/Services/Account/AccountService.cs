@@ -83,7 +83,7 @@ public sealed class AccountService : IAccountService
         var user = accountCreate.AsT0.Value;
 
         var id = Guid.CreateVersion7();
-        var secret = CryptoUtils.RandomString(32);
+        var secret = CryptoUtils.RandomString(AuthConstants.GeneratedTokenLength);
         var secretHash = HashingUtils.HashToken(secret);
 
         _db.UsersActivations.Add(new UsersActivation()
@@ -154,7 +154,7 @@ public sealed class AccountService : IAccountService
         if (user == null) return new NotFound();
         if (user.PasswordResetCount >= 3) return new TooManyPasswordResets();
 
-        var secret = CryptoUtils.RandomString(32);
+        var secret = CryptoUtils.RandomString(AuthConstants.GeneratedTokenLength);
         var secretHash = HashingUtils.HashToken(secret);
         var passwordReset = new PasswordReset
         {
