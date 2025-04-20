@@ -48,9 +48,9 @@ public sealed class ShareLinkHub : Hub<IShareLinkHub>
         
         GenericIni? user = null;
 
-        if (httpContext.TryGetUserSession(out var sessionCookie))
+        if (httpContext.TryGetUserSessionToken(out var sessionToken))
         {
-            user = await SessionAuth(sessionCookie);
+            user = await SessionAuth(sessionToken);
             if (user == null)
             {
                 _logger.LogDebug("Connection tried authentication with invalid user session cookie, terminating connection...");
@@ -132,9 +132,9 @@ public sealed class ShareLinkHub : Hub<IShareLinkHub>
     private CustomDataHolder CustomData => (CustomDataHolder)Context.Items[ShareLinkCustomData]!;
     private const string ShareLinkCustomData = "ShareLinkCustomData";
 
-    private async Task<GenericIni?> SessionAuth(string sessionKey)
+    private async Task<GenericIni?> SessionAuth(string sessionToken)
     {
-        var session = await _sessionService.GetSessionById(sessionKey);
+        var session = await _sessionService.GetSessionByToken(sessionToken);
         if (session == null) return null;
         
         return await _db.Users.Select(x => new GenericIni

@@ -20,7 +20,6 @@ public static class HardLimits
     public const int UserAgentMaxLength = 1024;
     
     public const int ApiKeyNameMaxLength = 64;
-    public const int ApiKeyTokenLength = 64;
     public const int ApiKeyMaxPermissions = 256;
     
     public const int HubNameMinLength = 1;

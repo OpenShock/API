@@ -1,5 +1,4 @@
-﻿using BCrypt.Net;
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using OneOf;
 using OneOf.Types;
@@ -19,8 +18,6 @@ namespace OpenShock.API.Services.Account;
 /// </summary>
 public sealed class AccountService : IAccountService
 {
-    private const HashType HashAlgo = HashType.SHA512;
-
     private readonly OpenShockContext _db;
     private readonly IEmailService _emailService;
     private readonly ISessionService _sessionService;
@@ -65,7 +62,7 @@ public sealed class AccountService : IAccountService
             Id = newGuid,
             Name = username,
             Email = email.ToLowerInvariant(),
-            PasswordHash = PasswordHashingUtils.HashPassword(password),
+            PasswordHash = HashingUtils.HashPassword(password),
             EmailActivated = emailActivated,
             Roles = []
         };
@@ -86,14 +83,14 @@ public sealed class AccountService : IAccountService
         var user = accountCreate.AsT0.Value;
 
         var id = Guid.CreateVersion7();
-        var secret = CryptoUtils.RandomString(32);
-        var secretHash = BCrypt.Net.BCrypt.EnhancedHashPassword(secret, HashAlgo);
+        var secret = CryptoUtils.RandomString(AuthConstants.GeneratedTokenLength);
+        var secretHash = HashingUtils.HashToken(secret);
 
         _db.UsersActivations.Add(new UsersActivation()
         {
             Id = id,
             UserId = user.Id,
-            Secret = secretHash
+            SecretHash = secretHash
         });
 
         await _db.SaveChangesAsync();
@@ -120,11 +117,9 @@ public sealed class AccountService : IAccountService
 
         if (!await CheckPassword(password, user)) return new NotFound();
 
-        var randomSessionId = CryptoUtils.RandomString(64);
+        var createdSession = await _sessionService.CreateSessionAsync(user.Id, loginContext.UserAgent, loginContext.Ip);
 
-        await _sessionService.CreateSessionAsync(randomSessionId, user.Id, loginContext.UserAgent, loginContext.Ip);
-
-        return new Success<string>(randomSessionId);
+        return new Success<string>(createdSession.Token);
     }
 
     /// <inheritdoc />
@@ -137,7 +132,10 @@ public sealed class AccountService : IAccountService
             cancellationToken: cancellationToken);
 
         if (reset == null) return new NotFound();
-        if (!BCrypt.Net.BCrypt.EnhancedVerify(secret, reset.Secret, HashAlgo)) return new SecretInvalid();
+
+        var result = HashingUtils.VerifyToken(secret, reset.SecretHash);
+        if (!result.Verified) return new SecretInvalid();
+        
         return new Success();
     }
 
@@ -154,12 +152,12 @@ public sealed class AccountService : IAccountService
         if (user == null) return new NotFound();
         if (user.PasswordResetCount >= 3) return new TooManyPasswordResets();
 
-        var secret = CryptoUtils.RandomString(32);
-        var hash = BCrypt.Net.BCrypt.EnhancedHashPassword(secret, HashAlgo);
+        var secret = CryptoUtils.RandomString(AuthConstants.GeneratedTokenLength);
+        var secretHash = HashingUtils.HashToken(secret);
         var passwordReset = new PasswordReset
         {
             Id = Guid.CreateVersion7(),
-            Secret = hash,
+            SecretHash = secretHash,
             User = user.User
         };
         _db.PasswordResets.Add(passwordReset);
@@ -181,10 +179,12 @@ public sealed class AccountService : IAccountService
             x.Id == passwordResetId && x.UsedOn == null && x.CreatedOn < validUntil);
 
         if (reset == null) return new NotFound();
-        if (!BCrypt.Net.BCrypt.EnhancedVerify(secret, reset.Secret, HashAlgo)) return new SecretInvalid();
+
+        var result = HashingUtils.VerifyToken(secret, reset.SecretHash);
+        if (!result.Verified) return new SecretInvalid();
 
         reset.UsedOn = DateTime.UtcNow;
-        reset.User.PasswordHash = PasswordHashingUtils.HashPassword(newPassword);
+        reset.User.PasswordHash = HashingUtils.HashPassword(newPassword);
         await _db.SaveChangesAsync();
         return new Success();
     }
@@ -248,7 +248,7 @@ public sealed class AccountService : IAccountService
     public async Task<OneOf<Success, NotFound>> ChangePassword(Guid userId, string newPassword)
     {
         var user = await _db.Users.Where(x => x.Id == userId).ExecuteUpdateAsync(calls =>
-            calls.SetProperty(x => x.PasswordHash, PasswordHashingUtils.HashPassword(newPassword)));
+            calls.SetProperty(x => x.PasswordHash, HashingUtils.HashPassword(newPassword)));
         return user switch
         {
             <= 0 => new NotFound(),
@@ -260,7 +260,7 @@ public sealed class AccountService : IAccountService
 
     private async Task<bool> CheckPassword(string password, User user)
     {
-        var result = PasswordHashingUtils.VerifyPassword(password, user.PasswordHash);
+        var result = HashingUtils.VerifyPassword(password, user.PasswordHash);
 
         if (!result.Verified)
         {
@@ -271,7 +271,7 @@ public sealed class AccountService : IAccountService
         if (result.NeedsRehash)
         {
             _logger.LogInformation("Rehashing password for user ID: [{Id}]", user.Id);
-            user.PasswordHash = PasswordHashingUtils.HashPassword(password);
+            user.PasswordHash = HashingUtils.HashPassword(password);
             await _db.SaveChangesAsync();
         }
 

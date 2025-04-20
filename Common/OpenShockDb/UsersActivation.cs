@@ -10,7 +10,7 @@ public partial class UsersActivation
 
     public DateTime? UsedOn { get; set; }
 
-    public string Secret { get; set; } = null!;
+    public string SecretHash { get; set; } = null!;
 
     public virtual User User { get; set; } = null!;
 }

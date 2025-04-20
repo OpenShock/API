@@ -238,7 +238,7 @@ public partial class OpenShockContext : DbContext
             entity.Property(e => e.CreatedOn)
                 .HasDefaultValueSql("CURRENT_TIMESTAMP")
                 .HasColumnName("created_on");
-            entity.Property(e => e.Secret)
+            entity.Property(e => e.SecretHash)
                 .VarCharWithLength(HardLimits.PasswordResetSecretMaxLength)
                 .HasColumnName("secret");
             entity.Property(e => e.UsedOn)
@@ -546,7 +546,7 @@ public partial class OpenShockContext : DbContext
             entity.Property(e => e.CreatedOn)
                 .HasDefaultValueSql("CURRENT_TIMESTAMP")
                 .HasColumnName("created_on");
-            entity.Property(e => e.Secret)
+            entity.Property(e => e.SecretHash)
                 .VarCharWithLength(HardLimits.UserActivationSecretMaxLength)
                 .HasColumnName("secret");
             entity.Property(e => e.UsedOn).HasColumnName("used_on");
@@ -578,7 +578,7 @@ public partial class OpenShockContext : DbContext
             entity.Property(e => e.Email)
                 .VarCharWithLength(HardLimits.EmailAddressMaxLength)
                 .HasColumnName("email");
-            entity.Property(e => e.Secret)
+            entity.Property(e => e.SecretHash)
                 .VarCharWithLength(HardLimits.UserEmailChangeSecretMaxLength)
                 .HasColumnName("secret");
             entity.Property(e => e.UsedOn).HasColumnName("used_on");

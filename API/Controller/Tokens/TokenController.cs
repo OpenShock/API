@@ -74,12 +74,12 @@ public sealed partial class TokensController
     [ProducesResponseType<TokenCreatedResponse>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
     public async Task<TokenCreatedResponse> CreateToken([FromBody] CreateTokenRequest body)
     {
-        string token = CryptoUtils.RandomString(HardLimits.ApiKeyTokenLength);
+        string token = CryptoUtils.RandomString(AuthConstants.GeneratedTokenLength);
 
         var tokenDto = new ApiToken
         {
             UserId = CurrentUser.Id,
-            TokenHash = HashingUtils.HashSha256(token),
+            TokenHash = HashingUtils.HashToken(token),
             CreatedByIp = HttpContext.GetRemoteIP(),
             Permissions = body.Permissions.Distinct().ToList(),
             Id = Guid.CreateVersion7(),

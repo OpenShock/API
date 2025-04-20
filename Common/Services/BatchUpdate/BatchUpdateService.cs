@@ -2,8 +2,10 @@
 using System.Timers;
 using Microsoft.EntityFrameworkCore;
 using NRedisStack.RedisStackCommands;
+using OpenShock.Common.Constants;
 using OpenShock.Common.OpenShockDb;
 using OpenShock.Common.Redis;
+using OpenShock.Common.Utils;
 using StackExchange.Redis;
 using Timer = System.Timers.Timer;
 
@@ -97,9 +99,9 @@ public sealed class BatchUpdateService : IHostedService, IBatchUpdateService
         
         var json = _connectionMultiplexer.GetDatabase().JSON();
         
-        foreach (var (sessionKey, lastUsed) in _sessionLastUsed.DequeueAll())
+        foreach (var (sessionToken, lastUsed) in _sessionLastUsed.DequeueAll())
         {
-            sessionsToUpdate.Add(json.SetAsync(typeof(LoginSession).FullName + ":" + sessionKey, "LastUsed", lastUsed.ToUnixTimeMilliseconds(), When.Always));
+            sessionsToUpdate.Add(json.SetAsync(typeof(LoginSession).FullName + ":" + sessionToken, "LastUsed", lastUsed.ToUnixTimeMilliseconds(), When.Always));
         }
 
         try
@@ -111,14 +113,20 @@ public sealed class BatchUpdateService : IHostedService, IBatchUpdateService
         }
     }
 
-    public void UpdateTokenLastUsed(Guid tokenId)
+    public void UpdateApiTokenLastUsed(Guid apiTokenId)
     {
-        _tokenLastUsed.Enqueue(tokenId, false);
+        _tokenLastUsed.Enqueue(apiTokenId, false);
     }
     
-    public void UpdateSessionLastUsed(string sessionKey, DateTimeOffset lastUsed)
+    public void UpdateSessionLastUsed(string sessionToken, DateTimeOffset lastUsed)
     {
-        _sessionLastUsed.Enqueue(sessionKey, lastUsed);
+        // Only hash new tokens, old ones are 64 chars long
+        if (sessionToken.Length == AuthConstants.GeneratedTokenLength)
+        {
+            sessionToken = HashingUtils.HashToken(sessionToken);
+        }
+        
+        _sessionLastUsed.Enqueue(sessionToken, lastUsed);
     }
 
     public Task StartAsync(CancellationToken cancellationToken)
