@@ -117,11 +117,9 @@ public sealed class AccountService : IAccountService
 
         if (!await CheckPassword(password, user)) return new NotFound();
 
-        var randomSessionId = CryptoUtils.RandomString(64);
+        var createdSession = await _sessionService.CreateSessionAsync(user.Id, loginContext.UserAgent, loginContext.Ip);
 
-        await _sessionService.CreateSessionAsync(randomSessionId, user.Id, loginContext.UserAgent, loginContext.Ip);
-
-        return new Success<string>(randomSessionId);
+        return new Success<string>(createdSession.Token);
     }
 
     /// <inheritdoc />

@@ -1,6 +1,7 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using OpenShock.Common.Constants;
 using OpenShock.Common.Redis;
+using OpenShock.Common.Utils;
 using Redis.OM;
 using Redis.OM.Contracts;
 using Redis.OM.Searching;
@@ -23,22 +24,23 @@ public sealed class SessionService : ISessionService
         _loginSessions = redisConnectionProvider.RedisCollection<LoginSession>(false);
     }
 
-    public async Task<Guid> CreateSessionAsync(string sessionId, Guid userId, string userAgent, string ipAddress)
+    public async Task<CreateSessionResult> CreateSessionAsync(Guid userId, string userAgent, string ipAddress)
     {
-        Guid publicId = Guid.CreateVersion7();
+        Guid id = Guid.CreateVersion7();
+        string token = CryptoUtils.RandomString(AuthConstants.GeneratedTokenLength);
 
         await _loginSessions.InsertAsync(new LoginSession
         {
-            Id = sessionId,
+            Id = HashingUtils.HashToken(token),
             UserId = userId,
             UserAgent = userAgent,
             Ip = ipAddress,
-            PublicId = publicId,
+            PublicId = id,
             Created = DateTime.UtcNow,
             Expires = DateTime.UtcNow.Add(Duration.LoginSessionLifetime),
         }, Duration.LoginSessionLifetime);
 
-        return publicId;
+        return new CreateSessionResult(id, token);
     }
 
     public async Task<IReadOnlyList<LoginSession>> ListSessionsByUserId(Guid userId)
@@ -63,6 +65,12 @@ public sealed class SessionService : ISessionService
 
     public async Task<bool> DeleteSessionById(string sessionId)
     {
+        // Only hash new tokens, old ones are 64 chars long
+        if (sessionId.Length == AuthConstants.GeneratedTokenLength)
+        {
+            sessionId = HashingUtils.HashToken(sessionId);
+        }
+        
         var session = await _loginSessions.FindByIdAsync(sessionId);
         if (session == null) return false;
 
