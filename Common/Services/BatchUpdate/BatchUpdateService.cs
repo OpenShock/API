@@ -2,8 +2,10 @@
 using System.Timers;
 using Microsoft.EntityFrameworkCore;
 using NRedisStack.RedisStackCommands;
+using OpenShock.Common.Constants;
 using OpenShock.Common.OpenShockDb;
 using OpenShock.Common.Redis;
+using OpenShock.Common.Utils;
 using StackExchange.Redis;
 using Timer = System.Timers.Timer;
 
@@ -118,6 +120,12 @@ public sealed class BatchUpdateService : IHostedService, IBatchUpdateService
     
     public void UpdateSessionLastUsed(string sessionToken, DateTimeOffset lastUsed)
     {
+        // Only hash new tokens, old ones are 64 chars long
+        if (sessionToken.Length == AuthConstants.GeneratedTokenLength)
+        {
+            sessionToken = HashingUtils.HashToken(sessionToken);
+        }
+        
         _sessionLastUsed.Enqueue(sessionToken, lastUsed);
     }
 
