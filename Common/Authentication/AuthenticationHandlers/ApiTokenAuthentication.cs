@@ -54,7 +54,7 @@ public sealed class ApiTokenAuthentication : AuthenticationHandler<Authenticatio
             (x.ValidUntil == null || x.ValidUntil >= DateTime.UtcNow));
         if (tokenDto == null) return Fail(AuthResultError.TokenInvalid);
 
-        _batchUpdateService.UpdateTokenLastUsed(tokenDto.Id);
+        _batchUpdateService.UpdateApiTokenLastUsed(tokenDto.Id);
         _authService.CurrentClient = tokenDto.User;
         _userReferenceService.AuthReference = tokenDto;
 

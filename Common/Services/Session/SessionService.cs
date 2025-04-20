@@ -48,14 +48,14 @@ public sealed class SessionService : ISessionService
         return await _loginSessions.Where(x => x.UserId == userId).ToArrayAsync();
     }
 
-    public async Task<LoginSession?> GetSessionById(string sessionId)
+    public async Task<LoginSession?> GetSessionByToken(string sessionToken)
     {
-        return await _loginSessions.FindByIdAsync(sessionId);
+        return await _loginSessions.FindByIdAsync(sessionToken);
     }
 
-    public async Task<LoginSession?> GetSessionByPulbicId(Guid publicSessionId)
+    public async Task<LoginSession?> GetSessionById(Guid sessionId)
     {
-        return await _loginSessions.Where(x => x.PublicId == publicSessionId).FirstOrDefaultAsync();
+        return await _loginSessions.Where(x => x.PublicId == sessionId).FirstOrDefaultAsync();
     }
 
     public async Task UpdateSession(LoginSession session, TimeSpan ttl)
@@ -63,24 +63,24 @@ public sealed class SessionService : ISessionService
         await _loginSessions.UpdateAsync(session, ttl);
     }
 
-    public async Task<bool> DeleteSessionById(string sessionId)
+    public async Task<bool> DeleteSessionByToken(string sessionToken)
     {
         // Only hash new tokens, old ones are 64 chars long
-        if (sessionId.Length == AuthConstants.GeneratedTokenLength)
+        if (sessionToken.Length == AuthConstants.GeneratedTokenLength)
         {
-            sessionId = HashingUtils.HashToken(sessionId);
+            sessionToken = HashingUtils.HashToken(sessionToken);
         }
         
-        var session = await _loginSessions.FindByIdAsync(sessionId);
+        var session = await _loginSessions.FindByIdAsync(sessionToken);
         if (session == null) return false;
 
         await _loginSessions.DeleteAsync(session);
         return true;
     }
 
-    public async Task<bool> DeleteSessionByPublicId(Guid publicSessionId)
+    public async Task<bool> DeleteSessionById(Guid sessionId)
     {
-        var session = await _loginSessions.Where(x => x.PublicId == publicSessionId).FirstOrDefaultAsync();
+        var session = await _loginSessions.Where(x => x.PublicId == sessionId).FirstOrDefaultAsync();
         if (session == null) return false;
 
         await _loginSessions.DeleteAsync(session);

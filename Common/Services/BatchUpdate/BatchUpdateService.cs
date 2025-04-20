@@ -97,9 +97,9 @@ public sealed class BatchUpdateService : IHostedService, IBatchUpdateService
         
         var json = _connectionMultiplexer.GetDatabase().JSON();
         
-        foreach (var (sessionKey, lastUsed) in _sessionLastUsed.DequeueAll())
+        foreach (var (sessionToken, lastUsed) in _sessionLastUsed.DequeueAll())
         {
-            sessionsToUpdate.Add(json.SetAsync(typeof(LoginSession).FullName + ":" + sessionKey, "LastUsed", lastUsed.ToUnixTimeMilliseconds(), When.Always));
+            sessionsToUpdate.Add(json.SetAsync(typeof(LoginSession).FullName + ":" + sessionToken, "LastUsed", lastUsed.ToUnixTimeMilliseconds(), When.Always));
         }
 
         try
@@ -111,14 +111,14 @@ public sealed class BatchUpdateService : IHostedService, IBatchUpdateService
         }
     }
 
-    public void UpdateTokenLastUsed(Guid tokenId)
+    public void UpdateApiTokenLastUsed(Guid apiTokenId)
     {
-        _tokenLastUsed.Enqueue(tokenId, false);
+        _tokenLastUsed.Enqueue(apiTokenId, false);
     }
     
-    public void UpdateSessionLastUsed(string sessionKey, DateTimeOffset lastUsed)
+    public void UpdateSessionLastUsed(string sessionToken, DateTimeOffset lastUsed)
     {
-        _sessionLastUsed.Enqueue(sessionKey, lastUsed);
+        _sessionLastUsed.Enqueue(sessionToken, lastUsed);
     }
 
     public Task StartAsync(CancellationToken cancellationToken)

@@ -48,12 +48,12 @@ public sealed class UserSessionAuthentication : AuthenticationHandler<Authentica
 
     protected override async Task<AuthenticateResult> HandleAuthenticateAsync()
     {
-        if (!Context.TryGetUserSession(out var sessionKey))
+        if (!Context.TryGetUserSessionToken(out var sessionToken))
         {
             return Fail(AuthResultError.CookieMissingOrInvalid);
         }
 
-        var session = await _sessionService.GetSessionById(sessionKey);
+        var session = await _sessionService.GetSessionByToken(sessionToken);
         if (session == null) return Fail(AuthResultError.SessionInvalid);
 
         if (session.Expires!.Value < DateTime.UtcNow.Subtract(Duration.LoginSessionExpansionAfter))
@@ -67,7 +67,7 @@ public sealed class UserSessionAuthentication : AuthenticationHandler<Authentica
             });
         }
 
-        _batchUpdateService.UpdateSessionLastUsed(sessionKey, DateTimeOffset.UtcNow);
+        _batchUpdateService.UpdateSessionLastUsed(sessionToken, DateTimeOffset.UtcNow);
 
         var retrievedUser = await _db.Users.FirstAsync(user => user.Id == session.UserId);
 
