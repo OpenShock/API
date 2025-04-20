@@ -2,8 +2,23 @@
 
 namespace OpenShock.Common.Geo;
 
-public readonly record struct CountryInfo(Alpha2CountryCode CountryCode, string Name, float Latitude, float Longitude, string? CfRegion)
+public sealed class CountryInfo
 {
+    public CountryInfo(Alpha2CountryCode countryCode, string name, float latitude, float longitude, string? cfRegion)
+    {
+        CountryCode = countryCode;
+        Name = name;
+        Latitude = latitude;
+        Longitude = longitude;
+        CfRegion = cfRegion;
+    }
+    
+    public Alpha2CountryCode CountryCode { get; init; }
+    public string Name { get; init; }
+    public float Latitude { get; init; }
+    public float Longitude { get; init; }
+    public string? CfRegion { get; init; }
+    
     public static readonly CountryInfo UnknownCountry = new(Alpha2CountryCode.UnknownCountry, "Unknown", 0f, 0f, null);
     public static readonly CountryInfo[] Countries =
         [
