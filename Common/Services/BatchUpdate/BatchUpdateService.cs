@@ -19,9 +19,7 @@ public sealed class BatchUpdateService : IHostedService, IBatchUpdateService
     private readonly Timer _updateTimer;
 
     private readonly ConcurrentDictionary<Guid, bool> _tokenLastUsed = new();
-    private readonly ConcurrentQueue<SessionLastUsedUpdate> _sessionLastUsed = new();
-    
-    private sealed record SessionLastUsedUpdate(string SessionKey, DateTimeOffset LastUsed);
+    private readonly ConcurrentDictionary<string, DateTimeOffset> _sessionLastUsed = new();
 
     public BatchUpdateService(IDbContextFactory<OpenShockContext> dbFactory, ILogger<BatchUpdateService> logger, IConnectionMultiplexer connectionMultiplexer)
     {
@@ -68,9 +66,10 @@ public sealed class BatchUpdateService : IHostedService, IBatchUpdateService
         
         var json = _connectionMultiplexer.GetDatabase().JSON();
         
-        while (_sessionLastUsed.TryDequeue(out var update))
+        foreach (var sessionKey in _sessionLastUsed.Keys)
         {
-            sessionsToUpdate.Add(json.SetAsync(typeof(LoginSession).FullName + ":" + update.SessionKey, "LastUsed", update.LastUsed.ToUnixTimeMilliseconds(), When.Always));
+            if (!_sessionLastUsed.TryRemove(sessionKey, out var lastUsed)) return;
+            sessionsToUpdate.Add(json.SetAsync(typeof(LoginSession).FullName + ":" + sessionKey, "LastUsed", lastUsed.ToUnixTimeMilliseconds(), When.Always));
         }
 
         try
@@ -89,7 +88,7 @@ public sealed class BatchUpdateService : IHostedService, IBatchUpdateService
     
     public void UpdateSessionLastUsed(string sessionKey, DateTimeOffset lastUsed)
     {
-        _sessionLastUsed.Enqueue(new SessionLastUsedUpdate(sessionKey, lastUsed));
+        _sessionLastUsed[sessionKey] = lastUsed;
     }
 
     public Task StartAsync(CancellationToken cancellationToken)
