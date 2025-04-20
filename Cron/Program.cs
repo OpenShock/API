@@ -2,6 +2,7 @@ using Hangfire;
 using Hangfire.PostgreSql;
 using OpenShock.Common;
 using OpenShock.Common.Extensions;
+using OpenShock.Cron;
 using OpenShock.Cron.Utils;
 
 var builder = OpenShockApplication.CreateDefaultBuilder<Program>(args);
@@ -22,15 +23,13 @@ var app = builder.Build();
 
 app.UseCommonOpenShockMiddleware();
 
-app.UseHangfireDashboard(options: new DashboardOptions
+var hangfireOptions = new DashboardOptions();
+if (app.Environment.IsProduction())
 {
-#if !DEBUG
-    AsyncAuthorization =
-    [
-        new DashboardAdminAuth()
-    ]
-#endif
-});
+    hangfireOptions.AsyncAuthorization = [ new DashboardAdminAuth() ];
+}
+
+app.UseHangfireDashboard(options: hangfireOptions);
 
 var jobManager = app.Services.GetRequiredService<IRecurringJobManagerV2>();
 foreach (var cronJob in CronJobCollector.GetAllCronJobs())

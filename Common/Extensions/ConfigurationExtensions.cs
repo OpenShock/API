@@ -7,9 +7,11 @@ public static class ConfigurationExtensions
 {
     public static WebApplicationBuilder RegisterCommonOpenShockOptions(this WebApplicationBuilder builder)
     {
-#if DEBUG
-        Console.WriteLine(builder.Configuration.GetDebugView());
-#endif
+        if (builder.Environment.IsDevelopment())
+        {
+            Console.WriteLine(builder.Configuration.GetDebugView());
+        }
+        
         builder.Services.Configure<DatabaseOptions>(builder.Configuration.GetRequiredSection(DatabaseOptions.SectionName));
         builder.Services.AddSingleton<IValidateOptions<DatabaseOptions>, DatabaseOptionsValidator>();
         
