@@ -2,7 +2,6 @@ using Hangfire;
 using Hangfire.PostgreSql;
 using OpenShock.Common;
 using OpenShock.Common.Extensions;
-using OpenShock.Cron;
 using OpenShock.Cron.Utils;
 
 var builder = OpenShockApplication.CreateDefaultBuilder<Program>(args);
@@ -32,8 +31,6 @@ app.UseHangfireDashboard(options: new DashboardOptions
     ]
 #endif
 });
-
-app.MapControllers();
 
 var jobManager = app.Services.GetRequiredService<IRecurringJobManagerV2>();
 foreach (var cronJob in CronJobCollector.GetAllCronJobs())

@@ -16,7 +16,6 @@ using OpenShock.Common.Services.LCGNodeProvisioner;
 using OpenShock.Common.Services.Ota;
 using OpenShock.Common.Services.Turnstile;
 using OpenShock.Common.Swagger;
-using Scalar.AspNetCore;
 using Serilog;
 
 var builder = OpenShockApplication.CreateDefaultBuilder<Program>(args);
@@ -90,21 +89,8 @@ else
     Log.Warning("Skipping possible database migrations...");
 }
 
-app.UseSwagger();
-
-app.MapControllers();
-
 app.MapHub<UserHub>("/1/hubs/user", options => options.Transports = HttpTransportType.WebSockets);
 app.MapHub<ShareLinkHub>("/1/hubs/share/link/{id:guid}", options => options.Transports = HttpTransportType.WebSockets);
-
-Action<ScalarOptions> scalarOptions = options =>
-    options
-        .WithOpenApiRoutePattern("/swagger/{documentName}/swagger.json")
-        .AddDocument("1", "Version 1")
-        .AddDocument("2", "Version 2");
-app.MapScalarApiReference("/scalar/viewer", scalarOptions);
-// Routing for /scalar, E.g: /scalar/1 and /scalar/2
-app.MapScalarApiReference(scalarOptions);
 
 app.Run();
 
