@@ -50,6 +50,12 @@ public sealed class SessionService : ISessionService
 
     public async Task<LoginSession?> GetSessionByToken(string sessionToken)
     {
+        // Only hash new tokens, old ones are 64 chars long
+        if (sessionToken.Length == AuthConstants.GeneratedTokenLength)
+        {
+            sessionToken = HashingUtils.HashToken(sessionToken);
+        }
+        
         return await _loginSessions.FindByIdAsync(sessionToken);
     }
 
