@@ -6,7 +6,7 @@ namespace OpenShock.Common.Utils;
 public static class PasswordHashingUtils
 {
     private const string BCryptPrefix = "bcrypt";
-    private const string PBKDF2Prefix = "pbkdf2";
+    private const string Pbkdf2Prefix = "pbkdf2";
 
     private const HashType BCryptHashType = HashType.SHA512;
 
@@ -19,7 +19,7 @@ public static class PasswordHashingUtils
         return prefix switch
         {
             BCryptPrefix => PasswordHashingAlgorithm.BCrypt,
-            PBKDF2Prefix => PasswordHashingAlgorithm.PBKDF2,
+            Pbkdf2Prefix => PasswordHashingAlgorithm.PBKDF2,
             _ => PasswordHashingAlgorithm.Unknown,
         };
     }
@@ -53,7 +53,7 @@ public static class PasswordHashingUtils
 #pragma warning disable CS0618 // Type or member is obsolete
             return new VerifyPasswordResult
             {
-                Verified = PBKDF2PasswordHasher.Verify(password, combinedHash, customName: PBKDF2Prefix + ":"),
+                Verified = PBKDF2PasswordHasher.Verify(password, combinedHash, customName: Pbkdf2Prefix + ":"),
                 NeedsRehash = true
             };
 #pragma warning restore CS0618 // Type or member is obsolete
