@@ -27,7 +27,7 @@ public static class PasswordHashingUtils
     public static PasswordHashingAlgorithm GetPasswordHashingAlgorithm(ReadOnlySpan<char> combinedHash)
     {
         int index = combinedHash.IndexOf(':');
-        if (index < 0) return PasswordHashingAlgorithm.Unknown;
+        if (index <= 0) return PasswordHashingAlgorithm.Unknown;
         
         return PasswordHashingAlgorithmFromPrefix(combinedHash[..index]);
     }
@@ -35,7 +35,7 @@ public static class PasswordHashingUtils
     public static VerifyPasswordResult VerifyPassword(string password, string combinedHash)
     {
         int index = combinedHash.IndexOf(':');
-        if (index < 0) return VerifyPasswordFailureResult;
+        if (index <= 0) return VerifyPasswordFailureResult;
         
         var algorithm = PasswordHashingAlgorithmFromPrefix(combinedHash.AsSpan(0, index));
 
