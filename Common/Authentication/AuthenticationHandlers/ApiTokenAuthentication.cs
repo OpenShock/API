@@ -48,7 +48,7 @@ public sealed class ApiTokenAuthentication : AuthenticationHandler<Authenticatio
             return Fail(AuthResultError.HeaderMissingOrInvalid);
         }
 
-        var tokenHash = HashingUtils.HashSha256(token);
+        var tokenHash = HashingUtils.HashToken(token);
 
         var tokenDto = await _db.ApiTokens.Include(x => x.User).FirstOrDefaultAsync(x => x.TokenHash == tokenHash &&
             (x.ValidUntil == null || x.ValidUntil >= DateTime.UtcNow));

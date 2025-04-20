@@ -79,7 +79,7 @@ public sealed partial class TokensController
         var tokenDto = new ApiToken
         {
             UserId = CurrentUser.Id,
-            TokenHash = HashingUtils.HashSha256(token),
+            TokenHash = HashingUtils.HashToken(token),
             CreatedByIp = HttpContext.GetRemoteIP(),
             Permissions = body.Permissions.Distinct().ToList(),
             Id = Guid.CreateVersion7(),
