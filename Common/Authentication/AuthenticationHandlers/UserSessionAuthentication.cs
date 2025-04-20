@@ -67,7 +67,7 @@ public sealed class UserSessionAuthentication : AuthenticationHandler<Authentica
             });
         }
 
-        _batchUpdateService.UpdateSessionLastUsed(sessionKey, DateTime.UtcNow);
+        _batchUpdateService.UpdateSessionLastUsed(sessionKey, DateTimeOffset.UtcNow);
 
         var retrievedUser = await _db.Users.FirstAsync(user => user.Id == session.UserId);
 
