@@ -1,5 +1,4 @@
-﻿using System.Collections.Concurrent;
-using System.Timers;
+﻿using System.Timers;
 using Microsoft.EntityFrameworkCore;
 using NRedisStack.RedisStackCommands;
 using OpenShock.Common.Constants;
@@ -13,34 +12,24 @@ namespace OpenShock.Common.Services.BatchUpdate;
 
 internal sealed class ConcurrentUniqueBatchQueue<TKey, TValue> where TKey : notnull
 {
-    private readonly ReaderWriterLockSlim _lock = new();
-    private readonly ConcurrentDictionary<TKey, TValue> _dictionary = new();
+    private readonly Lock _lock = new();
+    private Dictionary<TKey, TValue> _dictionary = new();
 
     public void Enqueue(TKey key, TValue value)
     {
-        _lock.EnterReadLock();
-        try
+        lock (_lock)
         {
             _dictionary[key] = value;
         }
-        finally
-        {
-            _lock.ExitReadLock();
-        }
     }
 
-    public KeyValuePair<TKey, TValue>[] DequeueAll()
+    public Dictionary<TKey, TValue> DequeueAll()
     {
-        _lock.EnterWriteLock();
-        try
+        lock (_lock)
         {
-            var items = _dictionary.ToArray();
-            _dictionary.Clear();
+            var items = _dictionary;
+            _dictionary = new Dictionary<TKey, TValue>();
             return items;
-        }
-        finally
-        {
-            _lock.ExitWriteLock();
         }
     }
 }
@@ -81,7 +70,7 @@ public sealed class BatchUpdateService : IHostedService, IBatchUpdateService
 
     private async Task UpdateTokens()
     {
-        var keys = _tokenLastUsed.DequeueAll().Select(x => x.Key).ToArray();
+        var keys = _tokenLastUsed.DequeueAll().Keys.ToArray();
 
         // Skip if there is nothing
         if (keys.Length < 1) return;
