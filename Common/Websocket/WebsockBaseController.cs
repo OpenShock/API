@@ -90,6 +90,7 @@ public abstract class WebsocketBaseController<T> : OpenShockControllerBase, IAsy
 
         Channel.Writer.TryComplete();
         await Close.CancelAsync();
+
         WebSocket?.Dispose();
         LinkedSource.Dispose();
 
@@ -150,13 +151,11 @@ public abstract class WebsocketBaseController<T> : OpenShockControllerBase, IAsy
         await SendInitialData();
 
         await Logic();
-
-
-        if (_disposed) return;
-
+        // Logic ended
+        
         await UnregisterConnection();
-
-        await DisposeAsync();
+        
+        await Close.CancelAsync();
     }
 
     #region Send Loop

@@ -74,7 +74,7 @@ public sealed partial class TokensController
     [ProducesResponseType<TokenCreatedResponse>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
     public async Task<TokenCreatedResponse> CreateToken([FromBody] CreateTokenRequest body)
     {
-        string token = CryptoUtils.RandomString(AuthConstants.GeneratedTokenLength);
+        var token = CryptoUtils.RandomString(AuthConstants.ApiTokenLength);
 
         var tokenDto = new ApiToken
         {

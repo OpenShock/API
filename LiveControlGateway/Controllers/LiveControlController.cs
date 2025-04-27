@@ -321,8 +321,6 @@ public sealed class LiveControlController : WebsocketBaseController<LiveControlR
                 Logger.LogError(ex, "Exception while processing websocket request");
             }
         }
-
-        await Close.CancelAsync();
     }
 
     private Task ProcessResult(BaseRequest<LiveRequestType> request)
@@ -568,7 +566,7 @@ public sealed class LiveControlController : WebsocketBaseController<LiveControlR
     [NonAction]
     public async Task HubDisconnected()
     {
-        _unregistered = true;
+        _unregistered = true; // The hub lifetime has already unregistered us
         
         Logger.LogTrace("Hub disconnected, disposing controller");
 
@@ -590,8 +588,6 @@ public sealed class LiveControlController : WebsocketBaseController<LiveControlR
             // We don't really care if this fails
             Logger.LogDebug(e, "Error while sending disconnect message or closing websocket");
         }
-        
-        await DisposeAsync();
     }
 
     /// <inheritdoc />
