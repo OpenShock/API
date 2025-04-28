@@ -119,7 +119,17 @@ public static class OpenShockServiceHelper
             x.JsonSerializerOptions.Converters.Add(new CustomJsonStringEnumConverter());
         });
 
-        services.AddOpenApi(options =>
+        services.AddOpenApi("1", options =>
+        {
+            // Always inline enum schemas
+            options.CreateSchemaReferenceId = (type) =>
+                type.Type.IsEnum ? null : OpenApiOptions.CreateDefaultSchemaReferenceId(type);
+
+            options.AddDocumentTransformer<OpenApiDocumentTransformer>();
+            options.AddOperationTransformer<OpenApiOperationTransformer>();
+            options.AddSchemaTransformer<OpenApiSchemaTransformer>();
+        });
+        services.AddOpenApi("2", options =>
         {
             // Always inline enum schemas
             options.CreateSchemaReferenceId = (type) =>

@@ -73,7 +73,8 @@ public static class OpenShockMiddlewareHelper
             return remoteIp != null && metricsAllowedIpNetworks.Any(x => x.Contains(remoteIp));
         });
         
-        app.MapOpenApi();
+        app.MapOpenApi()
+            .CacheOutput();
         
         Action<ScalarOptions> scalarOptions = options =>
             options
