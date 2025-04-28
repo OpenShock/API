@@ -1,7 +1,4 @@
 ﻿using System.ComponentModel.DataAnnotations;
-using Microsoft.OpenApi.Any;
-using Microsoft.OpenApi.Models;
-using OpenShock.Common.DataAnnotations.Interfaces;
 using OpenShock.Common.Validation;
 
 namespace OpenShock.Common.DataAnnotations;
@@ -13,7 +10,7 @@ namespace OpenShock.Common.DataAnnotations;
 /// Inherits from <see cref="ValidationAttribute"/>.
 /// </remarks>
 [AttributeUsage(AttributeTargets.Property | AttributeTargets.Field | AttributeTargets.Parameter, AllowMultiple = false)]
-public sealed class UsernameAttribute : ValidationAttribute, IParameterAttribute
+public sealed class UsernameAttribute : ValidationAttribute
 {
     /// <summary>
     /// Example value used to generate OpenApi documentation.
@@ -50,15 +47,4 @@ public sealed class UsernameAttribute : ValidationAttribute, IParameterAttribute
             error => new ValidationResult($"{error.Type} - {error.Message}")
         );
     }
-
-    /// <inheritdoc/>
-    public void Apply(OpenApiSchema schema)
-    {
-        //if (ShouldValidate) schema.Pattern = ???;
-        
-        schema.Example = new OpenApiString(ExampleValue);
-    }
-
-    /// <inheritdoc/>
-    public void Apply(OpenApiParameter parameter) => Apply(parameter.Schema);
 }
