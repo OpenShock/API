@@ -14,18 +14,16 @@ public static class OpenApiSchemaReferenceIdUtil
            || genericDef == typeof(IList<>)
            || genericDef == typeof(List<>);
 
-    public static string GetFriendlyName(Type type)
+    private static bool IsSystemType(Type type)
     {
-        if (!type.IsGenericType)
-        {
-            if (type.IsArray)
-            {
-                return "CollectionOf" + type.GetElementType()!.Name;
-            }
-            
-            return type.Name;
-        }
+        if (Type.GetTypeCode(type) is not (TypeCode.Empty or TypeCode.Object or TypeCode.DBNull))
+            return true;
         
+        return type == typeof(Guid) || type == typeof(DateTimeOffset) || type == typeof(TimeSpan) || type == typeof(Uri);
+    }
+    
+    private static string? GetFriendlyGenericTypeName(Type type)
+    {
         StringBuilder sb = new();
         
         while (type.IsGenericType)
@@ -35,6 +33,7 @@ public static class OpenApiSchemaReferenceIdUtil
             if (genericTypeDefinition == typeof(LegacyDataResponse<>) || genericTypeDefinition == typeof(Nullable<>))
             {
                 type = type.GetGenericArguments()[0];
+                if (IsSystemType(type)) return null;
                 continue;
             }
 
@@ -59,8 +58,19 @@ public static class OpenApiSchemaReferenceIdUtil
         
         return sb.ToString();
     }
-    public static string GetFriendlyName(JsonTypeInfo type)
+    
+    public static string? GetFriendlyName(Type type)
     {
-        return GetFriendlyName(type.Type);
+        if (IsSystemType(type)) return null;
+
+        if (type.IsArray) return "CollectionOf" + (GetFriendlyName(type.GetElementType()!) ?? type.Name);
+        
+        if (type.IsGenericType) return GetFriendlyGenericTypeName(type);
+        
+        return type.Name;
+    }
+    public static string? GetFriendlyName(JsonTypeInfo jsonTypeInfo)
+    {
+        return GetFriendlyName(jsonTypeInfo.Type);
     }
 }
