@@ -9,6 +9,24 @@ public sealed class OpenApiDocumentTransformer<TProgram> : IOpenApiDocumentTrans
 {
     public Task TransformAsync(OpenApiDocument document, OpenApiDocumentTransformerContext context, CancellationToken cancellationToken)
     {
+        document.Info = new()
+        {
+            Title = "OpenShock API",
+            Description = "Test description of API",
+            Version = "V" + context.DocumentName,
+            TermsOfService = new Uri("https://github.com/OpenShock/"),
+            Contact = new()
+            {
+                Name = "Support",
+                Url = new Uri("mailto:support@openshock.app"),
+                Email = "support@openshock.app"
+            },
+            License = new()
+            {
+                Name = "GNU affero General Public License v3.0",
+                Url = new Uri("https://github.com/OpenShock/API/blob/develop/LICENSE")
+            }
+        };
         document.Servers = [
 #if DEBUG
             new OpenApiServer { Url = "https://localhost" },
