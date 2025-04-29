@@ -12,8 +12,7 @@ namespace OpenShock.API.Controller.Account;
 /// User account management
 /// </summary>
 [ApiController]
-[ApiVersion("1")]
-[ApiVersion("2")]
+[ApiVersion("1"), ApiVersion("2")]
 [Route("/{version:apiVersion}/account")]
 public sealed partial class AccountController : OpenShockControllerBase
 {

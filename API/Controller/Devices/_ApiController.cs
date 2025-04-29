@@ -12,8 +12,7 @@ namespace OpenShock.API.Controller.Devices;
 /// Device management
 /// </summary>
 [ApiController]
-[ApiVersion("1")]
-[ApiVersion("2")]
+[ApiVersion("1"), ApiVersion("2")]
 [Route("/{version:apiVersion}/devices")]
 [Authorize(AuthenticationSchemes = OpenShockAuthSchemas.UserSessionApiTokenCombo)]
 public sealed partial class DevicesController : AuthenticatedSessionControllerBase
