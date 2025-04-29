@@ -95,16 +95,15 @@ public sealed class RedisSubscriberService : IHostedService, IAsyncDisposable
         };
         userIds.AddRange(sharedWith.Select(x => "local#" + x));
         var deviceOnline = await _devicesOnline.FindByIdAsync(deviceId.ToString());
-        var arr = new[]
-        {
+        
+        await _hubContext.Clients.Users(userIds).DeviceStatus([
             new DeviceOnlineState
             {
                 Device = deviceId,
                 Online = deviceOnline != null,
                 FirmwareVersion = deviceOnline?.FirmwareVersion ?? null
             }
-        };
-        await _hubContext.Clients.Users(userIds).DeviceStatus(arr);
+        ]);
     }
 
     /// <inheritdoc />
