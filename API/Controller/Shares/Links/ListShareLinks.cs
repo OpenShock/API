@@ -14,13 +14,13 @@ public sealed partial class ShareLinksController
     /// </summary>
     /// <response code="200">All share links for the current user</response>
     [HttpGet]
-    public LegacySuccessResponse<IAsyncEnumerable<ShareLinkResponse>> List()
+    public LegacyDataResponse<IAsyncEnumerable<ShareLinkResponse>> List()
     {
         var ownShareLinks = _db.ShockerSharesLinks
             .Where(x => x.OwnerId == CurrentUser.Id)
             .Select(x => ShareLinkResponse.GetFromEf(x))
             .AsAsyncEnumerable();
 
-        return new LegacySuccessResponse<IAsyncEnumerable<ShareLinkResponse>>(ownShareLinks);
+        return new LegacyDataResponse<IAsyncEnumerable<ShareLinkResponse>>(ownShareLinks);
     }
 }

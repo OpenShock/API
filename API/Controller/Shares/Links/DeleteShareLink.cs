@@ -17,7 +17,7 @@ public sealed partial class ShareLinksController
     /// <response code="200">Deleted share link</response>
     /// <response code="404">Share link not found or does not belong to you</response>
     [HttpDelete("{shareLinkId}")]
-    [ProducesResponseType<BaseResponse<object>>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
+    [ProducesResponseType<LegacyEmptyResponse>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status404NotFound, MediaTypeNames.Application.ProblemJson)] // ShareLinkNotFound
     public async Task<IActionResult> DeleteShareLink([FromRoute] Guid shareLinkId)
     {
@@ -27,7 +27,7 @@ public sealed partial class ShareLinksController
             .ExecuteDeleteAsync();
 
         return result > 0
-            ? RespondSuccessLegacySimple("Deleted share link")
+            ? Ok(new LegacyEmptyResponse("Deleted share link"))
             : Problem(ShareLinkError.ShareLinkNotFound);
     }
 }

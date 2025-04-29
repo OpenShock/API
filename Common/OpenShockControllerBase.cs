@@ -16,16 +16,6 @@ public class OpenShockControllerBase : ControllerBase
     public ObjectResult RespondSuccessLegacy<T>(T data, HttpStatusCode statusCode = HttpStatusCode.OK)
     {
         Response.StatusCode = (int)statusCode;
-        return new ObjectResult(new LegacySuccessResponse<T>(data));
-    }
-
-    [NonAction]
-    public ObjectResult RespondSuccessLegacySimple(string message = "", HttpStatusCode statusCode = HttpStatusCode.OK)
-    {
-        Response.StatusCode = (int)statusCode;
-        return new ObjectResult(new BaseResponse<object>
-        {
-            Message = message
-        });
+        return new ObjectResult(new LegacyDataResponse<T>(data));
     }
 }

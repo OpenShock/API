@@ -26,7 +26,7 @@ public sealed partial class ShockerController
     /// <response code="200">The shockers were successfully retrieved.</response>
     [HttpGet("shared")]
     [MapToApiVersion("1")]
-    public async Task<LegacySuccessResponse<IEnumerable<OwnerShockerResponse>>> ListSharedShockers()
+    public async Task<LegacyDataResponse<IEnumerable<OwnerShockerResponse>>> ListSharedShockers()
     {
         var sharedShockersData = await _db.ShockerShares
             .AsNoTracking()
@@ -80,6 +80,6 @@ public sealed partial class ShockerController
                     .ToArray()
             });
 
-        return new LegacySuccessResponse<IEnumerable<OwnerShockerResponse>>(sharesResponse);
+        return new LegacyDataResponse<IEnumerable<OwnerShockerResponse>>(sharesResponse);
     }
 }

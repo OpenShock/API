@@ -12,12 +12,10 @@ public sealed partial class UsersController
     /// </summary>
     /// <response code="200">The user's information was successfully retrieved.</response>
     [HttpGet("self")]
-    [ProducesResponseType<BaseResponse<SelfResponse>>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
-    public BaseResponse<SelfResponse> GetSelf()
+    public LegacyDataResponse<SelfResponse> GetSelf()
     {
-        return new BaseResponse<SelfResponse>
-        {
-            Data = new SelfResponse
+        return new LegacyDataResponse<SelfResponse>(
+            new SelfResponse
             {
                 Id = CurrentUser.Id,
                 Name = CurrentUser.Name,
@@ -26,7 +24,7 @@ public sealed partial class UsersController
                 Roles = CurrentUser.Roles,
                 Rank = CurrentUser.Roles.Count > 0 ? CurrentUser.Roles.Max().ToString() : "User"
             }
-        };
+        );
     }
 
     public sealed class SelfResponse

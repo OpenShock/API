@@ -4,15 +4,14 @@ using System.Text.Json;
 
 namespace OpenShock.Common.Models;
 
-public sealed class BaseResponse<T>
+public sealed class LegacyEmptyResponse
 {
     public string? Message { get; set; }
-    public T? Data { get; set; }
+    public object? Data { get; set; } = null;
 
-    public BaseResponse(string? message = null, T? data = default)
+    public LegacyEmptyResponse(string? message = null)
     {
         Message = message;
-        Data = data;
     }
     
     public override string ToString() => JsonSerializer.Serialize(this);

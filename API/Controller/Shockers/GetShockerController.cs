@@ -19,7 +19,7 @@ public sealed partial class ShockerController
     /// <response code="200">The shocker information was successfully retrieved.</response>
     /// <response code="404">The shocker does not exist or you do not have access to it.</response>
     [HttpGet("{shockerId}")]
-    [ProducesResponseType<LegacySuccessResponse<ShockerWithDevice>>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
+    [ProducesResponseType<LegacyDataResponse<ShockerWithDevice>>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status404NotFound, MediaTypeNames.Application.ProblemJson)] // ShockerNotFound
     [MapToApiVersion("1")]
     public async Task<IActionResult> GetShockerById([FromRoute] Guid shockerId)

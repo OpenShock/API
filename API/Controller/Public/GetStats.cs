@@ -17,12 +17,12 @@ public sealed partial class PublicController
     /// </summary>
     /// <response code="200">The statistics were successfully retrieved.</response>
     [HttpGet("stats")]
-    public async Task<LegacySuccessResponse<StatsResponse>> GetOnlineDevicesStatistics([FromServices] IConnectionMultiplexer redisConnectionMultiplexer)
+    public async Task<LegacyDataResponse<StatsResponse>> GetOnlineDevicesStatistics([FromServices] IConnectionMultiplexer redisConnectionMultiplexer)
     {
         var ft = redisConnectionMultiplexer.GetDatabase().FT();
         var deviceOnlineInfo = await ft.InfoAsync(DeviceOnline.IndexName);
 
-        return new LegacySuccessResponse<StatsResponse>(new StatsResponse
+        return new LegacyDataResponse<StatsResponse>(new StatsResponse
         {
             DevicesOnline = deviceOnlineInfo.NumDocs
         });

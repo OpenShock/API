@@ -4,12 +4,12 @@ using System.Text.Json;
 
 namespace OpenShock.Common.Models;
 
-public sealed class LegacySuccessResponse<T>
+public sealed class LegacyDataResponse<T>
 {
     public string Message { get; set; }
     public T Data { get; set; }
 
-    public LegacySuccessResponse(T data, string message = "")
+    public LegacyDataResponse(T data, string message = "")
     {
         Message = message;
         Data = data;

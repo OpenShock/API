@@ -22,7 +22,7 @@ public sealed partial class ShareLinksController
     /// <response code="404">Share link or shocker does not exist</response>
     /// <response code="400">Shocker does not exist in share link</response>
     [HttpPatch("{shareLinkId}/{shockerId}")]
-    [ProducesResponseType<BaseResponse<ShareLinkResponse>>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
+    [ProducesResponseType<LegacyDataResponse<ShareLinkResponse>>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status404NotFound, MediaTypeNames.Application.ProblemJson)] // ShareLinkNotFound, ShockerNotInShareLink
     public async Task<IActionResult> EditShocker([FromRoute] Guid shareLinkId, [FromRoute] Guid shockerId, [FromBody] ShareLinkEditShocker body)
     {
@@ -43,6 +43,6 @@ public sealed partial class ShareLinksController
         shocker.Cooldown = body.Cooldown;
 
         await _db.SaveChangesAsync();
-        return RespondSuccessLegacySimple("Successfully updated shocker");
+        return Ok(new LegacyEmptyResponse("Successfully updated shocker"));
     }
 }

@@ -18,14 +18,14 @@ public sealed partial class AccountController
     /// <response code="200">Valid password reset process</response>
     /// <response code="404">Password reset process not found</response>
     [HttpHead("recover/{passwordResetId}/{secret}")]
-    [ProducesResponseType<BaseResponse<object>>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
+    [ProducesResponseType<LegacyEmptyResponse>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status404NotFound, MediaTypeNames.Application.ProblemJson)] // PasswordResetNotFound
     [MapToApiVersion("1")]
     public async Task<IActionResult> PasswordResetCheckValid([FromRoute] Guid passwordResetId, [FromRoute] string secret, CancellationToken cancellationToken)
     {
         var passwordResetExists = await _accountService.PasswordResetExists(passwordResetId, secret, cancellationToken);
         return passwordResetExists.Match(
-            success => RespondSuccessLegacySimple("Valid password reset process"),
+            success => Ok(new LegacyEmptyResponse("Valid password reset process")),
             notFound => Problem(PasswordResetError.PasswordResetNotFound),
             invalid => Problem(PasswordResetError.PasswordResetNotFound)
         );

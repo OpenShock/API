@@ -23,7 +23,7 @@ public sealed partial class AccountController
     /// <response code="200">User successfully signed up</response>
     /// <response code="400">Username or email already exists</response>
     [HttpPost("signup")]
-    [ProducesResponseType<BaseResponse<object>>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
+    [ProducesResponseType<LegacyEmptyResponse>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status409Conflict, MediaTypeNames.Application.ProblemJson)] // EmailOrUsernameAlreadyExists
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status403Forbidden, MediaTypeNames.Application.ProblemJson)] // InvalidTurnstileResponse
     [MapToApiVersion("2")]
@@ -44,7 +44,7 @@ public sealed partial class AccountController
 
         var creationAction = await _accountService.Signup(body.Email, body.Username, body.Password);
         return creationAction.Match(
-            _ => RespondSuccessLegacySimple("Successfully signed up"),
+            _ => Ok(new LegacyEmptyResponse("Successfully signed up")),
             _ => Problem(SignupError.EmailAlreadyExists)
         );
     }

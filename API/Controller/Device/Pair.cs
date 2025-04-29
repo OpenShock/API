@@ -22,7 +22,7 @@ public sealed partial class DeviceController
     [AllowAnonymous]
     [HttpGet("pair/{pairCode}", Name = "Pair")]
     [HttpGet("~/{version:apiVersion}/pair/{pairCode}", Name = "Pair_DEPRECATED")] // Backwards compatibility
-    [ProducesResponseType<LegacySuccessResponse<string>>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
+    [ProducesResponseType<LegacyDataResponse<string>>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status404NotFound, MediaTypeNames.Application.ProblemJson)] // PairCodeNotFound
     public async Task<IActionResult> Pair([FromRoute] string pairCode)
     {

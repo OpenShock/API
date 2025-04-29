@@ -22,7 +22,7 @@ public sealed partial class DevicesController
     /// </summary>
     /// <response code="200">All devices for the current user</response>
     [HttpGet]
-    [ProducesResponseType<LegacySuccessResponse<IAsyncEnumerable<Models.Response.ResponseDevice>>>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
+    [ProducesResponseType<LegacyDataResponse<IAsyncEnumerable<Models.Response.ResponseDevice>>>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
     [MapToApiVersion("1")]
     public IActionResult ListDevices()
     {
@@ -45,7 +45,7 @@ public sealed partial class DevicesController
     /// <param name="deviceId"></param>
     /// <response code="200">The device</response>
     [HttpGet("{deviceId}")]
-    [ProducesResponseType<LegacySuccessResponse<Models.Response.ResponseDeviceWithToken>>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
+    [ProducesResponseType<LegacyDataResponse<Models.Response.ResponseDeviceWithToken>>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status404NotFound, MediaTypeNames.Application.ProblemJson)] // DeviceNotFound
     [MapToApiVersion("1")]
     public async Task<IActionResult> GetDeviceById([FromRoute] Guid deviceId)
@@ -190,7 +190,7 @@ public sealed partial class DevicesController
     /// <response code="404">Device does not exist or does not belong to you</response>
     [HttpGet("{deviceId}/pair")]
     [TokenPermission(PermissionType.Devices_Edit)]
-    [ProducesResponseType<LegacySuccessResponse<string>>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
+    [ProducesResponseType<LegacyDataResponse<string>>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status404NotFound, MediaTypeNames.Application.ProblemJson)] // DeviceNotFound
     [MapToApiVersion("1")]
     public async Task<IActionResult> GetPairCode([FromRoute] Guid deviceId)
@@ -225,7 +225,7 @@ public sealed partial class DevicesController
     /// <response code="412">Device is online but not connected to a LCG node, you might need to upgrade your firmware to use this feature</response>
     /// <response code="500">Internal server error, lcg node could not be found</response>
     [HttpGet("{deviceId}/lcg")]
-    [ProducesResponseType<LegacySuccessResponse<LcgResponse>>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
+    [ProducesResponseType<LegacyDataResponse<LcgResponse>>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status404NotFound, MediaTypeNames.Application.ProblemJson)] // DeviceNotFound, DeviceIsNotOnline
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status412PreconditionFailed, MediaTypeNames.Application.ProblemJson)] // DeviceNotConnectedToGateway
     [MapToApiVersion("1")]
