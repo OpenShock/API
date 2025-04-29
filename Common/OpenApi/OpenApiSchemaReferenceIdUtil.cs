@@ -6,13 +6,17 @@ namespace OpenShock.Common.OpenApi;
 
 public static class OpenApiSchemaReferenceIdUtil
 {
-    private static bool IsCollection(Type genericDef)
-        => genericDef == typeof(IEnumerable<>)
-           || genericDef == typeof(IAsyncEnumerable<>)
-           || genericDef == typeof(IReadOnlyList<>)
-           || genericDef == typeof(IReadOnlyCollection<>)
-           || genericDef == typeof(IList<>)
-           || genericDef == typeof(List<>);
+    private static readonly HashSet<Type> CollectionTypes =
+    [
+        typeof(List<>),
+        typeof(IList<>),
+        typeof(IReadOnlyList<>),
+        typeof(IEnumerable<>),
+        typeof(IAsyncEnumerable<>),
+        typeof(IReadOnlyCollection<>)
+    ];
+    
+    private static bool IsCollection(Type genericDef) => CollectionTypes.Contains(genericDef);
 
     private static bool IsSystemType(Type type)
     {
