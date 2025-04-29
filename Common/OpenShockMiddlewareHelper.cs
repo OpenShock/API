@@ -76,11 +76,12 @@ public static class OpenShockMiddlewareHelper
         app.MapOpenApi()
             .CacheOutput();
         
-        Action<ScalarOptions> scalarOptions = options =>
+        app.MapScalarApiReference("/scalar/viewer", options =>
             options
-                .WithOpenApiRoutePattern("/openapi/{documentName}.json");
-        
-        app.MapScalarApiReference("/scalar/viewer", scalarOptions);
+                .WithOpenApiRoutePattern("/openapi/{documentName}.json")
+                .AddDocument("1", "Version 1")
+                .AddDocument("2", "Version 2")
+        );
         
         app.MapControllers();
         
