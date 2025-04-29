@@ -22,7 +22,7 @@ public sealed partial class PublicController
     /// <response code="404">The share link does not exist.</response>
     [HttpGet("shares/links/{shareLinkId}")]
     [ProducesResponseType<LegacyDataResponse<PublicShareLinkResponse>>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
-    [ProducesResponseType<LegacyDataResponse<OpenShockProblem>>(StatusCodes.Status404NotFound, MediaTypeNames.Application.ProblemJson)] // ShareLinkNotFound
+    [ProducesResponseType<OpenShockProblem>(StatusCodes.Status404NotFound, MediaTypeNames.Application.ProblemJson)] // ShareLinkNotFound
     public async Task<IActionResult> GetShareLink([FromRoute] Guid shareLinkId)
     {
         var shareLink = await _db.ShockerSharesLinks.Where(x => x.Id == shareLinkId).Select(x => new
@@ -62,7 +62,7 @@ public sealed partial class PublicController
             })
         }).FirstOrDefaultAsync();
 
-        if (shareLink == null) return RespondSuccessLegacy(ShareLinkError.ShareLinkNotFound);
+        if (shareLink == null) return Problem(ShareLinkError.ShareLinkNotFound);
         
         
         var final = new PublicShareLinkResponse
