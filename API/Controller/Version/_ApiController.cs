@@ -25,7 +25,7 @@ public sealed partial class VersionController : OpenShockControllerBase
     /// </summary>
     /// <response code="200">The version was successfully retrieved.</response>
     [HttpGet]
-    public BaseResponse<RootResponse> GetBackendVersion(
+    public LegacySuccessResponse<RootResponse> GetBackendVersion(
         [FromServices] IOptions<FrontendOptions> frontendOptions,
         [FromServices] IOptions<CloudflareTurnstileOptions> turnstileOptions
         )
@@ -33,8 +33,7 @@ public sealed partial class VersionController : OpenShockControllerBase
         var frontendConfig = frontendOptions.Value;
         var turnstileConfig = turnstileOptions.Value;
 
-        return new BaseResponse<RootResponse>(
-            "OpenShock",
+        return new LegacySuccessResponse<RootResponse>(
             new RootResponse
             {
                 Version = OpenShockBackendVersion,
@@ -43,7 +42,8 @@ public sealed partial class VersionController : OpenShockControllerBase
                 FrontendUrl = frontendConfig.BaseUrl,
                 ShortLinkUrl = frontendConfig.ShortUrl,
                 TurnstileSiteKey = turnstileConfig.SiteKey
-            }
+            },
+            "OpenShock"
         );
     }
 

@@ -6,11 +6,12 @@ namespace OpenShock.Common.Models;
 
 public sealed class LegacySuccessResponse<T>
 {
-    public string Message { get; } = "";
+    public string Message { get; set; }
     public T Data { get; set; }
 
-    public LegacySuccessResponse(T data)
+    public LegacySuccessResponse(T data, string message = "")
     {
+        Message = message;
         Data = data;
     }
     
