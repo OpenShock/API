@@ -25,7 +25,7 @@ public sealed partial class ShockerController
     /// <response code="200">OK</response>
     /// <response code="404">The shocker does not exist or you do not have access to it.</response>
     [HttpGet("{shockerId}/shares")]
-    [ProducesResponseType<BaseResponse<IAsyncEnumerable<ShareInfo>>>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
+    [ProducesResponseType<LegacySuccessResponse<IAsyncEnumerable<ShareInfo>>>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status404NotFound, MediaTypeNames.Application.ProblemJson)] // ShockerNotFound    
     [MapToApiVersion("1")]
     public async Task<IActionResult> GetShockerShares([FromRoute] Guid shockerId)
@@ -71,7 +71,7 @@ public sealed partial class ShockerController
     /// <param name="shockerId"></param>
     /// <response code="200">OK</response>
     [HttpGet("{shockerId}/shareCodes")]
-    [ProducesResponseType<BaseResponse<IAsyncEnumerable<ShareCodeInfo>>>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
+    [ProducesResponseType<LegacySuccessResponse<IAsyncEnumerable<ShareCodeInfo>>>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status404NotFound, MediaTypeNames.Application.ProblemJson)] // ShockerNotFound    
     [MapToApiVersion("1")]
     public async Task<IActionResult> ShockerShareCodeList([FromRoute] Guid shockerId)
@@ -97,7 +97,6 @@ public sealed partial class ShockerController
         public required DateTime CreatedOn { get; set; }
     }
 
-    /*
     /// <summary>
     /// Create a share code for a shocker
     /// </summary>
@@ -109,7 +108,7 @@ public sealed partial class ShockerController
     /// <returns></returns>
     [HttpPost("{shockerId}/shares")]
     [TokenPermission(PermissionType.Shockers_Edit)]
-    [ProducesResponseType<BaseResponse<Guid>>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
+    [ProducesResponseType<LegacySuccessResponse<Guid>>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status404NotFound, MediaTypeNames.Application.ProblemJson)] // ShockerNotFound    
     [MapToApiVersion("1")]
     public async Task<IActionResult> ShockerShareCodeCreate(
@@ -139,7 +138,6 @@ public sealed partial class ShockerController
 
         return RespondSuccessLegacy(newCode.Id);
     }
-    */
 
     /// <summary>
     /// Remove a share code for a shocker
@@ -216,7 +214,6 @@ public sealed partial class ShockerController
         return Ok();
     }
 
-    /*
     /// <summary>
     /// Pause/Unpause a share code for a shocker
     /// </summary>
@@ -228,7 +225,7 @@ public sealed partial class ShockerController
     /// <response code="404">The share code does not exist or you do not have access to it.</response>
     [HttpPost("{shockerId}/shares/{sharedWithUserId}/pause")]
     [TokenPermission(PermissionType.Shockers_Pause)]
-    [ProducesResponseType<BaseResponse<bool>>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
+    [ProducesResponseType<LegacySuccessResponse<bool>>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status404NotFound, MediaTypeNames.Application.ProblemJson)] // ShockerNotFound    
     [MapToApiVersion("1")]
     public async Task<IActionResult> ShockerShareCodePause(
@@ -251,5 +248,4 @@ public sealed partial class ShockerController
 
         return RespondSuccessLegacy(body.Pause);
     }
-    */
 }

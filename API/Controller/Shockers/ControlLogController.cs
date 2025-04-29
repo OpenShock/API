@@ -24,7 +24,7 @@ public sealed partial class ShockerController
     /// <response code="200">The logs</response>
     /// <response code="404">Shocker does not exist</response>
     [HttpGet("{shockerId}/logs")]
-    [ProducesResponseType<BaseResponse<IAsyncEnumerable<LogEntry>>>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
+    [ProducesResponseType<LegacySuccessResponse<IAsyncEnumerable<LogEntry>>>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status404NotFound, MediaTypeNames.Application.ProblemJson)] // ShockerNotFound
     [MapToApiVersion("1")]
     public async Task<IActionResult> GetShockerLogs([FromRoute] Guid shockerId, [FromQuery] uint offset = 0,

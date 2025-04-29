@@ -14,7 +14,6 @@ namespace OpenShock.API.Controller.Shockers;
 
 public sealed partial class ShockerController
 {
-    /*
     /// <summary>
     /// Pause or unpause a shocker
     /// </summary>
@@ -25,7 +24,7 @@ public sealed partial class ShockerController
     /// <response code="404">Shocker not found or does not belong to you</response>
     [HttpPost("{shockerId}/pause")]
     [TokenPermission(PermissionType.Shockers_Pause)]
-    [ProducesResponseType<BaseResponse<bool>>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
+    [ProducesResponseType<LegacySuccessResponse<bool>>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status404NotFound, MediaTypeNames.Application.ProblemJson)] // ShockerNotFound    
     [MapToApiVersion("1")]
     public async Task<IActionResult> PauseShocker([FromRoute] Guid shockerId, [FromBody] PauseRequest body,
@@ -41,5 +40,4 @@ public sealed partial class ShockerController
 
         return RespondSuccessLegacy(body.Pause);
     }
-    */
 }

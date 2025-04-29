@@ -25,8 +25,7 @@ public sealed partial class VersionController : OpenShockControllerBase
     /// </summary>
     /// <response code="200">The version was successfully retrieved.</response>
     [HttpGet]
-    [ProducesResponseType<BaseResponse<RootResponse>>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
-    public IActionResult GetBackendVersion(
+    public BaseResponse<RootResponse> GetBackendVersion(
         [FromServices] IOptions<FrontendOptions> frontendOptions,
         [FromServices] IOptions<CloudflareTurnstileOptions> turnstileOptions
         )
@@ -34,8 +33,9 @@ public sealed partial class VersionController : OpenShockControllerBase
         var frontendConfig = frontendOptions.Value;
         var turnstileConfig = turnstileOptions.Value;
 
-        return RespondSuccessLegacy(
-            data: new RootResponse
+        return new BaseResponse<RootResponse>(
+            "OpenShock",
+            new RootResponse
             {
                 Version = OpenShockBackendVersion,
                 Commit = GitHashAttribute.FullHash,
@@ -43,8 +43,7 @@ public sealed partial class VersionController : OpenShockControllerBase
                 FrontendUrl = frontendConfig.BaseUrl,
                 ShortLinkUrl = frontendConfig.ShortUrl,
                 TurnstileSiteKey = turnstileConfig.SiteKey
-            },
-            message: "OpenShock"
+            }
         );
     }
 

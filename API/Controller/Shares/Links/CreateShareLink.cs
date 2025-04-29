@@ -9,14 +9,12 @@ namespace OpenShock.API.Controller.Shares.Links;
 
 public sealed partial class ShareLinksController
 {
-    /*
     /// <summary>
     /// Create a new share link
     /// </summary>
     /// <response code="200">The created share link</response>
     [HttpPost(Name = "CreateShareLink")]
-    [ProducesResponseType<BaseResponse<Guid>>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
-    public async Task<IActionResult> CreateShareLink([FromBody] ShareLinkCreate body)
+    public async Task<LegacySuccessResponse<Guid>> CreateShareLink([FromBody] ShareLinkCreate body)
     {
         var entity = new ShockerSharesLink
         {
@@ -28,7 +26,6 @@ public sealed partial class ShareLinksController
         _db.ShockerSharesLinks.Add(entity);
         await _db.SaveChangesAsync();
 
-        return RespondSuccessLegacy(entity.Id);
+        return new LegacySuccessResponse<Guid>(entity.Id);
     }
-    */
 }
