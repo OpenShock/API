@@ -5,7 +5,7 @@ using OpenShock.Common.Constants;
 
 namespace OpenShock.Common.OpenApi;
 
-public sealed class OpenApiDocumentTransformer<TProgram> : IOpenApiDocumentTransformer where TProgram : class
+public sealed class OpenApiDocumentTransformer : IOpenApiDocumentTransformer
 {
     public Task TransformAsync(OpenApiDocument document, OpenApiDocumentTransformerContext context, CancellationToken cancellationToken)
     {
