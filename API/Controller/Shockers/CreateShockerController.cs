@@ -15,6 +15,7 @@ namespace OpenShock.API.Controller.Shockers;
 
 public sealed partial class ShockerController
 {
+    /*
     /// <summary>
     /// Register a shocker
     /// </summary>
@@ -54,4 +55,5 @@ public sealed partial class ShockerController
         
         return RespondSuccessLegacy(shocker.Id, statusCode: HttpStatusCode.Created);
     }
+    */
 }

@@ -12,6 +12,7 @@ namespace OpenShock.API.Controller.Shares.Links;
 
 public sealed partial class ShareLinksController
 {
+    /*
     /// <summary>
     /// Pause a shocker in a share link
     /// </summary>
@@ -39,4 +40,5 @@ public sealed partial class ShareLinksController
 
         return RespondSuccessLegacy(ShareLinkUtils.GetPausedReason(shocker.Paused, shocker.Shocker.Paused));
     }
+    */
 }

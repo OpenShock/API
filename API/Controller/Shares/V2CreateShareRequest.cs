@@ -14,7 +14,7 @@ namespace OpenShock.API.Controller.Shares;
 public sealed partial class SharesController
 {
     [HttpPost("requests")]
-    [ProducesResponseType<Guid>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
+    [ProducesResponseType<Guid>(StatusCodes.Status200OK, MediaTypeNames.Text.Plain)]
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status404NotFound, MediaTypeNames.Application.ProblemJson)] // UserNotFound, ShareCreateShockerNotFound
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status400BadRequest, MediaTypeNames.Application.ProblemJson)] // ShareCreateCannotShareWithSelf
     [ApiVersion("2")]

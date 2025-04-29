@@ -147,7 +147,7 @@ public sealed partial class DevicesController
     /// <response code="201">Successfully created device</response>
     [HttpPost]
     [TokenPermission(PermissionType.Devices_Edit)]
-    [ProducesResponseType<Guid>(StatusCodes.Status201Created, MediaTypeNames.Application.Json)]
+    [ProducesResponseType<Guid>(StatusCodes.Status201Created, MediaTypeNames.Text.Plain)]
     [MapToApiVersion("1")]
     public Task<Guid> CreateDevice([FromServices] IDeviceUpdateService updateService)
     => CreateDeviceV2(new HubCreateRequest
@@ -162,7 +162,7 @@ public sealed partial class DevicesController
     /// <response code="201">Successfully created device</response>
     [HttpPost]
     [TokenPermission(PermissionType.Devices_Edit)]
-    [ProducesResponseType<Guid>(StatusCodes.Status201Created, MediaTypeNames.Application.Json)]
+    [ProducesResponseType<Guid>(StatusCodes.Status201Created, MediaTypeNames.Text.Plain)]
     [MapToApiVersion("2")]
     public async Task<Guid> CreateDeviceV2([FromBody] HubCreateRequest data, [FromServices] IDeviceUpdateService updateService)
     {

@@ -9,6 +9,7 @@ namespace OpenShock.API.Controller.Shares.Links;
 
 public sealed partial class ShareLinksController
 {
+    /*
     /// <summary>
     /// Create a new share link
     /// </summary>
@@ -29,4 +30,5 @@ public sealed partial class ShareLinksController
 
         return RespondSuccessLegacy(entity.Id);
     }
+    */
 }

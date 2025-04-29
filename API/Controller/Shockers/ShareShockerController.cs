@@ -97,6 +97,7 @@ public sealed partial class ShockerController
         public required DateTime CreatedOn { get; set; }
     }
 
+    /*
     /// <summary>
     /// Create a share code for a shocker
     /// </summary>
@@ -138,6 +139,7 @@ public sealed partial class ShockerController
 
         return RespondSuccessLegacy(newCode.Id);
     }
+    */
 
     /// <summary>
     /// Remove a share code for a shocker
@@ -214,6 +216,7 @@ public sealed partial class ShockerController
         return Ok();
     }
 
+    /*
     /// <summary>
     /// Pause/Unpause a share code for a shocker
     /// </summary>
@@ -248,4 +251,5 @@ public sealed partial class ShockerController
 
         return RespondSuccessLegacy(body.Pause);
     }
+    */
 }
