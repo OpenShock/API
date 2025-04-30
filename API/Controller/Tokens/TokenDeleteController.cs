@@ -13,6 +13,7 @@ using OpenShock.Common.Utils;
 namespace OpenShock.API.Controller.Tokens;
 
 [ApiController]
+[Tags("API Tokens")]
 [Route("/{version:apiVersion}/tokens")]
 [Authorize(AuthenticationSchemes = OpenShockAuthSchemas.UserSessionApiTokenCombo)]
 public sealed class TokenDeleteController : AuthenticatedSessionControllerBase
