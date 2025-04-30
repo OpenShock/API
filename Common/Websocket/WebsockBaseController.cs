@@ -158,7 +158,7 @@ public abstract class WebsocketBaseController<T> : OpenShockControllerBase, IAsy
 
         // Only send close if the socket is still open, this allows us to close the websocket from inside the logic
         // We send close if the client sent a close message though
-        if (WebSocket.State is WebSocketState.Open or WebSocketState.CloseReceived) 
+        if (WebSocket is { State: WebSocketState.Open or WebSocketState.CloseReceived }) 
         {
             await WebSocket.CloseOutputAsync(WebSocketCloseStatus.NormalClosure, "Normal closure",
                 LinkedToken);
@@ -214,7 +214,6 @@ public abstract class WebsocketBaseController<T> : OpenShockControllerBase, IAsy
                 if (WebSocket == null)
                 {
                     Logger.LogWarning("WebSocket is null, aborting");
-                    WebSocket?.Abort();
                     return;
                 }
 
