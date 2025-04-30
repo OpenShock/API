@@ -1,6 +1,5 @@
-﻿using System.Text;
+﻿using OpenShock.Common.Models;
 using System.Text.Json.Serialization.Metadata;
-using OpenShock.Common.Models;
 
 namespace OpenShock.Common.OpenApi;
 
@@ -28,10 +27,17 @@ public static class OpenApiSchemaReferenceIdUtil
     
     private static string? GetFriendlyGenericTypeName(Type type)
     {
-        StringBuilder sb = new();
-        
-        while (type.IsGenericType)
+        string suffix = "";
+
+        while (type.IsGenericType || type.IsArray)
         {
+            if (type.IsArray)
+            {
+                suffix = "Array" + suffix;
+                type = type.GetElementType()!;
+                continue;
+            }
+
             var genericTypeDefinition = type.GetGenericTypeDefinition();
 
             if (genericTypeDefinition == typeof(LegacyDataResponse<>) || genericTypeDefinition == typeof(Nullable<>))
@@ -43,14 +49,14 @@ public static class OpenApiSchemaReferenceIdUtil
 
             if (IsCollection(genericTypeDefinition))
             {
-                sb.Append("CollectionOf");
+                suffix = "Array" + suffix;
                 type = type.GetGenericArguments()[0];
                 continue;
             }
 
             if (genericTypeDefinition == typeof(Paginated<>))
             {
-                sb.Append("Paginated");
+                suffix = "Page" + suffix;
                 type = type.GetGenericArguments()[0];
                 continue;
             }
@@ -58,19 +64,16 @@ public static class OpenApiSchemaReferenceIdUtil
             throw new NotImplementedException();
         }
 
-        sb.Append(type.Name);
-        
-        return sb.ToString();
+        return type.Name + suffix;
     }
     
     public static string? GetFriendlyName(Type type)
     {
         if (IsSystemType(type)) return null;
 
-        if (type.IsArray) return "CollectionOf" + (GetFriendlyName(type.GetElementType()!) ?? type.Name);
         
-        if (type.IsGenericType) return GetFriendlyGenericTypeName(type);
-        
+        if (type.IsGenericType || type.IsArray) return GetFriendlyGenericTypeName(type);
+
         return type.Name;
     }
     public static string? GetFriendlyName(JsonTypeInfo jsonTypeInfo)
