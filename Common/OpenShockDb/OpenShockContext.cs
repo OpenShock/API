@@ -121,13 +121,13 @@ public partial class OpenShockContext : DbContext
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder
-            .HasPostgresEnum("control_type", new[] { "sound", "vibrate", "shock", "stop" })
-            .HasPostgresEnum("ota_update_status", new[] { "started", "running", "finished", "error", "timeout" })
-            .HasPostgresEnum("password_encryption_type", new[] { "pbkdf2", "bcrypt_enhanced" })
+            .HasPostgresEnum("control_type", ["sound", "vibrate", "shock", "stop"])
+            .HasPostgresEnum("ota_update_status", ["started", "running", "finished", "error", "timeout"])
+            .HasPostgresEnum("password_encryption_type", ["pbkdf2", "bcrypt_enhanced"])
             .HasPostgresEnum("permission_type",
-                new[] { "shockers.use", "shockers.edit", "shockers.pause", "devices.edit", "devices.auth" })
-            .HasPostgresEnum("role_type", new[] { "support", "staff", "admin", "system" })
-            .HasPostgresEnum("shocker_model_type", new[] { "caiXianlin", "petTrainer", "petrainer998DR" })
+                ["shockers.use", "shockers.edit", "shockers.pause", "devices.edit", "devices.auth"])
+            .HasPostgresEnum("role_type", ["support", "staff", "admin", "system"])
+            .HasPostgresEnum("shocker_model_type", ["caiXianlin", "petTrainer", "petrainer998DR"])
             .HasAnnotation("Npgsql:CollationDefinition:public.ndcoll", "und-u-ks-level2,und-u-ks-level2,icu,False");
 
         modelBuilder.Entity<ApiToken>(entity =>
@@ -506,7 +506,7 @@ public partial class OpenShockContext : DbContext
             entity.ToTable("users");
 
             entity.HasIndex(e => e.Email).IsUnique();
-            entity.HasIndex(e => e.Name).UseCollation(new[] { "ndcoll" }).IsUnique();
+            entity.HasIndex(e => e.Name).UseCollation("ndcoll").IsUnique();
 
             entity.Property(e => e.Id)
                 .ValueGeneratedNever()
