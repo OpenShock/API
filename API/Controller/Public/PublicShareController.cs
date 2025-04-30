@@ -21,6 +21,7 @@ public sealed partial class PublicController
     /// <response code="200">The share link information was successfully retrieved.</response>
     /// <response code="404">The share link does not exist.</response>
     [HttpGet("shares/links/{shareLinkId}")]
+    [Tags("Shocker ShareLinks")]
     [ProducesResponseType<LegacyDataResponse<PublicShareLinkResponse>>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status404NotFound, MediaTypeNames.Application.ProblemJson)] // ShareLinkNotFound
     public async Task<IActionResult> GetShareLink([FromRoute] Guid shareLinkId)

@@ -9,6 +9,7 @@ using Redis.OM.Contracts;
 namespace OpenShock.API.Controller.Admin;
 
 [ApiController]
+[Tags("Admin")]
 [Route("/{version:apiVersion}/admin")]
 [Authorize(AuthenticationSchemes = OpenShockAuthSchemas.UserSessionCookie, Roles = "Admin")]
 public sealed partial class AdminController : AuthenticatedSessionControllerBase

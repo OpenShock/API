@@ -12,6 +12,7 @@ namespace OpenShock.API.Controller.Sessions;
 /// Session management
 /// </summary>
 [ApiController]
+[Tags("Sessions")]
 [ApiVersion("1")]
 [Route("/{version:apiVersion}/sessions")]
 [Authorize(AuthenticationSchemes = OpenShockAuthSchemas.UserSessionCookie)]

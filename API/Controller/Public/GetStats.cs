@@ -17,6 +17,7 @@ public sealed partial class PublicController
     /// </summary>
     /// <response code="200">The statistics were successfully retrieved.</response>
     [HttpGet("stats")]
+    [Tags("Meta")]
     public async Task<LegacyDataResponse<StatsResponse>> GetOnlineDevicesStatistics([FromServices] IConnectionMultiplexer redisConnectionMultiplexer)
     {
         var ft = redisConnectionMultiplexer.GetDatabase().FT();

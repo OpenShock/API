@@ -10,6 +10,7 @@ namespace OpenShock.API.Controller.Shares.Links;
 /// Share links management
 /// </summary>
 [ApiController]
+[Tags("Shocker ShareLinks")]
 [Route("/{version:apiVersion}/shares/links")]
 [Authorize(AuthenticationSchemes = OpenShockAuthSchemas.UserSessionApiTokenCombo)]
 public sealed partial class ShareLinksController : AuthenticatedSessionControllerBase

@@ -11,6 +11,7 @@ namespace OpenShock.API.Controller.Shares;
 /// Shocker share management
 /// </summary>
 [ApiController]
+[Tags("Shocker Shares")]
 [ApiVersion("1")]
 [ApiVersion("2")]
 [Route("/{version:apiVersion}/shares")]
