@@ -20,7 +20,7 @@ public sealed partial class ShareLinksController
     /// <response code="404">Share link or shocker does not exist</response>
     /// <response code="409">Shocker already exists in share link</response>
     [HttpPost("{shareLinkId}/{shockerId}")]
-    [ProducesResponseType<BaseResponse<object>>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
+    [ProducesResponseType<LegacyEmptyResponse>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status404NotFound, MediaTypeNames.Application.ProblemJson)] // ShareLinkNotFound, ShockerNotFound
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status409Conflict, MediaTypeNames.Application.ProblemJson)] // ShockerAlreadyInShareLink
     public async Task<IActionResult> AddShocker([FromRoute] Guid shareLinkId, [FromRoute] Guid shockerId)
@@ -46,6 +46,6 @@ public sealed partial class ShareLinksController
 
         await _db.SaveChangesAsync();
         
-        return RespondSuccessLegacySimple("Successfully added shocker");
+        return LegacyEmptyOk("Successfully added shocker");
     }
 }

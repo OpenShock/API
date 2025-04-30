@@ -24,7 +24,7 @@ public sealed partial class ShockerController
     [MapToApiVersion("2")]
     [HttpPost("control")]
     [TokenPermission(PermissionType.Shockers_Use)]
-    [ProducesResponseType<BaseResponse<object>>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
+    [ProducesResponseType<LegacyEmptyResponse>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status404NotFound, MediaTypeNames.Application.ProblemJson)] // Shocker not found
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status412PreconditionFailed, MediaTypeNames.Application.ProblemJson)] // Shocker is paused
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status403Forbidden, MediaTypeNames.Application.ProblemJson)] // You don't have permission to control this shocker
@@ -45,7 +45,7 @@ public sealed partial class ShockerController
 
         var controlAction = await ControlLogic.ControlByUser(body.Shocks, _db, sender, userHub.Clients, redisPubService);
         return controlAction.Match(
-            success => RespondSuccessLegacySimple("Successfully sent control messages"),
+            success => LegacyEmptyOk("Successfully sent control messages"),
             notFound => Problem(ShockerControlError.ShockerControlNotFound(notFound.Value)),
             paused => Problem(ShockerControlError.ShockerControlPaused(paused.Value)),
             noPermission => Problem(ShockerControlError.ShockerControlNoPermission(noPermission.Value)));
@@ -58,7 +58,7 @@ public sealed partial class ShockerController
     [MapToApiVersion("1")]
     [HttpPost("control")]
     [TokenPermission(PermissionType.Shockers_Use)]
-    [ProducesResponseType<BaseResponse<object>>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
+    [ProducesResponseType<LegacyEmptyResponse>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status404NotFound, MediaTypeNames.Application.ProblemJson)] // Shocker not found
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status412PreconditionFailed, MediaTypeNames.Application.ProblemJson)] // Shocker is paused
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status403Forbidden, MediaTypeNames.Application.ProblemJson)] // You don't have permission to control this shocker

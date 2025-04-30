@@ -22,7 +22,7 @@ public sealed partial class AccountController
     /// <response code="200">User successfully logged in</response>
     /// <response code="401">Invalid username or password</response>
     [HttpPost("login")]
-    [ProducesResponseType<BaseResponse<object>>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
+    [ProducesResponseType<LegacyEmptyResponse>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status401Unauthorized, MediaTypeNames.Application.ProblemJson)] // InvalidCredentials
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status403Forbidden, MediaTypeNames.Application.ProblemJson)] // InvalidDomain
     [MapToApiVersion("2")]
@@ -57,6 +57,6 @@ public sealed partial class AccountController
 
         HttpContext.SetSessionKeyCookie(loginAction.AsT0.Value, "." + cookieDomainToUse);
 
-        return RespondSuccessLegacySimple("Successfully logged in");
+        return LegacyEmptyOk("Successfully logged in");
     }
 }

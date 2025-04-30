@@ -15,9 +15,8 @@ public sealed partial class ShockerController
     /// </summary>
     /// <response code="200">The shockers were successfully retrieved.</response>
     [HttpGet("own")]
-    [ProducesResponseType<BaseResponse<IAsyncEnumerable<ResponseDeviceWithShockers>>>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
     [MapToApiVersion("1")]
-    public IActionResult ListShockers()
+    public LegacyDataResponse<IAsyncEnumerable<ResponseDeviceWithShockers>> ListShockers()
     {
         var shockers = _db.Devices
             .Where(x => x.Owner == CurrentUser.Id)
@@ -41,6 +40,6 @@ public sealed partial class ShockerController
             })
             .AsAsyncEnumerable();
 
-        return RespondSuccessLegacy(shockers);
+        return new(shockers);
     }
 }

@@ -19,7 +19,7 @@ public sealed partial class AccountController
     /// <response code="200">User successfully signed up</response>
     /// <response code="409">Username or email already exists</response>
     [HttpPost("signup")]
-    [ProducesResponseType<BaseResponse<object>>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
+    [ProducesResponseType<LegacyEmptyResponse>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status409Conflict, MediaTypeNames.Application.ProblemJson)] // EmailOrUsernameAlreadyExists
     [MapToApiVersion("1")]
     public async Task<IActionResult> SignUp([FromBody] SignUp body)
@@ -28,6 +28,6 @@ public sealed partial class AccountController
         if (creationAction.IsT1) return Problem(SignupError.EmailAlreadyExists);
 
 
-        return RespondSuccessLegacySimple("Successfully signed up");
+        return LegacyEmptyOk("Successfully signed up");
     }
 }

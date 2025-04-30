@@ -19,7 +19,7 @@ public sealed partial class ShareLinksController
     /// <response code="404">Share link or shocker does not exist</response>
     /// <response code="400">Shocker does not exist in share link</response>
     [HttpDelete("{shareLinkId}/{shockerId}")]
-    [ProducesResponseType<BaseResponse<object>>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
+    [ProducesResponseType<LegacyEmptyResponse>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status404NotFound, MediaTypeNames.Application.ProblemJson)] // ShareLinkNotFound, ShockerNotInShareLink
     public async Task<IActionResult> RemoveShocker([FromRoute] Guid shareLinkId, [FromRoute] Guid shockerId)
     {
@@ -40,6 +40,6 @@ public sealed partial class ShareLinksController
             return Problem(ShareLinkError.ShockerNotInShareLink);
         }
         
-        return RespondSuccessLegacySimple($"Successfully removed {affected} {(affected == 1 ? "shocker" : "shockers")}");
+        return LegacyEmptyOk($"Successfully removed {affected} {(affected == 1 ? "shocker" : "shockers")}");
     }
 }

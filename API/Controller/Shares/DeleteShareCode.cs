@@ -18,7 +18,7 @@ public sealed partial class SharesController
     /// <response code="200">Deleted share code</response>
     /// <response code="404">Share code not found or does not belong to you</response>
     [HttpDelete("code/{shareCodeId}")]
-    [ProducesResponseType<BaseResponse<object>>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
+    [ProducesResponseType<LegacyEmptyResponse>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status404NotFound, MediaTypeNames.Application.ProblemJson)] // ShareCodeNotFound
     [MapToApiVersion("1")]
     public async Task<IActionResult> DeleteShareCode([FromRoute] Guid shareCodeId)
@@ -32,6 +32,6 @@ public sealed partial class SharesController
             return Problem(ShareCodeError.ShareCodeNotFound);
         }
 
-        return RespondSuccessLegacySimple("Successfully deleted share code");
+        return LegacyEmptyOk("Successfully deleted share code");
     }
 }

@@ -13,23 +13,20 @@ public class OpenShockControllerBase : ControllerBase
     public ObjectResult Problem(OpenShockProblem problem) => problem.ToObjectResult(HttpContext);
     
     [NonAction]
-    public ObjectResult RespondSuccessLegacy<T>(T data, string message = "", HttpStatusCode statusCode = HttpStatusCode.OK)
+    public OkObjectResult LegacyDataOk<T>(T data)
     {
-        Response.StatusCode = (int)statusCode;
-        return new ObjectResult(new BaseResponse<T>
-        {
-            Data = data,
-            Message = message
-        });
+        return Ok(new LegacyDataResponse<T>(data));
     }
 
     [NonAction]
-    public ObjectResult RespondSuccessLegacySimple(string message = "", HttpStatusCode statusCode = HttpStatusCode.OK)
+    public CreatedResult LegacyDataCreated<T>(string? uri, T data)
     {
-        Response.StatusCode = (int)statusCode;
-        return new ObjectResult(new BaseResponse<object>
-        {
-            Message = message
-        });
+        return Created(uri, new LegacyDataResponse<T>(data));
+    }
+
+    [NonAction]
+    public OkObjectResult LegacyEmptyOk(string message = "")
+    {
+        return Ok(new LegacyEmptyResponse(message));
     }
 }
