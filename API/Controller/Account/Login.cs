@@ -42,6 +42,6 @@ public sealed partial class AccountController
 
         HttpContext.SetSessionKeyCookie(loginAction.AsT0.Value, "." + cookieDomainToUse);
 
-        return Ok(new LegacyEmptyResponse("Successfully logged in"));
+        return LegacyEmptyOk("Successfully logged in");
     }
 }

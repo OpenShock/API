@@ -40,6 +40,6 @@ public sealed partial class ShockerController
             })
             .AsAsyncEnumerable();
 
-        return new LegacyDataResponse<IAsyncEnumerable<ResponseDeviceWithShockers>>(shockers);
+        return new(shockers);
     }
 }

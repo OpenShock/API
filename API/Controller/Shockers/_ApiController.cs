@@ -11,6 +11,7 @@ namespace OpenShock.API.Controller.Shockers;
 /// Shocker management
 /// </summary>
 [ApiController]
+[Tags("Shockers")]
 [ApiVersion("1"), ApiVersion("2")]
 [Route("/{version:apiVersion}/shockers")]
 [Authorize(AuthenticationSchemes = OpenShockAuthSchemas.UserSessionApiTokenCombo)]

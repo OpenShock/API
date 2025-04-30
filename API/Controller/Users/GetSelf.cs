@@ -14,7 +14,7 @@ public sealed partial class UsersController
     [HttpGet("self")]
     public LegacyDataResponse<SelfResponse> GetSelf()
     {
-        return new LegacyDataResponse<SelfResponse>(
+        return new(
             new SelfResponse
             {
                 Id = CurrentUser.Id,

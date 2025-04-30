@@ -35,6 +35,6 @@ public sealed partial class DeviceController
         var device = await _db.Devices.FirstOrDefaultAsync(x => x.Id == pair.Id);
         if (device == null) throw new Exception("Device not found for pair code");
 
-        return RespondSuccessLegacy(device.Token);
+        return LegacyDataOk(device.Token);
     }
 }

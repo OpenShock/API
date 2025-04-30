@@ -21,6 +21,6 @@ public sealed partial class ShareLinksController
             .Select(x => ShareLinkResponse.GetFromEf(x))
             .AsAsyncEnumerable();
 
-        return new LegacyDataResponse<IAsyncEnumerable<ShareLinkResponse>>(ownShareLinks);
+        return new(ownShareLinks);
     }
 }

@@ -62,7 +62,7 @@ public sealed partial class ShockerController
             )
             .AsAsyncEnumerable();
 
-        return RespondSuccessLegacy(shares);
+        return LegacyDataOk(shares);
     }
 
     /// <summary>
@@ -88,7 +88,7 @@ public sealed partial class ShockerController
             })
             .AsAsyncEnumerable();
 
-        return RespondSuccessLegacy(shares);
+        return LegacyDataOk(shares);
     }
 
     public sealed class ShareCodeInfo
@@ -136,7 +136,7 @@ public sealed partial class ShockerController
 
         await deviceUpdateService.UpdateDeviceForAllShared(CurrentUser.Id, device, DeviceUpdateType.ShockerUpdated);
 
-        return RespondSuccessLegacy(newCode.Id);
+        return LegacyDataOk(newCode.Id);
     }
 
     /// <summary>
@@ -246,6 +246,6 @@ public sealed partial class ShockerController
 
         await deviceUpdateService.UpdateDevice(affected.Owner, affected.DeviceId, DeviceUpdateType.ShockerUpdated, sharedWithUserId);
 
-        return RespondSuccessLegacy(body.Pause);
+        return LegacyDataOk(body.Pause);
     }
 }

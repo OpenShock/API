@@ -14,15 +14,12 @@ public sealed partial class AccountController
     /// </summary>
     /// <response code="200">Password reset email sent if the email is associated to an registered account</response>
     [HttpPost("reset")]
-    [ProducesResponseType<LegacyEmptyResponse>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
     [MapToApiVersion("1")]
     public async Task<LegacyEmptyResponse> PasswordResetInitiate([FromBody] ResetRequest body)
     {
         await _accountService.CreatePasswordReset(body.Email);
-        return SendResponse();
+        return new LegacyEmptyResponse("Password reset has been sent via email if the email is associated to an registered account");
     }
-
-    private static LegacyEmptyResponse SendResponse() => new("Password reset has been sent via email if the email is associated to an registered account");
 
     public sealed class ResetRequest
     {

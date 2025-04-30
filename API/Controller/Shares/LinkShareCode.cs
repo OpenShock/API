@@ -58,6 +58,6 @@ public sealed partial class SharesController
 
         await deviceUpdateService.UpdateDevice(shareCode.Owner, shareCode.Device, DeviceUpdateType.ShockerUpdated, CurrentUser.Id);
 
-        return Ok(new LegacyEmptyResponse("Successfully linked share code"));
+        return LegacyEmptyOk("Successfully linked share code");
     }
 }

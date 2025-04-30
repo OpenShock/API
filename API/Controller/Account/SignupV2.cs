@@ -44,7 +44,7 @@ public sealed partial class AccountController
 
         var creationAction = await _accountService.Signup(body.Email, body.Username, body.Password);
         return creationAction.Match(
-            _ => Ok(new LegacyEmptyResponse("Successfully signed up")),
+            _ => LegacyEmptyOk("Successfully signed up"),
             _ => Problem(SignupError.EmailAlreadyExists)
         );
     }

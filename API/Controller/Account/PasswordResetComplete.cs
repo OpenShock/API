@@ -27,7 +27,7 @@ public sealed partial class AccountController
         var passwordResetComplete = await _accountService.PasswordResetComplete(passwordResetId, secret, body.Password);
 
         return passwordResetComplete.Match(
-            success => Ok(new LegacyEmptyResponse("Password successfully changed")),
+            success => LegacyEmptyOk("Password successfully changed"),
             notFound => Problem(PasswordResetError.PasswordResetNotFound),
             invalid => Problem(PasswordResetError.PasswordResetNotFound));
     }

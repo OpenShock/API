@@ -45,7 +45,7 @@ public sealed partial class ShockerController
 
         var controlAction = await ControlLogic.ControlByUser(body.Shocks, _db, sender, userHub.Clients, redisPubService);
         return controlAction.Match(
-            success => Ok(new LegacyEmptyResponse("Successfully sent control messages")),
+            success => LegacyEmptyOk("Successfully sent control messages"),
             notFound => Problem(ShockerControlError.ShockerControlNotFound(notFound.Value)),
             paused => Problem(ShockerControlError.ShockerControlPaused(paused.Value)),
             noPermission => Problem(ShockerControlError.ShockerControlNoPermission(noPermission.Value)));

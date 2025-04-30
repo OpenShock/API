@@ -16,7 +16,6 @@ namespace OpenShock.API.Controller.Shares;
 public sealed partial class SharesController
 {
     [HttpGet("requests/outstanding")]
-    [ProducesResponseType<IAsyncEnumerable<ShareRequestBaseItem>>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
     [ApiVersion("2")]
     public IAsyncEnumerable<ShareRequestBaseItem> GetOutstandingRequestsList()
     {
@@ -49,7 +48,6 @@ public sealed partial class SharesController
     }
     
     [HttpGet("requests/incoming")]
-    [ProducesResponseType<IAsyncEnumerable<ShareRequestBaseItem>>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
     [ApiVersion("2")]
     public IAsyncEnumerable<ShareRequestBaseItem> GetIncomingRequestsList()
     {

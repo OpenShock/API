@@ -40,6 +40,6 @@ public sealed partial class DevicesController
             })
             .AsAsyncEnumerable();
 
-        return RespondSuccessLegacy(shockers);
+        return LegacyDataOk(shockers);
     }
 }

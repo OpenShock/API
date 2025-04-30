@@ -18,7 +18,6 @@ public sealed partial class SessionsController
     /// <returns></returns>
     /// <exception cref="Exception"></exception>
     [HttpGet("self")]
-    [ProducesResponseType<LoginSessionResponse>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
     public LoginSessionResponse GetSelfSession([FromServices] IUserReferenceService userReferenceService)
     {
         var x = userReferenceService.AuthReference;

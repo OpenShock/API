@@ -80,6 +80,6 @@ public sealed partial class ShockerController
                     .ToArray()
             });
 
-        return new LegacyDataResponse<IEnumerable<OwnerShockerResponse>>(sharesResponse);
+        return new(sharesResponse);
     }
 }

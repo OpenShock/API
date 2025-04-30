@@ -14,8 +14,7 @@ public sealed partial class DeviceController
     /// </summary>
     /// <response code="200">The device information was successfully retrieved.</response>
     [HttpGet("self")]
-    [ProducesResponseType<LegacyDataResponse<DeviceSelfResponse>>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
-    public async Task<IActionResult> GetSelf()
+    public async Task<LegacyDataResponse<DeviceSelfResponse>> GetSelf()
     {
         var shockers = await _db.Shockers.Where(x => x.Device == CurrentDevice.Id).Select(x => new MinimalShocker
         {
@@ -24,7 +23,7 @@ public sealed partial class DeviceController
             Model = x.Model
         }).ToArrayAsync();
 
-        return RespondSuccessLegacy(new DeviceSelfResponse
+        return new(new DeviceSelfResponse
             {
                 Id = CurrentDevice.Id,
                 Name = CurrentDevice.Name,

@@ -27,7 +27,6 @@ public sealed partial class AccountController
         var creationAction = await _accountService.CreateAccount(body.Email, body.Username, body.Password);
         if (creationAction.IsT1) return Problem(SignupError.EmailAlreadyExists);
 
-
-        return Ok(new LegacyEmptyResponse("Successfully signed up"));
+        return LegacyEmptyOk("Successfully signed up");
     }
 }

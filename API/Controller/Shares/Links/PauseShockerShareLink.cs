@@ -37,6 +37,6 @@ public sealed partial class ShareLinksController
         shocker.Paused = body.Pause;
         await _db.SaveChangesAsync();
 
-        return RespondSuccessLegacy(ShareLinkUtils.GetPausedReason(shocker.Paused, shocker.Shocker.Paused));
+        return LegacyDataOk(ShareLinkUtils.GetPausedReason(shocker.Paused, shocker.Shocker.Paused));
     }
 }

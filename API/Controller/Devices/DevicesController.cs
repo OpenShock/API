@@ -22,9 +22,8 @@ public sealed partial class DevicesController
     /// </summary>
     /// <response code="200">All devices for the current user</response>
     [HttpGet]
-    [ProducesResponseType<LegacyDataResponse<IAsyncEnumerable<Models.Response.ResponseDevice>>>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
     [MapToApiVersion("1")]
-    public IActionResult ListDevices()
+    public LegacyDataResponse<IAsyncEnumerable<Models.Response.ResponseDevice>> ListDevices()
     {
         var devices = _db.Devices
             .Where(x => x.Owner == CurrentUser.Id)
@@ -36,7 +35,7 @@ public sealed partial class DevicesController
             })
             .AsAsyncEnumerable();
 
-        return RespondSuccessLegacy(devices);
+        return new(devices);
     }
 
     /// <summary>
@@ -63,7 +62,7 @@ public sealed partial class DevicesController
             }).FirstOrDefaultAsync();
         if (device == null) return Problem(DeviceError.DeviceNotFound);
 
-        return RespondSuccessLegacy(device);
+        return LegacyDataOk(device);
     }
 
     /// <summary>
@@ -149,7 +148,7 @@ public sealed partial class DevicesController
     [TokenPermission(PermissionType.Devices_Edit)]
     [ProducesResponseType<Guid>(StatusCodes.Status201Created, MediaTypeNames.Text.Plain)]
     [MapToApiVersion("1")]
-    public Task<Guid> CreateDevice([FromServices] IDeviceUpdateService updateService)
+    public Task<IActionResult> CreateDevice([FromServices] IDeviceUpdateService updateService)
     => CreateDeviceV2(new HubCreateRequest
         {
             Name = $"New Hub {DateTimeOffset.UtcNow:d}"
@@ -164,7 +163,7 @@ public sealed partial class DevicesController
     [TokenPermission(PermissionType.Devices_Edit)]
     [ProducesResponseType<Guid>(StatusCodes.Status201Created, MediaTypeNames.Text.Plain)]
     [MapToApiVersion("2")]
-    public async Task<Guid> CreateDeviceV2([FromBody] HubCreateRequest data, [FromServices] IDeviceUpdateService updateService)
+    public async Task<IActionResult> CreateDeviceV2([FromBody] HubCreateRequest data, [FromServices] IDeviceUpdateService updateService)
     {
         var device = new Common.OpenShockDb.Device
         {
@@ -178,8 +177,7 @@ public sealed partial class DevicesController
         
         await updateService.UpdateDevice(CurrentUser.Id, device.Id, DeviceUpdateType.Created);
 
-        Response.StatusCode = (int)HttpStatusCode.Created;
-        return device.Id;
+        return Created($"/1/devices/{device.Id}", device.Id);
     }
 
     /// <summary>
@@ -212,7 +210,7 @@ public sealed partial class DevicesController
         };
         await devicePairs.InsertAsync(devicePairDto, TimeSpan.FromMinutes(15));
 
-        return RespondSuccessLegacy(pairCode);
+        return LegacyDataOk(pairCode);
     }
 
     /// <summary>
@@ -250,7 +248,7 @@ public sealed partial class DevicesController
         var gateway = await lcgNodes.FindByIdAsync(online.Gateway);
         if (gateway == null) throw new Exception("Internal server error, lcg node could not be found");
 
-        return RespondSuccessLegacy(new LcgResponse
+        return LegacyDataOk(new LcgResponse
         {
             Gateway = gateway.Fqdn,
             Country = gateway.Country

@@ -26,6 +26,6 @@ public sealed partial class ShareLinksController
         _db.ShockerSharesLinks.Add(entity);
         await _db.SaveChangesAsync();
 
-        return new LegacyDataResponse<Guid>(entity.Id);
+        return new(entity.Id);
     }
 }

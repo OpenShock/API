@@ -12,6 +12,7 @@ namespace OpenShock.API.Controller.Devices;
 /// Device management
 /// </summary>
 [ApiController]
+[Tags("Hub Management")]
 [ApiVersion("1"), ApiVersion("2")]
 [Route("/{version:apiVersion}/devices")]
 [Authorize(AuthenticationSchemes = OpenShockAuthSchemas.UserSessionApiTokenCombo)]

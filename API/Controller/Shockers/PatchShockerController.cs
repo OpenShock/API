@@ -52,6 +52,6 @@ public sealed partial class ShockerController
         
         await deviceUpdateService.UpdateDeviceForAllShared(CurrentUser.Id, body.Device, DeviceUpdateType.ShockerUpdated);
         
-        return Ok(new LegacyEmptyResponse("Shocker updated successfully"));
+        return LegacyEmptyOk("Shocker updated successfully");
     }
 }

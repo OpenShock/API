@@ -51,7 +51,7 @@ public sealed partial class ShockerController
 
         await deviceUpdateService.UpdateDeviceForAllShared(CurrentUser.Id, device,
             DeviceUpdateType.ShockerUpdated);
-        
-        return RespondSuccessLegacy(shocker.Id, statusCode: HttpStatusCode.Created);
+
+        return LegacyDataCreated($"/1/shockers/{shocker.Id}", shocker.Id);
     }
 }

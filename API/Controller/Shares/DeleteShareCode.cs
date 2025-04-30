@@ -32,6 +32,6 @@ public sealed partial class SharesController
             return Problem(ShareCodeError.ShareCodeNotFound);
         }
 
-        return Ok(new LegacyEmptyResponse("Successfully deleted share code"));
+        return LegacyEmptyOk("Successfully deleted share code");
     }
 }

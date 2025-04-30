@@ -63,6 +63,6 @@ public sealed partial class ShockerController
             })
             .AsAsyncEnumerable();
 
-        return RespondSuccessLegacy(logs);
+        return LegacyDataOk(logs);
     }
 }

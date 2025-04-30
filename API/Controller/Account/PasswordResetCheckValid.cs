@@ -25,7 +25,7 @@ public sealed partial class AccountController
     {
         var passwordResetExists = await _accountService.PasswordResetExists(passwordResetId, secret, cancellationToken);
         return passwordResetExists.Match(
-            success => Ok(new LegacyEmptyResponse("Valid password reset process")),
+            success => LegacyEmptyOk("Valid password reset process"),
             notFound => Problem(PasswordResetError.PasswordResetNotFound),
             invalid => Problem(PasswordResetError.PasswordResetNotFound)
         );

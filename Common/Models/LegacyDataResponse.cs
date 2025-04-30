@@ -1,19 +1,3 @@
-﻿// ReSharper disable UnusedAutoPropertyAccessor.Global
+﻿namespace OpenShock.Common.Models;
 
-using System.Text.Json;
-
-namespace OpenShock.Common.Models;
-
-public sealed class LegacyDataResponse<T>
-{
-    public string Message { get; set; }
-    public T Data { get; set; }
-
-    public LegacyDataResponse(T data, string message = "")
-    {
-        Message = message;
-        Data = data;
-    }
-    
-    public override string ToString() => JsonSerializer.Serialize(this);
-}
+public sealed record LegacyDataResponse<T>(T Data, string Message = "");

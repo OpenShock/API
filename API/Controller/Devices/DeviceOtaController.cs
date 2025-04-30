@@ -49,7 +49,7 @@ public sealed class DevicesOtaController : AuthenticatedSessionControllerBase
             x.Id == deviceId && x.Owner == CurrentUser.Id);
         if (!deviceExistsAndYouHaveAccess) return Problem(DeviceError.DeviceNotFound);
 
-        return RespondSuccessLegacy(await otaService.GetUpdates(deviceId));
+        return LegacyDataOk(await otaService.GetUpdates(deviceId));
     }
     
 }

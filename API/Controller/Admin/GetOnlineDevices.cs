@@ -41,7 +41,7 @@ public sealed partial class AdminController
                     }
                 }).ToArrayAsync();
 
-        return RespondSuccessLegacy(
+        return LegacyDataOk(
             allOnlineDevices
                 .Select(x =>
                 {
