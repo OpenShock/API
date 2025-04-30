@@ -33,4 +33,10 @@ public interface IHubController : IAsyncDisposable
     /// <param name="version"></param>
     /// <returns></returns>
     public ValueTask OtaInstall(SemVersion version);
+
+    /// <summary>
+    /// Disconnect the old connection in favor of the new one
+    /// </summary>
+    /// <returns></returns>
+    public Task DisconnectOld();
 }

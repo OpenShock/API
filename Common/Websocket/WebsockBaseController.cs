@@ -29,16 +29,11 @@ public abstract class WebsocketBaseController<T> : OpenShockControllerBase, IAsy
     protected readonly ILogger<WebsocketBaseController<T>> Logger;
 
     /// <summary>
-    /// Close cancellation token to be called manually when termination of the current websocket is requested. Called on Dispose as well.
-    /// </summary>
-    protected readonly CancellationTokenSource Close = new();
-
-    /// <summary>
     /// When passing a cancellation token, pass this Linked token, it is a Link from ApplicationStopping and Close.
     /// </summary>
-    protected readonly CancellationTokenSource LinkedSource;
+    private CancellationTokenSource? _linkedSource;
 
-    protected readonly CancellationToken LinkedToken;
+    protected CancellationToken LinkedToken;
 
     /// <summary>
     /// Channel for multithreading thread safety of the websocket, MessageLoop is the only reader for this channel
@@ -53,12 +48,9 @@ public abstract class WebsocketBaseController<T> : OpenShockControllerBase, IAsy
     /// DI
     /// </summary>
     /// <param name="logger"></param>
-    /// <param name="lifetime"></param>
-    public WebsocketBaseController(ILogger<WebsocketBaseController<T>> logger, IHostApplicationLifetime lifetime)
+    protected WebsocketBaseController(ILogger<WebsocketBaseController<T>> logger)
     {
         Logger = logger;
-        LinkedSource = CancellationTokenSource.CreateLinkedTokenSource(Close.Token, lifetime.ApplicationStopping);
-        LinkedToken = LinkedSource.Token;
     }
 
 
@@ -89,10 +81,9 @@ public abstract class WebsocketBaseController<T> : OpenShockControllerBase, IAsy
         await UnregisterConnection();
 
         Channel.Writer.TryComplete();
-        await Close.CancelAsync();
 
         WebSocket?.Dispose();
-        LinkedSource.Dispose();
+        _linkedSource?.Dispose();
 
         GC.SuppressFinalize(this);
         Logger.LogTrace("Disposed websocket controller");
@@ -110,8 +101,13 @@ public abstract class WebsocketBaseController<T> : OpenShockControllerBase, IAsy
     /// </summary>
     [ApiExplorerSettings(IgnoreApi = true)]
     [HttpGet]
-    public async Task Get()
+    public async Task Get([FromServices] IHostApplicationLifetime lifetime, CancellationToken cancellationToken)
     {
+#pragma warning disable IDISP003
+        _linkedSource = CancellationTokenSource.CreateLinkedTokenSource(lifetime.ApplicationStopping, cancellationToken);
+#pragma warning restore IDISP003
+        LinkedToken = _linkedSource.Token;
+        
         if (!HttpContext.WebSockets.IsWebSocketRequest)
         {
             var jsonOptions = HttpContext.RequestServices.GetRequiredService<IOptions<JsonOptions>>();
@@ -119,9 +115,11 @@ public abstract class WebsocketBaseController<T> : OpenShockControllerBase, IAsy
             var response = WebsocketError.NonWebsocketRequest;
             response.AddContext(HttpContext);
             // ReSharper disable once MethodSupportsCancellation
-            await HttpContext.Response.WriteAsJsonAsync(response, jsonOptions.Value.SerializerOptions,
-                contentType: MediaTypeNames.Application.ProblemJson);
-            await Close.CancelAsync();
+            await HttpContext.Response.WriteAsJsonAsync(
+                response,
+                jsonOptions.Value.SerializerOptions,
+                contentType: MediaTypeNames.Application.ProblemJson,
+                cancellationToken: cancellationToken);
             return;
         }
 
@@ -133,16 +131,19 @@ public abstract class WebsocketBaseController<T> : OpenShockControllerBase, IAsy
             HttpContext.Response.StatusCode = response.Status ?? StatusCodes.Status400BadRequest;
             response.AddContext(HttpContext);
             // ReSharper disable once MethodSupportsCancellation
-            await HttpContext.Response.WriteAsJsonAsync(response, jsonOptions.Value.SerializerOptions,
-                contentType: MediaTypeNames.Application.ProblemJson);
-
-            await Close.CancelAsync();
+            await HttpContext.Response.WriteAsJsonAsync(
+                response,
+                jsonOptions.Value.SerializerOptions,
+                contentType: MediaTypeNames.Application.ProblemJson,
+                cancellationToken: cancellationToken);
             return;
         }
 
         Logger.LogInformation("Opening websocket connection");
-        WebSocket?.Dispose(); // This should never happen, suppresses warning
+        
+#pragma warning disable IDISP003
         WebSocket = await HttpContext.WebSockets.AcceptWebSocketAsync();
+#pragma warning restore IDISP003
 
 #pragma warning disable CS4014
         OsTask.Run(MessageLoop);
@@ -154,8 +155,14 @@ public abstract class WebsocketBaseController<T> : OpenShockControllerBase, IAsy
         // Logic ended
         
         await UnregisterConnection();
-        
-        await Close.CancelAsync();
+
+        // Only send close if the socket is still open, this allows us to close the websocket from inside the logic
+        // We send close if the client sent a close message though
+        if (WebSocket is { State: WebSocketState.Open or WebSocketState.CloseReceived }) 
+        {
+            await WebSocket.CloseOutputAsync(WebSocketCloseStatus.NormalClosure, "Normal closure",
+                LinkedToken);
+        }
     }
 
     #region Send Loop
@@ -198,7 +205,54 @@ public abstract class WebsocketBaseController<T> : OpenShockControllerBase, IAsy
     /// </summary>
     /// <returns></returns>
     [NonAction]
-    protected abstract Task Logic();
+    private async Task Logic()
+    {
+        while (!LinkedToken.IsCancellationRequested)
+        {
+            try
+            {
+                if (WebSocket == null)
+                {
+                    Logger.LogWarning("WebSocket is null, aborting");
+                    return;
+                }
+
+                if (WebSocket.State is WebSocketState.CloseReceived or WebSocketState.CloseSent or WebSocketState.Closed)
+                {
+                    // Client or we sent close message or both, we will close the connection after this
+                    return; 
+                }
+
+                if (WebSocket!.State != WebSocketState.Open)
+                {
+                    Logger.LogWarning("WebSocket is not open [{State}], aborting", WebSocket.State);
+                    WebSocket?.Abort();
+                    return;
+                }
+
+                await HandleReceive();
+
+            }
+            catch (OperationCanceledException)
+            {
+                Logger.LogWarning("WebSocket connection terminated due to close or shutdown");
+                return;
+            }
+            catch (Exception ex)
+            {
+                Logger.LogError(ex, "Exception while processing websocket request");
+                WebSocket?.Abort();
+                return;
+            }
+        }
+    }
+
+    /// <summary>
+    /// 
+    /// </summary>
+    /// <returns>True if you want to continue the receiver loop, false if you want to terminate</returns>
+    [NonAction]
+    protected abstract Task<bool> HandleReceive();
 
     /// <summary>
     /// Send initial data to the client
