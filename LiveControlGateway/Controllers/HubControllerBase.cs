@@ -86,14 +86,13 @@ public abstract class HubControllerBase<TIn, TOut> : FlatbuffersWebsocketBaseCon
     /// <param name="options"></param>
     /// <param name="logger"></param>
     protected HubControllerBase(
-        IHostApplicationLifetime lifetime,
         ISerializer<TIn> incomingSerializer,
         ISerializer<TOut> outgoingSerializer,
         HubLifetimeManager hubLifetimeManager,
         IServiceProvider serviceProvider,
         IOptions<LcgOptions> options,
         ILogger<FlatbuffersWebsocketBaseController<TIn, TOut>> logger
-        ) : base(logger, lifetime, incomingSerializer, outgoingSerializer)
+        ) : base(logger, incomingSerializer, outgoingSerializer)
     {
         _hubLifetimeManager = hubLifetimeManager;
         ServiceProvider = serviceProvider;

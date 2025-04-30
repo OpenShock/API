@@ -36,21 +36,19 @@ public sealed class HubV2Controller : HubControllerBase<HubToGatewayMessage, Gat
     /// <summary>
     /// DI
     /// </summary>
-    /// <param name="lifetime"></param>
     /// <param name="hubLifetimeManager"></param>
     /// <param name="userHubContext"></param>
     /// <param name="serviceProvider"></param>
     /// <param name="options"></param>
     /// <param name="logger"></param>
     public HubV2Controller(
-        IHostApplicationLifetime lifetime,
         HubLifetimeManager hubLifetimeManager,
         IHubContext<UserHub, IUserHub> userHubContext,
         IServiceProvider serviceProvider,
         IOptions<LcgOptions> options,
         ILogger<HubV2Controller> logger
         )
-        : base(lifetime, HubToGatewayMessage.Serializer, GatewayToHubMessage.Serializer, hubLifetimeManager, serviceProvider, options, logger)
+        : base(HubToGatewayMessage.Serializer, GatewayToHubMessage.Serializer, hubLifetimeManager, serviceProvider, options, logger)
     {
         _userHubContext = userHubContext;
         _pingTimer = new Timer(PingTimerElapsed, null, Duration.DevicePingInitialDelay, Duration.DevicePingPeriod);

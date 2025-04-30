@@ -77,13 +77,11 @@ public sealed class LiveControlController : WebsocketBaseController<LiveControlR
     /// </summary>
     /// <param name="db"></param>
     /// <param name="logger"></param>
-    /// <param name="lifetime"></param>
     /// <param name="hubLifetimeManager"></param>
     public LiveControlController(
         OpenShockContext db,
         ILogger<LiveControlController> logger,
-        IHostApplicationLifetime lifetime,
-        HubLifetimeManager hubLifetimeManager) : base(logger, lifetime)
+        HubLifetimeManager hubLifetimeManager) : base(logger)
     {
         _db = db;
         _logger = logger;
@@ -240,27 +238,11 @@ public sealed class LiveControlController : WebsocketBaseController<LiveControlR
                 Client = _tps
             }
         });
-        await UpdateConnectedState(true);
-    }
-    
-    [NonAction]
-    private async Task UpdateConnectedState(bool isConnected)
-    {
-        Logger.LogTrace("Sending connection update for hub [{HubId}] [{State}]", Id, isConnected);
         
-        try
+        await QueueMessage(new LiveControlResponse<LiveResponseType>
         {
-            await QueueMessage(new LiveControlResponse<LiveResponseType>
-            {
-                ResponseType = isConnected
-                    ? LiveResponseType.DeviceConnected
-                    : LiveResponseType.DeviceNotConnected,
-            });
-        }
-        catch (Exception e)
-        {
-            Logger.LogWarning(e, "Error while sending hub connected state");
-        }
+            ResponseType = LiveResponseType.DeviceConnected
+        });
     }
 
     /// <inheritdoc />
@@ -273,52 +255,58 @@ public sealed class LiveControlController : WebsocketBaseController<LiveControlR
         {
             try
             {
-                if (WebSocket!.State == WebSocketState.Aborted) break;
+                if (WebSocket == null)
+                {
+                    Logger.LogWarning("WebSocket is null, aborting");
+                    return;
+                }
+                
+                if (WebSocket!.State != WebSocketState.Open)
+                {
+                    _logger.LogWarning("WebSocket is not open, aborting");
+                    return;
+                }
+                
                 var message =
                     await JsonWebSocketUtils.ReceiveFullMessageAsyncNonAlloc<BaseRequest<LiveRequestType>>(WebSocket,
                         LinkedToken);
 
-                if (message.IsT2)
-                {
-                    try
+                var continueLoop = await message.Match(request =>
                     {
-                        if (WebSocket.State is WebSocketState.Open or WebSocketState.CloseReceived
-                            or WebSocketState.CloseSent)
+                        if (request?.Data == null)
                         {
-                            await WebSocket.CloseAsync(WebSocketCloseStatus.NormalClosure, "Normal close",
-                                LinkedToken);
+                            Logger.LogWarning("Received null data from client");
+                            return Task.FromResult(false);
                         }
-                    }
-                    catch (OperationCanceledException e)
-                    {
-                        Logger.LogError(e, "Error during close handshake");
-                    }
 
-                    Logger.LogTrace("Closing websocket connection");
-                    break;
-                }
-
-                message.Switch(wsRequest =>
-                    {
-                        if (wsRequest?.Data == null) return;
-                        OsTask.Run(() => ProcessResult(wsRequest));
+                        OsTask.Run(() => ProcessResult(request));
+                        return Task.FromResult(true);
                     },
-                    failed => { Logger.LogWarning(failed.Exception, "Deserialization failed for websocket message"); },
-                    _ => { });
+                    failed =>
+                    {
+                        Logger.LogWarning(failed.Exception, "Deserialization failed for websocket message");
+                        return Task.FromResult(false);
+                    },
+                    async closure =>
+                    {
+                        Logger.LogTrace("Client sent closure");
+                        return false;
+                    });
+
+                if (!continueLoop)
+                {
+                    return;
+                }
             }
             catch (OperationCanceledException)
             {
-                Logger.LogInformation("WebSocket connection terminated due to close or shutdown");
-                break;
-            }
-            catch (WebSocketException e)
-            {
-                if (e.WebSocketErrorCode != WebSocketError.ConnectionClosedPrematurely)
-                    Logger.LogError(e, "Error in receive loop, websocket exception");
+                Logger.LogWarning("WebSocket connection terminated due to close or shutdown");
+                return;
             }
             catch (Exception ex)
             {
                 Logger.LogError(ex, "Exception while processing websocket request");
+                return;
             }
         }
     }
@@ -581,7 +569,7 @@ public sealed class LiveControlController : WebsocketBaseController<LiveControlR
                 ResponseType = LiveResponseType.DeviceNotConnected,
             }, WebSocket!, cts.Token);
             
-            await WebSocket!.CloseAsync(WebSocketCloseStatus.NormalClosure, "Hub is connecting from a different location", cts.Token);
+            await WebSocket!.CloseOutputAsync(WebSocketCloseStatus.NormalClosure, "Hub is connecting from a different location", cts.Token);
         }
         catch (Exception e)
         {

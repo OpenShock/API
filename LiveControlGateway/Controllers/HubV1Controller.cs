@@ -31,21 +31,19 @@ public sealed class HubV1Controller : HubControllerBase<HubToGatewayMessage, Gat
     /// <summary>
     /// DI
     /// </summary>
-    /// <param name="lifetime"></param>
     /// <param name="hubLifetimeManager"></param>
     /// <param name="userHubContext"></param>
     /// <param name="serviceProvider"></param>
     /// <param name="options"></param>
     /// <param name="logger"></param>
     public HubV1Controller(
-            IHostApplicationLifetime lifetime,
             HubLifetimeManager hubLifetimeManager,
             IHubContext<UserHub, IUserHub> userHubContext,
             IServiceProvider serviceProvider,
             IOptions<LcgOptions> options,
             ILogger<HubV1Controller> logger
         )
-        : base(lifetime, HubToGatewayMessage.Serializer, GatewayToHubMessage.Serializer, hubLifetimeManager, serviceProvider, options, logger)
+        : base(HubToGatewayMessage.Serializer, GatewayToHubMessage.Serializer, hubLifetimeManager, serviceProvider, options, logger)
     {
         _userHubContext = userHubContext;
     }

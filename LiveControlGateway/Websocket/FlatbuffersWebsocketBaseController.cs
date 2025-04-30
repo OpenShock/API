@@ -29,7 +29,7 @@ public abstract class FlatbuffersWebsocketBaseController<TIn, TOut> : WebsocketB
     /// <param name="incomingSerializer"></param>
     /// <param name="outgoingSerializer"></param>
     public FlatbuffersWebsocketBaseController(ILogger<FlatbuffersWebsocketBaseController<TIn, TOut>> logger,
-        IHostApplicationLifetime lifetime, ISerializer<TIn> incomingSerializer, ISerializer<TOut> outgoingSerializer) : base(logger, lifetime)
+        ISerializer<TIn> incomingSerializer, ISerializer<TOut> outgoingSerializer) : base(logger)
     {
         _incomingSerializer = incomingSerializer;
         _outgoingSerializer = outgoingSerializer;
@@ -53,7 +53,19 @@ public abstract class FlatbuffersWebsocketBaseController<TIn, TOut> : WebsocketB
         {
             while (!LinkedToken.IsCancellationRequested)
             {
-                if (WebSocket is null or { State: WebSocketState.Aborted }) return;
+                if (WebSocket == null)
+                {
+                    Logger.LogWarning("WebSocket is null, aborting");
+                    return;
+                }
+                
+                if (WebSocket!.State != WebSocketState.Open && WebSocket!.State != WebSocketState.CloseSent)
+                {
+                    await WebSocket.CloseAsync(WebSocketCloseStatus.NormalClosure, "Normal close",
+                        LinkedToken);
+                    return;
+                }
+                
                 var message =
                     await FlatbufferWebSocketUtils.ReceiveFullMessageAsyncNonAlloc(WebSocket,
                         _incomingSerializer, LinkedToken);

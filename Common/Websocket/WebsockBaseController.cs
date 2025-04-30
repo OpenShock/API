@@ -36,9 +36,9 @@ public abstract class WebsocketBaseController<T> : OpenShockControllerBase, IAsy
     /// <summary>
     /// When passing a cancellation token, pass this Linked token, it is a Link from ApplicationStopping and Close.
     /// </summary>
-    protected readonly CancellationTokenSource LinkedSource;
+    private CancellationTokenSource? _linkedSource;
 
-    protected readonly CancellationToken LinkedToken;
+    protected CancellationToken LinkedToken;
 
     /// <summary>
     /// Channel for multithreading thread safety of the websocket, MessageLoop is the only reader for this channel
@@ -54,11 +54,9 @@ public abstract class WebsocketBaseController<T> : OpenShockControllerBase, IAsy
     /// </summary>
     /// <param name="logger"></param>
     /// <param name="lifetime"></param>
-    public WebsocketBaseController(ILogger<WebsocketBaseController<T>> logger, IHostApplicationLifetime lifetime)
+    public WebsocketBaseController(ILogger<WebsocketBaseController<T>> logger)
     {
         Logger = logger;
-        LinkedSource = CancellationTokenSource.CreateLinkedTokenSource(Close.Token, lifetime.ApplicationStopping);
-        LinkedToken = LinkedSource.Token;
     }
 
 
@@ -92,7 +90,7 @@ public abstract class WebsocketBaseController<T> : OpenShockControllerBase, IAsy
         await Close.CancelAsync();
 
         WebSocket?.Dispose();
-        LinkedSource.Dispose();
+        _linkedSource?.Dispose();
 
         GC.SuppressFinalize(this);
         Logger.LogTrace("Disposed websocket controller");
@@ -110,8 +108,13 @@ public abstract class WebsocketBaseController<T> : OpenShockControllerBase, IAsy
     /// </summary>
     [ApiExplorerSettings(IgnoreApi = true)]
     [HttpGet]
-    public async Task Get()
+    public async Task Get(CancellationToken cancellationToken, [FromServices] IHostApplicationLifetime lifetime)
     {
+#pragma warning disable IDISP003
+        _linkedSource = CancellationTokenSource.CreateLinkedTokenSource(Close.Token, lifetime.ApplicationStopping, cancellationToken);
+#pragma warning restore IDISP003
+        LinkedToken = _linkedSource.Token;
+        
         if (!HttpContext.WebSockets.IsWebSocketRequest)
         {
             var jsonOptions = HttpContext.RequestServices.GetRequiredService<IOptions<JsonOptions>>();
@@ -141,8 +144,10 @@ public abstract class WebsocketBaseController<T> : OpenShockControllerBase, IAsy
         }
 
         Logger.LogInformation("Opening websocket connection");
-        WebSocket?.Dispose(); // This should never happen, suppresses warning
+        
+#pragma warning disable IDISP003
         WebSocket = await HttpContext.WebSockets.AcceptWebSocketAsync();
+#pragma warning restore IDISP003
 
 #pragma warning disable CS4014
         OsTask.Run(MessageLoop);
@@ -154,7 +159,13 @@ public abstract class WebsocketBaseController<T> : OpenShockControllerBase, IAsy
         // Logic ended
         
         await UnregisterConnection();
-        
+
+        if (WebSocket.State == WebSocketState.Open) // Only send close if the socket is still open, this allows us to close the websocket from inside the logic
+        {
+            await WebSocket.CloseOutputAsync(WebSocketCloseStatus.NormalClosure, "Normal closure",
+                LinkedToken);
+        }
+
         await Close.CancelAsync();
     }
 
