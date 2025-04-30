@@ -15,13 +15,15 @@ public sealed partial class AccountController
     /// <param name="cancellationToken"></param>
     /// <returns></returns>
     [HttpPost("username/check")]
-    [ProducesResponseType<UsernameCheckResponse>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
-    public async Task<IActionResult> CheckUsername(ChangeUsernameRequest data, CancellationToken cancellationToken)
+    public async Task<UsernameCheckResponse> CheckUsername(ChangeUsernameRequest data, CancellationToken cancellationToken)
     {
-        var availability = await _accountService.CheckUsernameAvailability(data.Username, cancellationToken);
-        return availability.Match(success => Ok(new UsernameCheckResponse(UsernameAvailability.Available)),
-            taken => Ok(new UsernameCheckResponse(UsernameAvailability.Taken)),
-            invalid => Ok(new UsernameCheckResponse(UsernameAvailability.Invalid, invalid)));
+        var result = await _accountService.CheckUsernameAvailability(data.Username, cancellationToken);
+
+        return result.Match(
+            success => new UsernameCheckResponse(UsernameAvailability.Available),
+            taken => new UsernameCheckResponse(UsernameAvailability.Taken),
+            invalid => new UsernameCheckResponse(UsernameAvailability.Invalid, invalid)
+        );
     }
 }
 
@@ -32,21 +34,4 @@ public enum UsernameAvailability
     Invalid
 }
 
-public class UsernameCheckResponse
-{
-    public required UsernameAvailability Availability { get; init; }
-    public UsernameError? Error { get; init; } = null;
-    
-    [SetsRequiredMembers]
-    public UsernameCheckResponse(UsernameAvailability availability, UsernameError? error = null)
-    {
-        Availability = availability;
-        Error = error;
-    }
-    
-    [SetsRequiredMembers]
-    public UsernameCheckResponse(UsernameAvailability availability)
-    {
-        Availability = availability;
-    }
-}
+public sealed record UsernameCheckResponse(UsernameAvailability Availability, UsernameError? Error = null);

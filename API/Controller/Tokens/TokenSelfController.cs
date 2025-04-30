@@ -23,7 +23,6 @@ public sealed partial class TokensSelfController : AuthenticatedSessionControlle
     /// <returns></returns>
     /// <exception cref="Exception"></exception>
     [HttpGet("self")]
-    [ProducesResponseType<TokenResponse>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
     public TokenResponse GetSelfToken([FromServices] IUserReferenceService userReferenceService)
     {
         var x = userReferenceService.AuthReference;

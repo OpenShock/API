@@ -19,7 +19,6 @@ public sealed partial class TokensController
     /// </summary>
     /// <response code="200">All tokens for the current user</response>
     [HttpGet]
-    [ProducesResponseType<IAsyncEnumerable<TokenResponse>>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
     public IAsyncEnumerable<TokenResponse> ListTokens()
     {
         return _db.ApiTokens
@@ -71,7 +70,6 @@ public sealed partial class TokensController
     /// <param name="body"></param>
     /// <response code="200">The created token</response>
     [HttpPost]
-    [ProducesResponseType<TokenCreatedResponse>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
     public async Task<TokenCreatedResponse> CreateToken([FromBody] CreateTokenRequest body)
     {
         var token = CryptoUtils.RandomString(AuthConstants.ApiTokenLength);

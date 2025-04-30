@@ -148,7 +148,7 @@ public sealed partial class DevicesController
     [TokenPermission(PermissionType.Devices_Edit)]
     [ProducesResponseType<Guid>(StatusCodes.Status201Created, MediaTypeNames.Application.Json)]
     [MapToApiVersion("1")]
-    public Task<Guid> CreateDevice([FromServices] IDeviceUpdateService updateService)
+    public Task<IActionResult> CreateDevice([FromServices] IDeviceUpdateService updateService)
     => CreateDeviceV2(new HubCreateRequest
         {
             Name = $"New Hub {DateTimeOffset.UtcNow:d}"
@@ -163,7 +163,7 @@ public sealed partial class DevicesController
     [TokenPermission(PermissionType.Devices_Edit)]
     [ProducesResponseType<Guid>(StatusCodes.Status201Created, MediaTypeNames.Application.Json)]
     [MapToApiVersion("2")]
-    public async Task<Guid> CreateDeviceV2([FromBody] HubCreateRequest data, [FromServices] IDeviceUpdateService updateService)
+    public async Task<IActionResult> CreateDeviceV2([FromBody] HubCreateRequest data, [FromServices] IDeviceUpdateService updateService)
     {
         var device = new Common.OpenShockDb.Device
         {
@@ -177,8 +177,7 @@ public sealed partial class DevicesController
         
         await updateService.UpdateDevice(CurrentUser.Id, device.Id, DeviceUpdateType.Created);
 
-        Response.StatusCode = (int)HttpStatusCode.Created;
-        return device.Id;
+        return Created($"/1/devices/{device.Id}", device.Id);
     }
 
     /// <summary>
