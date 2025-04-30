@@ -62,7 +62,7 @@ public sealed partial class PublicController
             })
         }).FirstOrDefaultAsync();
 
-        if (shareLink == null) return RespondSuccessLegacy(ShareLinkError.ShareLinkNotFound);
+        if (shareLink == null) return Problem(ShareLinkError.ShareLinkNotFound);
         
         
         var final = new PublicShareLinkResponse
