@@ -218,14 +218,15 @@ public abstract class WebsocketBaseController<T> : OpenShockControllerBase, IAsy
                     return;
                 }
 
-                if (WebSocket.State == WebSocketState.CloseReceived)
+                if (WebSocket.State is WebSocketState.CloseReceived or WebSocketState.CloseSent or WebSocketState.Closed)
                 {
-                    return; // Client sent close message, we will close the connection after this
+                    // Client or we sent close message or both, we will close the connection after this
+                    return; 
                 }
 
                 if (WebSocket!.State != WebSocketState.Open)
                 {
-                    Logger.LogWarning("WebSocket is not open, aborting");
+                    Logger.LogWarning("WebSocket is not open [{State}], aborting", WebSocket.State);
                     WebSocket?.Abort();
                     return;
                 }

@@ -174,7 +174,17 @@ public abstract class HubControllerBase<TIn, TOut> : FlatbuffersWebsocketBaseCon
 
     /// <inheritdoc />
     public abstract ValueTask OtaInstall(SemVersion version);
-    
+
+    /// <inheritdoc />
+    public async Task DisconnectOld()
+    {
+        if (WebSocket == null)
+            return;
+        
+        await WebSocket.CloseOutputAsync(WebSocketCloseStatus.NormalClosure, "Hub is connecting from a different location",
+            LinkedToken);
+    }
+
     private static DateTimeOffset? GetBootedAtFromUptimeMs(ulong uptimeMs)
     {
         var uptime = TimeSpan.FromMilliseconds(uptimeMs);

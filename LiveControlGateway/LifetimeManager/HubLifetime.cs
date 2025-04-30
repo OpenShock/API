@@ -172,7 +172,7 @@ public sealed class HubLifetime : IAsyncDisposable
 
         try
         {
-            await oldController.DisposeAsync();
+            await oldController.DisconnectOld();
         }
         catch (Exception e)
         {

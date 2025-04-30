@@ -266,12 +266,14 @@ public sealed class LiveControlController : WebsocketBaseController<LiveControlR
                 if (request?.Data == null)
                 {
                     Logger.LogWarning("Received null data from client");
-                    await WebSocket.CloseOutputAsync(WebSocketCloseStatus.InvalidPayloadData,
+                    await WebSocket!.CloseOutputAsync(WebSocketCloseStatus.InvalidPayloadData,
                         "Invalid json message received", LinkedToken);
                     return false;
                 }
 
+#pragma warning disable CS4014
                 OsTask.Run(() => ProcessResult(request));
+#pragma warning restore CS4014
                 return true;
             },
             async failed =>
@@ -544,15 +546,13 @@ public sealed class LiveControlController : WebsocketBaseController<LiveControlR
 
         try
         {
-            var cts = new CancellationTokenSource(TimeSpan.FromSeconds(10));
-
             await SendWebSocketMessage(new LiveControlResponse<LiveResponseType>
             {
                 ResponseType = LiveResponseType.DeviceNotConnected,
-            }, WebSocket!, cts.Token);
+            }, WebSocket!, LinkedToken);
 
             await WebSocket!.CloseOutputAsync(WebSocketCloseStatus.NormalClosure,
-                "Hub is disconnected", cts.Token);
+                "Hub is disconnected", LinkedToken);
         }
         catch (Exception e)
         {
