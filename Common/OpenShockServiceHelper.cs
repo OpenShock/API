@@ -119,20 +119,8 @@ public static class OpenShockServiceHelper
             x.JsonSerializerOptions.Converters.Add(new CustomJsonStringEnumConverter());
         });
 
-        services.AddOpenApi("1", options =>
-        {
-            options.CreateSchemaReferenceId = OpenApiSchemaReferenceIdUtil.GetFriendlyName;
-
-            options.AddDocumentTransformer<OpenApiDocumentTransformer>();
-            options.AddOperationTransformer<OpenApiOperationTransformer>();
-        });
-        services.AddOpenApi("2", options =>
-        {
-            options.CreateSchemaReferenceId = OpenApiSchemaReferenceIdUtil.GetFriendlyName;
-
-            options.AddDocumentTransformer<OpenApiDocumentTransformer>();
-            options.AddOperationTransformer<OpenApiOperationTransformer>();
-        });
+        services.AddOpenApi("1", OpenApiSchemaUtils.ConfigureOptions);
+        services.AddOpenApi("2", OpenApiSchemaUtils.ConfigureOptions);
 
         var apiVersioningBuilder = services.AddApiVersioning(options =>
         {

@@ -1,9 +1,10 @@
-﻿using OpenShock.Common.Models;
+﻿using Microsoft.AspNetCore.OpenApi;
+using OpenShock.Common.Models;
 using System.Text.Json.Serialization.Metadata;
 
 namespace OpenShock.Common.OpenApi;
 
-public static class OpenApiSchemaReferenceIdUtil
+public static class OpenApiSchemaUtils
 {
     private static readonly HashSet<Type> CollectionTypes =
     [
@@ -67,7 +68,7 @@ public static class OpenApiSchemaReferenceIdUtil
         return type.Name + suffix;
     }
     
-    public static string? GetFriendlyName(Type type)
+    private static string? GetFriendlyName(Type type)
     {
         if (IsSystemType(type)) return null;
 
@@ -76,8 +77,13 @@ public static class OpenApiSchemaReferenceIdUtil
 
         return type.Name;
     }
-    public static string? GetFriendlyName(JsonTypeInfo jsonTypeInfo)
+    
+
+    public static void ConfigureOptions(OpenApiOptions options)
     {
-        return GetFriendlyName(jsonTypeInfo.Type);
+        options.CreateSchemaReferenceId = (jsonTypeInfo) => GetFriendlyName(jsonTypeInfo.Type);
+
+        options.AddDocumentTransformer<OpenApiDocumentTransformer>();
+        options.AddOperationTransformer<OpenApiOperationTransformer>();
     }
 }
