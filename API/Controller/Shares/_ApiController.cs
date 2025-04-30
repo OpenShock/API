@@ -12,8 +12,7 @@ namespace OpenShock.API.Controller.Shares;
 /// </summary>
 [ApiController]
 [Tags("Shocker Shares")]
-[ApiVersion("1")]
-[ApiVersion("2")]
+[ApiVersion("1"), ApiVersion("2")]
 [Route("/{version:apiVersion}/shares")]
 [Authorize(AuthenticationSchemes = OpenShockAuthSchemas.UserSessionApiTokenCombo)]
 public sealed partial class SharesController : AuthenticatedSessionControllerBase
