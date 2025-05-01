@@ -230,7 +230,12 @@ public abstract class WebsocketBaseController<T> : OpenShockControllerBase, IAsy
                     return;
                 }
 
-                await HandleReceive();
+                if (!await HandleReceive())
+                {
+                    // HandleReceive returned false, we will close the connection after this
+                    Logger.LogDebug("HandleReceive returned false, closing connection");
+                    return;
+                }
 
             }
             catch (OperationCanceledException)
