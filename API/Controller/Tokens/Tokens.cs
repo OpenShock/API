@@ -123,7 +123,7 @@ public sealed partial class TokensController
         public required string Name { get; set; }
         
         [MaxLength(HardLimits.ApiKeyMaxPermissions, ErrorMessage = "API token permissions must be between {1} and {2}")]
-        public List<PermissionType> Permissions { get; set; } = [PermissionType.Shockers_Use];
+        public required List<PermissionType> Permissions { get; set; } = [PermissionType.Shockers_Use];
     }
 
     public sealed class CreateTokenRequest : EditTokenRequest
