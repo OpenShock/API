@@ -217,10 +217,11 @@ public abstract class WebsocketBaseController<T> : OpenShockControllerBase, IAsy
                     return;
                 }
 
-                if (WebSocket.State is WebSocketState.CloseReceived or WebSocketState.CloseSent or WebSocketState.Closed)
+                if (WebSocket.State is WebSocketState.CloseReceived or WebSocketState.CloseSent
+                    or WebSocketState.Closed)
                 {
                     // Client or we sent close message or both, we will close the connection after this
-                    return; 
+                    return;
                 }
 
                 if (WebSocket!.State != WebSocketState.Open)
@@ -240,7 +241,12 @@ public abstract class WebsocketBaseController<T> : OpenShockControllerBase, IAsy
             }
             catch (OperationCanceledException)
             {
-                Logger.LogWarning("WebSocket connection terminated due to close or shutdown");
+                return;
+            }
+            catch (WebSocketException ex) when (ex.WebSocketErrorCode == WebSocketError.ConnectionClosedPrematurely)
+            {
+                // When we dont receive a close message from the client, we will get this exception
+                WebSocket?.Abort();
                 return;
             }
             catch (Exception ex)
