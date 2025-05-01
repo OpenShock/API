@@ -2,7 +2,7 @@
     <PropertyGroup>
         <Company>OpenShock</Company>
         <Product>$(Company).$(MSBuildProjectName)</Product>
-        <Version>3.12.0</Version>
+        <Version>3.13.0</Version>
         
         <RepositoryUrl>https://github.com/OpenShock/API</RepositoryUrl>
         <PackageReadmeFile>README.md</PackageReadmeFile>
