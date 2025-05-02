@@ -255,7 +255,7 @@ public sealed class LiveControlController : WebsocketBaseController<LiveControlR
     }
 
     /// <inheritdoc />
-    protected override async Task<bool> HandleReceive()
+    protected override async Task<bool> HandleReceive(CancellationToken cancellationToken)
     {
         var message =
             await JsonWebSocketUtils.ReceiveFullMessageAsyncNonAlloc<BaseRequest<LiveRequestType>>(WebSocket!,
@@ -266,21 +266,18 @@ public sealed class LiveControlController : WebsocketBaseController<LiveControlR
                 if (request?.Data == null)
                 {
                     Logger.LogWarning("Received null data from client");
-                    await WebSocket!.CloseOutputAsync(WebSocketCloseStatus.InvalidPayloadData,
-                        "Invalid json message received", LinkedToken);
+                    await ForceClose(WebSocketCloseStatus.InvalidPayloadData, "Invalid json message received");
                     return false;
                 }
 
-#pragma warning disable CS4014
-                OsTask.Run(() => ProcessResult(request));
-#pragma warning restore CS4014
+                await ProcessResult(request);
+
                 return true;
             },
             async failed =>
             {
                 Logger.LogWarning(failed.Exception, "Deserialization failed for websocket message");
-                await WebSocket!.CloseOutputAsync(WebSocketCloseStatus.InvalidPayloadData,
-                    "Invalid json message received", LinkedToken);
+                await ForceClose(WebSocketCloseStatus.InvalidPayloadData, "Invalid json message received");
                 return false;
             }, closure =>
             {
@@ -551,8 +548,8 @@ public sealed class LiveControlController : WebsocketBaseController<LiveControlR
                 ResponseType = LiveResponseType.DeviceNotConnected,
             }, WebSocket!, LinkedToken);
 
-            await WebSocket!.CloseOutputAsync(WebSocketCloseStatus.NormalClosure,
-                "Hub is disconnected", LinkedToken);
+            
+            await ForceClose(WebSocketCloseStatus.NormalClosure, "Hub is disconnected");
         }
         catch (Exception e)
         {

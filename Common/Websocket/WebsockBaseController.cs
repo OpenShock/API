@@ -34,7 +34,7 @@ public abstract class WebsocketBaseController<T> : OpenShockControllerBase, IAsy
     private CancellationTokenSource? _linkedSource;
 
     protected CancellationToken LinkedToken;
-
+    
     /// <summary>
     /// Channel for multithreading thread safety of the websocket, MessageLoop is the only reader for this channel
     /// </summary>
@@ -52,7 +52,6 @@ public abstract class WebsocketBaseController<T> : OpenShockControllerBase, IAsy
     {
         Logger = logger;
     }
-
 
     /// <inheritdoc />
     [NonAction]
@@ -200,6 +199,8 @@ public abstract class WebsocketBaseController<T> : OpenShockControllerBase, IAsy
 
     #endregion
 
+    private CancellationTokenSource _receiveCancellationTokenSource = new();
+    
     /// <summary>
     /// Main receiver logic for the websocket
     /// </summary>
@@ -207,7 +208,9 @@ public abstract class WebsocketBaseController<T> : OpenShockControllerBase, IAsy
     [NonAction]
     private async Task Logic()
     {
-        while (!LinkedToken.IsCancellationRequested)
+        using var linkedReceiverToken = CancellationTokenSource.CreateLinkedTokenSource(LinkedToken, _receiveCancellationTokenSource.Token);
+        
+        while (!linkedReceiverToken.IsCancellationRequested)
         {
             try
             {
@@ -231,7 +234,7 @@ public abstract class WebsocketBaseController<T> : OpenShockControllerBase, IAsy
                     return;
                 }
 
-                if (!await HandleReceive())
+                if (!await HandleReceive(linkedReceiverToken.Token))
                 {
                     // HandleReceive returned false, we will close the connection after this
                     Logger.LogDebug("HandleReceive returned false, closing connection");
@@ -263,7 +266,18 @@ public abstract class WebsocketBaseController<T> : OpenShockControllerBase, IAsy
     /// </summary>
     /// <returns>True if you want to continue the receiver loop, false if you want to terminate</returns>
     [NonAction]
-    protected abstract Task<bool> HandleReceive();
+    protected abstract Task<bool> HandleReceive(CancellationToken cancellationToken);
+    
+    [NonAction]
+    protected async Task ForceClose(WebSocketCloseStatus closeStatus, string? statusDescription)
+    {
+        await _receiveCancellationTokenSource.CancelAsync();
+
+        if (WebSocket is { State: WebSocketState.CloseReceived or WebSocketState.Open })
+        {
+            await WebSocket.CloseOutputAsync(closeStatus, statusDescription, LinkedToken);
+        }
+    }
 
     /// <summary>
     /// Send initial data to the client
