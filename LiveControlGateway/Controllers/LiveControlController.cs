@@ -271,9 +271,8 @@ public sealed class LiveControlController : WebsocketBaseController<LiveControlR
                     return false;
                 }
 
-#pragma warning disable CS4014
-                OsTask.Run(() => ProcessResult(request));
-#pragma warning restore CS4014
+                await ProcessResult(request);
+
                 return true;
             },
             async failed =>

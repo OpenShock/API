@@ -56,7 +56,17 @@ public abstract class WebsocketBaseController<T> : OpenShockControllerBase, IAsy
 
     /// <inheritdoc />
     [NonAction]
-    public ValueTask QueueMessage(T data) => Channel.Writer.WriteAsync(data, LinkedToken);
+    public ValueTask QueueMessage(T data)
+    {
+        if (WebSocket == null || WebSocket.State == WebSocketState.Closed ||
+            WebSocket.State == WebSocketState.CloseSent)
+        {
+            Logger.LogDebug("WebSocket is null or closed, not sending message");
+            return ValueTask.CompletedTask;
+        }
+        
+        return Channel.Writer.WriteAsync(data, LinkedToken);
+    }
 
     private bool _disposed;
 
