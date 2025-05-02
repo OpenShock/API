@@ -48,18 +48,17 @@ public abstract class FlatbuffersWebsocketBaseController<TIn, TOut> : WebsocketB
     protected abstract Task<bool> Handle(TIn data);
 
     /// <inheritdoc />
-    protected override async Task<bool> HandleReceive()
+    protected override async Task<bool> HandleReceive(CancellationToken cancellationToken)
     {
         var message =
             await FlatbufferWebSocketUtils.ReceiveFullMessageAsyncNonAlloc(WebSocket!,
-                _incomingSerializer, LinkedToken);
+                _incomingSerializer, cancellationToken);
         
         var continueLoop = await message.Match(
             Handle,
             async _ =>
             {
-                await WebSocket!.CloseAsync(WebSocketCloseStatus.InvalidPayloadData, "Invalid flatbuffers message",
-                    LinkedToken);
+                await ForceClose(WebSocketCloseStatus.InvalidPayloadData, "Invalid flatbuffers message");
                 return false;
             },
             _ =>

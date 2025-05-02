@@ -102,13 +102,7 @@ public abstract class HubControllerBase<TIn, TOut> : FlatbuffersWebsocketBaseCon
             try
             {
                 Logger.LogInformation("Keep alive timeout reached, closing websocket connection");
-
-                if (WebSocket is { State: WebSocketState.Open })
-                {
-                    await WebSocket!.CloseOutputAsync(WebSocketCloseStatus.ProtocolError, "Keep alive timeout reached",
-                        LinkedToken);
-                }
-                
+                await ForceClose(WebSocketCloseStatus.ProtocolError, "Keep alive timeout reached");
                 WebSocket?.Abort();
             }
             catch (Exception ex)
@@ -187,14 +181,7 @@ public abstract class HubControllerBase<TIn, TOut> : FlatbuffersWebsocketBaseCon
         if (WebSocket == null)
             return;
 
-        if (WebSocket is { State: WebSocketState.Open })
-        {
-            await WebSocket.CloseOutputAsync(WebSocketCloseStatus.NormalClosure,
-                "Hub is connecting from a different location",
-                LinkedToken);
-        }
-        
-        WebSocket?.Abort();
+        await ForceClose(WebSocketCloseStatus.NormalClosure, "Hub is connecting from a different location");
     }
 
     private static DateTimeOffset? GetBootedAtFromUptimeMs(ulong uptimeMs)
