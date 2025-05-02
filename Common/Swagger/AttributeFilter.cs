@@ -1,4 +1,6 @@
 ﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.Net.Http.Headers;
+using Microsoft.OpenApi.Any;
 using Microsoft.OpenApi.Models;
 using OpenShock.Common.Authentication;
 using OpenShock.Common.DataAnnotations.Interfaces;
@@ -34,6 +36,15 @@ public sealed class AttributeFilter : ISchemaFilter, IParameterFilter, IOperatio
 
     public void Apply(OpenApiOperation operation, OperationFilterContext context)
     {
+        operation.Parameters.Add(new OpenApiParameter
+        {
+            Required = true,
+            In = ParameterLocation.Header,
+            Name = HeaderNames.UserAgent,
+            AllowEmptyValue = false,
+            Example = new OpenApiString("OpenShockOpenApiClient/1.0")
+        });
+        
         // Apply OpenShock Parameter Attributes
         foreach (var attribute in context.MethodInfo?.GetCustomAttributes(true).OfType<IOperationAttribute>() ?? [])
         {
