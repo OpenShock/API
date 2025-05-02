@@ -38,11 +38,11 @@ public sealed class AttributeFilter : ISchemaFilter, IParameterFilter, IOperatio
     {
         operation.Parameters.Add(new OpenApiParameter
         {
-            Required = true,
+            Required = false,
             In = ParameterLocation.Header,
             Name = HeaderNames.UserAgent,
             AllowEmptyValue = false,
-            Example = new OpenApiString("OpenShockOpenApiClient/1.0")
+            Example = new OpenApiString("MyApiClient/1.0")
         });
         
         // Apply OpenShock Parameter Attributes
