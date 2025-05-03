@@ -169,8 +169,15 @@ public abstract class WebsocketBaseController<T> : OpenShockControllerBase, IAsy
         // We send close if the client sent a close message though
         if (WebSocket is { State: WebSocketState.Open or WebSocketState.CloseReceived }) 
         {
-            await WebSocket.CloseOutputAsync(WebSocketCloseStatus.NormalClosure, "Normal closure",
-                LinkedToken);
+            try
+            {
+                await WebSocket.CloseOutputAsync(WebSocketCloseStatus.NormalClosure, "Normal closure",
+                    LinkedToken);
+            }
+            catch (TaskCanceledException) when (lifetime.ApplicationStopping.IsCancellationRequested)
+            {
+                // Ignore, this happens when the application is shutting down
+            }
         }
     }
 
@@ -209,7 +216,7 @@ public abstract class WebsocketBaseController<T> : OpenShockControllerBase, IAsy
 
     #endregion
 
-    private CancellationTokenSource _receiveCancellationTokenSource = new();
+    private readonly CancellationTokenSource _receiveCancellationTokenSource = new();
     
     /// <summary>
     /// Main receiver logic for the websocket
