@@ -93,14 +93,14 @@ public sealed class LiveControlController : WebsocketBaseController<LiveControlR
         _pingTimer.Elapsed += (_, _) => OsTask.Run(SendPing);
     }
 
-
-    private volatile bool _unregistered;
+    
+    private bool _unregistered;
 
     /// <inheritdoc />
     protected override async Task UnregisterConnection()
     {
-        if (_unregistered) return;
-        _unregistered = true;
+        if (Interlocked.Exchange(ref _unregistered, true))
+            return;
 
         if (_hubLifetime == null) return;
         if (!await _hubLifetime.RemoveLiveControlClient(this))
@@ -307,7 +307,7 @@ public sealed class LiveControlController : WebsocketBaseController<LiveControlR
     {
         Logger.LogTrace("Intake pong");
 
-        // Received pong without sending ping, this could be abusing the pong endpoint.
+        // Received pong without sending ping, this could be abusing the pong endpoin>t.
         if (_pingTimestamp == 0)
         {
             // TODO: Kick or warn client.
@@ -535,6 +535,7 @@ public sealed class LiveControlController : WebsocketBaseController<LiveControlR
     [NonAction]
     public async Task HubDisconnected()
     {
+        Interlocked.Exchange(ref _unregistered, true);
         _unregistered = true; // The hub lifetime has already unregistered us
 
         Logger.LogTrace("Hub disconnected, disposing controller");
