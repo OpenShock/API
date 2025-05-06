@@ -1,9 +1,6 @@
 name: Update Cloudflare Proxies
 
 on:
-  push:
-    branches:
-      - feature/autoupdate-cf-proxy-list
   schedule:
     - cron: '0 0 1 * *' # runs at 00:00 UTC on the 1st day of every month
   workflow_dispatch:
@@ -18,7 +15,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: feature/autoupdate-cf-proxy-list
+          ref: ${{ github.ref }}
 
       - name: Fetch Cloudflare IPs and Update File
         env:
