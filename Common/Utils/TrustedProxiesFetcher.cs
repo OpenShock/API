@@ -30,9 +30,9 @@ public static class TrustedProxiesFetcher
     // The following IP ranges are automatically updated by GitHub Actions every month.
     // Do not manually edit between the markers.
 
-    // Fetched 11:00:00 06/05/2025 UTC
-    private static readonly IPNetwork[] PrefetchedCloudflareProxies = 
-    {
+    // Fetched 11:48:30 06/05/2025 UTC
+    private static readonly IPNetwork[] PrefetchedCloudflareProxies =
+{
         // IPv4
         IPNetwork.Parse("173.245.48.0/20"),
         IPNetwork.Parse("103.21.244.0/22"),
