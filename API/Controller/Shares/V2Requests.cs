@@ -17,77 +17,11 @@ namespace OpenShock.API.Controller.Shares;
 
 public sealed partial class SharesController
 {
-    [HttpGet("requests/outstanding")]
+    [HttpGet("requests/outgoing")]
     [ApiVersion("2")]
-    public IAsyncEnumerable<ShareRequestBaseItem> GetOutstandingRequestsList()
+    public IAsyncEnumerable<ShareRequestBaseDetails> GetOutgoingRequestsList()
     {
-        return _db.ShareRequests
-            .Where(x => x.Owner == CurrentUser.Id)
-            .Select(x => new ShareRequestBaseItem()
-            {
-                Id = x.Id,
-                CreatedOn = x.CreatedOn,
-                Owner = new GenericIni
-                {
-                    Id = x.OwnerNavigation.Id,
-                    Name = x.OwnerNavigation.Name,
-                    Image = x.OwnerNavigation.GetImageUrl()
-                },
-                SharedWith = x.UserNavigation == null
-                    ? null
-                    : new GenericIni
-                    {
-                        Id = x.UserNavigation.Id,
-                        Name = x.UserNavigation.Name,
-                        Image = x.UserNavigation.GetImageUrl()
-                    },
-                Counts = new ShareRequestBaseItem.ShareRequestCounts
-                {
-                    Shockers = x.ShareRequestsShockers.Count
-                }
-            })
-            .AsAsyncEnumerable();
-    }
-    
-    [HttpGet("requests/incoming")]
-    [ApiVersion("2")]
-    public IAsyncEnumerable<ShareRequestBaseItem> GetIncomingRequestsList()
-    {
-        return _db.ShareRequests
-            .Where(x => x.User == CurrentUser.Id)
-            .Select(x => new ShareRequestBaseItem
-            {
-                Id = x.Id,
-                CreatedOn = x.CreatedOn,
-                Owner = new GenericIni
-                {
-                    Id = x.OwnerNavigation.Id,
-                    Name = x.OwnerNavigation.Name,
-                    Image = x.OwnerNavigation.GetImageUrl()
-                },
-                SharedWith = x.UserNavigation == null
-                    ? null
-                    : new GenericIni
-                    {
-                        Id = x.UserNavigation.Id,
-                        Name = x.UserNavigation.Name,
-                        Image = x.UserNavigation.GetImageUrl()
-                    },
-                Counts = new ShareRequestBaseItem.ShareRequestCounts
-                {
-                    Shockers = x.ShareRequestsShockers.Count
-                }
-            })
-            .AsAsyncEnumerable();
-    }
-    
-    [HttpGet("requests/{id:guid}")]
-    [ProducesResponseType<ShareRequestBaseDetails>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
-    [ProducesResponseType<OpenShockProblem>(StatusCodes.Status404NotFound, MediaTypeNames.Application.ProblemJson)] // ShareRequestNotFound
-    [ApiVersion("2")]
-    public async Task<IActionResult> GetRequest(Guid id)
-    {
-        var outstandingShare = await _db.ShareRequests.Where(x => x.Id == id && (x.Owner == CurrentUser.Id || x.User == CurrentUser.Id))
+        return _db.ShareRequests.Where(x => x.Owner == CurrentUser.Id)
             .Select(x => new ShareRequestBaseDetails
             {
                 Id = x.Id,
@@ -122,11 +56,49 @@ public sealed partial class SharesController
                         Live = y.PermLive
                     }
                 })
-            }).FirstOrDefaultAsync();
-        
-        if (outstandingShare == null) return Problem(ShareError.ShareRequestNotFound);
-        
-        return Ok(outstandingShare);
+            }).AsAsyncEnumerable();
+    }
+    
+    [HttpGet("requests/incoming")]
+    [ApiVersion("2")]
+    public IAsyncEnumerable<ShareRequestBaseDetails> GetIncomingRequestsList()
+    {
+        return _db.ShareRequests.Where(x => x.User == CurrentUser.Id)
+            .Select(x => new ShareRequestBaseDetails
+            {
+                Id = x.Id,
+                CreatedOn = x.CreatedOn,
+                Owner = new GenericIni
+                {
+                    Id = x.OwnerNavigation.Id,
+                    Name = x.OwnerNavigation.Name,
+                    Image = x.OwnerNavigation.GetImageUrl()
+                },
+                SharedWith = x.UserNavigation == null
+                    ? null
+                    : new GenericIni
+                    {
+                        Id = x.UserNavigation.Id,
+                        Name = x.UserNavigation.Name,
+                        Image = x.UserNavigation.GetImageUrl()
+                    },
+                Shockers = x.ShareRequestsShockers.Select(y => new ShockerPermLimitPairWithId
+                {
+                    Id = y.Shocker,
+                    Limits = new ShockerLimits
+                    {
+                        Duration = y.LimitDuration,
+                        Intensity = y.LimitIntensity
+                    },
+                    Permissions = new ShockerPermissions
+                    {
+                        Shock = y.PermShock,
+                        Sound = y.PermSound,
+                        Vibrate = y.PermVibrate,
+                        Live = y.PermLive
+                    }
+                })
+            }).AsAsyncEnumerable();
     }
     
     [HttpDelete("requests/outgoing/{id:guid}")]
