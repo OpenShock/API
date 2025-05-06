@@ -35,7 +35,7 @@ jobs:
           GENERATED_IPS+="    // The following IP ranges are automatically updated by GitHub Actions every month.\n"
           GENERATED_IPS+="    // Do not manually edit between the markers.\n\n"
           GENERATED_IPS+="    // Fetched $(date -u '+%H:%M:%S %d/%m/%Y UTC')\n"
-          GENERATED_IPS+="    private static readonly IPNetwork[] PrefetchedCloudflareProxies =\n{\n"
+          GENERATED_IPS+="    private static readonly IPNetwork[] PrefetchedCloudflareProxies =\n    {\n"
           GENERATED_IPS+="        // IPv4\n"
 
           for ip in $IPV4; do
