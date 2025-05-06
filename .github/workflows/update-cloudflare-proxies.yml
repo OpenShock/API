@@ -9,7 +9,7 @@ on:
   workflow_dispatch:
 
 env:
-  TARGET_FILE: API/Common/Utils/TrustedProxiesFetcher.cs
+  TARGET_FILE: Common/Utils/TrustedProxiesFetcher.cs
 
 jobs:
   update-proxies:
@@ -18,7 +18,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: develop
+          ref: feature/autoupdate-cf-proxy-list
 
       - name: Fetch Cloudflare IPs and Update File
         env:
