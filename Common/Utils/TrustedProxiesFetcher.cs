@@ -26,7 +26,7 @@ public static class TrustedProxiesFetcher
     private static readonly IPNetwork[] PrivateNetworksParsed =
         PrivateNetworks.Select(x => IPNetwork.Parse(x)).ToArray();
 
-    // Fetched 00:00:00 30/09/2024 UTC
+    // Fetched 11:00:00 06/05/2025 UTC
     private static readonly IPNetwork[] PrefetchedCloudflareProxies = 
     {
         // IPv4
