@@ -7,7 +7,6 @@ using Redis.OM;
 using Redis.OM.Contracts;
 using Scalar.AspNetCore;
 using Serilog;
-using IPNetwork = Microsoft.AspNetCore.HttpOverrides.IPNetwork;
 
 namespace OpenShock.Common;
 

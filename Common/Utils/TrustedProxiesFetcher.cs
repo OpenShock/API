@@ -25,31 +25,30 @@ public static class TrustedProxiesFetcher
 
     private static readonly IPNetwork[] PrivateNetworksParsed = [.. PrivateNetworks.Select(x => IPNetwork.Parse(x))];
 
-    private static readonly char[] NewLineSeperators = [' ', '\r', '\n', '\t'];
+    private static readonly char[] NewLineSeperators = ['\r', '\n', '\t'];
     
     private static async Task<IReadOnlyList<IPNetwork>> FetchCloudflareIPs(Uri uri, CancellationToken ct)
     {
         using var response = await Client.GetAsync(uri, ct);
         var stringResponse = await response.Content.ReadAsStringAsync(ct);
         
-        return ParseNetworks(stringResponse.AsSpan());
+        return ParseNetworks(stringResponse);
     }
 
-    private static IReadOnlyList<IPNetwork> ParseNetworks(ReadOnlySpan<char> response)
+    private static IPNetwork[] ParseNetworks(string response)
     {
-        var ranges = response.Split(NewLineSeperators);
+        var lines = response.Split(NewLineSeperators, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        var networks = new IPNetwork[lines.Length];
 
-        var networks = new List<IPNetwork>();
-
-        foreach (var range in ranges)
+        for (int i = 0; i < lines.Length; i++)
         {
-            networks.Add(IPNetwork.Parse(response[range]));
+            networks[i] = IPNetwork.Parse(lines[i]);
         }
 
         return networks;
     }
     
-    private static async Task<IReadOnlyList<IPNetwork>> FetchCloudflareIPs()
+    private static async Task<IPNetwork[]> FetchCloudflareIPs()
     {
         try
         {
@@ -69,9 +68,9 @@ public static class TrustedProxiesFetcher
         }
     }
 
-    public static async Task<IReadOnlyList<IPNetwork>> GetTrustedNetworksAsync(bool fetch = true)
+    public static async Task<IPNetwork[]> GetTrustedNetworksAsync(bool fetch = true)
     {
-        IReadOnlyList<IPNetwork>? cfProxies = null;
+        IPNetwork[]? cfProxies = null;
 
         if (fetch)
         {
