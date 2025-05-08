@@ -4,6 +4,7 @@ WORKDIR /src
 COPY --link Common/*.csproj Common/
 COPY --link CodeGen/*.csproj CodeGen/
 COPY --link *.props .
+COPY --link *.txt .
 
 RUN dotnet restore CodeGen/CodeGen.csproj
 RUN dotnet restore Common/Common.csproj
