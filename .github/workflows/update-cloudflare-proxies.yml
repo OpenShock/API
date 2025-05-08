@@ -6,8 +6,8 @@ on:
   workflow_dispatch:
 
 env:
-  IPV4_FILE: Common/Utils/cloudflare-ipv4.txt
-  IPV6_FILE: Common/Utils/cloudflare-ipv6.txt
+  IPV4_FILE: Common/config/cloudflare-ips-v4.txt
+  IPV6_FILE: Common/config/cloudflare-ips-v6.txt
 
 jobs:
   update-proxies:
