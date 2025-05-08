@@ -48,7 +48,7 @@ public static class TrustedProxiesFetcher
         return networks;
     }
     
-    private static async Task<IPNetwork[]> FetchCloudflareIPs()
+    private static async Task<IPNetwork[]?> FetchCloudflareIPs()
     {
         try
         {
