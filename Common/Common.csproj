@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk.Web">
+﻿<Project Sdk="Microsoft.NET.Sdk.Web">
   <Import Project="../Framework.props" />
   <Import Project="../Shared.props" />
 
@@ -36,11 +36,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="../CodeGen/CodeGen.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <AdditionalFiles Include="./config/cloudflare-ips-v4.txt" />
-    <AdditionalFiles Include="./config/cloudflare-ips-v6.txt" />
+    <None Update="cloudflare-ips.txt">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
   </ItemGroup>
 </Project>

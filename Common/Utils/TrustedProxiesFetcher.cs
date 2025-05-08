@@ -65,19 +65,21 @@ public static class TrustedProxiesFetcher
         }
         catch (Exception)
         {
-            return CloudflareProxies.PrefetchedCloudflareProxies;
+            return null;
         }
     }
 
     public static async Task<IReadOnlyList<IPNetwork>> GetTrustedNetworksAsync(bool fetch = true)
     {
-        var cfProxies = fetch ? await FetchCloudflareIPs() : CloudflareProxies.PrefetchedCloudflareProxies;
+        IReadOnlyList<IPNetwork>? cfProxies = null;
+
+        if (fetch)
+        {
+            cfProxies = await FetchCloudflareIPs();
+        }
+
+        cfProxies ??= ParseNetworks(File.ReadAllText("cloudflare-ips.txt"));
 
         return [.. PrivateNetworksParsed, .. cfProxies];
-    }
-
-    public static IReadOnlyList<IPNetwork> GetTrustedNetworks(bool fetch = true)
-    {
-        return GetTrustedNetworksAsync(fetch).Result;
     }
 }

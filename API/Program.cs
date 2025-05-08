@@ -60,7 +60,7 @@ builder.Services.AddHostedService<RedisSubscriberService>();
 
 var app = builder.Build();
 
-app.UseCommonOpenShockMiddleware();
+await app.UseCommonOpenShockMiddleware();
 
 if (!databaseConfig.SkipMigration)
 {

@@ -17,8 +17,6 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Common.Tests", "Common.Test
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "API.IntegrationTests", "API.IntegrationTests\API.IntegrationTests.csproj", "{9A9C5529-54A2-490C-A537-242D339054E8}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CodeGen", "CodeGen\CodeGen.csproj", "{42634325-9A97-42A9-945F-6E7CC98508CB}"
-EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -53,10 +51,6 @@ Global
 		{9A9C5529-54A2-490C-A537-242D339054E8}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{9A9C5529-54A2-490C-A537-242D339054E8}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{9A9C5529-54A2-490C-A537-242D339054E8}.Release|Any CPU.Build.0 = Release|Any CPU
-		{42634325-9A97-42A9-945F-6E7CC98508CB}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{42634325-9A97-42A9-945F-6E7CC98508CB}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{42634325-9A97-42A9-945F-6E7CC98508CB}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{42634325-9A97-42A9-945F-6E7CC98508CB}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
