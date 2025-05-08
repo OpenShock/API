@@ -29,7 +29,7 @@ internal class CloudflareProxiesGenerator : IIncrementalGenerator
 
         var bytes = ipAddress.GetAddressBytes();
 
-        builder.Append("new IPNetwork(new IPAddress(new byte[]{");
+        builder.Append("    new IPNetwork(new IPAddress(new byte[]{");
 
         for (int i = 0, last = bytes.Length - 1; i <= last; i++)
         {
