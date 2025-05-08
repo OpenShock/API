@@ -31,7 +31,20 @@ internal class CloudflareProxiesGenerator : IIncrementalGenerator
 
             foreach (var line in ipv4Lines)
             {
-                if (!IPAddress.TryParse(line, out _)) throw new Exception("Invalid IP Address in Cloudflare IPv4 Proxy list!");
+                if (!IPAddress.TryParse(line, out _))
+                {
+                    ctx.ReportDiagnostic(Diagnostic.Create(
+                        new DiagnosticDescriptor(
+                            "CF001",
+                            "Invalid IP Address",
+                            $"The entry '{line}' in {IpV4Name} is not a valid IP Address.",
+                            "CloudflareProxiesGenerator",
+                            DiagnosticSeverity.Error,
+                            true),
+                        Location.None));
+
+                    continue; // Skip invalid entry
+                }
 
                 sourceBuilder.Append("    IPNetwork.Parse(\"");
                 sourceBuilder.Append(line);
@@ -40,7 +53,20 @@ internal class CloudflareProxiesGenerator : IIncrementalGenerator
             sourceBuilder.AppendLine("\n    // IPv6");
             foreach (var line in ipv6Lines)
             {
-                if (!IPAddress.TryParse(line, out _)) throw new Exception("Invalid IP Address in Cloudflare IPv6 Proxy list!");
+                if (!IPAddress.TryParse(line, out _))
+                {
+                    ctx.ReportDiagnostic(Diagnostic.Create(
+                        new DiagnosticDescriptor(
+                            "CF001",
+                            "Invalid IP Address",
+                            $"The entry '{line}' in {IpV6Name} is not a valid IP Address.",
+                            "CloudflareProxiesGenerator",
+                            DiagnosticSeverity.Error,
+                            true),
+                        Location.None));
+
+                    continue; // Skip invalid entry
+                }
 
                 sourceBuilder.Append("    IPNetwork.Parse(\"");
                 sourceBuilder.Append(line);
