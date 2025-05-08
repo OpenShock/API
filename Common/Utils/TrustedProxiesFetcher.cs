@@ -23,64 +23,32 @@ public static class TrustedProxiesFetcher
         "fe80::/10",
     ];
 
-    private static readonly IPNetwork[] PrivateNetworksParsed =
-        PrivateNetworks.Select(x => IPNetwork.Parse(x)).ToArray();
+    private static readonly IPNetwork[] PrivateNetworksParsed = [.. PrivateNetworks.Select(x => IPNetwork.Parse(x))];
 
-    // Fetched 11:00:00 06/05/2025 UTC
-    private static readonly IPNetwork[] PrefetchedCloudflareProxies = 
-    {
-        // IPv4
-        IPNetwork.Parse("173.245.48.0/20"),
-        IPNetwork.Parse("103.21.244.0/22"),
-        IPNetwork.Parse("103.22.200.0/22"),
-        IPNetwork.Parse("103.31.4.0/22"),
-        IPNetwork.Parse("141.101.64.0/18"),
-        IPNetwork.Parse("108.162.192.0/18"),
-        IPNetwork.Parse("190.93.240.0/20"),
-        IPNetwork.Parse("188.114.96.0/20"),
-        IPNetwork.Parse("197.234.240.0/22"),
-        IPNetwork.Parse("198.41.128.0/17"),
-        IPNetwork.Parse("162.158.0.0/15"),
-        IPNetwork.Parse("104.16.0.0/13"),
-        IPNetwork.Parse("104.24.0.0/14"),
-        IPNetwork.Parse("172.64.0.0/13"),
-        IPNetwork.Parse("131.0.72.0/22"),
-
-        // IPv6
-        IPNetwork.Parse("2400:cb00::/32"),
-        IPNetwork.Parse("2606:4700::/32"),
-        IPNetwork.Parse("2803:f800::/32"),
-        IPNetwork.Parse("2405:b500::/32"),
-        IPNetwork.Parse("2405:8100::/32"),
-        IPNetwork.Parse("2a06:98c0::/29"),
-        IPNetwork.Parse("2c0f:f248::/32"),
-    };
-
-    private static readonly char[] NewLineSeperators = [' ', '\r', '\n', '\t'];
+    private static readonly char[] NewLineSeperators = ['\r', '\n', '\t'];
     
     private static async Task<IReadOnlyList<IPNetwork>> FetchCloudflareIPs(Uri uri, CancellationToken ct)
     {
         using var response = await Client.GetAsync(uri, ct);
         var stringResponse = await response.Content.ReadAsStringAsync(ct);
         
-        return ParseNetworks(stringResponse.AsSpan());
+        return ParseNetworks(stringResponse);
     }
 
-    private static IReadOnlyList<IPNetwork> ParseNetworks(ReadOnlySpan<char> response)
+    private static IPNetwork[] ParseNetworks(string response)
     {
-        var ranges = response.Split(NewLineSeperators);
+        var lines = response.Split(NewLineSeperators, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        var networks = new IPNetwork[lines.Length];
 
-        var networks = new List<IPNetwork>();
-
-        foreach (var range in ranges)
+        for (int i = 0; i < lines.Length; i++)
         {
-            networks.Add(IPNetwork.Parse(response[range]));
+            networks[i] = IPNetwork.Parse(lines[i]);
         }
 
         return networks;
     }
     
-    private static async Task<IReadOnlyList<IPNetwork>> FetchCloudflareIPs()
+    private static async Task<IPNetwork[]?> FetchCloudflareIPs()
     {
         try
         {
@@ -96,19 +64,21 @@ public static class TrustedProxiesFetcher
         }
         catch (Exception)
         {
-            return PrefetchedCloudflareProxies;
+            return null;
         }
     }
 
-    public static async Task<IReadOnlyList<IPNetwork>> GetTrustedNetworksAsync(bool fetch = true)
+    public static async Task<IPNetwork[]> GetTrustedNetworksAsync(bool fetch = true)
     {
-        var cfProxies = fetch ? await FetchCloudflareIPs() : PrefetchedCloudflareProxies;
+        IPNetwork[]? cfProxies = null;
+
+        if (fetch)
+        {
+            cfProxies = await FetchCloudflareIPs();
+        }
+
+        cfProxies ??= ParseNetworks(File.ReadAllText("cloudflare-ips.txt"));
 
         return [.. PrivateNetworksParsed, .. cfProxies];
-    }
-
-    public static IReadOnlyList<IPNetwork> GetTrustedNetworks(bool fetch = true)
-    {
-        return GetTrustedNetworksAsync(fetch).Result;
     }
 }
