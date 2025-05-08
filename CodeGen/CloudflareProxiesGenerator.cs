@@ -19,7 +19,6 @@ internal class CloudflareProxiesGenerator : IIncrementalGenerator
         int slash = ipNetwork.IndexOf('/');
         if (slash < 1 || slash == ipNetwork.Length - 1) return false;
 
-        // split into address/CIDR without extra array allocations
         string addressPart = ipNetwork.Substring(0, slash);
         string cidrPart = ipNetwork.Substring(slash + 1);
 
