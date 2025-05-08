@@ -29,6 +29,7 @@ jobs:
 
           echo "Fetching Cloudflare IP lists and merging"
           curl -s $IPV4_URL > $IP_MERGED_FILE
+          echo "" >> $IP_MERGED_FILE
           curl -s $IPV6_URL >> $IP_MERGED_FILE
 
       - name: Commit and Push Changes
