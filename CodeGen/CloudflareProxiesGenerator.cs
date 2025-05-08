@@ -57,6 +57,7 @@ internal class CloudflareProxiesGenerator : IIncrementalGenerator
             var ipv6Lines = files.FirstOrDefault(f => f.Path.EndsWith(IpV6Name))?.GetText()?.Lines.Select(l => l.ToString().Trim()).Where(l => !string.IsNullOrEmpty(l)) ?? [];
 
             var sourceBuilder = new StringBuilder();
+            sourceBuilder.AppendLine("using System.Net;\n");
             sourceBuilder.AppendLine("using IPNetwork = Microsoft.AspNetCore.HttpOverrides.IPNetwork;\n");
             sourceBuilder.AppendLine("namespace OpenShock;\n");
             sourceBuilder.AppendLine("public static class CloudflareProxies {");

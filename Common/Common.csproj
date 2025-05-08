@@ -38,4 +38,9 @@
   <ItemGroup>
     <ProjectReference Include="..\CodeGen\CodeGen.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
   </ItemGroup>
+
+  <ItemGroup>
+    <AdditionalFiles Include="../cloudflare-ips-v4.txt" />
+    <AdditionalFiles Include="../cloudflare-ips-v6.txt" />
+  </ItemGroup>
 </Project>
