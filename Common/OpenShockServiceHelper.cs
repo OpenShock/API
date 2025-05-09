@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.OpenApi;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using OpenShock.Common.Authentication;
@@ -9,6 +10,7 @@ using OpenShock.Common.Authentication.AuthenticationHandlers;
 using OpenShock.Common.Authentication.Services;
 using OpenShock.Common.ExceptionHandle;
 using OpenShock.Common.JsonSerialization;
+using OpenShock.Common.OpenApi;
 using OpenShock.Common.OpenShockDb;
 using OpenShock.Common.Options;
 using OpenShock.Common.Problems;
@@ -116,7 +118,10 @@ public static class OpenShockServiceHelper
             x.JsonSerializerOptions.Converters.Add(new PermissionTypeConverter());
             x.JsonSerializerOptions.Converters.Add(new CustomJsonStringEnumConverter());
         });
-        
+
+        services.AddOpenApi("1", OpenApiSchemaUtils.ConfigureOptions);
+        services.AddOpenApi("2", OpenApiSchemaUtils.ConfigureOptions);
+
         var apiVersioningBuilder = services.AddApiVersioning(options =>
         {
             options.DefaultApiVersion = new ApiVersion(1, 0);

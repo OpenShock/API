@@ -15,7 +15,6 @@ using OpenShock.Common.Services.Device;
 using OpenShock.Common.Services.LCGNodeProvisioner;
 using OpenShock.Common.Services.Ota;
 using OpenShock.Common.Services.Turnstile;
-using OpenShock.Common.Swagger;
 using Serilog;
 
 var builder = OpenShockApplication.CreateDefaultBuilder<Program>(args);
@@ -46,8 +45,6 @@ builder.Services.AddScoped<IDeviceService, DeviceService>();
 builder.Services.AddScoped<IOtaService, OtaService>();
 builder.Services.AddScoped<IDeviceUpdateService, DeviceUpdateService>();
 builder.Services.AddScoped<IAccountService, AccountService>();
-
-builder.Services.AddSwaggerExt<Program>();
 
 builder.Services.AddSingleton<ILCGNodeProvisioner, LCGNodeProvisioner>();
 

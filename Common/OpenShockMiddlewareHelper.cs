@@ -72,15 +72,15 @@ public static class OpenShockMiddlewareHelper
             return remoteIp != null && metricsAllowedIpNetworks.Any(x => x.Contains(remoteIp));
         });
         
-        app.UseSwagger();
+        app.MapOpenApi()
+            .CacheOutput();
         
-        Action<ScalarOptions> scalarOptions = options =>
+        app.MapScalarApiReference("/openapi/scalar", options =>
             options
-                .WithOpenApiRoutePattern("/swagger/{documentName}/swagger.json")
+                .WithOpenApiRoutePattern("/openapi/{documentName}.json")
                 .AddDocument("1", "Version 1")
-                .AddDocument("2", "Version 2");
-        
-        app.MapScalarApiReference("/scalar/viewer", scalarOptions);
+                .AddDocument("2", "Version 2")
+        );
         
         app.MapControllers();
         
