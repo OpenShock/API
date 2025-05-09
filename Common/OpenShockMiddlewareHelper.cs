@@ -7,7 +7,6 @@ using Redis.OM;
 using Redis.OM.Contracts;
 using Scalar.AspNetCore;
 using Serilog;
-using IPNetwork = Microsoft.AspNetCore.HttpOverrides.IPNetwork;
 
 namespace OpenShock.Common;
 
@@ -21,11 +20,11 @@ public static class OpenShockMiddlewareHelper
         ForwardedForHeaderName = "CF-Connecting-IP"
     };
     
-    public static IApplicationBuilder UseCommonOpenShockMiddleware(this WebApplication app)
+    public static async Task<IApplicationBuilder> UseCommonOpenShockMiddleware(this WebApplication app)
     {
         var metricsOptions = app.Services.GetRequiredService<IOptions<MetricsOptions>>().Value;
 
-        foreach (var proxy in TrustedProxiesFetcher.GetTrustedNetworks())
+        foreach (var proxy in await TrustedProxiesFetcher.GetTrustedNetworksAsync())
         {
             ForwardedSettings.KnownNetworks.Add(proxy);
         }

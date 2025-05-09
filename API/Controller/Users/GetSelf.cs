@@ -12,10 +12,10 @@ public sealed partial class UsersController
     /// </summary>
     /// <response code="200">The user's information was successfully retrieved.</response>
     [HttpGet("self")]
-    public LegacyDataResponse<SelfResponse> GetSelf()
+    public LegacyDataResponse<UserSelfResponse> GetSelf()
     {
         return new(
-            new SelfResponse
+            new UserSelfResponse
             {
                 Id = CurrentUser.Id,
                 Name = CurrentUser.Name,
@@ -27,7 +27,7 @@ public sealed partial class UsersController
         );
     }
 
-    public sealed class SelfResponse
+    public sealed class UserSelfResponse
     {
         public required Guid Id { get; set; }
         public required string Name { get; set; }

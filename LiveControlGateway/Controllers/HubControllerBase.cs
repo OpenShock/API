@@ -1,4 +1,5 @@
-﻿using FlatSharp;
+﻿using System.Net.WebSockets;
+using FlatSharp;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
 using Microsoft.Extensions.Options;
@@ -78,7 +79,6 @@ public abstract class HubControllerBase<TIn, TOut> : FlatbuffersWebsocketBaseCon
     /// <summary>
     /// Base for hub websocket controllers
     /// </summary>
-    /// <param name="lifetime"></param>
     /// <param name="incomingSerializer"></param>
     /// <param name="outgoingSerializer"></param>
     /// <param name="hubLifetimeManager"></param>
@@ -86,22 +86,29 @@ public abstract class HubControllerBase<TIn, TOut> : FlatbuffersWebsocketBaseCon
     /// <param name="options"></param>
     /// <param name="logger"></param>
     protected HubControllerBase(
-        IHostApplicationLifetime lifetime,
         ISerializer<TIn> incomingSerializer,
         ISerializer<TOut> outgoingSerializer,
         HubLifetimeManager hubLifetimeManager,
         IServiceProvider serviceProvider,
         IOptions<LcgOptions> options,
         ILogger<FlatbuffersWebsocketBaseController<TIn, TOut>> logger
-        ) : base(logger, lifetime, incomingSerializer, outgoingSerializer)
+        ) : base(logger, incomingSerializer, outgoingSerializer)
     {
         _hubLifetimeManager = hubLifetimeManager;
         ServiceProvider = serviceProvider;
         _options = options.Value;
         _keepAliveTimeoutTimer.Elapsed += async (_, _) =>
         {
-            Logger.LogInformation("Keep alive timeout reached, closing websocket connection");
-            await Close.CancelAsync();
+            try
+            {
+                Logger.LogInformation("Keep alive timeout reached, closing websocket connection");
+                await ForceClose(WebSocketCloseStatus.ProtocolError, "Keep alive timeout reached");
+                WebSocket?.Abort();
+            }
+            catch (Exception ex)
+            {
+                Logger.LogError(ex, "Error while closing websocket connection from keep alive timeout");
+            }
         };
         _keepAliveTimeoutTimer.Start();
     }
@@ -167,7 +174,16 @@ public abstract class HubControllerBase<TIn, TOut> : FlatbuffersWebsocketBaseCon
 
     /// <inheritdoc />
     public abstract ValueTask OtaInstall(SemVersion version);
-    
+
+    /// <inheritdoc />
+    public async Task DisconnectOld()
+    {
+        if (WebSocket == null)
+            return;
+
+        await ForceClose(WebSocketCloseStatus.NormalClosure, "Hub is connecting from a different location");
+    }
+
     private static DateTimeOffset? GetBootedAtFromUptimeMs(ulong uptimeMs)
     {
         var uptime = TimeSpan.FromMilliseconds(uptimeMs);

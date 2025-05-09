@@ -1,5 +1,4 @@
 ﻿using System.Diagnostics.CodeAnalysis;
-using System.Net.Mime;
 using Microsoft.AspNetCore.Mvc;
 using OpenShock.API.Models.Requests;
 using OpenShock.Common.Validation;
@@ -34,4 +33,15 @@ public enum UsernameAvailability
     Invalid
 }
 
-public sealed record UsernameCheckResponse(UsernameAvailability Availability, UsernameError? Error = null);
+public sealed class UsernameCheckResponse
+{
+    [SetsRequiredMembers]
+    public UsernameCheckResponse(UsernameAvailability availability, UsernameError? error = null)
+    {
+        Availability = availability;
+        Error = error;
+    }
+    
+    public required UsernameAvailability Availability { get; set; }
+    public UsernameError? Error { get; set; }
+}

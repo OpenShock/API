@@ -81,6 +81,7 @@ public sealed partial class PublicController
                 {
                     Id = shocker.DeviceId,
                     Name = shocker.DeviceName,
+                    Shockers = []
                 });
 
             final.Devices.Single(x => x.Id == shocker.DeviceId).Shockers.Add(shocker.Shocker);

@@ -1,3 +1,16 @@
-﻿namespace OpenShock.Common.Models;
+﻿using System.Diagnostics.CodeAnalysis;
 
-public sealed record LegacyDataResponse<T>(T Data, string Message = "");
+namespace OpenShock.Common.Models;
+
+public sealed class LegacyDataResponse<T>
+{
+    [SetsRequiredMembers]
+    public LegacyDataResponse(T data, string message = "")
+    {
+        Message = message;
+        Data = data;
+    }
+    
+    public required string Message { get; set; }
+    public required T Data { get; set; }
+}
