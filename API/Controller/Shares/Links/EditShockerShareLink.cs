@@ -2,7 +2,6 @@
 using Microsoft.EntityFrameworkCore;
 using OpenShock.API.Models.Requests;
 using OpenShock.API.Models.Response;
-using System.Net;
 using System.Net.Mime;
 using OpenShock.Common.Errors;
 using OpenShock.Common.Problems;

@@ -1,7 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using OpenShock.API.Models.Response;
-using System.Net;
 using System.Net.Mime;
 using Asp.Versioning;
 using OpenShock.Common.Errors;

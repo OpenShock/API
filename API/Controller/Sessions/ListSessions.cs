@@ -1,7 +1,5 @@
-﻿using System.Net.Mime;
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using OpenShock.API.Models.Response;
-using OpenShock.Common.Problems;
 
 namespace OpenShock.API.Controller.Sessions;
 

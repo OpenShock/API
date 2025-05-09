@@ -3,7 +3,6 @@ using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using OpenShock.Common.Hubs;
 using OpenShock.Common.Models.WebSocket;
-using OpenShock.Common.Models.WebSocket.Device;
 using OpenShock.Common.OpenShockDb;
 using OpenShock.Common.Redis;
 using OpenShock.Common.Redis.PubSub;

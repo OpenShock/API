@@ -1,5 +1,4 @@
-﻿using OpenShock.Common;
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
 using OpenShock.Common.Constants;
 
 namespace OpenShock.API.Models.Response;

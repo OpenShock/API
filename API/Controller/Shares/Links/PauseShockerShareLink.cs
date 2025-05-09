@@ -3,7 +3,6 @@ using Microsoft.EntityFrameworkCore;
 using OpenShock.API.Models.Requests;
 using OpenShock.API.Utils;
 using OpenShock.Common.Models;
-using System.Net;
 using System.Net.Mime;
 using OpenShock.Common.Errors;
 using OpenShock.Common.Problems;

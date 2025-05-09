@@ -10,7 +10,6 @@ using OpenShock.Common.Models.WebSocket;
 using OpenShock.Common.OpenShockDb;
 using OpenShock.Common.Redis;
 using OpenShock.Common.Services.RedisPubSub;
-using OpenShock.Common.Utils;
 using Redis.OM;
 using Redis.OM.Contracts;
 using Semver;

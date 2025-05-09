@@ -1,9 +1,6 @@
-﻿using System.Net.Mime;
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using OpenShock.Common.Models;
 using Asp.Versioning;
-using OpenShock.API.Services.Account;
-using OpenShock.Common.Problems;
 
 namespace OpenShock.API.Controller.Account;
 

@@ -1,13 +1,9 @@
-﻿using System.Net.Mime;
-using Microsoft.AspNetCore.Authorization;
+﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using OpenShock.API.Models.Response;
 using OpenShock.Common.Authentication;
-using OpenShock.Common.Authentication.Attributes;
 using OpenShock.Common.Authentication.ControllerBase;
 using OpenShock.Common.Authentication.Services;
-using OpenShock.Common.OpenShockDb;
-using OpenShock.Common.Problems;
 
 namespace OpenShock.API.Controller.Tokens;
 

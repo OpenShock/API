@@ -2,7 +2,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using OpenShock.Common.Authentication;
-using OpenShock.Common.Authentication.Attributes;
 using OpenShock.Common.Authentication.ControllerBase;
 using OpenShock.Common.Services.Session;
 

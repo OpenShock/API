@@ -1,10 +1,8 @@
-﻿using System.Net.Mime;
-using Asp.Versioning;
+﻿using Asp.Versioning;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using OpenShock.API.Models.Response;
 using OpenShock.Common.Models;
-using OpenShock.Common.Problems;
 
 namespace OpenShock.API.Controller.Shockers;
 

@@ -4,7 +4,6 @@ using OpenShock.Common;
 using OpenShock.Common.Models;
 using OpenShock.Common.Options;
 using OpenShock.Common.Utils;
-using System.Net.Mime;
 using System.Reflection;
 
 namespace OpenShock.API.Controller.Version;

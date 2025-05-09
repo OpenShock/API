@@ -1,5 +1,4 @@
-﻿using OpenShock.Common.Models;
-using OpenShock.Common.Models.WebSocket.User;
+﻿using OpenShock.Common.Models.WebSocket.User;
 
 namespace OpenShock.API.Models.Response;
 

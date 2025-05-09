@@ -1,11 +1,9 @@
-﻿using System.Net;
-using System.Net.Mime;
+﻿using System.Net.Mime;
 using Asp.Versioning;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using OpenShock.Common.Authentication;
-using OpenShock.Common.Authentication.Attributes;
 using OpenShock.Common.Authentication.ControllerBase;
 using OpenShock.Common.Errors;
 using OpenShock.Common.Models;

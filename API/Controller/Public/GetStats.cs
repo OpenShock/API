@@ -1,11 +1,7 @@
-﻿using System.Net.Mime;
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using NRedisStack.RedisStackCommands;
 using OpenShock.Common.Models;
-using OpenShock.Common.Problems;
 using OpenShock.Common.Redis;
-using Redis.OM;
-using Redis.OM.Contracts;
 using StackExchange.Redis;
 
 namespace OpenShock.API.Controller.Public;

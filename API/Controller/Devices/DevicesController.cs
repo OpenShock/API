@@ -10,7 +10,6 @@ using OpenShock.Common.Models;
 using OpenShock.Common.Problems;
 using OpenShock.Common.Redis;
 using OpenShock.Common.Utils;
-using System.Net;
 using System.Net.Mime;
 
 namespace OpenShock.API.Controller.Devices;

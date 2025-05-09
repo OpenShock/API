@@ -4,7 +4,6 @@ using Microsoft.EntityFrameworkCore;
 using OpenShock.API.Models.Response;
 using OpenShock.Common.Models;
 using OpenShock.Common.Utils;
-using System.Net.Mime;
 
 namespace OpenShock.API.Controller.Shockers;
 
