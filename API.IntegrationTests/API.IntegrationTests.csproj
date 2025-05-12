@@ -10,7 +10,7 @@
     <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" Version="9.0.4" />
     <PackageReference Include="Testcontainers.PostgreSql" Version="4.4.0" />
     <PackageReference Include="Testcontainers.Redis" Version="4.4.0" />
-    <PackageReference Include="TUnit" Version="0.19.116" />
+    <PackageReference Include="TUnit" Version="0.19.143" />
   </ItemGroup>
 
   <ItemGroup>
