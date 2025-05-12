@@ -1,5 +1,4 @@
-﻿using System.Net;
-using System.Net.Mime;
+﻿using System.Net.Mime;
 using Asp.Versioning;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -26,8 +25,8 @@ public sealed partial class SharesController
         }
         
         var providedShockerIds = data.Shockers.Select(x => x.Id).ToArray();
-        var belongsToUsFuture = _db.Shockers.AsNoTracking().Where(x =>
-            x.DeviceNavigation.Owner == CurrentUser.Id && providedShockerIds.Contains(x.Id)).Select(x => x.Id).Future();
+        var belongsToUsFuture = _db.Shockers.AsNoTracking()
+            .Where(x => x.DeviceNavigation.Owner == CurrentUser.Id && providedShockerIds.Contains(x.Id)).Select(x => x.Id).Future();
         
         if (data.User != null)
         {
