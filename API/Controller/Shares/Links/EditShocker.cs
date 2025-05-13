@@ -21,7 +21,7 @@ public sealed partial class ShareLinksController
     /// <response code="404">Public share or shocker does not exist</response>
     /// <response code="400">Shocker does not exist in public share</response>
     [HttpPatch("{publicShareId}/{shockerId}")]
-    [ProducesResponseType<LegacyDataResponse<PublicShareResponse>>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
+    [ProducesResponseType<string>(StatusCodes.Status200OK, MediaTypeNames.Text.Plain)]
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status404NotFound, MediaTypeNames.Application.ProblemJson)] // PublicShareNotFound, ShockerNotInPublicShare
     public async Task<IActionResult> EditShocker([FromRoute] Guid publicShareId, [FromRoute] Guid shockerId, [FromBody] PublicShareEditShocker body)
     {
