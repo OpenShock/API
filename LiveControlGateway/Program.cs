@@ -46,4 +46,4 @@ var app = builder.Build();
 
 await app.UseCommonOpenShockMiddleware();
 
-app.Run();
+await app.RunAsync();

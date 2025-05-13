@@ -4,6 +4,7 @@ using OpenShock.Common;
 using OpenShock.Common.Extensions;
 using OpenShock.Cron;
 using OpenShock.Cron.Utils;
+using OpenShock.Common.Swagger;
 
 var builder = OpenShockApplication.CreateDefaultBuilder<Program>(args);
 
@@ -18,6 +19,8 @@ builder.Services.AddHangfire(hangfire =>
     hangfire.UsePostgreSqlStorage(c =>
         c.UseNpgsqlConnection(databaseConfig.Conn)));
 builder.Services.AddHangfireServer();
+
+builder.Services.AddSwaggerExt<Program>();
 
 var app = builder.Build();
 
@@ -37,4 +40,4 @@ foreach (var cronJob in CronJobCollector.GetAllCronJobs())
     jobManager.AddOrUpdate(cronJob.Name, cronJob.Job, cronJob.Schedule);
 }
 
-app.Run();
+await app.RunAsync();

@@ -92,7 +92,7 @@ else
 app.MapHub<UserHub>("/1/hubs/user", options => options.Transports = HttpTransportType.WebSockets);
 app.MapHub<PublicShareHub>("/1/hubs/share/link/{id:guid}", options => options.Transports = HttpTransportType.WebSockets);
 
-app.Run();
+await app.RunAsync();
 
 // Expose Program class for integrationtests
 public partial class Program;
