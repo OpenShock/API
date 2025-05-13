@@ -36,7 +36,7 @@ public sealed partial class ShockerController
             .Select(x =>
                 new ShareInfo
                 {
-                    Paused = x.Paused,
+                    Paused = x.IsPaused,
                     SharedWith = new GenericIni
                     {
                         Name = x.SharedWithNavigation.Name,
@@ -46,15 +46,15 @@ public sealed partial class ShockerController
                     CreatedOn = x.CreatedAt,
                     Permissions = new ShockerPermissions
                     {
-                        Sound = x.PermSound,
-                        Shock = x.PermShock,
-                        Vibrate = x.PermVibrate,
-                        Live = x.PermLive
+                        Vibrate = x.AllowVibrate,
+                        Sound = x.AllowSound,
+                        Shock = x.AllowShock,
+                        Live = x.AllowLiveControl
                     },
                     Limits = new ShockerLimits
                     {
-                        Duration = x.LimitDuration,
-                        Intensity = x.LimitIntensity
+                        Intensity = x.MaxIntensity,
+                        Duration = x.MaxDuration
                     }
                 }
             )
@@ -123,11 +123,13 @@ public sealed partial class ShockerController
         {
             Id = Guid.CreateVersion7(),
             ShockerId = shockerId,
-            PermVibrate = body.Permissions.Vibrate,
-            PermSound = body.Permissions.Sound,
-            PermShock = body.Permissions.Shock,
-            LimitIntensity = body.Limits.Intensity,
-            LimitDuration = body.Limits.Duration
+            AllowShock = body.Permissions.Shock,
+            AllowVibrate = body.Permissions.Vibrate,
+            AllowSound = body.Permissions.Sound,
+            AllowLiveControl = body.Permissions.Live,
+            MaxIntensity = body.Limits.Intensity,
+            MaxDuration = body.Limits.Duration,
+            IsPaused = false
         };
         _db.ShockerShareCodes.Add(newCode);
         await _db.SaveChangesAsync();
@@ -198,12 +200,12 @@ public sealed partial class ShockerController
 
         var share = affected.Share;
         
-        share.PermShock = body.Permissions.Shock;
-        share.PermSound = body.Permissions.Sound;
-        share.PermVibrate = body.Permissions.Vibrate;
-        share.LimitDuration = body.Limits.Duration;
-        share.LimitIntensity = body.Limits.Intensity;
-        share.PermLive = body.Permissions.Live;
+        share.AllowShock = body.Permissions.Shock;
+        share.AllowVibrate = body.Permissions.Vibrate;
+        share.AllowSound = body.Permissions.Sound;
+        share.AllowLiveControl = body.Permissions.Live;
+        share.MaxIntensity = body.Limits.Intensity;
+        share.MaxDuration = body.Limits.Duration;
 
         await _db.SaveChangesAsync();
 
@@ -238,7 +240,7 @@ public sealed partial class ShockerController
             new { Share = x, DeviceId = x.Shocker.Device, Owner = x.Shocker.DeviceNavigation.Owner }).FirstOrDefaultAsync();
         if (affected == null) return Problem(ShockerError.ShockerNotFound);
 
-        affected.Share.Paused = body.Pause;
+        affected.Share.IsPaused = body.Pause;
 
         await _db.SaveChangesAsync();
 

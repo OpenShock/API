@@ -126,7 +126,7 @@ public sealed class LiveControlController : WebsocketBaseController<LiveControlR
             _sharedShockers = await db.Shockers.Where(x => x.Device == Id).ToDictionaryAsync(x => x.Id, x =>
                 new LiveShockerPermission()
                 {
-                    Paused = x.Paused,
+                    Paused = x.IsPaused,
                     PermsAndLimits = OwnerPermsAndLimitsLive
                 });
             return;
@@ -138,15 +138,15 @@ public sealed class LiveControlController : WebsocketBaseController<LiveControlR
                 x.ShockerId,
                 Lsp = new LiveShockerPermission
                 {
-                    Paused = x.Paused,
+                    Paused = x.IsPaused,
                     PermsAndLimits = new SharePermsAndLimitsLive
                     {
-                        Shock = x.PermShock,
-                        Vibrate = x.PermVibrate,
-                        Sound = x.PermSound,
-                        Duration = x.LimitDuration,
-                        Intensity = x.LimitIntensity,
-                        Live = x.PermLive
+                        Sound = x.AllowSound,
+                        Vibrate = x.AllowVibrate,
+                        Shock = x.AllowShock,
+                        Duration = x.MaxDuration,
+                        Intensity = x.MaxIntensity,
+                        Live = x.AllowLiveControl
                     }
                 }
             }).ToDictionaryAsync(x => x.ShockerId, x => x.Lsp);
@@ -167,7 +167,7 @@ public sealed class LiveControlController : WebsocketBaseController<LiveControlR
 
         var hubExistsAndYouHaveAccess = await _db.Devices.AnyAsync(x =>
             x.Id == HubId && (x.Owner == _currentUser.Id || x.Shockers.Any(y =>
-                y.ShockerShares.Any(z => z.SharedWith == _currentUser.Id && z.PermLive))));
+                y.ShockerShares.Any(z => z.SharedWith == _currentUser.Id && z.AllowLiveControl))));
 
         if (!hubExistsAndYouHaveAccess)
         {

@@ -33,9 +33,9 @@ public sealed partial class ShareLinksController
                 x.ShareLinkId == shareLinkId && x.ShockerId == shockerId).Include(x => x.Shocker).FirstOrDefaultAsync();
         if (shocker == null) return Problem(ShareLinkError.ShockerNotInShareLink);
 
-        shocker.Paused = body.Pause;
+        shocker.IsPaused = body.Pause;
         await _db.SaveChangesAsync();
 
-        return LegacyDataOk(ShareLinkUtils.GetPausedReason(shocker.Paused, shocker.Shocker.Paused));
+        return LegacyDataOk(ShareLinkUtils.GetPausedReason(shocker.IsPaused, shocker.Shocker.IsPaused));
     }
 }

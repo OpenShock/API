@@ -28,17 +28,17 @@ public sealed partial class SharesController
                         CreatedOn = y.CreatedAt,
                         Permissions = new ShockerPermissions
                         {
-                            Sound = y.PermSound,
-                            Vibrate = y.PermVibrate,
-                            Shock = y.PermShock,
-                            Live = y.PermLive
+                            Vibrate = y.AllowVibrate,
+                            Sound = y.AllowSound,
+                            Shock = y.AllowShock,
+                            Live = y.AllowLiveControl
                         },
                         Limits = new ShockerLimits
                         {
-                            Duration = y.LimitDuration,
-                            Intensity = y.LimitIntensity
+                            Intensity = y.MaxIntensity,
+                            Duration = y.MaxDuration
                         },
-                        Paused = y.Paused
+                        Paused = y.IsPaused
                     })
                     .ToArray()
             })

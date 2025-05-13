@@ -35,7 +35,7 @@ public sealed partial class DevicesController
                 RfId = x.RfId,
                 CreatedOn = x.CreatedAt,
                 Model = x.Model,
-                IsPaused = x.Paused
+                IsPaused = x.IsPaused
             })
             .AsAsyncEnumerable();
 

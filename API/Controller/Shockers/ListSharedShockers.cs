@@ -42,18 +42,18 @@ public sealed partial class ShockerController
                 {
                     Id = x.Shocker.Id,
                     Name = x.Shocker.Name,
-                    IsPaused = x.Shocker.Paused,
+                    IsPaused = x.Shocker.IsPaused,
                     Permissions = new ShockerPermissions
                     {
-                        Shock = x.PermShock,
-                        Sound = x.PermSound,
-                        Vibrate = x.PermVibrate,
-                        Live = x.PermLive
+                        Vibrate = x.AllowVibrate,
+                        Sound = x.AllowSound,
+                        Shock = x.AllowShock,
+                        Live = x.AllowLiveControl
                     },
                     Limits = new ShockerLimits
                     {
-                        Duration = x.LimitDuration,
-                        Intensity = x.LimitIntensity
+                        Intensity = x.MaxIntensity,
+                        Duration = x.MaxDuration
                     }
                 }
             })

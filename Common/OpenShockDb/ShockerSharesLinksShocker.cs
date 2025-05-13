@@ -1,26 +1,12 @@
 ﻿namespace OpenShock.Common.OpenShockDb;
 
-public partial class ShockerSharesLinksShocker
+public partial class ShockerSharesLinksShocker : SafetySettings
 {
     public Guid ShareLinkId { get; set; }
 
     public Guid ShockerId { get; set; }
 
-    public bool PermSound { get; set; }
-
-    public bool PermVibrate { get; set; }
-
-    public bool PermShock { get; set; }
-
-    public ushort? LimitDuration { get; set; }
-
-    public byte? LimitIntensity { get; set; }
-
     public int? Cooldown { get; set; }
-
-    public bool Paused { get; set; }
-
-    public bool PermLive { get; set; }
 
     public virtual ShockerSharesLink ShareLink { get; set; } = null!;
 

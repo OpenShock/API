@@ -46,17 +46,17 @@ public sealed partial class PublicController
                     Name = y.Shocker.Name,
                     Limits = new ShockerLimits
                     {
-                        Duration = y.LimitDuration,
-                        Intensity = y.LimitIntensity
+                        Intensity = y.MaxIntensity,
+                        Duration = y.MaxDuration
                     },
                     Permissions = new ShockerPermissions
                     {
-                        Vibrate = y.PermVibrate,
-                        Sound = y.PermSound,
-                        Shock = y.PermShock,
-                        Live = y.PermLive
+                        Vibrate = y.AllowVibrate,
+                        Sound = y.AllowSound,
+                        Shock = y.AllowShock,
+                        Live = y.AllowLiveControl
                     },
-                    Paused = ShareLinkUtils.GetPausedReason(y.Paused, y.Shocker.Paused),
+                    Paused = ShareLinkUtils.GetPausedReason(y.IsPaused, y.Shocker.IsPaused),
                 }
             })
         }).FirstOrDefaultAsync();

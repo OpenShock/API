@@ -32,7 +32,7 @@ public sealed partial class ShockerController
                         RfId = y.RfId,
                         CreatedOn = y.CreatedAt,
                         Model = y.Model,
-                        IsPaused = y.Paused
+                        IsPaused = y.IsPaused
                     })
                     .ToArray()
             })

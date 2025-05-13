@@ -38,9 +38,11 @@ public sealed partial class ShareLinksController
         {
             ShockerId = shockerId,
             ShareLinkId = shareLinkId,
-            PermSound = true,
-            PermVibrate = true,
-            PermShock = true
+            AllowShock = true,
+            AllowVibrate = true,
+            AllowSound = true,
+            AllowLiveControl = false,
+            IsPaused = false
         });
 
         await _db.SaveChangesAsync();

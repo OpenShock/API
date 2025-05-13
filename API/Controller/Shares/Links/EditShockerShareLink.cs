@@ -33,12 +33,12 @@ public sealed partial class ShareLinksController
                 x.ShareLinkId == shareLinkId && x.ShockerId == shockerId);
         if (shocker == null) return Problem(ShareLinkError.ShockerNotInShareLink);
 
-        shocker.PermSound = body.Permissions.Sound;
-        shocker.PermVibrate = body.Permissions.Vibrate;
-        shocker.PermShock = body.Permissions.Shock;
-        shocker.LimitDuration = body.Limits.Duration;
-        shocker.LimitIntensity = body.Limits.Intensity;
-        shocker.PermLive = body.Permissions.Live;
+        shocker.AllowShock = body.Permissions.Shock;
+        shocker.AllowVibrate = body.Permissions.Vibrate;
+        shocker.AllowSound = body.Permissions.Sound;
+        shocker.AllowLiveControl = body.Permissions.Live;
+        shocker.MaxIntensity = body.Limits.Intensity;
+        shocker.MaxDuration = body.Limits.Duration;
         shocker.Cooldown = body.Cooldown;
 
         await _db.SaveChangesAsync();

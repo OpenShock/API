@@ -61,12 +61,13 @@ public sealed partial class SharesController
             {
                 ShareRequest = shareRequest.Id,
                 Shocker = createShockerShare.Id,
-                LimitDuration = createShockerShare.Limits.Duration,
-                LimitIntensity = createShockerShare.Limits.Intensity,
-                PermLive = createShockerShare.Permissions.Live,
-                PermShock = createShockerShare.Permissions.Shock,
-                PermSound = createShockerShare.Permissions.Sound,
-                PermVibrate = createShockerShare.Permissions.Vibrate
+                AllowShock = createShockerShare.Permissions.Shock,
+                AllowVibrate = createShockerShare.Permissions.Vibrate,
+                AllowSound = createShockerShare.Permissions.Sound,
+                AllowLiveControl = createShockerShare.Permissions.Live,
+                MaxIntensity = createShockerShare.Limits.Intensity,
+                MaxDuration = createShockerShare.Limits.Duration,
+                IsPaused = false
             });
         }
 

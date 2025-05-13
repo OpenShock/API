@@ -285,20 +285,25 @@ public partial class OpenShockContext : DbContext
 
             entity.Property(e => e.ShareRequest).HasColumnName("share_request");
             entity.Property(e => e.Shocker).HasColumnName("shocker");
-            entity.Property(e => e.LimitDuration).HasColumnName("limit_duration");
-            entity.Property(e => e.LimitIntensity).HasColumnName("limit_intensity");
-            entity.Property(e => e.PermLive)
+            entity.Property(e => e.AllowShock)
                 .HasDefaultValue(true)
-                .HasColumnName("perm_live");
-            entity.Property(e => e.PermShock)
+                .HasColumnName("allow_shock");
+            entity.Property(e => e.AllowVibrate)
                 .HasDefaultValue(true)
-                .HasColumnName("perm_shock");
-            entity.Property(e => e.PermSound)
+                .HasColumnName("allow_vibrate");
+            entity.Property(e => e.AllowSound)
                 .HasDefaultValue(true)
-                .HasColumnName("perm_sound");
-            entity.Property(e => e.PermVibrate)
+                .HasColumnName("allow_sound");
+            entity.Property(e => e.AllowLiveControl)
                 .HasDefaultValue(true)
-                .HasColumnName("perm_vibrate");
+                .HasColumnName("allow_livecontrol");
+            entity.Property(e => e.MaxIntensity)
+                .HasColumnName("max_intensity");
+            entity.Property(e => e.MaxDuration)
+                .HasColumnName("max_duration");
+            entity.Property(e => e.IsPaused)
+                .HasDefaultValue(false)
+                .HasColumnName("is_paused");
 
             entity.HasOne(d => d.ShareRequestNavigation).WithMany(p => p.ShareRequestsShockers)
                 .HasForeignKey(d => d.ShareRequest)
@@ -327,9 +332,9 @@ public partial class OpenShockContext : DbContext
             entity.Property(e => e.Name)
                 .HasMaxLength(HardLimits.ShockerNameMaxLength)
                 .HasColumnName("name");
-            entity.Property(e => e.Paused)
+            entity.Property(e => e.IsPaused)
                 .HasDefaultValue(false)
-                .HasColumnName("paused");
+                .HasColumnName("is_paused");
             entity.Property(e => e.Model).HasColumnType("shocker_model_type").HasColumnName("model");
             entity.Property(e => e.RfId).HasColumnName("rf_id");
 
@@ -387,23 +392,25 @@ public partial class OpenShockContext : DbContext
             entity.Property(e => e.CreatedAt)
                 .HasDefaultValueSql("CURRENT_TIMESTAMP")
                 .HasColumnName("created_at");
-            entity.Property(e => e.LimitDuration).HasColumnName("limit_duration");
-            entity.Property(e => e.LimitIntensity).HasColumnName("limit_intensity");
-            entity.Property(e => e.Paused)
+            entity.Property(e => e.AllowShock)
+                .HasDefaultValue(true)
+                .HasColumnName("allow_shock");
+            entity.Property(e => e.AllowVibrate)
+                .HasDefaultValue(true)
+                .HasColumnName("allow_vibrate");
+            entity.Property(e => e.AllowSound)
+                .HasDefaultValue(true)
+                .HasColumnName("allow_sound");
+            entity.Property(e => e.AllowLiveControl)
+                .HasDefaultValue(true)
+                .HasColumnName("allow_livecontrol");
+            entity.Property(e => e.MaxIntensity)
+                .HasColumnName("max_intensity");
+            entity.Property(e => e.MaxDuration)
+                .HasColumnName("max_duration");
+            entity.Property(e => e.IsPaused)
                 .HasDefaultValue(false)
-                .HasColumnName("paused");
-            entity.Property(e => e.PermLive)
-                .HasDefaultValue(true)
-                .HasColumnName("perm_live");
-            entity.Property(e => e.PermShock)
-                .HasDefaultValue(true)
-                .HasColumnName("perm_shock");
-            entity.Property(e => e.PermSound)
-                .HasDefaultValue(true)
-                .HasColumnName("perm_sound");
-            entity.Property(e => e.PermVibrate)
-                .HasDefaultValue(true)
-                .HasColumnName("perm_vibrate");
+                .HasColumnName("is_paused");
 
             entity.HasOne(d => d.SharedWithNavigation).WithMany(p => p.ShockerShares)
                 .HasForeignKey(d => d.SharedWith)
@@ -426,17 +433,25 @@ public partial class OpenShockContext : DbContext
             entity.Property(e => e.CreatedAt)
                 .HasDefaultValueSql("CURRENT_TIMESTAMP")
                 .HasColumnName("created_at");
-            entity.Property(e => e.LimitDuration).HasColumnName("limit_duration");
-            entity.Property(e => e.LimitIntensity).HasColumnName("limit_intensity");
-            entity.Property(e => e.PermShock)
+            entity.Property(e => e.AllowShock)
                 .HasDefaultValue(true)
-                .HasColumnName("perm_shock");
-            entity.Property(e => e.PermSound)
+                .HasColumnName("allow_shock");
+            entity.Property(e => e.AllowVibrate)
                 .HasDefaultValue(true)
-                .HasColumnName("perm_sound");
-            entity.Property(e => e.PermVibrate)
+                .HasColumnName("allow_vibrate");
+            entity.Property(e => e.AllowSound)
                 .HasDefaultValue(true)
-                .HasColumnName("perm_vibrate");
+                .HasColumnName("allow_sound");
+            entity.Property(e => e.AllowLiveControl)
+                .HasDefaultValue(true)
+                .HasColumnName("allow_livecontrol");
+            entity.Property(e => e.MaxIntensity)
+                .HasColumnName("max_intensity");
+            entity.Property(e => e.MaxDuration)
+                .HasColumnName("max_duration");
+            entity.Property(e => e.IsPaused)
+                .HasDefaultValue(false)
+                .HasColumnName("is_paused");
             entity.Property(e => e.ShockerId).HasColumnName("shocker_id");
 
             entity.HasOne(d => d.Shocker).WithMany(p => p.ShockerShareCodes)
@@ -478,17 +493,25 @@ public partial class OpenShockContext : DbContext
             entity.Property(e => e.ShareLinkId).HasColumnName("share_link_id");
             entity.Property(e => e.ShockerId).HasColumnName("shocker_id");
             entity.Property(e => e.Cooldown).HasColumnName("cooldown");
-            entity.Property(e => e.LimitDuration).HasColumnName("limit_duration");
-            entity.Property(e => e.LimitIntensity).HasColumnName("limit_intensity");
-            entity.Property(e => e.Paused)
-                .HasDefaultValue(false)
-                .HasColumnName("paused");
-            entity.Property(e => e.PermLive)
+            entity.Property(e => e.AllowShock)
                 .HasDefaultValue(true)
-                .HasColumnName("perm_live");
-            entity.Property(e => e.PermShock).HasColumnName("perm_shock");
-            entity.Property(e => e.PermSound).HasColumnName("perm_sound");
-            entity.Property(e => e.PermVibrate).HasColumnName("perm_vibrate");
+                .HasColumnName("allow_shock");
+            entity.Property(e => e.AllowVibrate)
+                .HasDefaultValue(true)
+                .HasColumnName("allow_vibrate");
+            entity.Property(e => e.AllowSound)
+                .HasDefaultValue(true)
+                .HasColumnName("allow_sound");
+            entity.Property(e => e.AllowLiveControl)
+                .HasDefaultValue(false)
+                .HasColumnName("allow_livecontrol");
+            entity.Property(e => e.MaxIntensity)
+                .HasColumnName("max_intensity");
+            entity.Property(e => e.MaxDuration)
+                .HasColumnName("max_duration");
+            entity.Property(e => e.IsPaused)
+                .HasDefaultValue(false)
+                .HasColumnName("is_paused");
 
             entity.HasOne(d => d.ShareLink).WithMany(p => p.ShockerSharesLinksShockers)
                 .HasForeignKey(d => d.ShareLinkId)

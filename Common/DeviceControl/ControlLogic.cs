@@ -27,7 +27,7 @@ public static class ControlLogic
                 Device = x.Device,
                 Model = x.Model,
                 Owner = x.DeviceNavigation.Owner,
-                Paused = x.Paused,
+                Paused = x.IsPaused,
                 PermsAndLimits = null
             }).ToListAsync();
         
@@ -40,14 +40,14 @@ public static class ControlLogic
                 Device = x.Shocker.Device,
                 Model = x.Shocker.Model,
                 Owner = x.Shocker.DeviceNavigation.Owner,
-                Paused = x.Shocker.Paused || x.Paused,
+                Paused = x.Shocker.IsPaused || x.IsPaused,
                 PermsAndLimits = new SharePermsAndLimits
                 {
-                    Shock = x.PermShock,
-                    Vibrate = x.PermVibrate,
-                    Sound = x.PermSound,
-                    Duration = x.LimitDuration,
-                    Intensity = x.LimitIntensity
+                    Sound = x.AllowSound,
+                    Vibrate = x.AllowVibrate,
+                    Shock = x.AllowShock,
+                    Duration = x.MaxDuration,
+                    Intensity = x.MaxIntensity
                 }
             }).ToArrayAsync();
 
@@ -69,14 +69,14 @@ public static class ControlLogic
             Device = x.Shocker.Device,
             Model = x.Shocker.Model,
             Owner = x.Shocker.DeviceNavigation.Owner,
-            Paused = x.Shocker.Paused || x.Paused,
+            Paused = x.Shocker.IsPaused || x.IsPaused,
             PermsAndLimits = new SharePermsAndLimits
             {
-                Shock = x.PermShock,
-                Vibrate = x.PermVibrate,
-                Sound = x.PermSound,
-                Duration = x.LimitDuration,
-                Intensity = x.LimitIntensity
+                Sound = x.AllowSound,
+                Vibrate = x.AllowVibrate,
+                Shock = x.AllowShock,
+                Duration = x.MaxDuration,
+                Intensity = x.MaxIntensity
             }
         }).ToArrayAsync();
         

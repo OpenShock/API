@@ -43,15 +43,15 @@ public sealed partial class SharesController
                     Id = y.Shocker,
                     Limits = new ShockerLimits
                     {
-                        Duration = y.LimitDuration,
-                        Intensity = y.LimitIntensity
+                        Intensity = y.MaxIntensity,
+                        Duration = y.MaxDuration
                     },
                     Permissions = new ShockerPermissions
                     {
-                        Shock = y.PermShock,
-                        Sound = y.PermSound,
-                        Vibrate = y.PermVibrate,
-                        Live = y.PermLive
+                        Vibrate = y.AllowVibrate,
+                        Sound = y.AllowSound,
+                        Shock = y.AllowShock,
+                        Live = y.AllowLiveControl
                     }
                 })
             }).AsAsyncEnumerable();
@@ -85,15 +85,15 @@ public sealed partial class SharesController
                     Id = y.Shocker,
                     Limits = new ShockerLimits
                     {
-                        Duration = y.LimitDuration,
-                        Intensity = y.LimitIntensity
+                        Duration = y.MaxDuration,
+                        Intensity = y.MaxIntensity
                     },
                     Permissions = new ShockerPermissions
                     {
-                        Shock = y.PermShock,
-                        Sound = y.PermSound,
-                        Vibrate = y.PermVibrate,
-                        Live = y.PermLive
+                        Vibrate = y.AllowVibrate,
+                        Sound = y.AllowSound,
+                        Shock = y.AllowShock,
+                        Live = y.AllowLiveControl
                     }
                 })
             }).AsAsyncEnumerable();
@@ -151,12 +151,13 @@ public sealed partial class SharesController
             var existingShare = alreadySharedShockers.FirstOrDefault(x => x.ShockerId == shareRequestShocker.Shocker);
             if (existingShare != null)
             {
-                existingShare.PermShock = shareRequestShocker.PermShock;
-                existingShare.PermSound = shareRequestShocker.PermSound;
-                existingShare.PermVibrate = shareRequestShocker.PermVibrate;
-                existingShare.PermLive = shareRequestShocker.PermLive;
-                existingShare.LimitDuration = shareRequestShocker.LimitDuration;
-                existingShare.LimitIntensity = shareRequestShocker.LimitIntensity;
+                existingShare.AllowShock = shareRequestShocker.AllowShock;
+                existingShare.AllowVibrate = shareRequestShocker.AllowVibrate;
+                existingShare.AllowSound = shareRequestShocker.AllowSound;
+                existingShare.AllowLiveControl = shareRequestShocker.AllowLiveControl;
+                existingShare.MaxIntensity = shareRequestShocker.MaxIntensity;
+                existingShare.MaxDuration = shareRequestShocker.MaxDuration;
+                existingShare.IsPaused = shareRequestShocker.IsPaused;
             }
             else
             {
@@ -164,12 +165,13 @@ public sealed partial class SharesController
                 {
                     ShockerId = shareRequestShocker.Shocker,
                     SharedWith = CurrentUser.Id,
-                    PermShock = shareRequestShocker.PermShock,
-                    PermSound = shareRequestShocker.PermSound,
-                    PermVibrate = shareRequestShocker.PermVibrate,
-                    PermLive = shareRequestShocker.PermLive,
-                    LimitDuration = shareRequestShocker.LimitDuration,
-                    LimitIntensity = shareRequestShocker.LimitIntensity
+                    AllowShock = shareRequestShocker.AllowShock,
+                    AllowVibrate = shareRequestShocker.AllowVibrate,
+                    AllowSound = shareRequestShocker.AllowSound,
+                    AllowLiveControl = shareRequestShocker.AllowLiveControl,
+                    MaxIntensity = shareRequestShocker.MaxIntensity,
+                    MaxDuration = shareRequestShocker.MaxDuration,
+                    IsPaused = shareRequestShocker.IsPaused
                 };
                 
                 alreadySharedShockers.Add(newShare);

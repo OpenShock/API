@@ -44,12 +44,13 @@ public sealed partial class SharesController
         {
             SharedWith = CurrentUser.Id,
             ShockerId = shareCode.Share.ShockerId,
-            PermSound = shareCode.Share.PermSound,
-            PermVibrate = shareCode.Share.PermVibrate,
-            PermShock = shareCode.Share.PermShock,
-            LimitDuration = shareCode.Share.LimitDuration,
-            LimitIntensity = shareCode.Share.LimitIntensity,
-            PermLive = true
+            AllowShock = shareCode.Share.AllowShock,
+            AllowVibrate = shareCode.Share.AllowVibrate,
+            AllowSound = shareCode.Share.AllowSound,
+            AllowLiveControl = shareCode.Share.AllowLiveControl,
+            MaxIntensity = shareCode.Share.MaxIntensity,
+            MaxDuration = shareCode.Share.MaxDuration,
+            IsPaused = shareCode.Share.IsPaused
         });
         _db.ShockerShareCodes.Remove(shareCode.Share);
 

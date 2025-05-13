@@ -14,7 +14,7 @@ public partial class Shocker
 
     public DateTime CreatedAt { get; set; }
 
-    public bool Paused { get; set; }
+    public bool IsPaused { get; set; }
     
     public ShockerModelType Model { get; set; }
 
