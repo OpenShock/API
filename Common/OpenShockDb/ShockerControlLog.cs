@@ -10,7 +10,7 @@ public partial class ShockerControlLog
 
     public DateTime CreatedAt { get; set; }
 
-    public Guid? ControlledBy { get; set; }
+    public Guid? ControlledByUserId { get; set; }
 
     public byte Intensity { get; set; }
 
@@ -22,7 +22,7 @@ public partial class ShockerControlLog
 
     public bool LiveControl { get; set; }
 
-    public virtual User? ControlledByNavigation { get; set; }
-
     public virtual Shocker Shocker { get; set; } = null!;
+
+    public virtual User? ControlledByUser { get; set; }
 }

@@ -29,15 +29,15 @@ public sealed partial class ShockerController
     {
         var sharedShockersData = await _db.ShockerShares
             .AsNoTracking()
-            .Include(x => x.Shocker.DeviceNavigation.OwnerNavigation)
-            .Where(x => x.SharedWith == CurrentUser.Id)
+            .Include(x => x.Shocker.Device.Owner)
+            .Where(x => x.SharedWithUserId == CurrentUser.Id)
             .Select(x => new
             {
-                OwnerId = x.Shocker.DeviceNavigation.OwnerNavigation.Id,
-                OwnerName = x.Shocker.DeviceNavigation.OwnerNavigation.Name,
-                OwnerEmail = x.Shocker.DeviceNavigation.OwnerNavigation.Email,
-                DeviceId = x.Shocker.DeviceNavigation.Id,
-                DeviceName = x.Shocker.DeviceNavigation.Name,
+                OwnerId = x.Shocker.Device.Owner.Id,
+                OwnerName = x.Shocker.Device.Owner.Name,
+                OwnerEmail = x.Shocker.Device.Owner.Email,
+                DeviceId = x.Shocker.Device.Id,
+                DeviceName = x.Shocker.Device.Name,
                 Shocker = new OwnerShockerResponse.SharedDevice.SharedShocker
                 {
                     Id = x.Shocker.Id,

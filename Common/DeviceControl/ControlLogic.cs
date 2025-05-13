@@ -18,28 +18,28 @@ public static class ControlLogic
     public static async Task<OneOf<Success, ShockerNotFoundOrNoAccess, ShockerPaused, ShockerNoPermission>> ControlByUser(IReadOnlyList<Control> shocks, OpenShockContext db, ControlLogSender sender,
         IHubClients<IUserHub> hubClients, IRedisPubService redisPubService)
     {
-        var ownShockers = await db.Shockers.Where(x => x.DeviceNavigation.Owner == sender.Id).Select(x =>
+        var ownShockers = await db.Shockers.Where(x => x.Device.OwnerId == sender.Id).Select(x =>
             new ControlShockerObj
             {
                 Id = x.Id,
                 Name = x.Name,
                 RfId = x.RfId,
-                Device = x.Device,
+                Device = x.DeviceId,
                 Model = x.Model,
-                Owner = x.DeviceNavigation.Owner,
+                Owner = x.Device.OwnerId,
                 Paused = x.IsPaused,
                 PermsAndLimits = null
             }).ToListAsync();
         
-        var sharedShockers = await db.ShockerShares.Where(x => x.SharedWith == sender.Id).Select(x =>
+        var sharedShockers = await db.ShockerShares.Where(x => x.SharedWithUserId == sender.Id).Select(x =>
             new ControlShockerObj
             {
                 Id = x.Shocker.Id,
                 Name = x.Shocker.Name,
                 RfId = x.Shocker.RfId,
-                Device = x.Shocker.Device,
+                Device = x.Shocker.DeviceId,
                 Model = x.Shocker.Model,
-                Owner = x.Shocker.DeviceNavigation.Owner,
+                Owner = x.Shocker.Device.OwnerId,
                 Paused = x.Shocker.IsPaused || x.IsPaused,
                 PermsAndLimits = new SharePermsAndLimits
                 {
@@ -66,9 +66,9 @@ public static class ControlLogic
             Id = x.Shocker.Id,
             Name = x.Shocker.Name,
             RfId = x.Shocker.RfId,
-            Device = x.Shocker.Device,
+            Device = x.Shocker.DeviceId,
             Model = x.Shocker.Model,
-            Owner = x.Shocker.DeviceNavigation.Owner,
+            Owner = x.Shocker.Device.OwnerId,
             Paused = x.Shocker.IsPaused || x.IsPaused,
             PermsAndLimits = new SharePermsAndLimits
             {
@@ -123,7 +123,7 @@ public static class ControlLogic
             {
                 Id = Guid.CreateVersion7(),
                 ShockerId = shockerInfo.Id,
-                ControlledBy = sender.Id == Guid.Empty ? null : sender.Id,
+                ControlledByUserId = sender.Id == Guid.Empty ? null : sender.Id,
                 CreatedAt = curTime,
                 Intensity = intensity,
                 Duration = duration,

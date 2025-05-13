@@ -14,5 +14,5 @@ public partial class ShockerSharesLink
 
     public virtual User Owner { get; set; } = null!;
 
-    public virtual ICollection<ShockerSharesLinksShocker> ShockerSharesLinksShockers { get; set; } = new List<ShockerSharesLinksShocker>();
+    public virtual ICollection<ShockerSharesLinksShocker> ShockerMappings { get; set; } = new List<ShockerSharesLinksShocker>();
 }

@@ -10,7 +10,7 @@ public partial class Shocker
 
     public string Name { get; set; } = null!;
 
-    public Guid Device { get; set; }
+    public Guid DeviceId { get; set; }
 
     public DateTime CreatedAt { get; set; }
 
@@ -18,9 +18,9 @@ public partial class Shocker
     
     public ShockerModelType Model { get; set; }
 
-    public virtual Device DeviceNavigation { get; set; } = null!;
+    public virtual Device Device { get; set; } = null!;
 
-    public virtual ICollection<ShareRequestsShocker> ShareRequestsShockers { get; set; } = new List<ShareRequestsShocker>();
+    public virtual ICollection<ShareRequestsShocker> ShareRequestMappings { get; set; } = new List<ShareRequestsShocker>();
 
     public virtual ICollection<ShockerControlLog> ShockerControlLogs { get; set; } = new List<ShockerControlLog>();
 
@@ -28,5 +28,5 @@ public partial class Shocker
 
     public virtual ICollection<ShockerShare> ShockerShares { get; set; } = new List<ShockerShare>();
 
-    public virtual ICollection<ShockerSharesLinksShocker> ShockerSharesLinksShockers { get; set; } = new List<ShockerSharesLinksShocker>();
+    public virtual ICollection<ShockerSharesLinksShocker> ShareLinkMappings { get; set; } = new List<ShockerSharesLinksShocker>();
 }

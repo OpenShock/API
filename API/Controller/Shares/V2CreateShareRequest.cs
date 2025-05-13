@@ -26,7 +26,7 @@ public sealed partial class SharesController
         
         var providedShockerIds = data.Shockers.Select(x => x.Id).ToArray();
         var belongsToUsFuture = _db.Shockers.AsNoTracking().Where(x =>
-            x.DeviceNavigation.Owner == CurrentUser.Id && providedShockerIds.Contains(x.Id)).Select(x => x.Id).Future();
+            x.Device.OwnerId == CurrentUser.Id && providedShockerIds.Contains(x.Id)).Select(x => x.Id).Future();
         
         if (data.User != null)
         {
@@ -50,8 +50,8 @@ public sealed partial class SharesController
         var shareRequest = new ShareRequest
         {
             Id = Guid.CreateVersion7(),
-            Owner = CurrentUser.Id,
-            User = data.User
+            OwnerId = CurrentUser.Id,
+            UserId = data.User
         };
         _db.ShareRequests.Add(shareRequest);
         
@@ -59,8 +59,8 @@ public sealed partial class SharesController
         {
             _db.ShareRequestsShockers.Add(new ShareRequestsShocker
             {
-                ShareRequest = shareRequest.Id,
-                Shocker = createShockerShare.Id,
+                ShareRequestId = shareRequest.Id,
+                ShockerId = createShockerShare.Id,
                 AllowShock = createShockerShare.Permissions.Shock,
                 AllowVibrate = createShockerShare.Permissions.Vibrate,
                 AllowSound = createShockerShare.Permissions.Sound,

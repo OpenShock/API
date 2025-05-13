@@ -25,7 +25,7 @@ public sealed partial class DevicesController
     public LegacyDataResponse<IAsyncEnumerable<Models.Response.ResponseDevice>> ListDevices()
     {
         var devices = _db.Devices
-            .Where(x => x.Owner == CurrentUser.Id)
+            .Where(x => x.OwnerId == CurrentUser.Id)
             .Select(x => new Models.Response.ResponseDevice
             {
                 Id = x.Id,
@@ -51,7 +51,7 @@ public sealed partial class DevicesController
         var hasAuthPerms = IsAllowed(PermissionType.Devices_Auth);
         
         
-        var device = await _db.Devices.Where(x => x.Owner == CurrentUser.Id && x.Id == deviceId)
+        var device = await _db.Devices.Where(x => x.OwnerId == CurrentUser.Id && x.Id == deviceId)
             .Select(x => new Models.Response.ResponseDeviceWithToken
             {
                 Id = x.Id,
@@ -79,7 +79,7 @@ public sealed partial class DevicesController
     [MapToApiVersion("1")]
     public async Task<IActionResult> EditDevice([FromRoute] Guid deviceId, [FromBody] HubEditRequest body, [FromServices] IDeviceUpdateService updateService)
     {
-        var device = await _db.Devices.Where(x => x.Owner == CurrentUser.Id && x.Id == deviceId)
+        var device = await _db.Devices.Where(x => x.OwnerId == CurrentUser.Id && x.Id == deviceId)
             .FirstOrDefaultAsync();
         if (device == null) return Problem(DeviceError.DeviceNotFound);
 
@@ -105,7 +105,7 @@ public sealed partial class DevicesController
     [MapToApiVersion("1")]
     public async Task<IActionResult> RegenerateDeviceToken([FromRoute] Guid deviceId)
     {
-        var device = await _db.Devices.Where(x => x.Owner == CurrentUser.Id && x.Id == deviceId)
+        var device = await _db.Devices.Where(x => x.OwnerId == CurrentUser.Id && x.Id == deviceId)
             .FirstOrDefaultAsync();
         if (device == null) return Problem(DeviceError.DeviceNotFound);
 
@@ -131,7 +131,7 @@ public sealed partial class DevicesController
     [MapToApiVersion("1")]
     public async Task<IActionResult> RemoveDevice([FromRoute] Guid deviceId, [FromServices] IDeviceUpdateService updateService)
     {
-        var affected = await _db.Devices.Where(x => x.Id == deviceId).WhereIsUserOrPrivileged(x => x.OwnerNavigation, CurrentUser).ExecuteDeleteAsync();
+        var affected = await _db.Devices.Where(x => x.Id == deviceId).WhereIsUserOrPrivileged(x => x.Owner, CurrentUser).ExecuteDeleteAsync();
         if (affected <= 0) return Problem(DeviceError.DeviceNotFound);
         
         await updateService.UpdateDeviceForAllShared(CurrentUser.Id, deviceId, DeviceUpdateType.Deleted);
@@ -167,7 +167,7 @@ public sealed partial class DevicesController
         var device = new Common.OpenShockDb.Device
         {
             Id = Guid.CreateVersion7(),
-            Owner = CurrentUser.Id,
+            OwnerId = CurrentUser.Id,
             Name = data.Name,
             Token = CryptoUtils.RandomString(256)
         };
@@ -194,7 +194,7 @@ public sealed partial class DevicesController
     {
         var devicePairs = _redis.RedisCollection<DevicePair>();
 
-        var deviceExists = await _db.Devices.AnyAsync(x => x.Id == deviceId && x.Owner == CurrentUser.Id);
+        var deviceExists = await _db.Devices.AnyAsync(x => x.Id == deviceId && x.OwnerId == CurrentUser.Id);
         if (!deviceExists) Problem(DeviceError.DeviceNotFound);
         // replace with unlink?
         var existing = await devicePairs.FindByIdAsync(deviceId.ToString());
@@ -230,8 +230,8 @@ public sealed partial class DevicesController
     {
         // Check if user owns device or has a share
         var deviceExistsAndYouHaveAccess = await _db.Devices.AnyAsync(x =>
-            x.Id == deviceId && (x.Owner == CurrentUser.Id || x.Shockers.Any(y => y.ShockerShares.Any(
-                z => z.SharedWith == CurrentUser.Id))));
+            x.Id == deviceId && (x.OwnerId == CurrentUser.Id || x.Shockers.Any(y => y.ShockerShares.Any(
+                z => z.SharedWithUserId == CurrentUser.Id))));
         if (!deviceExistsAndYouHaveAccess) return Problem(DeviceError.DeviceNotFound);
 
         // Check if device is online

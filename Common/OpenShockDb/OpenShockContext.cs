@@ -164,7 +164,7 @@ public partial class OpenShockContext : DbContext
 
             entity.HasOne(d => d.User).WithMany(p => p.ApiTokens)
                 .HasForeignKey(d => d.UserId)
-                .HasConstraintName("fk_user_id");
+                .HasConstraintName("fk_api_tokens_user_id");
         });
 
         modelBuilder.Entity<Device>(entity =>
@@ -173,7 +173,7 @@ public partial class OpenShockContext : DbContext
 
             entity.ToTable("devices");
 
-            entity.HasIndex(e => e.Owner).HasAnnotation("Npgsql:StorageParameter:deduplicate_items", "true");
+            entity.HasIndex(e => e.OwnerId).HasAnnotation("Npgsql:StorageParameter:deduplicate_items", "true");
             entity.HasIndex(e => e.Token).IsUnique();
 
             entity.Property(e => e.Id)
@@ -185,26 +185,26 @@ public partial class OpenShockContext : DbContext
             entity.Property(e => e.Name)
                 .VarCharWithLength(HardLimits.HubNameMaxLength)
                 .HasColumnName("name");
-            entity.Property(e => e.Owner).HasColumnName("owner");
+            entity.Property(e => e.OwnerId).HasColumnName("owner_id");
             entity.Property(e => e.Token)
                 .HasMaxLength(HardLimits.HubTokenMaxLength)
                 .HasColumnName("token");
 
-            entity.HasOne(d => d.OwnerNavigation).WithMany(p => p.Devices)
-                .HasForeignKey(d => d.Owner)
-                .HasConstraintName("owner_user_id");
+            entity.HasOne(d => d.Owner).WithMany(p => p.Devices)
+                .HasForeignKey(d => d.OwnerId)
+                .HasConstraintName("fk_devices_owner_id");
         });
 
         modelBuilder.Entity<DeviceOtaUpdate>(entity =>
         {
-            entity.HasKey(e => new { e.Device, e.UpdateId }).HasName("device_ota_updates_pkey");
+            entity.HasKey(e => new { e.DeviceId, e.UpdateId }).HasName("device_ota_updates_pkey");
 
             entity.ToTable("device_ota_updates");
 
             entity.HasIndex(e => e.CreatedAt, "device_ota_updates_created_at_idx")
                 .HasAnnotation("Npgsql:StorageParameter:deduplicate_items", "true");
 
-            entity.Property(e => e.Device).HasColumnName("device");
+            entity.Property(e => e.DeviceId).HasColumnName("device_id");
             entity.Property(e => e.UpdateId).HasColumnName("update_id");
             entity.Property(e => e.CreatedAt)
                 .HasDefaultValueSql("CURRENT_TIMESTAMP")
@@ -219,9 +219,9 @@ public partial class OpenShockContext : DbContext
             entity.Property(e => e.Status).HasColumnType("ota_update_status").HasColumnName("status");
 
 
-            entity.HasOne(d => d.DeviceNavigation).WithMany(p => p.DeviceOtaUpdates)
-                .HasForeignKey(d => d.Device)
-                .HasConstraintName("device_ota_updates_device");
+            entity.HasOne(d => d.Device).WithMany(p => p.OtaUpdates)
+                .HasForeignKey(d => d.DeviceId)
+                .HasConstraintName("fk_device_ota_updates_device_id");
         });
 
         modelBuilder.Entity<PasswordReset>(entity =>
@@ -247,7 +247,7 @@ public partial class OpenShockContext : DbContext
 
             entity.HasOne(d => d.User).WithMany(p => p.PasswordResets)
                 .HasForeignKey(d => d.UserId)
-                .HasConstraintName("user_id");
+                .HasConstraintName("fk_password_resets_user_id");
         });
 
         modelBuilder.Entity<ShareRequest>(entity =>
@@ -256,7 +256,7 @@ public partial class OpenShockContext : DbContext
 
             entity.ToTable("share_requests");
 
-            entity.HasIndex(e => e.Owner).HasAnnotation("Npgsql:StorageParameter:deduplicate_items", "true");
+            entity.HasIndex(e => e.OwnerId).HasAnnotation("Npgsql:StorageParameter:deduplicate_items", "true");
 
             entity.Property(e => e.Id)
                 .ValueGeneratedNever()
@@ -264,27 +264,27 @@ public partial class OpenShockContext : DbContext
             entity.Property(e => e.CreatedAt)
                 .HasDefaultValueSql("CURRENT_TIMESTAMP")
                 .HasColumnName("created_at");
-            entity.Property(e => e.Owner).HasColumnName("owner");
-            entity.Property(e => e.User).HasColumnName("user");
+            entity.Property(e => e.OwnerId).HasColumnName("owner_id");
+            entity.Property(e => e.UserId).HasColumnName("user_id");
 
-            entity.HasOne(d => d.OwnerNavigation).WithMany(p => p.ShareRequestOwnerNavigations)
-                .HasForeignKey(d => d.Owner)
-                .HasConstraintName("fk_share_requests_owner");
+            entity.HasOne(d => d.Owner).WithMany(p => p.ShareRequestOwnerNavigations)
+                .HasForeignKey(d => d.OwnerId)
+                .HasConstraintName("fk_share_requests_owner_id");
 
-            entity.HasOne(d => d.UserNavigation).WithMany(p => p.ShareRequestUserNavigations)
-                .HasForeignKey(d => d.User)
+            entity.HasOne(d => d.User).WithMany(p => p.ShareRequestUserNavigations)
+                .HasForeignKey(d => d.UserId)
                 .OnDelete(DeleteBehavior.Cascade)
-                .HasConstraintName("fk_share_requests_user");
+                .HasConstraintName("fk_share_requests_user_id");
         });
 
         modelBuilder.Entity<ShareRequestsShocker>(entity =>
         {
-            entity.HasKey(e => new { e.ShareRequest, e.Shocker }).HasName("share_requests_shockers_pkey");
+            entity.HasKey(e => new { e.ShareRequestId, e.ShockerId }).HasName("share_requests_shockers_pkey");
 
             entity.ToTable("share_requests_shockers");
 
-            entity.Property(e => e.ShareRequest).HasColumnName("share_request");
-            entity.Property(e => e.Shocker).HasColumnName("shocker");
+            entity.Property(e => e.ShareRequestId).HasColumnName("share_request_id");
+            entity.Property(e => e.ShockerId).HasColumnName("shocker_id");
             entity.Property(e => e.AllowShock)
                 .HasDefaultValue(true)
                 .HasColumnName("allow_shock");
@@ -305,13 +305,13 @@ public partial class OpenShockContext : DbContext
                 .HasDefaultValue(false)
                 .HasColumnName("is_paused");
 
-            entity.HasOne(d => d.ShareRequestNavigation).WithMany(p => p.ShareRequestsShockers)
-                .HasForeignKey(d => d.ShareRequest)
-                .HasConstraintName("fk_share_requests_shockers_share_request");
+            entity.HasOne(d => d.ShareRequest).WithMany(p => p.ShockerMappings)
+                .HasForeignKey(d => d.ShareRequestId)
+                .HasConstraintName("fk_share_requests_shockers_share_request_id");
 
-            entity.HasOne(d => d.ShockerNavigation).WithMany(p => p.ShareRequestsShockers)
-                .HasForeignKey(d => d.Shocker)
-                .HasConstraintName("fk_share_requests_shockers_shocker");
+            entity.HasOne(d => d.Shocker).WithMany(p => p.ShareRequestMappings)
+                .HasForeignKey(d => d.ShockerId)
+                .HasConstraintName("fk_share_requests_shockers_shocker_id");
         });
 
         modelBuilder.Entity<Shocker>(entity =>
@@ -320,7 +320,7 @@ public partial class OpenShockContext : DbContext
 
             entity.ToTable("shockers");
 
-            entity.HasIndex(e => e.Device).HasAnnotation("Npgsql:StorageParameter:deduplicate_items", "true");
+            entity.HasIndex(e => e.DeviceId).HasAnnotation("Npgsql:StorageParameter:deduplicate_items", "true");
 
             entity.Property(e => e.Id)
                 .ValueGeneratedNever()
@@ -328,7 +328,7 @@ public partial class OpenShockContext : DbContext
             entity.Property(e => e.CreatedAt)
                 .HasDefaultValueSql("CURRENT_TIMESTAMP")
                 .HasColumnName("created_at");
-            entity.Property(e => e.Device).HasColumnName("device");
+            entity.Property(e => e.DeviceId).HasColumnName("device_id");
             entity.Property(e => e.Name)
                 .HasMaxLength(HardLimits.ShockerNameMaxLength)
                 .HasColumnName("name");
@@ -338,9 +338,9 @@ public partial class OpenShockContext : DbContext
             entity.Property(e => e.Model).HasColumnType("shocker_model_type").HasColumnName("model");
             entity.Property(e => e.RfId).HasColumnName("rf_id");
 
-            entity.HasOne(d => d.DeviceNavigation).WithMany(p => p.Shockers)
-                .HasForeignKey(d => d.Device)
-                .HasConstraintName("device_id");
+            entity.HasOne(d => d.Device).WithMany(p => p.Shockers)
+                .HasForeignKey(d => d.DeviceId)
+                .HasConstraintName("fk_shockers_device_id");
         });
 
         modelBuilder.Entity<ShockerControlLog>(entity =>
@@ -354,7 +354,7 @@ public partial class OpenShockContext : DbContext
             entity.Property(e => e.Id)
                 .ValueGeneratedNever()
                 .HasColumnName("id");
-            entity.Property(e => e.ControlledBy).HasColumnName("controlled_by");
+            entity.Property(e => e.ControlledByUserId).HasColumnName("controlled_by_user_id");
             entity.Property(e => e.CreatedAt)
                 .HasDefaultValueSql("CURRENT_TIMESTAMP")
                 .HasColumnName("created_at");
@@ -369,26 +369,26 @@ public partial class OpenShockContext : DbContext
             entity.Property(e => e.ShockerId).HasColumnName("shocker_id");
             entity.Property(e => e.Type).HasColumnType("control_type").HasColumnName("type");
 
-            entity.HasOne(d => d.ControlledByNavigation).WithMany(p => p.ShockerControlLogs)
-                .HasForeignKey(d => d.ControlledBy)
+            entity.HasOne(d => d.ControlledByUser).WithMany(p => p.ShockerControlLogs)
+                .HasForeignKey(d => d.ControlledByUserId)
                 .OnDelete(DeleteBehavior.Cascade)
-                .HasConstraintName("fk_controlled_by");
+                .HasConstraintName("fk_shocker_control_logs_controlled_by_user_id");
 
             entity.HasOne(d => d.Shocker).WithMany(p => p.ShockerControlLogs)
                 .HasForeignKey(d => d.ShockerId)
-                .HasConstraintName("fk_shocker_id");
+                .HasConstraintName("fk_shocker_control_logs_shocker_id");
         });
 
         modelBuilder.Entity<ShockerShare>(entity =>
         {
-            entity.HasKey(e => new { e.ShockerId, e.SharedWith }).HasName("shocker_shares_pkey");
+            entity.HasKey(e => new { e.ShockerId, e.SharedWithUserId }).HasName("shocker_shares_pkey");
 
             entity.ToTable("shocker_shares");
 
-            entity.HasIndex(e => e.SharedWith).HasAnnotation("Npgsql:StorageParameter:deduplicate_items", "true");
+            entity.HasIndex(e => e.SharedWithUserId).HasAnnotation("Npgsql:StorageParameter:deduplicate_items", "true");
 
             entity.Property(e => e.ShockerId).HasColumnName("shocker_id");
-            entity.Property(e => e.SharedWith).HasColumnName("shared_with");
+            entity.Property(e => e.SharedWithUserId).HasColumnName("shared_with_user_id");
             entity.Property(e => e.CreatedAt)
                 .HasDefaultValueSql("CURRENT_TIMESTAMP")
                 .HasColumnName("created_at");
@@ -412,13 +412,13 @@ public partial class OpenShockContext : DbContext
                 .HasDefaultValue(false)
                 .HasColumnName("is_paused");
 
-            entity.HasOne(d => d.SharedWithNavigation).WithMany(p => p.ShockerShares)
-                .HasForeignKey(d => d.SharedWith)
-                .HasConstraintName("shared_with_user_id");
+            entity.HasOne(d => d.SharedWithUser).WithMany(p => p.ShockerShares)
+                .HasForeignKey(d => d.SharedWithUserId)
+                .HasConstraintName("fk_shocker_shares_shared_with_user_id");
 
             entity.HasOne(d => d.Shocker).WithMany(p => p.ShockerShares)
                 .HasForeignKey(d => d.ShockerId)
-                .HasConstraintName("ref_shocker_id");
+                .HasConstraintName("fk_shocker_shares_shocker_id");
         });
 
         modelBuilder.Entity<ShockerShareCode>(entity =>
@@ -456,7 +456,7 @@ public partial class OpenShockContext : DbContext
 
             entity.HasOne(d => d.Shocker).WithMany(p => p.ShockerShareCodes)
                 .HasForeignKey(d => d.ShockerId)
-                .HasConstraintName("fk_shocker_id");
+                .HasConstraintName("fk_shocker_share_codes_shocker_id");
         });
 
         modelBuilder.Entity<ShockerSharesLink>(entity =>
@@ -481,7 +481,7 @@ public partial class OpenShockContext : DbContext
 
             entity.HasOne(d => d.Owner).WithMany(p => p.ShockerSharesLinks)
                 .HasForeignKey(d => d.OwnerId)
-                .HasConstraintName("owner_id");
+                .HasConstraintName("fk_shocker_shares_links_owner_id");
         });
 
         modelBuilder.Entity<ShockerSharesLinksShocker>(entity =>
@@ -513,13 +513,13 @@ public partial class OpenShockContext : DbContext
                 .HasDefaultValue(false)
                 .HasColumnName("is_paused");
 
-            entity.HasOne(d => d.ShareLink).WithMany(p => p.ShockerSharesLinksShockers)
+            entity.HasOne(d => d.ShareLink).WithMany(p => p.ShockerMappings)
                 .HasForeignKey(d => d.ShareLinkId)
-                .HasConstraintName("share_link_id");
+                .HasConstraintName("fk_shocker_shares_links_shockers_share_link_id");
 
-            entity.HasOne(d => d.Shocker).WithMany(p => p.ShockerSharesLinksShockers)
+            entity.HasOne(d => d.Shocker).WithMany(p => p.ShareLinkMappings)
                 .HasForeignKey(d => d.ShockerId)
-                .HasConstraintName("shocker_id");
+                .HasConstraintName("fk_shocker_shares_links_shockers_shocker_id");
         });
 
         modelBuilder.Entity<User>(entity =>
@@ -577,7 +577,7 @@ public partial class OpenShockContext : DbContext
 
             entity.HasOne(d => d.User).WithMany(p => p.UsersActivations)
                 .HasForeignKey(d => d.UserId)
-                .HasConstraintName("user_id");
+                .HasConstraintName("fk_users_activation_user_id");
         });
 
         modelBuilder.Entity<UsersEmailChange>(entity =>
@@ -609,7 +609,7 @@ public partial class OpenShockContext : DbContext
 
             entity.HasOne(d => d.User).WithMany(p => p.UsersEmailChanges)
                 .HasForeignKey(d => d.UserId)
-                .HasConstraintName("fk_user_id");
+                .HasConstraintName("fk_users_email_changes_user_id");
         });
 
         modelBuilder.Entity<UsersNameChange>(entity =>
@@ -638,7 +638,7 @@ public partial class OpenShockContext : DbContext
 
             entity.HasOne(d => d.User).WithMany(p => p.UsersNameChanges)
                 .HasForeignKey(d => d.UserId)
-                .HasConstraintName("fk_user_id");
+                .HasConstraintName("fk_users_name_changes_user_id");
         });
 
         modelBuilder.Entity<AdminUsersView>(entity =>

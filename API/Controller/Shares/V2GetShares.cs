@@ -13,14 +13,14 @@ public sealed partial class SharesController
     public IAsyncEnumerable<V2UserSharesListItem> GetSharesByUsers()
     {
         return _db.ShockerShares
-            .Where(x => x.Shocker.DeviceNavigation.Owner == CurrentUser.Id)
+            .Where(x => x.Shocker.Device.OwnerId == CurrentUser.Id)
             .AsNoTracking()
-            .GroupBy(x => x.SharedWith)
+            .GroupBy(x => x.SharedWithUserId)
             .Select(g => new V2UserSharesListItem
             {
                 Id = g.Key,
-                Image = g.First().SharedWithNavigation.GetImageUrl(),
-                Name = g.First().SharedWithNavigation.Name,
+                Image = g.First().SharedWithUser.GetImageUrl(),
+                Name = g.First().SharedWithUser.Name,
                 Shares = g.Select(y => new UserShareInfo
                     {
                         Id = y.Shocker.Id,

@@ -29,7 +29,7 @@ public sealed partial class ShockerController
     public async Task<IActionResult> GetShockerLogs([FromRoute] Guid shockerId, [FromQuery] uint offset = 0,
         [FromQuery] [Range(1, 500)] uint limit = 100)
     {
-        var exists = await _db.Shockers.AnyAsync(x => x.DeviceNavigation.Owner == CurrentUser.Id && x.Id == shockerId);
+        var exists = await _db.Shockers.AnyAsync(x => x.Device.OwnerId == CurrentUser.Id && x.Id == shockerId);
         if (!exists) return Problem(ShockerError.ShockerNotFound);
 
         var logs = _db.ShockerControlLogs
@@ -44,7 +44,7 @@ public sealed partial class ShockerController
                 Intensity = x.Intensity,
                 Type = x.Type,
                 CreatedOn = x.CreatedAt,
-                ControlledBy = x.ControlledByNavigation == null
+                ControlledBy = x.ControlledByUser == null
                     ? new ControlLogSenderLight
                     {
                         Id = Guid.Empty,
@@ -54,9 +54,9 @@ public sealed partial class ShockerController
                     }
                     : new ControlLogSenderLight
                     {
-                        Id = x.ControlledByNavigation.Id,
-                        Name = x.ControlledByNavigation.Name,
-                        Image = x.ControlledByNavigation.GetImageUrl(),
+                        Id = x.ControlledByUser.Id,
+                        Name = x.ControlledByUser.Name,
+                        Image = x.ControlledByUser.GetImageUrl(),
                         CustomName = x.CustomName
                     }
             })

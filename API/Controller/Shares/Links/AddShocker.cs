@@ -28,7 +28,7 @@ public sealed partial class ShareLinksController
         if (!exists) return Problem(ShareLinkError.ShareLinkNotFound);
 
         var ownShocker =
-            await _db.Shockers.AnyAsync(x => x.Id == shockerId && x.DeviceNavigation.Owner == CurrentUser.Id);
+            await _db.Shockers.AnyAsync(x => x.Id == shockerId && x.Device.OwnerId == CurrentUser.Id);
         if (!ownShocker) return Problem(ShockerError.ShockerNotFound);
 
         if (await _db.ShockerSharesLinksShockers.AnyAsync(x => x.ShareLinkId == shareLinkId && x.ShockerId == shockerId))

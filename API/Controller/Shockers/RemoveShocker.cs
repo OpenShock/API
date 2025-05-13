@@ -31,7 +31,7 @@ public sealed partial class ShockerController
     {
         var affected = await _db.Shockers
             .Where(x => x.Id == shockerId)
-            .WhereIsUserOrPrivileged(x => x.DeviceNavigation.OwnerNavigation, CurrentUser)
+            .WhereIsUserOrPrivileged(x => x.Device.Owner, CurrentUser)
             .FirstOrDefaultAsync();
 
         if (affected == null)
@@ -42,7 +42,7 @@ public sealed partial class ShockerController
         _db.Shockers.Remove(affected);
         await _db.SaveChangesAsync();
 
-        await deviceUpdateService.UpdateDeviceForAllShared(CurrentUser.Id, affected.Device, DeviceUpdateType.ShockerUpdated);
+        await deviceUpdateService.UpdateDeviceForAllShared(CurrentUser.Id, affected.DeviceId, DeviceUpdateType.ShockerUpdated);
 
         return LegacyEmptyOk("Shocker removed successfully");
     }

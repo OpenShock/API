@@ -23,13 +23,13 @@ public sealed partial class ShockerController
     [MapToApiVersion("1")]
     public async Task<IActionResult> GetShockerById([FromRoute] Guid shockerId)
     {
-        var shocker = await _db.Shockers.Where(x => x.DeviceNavigation.Owner == CurrentUser.Id && x.Id == shockerId).Select(x => new ShockerWithDevice
+        var shocker = await _db.Shockers.Where(x => x.Device.OwnerId == CurrentUser.Id && x.Id == shockerId).Select(x => new ShockerWithDevice
         {
             Id = x.Id,
             Name = x.Name,
             RfId = x.RfId,
             CreatedOn = x.CreatedAt,
-            Device = x.Device,
+            Device = x.DeviceId,
             Model = x.Model,
             IsPaused = x.IsPaused
         }).FirstOrDefaultAsync();

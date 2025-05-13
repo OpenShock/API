@@ -17,7 +17,7 @@ public sealed partial class ShockerController
     public LegacyDataResponse<IAsyncEnumerable<ResponseDeviceWithShockers>> ListShockers()
     {
         var shockers = _db.Devices
-            .Where(x => x.Owner == CurrentUser.Id)
+            .Where(x => x.OwnerId == CurrentUser.Id)
             .OrderBy(x => x.CreatedAt).Select(x => new ResponseDeviceWithShockers
             {
                 Id = x.Id,

@@ -33,9 +33,9 @@ public sealed partial class AdminController
                     x.Name,
                     Owner = new GenericIni
                     {
-                        Id = x.OwnerNavigation.Id,
-                        Image = x.OwnerNavigation.GetImageUrl(),
-                        Name = x.OwnerNavigation.Name
+                        Id = x.Owner.Id,
+                        Image = x.Owner.GetImageUrl(),
+                        Name = x.Owner.Name
                     }
                 }).ToArrayAsync();
 

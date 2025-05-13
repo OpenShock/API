@@ -45,7 +45,7 @@ public sealed class DevicesOtaController : AuthenticatedSessionControllerBase
     {
         // Check if user owns device or has a share
         var deviceExistsAndYouHaveAccess = await _db.Devices.AnyAsync(x =>
-            x.Id == deviceId && x.Owner == CurrentUser.Id);
+            x.Id == deviceId && x.OwnerId == CurrentUser.Id);
         if (!deviceExistsAndYouHaveAccess) return Problem(DeviceError.DeviceNotFound);
 
         return LegacyDataOk(await otaService.GetUpdates(deviceId));

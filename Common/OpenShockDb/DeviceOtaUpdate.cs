@@ -4,7 +4,7 @@ namespace OpenShock.Common.OpenShockDb;
 
 public partial class DeviceOtaUpdate
 {
-    public Guid Device { get; set; }
+    public Guid DeviceId { get; set; }
 
     public DateTime CreatedAt { get; set; }
 
@@ -16,5 +16,5 @@ public partial class DeviceOtaUpdate
 
     public string? Message { get; set; }
 
-    public virtual Device DeviceNavigation { get; set; } = null!;
+    public virtual Device Device { get; set; } = null!;
 }

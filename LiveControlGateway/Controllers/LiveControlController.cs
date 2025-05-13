@@ -120,10 +120,10 @@ public sealed class LiveControlController : WebsocketBaseController<LiveControlR
         Logger.LogDebug("Updating shared permissions for hub [{HubId}] for user [{User}]", Id,
             _currentUser.Id);
 
-        if (_device!.Owner == _currentUser.Id)
+        if (_device!.OwnerId == _currentUser.Id)
         {
             Logger.LogTrace("User is owner of hub");
-            _sharedShockers = await db.Shockers.Where(x => x.Device == Id).ToDictionaryAsync(x => x.Id, x =>
+            _sharedShockers = await db.Shockers.Where(x => x.DeviceId == Id).ToDictionaryAsync(x => x.Id, x =>
                 new LiveShockerPermission()
                 {
                     Paused = x.IsPaused,
@@ -133,7 +133,7 @@ public sealed class LiveControlController : WebsocketBaseController<LiveControlR
         }
 
         _sharedShockers = await db.ShockerShares
-            .Where(x => x.Shocker.Device == Id && x.SharedWith == _currentUser.Id).Select(x => new
+            .Where(x => x.Shocker.DeviceId == Id && x.SharedWithUserId == _currentUser.Id).Select(x => new
             {
                 x.ShockerId,
                 Lsp = new LiveShockerPermission
@@ -166,8 +166,8 @@ public sealed class LiveControlController : WebsocketBaseController<LiveControlR
         HubId = id;
 
         var hubExistsAndYouHaveAccess = await _db.Devices.AnyAsync(x =>
-            x.Id == HubId && (x.Owner == _currentUser.Id || x.Shockers.Any(y =>
-                y.ShockerShares.Any(z => z.SharedWith == _currentUser.Id && z.AllowLiveControl))));
+            x.Id == HubId && (x.OwnerId == _currentUser.Id || x.Shockers.Any(y =>
+                y.ShockerShares.Any(z => z.SharedWithUserId == _currentUser.Id && z.AllowLiveControl))));
 
         if (!hubExistsAndYouHaveAccess)
         {

@@ -31,15 +31,15 @@ public sealed partial class ShockerController
         [FromBody] NewShocker body, 
         [FromServices] IDeviceUpdateService deviceUpdateService)
     {
-        var device = await _db.Devices.AnyAsync(x => x.Owner == CurrentUser.Id && x.Id == body.Device);
+        var device = await _db.Devices.AnyAsync(x => x.OwnerId == CurrentUser.Id && x.Id == body.Device);
         if (!device) return Problem(DeviceError.DeviceNotFound);
 
-        var shocker = await _db.Shockers.Where(x => x.DeviceNavigation.Owner == CurrentUser.Id && x.Id == shockerId)
+        var shocker = await _db.Shockers.Where(x => x.Device.OwnerId == CurrentUser.Id && x.Id == shockerId)
             .FirstOrDefaultAsync();
         if (shocker == null) return Problem(ShockerError.ShockerNotFound);
-        var oldDevice = shocker.Device;
+        var oldDevice = shocker.DeviceId;
 
-        shocker.Device = body.Device;
+        shocker.DeviceId = body.Device;
         shocker.Name = body.Name;
         shocker.RfId = body.RfId;
         shocker.Model = body.Model;

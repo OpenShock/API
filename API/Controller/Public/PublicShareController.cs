@@ -36,10 +36,10 @@ public sealed partial class PublicController
             x.Name,
             x.ExpiresAt,
             x.CreatedAt,
-            Shockers = x.ShockerSharesLinksShockers.Select(y => new
+            Shockers = x.ShockerMappings.Select(y => new
             {
-                DeviceId = y.Shocker.DeviceNavigation.Id,
-                DeviceName = y.Shocker.DeviceNavigation.Name,
+                DeviceId = y.Shocker.Device.Id,
+                DeviceName = y.Shocker.Device.Name,
                 Shocker = new ShareLinkShocker
                 {
                     Id = y.Shocker.Id,

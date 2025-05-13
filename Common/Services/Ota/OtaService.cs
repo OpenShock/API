@@ -24,7 +24,7 @@ public sealed class OtaService : IOtaService
     {
         _db.DeviceOtaUpdates.Add(new DeviceOtaUpdate
         {
-            Device = deviceId,
+            DeviceId = deviceId,
             UpdateId = updateId,
             Status = OtaUpdateStatus.Started,
             Version = version.ToString()
@@ -37,7 +37,7 @@ public sealed class OtaService : IOtaService
     public async Task Progress(Guid deviceId, int updateId)
     {
         var updateTask = await _db.DeviceOtaUpdates
-            .Where(x => x.Device == deviceId && x.UpdateId == updateId)
+            .Where(x => x.DeviceId == deviceId && x.UpdateId == updateId)
             .FirstOrDefaultAsync();
         if (updateTask == null) return;
         updateTask.Status = OtaUpdateStatus.Running;
@@ -49,7 +49,7 @@ public sealed class OtaService : IOtaService
     public async Task Error(Guid deviceId, int updateId, bool fatal, string message)
     {
         var updateTask = await _db.DeviceOtaUpdates
-            .Where(x => x.Device == deviceId && x.UpdateId == updateId)
+            .Where(x => x.DeviceId == deviceId && x.UpdateId == updateId)
             .FirstOrDefaultAsync();
         if (updateTask == null) return;
         updateTask.Status = OtaUpdateStatus.Error;
@@ -62,7 +62,7 @@ public sealed class OtaService : IOtaService
     public async Task<bool> Success(Guid deviceId, int updateId)
     {
         var updateTask = await _db.DeviceOtaUpdates
-            .Where(x => x.Device == deviceId && x.UpdateId == updateId)
+            .Where(x => x.DeviceId == deviceId && x.UpdateId == updateId)
             .FirstOrDefaultAsync();
         if (updateTask == null) return false;
         updateTask.Status = OtaUpdateStatus.Finished;
@@ -75,7 +75,7 @@ public sealed class OtaService : IOtaService
     public async Task<IReadOnlyCollection<OtaItem>> GetUpdates(Guid deviceId)
     {
         return await _db.DeviceOtaUpdates.AsNoTracking()
-            .Where(x => x.Device == deviceId)
+            .Where(x => x.DeviceId == deviceId)
             .OrderByDescending(x => x.CreatedAt)
             .Select(x => new OtaItem
         {
@@ -91,7 +91,7 @@ public sealed class OtaService : IOtaService
     public async Task<bool> UpdateUnfinished(Guid deviceId, int updateId)
     {
         return await _db.DeviceOtaUpdates.AsNoTracking()
-            .AnyAsync(x => x.Device == deviceId &&
+            .AnyAsync(x => x.DeviceId == deviceId &&
                            x.UpdateId == updateId &&
                            (x.Status == OtaUpdateStatus.Running || x.Status == OtaUpdateStatus.Started));
     }
