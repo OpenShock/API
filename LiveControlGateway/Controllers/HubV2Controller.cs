@@ -75,7 +75,7 @@ public sealed class HubV2Controller : HubControllerBase<HubToGatewayMessage, Gat
     
     private OtaUpdateStatus? _lastStatus;
     
-    private IUserHub HcOwner => _userHubContext.Clients.User(CurrentHub.Owner.ToString());
+    private IUserHub HcOwner => _userHubContext.Clients.User(CurrentHub.OwnerId.ToString());
     
     /// <inheritdoc />
     protected override async Task<bool> Handle(HubToGatewayMessage data)

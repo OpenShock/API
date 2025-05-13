@@ -14,64 +14,64 @@ public sealed partial class SharesController
     public async Task<V2UserShares> GetSharesByUsers(CancellationToken cancellationToken)
     {
         var sharedWithOthersFuture = _db.ShockerShares
-            .Where(x => x.Shocker.DeviceNavigation.Owner == CurrentUser.Id)
+            .Where(x => x.Shocker.Device.OwnerId == CurrentUser.Id)
             .AsNoTracking()
-            .GroupBy(x => x.SharedWith)
+            .GroupBy(x => x.SharedWithUserId)
             .Select(g => new V2UserSharesListItemDto
             {
                 Id = g.Key,
-                Email = g.First().SharedWithNavigation.Email,
-                Name = g.First().SharedWithNavigation.Name,
+                Email = g.First().SharedWithUser.Email,
+                Name = g.First().SharedWithUser.Name,
                 Shares = g.Select(y => new UserShareInfo
                     {
                         Id = y.Shocker.Id,
                         Name = y.Shocker.Name,
-                        CreatedOn = y.CreatedOn,
+                        CreatedOn = y.CreatedAt,
                         Permissions = new ShockerPermissions
                         {
-                            Sound = y.PermSound,
-                            Vibrate = y.PermVibrate,
-                            Shock = y.PermShock,
-                            Live = y.PermLive
+                            Vibrate = y.AllowVibrate,
+                            Sound = y.AllowSound,
+                            Shock = y.AllowShock,
+                            Live = y.AllowLiveControl
                         },
                         Limits = new ShockerLimits
                         {
-                            Duration = y.LimitDuration,
-                            Intensity = y.LimitIntensity
+                            Intensity = y.MaxIntensity,
+                            Duration = y.MaxDuration
                         },
-                        Paused = y.Paused
+                        Paused = y.IsPaused
                     })
                     .ToArray()
             })
             .Future();
 
         var sharedWithMeFuture = _db.ShockerShares
-            .Where(x => x.SharedWith == CurrentUser.Id)
+            .Where(x => x.SharedWithUserId == CurrentUser.Id)
             .AsNoTracking()
-            .GroupBy(x => x.Shocker.DeviceNavigation.Owner)
+            .GroupBy(x => x.Shocker.Device.OwnerId)
             .Select(g => new V2UserSharesListItemDto
             {
                 Id = g.Key,
-                Email = g.First().Shocker.DeviceNavigation.OwnerNavigation.Email,
-                Name = g.First().Shocker.DeviceNavigation.OwnerNavigation.Name,
+                Email = g.First().Shocker.Device.Owner.Email,
+                Name = g.First().Shocker.Device.Owner.Name,
                 Shares = g.Select(y => new UserShareInfo
                     {
                         Id = y.Shocker.Id,
                         Name = y.Shocker.Name,
-                        CreatedOn = y.CreatedOn,
+                        CreatedOn = y.CreatedAt,
                         Permissions = new ShockerPermissions
                         {
-                            Sound = y.PermSound,
-                            Vibrate = y.PermVibrate,
-                            Shock = y.PermShock,
-                            Live = y.PermLive
+                            Sound = y.AllowSound,
+                            Vibrate = y.AllowVibrate,
+                            Shock = y.AllowShock,
+                            Live = y.AllowLiveControl
                         },
                         Limits = new ShockerLimits
                         {
-                            Duration = y.LimitDuration,
-                            Intensity = y.LimitIntensity
+                            Duration = y.MaxDuration,
+                            Intensity = y.MaxIntensity
                         },
-                        Paused = y.Paused
+                        Paused = y.IsPaused
                     })
                     .ToArray()
             })

@@ -3,7 +3,6 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using OpenShock.Common.Redis;
 using Redis.OM;
-using System.Net;
 using System.Net.Mime;
 using OpenShock.Common.Errors;
 using OpenShock.Common.Problems;

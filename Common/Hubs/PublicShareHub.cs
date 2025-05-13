@@ -6,26 +6,23 @@ using OpenShock.Common.DeviceControl;
 using OpenShock.Common.Extensions;
 using OpenShock.Common.Models;
 using OpenShock.Common.OpenShockDb;
-using OpenShock.Common.Redis;
 using OpenShock.Common.Services.RedisPubSub;
 using OpenShock.Common.Services.Session;
 using OpenShock.Common.Utils;
-using Redis.OM.Contracts;
-using Redis.OM.Searching;
 
 namespace OpenShock.Common.Hubs;
 
-public sealed class ShareLinkHub : Hub<IShareLinkHub>
+public sealed class PublicShareHub : Hub<IPublicShareHub>
 {
     private readonly ISessionService _sessionService;
     private readonly OpenShockContext _db;
     private readonly IHubContext<UserHub, IUserHub> _userHub;
-    private readonly ILogger<ShareLinkHub> _logger;
+    private readonly ILogger<PublicShareHub> _logger;
     private readonly IRedisPubService _redisPubService;
     private readonly IUserReferenceService _userReferenceService;
     private IReadOnlyList<PermissionType>? _tokenPermissions = null;
 
-    public ShareLinkHub(OpenShockContext db, IHubContext<UserHub, IUserHub> userHub, ILogger<ShareLinkHub> logger,
+    public PublicShareHub(OpenShockContext db, IHubContext<UserHub, IUserHub> userHub, ILogger<PublicShareHub> logger,
         ISessionService sessionService, IRedisPubService redisPubService, IUserReferenceService userReferenceService)
     {
         _db = db;
@@ -61,10 +58,10 @@ public sealed class ShareLinkHub : Hub<IShareLinkHub>
         
         _tokenPermissions = _userReferenceService.AuthReference is not { IsT1: true } ? null : _userReferenceService.AuthReference.Value.AsT1.Permissions;
 
-        var exists = await _db.ShockerSharesLinks.AnyAsync(x => x.Id == id && (x.ExpiresOn == null || x.ExpiresOn > DateTime.UtcNow));
+        var exists = await _db.PublicShares.AnyAsync(x => x.Id == id && (x.ExpiresAt == null || x.ExpiresAt > DateTime.UtcNow));
         if (!exists)
         {
-            _logger.LogDebug("Aborting connection... share link not found");
+            _logger.LogDebug("Aborting connection... public share not found");
             Context.Abort();
             return;
         }
@@ -89,12 +86,12 @@ public sealed class ShareLinkHub : Hub<IShareLinkHub>
 
         var additionalItems = new Dictionary<string, object>
         {
-            [ControlLogAdditionalItem.ShareLinkId] = id
+            [ControlLogAdditionalItem.PublicShareId] = id
         };
 
-        Context.Items[ShareLinkCustomData] = new CustomDataHolder
+        Context.Items[PublicShareCustomData] = new CustomDataHolder
         {
-            ShareLinkId = id,
+            PublicShareId = id,
             CustomName = customName,
             User = user,
             CachedControlLogSender = user == null
@@ -125,12 +122,12 @@ public sealed class ShareLinkHub : Hub<IShareLinkHub>
     {
         if (!_tokenPermissions.IsAllowedAllowOnNull(PermissionType.Shockers_Use)) return Task.CompletedTask;
         
-        return ControlLogic.ControlShareLink(shocks, _db, CustomData.CachedControlLogSender, _userHub.Clients,
-            CustomData.ShareLinkId, _redisPubService);
+        return ControlLogic.ControlPublicShare(shocks, _db, CustomData.CachedControlLogSender, _userHub.Clients,
+            CustomData.PublicShareId, _redisPubService);
     }
 
-    private CustomDataHolder CustomData => (CustomDataHolder)Context.Items[ShareLinkCustomData]!;
-    private const string ShareLinkCustomData = "ShareLinkCustomData";
+    private CustomDataHolder CustomData => (CustomDataHolder)Context.Items[PublicShareCustomData]!;
+    private const string PublicShareCustomData = "ShareLinkCustomData";
 
     private async Task<GenericIni?> SessionAuth(string sessionToken)
     {
@@ -147,7 +144,7 @@ public sealed class ShareLinkHub : Hub<IShareLinkHub>
 
     private sealed class CustomDataHolder
     {
-        public required Guid ShareLinkId { get; init; }
+        public required Guid PublicShareId { get; init; }
         public required GenericIni? User { get; set; }
         public required string? CustomName { get; init; }
         public required ControlLogSender CachedControlLogSender { get; set; }

@@ -1,5 +1,4 @@
-﻿using System.Net;
-using System.Net.Mime;
+﻿using System.Net.Mime;
 using Asp.Versioning;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -24,15 +23,15 @@ public sealed partial class ShockerController
     [MapToApiVersion("1")]
     public async Task<IActionResult> GetShockerById([FromRoute] Guid shockerId)
     {
-        var shocker = await _db.Shockers.Where(x => x.DeviceNavigation.Owner == CurrentUser.Id && x.Id == shockerId).Select(x => new ShockerWithDevice
+        var shocker = await _db.Shockers.Where(x => x.Device.OwnerId == CurrentUser.Id && x.Id == shockerId).Select(x => new ShockerWithDevice
         {
             Id = x.Id,
             Name = x.Name,
             RfId = x.RfId,
-            CreatedOn = x.CreatedOn,
-            Device = x.Device,
+            CreatedOn = x.CreatedAt,
+            Device = x.DeviceId,
             Model = x.Model,
-            IsPaused = x.Paused
+            IsPaused = x.IsPaused
         }).FirstOrDefaultAsync();
 
         if (shocker == null) return Problem(ShockerError.ShockerNotFound);

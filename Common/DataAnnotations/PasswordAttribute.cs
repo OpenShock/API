@@ -1,5 +1,4 @@
 ﻿using System.ComponentModel.DataAnnotations;
-using System.Net.Mail;
 using Microsoft.OpenApi.Any;
 using Microsoft.OpenApi.Models;
 using OpenShock.Common.Constants;

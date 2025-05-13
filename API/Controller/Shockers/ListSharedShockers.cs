@@ -4,7 +4,6 @@ using Microsoft.EntityFrameworkCore;
 using OpenShock.API.Models.Response;
 using OpenShock.Common.Models;
 using OpenShock.Common.Utils;
-using System.Net.Mime;
 
 namespace OpenShock.API.Controller.Shockers;
 
@@ -30,31 +29,31 @@ public sealed partial class ShockerController
     {
         var sharedShockersData = await _db.ShockerShares
             .AsNoTracking()
-            .Include(x => x.Shocker.DeviceNavigation.OwnerNavigation)
-            .Where(x => x.SharedWith == CurrentUser.Id)
+            .Include(x => x.Shocker.Device.Owner)
+            .Where(x => x.SharedWithUserId == CurrentUser.Id)
             .Select(x => new
             {
-                OwnerId = x.Shocker.DeviceNavigation.OwnerNavigation.Id,
-                OwnerName = x.Shocker.DeviceNavigation.OwnerNavigation.Name,
-                OwnerEmail = x.Shocker.DeviceNavigation.OwnerNavigation.Email,
-                DeviceId = x.Shocker.DeviceNavigation.Id,
-                DeviceName = x.Shocker.DeviceNavigation.Name,
+                OwnerId = x.Shocker.Device.Owner.Id,
+                OwnerName = x.Shocker.Device.Owner.Name,
+                OwnerEmail = x.Shocker.Device.Owner.Email,
+                DeviceId = x.Shocker.Device.Id,
+                DeviceName = x.Shocker.Device.Name,
                 Shocker = new OwnerShockerResponse.SharedDevice.SharedShocker
                 {
                     Id = x.Shocker.Id,
                     Name = x.Shocker.Name,
-                    IsPaused = x.Shocker.Paused,
+                    IsPaused = x.Shocker.IsPaused,
                     Permissions = new ShockerPermissions
                     {
-                        Shock = x.PermShock,
-                        Sound = x.PermSound,
-                        Vibrate = x.PermVibrate,
-                        Live = x.PermLive
+                        Vibrate = x.AllowVibrate,
+                        Sound = x.AllowSound,
+                        Shock = x.AllowShock,
+                        Live = x.AllowLiveControl
                     },
                     Limits = new ShockerLimits
                     {
-                        Duration = x.LimitDuration,
-                        Intensity = x.LimitIntensity
+                        Intensity = x.MaxIntensity,
+                        Duration = x.MaxDuration
                     }
                 }
             })

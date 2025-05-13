@@ -25,7 +25,7 @@ public sealed partial class SharesController
     {
         var affected = await _db.ShockerShareCodes
             .Where(x => x.Id == shareCodeId)
-            .WhereIsUserOrPrivileged(x => x.Shocker.DeviceNavigation.OwnerNavigation, CurrentUser)
+            .WhereIsUserOrPrivileged(x => x.Shocker.Device.Owner, CurrentUser)
             .ExecuteDeleteAsync();
         if (affected <= 0)
         {

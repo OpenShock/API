@@ -279,7 +279,7 @@ public sealed class HubLifetime : IAsyncDisposable
     {
         _logger.LogDebug("Updating shockers for device [{DeviceId}]", HubController.Id);
 
-        _shockerStates = await db.Shockers.Where(x => x.Device == HubController.Id).Select(x => new ShockerState()
+        _shockerStates = await db.Shockers.Where(x => x.DeviceId == HubController.Id).Select(x => new ShockerState()
         {
             Id = x.Id,
             Model = x.Model,

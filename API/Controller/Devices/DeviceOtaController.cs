@@ -1,11 +1,9 @@
-﻿using System.Net;
-using System.Net.Mime;
+﻿using System.Net.Mime;
 using Asp.Versioning;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using OpenShock.Common.Authentication;
-using OpenShock.Common.Authentication.Attributes;
 using OpenShock.Common.Authentication.ControllerBase;
 using OpenShock.Common.Errors;
 using OpenShock.Common.Models;
@@ -47,7 +45,7 @@ public sealed class DevicesOtaController : AuthenticatedSessionControllerBase
     {
         // Check if user owns device or has a share
         var deviceExistsAndYouHaveAccess = await _db.Devices.AnyAsync(x =>
-            x.Id == deviceId && x.Owner == CurrentUser.Id);
+            x.Id == deviceId && x.OwnerId == CurrentUser.Id);
         if (!deviceExistsAndYouHaveAccess) return Problem(DeviceError.DeviceNotFound);
 
         return LegacyDataOk(await otaService.GetUpdates(deviceId));

@@ -1,14 +1,14 @@
 ﻿namespace OpenShock.Common.OpenShockDb;
 
-public partial class UsersActivation
+public partial class UserActivation
 {
     public Guid Id { get; set; }
 
     public Guid UserId { get; set; }
 
-    public DateTime CreatedOn { get; set; }
+    public DateTime CreatedAt { get; set; }
 
-    public DateTime? UsedOn { get; set; }
+    public DateTime? UsedAt { get; set; }
 
     public string SecretHash { get; set; } = null!;
 

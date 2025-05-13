@@ -86,7 +86,7 @@ public sealed class AccountService : IAccountService
         var secret = CryptoUtils.RandomString(AuthConstants.GeneratedTokenLength);
         var secretHash = HashingUtils.HashToken(secret);
 
-        _db.UsersActivations.Add(new UsersActivation()
+        _db.UserActivations.Add(new UserActivation()
         {
             Id = id,
             UserId = user.Id,
@@ -127,8 +127,8 @@ public sealed class AccountService : IAccountService
         CancellationToken cancellationToken = default)
     {
         var validUntil = DateTime.UtcNow.Add(Duration.PasswordResetRequestLifetime);
-        var reset = await _db.PasswordResets.FirstOrDefaultAsync(x =>
-                x.Id == passwordResetId && x.UsedOn == null && x.CreatedOn < validUntil,
+        var reset = await _db.UserPasswordResets.FirstOrDefaultAsync(x =>
+                x.Id == passwordResetId && x.UsedAt == null && x.CreatedAt < validUntil,
             cancellationToken: cancellationToken);
 
         if (reset == null) return new NotFound();
@@ -147,20 +147,20 @@ public sealed class AccountService : IAccountService
         var user = await _db.Users.Where(x => x.Email == lowerCaseEmail).Select(x => new
         {
             User = x,
-            PasswordResetCount = x.PasswordResets.Count(y => y.UsedOn == null && y.CreatedOn < validUntil)
+            PasswordResetCount = x.PasswordResets.Count(y => y.UsedAt == null && y.CreatedAt < validUntil)
         }).FirstOrDefaultAsync();
         if (user == null) return new NotFound();
         if (user.PasswordResetCount >= 3) return new TooManyPasswordResets();
 
         var secret = CryptoUtils.RandomString(AuthConstants.GeneratedTokenLength);
         var secretHash = HashingUtils.HashToken(secret);
-        var passwordReset = new PasswordReset
+        var passwordReset = new UserPasswordReset
         {
             Id = Guid.CreateVersion7(),
             SecretHash = secretHash,
             User = user.User
         };
-        _db.PasswordResets.Add(passwordReset);
+        _db.UserPasswordResets.Add(passwordReset);
         await _db.SaveChangesAsync();
 
         await _emailService.PasswordReset(new Contact(user.User.Email, user.User.Name),
@@ -175,15 +175,15 @@ public sealed class AccountService : IAccountService
     {
         var validUntil = DateTime.UtcNow.Add(Duration.PasswordResetRequestLifetime);
 
-        var reset = await _db.PasswordResets.Include(x => x.User).FirstOrDefaultAsync(x =>
-            x.Id == passwordResetId && x.UsedOn == null && x.CreatedOn < validUntil);
+        var reset = await _db.UserPasswordResets.Include(x => x.User).FirstOrDefaultAsync(x =>
+            x.Id == passwordResetId && x.UsedAt == null && x.CreatedAt < validUntil);
 
         if (reset == null) return new NotFound();
 
         var result = HashingUtils.VerifyToken(secret, reset.SecretHash);
         if (!result.Verified) return new SecretInvalid();
 
-        reset.UsedOn = DateTime.UtcNow;
+        reset.UsedAt = DateTime.UtcNow;
         reset.User.PasswordHash = HashingUtils.HashPassword(newPassword);
         await _db.SaveChangesAsync();
         return new Success();
@@ -209,7 +209,7 @@ public sealed class AccountService : IAccountService
             string username, bool ignoreLimit = false)
     {
         var cooldownSubtracted = DateTime.UtcNow.Subtract(Duration.NameChangeCooldown);
-        if (!ignoreLimit && await _db.UsersNameChanges.Where(x => x.UserId == userId && x.CreatedOn >= cooldownSubtracted).AnyAsync())
+        if (!ignoreLimit && await _db.UserNameChanges.Where(x => x.UserId == userId && x.CreatedAt >= cooldownSubtracted).AnyAsync())
         {
             return new OneOf.Types.Error<OneOf<UsernameTaken, UsernameError, RecentlyChanged>>(new RecentlyChanged());
         }
@@ -230,7 +230,7 @@ public sealed class AccountService : IAccountService
         user.Name = username;
         await _db.SaveChangesAsync();
 
-        _db.UsersNameChanges.Add(new UsersNameChange
+        _db.UserNameChanges.Add(new UserNameChange
         {
             UserId = userId,
             OldName = oldName

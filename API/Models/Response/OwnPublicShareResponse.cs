@@ -2,18 +2,18 @@
 
 namespace OpenShock.API.Models.Response;
 
-public sealed class ShareLinkResponse
+public sealed class OwnPublicShareResponse
 {
     public required Guid Id { get; set; }
     public required string Name { get; set; }
     public required DateTime CreatedOn { get; set; }
     public DateTime? ExpiresOn { get; set; }
 
-    public static ShareLinkResponse GetFromEf(ShockerSharesLink x) => new()
+    public static OwnPublicShareResponse GetFromEf(PublicShare x) => new()
     {
         Id = x.Id,
         Name = x.Name,
-        CreatedOn = x.CreatedOn,
-        ExpiresOn = x.ExpiresOn
+        CreatedOn = x.CreatedAt,
+        ExpiresOn = x.ExpiresAt
     };
 }

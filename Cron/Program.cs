@@ -21,7 +21,7 @@ builder.Services.AddHangfireServer();
 
 var app = builder.Build();
 
-app.UseCommonOpenShockMiddleware();
+await app.UseCommonOpenShockMiddleware();
 
 var hangfireOptions = new DashboardOptions();
 if (app.Environment.IsProduction())

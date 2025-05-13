@@ -44,6 +44,6 @@ builder.Services.AddSingleton<HubLifetimeManager>();
 
 var app = builder.Build();
 
-app.UseCommonOpenShockMiddleware();
+await app.UseCommonOpenShockMiddleware();
 
 app.Run();

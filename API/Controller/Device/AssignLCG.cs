@@ -1,7 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using OpenShock.API.Models.Response;
 using OpenShock.Common.Geo;
-using System.Net;
 using System.Net.Mime;
 using OpenShock.Common.Errors;
 using OpenShock.Common.Problems;

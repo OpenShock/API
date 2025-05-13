@@ -1,5 +1,4 @@
-﻿using System.Net;
-using System.Net.Mime;
+﻿using System.Net.Mime;
 using Asp.Versioning;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -31,10 +30,10 @@ public sealed partial class ShockerController
         [FromBody] NewShocker body,
         [FromServices] IDeviceUpdateService deviceUpdateService)
     {
-        var device = await _db.Devices.Where(x => x.Owner == CurrentUser.Id && x.Id == body.Device)
+        var device = await _db.Devices.Where(x => x.OwnerId == CurrentUser.Id && x.Id == body.Device)
             .Select(x => x.Id).FirstOrDefaultAsync();
         if (device == Guid.Empty) return Problem(DeviceError.DeviceNotFound);
-        var shockerCount = await _db.Shockers.CountAsync(x => x.Device == body.Device);
+        var shockerCount = await _db.Shockers.CountAsync(x => x.DeviceId == body.Device);
 
         if (shockerCount >= 11) return Problem(DeviceError.TooManyShockers);
 
@@ -43,7 +42,7 @@ public sealed partial class ShockerController
             Id = Guid.CreateVersion7(),
             Name = body.Name,
             RfId = body.RfId,
-            Device = body.Device,
+            DeviceId = body.Device,
             Model = body.Model
         };
         _db.Shockers.Add(shocker);

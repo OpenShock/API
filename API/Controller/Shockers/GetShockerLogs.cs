@@ -1,5 +1,4 @@
 ﻿using System.ComponentModel.DataAnnotations;
-using System.Net;
 using System.Net.Mime;
 using Asp.Versioning;
 using Microsoft.AspNetCore.Mvc;
@@ -30,12 +29,12 @@ public sealed partial class ShockerController
     public async Task<IActionResult> GetShockerLogs([FromRoute] Guid shockerId, [FromQuery] uint offset = 0,
         [FromQuery] [Range(1, 500)] uint limit = 100)
     {
-        var exists = await _db.Shockers.AnyAsync(x => x.DeviceNavigation.Owner == CurrentUser.Id && x.Id == shockerId);
+        var exists = await _db.Shockers.AnyAsync(x => x.Device.OwnerId == CurrentUser.Id && x.Id == shockerId);
         if (!exists) return Problem(ShockerError.ShockerNotFound);
 
         var logs = _db.ShockerControlLogs
             .Where(x => x.ShockerId == shockerId)
-            .OrderByDescending(x => x.CreatedOn)
+            .OrderByDescending(x => x.CreatedAt)
             .Skip((int)offset)
             .Take((int)limit)
             .Select(x => new LogEntry
@@ -44,8 +43,8 @@ public sealed partial class ShockerController
                 Duration = x.Duration,
                 Intensity = x.Intensity,
                 Type = x.Type,
-                CreatedOn = x.CreatedOn,
-                ControlledBy = x.ControlledByNavigation == null
+                CreatedOn = x.CreatedAt,
+                ControlledBy = x.ControlledByUser == null
                     ? new ControlLogSenderLight
                     {
                         Id = Guid.Empty,
@@ -55,9 +54,9 @@ public sealed partial class ShockerController
                     }
                     : new ControlLogSenderLight
                     {
-                        Id = x.ControlledByNavigation.Id,
-                        Name = x.ControlledByNavigation.Name,
-                        Image = x.ControlledByNavigation.GetImageUrl(),
+                        Id = x.ControlledByUser.Id,
+                        Name = x.ControlledByUser.Name,
+                        Image = x.ControlledByUser.GetImageUrl(),
                         CustomName = x.CustomName
                     }
             })

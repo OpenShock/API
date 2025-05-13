@@ -1,9 +1,7 @@
-﻿using System.Net.Mime;
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using OpenShock.API.Models.Response;
 using OpenShock.Common.Models;
-using OpenShock.Common.Problems;
 
 namespace OpenShock.API.Controller.Device;
 
@@ -16,7 +14,7 @@ public sealed partial class DeviceController
     [HttpGet("self")]
     public async Task<LegacyDataResponse<DeviceSelfResponse>> GetSelf()
     {
-        var shockers = await _db.Shockers.Where(x => x.Device == CurrentDevice.Id).Select(x => new MinimalShocker
+        var shockers = await _db.Shockers.Where(x => x.DeviceId == CurrentDevice.Id).Select(x => new MinimalShocker
         {
             Id = x.Id,
             RfId = x.RfId,

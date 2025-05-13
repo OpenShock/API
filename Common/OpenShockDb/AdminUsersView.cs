@@ -26,7 +26,7 @@ public class AdminUsersView
 
     public required int ShockerShareCount { get; set; }
 
-    public required int ShockerShareLinkCount { get; set; }
+    public required int ShockerPublicShareCount { get; set; }
 
     public required int EmailChangeRequestCount { get; set; }
 

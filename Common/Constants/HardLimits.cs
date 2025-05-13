@@ -29,8 +29,8 @@ public static class HardLimits
     public const int ShockerNameMinLength = 1;
     public const int ShockerNameMaxLength = 64;
     
-    public const int ShockerShareLinkNameMinLength = 1;
-    public const int ShockerShareLinkNameMaxLength = 64;
+    public const int PublicShareNameMinLength = 1;
+    public const int PublicShareNameMaxLength = 64;
 
     public const int SemVerMaxLength = 64;
     public const int IpAddressMaxLength = 40;

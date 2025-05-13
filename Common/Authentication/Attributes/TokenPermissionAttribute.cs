@@ -1,10 +1,8 @@
-﻿using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Mvc.Filters;
+﻿using Microsoft.AspNetCore.Mvc.Filters;
 using OpenShock.Common.Authentication.Services;
 using OpenShock.Common.Errors;
 using OpenShock.Common.Models;
 using OpenShock.Common.OpenShockDb;
-using OpenShock.Common.Problems;
 using OpenShock.Common.Redis;
 
 namespace OpenShock.Common.Authentication.Attributes;

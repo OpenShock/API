@@ -3,7 +3,6 @@ using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using OpenShock.Common.Hubs;
 using OpenShock.Common.Models.WebSocket;
-using OpenShock.Common.Models.WebSocket.Device;
 using OpenShock.Common.OpenShockDb;
 using OpenShock.Common.Redis;
 using OpenShock.Common.Redis.PubSub;
@@ -81,17 +80,17 @@ public sealed class RedisSubscriberService : IHostedService, IAsyncDisposable
         
         var data = await db.Devices.Where(x => x.Id == deviceId).Select(x => new
         {
-            x.Owner,
+            x.OwnerId,
             SharedWith = x.Shockers.SelectMany(y => y.ShockerShares)
         }).FirstOrDefaultAsync();
         if (data == null) return;
 
 
-        var sharedWith = await db.Users.Where(x => x.ShockerShares.Any(y => y.Shocker.Device == deviceId))
+        var sharedWith = await db.Users.Where(x => x.ShockerShares.Any(y => y.Shocker.DeviceId == deviceId))
             .Select(x => x.Id).ToArrayAsync();
         var userIds = new List<string>
         {
-            "local#" + data.Owner
+            "local#" + data.OwnerId
         };
         userIds.AddRange(sharedWith.Select(x => "local#" + x));
         var deviceOnline = await _devicesOnline.FindByIdAsync(deviceId.ToString());

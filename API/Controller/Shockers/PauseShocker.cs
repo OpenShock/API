@@ -1,5 +1,4 @@
-﻿using System.Net;
-using System.Net.Mime;
+﻿using System.Net.Mime;
 using Asp.Versioning;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -30,13 +29,13 @@ public sealed partial class ShockerController
     public async Task<IActionResult> PauseShocker([FromRoute] Guid shockerId, [FromBody] PauseRequest body,
         [FromServices] IDeviceUpdateService deviceUpdateService)
     {
-        var shocker = await _db.Shockers.Where(x => x.Id == shockerId && x.DeviceNavigation.Owner == CurrentUser.Id)
+        var shocker = await _db.Shockers.Where(x => x.Id == shockerId && x.Device.OwnerId == CurrentUser.Id)
             .FirstOrDefaultAsync();
         if (shocker == null) return Problem(ShockerError.ShockerNotFound);
-        shocker.Paused = body.Pause;
+        shocker.IsPaused = body.Pause;
         await _db.SaveChangesAsync();
 
-        await deviceUpdateService.UpdateDeviceForAllShared(CurrentUser.Id, shocker.Device, DeviceUpdateType.ShockerUpdated);
+        await deviceUpdateService.UpdateDeviceForAllShared(CurrentUser.Id, shocker.DeviceId, DeviceUpdateType.ShockerUpdated);
 
         return LegacyDataOk(body.Pause);
     }

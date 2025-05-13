@@ -1,13 +1,9 @@
-﻿using System.Net.Mime;
-using Microsoft.AspNetCore.Authorization;
+﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using OpenShock.API.Models.Response;
 using OpenShock.Common.Authentication;
-using OpenShock.Common.Authentication.Attributes;
 using OpenShock.Common.Authentication.ControllerBase;
 using OpenShock.Common.Authentication.Services;
-using OpenShock.Common.OpenShockDb;
-using OpenShock.Common.Problems;
 
 namespace OpenShock.API.Controller.Tokens;
 
@@ -35,7 +31,7 @@ public sealed partial class TokensSelfController : AuthenticatedSessionControlle
         
         return new TokenResponse
         {
-            CreatedOn = token.CreatedOn,
+            CreatedOn = token.CreatedAt,
             ValidUntil = token.ValidUntil,
             LastUsed = token.LastUsed,
             Permissions = token.Permissions,

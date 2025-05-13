@@ -1,0 +1,43 @@
+name: Update Cloudflare Proxies
+
+on:
+  schedule:
+    - cron: '0 0 1 * *' # runs at 00:00 UTC on the 1st day of every month
+  workflow_dispatch:
+
+env:
+  IP_MERGED_FILE: Common/cloudflare-ips.txt
+
+jobs:
+  update-proxies:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref }}
+
+      - name: Fetch Cloudflare IPs and Update Files
+        env:
+          IPV4_URL: https://www.cloudflare.com/ips-v4
+          IPV6_URL: https://www.cloudflare.com/ips-v6
+        run: |
+          set -euo pipefail
+
+          echo "Fetching Cloudflare IP lists and merging"
+          curl -s $IPV4_URL > $IP_MERGED_FILE
+          echo "" >> $IP_MERGED_FILE
+          curl -s $IPV6_URL >> $IP_MERGED_FILE
+
+      - name: Commit and Push Changes
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add ${{ env.IP_MERGED_FILE }}
+
+          if git diff --cached --quiet; then
+            echo "No changes detected."
+          else
+            git commit -m "chore: Update Cloudflare proxy IP lists [auto-generated]"
+            git push
+          fi

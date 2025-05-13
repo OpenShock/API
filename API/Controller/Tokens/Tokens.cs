@@ -23,10 +23,10 @@ public sealed partial class TokensController
     {
         return _db.ApiTokens
             .Where(x => x.UserId == CurrentUser.Id && (x.ValidUntil == null || x.ValidUntil > DateTime.UtcNow))
-            .OrderBy(x => x.CreatedOn)
+            .OrderBy(x => x.CreatedAt)
             .Select(x => new TokenResponse
             {
-                CreatedOn = x.CreatedOn,
+                CreatedOn = x.CreatedAt,
                 ValidUntil = x.ValidUntil,
                 LastUsed = x.LastUsed,
                 Permissions = x.Permissions,
@@ -51,7 +51,7 @@ public sealed partial class TokensController
             .Where(x => x.UserId == CurrentUser.Id && x.Id == tokenId && (x.ValidUntil == null || x.ValidUntil > DateTime.UtcNow))
             .Select(x => new TokenResponse
         {
-            CreatedOn = x.CreatedOn,
+            CreatedOn = x.CreatedAt,
             ValidUntil = x.ValidUntil,
             Permissions = x.Permissions,
             LastUsed = x.LastUsed,
