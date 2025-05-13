@@ -910,7 +910,7 @@ namespace OpenShock.Common.Migrations
             modelBuilder.Entity("OpenShock.Common.OpenShockDb.PublicShare", b =>
                 {
                     b.HasOne("OpenShock.Common.OpenShockDb.User", "Owner")
-                        .WithMany("ShockerSharesLinks")
+                        .WithMany("OwnedPublicShares")
                         .HasForeignKey("OwnerId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired()
@@ -943,14 +943,14 @@ namespace OpenShock.Common.Migrations
             modelBuilder.Entity("OpenShock.Common.OpenShockDb.ShareRequest", b =>
                 {
                     b.HasOne("OpenShock.Common.OpenShockDb.User", "Owner")
-                        .WithMany("ShareRequestOwnerNavigations")
+                        .WithMany("OwnedShockerShareRequests")
                         .HasForeignKey("OwnerId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired()
                         .HasConstraintName("fk_share_requests_owner_id");
 
                     b.HasOne("OpenShock.Common.OpenShockDb.User", "User")
-                        .WithMany("ShareRequestUserNavigations")
+                        .WithMany("UserShockerShareRequests")
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .HasConstraintName("fk_share_requests_user_id");
@@ -1061,7 +1061,7 @@ namespace OpenShock.Common.Migrations
             modelBuilder.Entity("OpenShock.Common.OpenShockDb.UserEmailChange", b =>
                 {
                     b.HasOne("OpenShock.Common.OpenShockDb.User", "User")
-                        .WithMany("UserEmailChanges")
+                        .WithMany("EmailChanges")
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired()
@@ -1073,7 +1073,7 @@ namespace OpenShock.Common.Migrations
             modelBuilder.Entity("OpenShock.Common.OpenShockDb.UserNameChange", b =>
                 {
                     b.HasOne("OpenShock.Common.OpenShockDb.User", "User")
-                        .WithMany("UserNameChanges")
+                        .WithMany("NameChanges")
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired()
@@ -1130,23 +1130,23 @@ namespace OpenShock.Common.Migrations
 
                     b.Navigation("Devices");
 
+                    b.Navigation("EmailChanges");
+
+                    b.Navigation("NameChanges");
+
+                    b.Navigation("OwnedPublicShares");
+
+                    b.Navigation("OwnedShockerShareRequests");
+
                     b.Navigation("PasswordResets");
-
-                    b.Navigation("ShareRequestOwnerNavigations");
-
-                    b.Navigation("ShareRequestUserNavigations");
 
                     b.Navigation("ShockerControlLogs");
 
                     b.Navigation("ShockerShares");
 
-                    b.Navigation("ShockerSharesLinks");
-
                     b.Navigation("UserActivations");
 
-                    b.Navigation("UserEmailChanges");
-
-                    b.Navigation("UserNameChanges");
+                    b.Navigation("UserShockerShareRequests");
                 });
 #pragma warning restore 612, 618
         }

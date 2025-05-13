@@ -31,10 +31,10 @@ public sealed partial class ShareLinksController
             await _db.Shockers.AnyAsync(x => x.Id == shockerId && x.Device.OwnerId == CurrentUser.Id);
         if (!ownShocker) return Problem(ShockerError.ShockerNotFound);
 
-        if (await _db.PublicShareShockers.AnyAsync(x => x.PublicShareId == publicShareId && x.ShockerId == shockerId))
+        if (await _db.PublicShareShockerMappings.AnyAsync(x => x.PublicShareId == publicShareId && x.ShockerId == shockerId))
             return Problem(PublicShareError.ShockerAlreadyInPublicShare);
 
-        _db.PublicShareShockers.Add(new PublicShareShocker
+        _db.PublicShareShockerMappings.Add(new PublicShareShocker
         {
             ShockerId = shockerId,
             PublicShareId = publicShareId,

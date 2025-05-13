@@ -32,7 +32,7 @@ public sealed partial class ShareLinksController
             return Problem(PublicShareError.PublicShareNotFound);
         }
 
-        var affected = await _db.PublicShareShockers
+        var affected = await _db.PublicShareShockerMappings
             .Where(x => x.PublicShareId == publicShareId && x.ShockerId == shockerId)
             .ExecuteDeleteAsync();
         if (affected <= 0)

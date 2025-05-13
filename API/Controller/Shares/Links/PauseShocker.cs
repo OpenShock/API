@@ -29,7 +29,7 @@ public sealed partial class ShareLinksController
         if (!exists) return Problem(PublicShareError.PublicShareNotFound);
 
         var shocker =
-            await _db.PublicShareShockers.Where(x =>
+            await _db.PublicShareShockerMappings.Where(x =>
                 x.PublicShareId == publicShareId && x.ShockerId == shockerId).Include(x => x.Shocker).FirstOrDefaultAsync();
         if (shocker == null) return Problem(PublicShareError.ShockerNotInPublicShare);
 

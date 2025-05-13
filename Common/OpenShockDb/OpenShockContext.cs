@@ -86,7 +86,7 @@ public partial class OpenShockContext : DbContext
 
     public virtual DbSet<ShareRequest> ShareRequests { get; set; }
 
-    public virtual DbSet<ShareRequestShocker> ShareRequestShockers { get; set; }
+    public virtual DbSet<ShareRequestShocker> ShareRequestShockerMappings { get; set; }
 
     public virtual DbSet<Shocker> Shockers { get; set; }
 
@@ -98,7 +98,7 @@ public partial class OpenShockContext : DbContext
 
     public virtual DbSet<PublicShare> PublicShares { get; set; }
 
-    public virtual DbSet<PublicShareShocker> PublicShareShockers { get; set; }
+    public virtual DbSet<PublicShareShocker> PublicShareShockerMappings { get; set; }
 
     public virtual DbSet<User> Users { get; set; }
 
@@ -267,11 +267,11 @@ public partial class OpenShockContext : DbContext
             entity.Property(e => e.OwnerId).HasColumnName("owner_id");
             entity.Property(e => e.UserId).HasColumnName("user_id");
 
-            entity.HasOne(d => d.Owner).WithMany(p => p.ShareRequestOwnerNavigations)
+            entity.HasOne(d => d.Owner).WithMany(p => p.OwnedShockerShareRequests)
                 .HasForeignKey(d => d.OwnerId)
                 .HasConstraintName("fk_share_requests_owner_id");
 
-            entity.HasOne(d => d.User).WithMany(p => p.ShareRequestUserNavigations)
+            entity.HasOne(d => d.User).WithMany(p => p.UserShockerShareRequests)
                 .HasForeignKey(d => d.UserId)
                 .OnDelete(DeleteBehavior.Cascade)
                 .HasConstraintName("fk_share_requests_user_id");
@@ -479,7 +479,7 @@ public partial class OpenShockContext : DbContext
                 .HasColumnName("name");
             entity.Property(e => e.OwnerId).HasColumnName("owner_id");
 
-            entity.HasOne(d => d.Owner).WithMany(p => p.ShockerSharesLinks)
+            entity.HasOne(d => d.Owner).WithMany(p => p.OwnedPublicShares)
                 .HasForeignKey(d => d.OwnerId)
                 .HasConstraintName("fk_public_shares_owner_id");
         });
@@ -607,7 +607,7 @@ public partial class OpenShockContext : DbContext
             entity.Property(e => e.UsedAt).HasColumnName("used_at");
             entity.Property(e => e.UserId).HasColumnName("user_id");
 
-            entity.HasOne(d => d.User).WithMany(p => p.UserEmailChanges)
+            entity.HasOne(d => d.User).WithMany(p => p.EmailChanges)
                 .HasForeignKey(d => d.UserId)
                 .HasConstraintName("fk_user_email_changes_user_id");
         });
@@ -636,7 +636,7 @@ public partial class OpenShockContext : DbContext
                 .VarCharWithLength(HardLimits.UsernameMaxLength)
                 .HasColumnName("old_name");
 
-            entity.HasOne(d => d.User).WithMany(p => p.UserNameChanges)
+            entity.HasOne(d => d.User).WithMany(p => p.NameChanges)
                 .HasForeignKey(d => d.UserId)
                 .HasConstraintName("fk_user_name_changes_user_id");
         });

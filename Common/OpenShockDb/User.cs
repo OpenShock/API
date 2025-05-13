@@ -22,21 +22,21 @@ public partial class User
 
     public virtual ICollection<Device> Devices { get; set; } = new List<Device>();
 
-    public virtual ICollection<UserPasswordReset> PasswordResets { get; set; } = new List<UserPasswordReset>();
+    public virtual ICollection<ShareRequest> OwnedShockerShareRequests { get; set; } = new List<ShareRequest>();
 
-    public virtual ICollection<ShareRequest> ShareRequestOwnerNavigations { get; set; } = new List<ShareRequest>();
+    public virtual ICollection<ShareRequest> UserShockerShareRequests { get; set; } = new List<ShareRequest>();
 
-    public virtual ICollection<ShareRequest> ShareRequestUserNavigations { get; set; } = new List<ShareRequest>();
+    public virtual ICollection<PublicShare> OwnedPublicShares { get; set; } = new List<PublicShare>();
 
     public virtual ICollection<ShockerControlLog> ShockerControlLogs { get; set; } = new List<ShockerControlLog>();
 
     public virtual ICollection<ShockerShare> ShockerShares { get; set; } = new List<ShockerShare>();
 
-    public virtual ICollection<PublicShare> ShockerSharesLinks { get; set; } = new List<PublicShare>();
-
     public virtual ICollection<UserActivation> UserActivations { get; set; } = new List<UserActivation>();
 
-    public virtual ICollection<UserEmailChange> UserEmailChanges { get; set; } = new List<UserEmailChange>();
+    public virtual ICollection<UserNameChange> NameChanges { get; set; } = new List<UserNameChange>();
 
-    public virtual ICollection<UserNameChange> UserNameChanges { get; set; } = new List<UserNameChange>();
+    public virtual ICollection<UserEmailChange> EmailChanges { get; set; } = new List<UserEmailChange>();
+
+    public virtual ICollection<UserPasswordReset> PasswordResets { get; set; } = new List<UserPasswordReset>();
 }
