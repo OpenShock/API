@@ -1,6 +1,6 @@
 ﻿namespace OpenShock.Common.OpenShockDb;
 
-public partial class UsersActivation
+public partial class UserActivation
 {
     public Guid Id { get; set; }
 

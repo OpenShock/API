@@ -25,11 +25,11 @@ public sealed partial class ShareLinksController
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status404NotFound, MediaTypeNames.Application.ProblemJson)] // ShareLinkNotFound, ShockerNotInShareLink
     public async Task<IActionResult> PauseShocker([FromRoute] Guid shareLinkId, [FromRoute] Guid shockerId, [FromBody] PauseRequest body)
     {
-        var exists = await _db.ShockerSharesLinks.AnyAsync(x => x.OwnerId == CurrentUser.Id && x.Id == shareLinkId);
+        var exists = await _db.ShockerShareLinks.AnyAsync(x => x.OwnerId == CurrentUser.Id && x.Id == shareLinkId);
         if (!exists) return Problem(ShareLinkError.ShareLinkNotFound);
 
         var shocker =
-            await _db.ShockerSharesLinksShockers.Where(x =>
+            await _db.ShockerShareLinkShockers.Where(x =>
                 x.ShareLinkId == shareLinkId && x.ShockerId == shockerId).Include(x => x.Shocker).FirstOrDefaultAsync();
         if (shocker == null) return Problem(ShareLinkError.ShockerNotInShareLink);
 

@@ -24,17 +24,17 @@ public sealed partial class ShareLinksController
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status409Conflict, MediaTypeNames.Application.ProblemJson)] // ShockerAlreadyInShareLink
     public async Task<IActionResult> AddShocker([FromRoute] Guid shareLinkId, [FromRoute] Guid shockerId)
     {
-        var exists = await _db.ShockerSharesLinks.AnyAsync(x => x.OwnerId == CurrentUser.Id && x.Id == shareLinkId);
+        var exists = await _db.ShockerShareLinks.AnyAsync(x => x.OwnerId == CurrentUser.Id && x.Id == shareLinkId);
         if (!exists) return Problem(ShareLinkError.ShareLinkNotFound);
 
         var ownShocker =
             await _db.Shockers.AnyAsync(x => x.Id == shockerId && x.Device.OwnerId == CurrentUser.Id);
         if (!ownShocker) return Problem(ShockerError.ShockerNotFound);
 
-        if (await _db.ShockerSharesLinksShockers.AnyAsync(x => x.ShareLinkId == shareLinkId && x.ShockerId == shockerId))
+        if (await _db.ShockerShareLinkShockers.AnyAsync(x => x.ShareLinkId == shareLinkId && x.ShockerId == shockerId))
             return Problem(ShareLinkError.ShockerAlreadyInShareLink);
 
-        _db.ShockerSharesLinksShockers.Add(new ShockerSharesLinksShocker
+        _db.ShockerShareLinkShockers.Add(new ShockerShareLinkShocker
         {
             ShockerId = shockerId,
             ShareLinkId = shareLinkId,

@@ -14,14 +14,14 @@ public sealed partial class ShareLinksController
     [HttpPost(Name = "CreateShareLink")]
     public async Task<LegacyDataResponse<Guid>> CreateShareLink([FromBody] ShareLinkCreate body)
     {
-        var entity = new ShockerSharesLink
+        var entity = new ShockerShareLink
         {
             Id = Guid.CreateVersion7(),
             Owner = CurrentUser,
             ExpiresAt = body.ExpiresOn == null ? null : DateTime.SpecifyKind(body.ExpiresOn.Value, DateTimeKind.Utc),
             Name = body.Name
         };
-        _db.ShockerSharesLinks.Add(entity);
+        _db.ShockerShareLinks.Add(entity);
         await _db.SaveChangesAsync();
 
         return new(entity.Id);

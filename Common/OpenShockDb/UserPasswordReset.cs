@@ -1,6 +1,6 @@
 ﻿namespace OpenShock.Common.OpenShockDb;
 
-public partial class PasswordReset
+public partial class UserPasswordReset
 {
     public Guid Id { get; set; }
 

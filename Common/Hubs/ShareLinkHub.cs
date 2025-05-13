@@ -58,7 +58,7 @@ public sealed class ShareLinkHub : Hub<IShareLinkHub>
         
         _tokenPermissions = _userReferenceService.AuthReference is not { IsT1: true } ? null : _userReferenceService.AuthReference.Value.AsT1.Permissions;
 
-        var exists = await _db.ShockerSharesLinks.AnyAsync(x => x.Id == id && (x.ExpiresAt == null || x.ExpiresAt > DateTime.UtcNow));
+        var exists = await _db.ShockerShareLinks.AnyAsync(x => x.Id == id && (x.ExpiresAt == null || x.ExpiresAt > DateTime.UtcNow));
         if (!exists)
         {
             _logger.LogDebug("Aborting connection... share link not found");

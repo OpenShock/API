@@ -20,7 +20,7 @@ public partial class Shocker
 
     public virtual Device Device { get; set; } = null!;
 
-    public virtual ICollection<ShareRequestsShocker> ShareRequestMappings { get; set; } = new List<ShareRequestsShocker>();
+    public virtual ICollection<ShareRequestShocker> ShareRequestMappings { get; set; } = new List<ShareRequestShocker>();
 
     public virtual ICollection<ShockerControlLog> ShockerControlLogs { get; set; } = new List<ShockerControlLog>();
 
@@ -28,5 +28,5 @@ public partial class Shocker
 
     public virtual ICollection<ShockerShare> ShockerShares { get; set; } = new List<ShockerShare>();
 
-    public virtual ICollection<ShockerSharesLinksShocker> ShareLinkMappings { get; set; } = new List<ShockerSharesLinksShocker>();
+    public virtual ICollection<ShockerShareLinkShocker> ShareLinkMappings { get; set; } = new List<ShockerShareLinkShocker>();
 }

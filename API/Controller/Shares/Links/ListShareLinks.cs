@@ -14,7 +14,7 @@ public sealed partial class ShareLinksController
     [HttpGet]
     public LegacyDataResponse<IAsyncEnumerable<ShareLinkResponse>> List()
     {
-        var ownShareLinks = _db.ShockerSharesLinks
+        var ownShareLinks = _db.ShockerShareLinks
             .Where(x => x.OwnerId == CurrentUser.Id)
             .Select(x => ShareLinkResponse.GetFromEf(x))
             .AsAsyncEnumerable();

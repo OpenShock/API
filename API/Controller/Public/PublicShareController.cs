@@ -24,7 +24,7 @@ public sealed partial class PublicController
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status404NotFound, MediaTypeNames.Application.ProblemJson)] // ShareLinkNotFound
     public async Task<IActionResult> GetShareLink([FromRoute] Guid shareLinkId)
     {
-        var shareLink = await _db.ShockerSharesLinks.Where(x => x.Id == shareLinkId).Select(x => new
+        var shareLink = await _db.ShockerShareLinks.Where(x => x.Id == shareLinkId).Select(x => new
         {
             Author = new GenericIni
             {

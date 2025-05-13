@@ -31,7 +31,7 @@ public sealed class ClearOldPasswordResetsJob
         var earliestCreatedOnUtc = expiredAtUtc - Duration.AuditRetentionTime;
 
         // Run the delete query
-        int nDeleted = await _db.PasswordResets
+        int nDeleted = await _db.UserPasswordResets
                                     .Where(x => x.UsedAt == null && x.CreatedAt < earliestCreatedOnUtc)
                                     .ExecuteDeleteAsync();
         

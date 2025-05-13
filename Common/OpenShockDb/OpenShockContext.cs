@@ -82,11 +82,11 @@ public partial class OpenShockContext : DbContext
 
     public virtual DbSet<DeviceOtaUpdate> DeviceOtaUpdates { get; set; }
 
-    public virtual DbSet<PasswordReset> PasswordResets { get; set; }
+    public virtual DbSet<UserPasswordReset> UserPasswordResets { get; set; }
 
     public virtual DbSet<ShareRequest> ShareRequests { get; set; }
 
-    public virtual DbSet<ShareRequestsShocker> ShareRequestsShockers { get; set; }
+    public virtual DbSet<ShareRequestShocker> ShareRequestShockers { get; set; }
 
     public virtual DbSet<Shocker> Shockers { get; set; }
 
@@ -96,17 +96,17 @@ public partial class OpenShockContext : DbContext
 
     public virtual DbSet<ShockerShareCode> ShockerShareCodes { get; set; }
 
-    public virtual DbSet<ShockerSharesLink> ShockerSharesLinks { get; set; }
+    public virtual DbSet<ShockerShareLink> ShockerShareLinks { get; set; }
 
-    public virtual DbSet<ShockerSharesLinksShocker> ShockerSharesLinksShockers { get; set; }
+    public virtual DbSet<ShockerShareLinkShocker> ShockerShareLinkShockers { get; set; }
 
     public virtual DbSet<User> Users { get; set; }
 
-    public virtual DbSet<UsersActivation> UsersActivations { get; set; }
+    public virtual DbSet<UserActivation> UserActivations { get; set; }
 
-    public virtual DbSet<UsersEmailChange> UsersEmailChanges { get; set; }
+    public virtual DbSet<UserEmailChange> UserEmailChanges { get; set; }
 
-    public virtual DbSet<UsersNameChange> UsersNameChanges { get; set; }
+    public virtual DbSet<UserNameChange> UserNameChanges { get; set; }
 
     public virtual DbSet<AdminUsersView> AdminUsersViews { get; set; }
 
@@ -224,11 +224,11 @@ public partial class OpenShockContext : DbContext
                 .HasConstraintName("fk_device_ota_updates_device_id");
         });
 
-        modelBuilder.Entity<PasswordReset>(entity =>
+        modelBuilder.Entity<UserPasswordReset>(entity =>
         {
-            entity.HasKey(e => e.Id).HasName("password_resets_pkey");
+            entity.HasKey(e => e.Id).HasName("user_password_resets_pkey");
 
-            entity.ToTable("password_resets");
+            entity.ToTable("user_password_resets");
 
             entity.HasIndex(e => e.UserId).HasAnnotation("Npgsql:StorageParameter:deduplicate_items", "true");
 
@@ -247,12 +247,12 @@ public partial class OpenShockContext : DbContext
 
             entity.HasOne(d => d.User).WithMany(p => p.PasswordResets)
                 .HasForeignKey(d => d.UserId)
-                .HasConstraintName("fk_password_resets_user_id");
+                .HasConstraintName("fk_user_password_resets_user_id");
         });
 
         modelBuilder.Entity<ShareRequest>(entity =>
         {
-            entity.HasKey(e => e.Id).HasName("shares_codes_pkey");
+            entity.HasKey(e => e.Id).HasName("share_requests_pkey");
 
             entity.ToTable("share_requests");
 
@@ -277,11 +277,11 @@ public partial class OpenShockContext : DbContext
                 .HasConstraintName("fk_share_requests_user_id");
         });
 
-        modelBuilder.Entity<ShareRequestsShocker>(entity =>
+        modelBuilder.Entity<ShareRequestShocker>(entity =>
         {
-            entity.HasKey(e => new { e.ShareRequestId, e.ShockerId }).HasName("share_requests_shockers_pkey");
+            entity.HasKey(e => new { e.ShareRequestId, e.ShockerId }).HasName("share_request_shockers_pkey");
 
-            entity.ToTable("share_requests_shockers");
+            entity.ToTable("share_request_shockers");
 
             entity.Property(e => e.ShareRequestId).HasColumnName("share_request_id");
             entity.Property(e => e.ShockerId).HasColumnName("shocker_id");
@@ -307,11 +307,11 @@ public partial class OpenShockContext : DbContext
 
             entity.HasOne(d => d.ShareRequest).WithMany(p => p.ShockerMappings)
                 .HasForeignKey(d => d.ShareRequestId)
-                .HasConstraintName("fk_share_requests_shockers_share_request_id");
+                .HasConstraintName("fk_share_request_shockers_share_request_id");
 
             entity.HasOne(d => d.Shocker).WithMany(p => p.ShareRequestMappings)
                 .HasForeignKey(d => d.ShockerId)
-                .HasConstraintName("fk_share_requests_shockers_shocker_id");
+                .HasConstraintName("fk_share_request_shockers_shocker_id");
         });
 
         modelBuilder.Entity<Shocker>(entity =>
@@ -459,11 +459,11 @@ public partial class OpenShockContext : DbContext
                 .HasConstraintName("fk_shocker_share_codes_shocker_id");
         });
 
-        modelBuilder.Entity<ShockerSharesLink>(entity =>
+        modelBuilder.Entity<ShockerShareLink>(entity =>
         {
-            entity.HasKey(e => e.Id).HasName("shocker_shares_links_pkey");
+            entity.HasKey(e => e.Id).HasName("shocker_share_links_pkey");
 
-            entity.ToTable("shocker_shares_links");
+            entity.ToTable("shocker_share_links");
 
             entity.HasIndex(e => e.OwnerId).HasAnnotation("Npgsql:StorageParameter:deduplicate_items", "true");
 
@@ -481,14 +481,14 @@ public partial class OpenShockContext : DbContext
 
             entity.HasOne(d => d.Owner).WithMany(p => p.ShockerSharesLinks)
                 .HasForeignKey(d => d.OwnerId)
-                .HasConstraintName("fk_shocker_shares_links_owner_id");
+                .HasConstraintName("fk_shocker_share_links_owner_id");
         });
 
-        modelBuilder.Entity<ShockerSharesLinksShocker>(entity =>
+        modelBuilder.Entity<ShockerShareLinkShocker>(entity =>
         {
-            entity.HasKey(e => new { e.ShareLinkId, e.ShockerId }).HasName("shocker_shares_links_shockers_pkey");
+            entity.HasKey(e => new { e.ShareLinkId, e.ShockerId }).HasName("shocker_share_link_shockers_pkey");
 
-            entity.ToTable("shocker_shares_links_shockers");
+            entity.ToTable("shocker_share_link_shockers");
 
             entity.Property(e => e.ShareLinkId).HasColumnName("share_link_id");
             entity.Property(e => e.ShockerId).HasColumnName("shocker_id");
@@ -515,11 +515,11 @@ public partial class OpenShockContext : DbContext
 
             entity.HasOne(d => d.ShareLink).WithMany(p => p.ShockerMappings)
                 .HasForeignKey(d => d.ShareLinkId)
-                .HasConstraintName("fk_shocker_shares_links_shockers_share_link_id");
+                .HasConstraintName("fk_shocker_share_link_shockers_share_link_id");
 
             entity.HasOne(d => d.Shocker).WithMany(p => p.ShareLinkMappings)
                 .HasForeignKey(d => d.ShockerId)
-                .HasConstraintName("fk_shocker_shares_links_shockers_shocker_id");
+                .HasConstraintName("fk_shocker_share_link_shockers_shocker_id");
         });
 
         modelBuilder.Entity<User>(entity =>
@@ -555,11 +555,11 @@ public partial class OpenShockContext : DbContext
                 .HasColumnName("roles");
         });
 
-        modelBuilder.Entity<UsersActivation>(entity =>
+        modelBuilder.Entity<UserActivation>(entity =>
         {
-            entity.HasKey(e => e.Id).HasName("users_activation_pkey");
+            entity.HasKey(e => e.Id).HasName("user_activations_pkey");
 
-            entity.ToTable("users_activation");
+            entity.ToTable("user_activations");
 
             entity.HasIndex(e => e.UserId);
 
@@ -575,16 +575,16 @@ public partial class OpenShockContext : DbContext
             entity.Property(e => e.UsedAt).HasColumnName("used_at");
             entity.Property(e => e.UserId).HasColumnName("user_id");
 
-            entity.HasOne(d => d.User).WithMany(p => p.UsersActivations)
+            entity.HasOne(d => d.User).WithMany(p => p.UserActivations)
                 .HasForeignKey(d => d.UserId)
-                .HasConstraintName("fk_users_activation_user_id");
+                .HasConstraintName("fk_user_activations_user_id");
         });
 
-        modelBuilder.Entity<UsersEmailChange>(entity =>
+        modelBuilder.Entity<UserEmailChange>(entity =>
         {
-            entity.HasKey(e => e.Id).HasName("users_email_change_pkey");
+            entity.HasKey(e => e.Id).HasName("user_email_changes_pkey");
 
-            entity.ToTable("users_email_changes");
+            entity.ToTable("user_email_changes");
 
             entity.HasIndex(e => e.UserId);
 
@@ -607,16 +607,16 @@ public partial class OpenShockContext : DbContext
             entity.Property(e => e.UsedAt).HasColumnName("used_at");
             entity.Property(e => e.UserId).HasColumnName("user_id");
 
-            entity.HasOne(d => d.User).WithMany(p => p.UsersEmailChanges)
+            entity.HasOne(d => d.User).WithMany(p => p.UserEmailChanges)
                 .HasForeignKey(d => d.UserId)
-                .HasConstraintName("fk_users_email_changes_user_id");
+                .HasConstraintName("fk_user_email_changes_user_id");
         });
 
-        modelBuilder.Entity<UsersNameChange>(entity =>
+        modelBuilder.Entity<UserNameChange>(entity =>
         {
-            entity.HasKey(e => new { e.Id, e.UserId }).HasName("users_name_changes_pkey");
+            entity.HasKey(e => new { e.Id, e.UserId }).HasName("user_name_changes_pkey");
 
-            entity.ToTable("users_name_changes");
+            entity.ToTable("user_name_changes");
 
             entity.HasIndex(e => e.CreatedAt).HasAnnotation("Npgsql:StorageParameter:deduplicate_items", "true");
 
@@ -636,9 +636,9 @@ public partial class OpenShockContext : DbContext
                 .VarCharWithLength(HardLimits.UsernameMaxLength)
                 .HasColumnName("old_name");
 
-            entity.HasOne(d => d.User).WithMany(p => p.UsersNameChanges)
+            entity.HasOne(d => d.User).WithMany(p => p.UserNameChanges)
                 .HasForeignKey(d => d.UserId)
-                .HasConstraintName("fk_users_name_changes_user_id");
+                .HasConstraintName("fk_user_name_changes_user_id");
         });
 
         modelBuilder.Entity<AdminUsersView>(entity =>

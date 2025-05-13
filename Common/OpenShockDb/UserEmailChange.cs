@@ -1,6 +1,6 @@
 ﻿namespace OpenShock.Common.OpenShockDb;
 
-public partial class UsersEmailChange
+public partial class UserEmailChange
 {
     public Guid Id { get; set; }
 

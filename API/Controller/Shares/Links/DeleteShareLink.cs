@@ -21,7 +21,7 @@ public sealed partial class ShareLinksController
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status404NotFound, MediaTypeNames.Application.ProblemJson)] // ShareLinkNotFound
     public async Task<IActionResult> DeleteShareLink([FromRoute] Guid shareLinkId)
     {
-        var result = await _db.ShockerSharesLinks
+        var result = await _db.ShockerShareLinks
             .Where(x => x.Id == shareLinkId)
             .WhereIsUserOrPrivileged(x => x.Owner, CurrentUser)
             .ExecuteDeleteAsync();

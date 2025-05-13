@@ -1,6 +1,6 @@
 ﻿namespace OpenShock.Common.OpenShockDb;
 
-public partial class UsersNameChange
+public partial class UserNameChange
 {
     public int Id { get; set; }
 

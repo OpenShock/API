@@ -60,7 +60,7 @@ public static class ControlLogic
         ControlLogSender sender,
         IHubClients<IUserHub> hubClients, Guid shareLinkId, IRedisPubService redisPubService)
     {
-        var shareLinkShockers = await db.ShockerSharesLinksShockers.Where(x => x.ShareLinkId == shareLinkId && (x.ShareLink.ExpiresAt > DateTime.UtcNow || x.ShareLink.ExpiresAt == null))
+        var shareLinkShockers = await db.ShockerShareLinkShockers.Where(x => x.ShareLinkId == shareLinkId && (x.ShareLink.ExpiresAt > DateTime.UtcNow || x.ShareLink.ExpiresAt == null))
             .Select(x => new ControlShockerObj
         {
             Id = x.Shocker.Id,

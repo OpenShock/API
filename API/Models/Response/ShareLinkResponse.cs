@@ -9,7 +9,7 @@ public sealed class ShareLinkResponse
     public required DateTime CreatedOn { get; set; }
     public DateTime? ExpiresOn { get; set; }
 
-    public static ShareLinkResponse GetFromEf(ShockerSharesLink x) => new()
+    public static ShareLinkResponse GetFromEf(ShockerShareLink x) => new()
     {
         Id = x.Id,
         Name = x.Name,

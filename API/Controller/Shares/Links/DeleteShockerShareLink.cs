@@ -23,7 +23,7 @@ public sealed partial class ShareLinksController
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status404NotFound, MediaTypeNames.Application.ProblemJson)] // ShareLinkNotFound, ShockerNotInShareLink
     public async Task<IActionResult> RemoveShocker([FromRoute] Guid shareLinkId, [FromRoute] Guid shockerId)
     {
-        var exists = await _db.ShockerSharesLinks
+        var exists = await _db.ShockerShareLinks
             .Where(x => x.Id == shareLinkId)
             .WhereIsUserOrPrivileged(x => x.Owner, CurrentUser)
             .AnyAsync();
@@ -32,7 +32,7 @@ public sealed partial class ShareLinksController
             return Problem(ShareLinkError.ShareLinkNotFound);
         }
 
-        var affected = await _db.ShockerSharesLinksShockers
+        var affected = await _db.ShockerShareLinkShockers
             .Where(x => x.ShareLinkId == shareLinkId && x.ShockerId == shockerId)
             .ExecuteDeleteAsync();
         if (affected <= 0)

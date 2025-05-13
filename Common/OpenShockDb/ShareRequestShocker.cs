@@ -1,6 +1,6 @@
 ﻿namespace OpenShock.Common.OpenShockDb;
 
-public partial class ShareRequestsShocker : SafetySettings
+public partial class ShareRequestShocker : SafetySettings
 {
     public Guid ShareRequestId { get; set; }
 

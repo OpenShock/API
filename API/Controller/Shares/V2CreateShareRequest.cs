@@ -57,7 +57,7 @@ public sealed partial class SharesController
         
         foreach (var createShockerShare in data.Shockers)
         {
-            _db.ShareRequestsShockers.Add(new ShareRequestsShocker
+            _db.ShareRequestShockers.Add(new ShareRequestShocker
             {
                 ShareRequestId = shareRequest.Id,
                 ShockerId = createShockerShare.Id,

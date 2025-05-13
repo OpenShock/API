@@ -12,7 +12,7 @@ public partial class ShareRequest
 
     public virtual User Owner { get; set; } = null!;
 
-    public virtual ICollection<ShareRequestsShocker> ShockerMappings { get; set; } = new List<ShareRequestsShocker>();
+    public virtual ICollection<ShareRequestShocker> ShockerMappings { get; set; } = new List<ShareRequestShocker>();
 
     public virtual User? User { get; set; }
 }
