@@ -145,9 +145,9 @@ public partial class OpenShockContext : DbContext
                 .HasColumnName("id");
             entity.Property(e => e.CreatedByIp)
                 .HasColumnName("created_by_ip");
-            entity.Property(e => e.CreatedOn)
+            entity.Property(e => e.CreatedAt)
                 .HasDefaultValueSql("CURRENT_TIMESTAMP")
-                .HasColumnName("created_on");
+                .HasColumnName("created_at");
             entity.Property(e => e.LastUsed)
                 .HasDefaultValueSql("'-infinity'::timestamp without time zone")
                 .HasColumnName("last_used");
@@ -179,9 +179,9 @@ public partial class OpenShockContext : DbContext
             entity.Property(e => e.Id)
                 .ValueGeneratedNever()
                 .HasColumnName("id");
-            entity.Property(e => e.CreatedOn)
+            entity.Property(e => e.CreatedAt)
                 .HasDefaultValueSql("CURRENT_TIMESTAMP")
-                .HasColumnName("created_on");
+                .HasColumnName("created_at");
             entity.Property(e => e.Name)
                 .VarCharWithLength(HardLimits.HubNameMaxLength)
                 .HasColumnName("name");
@@ -201,14 +201,14 @@ public partial class OpenShockContext : DbContext
 
             entity.ToTable("device_ota_updates");
 
-            entity.HasIndex(e => e.CreatedOn, "device_ota_updates_created_on_idx")
+            entity.HasIndex(e => e.CreatedAt, "device_ota_updates_created_at_idx")
                 .HasAnnotation("Npgsql:StorageParameter:deduplicate_items", "true");
 
             entity.Property(e => e.Device).HasColumnName("device");
             entity.Property(e => e.UpdateId).HasColumnName("update_id");
-            entity.Property(e => e.CreatedOn)
+            entity.Property(e => e.CreatedAt)
                 .HasDefaultValueSql("CURRENT_TIMESTAMP")
-                .HasColumnName("created_on");
+                .HasColumnName("created_at");
             entity.Property(e => e.Message)
                 .VarCharWithLength(HardLimits.OtaUpdateMessageMaxLength)
                 .HasColumnName("message");
@@ -235,14 +235,14 @@ public partial class OpenShockContext : DbContext
             entity.Property(e => e.Id)
                 .ValueGeneratedNever()
                 .HasColumnName("id");
-            entity.Property(e => e.CreatedOn)
+            entity.Property(e => e.CreatedAt)
                 .HasDefaultValueSql("CURRENT_TIMESTAMP")
-                .HasColumnName("created_on");
+                .HasColumnName("created_at");
             entity.Property(e => e.SecretHash)
                 .VarCharWithLength(HardLimits.PasswordResetSecretMaxLength)
                 .HasColumnName("secret");
-            entity.Property(e => e.UsedOn)
-                .HasColumnName("used_on");
+            entity.Property(e => e.UsedAt)
+                .HasColumnName("used_at");
             entity.Property(e => e.UserId).HasColumnName("user_id");
 
             entity.HasOne(d => d.User).WithMany(p => p.PasswordResets)
@@ -261,9 +261,9 @@ public partial class OpenShockContext : DbContext
             entity.Property(e => e.Id)
                 .ValueGeneratedNever()
                 .HasColumnName("id");
-            entity.Property(e => e.CreatedOn)
+            entity.Property(e => e.CreatedAt)
                 .HasDefaultValueSql("CURRENT_TIMESTAMP")
-                .HasColumnName("created_on");
+                .HasColumnName("created_at");
             entity.Property(e => e.Owner).HasColumnName("owner");
             entity.Property(e => e.User).HasColumnName("user");
 
@@ -320,9 +320,9 @@ public partial class OpenShockContext : DbContext
             entity.Property(e => e.Id)
                 .ValueGeneratedNever()
                 .HasColumnName("id");
-            entity.Property(e => e.CreatedOn)
+            entity.Property(e => e.CreatedAt)
                 .HasDefaultValueSql("CURRENT_TIMESTAMP")
-                .HasColumnName("created_on");
+                .HasColumnName("created_at");
             entity.Property(e => e.Device).HasColumnName("device");
             entity.Property(e => e.Name)
                 .HasMaxLength(HardLimits.ShockerNameMaxLength)
@@ -350,9 +350,9 @@ public partial class OpenShockContext : DbContext
                 .ValueGeneratedNever()
                 .HasColumnName("id");
             entity.Property(e => e.ControlledBy).HasColumnName("controlled_by");
-            entity.Property(e => e.CreatedOn)
+            entity.Property(e => e.CreatedAt)
                 .HasDefaultValueSql("CURRENT_TIMESTAMP")
-                .HasColumnName("created_on");
+                .HasColumnName("created_at");
             entity.Property(e => e.CustomName)
                 .VarCharWithLength(HardLimits.ShockerControlLogCustomNameMaxLength)
                 .HasColumnName("custom_name");
@@ -384,9 +384,9 @@ public partial class OpenShockContext : DbContext
 
             entity.Property(e => e.ShockerId).HasColumnName("shocker_id");
             entity.Property(e => e.SharedWith).HasColumnName("shared_with");
-            entity.Property(e => e.CreatedOn)
+            entity.Property(e => e.CreatedAt)
                 .HasDefaultValueSql("CURRENT_TIMESTAMP")
-                .HasColumnName("created_on");
+                .HasColumnName("created_at");
             entity.Property(e => e.LimitDuration).HasColumnName("limit_duration");
             entity.Property(e => e.LimitIntensity).HasColumnName("limit_intensity");
             entity.Property(e => e.Paused)
@@ -423,9 +423,9 @@ public partial class OpenShockContext : DbContext
             entity.Property(e => e.Id)
                 .ValueGeneratedNever()
                 .HasColumnName("id");
-            entity.Property(e => e.CreatedOn)
+            entity.Property(e => e.CreatedAt)
                 .HasDefaultValueSql("CURRENT_TIMESTAMP")
-                .HasColumnName("created_on");
+                .HasColumnName("created_at");
             entity.Property(e => e.LimitDuration).HasColumnName("limit_duration");
             entity.Property(e => e.LimitIntensity).HasColumnName("limit_intensity");
             entity.Property(e => e.PermShock)
@@ -455,10 +455,10 @@ public partial class OpenShockContext : DbContext
             entity.Property(e => e.Id)
                 .ValueGeneratedNever()
                 .HasColumnName("id");
-            entity.Property(e => e.CreatedOn)
+            entity.Property(e => e.CreatedAt)
                 .HasDefaultValueSql("CURRENT_TIMESTAMP")
-                .HasColumnName("created_on");
-            entity.Property(e => e.ExpiresOn).HasColumnName("expires_on");
+                .HasColumnName("created_at");
+            entity.Property(e => e.ExpiresAt).HasColumnName("expires_at");
             entity.Property(e => e.Name)
                 .VarCharWithLength(HardLimits.ShockerShareLinkNameMaxLength)
                 .HasColumnName("name");
@@ -543,13 +543,13 @@ public partial class OpenShockContext : DbContext
             entity.Property(e => e.Id)
                 .ValueGeneratedNever()
                 .HasColumnName("id");
-            entity.Property(e => e.CreatedOn)
+            entity.Property(e => e.CreatedAt)
                 .HasDefaultValueSql("CURRENT_TIMESTAMP")
-                .HasColumnName("created_on");
+                .HasColumnName("created_at");
             entity.Property(e => e.SecretHash)
                 .VarCharWithLength(HardLimits.UserActivationSecretMaxLength)
                 .HasColumnName("secret");
-            entity.Property(e => e.UsedOn).HasColumnName("used_on");
+            entity.Property(e => e.UsedAt).HasColumnName("used_at");
             entity.Property(e => e.UserId).HasColumnName("user_id");
 
             entity.HasOne(d => d.User).WithMany(p => p.UsersActivations)
@@ -565,23 +565,23 @@ public partial class OpenShockContext : DbContext
 
             entity.HasIndex(e => e.UserId);
 
-            entity.HasIndex(e => e.CreatedOn).HasAnnotation("Npgsql:StorageParameter:deduplicate_items", "true");
+            entity.HasIndex(e => e.CreatedAt).HasAnnotation("Npgsql:StorageParameter:deduplicate_items", "true");
 
-            entity.HasIndex(e => e.UsedOn).HasAnnotation("Npgsql:StorageParameter:deduplicate_items", "true");
+            entity.HasIndex(e => e.UsedAt).HasAnnotation("Npgsql:StorageParameter:deduplicate_items", "true");
 
             entity.Property(e => e.Id)
                 .ValueGeneratedNever()
                 .HasColumnName("id");
-            entity.Property(e => e.CreatedOn)
+            entity.Property(e => e.CreatedAt)
                 .HasDefaultValueSql("CURRENT_TIMESTAMP")
-                .HasColumnName("created_on");
+                .HasColumnName("created_at");
             entity.Property(e => e.Email)
                 .VarCharWithLength(HardLimits.EmailAddressMaxLength)
                 .HasColumnName("email");
             entity.Property(e => e.SecretHash)
                 .VarCharWithLength(HardLimits.UserEmailChangeSecretMaxLength)
                 .HasColumnName("secret");
-            entity.Property(e => e.UsedOn).HasColumnName("used_on");
+            entity.Property(e => e.UsedAt).HasColumnName("used_at");
             entity.Property(e => e.UserId).HasColumnName("user_id");
 
             entity.HasOne(d => d.User).WithMany(p => p.UsersEmailChanges)
@@ -595,7 +595,7 @@ public partial class OpenShockContext : DbContext
 
             entity.ToTable("users_name_changes");
 
-            entity.HasIndex(e => e.CreatedOn).HasAnnotation("Npgsql:StorageParameter:deduplicate_items", "true");
+            entity.HasIndex(e => e.CreatedAt).HasAnnotation("Npgsql:StorageParameter:deduplicate_items", "true");
 
             entity.HasIndex(e => e.OldName).HasAnnotation("Npgsql:StorageParameter:deduplicate_items", "true");
 
@@ -606,9 +606,9 @@ public partial class OpenShockContext : DbContext
                 .UseIdentityAlwaysColumn()
                 .HasColumnName("id");
             entity.Property(e => e.UserId).HasColumnName("user_id");
-            entity.Property(e => e.CreatedOn)
+            entity.Property(e => e.CreatedAt)
                 .HasDefaultValueSql("CURRENT_TIMESTAMP")
-                .HasColumnName("created_on");
+                .HasColumnName("created_at");
             entity.Property(e => e.OldName)
                 .VarCharWithLength(HardLimits.UsernameMaxLength)
                 .HasColumnName("old_name");

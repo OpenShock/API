@@ -25,7 +25,7 @@ public sealed partial class SharesController
                     {
                         Id = y.Shocker.Id,
                         Name = y.Shocker.Name,
-                        CreatedOn = y.CreatedOn,
+                        CreatedOn = y.CreatedAt,
                         Permissions = new ShockerPermissions
                         {
                             Sound = y.PermSound,

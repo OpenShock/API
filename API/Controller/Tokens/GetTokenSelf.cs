@@ -31,7 +31,7 @@ public sealed partial class TokensSelfController : AuthenticatedSessionControlle
         
         return new TokenResponse
         {
-            CreatedOn = token.CreatedOn,
+            CreatedOn = token.CreatedAt,
             ValidUntil = token.ValidUntil,
             LastUsed = token.LastUsed,
             Permissions = token.Permissions,

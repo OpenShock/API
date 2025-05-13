@@ -8,7 +8,7 @@ public partial class UsersNameChange
 
     public string OldName { get; set; } = null!;
 
-    public DateTime CreatedOn { get; set; }
+    public DateTime CreatedAt { get; set; }
 
     public virtual User User { get; set; } = null!;
 }

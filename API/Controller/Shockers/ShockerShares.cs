@@ -43,7 +43,7 @@ public sealed partial class ShockerController
                         Id = x.SharedWith,
                         Image = x.SharedWithNavigation.GetImageUrl()
                     },
-                    CreatedOn = x.CreatedOn,
+                    CreatedOn = x.CreatedAt,
                     Permissions = new ShockerPermissions
                     {
                         Sound = x.PermSound,
@@ -81,7 +81,7 @@ public sealed partial class ShockerController
             .Where(x => x.ShockerId == shockerId && x.Shocker.DeviceNavigation.Owner == CurrentUser.Id)
             .Select(x => new ShareCodeInfo
             {
-                CreatedOn = x.CreatedOn,
+                CreatedOn = x.CreatedAt,
                 Id = x.Id
             })
             .AsAsyncEnumerable();

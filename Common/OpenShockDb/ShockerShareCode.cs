@@ -6,7 +6,7 @@ public partial class ShockerShareCode
 
     public Guid ShockerId { get; set; }
 
-    public DateTime CreatedOn { get; set; }
+    public DateTime CreatedAt { get; set; }
 
     public bool PermSound { get; set; }
 

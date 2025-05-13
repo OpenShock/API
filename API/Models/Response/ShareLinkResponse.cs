@@ -13,7 +13,7 @@ public sealed class ShareLinkResponse
     {
         Id = x.Id,
         Name = x.Name,
-        CreatedOn = x.CreatedOn,
-        ExpiresOn = x.ExpiresOn
+        CreatedOn = x.CreatedAt,
+        ExpiresOn = x.ExpiresAt
     };
 }

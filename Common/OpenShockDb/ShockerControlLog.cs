@@ -8,7 +8,7 @@ public partial class ShockerControlLog
 
     public Guid ShockerId { get; set; }
 
-    public DateTime CreatedOn { get; set; }
+    public DateTime CreatedAt { get; set; }
 
     public Guid? ControlledBy { get; set; }
 

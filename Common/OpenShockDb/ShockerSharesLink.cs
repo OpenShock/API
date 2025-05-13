@@ -4,9 +4,9 @@ public partial class ShockerSharesLink
 {
     public Guid Id { get; set; }
 
-    public DateTime CreatedOn { get; set; }
+    public DateTime CreatedAt { get; set; }
 
-    public DateTime? ExpiresOn { get; set; }
+    public DateTime? ExpiresAt { get; set; }
 
     public Guid OwnerId { get; set; }
 

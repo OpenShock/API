@@ -8,7 +8,7 @@ public partial class Device
 
     public string Name { get; set; } = null!;
 
-    public DateTime CreatedOn { get; set; }
+    public DateTime CreatedAt { get; set; }
 
     public string Token { get; set; } = null!;
 

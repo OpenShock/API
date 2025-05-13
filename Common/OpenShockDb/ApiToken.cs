@@ -13,7 +13,7 @@ public partial class ApiToken
 
     public Guid UserId { get; set; }
 
-    public DateTime CreatedOn { get; set; }
+    public DateTime CreatedAt { get; set; }
 
     public IPAddress CreatedByIp { get; set; } = null!;
 

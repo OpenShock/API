@@ -28,7 +28,7 @@ public sealed partial class ShockerController
             Id = x.Id,
             Name = x.Name,
             RfId = x.RfId,
-            CreatedOn = x.CreatedOn,
+            CreatedOn = x.CreatedAt,
             Device = x.Device,
             Model = x.Model,
             IsPaused = x.Paused

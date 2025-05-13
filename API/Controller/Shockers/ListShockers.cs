@@ -18,19 +18,19 @@ public sealed partial class ShockerController
     {
         var shockers = _db.Devices
             .Where(x => x.Owner == CurrentUser.Id)
-            .OrderBy(x => x.CreatedOn).Select(x => new ResponseDeviceWithShockers
+            .OrderBy(x => x.CreatedAt).Select(x => new ResponseDeviceWithShockers
             {
                 Id = x.Id,
                 Name = x.Name,
-                CreatedOn = x.CreatedOn,
+                CreatedOn = x.CreatedAt,
                 Shockers = x.Shockers
-                    .OrderBy(y => y.CreatedOn)
+                    .OrderBy(y => y.CreatedAt)
                     .Select(y => new ShockerResponse
                     {
                         Id = y.Id,
                         Name = y.Name,
                         RfId = y.RfId,
-                        CreatedOn = y.CreatedOn,
+                        CreatedOn = y.CreatedAt,
                         Model = y.Model,
                         IsPaused = y.Paused
                     })

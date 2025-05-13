@@ -34,8 +34,8 @@ public sealed partial class PublicController
             },
             x.Id,
             x.Name,
-            x.ExpiresOn,
-            x.CreatedOn,
+            x.ExpiresAt,
+            x.CreatedAt,
             Shockers = x.ShockerSharesLinksShockers.Select(y => new
             {
                 DeviceId = y.Shocker.DeviceNavigation.Id,
@@ -69,8 +69,8 @@ public sealed partial class PublicController
             Id = shareLink.Id,
             Name = shareLink.Name,
             Author = shareLink.Author,
-            CreatedOn = shareLink.CreatedOn,
-            ExpiresOn = shareLink.ExpiresOn
+            CreatedOn = shareLink.CreatedAt,
+            ExpiresOn = shareLink.ExpiresAt
         };
         foreach (var shocker in shareLink.Shockers)
         {

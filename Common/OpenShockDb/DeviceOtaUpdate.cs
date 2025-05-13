@@ -6,7 +6,7 @@ public partial class DeviceOtaUpdate
 {
     public Guid Device { get; set; }
 
-    public DateTime CreatedOn { get; set; }
+    public DateTime CreatedAt { get; set; }
 
     public string Version { get; set; } = null!;
 

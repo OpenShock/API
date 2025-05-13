@@ -34,7 +34,7 @@ public sealed partial class ShockerController
 
         var logs = _db.ShockerControlLogs
             .Where(x => x.ShockerId == shockerId)
-            .OrderByDescending(x => x.CreatedOn)
+            .OrderByDescending(x => x.CreatedAt)
             .Skip((int)offset)
             .Take((int)limit)
             .Select(x => new LogEntry
@@ -43,7 +43,7 @@ public sealed partial class ShockerController
                 Duration = x.Duration,
                 Intensity = x.Intensity,
                 Type = x.Type,
-                CreatedOn = x.CreatedOn,
+                CreatedOn = x.CreatedAt,
                 ControlledBy = x.ControlledByNavigation == null
                     ? new ControlLogSenderLight
                     {

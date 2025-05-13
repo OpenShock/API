@@ -33,7 +33,7 @@ public sealed partial class DevicesController
                 Id = x.Id,
                 Name = x.Name,
                 RfId = x.RfId,
-                CreatedOn = x.CreatedOn,
+                CreatedOn = x.CreatedAt,
                 Model = x.Model,
                 IsPaused = x.Paused
             })

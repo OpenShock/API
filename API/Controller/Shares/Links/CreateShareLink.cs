@@ -18,7 +18,7 @@ public sealed partial class ShareLinksController
         {
             Id = Guid.CreateVersion7(),
             Owner = CurrentUser,
-            ExpiresOn = body.ExpiresOn == null ? null : DateTime.SpecifyKind(body.ExpiresOn.Value, DateTimeKind.Utc),
+            ExpiresAt = body.ExpiresOn == null ? null : DateTime.SpecifyKind(body.ExpiresOn.Value, DateTimeKind.Utc),
             Name = body.Name
         };
         _db.ShockerSharesLinks.Add(entity);

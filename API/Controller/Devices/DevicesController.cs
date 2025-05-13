@@ -30,7 +30,7 @@ public sealed partial class DevicesController
             {
                 Id = x.Id,
                 Name = x.Name,
-                CreatedOn = x.CreatedOn
+                CreatedOn = x.CreatedAt
             })
             .AsAsyncEnumerable();
 
@@ -56,7 +56,7 @@ public sealed partial class DevicesController
             {
                 Id = x.Id,
                 Name = x.Name,
-                CreatedOn = x.CreatedOn,
+                CreatedOn = x.CreatedAt,
                 Token = hasAuthPerms ? x.Token : null
             }).FirstOrDefaultAsync();
         if (device == null) return Problem(DeviceError.DeviceNotFound);

@@ -76,11 +76,11 @@ public sealed class OtaService : IOtaService
     {
         return await _db.DeviceOtaUpdates.AsNoTracking()
             .Where(x => x.Device == deviceId)
-            .OrderByDescending(x => x.CreatedOn)
+            .OrderByDescending(x => x.CreatedAt)
             .Select(x => new OtaItem
         {
             Id = x.UpdateId,
-            StartedAt = x.CreatedOn,
+            StartedAt = x.CreatedAt,
             Status = x.Status,
             Version = SemVersion.Parse(x.Version, SemVersionStyles.Strict, 1024),
             Message = x.Message

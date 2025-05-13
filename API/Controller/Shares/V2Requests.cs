@@ -23,7 +23,7 @@ public sealed partial class SharesController
             .Select(x => new ShareRequestBaseDetails
             {
                 Id = x.Id,
-                CreatedOn = x.CreatedOn,
+                CreatedOn = x.CreatedAt,
                 Owner = new GenericIni
                 {
                     Id = x.OwnerNavigation.Id,
@@ -65,7 +65,7 @@ public sealed partial class SharesController
             .Select(x => new ShareRequestBaseDetails
             {
                 Id = x.Id,
-                CreatedOn = x.CreatedOn,
+                CreatedOn = x.CreatedAt,
                 Owner = new GenericIni
                 {
                     Id = x.OwnerNavigation.Id,

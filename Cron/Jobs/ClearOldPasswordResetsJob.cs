@@ -32,7 +32,7 @@ public sealed class ClearOldPasswordResetsJob
 
         // Run the delete query
         int nDeleted = await _db.PasswordResets
-                                    .Where(x => x.UsedOn == null && x.CreatedOn < earliestCreatedOnUtc)
+                                    .Where(x => x.UsedAt == null && x.CreatedAt < earliestCreatedOnUtc)
                                     .ExecuteDeleteAsync();
         
         _logger.LogInformation("Deleted {deletedCount} expired password resets since {earliestCreatedOnUtc}", nDeleted, earliestCreatedOnUtc);
