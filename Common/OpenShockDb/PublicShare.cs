@@ -1,6 +1,6 @@
 ﻿namespace OpenShock.Common.OpenShockDb;
 
-public partial class ShockerShareLink
+public partial class PublicShare
 {
     public Guid Id { get; set; }
 
@@ -14,5 +14,5 @@ public partial class ShockerShareLink
 
     public virtual User Owner { get; set; } = null!;
 
-    public virtual ICollection<ShockerShareLinkShocker> ShockerMappings { get; set; } = new List<ShockerShareLinkShocker>();
+    public virtual ICollection<PublicShareShocker> ShockerMappings { get; set; } = new List<PublicShareShocker>();
 }

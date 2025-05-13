@@ -2,7 +2,7 @@
 
 namespace OpenShock.API.Models.Response;
 
-public sealed class PublicShareLinkResponse
+public sealed class PublicShareResponse
 {
     public required Guid Id { get; set; }
     public required string Name { get; set; }
@@ -11,6 +11,6 @@ public sealed class PublicShareLinkResponse
     public DateTime? ExpiresOn { get; set; }
     public required GenericIni Author { get; set; }
 
-    public IList<ShareLinkDevice> Devices { get; set; } =
-        new List<ShareLinkDevice>();
+    public IList<PublicShareDevice> Devices { get; set; } =
+        new List<PublicShareDevice>();
 }

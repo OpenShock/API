@@ -96,9 +96,9 @@ public partial class OpenShockContext : DbContext
 
     public virtual DbSet<ShockerShareCode> ShockerShareCodes { get; set; }
 
-    public virtual DbSet<ShockerShareLink> ShockerShareLinks { get; set; }
+    public virtual DbSet<PublicShare> PublicShares { get; set; }
 
-    public virtual DbSet<ShockerShareLinkShocker> ShockerShareLinkShockers { get; set; }
+    public virtual DbSet<PublicShareShocker> PublicShareShockers { get; set; }
 
     public virtual DbSet<User> Users { get; set; }
 
@@ -459,11 +459,11 @@ public partial class OpenShockContext : DbContext
                 .HasConstraintName("fk_shocker_share_codes_shocker_id");
         });
 
-        modelBuilder.Entity<ShockerShareLink>(entity =>
+        modelBuilder.Entity<PublicShare>(entity =>
         {
-            entity.HasKey(e => e.Id).HasName("shocker_share_links_pkey");
+            entity.HasKey(e => e.Id).HasName("public_shares_pkey");
 
-            entity.ToTable("shocker_share_links");
+            entity.ToTable("public_shares");
 
             entity.HasIndex(e => e.OwnerId).HasAnnotation("Npgsql:StorageParameter:deduplicate_items", "true");
 
@@ -475,22 +475,22 @@ public partial class OpenShockContext : DbContext
                 .HasColumnName("created_at");
             entity.Property(e => e.ExpiresAt).HasColumnName("expires_at");
             entity.Property(e => e.Name)
-                .VarCharWithLength(HardLimits.ShockerShareLinkNameMaxLength)
+                .VarCharWithLength(HardLimits.PublicShareNameMaxLength)
                 .HasColumnName("name");
             entity.Property(e => e.OwnerId).HasColumnName("owner_id");
 
             entity.HasOne(d => d.Owner).WithMany(p => p.ShockerSharesLinks)
                 .HasForeignKey(d => d.OwnerId)
-                .HasConstraintName("fk_shocker_share_links_owner_id");
+                .HasConstraintName("fk_public_shares_owner_id");
         });
 
-        modelBuilder.Entity<ShockerShareLinkShocker>(entity =>
+        modelBuilder.Entity<PublicShareShocker>(entity =>
         {
-            entity.HasKey(e => new { e.ShareLinkId, e.ShockerId }).HasName("shocker_share_link_shockers_pkey");
+            entity.HasKey(e => new { e.PublicShareId, e.ShockerId }).HasName("public_share_shockers_pkey");
 
-            entity.ToTable("shocker_share_link_shockers");
+            entity.ToTable("public_share_shockers");
 
-            entity.Property(e => e.ShareLinkId).HasColumnName("share_link_id");
+            entity.Property(e => e.PublicShareId).HasColumnName("public_share_id");
             entity.Property(e => e.ShockerId).HasColumnName("shocker_id");
             entity.Property(e => e.Cooldown).HasColumnName("cooldown");
             entity.Property(e => e.AllowShock)
@@ -513,13 +513,13 @@ public partial class OpenShockContext : DbContext
                 .HasDefaultValue(false)
                 .HasColumnName("is_paused");
 
-            entity.HasOne(d => d.ShareLink).WithMany(p => p.ShockerMappings)
-                .HasForeignKey(d => d.ShareLinkId)
-                .HasConstraintName("fk_shocker_share_link_shockers_share_link_id");
+            entity.HasOne(d => d.PublicShare).WithMany(p => p.ShockerMappings)
+                .HasForeignKey(d => d.PublicShareId)
+                .HasConstraintName("fk_public_share_shockers_public_share_id");
 
-            entity.HasOne(d => d.Shocker).WithMany(p => p.ShareLinkMappings)
+            entity.HasOne(d => d.Shocker).WithMany(p => p.PublicShareMappings)
                 .HasForeignKey(d => d.ShockerId)
-                .HasConstraintName("fk_shocker_share_link_shockers_shocker_id");
+                .HasConstraintName("fk_public_share_shockers_shocker_id");
         });
 
         modelBuilder.Entity<User>(entity =>
@@ -672,8 +672,8 @@ public partial class OpenShockContext : DbContext
                 .HasColumnName("password_reset_count");
             entity.Property(e => e.ShockerShareCount)
                 .HasColumnName("shocker_share_count");
-            entity.Property(e => e.ShockerShareLinkCount)
-                .HasColumnName("shocker_share_link_count");
+            entity.Property(e => e.ShockerPublicShareCount)
+                .HasColumnName("shocker_public_share_count");
             entity.Property(e => e.EmailChangeRequestCount)
                 .HasColumnName("email_change_request_count");
             entity.Property(e => e.NameChangeRequestCount)

@@ -4,7 +4,7 @@ using OpenShock.Common.Constants;
 
 namespace OpenShock.API.Models.Requests;
 
-public sealed class ShareLinkEditShocker
+public sealed class PublicShareEditShocker
 {
     public required ShockerPermissions Permissions { get; set; }
     public required ShockerLimits Limits { get; set; }

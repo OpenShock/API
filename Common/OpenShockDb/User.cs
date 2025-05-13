@@ -32,7 +32,7 @@ public partial class User
 
     public virtual ICollection<ShockerShare> ShockerShares { get; set; } = new List<ShockerShare>();
 
-    public virtual ICollection<ShockerShareLink> ShockerSharesLinks { get; set; } = new List<ShockerShareLink>();
+    public virtual ICollection<PublicShare> ShockerSharesLinks { get; set; } = new List<PublicShare>();
 
     public virtual ICollection<UserActivation> UserActivations { get; set; } = new List<UserActivation>();
 

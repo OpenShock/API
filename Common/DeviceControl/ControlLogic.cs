@@ -56,11 +56,11 @@ public static class ControlLogic
         return await ControlInternal(shocks, db, sender, hubClients, ownShockers, redisPubService);
     }
 
-    public static async Task<OneOf<Success, ShockerNotFoundOrNoAccess, ShockerPaused, ShockerNoPermission>> ControlShareLink(IReadOnlyList<Control> shocks, OpenShockContext db,
+    public static async Task<OneOf<Success, ShockerNotFoundOrNoAccess, ShockerPaused, ShockerNoPermission>> ControlPublicShare(IReadOnlyList<Control> shocks, OpenShockContext db,
         ControlLogSender sender,
-        IHubClients<IUserHub> hubClients, Guid shareLinkId, IRedisPubService redisPubService)
+        IHubClients<IUserHub> hubClients, Guid publicShareId, IRedisPubService redisPubService)
     {
-        var shareLinkShockers = await db.ShockerShareLinkShockers.Where(x => x.ShareLinkId == shareLinkId && (x.ShareLink.ExpiresAt > DateTime.UtcNow || x.ShareLink.ExpiresAt == null))
+        var publicShareShockers = await db.PublicShareShockers.Where(x => x.PublicShareId == publicShareId && (x.PublicShare.ExpiresAt > DateTime.UtcNow || x.PublicShare.ExpiresAt == null))
             .Select(x => new ControlShockerObj
         {
             Id = x.Shocker.Id,
@@ -80,7 +80,7 @@ public static class ControlLogic
             }
         }).ToArrayAsync();
         
-        return await ControlInternal(shocks, db, sender, hubClients, shareLinkShockers, redisPubService);
+        return await ControlInternal(shocks, db, sender, hubClients, publicShareShockers, redisPubService);
     }
     
     private static async Task<OneOf<Success, ShockerNotFoundOrNoAccess, ShockerPaused, ShockerNoPermission>> ControlInternal(IReadOnlyList<Control> shocks, OpenShockContext db, ControlLogSender sender,

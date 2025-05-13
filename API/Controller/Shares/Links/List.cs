@@ -8,17 +8,17 @@ namespace OpenShock.API.Controller.Shares.Links;
 public sealed partial class ShareLinksController
 {
     /// <summary>
-    /// Get all share links for the current user
+    /// Get all public shares for the current user
     /// </summary>
-    /// <response code="200">All share links for the current user</response>
+    /// <response code="200">All public shares for the current user</response>
     [HttpGet]
-    public LegacyDataResponse<IAsyncEnumerable<ShareLinkResponse>> List()
+    public LegacyDataResponse<IAsyncEnumerable<OwnPublicShareResponse>> List()
     {
-        var ownShareLinks = _db.ShockerShareLinks
+        var ownPublicShares = _db.PublicShares
             .Where(x => x.OwnerId == CurrentUser.Id)
-            .Select(x => ShareLinkResponse.GetFromEf(x))
+            .Select(x => OwnPublicShareResponse.GetFromEf(x))
             .AsAsyncEnumerable();
 
-        return new(ownShareLinks);
+        return new(ownPublicShares);
     }
 }

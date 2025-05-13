@@ -11,33 +11,33 @@ namespace OpenShock.API.Controller.Shares.Links;
 public sealed partial class ShareLinksController
 {
     /// <summary>
-    /// Add a shocker to a share link
+    /// Add a shocker to a public share
     /// </summary>
-    /// <param name="shareLinkId"></param>
+    /// <param name="publicShareId"></param>
     /// <param name="shockerId"></param>
     /// <response code="200">Successfully added shocker</response>
-    /// <response code="404">Share link or shocker does not exist</response>
-    /// <response code="409">Shocker already exists in share link</response>
-    [HttpPost("{shareLinkId}/{shockerId}")]
+    /// <response code="404">Public share or shocker does not exist</response>
+    /// <response code="409">Shocker already exists in public share</response>
+    [HttpPost("{publicShareId}/{shockerId}")]
     [ProducesResponseType<LegacyEmptyResponse>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
-    [ProducesResponseType<OpenShockProblem>(StatusCodes.Status404NotFound, MediaTypeNames.Application.ProblemJson)] // ShareLinkNotFound, ShockerNotFound
-    [ProducesResponseType<OpenShockProblem>(StatusCodes.Status409Conflict, MediaTypeNames.Application.ProblemJson)] // ShockerAlreadyInShareLink
-    public async Task<IActionResult> AddShocker([FromRoute] Guid shareLinkId, [FromRoute] Guid shockerId)
+    [ProducesResponseType<OpenShockProblem>(StatusCodes.Status404NotFound, MediaTypeNames.Application.ProblemJson)] // PublicShareNotFound, ShockerNotFound
+    [ProducesResponseType<OpenShockProblem>(StatusCodes.Status409Conflict, MediaTypeNames.Application.ProblemJson)] // ShockerAlreadyInPublicShare
+    public async Task<IActionResult> AddShocker([FromRoute] Guid publicShareId, [FromRoute] Guid shockerId)
     {
-        var exists = await _db.ShockerShareLinks.AnyAsync(x => x.OwnerId == CurrentUser.Id && x.Id == shareLinkId);
-        if (!exists) return Problem(ShareLinkError.ShareLinkNotFound);
+        var exists = await _db.PublicShares.AnyAsync(x => x.OwnerId == CurrentUser.Id && x.Id == publicShareId);
+        if (!exists) return Problem(PublicShareError.PublicShareNotFound);
 
         var ownShocker =
             await _db.Shockers.AnyAsync(x => x.Id == shockerId && x.Device.OwnerId == CurrentUser.Id);
         if (!ownShocker) return Problem(ShockerError.ShockerNotFound);
 
-        if (await _db.ShockerShareLinkShockers.AnyAsync(x => x.ShareLinkId == shareLinkId && x.ShockerId == shockerId))
-            return Problem(ShareLinkError.ShockerAlreadyInShareLink);
+        if (await _db.PublicShareShockers.AnyAsync(x => x.PublicShareId == publicShareId && x.ShockerId == shockerId))
+            return Problem(PublicShareError.ShockerAlreadyInPublicShare);
 
-        _db.ShockerShareLinkShockers.Add(new ShockerShareLinkShocker
+        _db.PublicShareShockers.Add(new PublicShareShocker
         {
             ShockerId = shockerId,
-            ShareLinkId = shareLinkId,
+            PublicShareId = publicShareId,
             AllowShock = true,
             AllowVibrate = true,
             AllowSound = true,
