@@ -10,7 +10,6 @@ using OpenShock.Common.Models.WebSocket;
 using OpenShock.Common.OpenShockDb;
 using OpenShock.Common.Redis;
 using OpenShock.Common.Services.RedisPubSub;
-using OpenShock.Common.Utils;
 using Redis.OM;
 using Redis.OM.Contracts;
 using Semver;
@@ -44,7 +43,7 @@ public sealed class UserHub : Hub<IUserHub>
         await Clients.Caller.Welcome(Context.ConnectionId);
         var devicesOnline = _provider.RedisCollection<DeviceOnline>(false);
         var sharedDevices = await _db.Devices
-            .Where(x => x.Shockers.Any(y => y.ShockerShares.Any(z => z.SharedWith == UserId)))
+            .Where(x => x.Shockers.Any(y => y.ShockerShares.Any(z => z.SharedWithUserId == UserId)))
             .Select(x => x.Id.ToString()).ToArrayAsync();
 
         var own = devicesOnline.Where(x => x.Owner == UserId).ToArrayAsync();
@@ -100,7 +99,7 @@ public sealed class UserHub : Hub<IUserHub>
         // Require a user session basically
         if (_tokenPermissions != null) return;
 
-        var devices = await _db.Devices.Where(x => x.Owner == UserId)
+        var devices = await _db.Devices.Where(x => x.OwnerId == UserId)
             .AnyAsync(x => x.Id == deviceId);
         if (!devices) return;
 
@@ -112,7 +111,7 @@ public sealed class UserHub : Hub<IUserHub>
         // Require a user session basically
         if (_tokenPermissions != null) return;
 
-        var devices = await _db.Devices.Where(x => x.Owner == UserId)
+        var devices = await _db.Devices.Where(x => x.OwnerId == UserId)
             .AnyAsync(x => x.Id == deviceId);
         if (!devices) return;
 

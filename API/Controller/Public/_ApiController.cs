@@ -1,5 +1,4 @@
-﻿using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using OpenShock.Common;
 using OpenShock.Common.OpenShockDb;
 using Redis.OM.Contracts;

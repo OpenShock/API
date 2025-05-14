@@ -1,6 +1,4 @@
-﻿using System.Reflection;
-using Microsoft.AspNetCore.Server.Kestrel.Core;
-using Serilog;
+﻿using Serilog;
 
 namespace OpenShock.Common;
 

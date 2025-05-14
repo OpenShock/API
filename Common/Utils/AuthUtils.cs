@@ -38,7 +38,7 @@ public static class AuthUtils
         context.Response.Cookies.Append(AuthConstants.UserSessionCookieName, string.Empty, GetCookieOptions(domain, TimeSpan.FromDays(-1)));
     }
 
-    public static bool TryGetUserSession(this HttpContext context, [NotNullWhen(true)] out string? sessionToken)
+    public static bool TryGetUserSessionToken(this HttpContext context, [NotNullWhen(true)] out string? sessionToken)
     {
         if (context.Request.Cookies.TryGetValue(AuthConstants.UserSessionCookieName, out sessionToken) && !string.IsNullOrEmpty(sessionToken))
         {

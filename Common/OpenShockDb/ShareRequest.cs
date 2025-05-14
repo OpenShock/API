@@ -1,21 +1,18 @@
-﻿using System;
-using System.Collections.Generic;
-
-namespace OpenShock.Common.OpenShockDb;
+﻿namespace OpenShock.Common.OpenShockDb;
 
 public partial class ShareRequest
 {
     public Guid Id { get; set; }
 
-    public Guid Owner { get; set; }
+    public Guid OwnerId { get; set; }
 
-    public DateTime CreatedOn { get; set; }
+    public DateTime CreatedAt { get; set; }
 
-    public Guid? User { get; set; }
+    public Guid? UserId { get; set; }
 
-    public virtual User OwnerNavigation { get; set; } = null!;
+    public virtual User Owner { get; set; } = null!;
 
-    public virtual ICollection<ShareRequestsShocker> ShareRequestsShockers { get; set; } = new List<ShareRequestsShocker>();
+    public virtual ICollection<ShareRequestShocker> ShockerMappings { get; set; } = new List<ShareRequestShocker>();
 
-    public virtual User? UserNavigation { get; set; }
+    public virtual User? User { get; set; }
 }

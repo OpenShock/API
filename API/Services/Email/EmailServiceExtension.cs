@@ -1,6 +1,5 @@
 ﻿using OpenShock.API.Options;
 using OpenShock.API.Services.Email.Mailjet;
-using OpenShock.API.Services.Email.Mailjet.Mail;
 using OpenShock.API.Services.Email.Smtp;
 
 namespace OpenShock.API.Services.Email;

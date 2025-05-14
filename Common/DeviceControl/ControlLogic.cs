@@ -18,36 +18,36 @@ public static class ControlLogic
     public static async Task<OneOf<Success, ShockerNotFoundOrNoAccess, ShockerPaused, ShockerNoPermission>> ControlByUser(IReadOnlyList<Control> shocks, OpenShockContext db, ControlLogSender sender,
         IHubClients<IUserHub> hubClients, IRedisPubService redisPubService)
     {
-        var ownShockers = await db.Shockers.Where(x => x.DeviceNavigation.Owner == sender.Id).Select(x =>
+        var ownShockers = await db.Shockers.Where(x => x.Device.OwnerId == sender.Id).Select(x =>
             new ControlShockerObj
             {
                 Id = x.Id,
                 Name = x.Name,
                 RfId = x.RfId,
-                Device = x.Device,
+                Device = x.DeviceId,
                 Model = x.Model,
-                Owner = x.DeviceNavigation.Owner,
-                Paused = x.Paused,
+                Owner = x.Device.OwnerId,
+                Paused = x.IsPaused,
                 PermsAndLimits = null
             }).ToListAsync();
         
-        var sharedShockers = await db.ShockerShares.Where(x => x.SharedWith == sender.Id).Select(x =>
+        var sharedShockers = await db.ShockerShares.Where(x => x.SharedWithUserId == sender.Id).Select(x =>
             new ControlShockerObj
             {
                 Id = x.Shocker.Id,
                 Name = x.Shocker.Name,
                 RfId = x.Shocker.RfId,
-                Device = x.Shocker.Device,
+                Device = x.Shocker.DeviceId,
                 Model = x.Shocker.Model,
-                Owner = x.Shocker.DeviceNavigation.Owner,
-                Paused = x.Shocker.Paused || x.Paused,
+                Owner = x.Shocker.Device.OwnerId,
+                Paused = x.Shocker.IsPaused || x.IsPaused,
                 PermsAndLimits = new SharePermsAndLimits
                 {
-                    Shock = x.PermShock,
-                    Vibrate = x.PermVibrate,
-                    Sound = x.PermSound,
-                    Duration = x.LimitDuration,
-                    Intensity = x.LimitIntensity
+                    Sound = x.AllowSound,
+                    Vibrate = x.AllowVibrate,
+                    Shock = x.AllowShock,
+                    Duration = x.MaxDuration,
+                    Intensity = x.MaxIntensity
                 }
             }).ToArrayAsync();
 
@@ -56,31 +56,31 @@ public static class ControlLogic
         return await ControlInternal(shocks, db, sender, hubClients, ownShockers, redisPubService);
     }
 
-    public static async Task<OneOf<Success, ShockerNotFoundOrNoAccess, ShockerPaused, ShockerNoPermission>> ControlShareLink(IReadOnlyList<Control> shocks, OpenShockContext db,
+    public static async Task<OneOf<Success, ShockerNotFoundOrNoAccess, ShockerPaused, ShockerNoPermission>> ControlPublicShare(IReadOnlyList<Control> shocks, OpenShockContext db,
         ControlLogSender sender,
-        IHubClients<IUserHub> hubClients, Guid shareLinkId, IRedisPubService redisPubService)
+        IHubClients<IUserHub> hubClients, Guid publicShareId, IRedisPubService redisPubService)
     {
-        var shareLinkShockers = await db.ShockerSharesLinksShockers.Where(x => x.ShareLinkId == shareLinkId && (x.ShareLink.ExpiresOn > DateTime.UtcNow || x.ShareLink.ExpiresOn == null))
+        var publicShareShockers = await db.PublicShareShockerMappings.Where(x => x.PublicShareId == publicShareId && (x.PublicShare.ExpiresAt > DateTime.UtcNow || x.PublicShare.ExpiresAt == null))
             .Select(x => new ControlShockerObj
         {
             Id = x.Shocker.Id,
             Name = x.Shocker.Name,
             RfId = x.Shocker.RfId,
-            Device = x.Shocker.Device,
+            Device = x.Shocker.DeviceId,
             Model = x.Shocker.Model,
-            Owner = x.Shocker.DeviceNavigation.Owner,
-            Paused = x.Shocker.Paused || x.Paused,
+            Owner = x.Shocker.Device.OwnerId,
+            Paused = x.Shocker.IsPaused || x.IsPaused,
             PermsAndLimits = new SharePermsAndLimits
             {
-                Shock = x.PermShock,
-                Vibrate = x.PermVibrate,
-                Sound = x.PermSound,
-                Duration = x.LimitDuration,
-                Intensity = x.LimitIntensity
+                Sound = x.AllowSound,
+                Vibrate = x.AllowVibrate,
+                Shock = x.AllowShock,
+                Duration = x.MaxDuration,
+                Intensity = x.MaxIntensity
             }
         }).ToArrayAsync();
         
-        return await ControlInternal(shocks, db, sender, hubClients, shareLinkShockers, redisPubService);
+        return await ControlInternal(shocks, db, sender, hubClients, publicShareShockers, redisPubService);
     }
     
     private static async Task<OneOf<Success, ShockerNotFoundOrNoAccess, ShockerPaused, ShockerNoPermission>> ControlInternal(IReadOnlyList<Control> shocks, OpenShockContext db, ControlLogSender sender,
@@ -123,8 +123,8 @@ public static class ControlLogic
             {
                 Id = Guid.CreateVersion7(),
                 ShockerId = shockerInfo.Id,
-                ControlledBy = sender.Id == Guid.Empty ? null : sender.Id,
-                CreatedOn = curTime,
+                ControlledByUserId = sender.Id == Guid.Empty ? null : sender.Id,
+                CreatedAt = curTime,
                 Intensity = intensity,
                 Duration = duration,
                 Type = shock.Type,

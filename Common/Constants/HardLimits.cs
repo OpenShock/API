@@ -20,7 +20,6 @@ public static class HardLimits
     public const int UserAgentMaxLength = 1024;
     
     public const int ApiKeyNameMaxLength = 64;
-    public const int ApiKeyTokenLength = 64;
     public const int ApiKeyMaxPermissions = 256;
     
     public const int HubNameMinLength = 1;
@@ -30,8 +29,8 @@ public static class HardLimits
     public const int ShockerNameMinLength = 1;
     public const int ShockerNameMaxLength = 64;
     
-    public const int ShockerShareLinkNameMinLength = 1;
-    public const int ShockerShareLinkNameMaxLength = 64;
+    public const int PublicShareNameMinLength = 1;
+    public const int PublicShareNameMaxLength = 64;
 
     public const int SemVerMaxLength = 64;
     public const int IpAddressMaxLength = 40;

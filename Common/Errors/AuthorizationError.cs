@@ -1,5 +1,4 @@
 ﻿using System.Net;
-using Microsoft.AspNetCore.Authorization;
 using OpenShock.Common.Models;
 using OpenShock.Common.Problems;
 using OpenShock.Common.Problems.CustomProblems;

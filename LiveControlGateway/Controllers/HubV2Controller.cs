@@ -31,26 +31,24 @@ public sealed class HubV2Controller : HubControllerBase<HubToGatewayMessage, Gat
     private readonly IHubContext<UserHub, IUserHub> _userHubContext;
     private readonly Timer _pingTimer;
     private long _pingTimestamp = Stopwatch.GetTimestamp();
-    private ushort _latencyMs = 0;
+    private ushort _latencyMs;
 
     /// <summary>
     /// DI
     /// </summary>
-    /// <param name="lifetime"></param>
     /// <param name="hubLifetimeManager"></param>
     /// <param name="userHubContext"></param>
     /// <param name="serviceProvider"></param>
     /// <param name="options"></param>
     /// <param name="logger"></param>
     public HubV2Controller(
-        IHostApplicationLifetime lifetime,
         HubLifetimeManager hubLifetimeManager,
         IHubContext<UserHub, IUserHub> userHubContext,
         IServiceProvider serviceProvider,
         IOptions<LcgOptions> options,
         ILogger<HubV2Controller> logger
         )
-        : base(lifetime, HubToGatewayMessage.Serializer, GatewayToHubMessage.Serializer, hubLifetimeManager, serviceProvider, options, logger)
+        : base(HubToGatewayMessage.Serializer, GatewayToHubMessage.Serializer, hubLifetimeManager, serviceProvider, options, logger)
     {
         _userHubContext = userHubContext;
         _pingTimer = new Timer(PingTimerElapsed, null, Duration.DevicePingInitialDelay, Duration.DevicePingPeriod);
@@ -77,10 +75,10 @@ public sealed class HubV2Controller : HubControllerBase<HubToGatewayMessage, Gat
     
     private OtaUpdateStatus? _lastStatus;
     
-    private IUserHub HcOwner => _userHubContext.Clients.User(CurrentHub.Owner.ToString());
+    private IUserHub HcOwner => _userHubContext.Clients.User(CurrentHub.OwnerId.ToString());
     
     /// <inheritdoc />
-    protected override async Task Handle(HubToGatewayMessage data)
+    protected override async Task<bool> Handle(HubToGatewayMessage data)
     {
         var payload = data.Payload;
 
@@ -96,12 +94,15 @@ public sealed class HubV2Controller : HubControllerBase<HubToGatewayMessage, Gat
                 if (_pingTimestamp == 0)
                 {
                     // TODO: Kick or warn client.
-                    return;
+                    return false;
                 }
                 
                 _latencyMs = (ushort)Math.Min(Stopwatch.GetElapsedTime(_pingTimestamp).TotalMilliseconds, ushort.MaxValue); // If someone has a ping higher than 65 seconds, they are messing with us. Cap it to 65 seconds
                 _pingTimestamp = 0;
-                await SelfOnline(payload.Pong.Uptime, _latencyMs, payload.Pong.Rssi);
+                if (!await SelfOnline(payload.Pong.Uptime, _latencyMs, payload.Pong.Rssi))
+                {
+                    return false;
+                }
                 break;
 
             case HubToGatewayMessagePayload.ItemKind.OtaUpdateStarted:
@@ -150,7 +151,7 @@ public sealed class HubV2Controller : HubControllerBase<HubToGatewayMessage, Gat
                     await HcOwner.OtaInstallSucceeded(
                         CurrentHub.Id, payload.BootStatus.OtaUpdateId);
 
-                    var test = await otaService.Success(CurrentHub.Id, payload.BootStatus.OtaUpdateId);
+                    await otaService.Success(CurrentHub.Id, payload.BootStatus.OtaUpdateId);
                     _lastStatus = OtaUpdateStatus.Finished;
                     break;
                 }
@@ -190,8 +191,10 @@ public sealed class HubV2Controller : HubControllerBase<HubToGatewayMessage, Gat
             case HubToGatewayMessagePayload.ItemKind.NONE:
             default:
                 Logger.LogWarning("Payload kind not defined [{Kind}]", payload.Kind);
-                break;
+                return false;
         }
+
+        return true;
     }
 
     /// <inheritdoc />

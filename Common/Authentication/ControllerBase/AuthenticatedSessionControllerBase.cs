@@ -28,8 +28,9 @@ public class AuthenticatedSessionControllerBase : OpenShockControllerBase, IActi
 
         if (userReferenceService.AuthReference == null) throw new Exception("UserReferenceService.AuthReference is null, this should not happen");
 
-        if (userReferenceService.AuthReference.Value.IsT0) return true; // We are in a session
-
-        return requiredType.IsAllowed(userReferenceService.AuthReference.Value.AsT1.Permissions);
+        return userReferenceService.AuthReference.Value.Match(
+            loginSession => true, // We are in a session
+            apiToken => requiredType.IsAllowed(apiToken.Permissions)
+        );
     }
 }

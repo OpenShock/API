@@ -7,7 +7,7 @@ public static class ConnectionDetailsFetcher
 {
     public static IPAddress GetRemoteIP(this HttpContext context)
     {
-        return context.Connection?.RemoteIpAddress ?? IPAddress.Loopback; // IPAddress is null under integration testing
+        return context.Connection.RemoteIpAddress ?? IPAddress.Loopback; // IPAddress is null under integration testing
     }
 
     public static string GetUserAgent(this HttpContext context)

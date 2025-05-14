@@ -29,6 +29,9 @@ public sealed class LcgOptions
     public required string CountryCode { get; set; }
 }
 
+/// <summary>
+/// Options validator for <see cref="LcgOptions"/>
+/// </summary>
 [OptionsValidator]
 public partial class LcgOptionsValidator : IValidateOptions<LcgOptions>
 {

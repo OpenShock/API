@@ -1,6 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using OpenShock.Common.Models;
+﻿using OpenShock.Common.Models;
 
 namespace OpenShock.Common.OpenShockDb;
 
@@ -12,17 +10,17 @@ public partial class Shocker
 
     public string Name { get; set; } = null!;
 
-    public Guid Device { get; set; }
+    public Guid DeviceId { get; set; }
 
-    public DateTime CreatedOn { get; set; }
+    public DateTime CreatedAt { get; set; }
 
-    public bool Paused { get; set; }
+    public bool IsPaused { get; set; }
     
     public ShockerModelType Model { get; set; }
 
-    public virtual Device DeviceNavigation { get; set; } = null!;
+    public virtual Device Device { get; set; } = null!;
 
-    public virtual ICollection<ShareRequestsShocker> ShareRequestsShockers { get; set; } = new List<ShareRequestsShocker>();
+    public virtual ICollection<ShareRequestShocker> ShareRequestMappings { get; set; } = new List<ShareRequestShocker>();
 
     public virtual ICollection<ShockerControlLog> ShockerControlLogs { get; set; } = new List<ShockerControlLog>();
 
@@ -30,5 +28,5 @@ public partial class Shocker
 
     public virtual ICollection<ShockerShare> ShockerShares { get; set; } = new List<ShockerShare>();
 
-    public virtual ICollection<ShockerSharesLinksShocker> ShockerSharesLinksShockers { get; set; } = new List<ShockerSharesLinksShocker>();
+    public virtual ICollection<PublicShareShocker> PublicShareMappings { get; set; } = new List<PublicShareShocker>();
 }

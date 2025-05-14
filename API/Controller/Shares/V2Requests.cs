@@ -1,132 +1,102 @@
-﻿using System.Net;
-using System.Net.Mime;
+﻿using System.Net.Mime;
 using Asp.Versioning;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using OpenShock.API.Models.Requests;
 using OpenShock.API.Models.Response;
+using OpenShock.API.Services;
 using OpenShock.Common.Errors;
 using OpenShock.Common.Extensions;
 using OpenShock.Common.Models;
+using OpenShock.Common.OpenShockDb;
 using OpenShock.Common.Problems;
-using OpenShock.Common.Utils;
 
 namespace OpenShock.API.Controller.Shares;
 
 public sealed partial class SharesController
 {
-    [HttpGet("requests/outstanding")]
-    [ProducesResponseType<IAsyncEnumerable<ShareRequestBaseItem>>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
+    [HttpGet("requests/outgoing")]
     [ApiVersion("2")]
-    public IAsyncEnumerable<ShareRequestBaseItem> GetOutstandingRequestsList()
+    public IAsyncEnumerable<ShareRequestBaseDetails> GetOutgoingRequestsList()
     {
-        return _db.ShareRequests
-            .Where(x => x.Owner == CurrentUser.Id)
-            .Select(x => new ShareRequestBaseItem()
-            {
-                Id = x.Id,
-                CreatedOn = x.CreatedOn,
-                Owner = new GenericIni
-                {
-                    Id = x.OwnerNavigation.Id,
-                    Name = x.OwnerNavigation.Name,
-                    Image = x.OwnerNavigation.GetImageUrl()
-                },
-                SharedWith = x.UserNavigation == null
-                    ? null
-                    : new GenericIni
-                    {
-                        Id = x.UserNavigation.Id,
-                        Name = x.UserNavigation.Name,
-                        Image = x.UserNavigation.GetImageUrl()
-                    },
-                Counts = new ShareRequestBaseItem.ShareRequestCounts
-                {
-                    Shockers = x.ShareRequestsShockers.Count
-                }
-            })
-            .AsAsyncEnumerable();
-    }
-    
-    [HttpGet("requests/incoming")]
-    [ProducesResponseType<IAsyncEnumerable<ShareRequestBaseItem>>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
-    [ApiVersion("2")]
-    public IAsyncEnumerable<ShareRequestBaseItem> GetIncomingRequestsList()
-    {
-        return _db.ShareRequests
-            .Where(x => x.User == CurrentUser.Id)
-            .Select(x => new ShareRequestBaseItem
-            {
-                Id = x.Id,
-                CreatedOn = x.CreatedOn,
-                Owner = new GenericIni
-                {
-                    Id = x.OwnerNavigation.Id,
-                    Name = x.OwnerNavigation.Name,
-                    Image = x.OwnerNavigation.GetImageUrl()
-                },
-                SharedWith = x.UserNavigation == null
-                    ? null
-                    : new GenericIni
-                    {
-                        Id = x.UserNavigation.Id,
-                        Name = x.UserNavigation.Name,
-                        Image = x.UserNavigation.GetImageUrl()
-                    },
-                Counts = new ShareRequestBaseItem.ShareRequestCounts
-                {
-                    Shockers = x.ShareRequestsShockers.Count
-                }
-            })
-            .AsAsyncEnumerable();
-    }
-    
-    [HttpGet("requests/{id:guid}")]
-    [ProducesResponseType<ShareRequestBaseDetails>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
-    [ProducesResponseType<OpenShockProblem>(StatusCodes.Status404NotFound, MediaTypeNames.Application.ProblemJson)] // ShareRequestNotFound
-    [ApiVersion("2")]
-    public async Task<IActionResult> GetRequest(Guid id)
-    {
-        var outstandingShare = await _db.ShareRequests.Where(x => x.Id == id && (x.Owner == CurrentUser.Id || x.User == CurrentUser.Id))
+        return _db.ShareRequests.Where(x => x.OwnerId == CurrentUser.Id)
             .Select(x => new ShareRequestBaseDetails
             {
                 Id = x.Id,
-                CreatedOn = x.CreatedOn,
+                CreatedOn = x.CreatedAt,
                 Owner = new GenericIni
                 {
-                    Id = x.OwnerNavigation.Id,
-                    Name = x.OwnerNavigation.Name,
-                    Image = x.OwnerNavigation.GetImageUrl()
+                    Id = x.Owner.Id,
+                    Name = x.Owner.Name,
+                    Image = x.Owner.GetImageUrl()
                 },
-                SharedWith = x.UserNavigation == null
+                SharedWith = x.User == null
                     ? null
                     : new GenericIni
                     {
-                        Id = x.UserNavigation.Id,
-                        Name = x.UserNavigation.Name,
-                        Image = x.UserNavigation.GetImageUrl()
+                        Id = x.User.Id,
+                        Name = x.User.Name,
+                        Image = x.User.GetImageUrl()
                     },
-                Shockers = x.ShareRequestsShockers.Select(y => new ShockerPermLimitPairWithId
+                Shockers = x.ShockerMappings.Select(y => new ShockerPermLimitPairWithId
                 {
-                    Id = y.Shocker,
+                    Id = y.ShockerId,
                     Limits = new ShockerLimits
                     {
-                        Duration = y.LimitDuration,
-                        Intensity = y.LimitIntensity
+                        Intensity = y.MaxIntensity,
+                        Duration = y.MaxDuration
                     },
                     Permissions = new ShockerPermissions
                     {
-                        Shock = y.PermShock,
-                        Sound = y.PermSound,
-                        Vibrate = y.PermVibrate,
-                        Live = y.PermLive
+                        Vibrate = y.AllowVibrate,
+                        Sound = y.AllowSound,
+                        Shock = y.AllowShock,
+                        Live = y.AllowLiveControl
                     }
                 })
-            }).FirstOrDefaultAsync();
-        
-        if (outstandingShare == null) return Problem(ShareError.ShareRequestNotFound);
-        
-        return Ok(outstandingShare);
+            }).AsAsyncEnumerable();
+    }
+    
+    [HttpGet("requests/incoming")]
+    [ApiVersion("2")]
+    public IAsyncEnumerable<ShareRequestBaseDetails> GetIncomingRequestsList()
+    {
+        return _db.ShareRequests.Where(x => x.UserId == CurrentUser.Id)
+            .Select(x => new ShareRequestBaseDetails
+            {
+                Id = x.Id,
+                CreatedOn = x.CreatedAt,
+                Owner = new GenericIni
+                {
+                    Id = x.Owner.Id,
+                    Name = x.Owner.Name,
+                    Image = x.Owner.GetImageUrl()
+                },
+                SharedWith = x.User == null
+                    ? null
+                    : new GenericIni
+                    {
+                        Id = x.User.Id,
+                        Name = x.User.Name,
+                        Image = x.User.GetImageUrl()
+                    },
+                Shockers = x.ShockerMappings.Select(y => new ShockerPermLimitPairWithId
+                {
+                    Id = y.ShockerId,
+                    Limits = new ShockerLimits
+                    {
+                        Duration = y.MaxDuration,
+                        Intensity = y.MaxIntensity
+                    },
+                    Permissions = new ShockerPermissions
+                    {
+                        Vibrate = y.AllowVibrate,
+                        Sound = y.AllowSound,
+                        Shock = y.AllowShock,
+                        Live = y.AllowLiveControl
+                    }
+                })
+            }).AsAsyncEnumerable();
     }
     
     [HttpDelete("requests/outgoing/{id:guid}")]
@@ -136,7 +106,7 @@ public sealed partial class SharesController
     public async Task<IActionResult> DeleteRequest(Guid id)
     {
         var deletedShareRequest = await _db.ShareRequests
-            .Where(x => x.Id == id && x.Owner == CurrentUser.Id).ExecuteDeleteAsync();
+            .Where(x => x.Id == id && x.OwnerId == CurrentUser.Id).ExecuteDeleteAsync();
         
         if (deletedShareRequest <= 0) return Problem(ShareError.ShareRequestNotFound);
         
@@ -150,33 +120,76 @@ public sealed partial class SharesController
     public async Task<IActionResult> DenyRequest(Guid id)
     {
         var deletedShareRequest = await _db.ShareRequests
-            .Where(x => x.Id == id && x.User == CurrentUser.Id).ExecuteDeleteAsync();
+            .Where(x => x.Id == id && x.UserId == CurrentUser.Id).ExecuteDeleteAsync();
         
         if (deletedShareRequest <= 0) return Problem(ShareError.ShareRequestNotFound);
         
         return Ok();
     }
 
-    // [HttpPost("requests/incoming/{id:guid}")]
-    // [ProducesResponseType(StatusCodes.Status200OK)]
-    // [ProducesResponseType<OpenShockProblem>(StatusCodes.Status404NotFound, MediaTypeNames.Application.ProblemJson)] // ShareRequestNotFound
-    // [ApiVersion("2")]
-    // public async Task<IActionResult> RedeemRequest(Guid id)
-    // {
-    //     var shareRequest = await _db.ShareRequests
-    //         .Where(x => x.Id == id && (x.User == null || x.User == CurrentUser.Id)).Include(x => x.ShareRequestsShockers).FirstOrDefaultAsync();
-    //     
-    //     if (shareRequest == null) return Problem(ShareError.ShareRequestNotFound);
-    //     
-    //     var alreadySharedShockers = await _db.ShockerShares.Where(x => x.Shocker.DeviceNavigation.OwnerNavigation.Id == shareRequest.Owner && x.SharedWith == CurrentUser.Id).Select(x => x.ShockerId).ToArrayAsync();
-    //     
-    //     foreach (var shareRequestShareRequestsShocker in shareRequest.ShareRequestsShockers)
-    //     {
-    //         
-    //     }
-    //     
-    //     return Ok();
-    // }
+    /// <summary>
+    /// Accept a share request and share the shockers with the current user.
+    /// </summary>
+    /// <param name="id"></param>
+    /// <param name="deviceUpdateService"></param>
+    /// <returns></returns>
+    [HttpPost("requests/incoming/{id:guid}")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType<OpenShockProblem>(StatusCodes.Status404NotFound, MediaTypeNames.Application.ProblemJson)] // ShareRequestNotFound
+    [ApiVersion("2")]
+    public async Task<IActionResult> RedeemRequest(Guid id, [FromServices] IDeviceUpdateService deviceUpdateService)
+    {
+        var shareRequest = await _db.ShareRequests
+            .Where(x => x.Id == id && (x.UserId == null || x.UserId == CurrentUser.Id)).Include(x => x.ShockerMappings).FirstOrDefaultAsync();
+        
+        if (shareRequest == null) return Problem(ShareError.ShareRequestNotFound);
+        
+        var alreadySharedShockers = await _db.ShockerShares.Where(x => x.Shocker.Device.Owner.Id == shareRequest.OwnerId && x.SharedWithUserId == CurrentUser.Id).ToListAsync();
+        
+        foreach (var shareRequestShocker in shareRequest.ShockerMappings)
+        {
+            var existingShare = alreadySharedShockers.FirstOrDefault(x => x.ShockerId == shareRequestShocker.ShockerId);
+            if (existingShare != null)
+            {
+                existingShare.AllowShock = shareRequestShocker.AllowShock;
+                existingShare.AllowVibrate = shareRequestShocker.AllowVibrate;
+                existingShare.AllowSound = shareRequestShocker.AllowSound;
+                existingShare.AllowLiveControl = shareRequestShocker.AllowLiveControl;
+                existingShare.MaxIntensity = shareRequestShocker.MaxIntensity;
+                existingShare.MaxDuration = shareRequestShocker.MaxDuration;
+                existingShare.IsPaused = shareRequestShocker.IsPaused;
+            }
+            else
+            {
+                var newShare = new ShockerShare
+                {
+                    ShockerId = shareRequestShocker.ShockerId,
+                    SharedWithUserId = CurrentUser.Id,
+                    AllowShock = shareRequestShocker.AllowShock,
+                    AllowVibrate = shareRequestShocker.AllowVibrate,
+                    AllowSound = shareRequestShocker.AllowSound,
+                    AllowLiveControl = shareRequestShocker.AllowLiveControl,
+                    MaxIntensity = shareRequestShocker.MaxIntensity,
+                    MaxDuration = shareRequestShocker.MaxDuration,
+                    IsPaused = shareRequestShocker.IsPaused
+                };
+                
+                alreadySharedShockers.Add(newShare);
+            }
+        }
+        
+        _db.ShareRequests.Remove(shareRequest);
+
+        if (await _db.SaveChangesAsync() < 1) throw new Exception("Error while linking share code to your account");
+
+        var affectedHubs = shareRequest.ShockerMappings.Select(x => x.ShockerId).Distinct();
+        foreach (var affectedHub in affectedHubs)
+        {
+            await deviceUpdateService.UpdateDevice(shareRequest.OwnerId, affectedHub, DeviceUpdateType.ShockerUpdated, CurrentUser.Id);    
+        }
+        
+        return Ok();
+    }
 }
 
 public class ShareRequestBase

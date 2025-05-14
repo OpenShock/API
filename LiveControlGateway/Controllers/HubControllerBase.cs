@@ -1,29 +1,20 @@
 ﻿using System.Net.WebSockets;
 using FlatSharp;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
-using Microsoft.AspNetCore.SignalR;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using OneOf;
 using OneOf.Types;
-using OpenShock.Common;
-using OpenShock.Common.Authentication;
 using OpenShock.Common.Authentication.Services;
 using OpenShock.Common.Constants;
 using OpenShock.Common.Errors;
-using OpenShock.Common.Hubs;
 using OpenShock.Common.OpenShockDb;
 using OpenShock.Common.Problems;
-using OpenShock.Common.Redis;
-using OpenShock.Common.Services.RedisPubSub;
 using OpenShock.Common.Utils;
 using OpenShock.LiveControlGateway.LifetimeManager;
 using OpenShock.LiveControlGateway.Options;
 using OpenShock.LiveControlGateway.Websocket;
 using OpenShock.Serialization.Gateway;
-using Redis.OM.Contracts;
 using Semver;
 using Timer = System.Timers.Timer;
 
@@ -46,7 +37,7 @@ public abstract class HubControllerBase<TIn, TOut> : FlatbuffersWebsocketBaseCon
     /// </summary>
     protected readonly IServiceProvider ServiceProvider;
     
-    private HubLifetime? _hubLifetime = null;
+    private HubLifetime? _hubLifetime;
     
     /// <summary>
     /// Hub lifetime
@@ -88,7 +79,6 @@ public abstract class HubControllerBase<TIn, TOut> : FlatbuffersWebsocketBaseCon
     /// <summary>
     /// Base for hub websocket controllers
     /// </summary>
-    /// <param name="lifetime"></param>
     /// <param name="incomingSerializer"></param>
     /// <param name="outgoingSerializer"></param>
     /// <param name="hubLifetimeManager"></param>
@@ -96,22 +86,29 @@ public abstract class HubControllerBase<TIn, TOut> : FlatbuffersWebsocketBaseCon
     /// <param name="options"></param>
     /// <param name="logger"></param>
     protected HubControllerBase(
-        IHostApplicationLifetime lifetime,
         ISerializer<TIn> incomingSerializer,
         ISerializer<TOut> outgoingSerializer,
         HubLifetimeManager hubLifetimeManager,
         IServiceProvider serviceProvider,
         IOptions<LcgOptions> options,
         ILogger<FlatbuffersWebsocketBaseController<TIn, TOut>> logger
-        ) : base(logger, lifetime, incomingSerializer, outgoingSerializer)
+        ) : base(logger, incomingSerializer, outgoingSerializer)
     {
         _hubLifetimeManager = hubLifetimeManager;
         ServiceProvider = serviceProvider;
         _options = options.Value;
-        _keepAliveTimeoutTimer.Elapsed += async (sender, args) =>
+        _keepAliveTimeoutTimer.Elapsed += async (_, _) =>
         {
-            Logger.LogInformation("Keep alive timeout reached, closing websocket connection");
-            await Close.CancelAsync();
+            try
+            {
+                Logger.LogInformation("Keep alive timeout reached, closing websocket connection");
+                await ForceClose(WebSocketCloseStatus.ProtocolError, "Keep alive timeout reached");
+                WebSocket?.Abort();
+            }
+            catch (Exception ex)
+            {
+                Logger.LogError(ex, "Error while closing websocket connection from keep alive timeout");
+            }
         };
         _keepAliveTimeoutTimer.Start();
     }
@@ -177,7 +174,16 @@ public abstract class HubControllerBase<TIn, TOut> : FlatbuffersWebsocketBaseCon
 
     /// <inheritdoc />
     public abstract ValueTask OtaInstall(SemVersion version);
-    
+
+    /// <inheritdoc />
+    public async Task DisconnectOld()
+    {
+        if (WebSocket == null)
+            return;
+
+        await ForceClose(WebSocketCloseStatus.NormalClosure, "Hub is connecting from a different location");
+    }
+
     private static DateTimeOffset? GetBootedAtFromUptimeMs(ulong uptimeMs)
     {
         var uptime = TimeSpan.FromMilliseconds(uptimeMs);
@@ -189,14 +195,13 @@ public abstract class HubControllerBase<TIn, TOut> : FlatbuffersWebsocketBaseCon
     /// <summary>
     /// Keep the hub online
     /// </summary>
-    protected async Task SelfOnline(ulong uptimeMs, ushort? latency = null, int? rssi = null)
+    protected async Task<bool> SelfOnline(ulong uptimeMs, ushort? latency = null, int? rssi = null)
     {
         var bootedAt = GetBootedAtFromUptimeMs(uptimeMs);
         if (!bootedAt.HasValue)
         {
             Logger.LogDebug("Client attempted to abuse reported boot time, uptime indicated that hub [{HubId}] booted prior to 2024", CurrentHub.Id);
-            await DisposeAsync();
-            return;
+            return false;
         }
         
         Logger.LogDebug("Received keep alive from hub [{HubId}]", CurrentHub.Id);
@@ -206,7 +211,7 @@ public abstract class HubControllerBase<TIn, TOut> : FlatbuffersWebsocketBaseCon
 
         await HubLifetime.Online(CurrentHub.Id, new SelfOnlineData()
         {
-            Owner = CurrentHub.Owner,
+            Owner = CurrentHub.OwnerId,
             Gateway = _options.Fqdn,
             FirmwareVersion = _firmwareVersion!,
             ConnectedAt = _connected,
@@ -215,6 +220,8 @@ public abstract class HubControllerBase<TIn, TOut> : FlatbuffersWebsocketBaseCon
             LatencyMs = latency,
             Rssi = rssi
         });
+
+        return true;
     }
     
     /// <inheritdoc />

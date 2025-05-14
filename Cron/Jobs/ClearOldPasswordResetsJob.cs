@@ -1,5 +1,4 @@
 ﻿using Microsoft.EntityFrameworkCore;
-using OpenShock.Common;
 using OpenShock.Common.Constants;
 using OpenShock.Common.OpenShockDb;
 using OpenShock.Cron.Attributes;
@@ -32,8 +31,8 @@ public sealed class ClearOldPasswordResetsJob
         var earliestCreatedOnUtc = expiredAtUtc - Duration.AuditRetentionTime;
 
         // Run the delete query
-        int nDeleted = await _db.PasswordResets
-                                    .Where(x => x.UsedOn == null && x.CreatedOn < earliestCreatedOnUtc)
+        int nDeleted = await _db.UserPasswordResets
+                                    .Where(x => x.UsedAt == null && x.CreatedAt < earliestCreatedOnUtc)
                                     .ExecuteDeleteAsync();
         
         _logger.LogInformation("Deleted {deletedCount} expired password resets since {earliestCreatedOnUtc}", nDeleted, earliestCreatedOnUtc);

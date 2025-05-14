@@ -6,7 +6,7 @@ public sealed class TokenResponse
 {
     public required Guid Id { get; set; }
 
-    public required string Name { get; set; } = null!;
+    public required string Name { get; set; }
 
     public required DateTime CreatedOn { get; set; }
     

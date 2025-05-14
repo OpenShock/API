@@ -1,5 +1,4 @@
-﻿using System.Net;
-using System.Net.Mime;
+﻿using System.Net.Mime;
 using Asp.Versioning;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -14,7 +13,7 @@ namespace OpenShock.API.Controller.Shares;
 public sealed partial class SharesController
 {
     [HttpPost("requests")]
-    [ProducesResponseType<Guid>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
+    [ProducesResponseType<Guid>(StatusCodes.Status200OK, MediaTypeNames.Text.Plain)]
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status404NotFound, MediaTypeNames.Application.ProblemJson)] // UserNotFound, ShareCreateShockerNotFound
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status400BadRequest, MediaTypeNames.Application.ProblemJson)] // ShareCreateCannotShareWithSelf
     [ApiVersion("2")]
@@ -27,7 +26,7 @@ public sealed partial class SharesController
         
         var providedShockerIds = data.Shockers.Select(x => x.Id).ToArray();
         var belongsToUsFuture = _db.Shockers.AsNoTracking().Where(x =>
-            x.DeviceNavigation.Owner == CurrentUser.Id && providedShockerIds.Contains(x.Id)).Select(x => x.Id).Future();
+            x.Device.OwnerId == CurrentUser.Id && providedShockerIds.Contains(x.Id)).Select(x => x.Id).Future();
         
         if (data.User != null)
         {
@@ -51,23 +50,24 @@ public sealed partial class SharesController
         var shareRequest = new ShareRequest
         {
             Id = Guid.CreateVersion7(),
-            Owner = CurrentUser.Id,
-            User = data.User
+            OwnerId = CurrentUser.Id,
+            UserId = data.User
         };
         _db.ShareRequests.Add(shareRequest);
         
         foreach (var createShockerShare in data.Shockers)
         {
-            _db.ShareRequestsShockers.Add(new ShareRequestsShocker
+            _db.ShareRequestShockerMappings.Add(new ShareRequestShocker
             {
-                ShareRequest = shareRequest.Id,
-                Shocker = createShockerShare.Id,
-                LimitDuration = createShockerShare.Limits.Duration,
-                LimitIntensity = createShockerShare.Limits.Intensity,
-                PermLive = createShockerShare.Permissions.Live,
-                PermShock = createShockerShare.Permissions.Shock,
-                PermSound = createShockerShare.Permissions.Sound,
-                PermVibrate = createShockerShare.Permissions.Vibrate
+                ShareRequestId = shareRequest.Id,
+                ShockerId = createShockerShare.Id,
+                AllowShock = createShockerShare.Permissions.Shock,
+                AllowVibrate = createShockerShare.Permissions.Vibrate,
+                AllowSound = createShockerShare.Permissions.Sound,
+                AllowLiveControl = createShockerShare.Permissions.Live,
+                MaxIntensity = createShockerShare.Limits.Intensity,
+                MaxDuration = createShockerShare.Limits.Duration,
+                IsPaused = false
             });
         }
 
