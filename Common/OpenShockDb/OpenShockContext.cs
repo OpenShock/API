@@ -315,7 +315,7 @@ public class OpenShockContext : DbContext
                 .HasForeignKey(d => d.UserShareInviteId)
                 .HasConstraintName("fk_share_request_shockers_share_request_id");
 
-            entity.HasOne(d => d.Shocker).WithMany(p => p.ShareRequestMappings)
+            entity.HasOne(d => d.Shocker).WithMany(p => p.UserShareInviteShockers)
                 .HasForeignKey(d => d.ShockerId)
                 .HasConstraintName("fk_share_request_shockers_shocker_id");
         });
@@ -430,7 +430,7 @@ public class OpenShockContext : DbContext
                 .HasForeignKey(d => d.SharedWithUserId)
                 .HasConstraintName("fk_user_shares_shared_with_user_id");
 
-            entity.HasOne(d => d.Shocker).WithMany(p => p.ShockerShares)
+            entity.HasOne(d => d.Shocker).WithMany(p => p.UserShares)
                 .HasForeignKey(d => d.ShockerId)
                 .HasConstraintName("fk_user_shares_shocker_id");
         });

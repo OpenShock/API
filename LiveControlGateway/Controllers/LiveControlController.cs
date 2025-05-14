@@ -167,7 +167,7 @@ public sealed class LiveControlController : WebsocketBaseController<LiveControlR
 
         var hubExistsAndYouHaveAccess = await _db.Devices.AnyAsync(x =>
             x.Id == HubId && (x.OwnerId == _currentUser.Id || x.Shockers.Any(y =>
-                y.ShockerShares.Any(z => z.SharedWithUserId == _currentUser.Id && z.AllowLiveControl))));
+                y.UserShares.Any(z => z.SharedWithUserId == _currentUser.Id && z.AllowLiveControl))));
 
         if (!hubExistsAndYouHaveAccess)
         {

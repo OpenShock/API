@@ -230,7 +230,7 @@ public sealed partial class DevicesController
     {
         // Check if user owns device or has a share
         var deviceExistsAndYouHaveAccess = await _db.Devices.AnyAsync(x =>
-            x.Id == deviceId && (x.OwnerId == CurrentUser.Id || x.Shockers.Any(y => y.ShockerShares.Any(
+            x.Id == deviceId && (x.OwnerId == CurrentUser.Id || x.Shockers.Any(y => y.UserShares.Any(
                 z => z.SharedWithUserId == CurrentUser.Id))));
         if (!deviceExistsAndYouHaveAccess) return Problem(DeviceError.DeviceNotFound);
 
