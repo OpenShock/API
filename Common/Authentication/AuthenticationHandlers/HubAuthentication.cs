@@ -55,12 +55,11 @@ public sealed class HubAuthentication : AuthenticationHandler<AuthenticationSche
 
         _authService.CurrentClient = device;
 
-        var claims = new[]
-        {
+        Claim[] claims = [
             new(ClaimTypes.AuthenticationMethod, OpenShockAuthSchemas.HubToken),
-            new Claim(ClaimTypes.NameIdentifier, device.Owner.ToString()),
+            new Claim(ClaimTypes.NameIdentifier, device.OwnerId.ToString()),
             new Claim(OpenShockAuthClaims.HubId, _authService.CurrentClient.Id.ToString()),
-        };
+        ];
         var ident = new ClaimsIdentity(claims, nameof(HubAuthentication));
         var ticket = new AuthenticationTicket(new ClaimsPrincipal(ident), Scheme.Name);
 

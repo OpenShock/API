@@ -8,7 +8,7 @@ namespace OpenShock.Common.Problems;
 /// </summary>
 public class OpenShockProblem : ProblemDetails
 {
-    public OpenShockProblem(string type, string title, HttpStatusCode status = HttpStatusCode.BadRequest,
+    public OpenShockProblem(string type, string title, HttpStatusCode status,
         string? detail = null) : this(type, title, (int)status, detail)
     {
     }

@@ -1,11 +1,9 @@
-﻿using System.Net;
-using System.Net.Mime;
+﻿using System.Net.Mime;
 using Asp.Versioning;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using OpenShock.Common.Authentication;
-using OpenShock.Common.Authentication.Attributes;
 using OpenShock.Common.Authentication.ControllerBase;
 using OpenShock.Common.Errors;
 using OpenShock.Common.Models;
@@ -17,9 +15,10 @@ using OpenShock.Common.Services.Ota;
 namespace OpenShock.API.Controller.Devices;
 
 [ApiController]
-[Authorize(AuthenticationSchemes = OpenShockAuthSchemas.UserSessionCookie)]
+[Tags("Hub Management")]
 [ApiVersion("1")]
 [Route("/{version:apiVersion}/devices")]
+[Authorize(AuthenticationSchemes = OpenShockAuthSchemas.UserSessionCookie)]
 public sealed class DevicesOtaController : AuthenticatedSessionControllerBase
 {
     private readonly OpenShockContext _db;
@@ -40,16 +39,16 @@ public sealed class DevicesOtaController : AuthenticatedSessionControllerBase
     /// <response code="404">Could not find device or you do not have access to it</response>
     [HttpGet("{deviceId}/ota")]
     [MapToApiVersion("1")]
-    [ProducesResponseType<BaseResponse<IReadOnlyCollection<OtaItem>>>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
+    [ProducesResponseType<LegacyDataResponse<IReadOnlyCollection<OtaItem>>>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status404NotFound, MediaTypeNames.Application.ProblemJson)] // DeviceNotFound
     public async Task<IActionResult> GetOtaUpdateHistory([FromRoute] Guid deviceId, [FromServices] IOtaService otaService)
     {
         // Check if user owns device or has a share
         var deviceExistsAndYouHaveAccess = await _db.Devices.AnyAsync(x =>
-            x.Id == deviceId && x.Owner == CurrentUser.Id);
+            x.Id == deviceId && x.OwnerId == CurrentUser.Id);
         if (!deviceExistsAndYouHaveAccess) return Problem(DeviceError.DeviceNotFound);
 
-        return RespondSuccessLegacy(await otaService.GetUpdates(deviceId));
+        return LegacyDataOk(await otaService.GetUpdates(deviceId));
     }
     
 }

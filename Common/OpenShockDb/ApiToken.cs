@@ -1,6 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Net;
+﻿using System.Net;
 using OpenShock.Common.Models;
 
 namespace OpenShock.Common.OpenShockDb;
@@ -15,7 +13,7 @@ public partial class ApiToken
 
     public Guid UserId { get; set; }
 
-    public DateTime CreatedOn { get; set; }
+    public DateTime CreatedAt { get; set; }
 
     public IPAddress CreatedByIp { get; set; } = null!;
 

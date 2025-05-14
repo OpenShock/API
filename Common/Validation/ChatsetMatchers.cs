@@ -1,6 +1,4 @@
-﻿using System.Text;
-
-namespace OpenShock.Common.Validation;
+﻿namespace OpenShock.Common.Validation;
 
 /// <summary>
 /// <para>Specialized character set matchers that match strings by unicode codepoints</para>
@@ -14,12 +12,12 @@ public static class CharsetMatchers
     /// <para>Checks if a unicode value is undesired for displaying in user interfaces</para>
     /// <para>Undesired values include among other things Emojis, <see href="https://en.wikipedia.org/wiki/Zalgo_text">Zalgo text</see>, and <see href="https://en.wikipedia.org/wiki/Zero-width_space">Zero-width space</see></para>
     /// </summary>
-    /// <param name="r">String Rune to check for obnoxious characters</param>
+    /// <param name="value">String Rune to check for obnoxious characters</param>
     /// <returns>True if string is safe</returns>
     public static bool IsUndesiredUserInterfaceCharacter(uint value)
     {
         return value
-            is (>= 0x00000 and <= 0x0001F) // 00000 (C0 Controls)
+            is <= 0x0001F                  // 00000 (C0 Controls)
             or (>= 0x0007F and <= 0x000A0) // 00000, 00080 (C0 Controls, C1 Controls)
             or (>= 0x002B0 and <= 0x0036F) // 002B0, 00300
             or (>= 0x01400 and <= 0x017FF) // 01400, 01680, 016A0, 01700, 01720, 01740, 01760, 01780

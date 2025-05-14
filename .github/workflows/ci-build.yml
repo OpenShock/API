@@ -14,6 +14,11 @@ on:
         description: 'Platforms to build for'
         required: false
         type: string
+      latest:
+        description: 'Tag image as latest'
+        required: false
+        type: boolean
+        default: false
   workflow_dispatch:
 
 name: ci-build
@@ -47,6 +52,7 @@ jobs:
           push: ${{ github.event_name != 'pull_request' }}
           image: api
           platforms: ${{ inputs.platforms || 'linux/amd64' }}
+          latest: ${{ inputs.latest || false }}
           
       - name: Build LiveControlGateway
         uses: ./.github/actions/build-app
@@ -55,6 +61,7 @@ jobs:
           push: ${{ github.event_name != 'pull_request' }}
           image: live-control-gateway
           platforms: ${{ inputs.platforms || 'linux/amd64' }}
+          latest: ${{ inputs.latest || false }}
           
       - name: Build Cron
         uses: ./.github/actions/build-app
@@ -63,6 +70,26 @@ jobs:
           push: ${{ github.event_name != 'pull_request' }}
           image: cron
           platforms: ${{ inputs.platforms || 'linux/amd64' }}
+          latest: ${{ inputs.latest || false }}
+        
+          
+  deploy-dev:
+    runs-on: ubuntu-latest
+    needs: build
+    if: ${{ github.ref_type == 'branch' && github.event_name != 'pull_request' && github.ref_name == 'develop' }}
+    environment: development
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            .github
+
+      - uses: ./.github/actions/watchtower-update
+        with:
+          url: ${{ vars.WATCHTOWER_URL }}
+          token: ${{ secrets.WATCHTOWER_TOKEN }}
+          
           
   deploy-production:
     runs-on: ubuntu-latest

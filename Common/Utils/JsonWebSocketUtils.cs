@@ -1,5 +1,4 @@
 ﻿using System.Buffers;
-using System.IO.Pipelines;
 using System.Net.WebSockets;
 using System.Text.Json;
 using Microsoft.IO;
@@ -29,8 +28,6 @@ public static class JsonWebSocketUtils
                 bytes += result.Count;
                 if (result.MessageType == WebSocketMessageType.Close)
                 {
-                    await socket.CloseAsync(WebSocketCloseStatus.NormalClosure, "Closure during message read",
-                        cancellationToken);
                     return new WebsocketClosure();
                 }
 

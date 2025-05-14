@@ -14,6 +14,7 @@ namespace OpenShock.API.Controller.Device;
 [ApiController]
 [ApiVersion("1")]
 [ApiVersion("2")]
+[Tags("Hub Endpoints")]
 [Route("/{version:apiVersion}/device")]
 [Authorize(AuthenticationSchemes = OpenShockAuthSchemas.HubToken)]
 public sealed partial class DeviceController : AuthenticatedHubControllerBase

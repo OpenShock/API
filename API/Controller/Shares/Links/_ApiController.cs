@@ -7,9 +7,10 @@ using OpenShock.Common.OpenShockDb;
 namespace OpenShock.API.Controller.Shares.Links;
 
 /// <summary>
-/// Share links management
+/// Public shares management
 /// </summary>
 [ApiController]
+[Tags("Public Shocker Shares")]
 [Route("/{version:apiVersion}/shares/links")]
 [Authorize(AuthenticationSchemes = OpenShockAuthSchemas.UserSessionApiTokenCombo)]
 public sealed partial class ShareLinksController : AuthenticatedSessionControllerBase

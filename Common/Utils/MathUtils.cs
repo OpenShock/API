@@ -1,13 +1,10 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace OpenShock.Common.Utils;
+﻿namespace OpenShock.Common.Utils;
 
 public static class MathUtils
 {
+    private const float EarthRadius = 6371f;
+    private const float DegToRad = MathF.PI / 180f;
+    
     /// <summary>
     /// Calculates the distance between two points on the Earth's surface using the Haversine formula.
     /// </summary>
@@ -18,8 +15,6 @@ public static class MathUtils
     /// <returns></returns>
     public static float CalculateHaversineDistance(float lat1, float lon1, float lat2, float lon2)
     {
-        const float EarthRadius = 6371f;
-        const float DegToRad = MathF.PI / 180f;
 
         float latDist = (lat2 - lat1) * DegToRad;
         float lonDist = (lon2 - lon1) * DegToRad;

@@ -1,35 +1,46 @@
 <Project>
-    <PropertyGroup>
-        <Company>OpenShock</Company>
-        <Product>$(Company).$(MSBuildProjectName)</Product>
-        <Version>3.10.5</Version>
-        
-        <RepositoryUrl>https://github.com/OpenShock/API</RepositoryUrl>
-        <PackageReadmeFile>README.md</PackageReadmeFile>
-        <PackageLicenseFile>LICENSE</PackageLicenseFile>
-        <PackageLicenseUrl>$(RepositoryUrl)/LICENSE</PackageLicenseUrl>
-        <PackageRequireLicenseAcceptance>True</PackageRequireLicenseAcceptance>
-    </PropertyGroup>
+  <PropertyGroup>
+    <Company>OpenShock</Company>
+    <Product>$(Company).$(MSBuildProjectName)</Product>
+    <Version>3.13.0</Version>
 
-    <ItemGroup>
-        <None Include="../README.md">
-            <Pack>True</Pack>
-            <PackagePath>\</PackagePath>
-        </None>
-        <None Include="../LICENSE">
-            <Pack>True</Pack>
-            <PackagePath>\</PackagePath>
-        </None>
-    </ItemGroup>
+    <Title>$(Product)</Title>
+    <Authors>OpenShock</Authors>
+    <Description>Backend for the OpenShock solution, that enables controlling shock collars over the internet.</Description>
+    <RepositoryUrl>https://github.com/OpenShock/API</RepositoryUrl>
+    <PackageProjectUrl>https://openshock.org</PackageProjectUrl>
+    <PackageId>$(Product.Replace(" ", "_"))</PackageId>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageLicenseExpression>AGPL-3.0-or-later</PackageLicenseExpression>
+    <PackageRequireLicenseAcceptance>True</PackageRequireLicenseAcceptance>
+    <RepositoryType>git</RepositoryType>
+    <PackageTags>openshock</PackageTags>
+  </PropertyGroup>
 
-    <PropertyGroup>
-        <TargetFramework>net9.0</TargetFramework>
-        <ImplicitUsings>enable</ImplicitUsings>
-        <Nullable>enable</Nullable>
-        <AssemblyName>$(Product)</AssemblyName>
-        <RootNamespace>$(Product.Replace(" ", "_"))</RootNamespace>
-        <AssemblyVersion>$(Version)</AssemblyVersion>
-        <FileVersion>$(Version)</FileVersion>
-        <UserSecretsId>a2109c1e-fb11-44d7-8127-346ef60cb9a5</UserSecretsId>
-    </PropertyGroup>
+  <ItemGroup>
+    <None Include="../README.md" Pack="true" PackagePath="/"/>
+  </ItemGroup>
+
+  <PropertyGroup>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <LangVersion>Latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <AssemblyName>$(Product)</AssemblyName>
+    <RootNamespace>$(Product.Replace(" ", "_"))</RootNamespace>
+    <AssemblyVersion>$(Version)</AssemblyVersion>
+    <FileVersion>$(Version)</FileVersion>
+    <UserSecretsId>a2109c1e-fb11-44d7-8127-346ef60cb9a5</UserSecretsId>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+  </PropertyGroup>
+  
+  <PropertyGroup>
+    <!-- Disable Missing XML comment warning -->
+    <NoWarn>1591</NoWarn>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+
+    <!-- Disable Prefer framework type warning -->
+    <NoWarn>$(NoWarn);IDE0049</NoWarn>
+  </PropertyGroup>
 </Project>

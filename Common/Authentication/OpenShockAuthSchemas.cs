@@ -1,6 +1,4 @@
-﻿using OpenShock.Common.Constants;
-
-namespace OpenShock.Common.Authentication;
+﻿namespace OpenShock.Common.Authentication;
 
 public static class OpenShockAuthSchemas
 {

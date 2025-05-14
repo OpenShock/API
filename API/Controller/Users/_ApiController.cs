@@ -8,6 +8,7 @@ using Redis.OM.Contracts;
 namespace OpenShock.API.Controller.Users;
 
 [ApiController]
+[Tags("Users")]
 [Route("/{version:apiVersion}/users")]
 [Authorize(AuthenticationSchemes = OpenShockAuthSchemas.UserSessionApiTokenCombo)]
 public sealed partial class UsersController : AuthenticatedSessionControllerBase

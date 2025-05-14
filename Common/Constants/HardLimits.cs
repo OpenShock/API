@@ -20,7 +20,6 @@ public static class HardLimits
     public const int UserAgentMaxLength = 1024;
     
     public const int ApiKeyNameMaxLength = 64;
-    public const int ApiKeyTokenLength = 64;
     public const int ApiKeyMaxPermissions = 256;
     
     public const int HubNameMinLength = 1;
@@ -30,8 +29,8 @@ public static class HardLimits
     public const int ShockerNameMinLength = 1;
     public const int ShockerNameMaxLength = 64;
     
-    public const int ShockerShareLinkNameMinLength = 1;
-    public const int ShockerShareLinkNameMaxLength = 64;
+    public const int PublicShareNameMinLength = 1;
+    public const int PublicShareNameMaxLength = 64;
 
     public const int SemVerMaxLength = 64;
     public const int IpAddressMaxLength = 40;
@@ -49,4 +48,10 @@ public static class HardLimits
     public const int CreateShareRequestMaxShockers = 128;
     
     public const int MaxShockerControlLogsPerUser = 2048;
+    
+    // Don't allow any firmware prior to 2024.
+    // Ridiculous edgecase: environment reports year at or prior to 2024, revert to 10 year limit just to be on the safe side
+    public static readonly TimeSpan FirmwareMaxUptime = DateTime.UtcNow.Year <= 2024 ?
+        TimeSpan.FromDays(365 * 10) :
+        DateTime.UtcNow - new DateTime(2024, 1, 1, 0, 0, 0, DateTimeKind.Utc);
 }

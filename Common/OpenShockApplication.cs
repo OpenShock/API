@@ -1,6 +1,4 @@
-﻿using System.Reflection;
-using Microsoft.AspNetCore.Server.Kestrel.Core;
-using Serilog;
+﻿using Serilog;
 
 namespace OpenShock.Common;
 
@@ -36,7 +34,7 @@ public static class OpenShockApplication
         });
 
         // Since we use slim builders, this allows for HTTPS during local development
-        if (isDevelopment) builder.WebHost.UseKestrelHttpsConfiguration();
+        builder.WebHost.UseKestrelHttpsConfiguration();
         
         builder.WebHost.ConfigureKestrel(serverOptions =>
         {
