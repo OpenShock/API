@@ -84,15 +84,15 @@ public class OpenShockContext : DbContext
 
     public DbSet<UserPasswordReset> UserPasswordResets { get; set; }
 
-    public DbSet<ShareRequest> ShareRequests { get; set; }
+    public DbSet<UserShareInvite> ShareRequests { get; set; }
 
-    public DbSet<ShareRequestShocker> ShareRequestShockerMappings { get; set; }
+    public DbSet<UserShareInviteShocker> ShareRequestShockerMappings { get; set; }
 
     public DbSet<Shocker> Shockers { get; set; }
 
     public DbSet<ShockerControlLog> ShockerControlLogs { get; set; }
 
-    public DbSet<ShockerShare> ShockerShares { get; set; }
+    public DbSet<UserShare> ShockerShares { get; set; }
 
     public DbSet<ShockerShareCode> ShockerShareCodes { get; set; }
 
@@ -136,7 +136,9 @@ public class OpenShockContext : DbContext
 
             entity.ToTable("api_tokens");
 
+            // What does this do? please leave comment
             entity.HasIndex(e => e.UserId).HasAnnotation("Npgsql:StorageParameter:deduplicate_items", "true");
+            // What does this do? please leave comment
             entity.HasIndex(e => e.ValidUntil).HasAnnotation("Npgsql:StorageParameter:deduplicate_items", "true");
             entity.HasIndex(e => e.TokenHash).IsUnique();
 
@@ -173,6 +175,7 @@ public class OpenShockContext : DbContext
 
             entity.ToTable("devices");
 
+            // What does this do? please leave comment
             entity.HasIndex(e => e.OwnerId).HasAnnotation("Npgsql:StorageParameter:deduplicate_items", "true");
             entity.HasIndex(e => e.Token).IsUnique();
 
@@ -202,6 +205,7 @@ public class OpenShockContext : DbContext
             entity.ToTable("device_ota_updates");
 
             entity.HasIndex(e => e.CreatedAt, "device_ota_updates_created_at_idx")
+                // What does this do? please leave comment
                 .HasAnnotation("Npgsql:StorageParameter:deduplicate_items", "true");
 
             entity.Property(e => e.DeviceId).HasColumnName("device_id");
@@ -230,6 +234,7 @@ public class OpenShockContext : DbContext
 
             entity.ToTable("user_password_resets");
 
+            // What does this do? please leave comment
             entity.HasIndex(e => e.UserId).HasAnnotation("Npgsql:StorageParameter:deduplicate_items", "true");
 
             entity.Property(e => e.Id)
@@ -250,12 +255,13 @@ public class OpenShockContext : DbContext
                 .HasConstraintName("fk_user_password_resets_user_id");
         });
 
-        modelBuilder.Entity<ShareRequest>(entity =>
+        modelBuilder.Entity<UserShareInvite>(entity =>
         {
             entity.HasKey(e => e.Id).HasName("share_requests_pkey");
 
             entity.ToTable("share_requests");
 
+            // What does this do? please leave comment
             entity.HasIndex(e => e.OwnerId).HasAnnotation("Npgsql:StorageParameter:deduplicate_items", "true");
 
             entity.Property(e => e.Id)
@@ -265,25 +271,25 @@ public class OpenShockContext : DbContext
                 .HasDefaultValueSql("CURRENT_TIMESTAMP")
                 .HasColumnName("created_at");
             entity.Property(e => e.OwnerId).HasColumnName("owner_id");
-            entity.Property(e => e.UserId).HasColumnName("user_id");
+            entity.Property(e => e.RecipientUserId).HasColumnName("user_id");
 
             entity.HasOne(d => d.Owner).WithMany(p => p.OwnedShockerShareRequests)
                 .HasForeignKey(d => d.OwnerId)
                 .HasConstraintName("fk_share_requests_owner_id");
 
-            entity.HasOne(d => d.User).WithMany(p => p.UserShockerShareRequests)
-                .HasForeignKey(d => d.UserId)
+            entity.HasOne(d => d.RecipientUser).WithMany(p => p.UserShockerShareRequests)
+                .HasForeignKey(d => d.RecipientUserId)
                 .OnDelete(DeleteBehavior.Cascade)
                 .HasConstraintName("fk_share_requests_user_id");
         });
 
-        modelBuilder.Entity<ShareRequestShocker>(entity =>
+        modelBuilder.Entity<UserShareInviteShocker>(entity =>
         {
-            entity.HasKey(e => new { e.ShareRequestId, e.ShockerId }).HasName("share_request_shockers_pkey");
+            entity.HasKey(e => new { ShareRequestId = e.UserShareInviteId, e.ShockerId }).HasName("share_request_shockers_pkey");
 
             entity.ToTable("share_request_shockers");
 
-            entity.Property(e => e.ShareRequestId).HasColumnName("share_request_id");
+            entity.Property(e => e.UserShareInviteId).HasColumnName("share_request_id");
             entity.Property(e => e.ShockerId).HasColumnName("shocker_id");
             entity.Property(e => e.AllowShock)
                 .HasDefaultValue(true)
@@ -305,8 +311,8 @@ public class OpenShockContext : DbContext
                 .HasDefaultValue(false)
                 .HasColumnName("is_paused");
 
-            entity.HasOne(d => d.ShareRequest).WithMany(p => p.ShockerMappings)
-                .HasForeignKey(d => d.ShareRequestId)
+            entity.HasOne(d => d.UserShareInvite).WithMany(p => p.ShockerMappings)
+                .HasForeignKey(d => d.UserShareInviteId)
                 .HasConstraintName("fk_share_request_shockers_share_request_id");
 
             entity.HasOne(d => d.Shocker).WithMany(p => p.ShareRequestMappings)
@@ -320,6 +326,7 @@ public class OpenShockContext : DbContext
 
             entity.ToTable("shockers");
 
+            // What does this do? please leave comment
             entity.HasIndex(e => e.DeviceId).HasAnnotation("Npgsql:StorageParameter:deduplicate_items", "true");
 
             entity.Property(e => e.Id)
@@ -349,6 +356,7 @@ public class OpenShockContext : DbContext
 
             entity.ToTable("shocker_control_logs");
 
+            // What does this do? please leave comment
             entity.HasIndex(e => e.ShockerId).HasAnnotation("Npgsql:StorageParameter:deduplicate_items", "true");
 
             entity.Property(e => e.Id)
@@ -379,19 +387,18 @@ public class OpenShockContext : DbContext
                 .HasConstraintName("fk_shocker_control_logs_shocker_id");
         });
 
-        modelBuilder.Entity<ShockerShare>(entity =>
+        modelBuilder.Entity<UserShare>(entity =>
         {
-            entity.HasKey(e => new { e.ShockerId, e.SharedWithUserId }).HasName("shocker_shares_pkey");
+            entity.HasKey(e => new { e.OwnerId, e.SharedWithUserId }).HasName("user_shares_pkey");
 
-            entity.ToTable("shocker_shares");
+            entity.ToTable("user_shares");
 
+            // What does this do? please leave comment
             entity.HasIndex(e => e.SharedWithUserId).HasAnnotation("Npgsql:StorageParameter:deduplicate_items", "true");
 
-            entity.Property(e => e.ShockerId).HasColumnName("shocker_id");
+            entity.Property(e => e.OwnerId).HasColumnName("owner_id");
             entity.Property(e => e.SharedWithUserId).HasColumnName("shared_with_user_id");
-            entity.Property(e => e.CreatedAt)
-                .HasDefaultValueSql("CURRENT_TIMESTAMP")
-                .HasColumnName("created_at");
+            entity.Property(e => e.ShockerId).HasColumnName("shocker_id");
             entity.Property(e => e.AllowShock)
                 .HasDefaultValue(true)
                 .HasColumnName("allow_shock");
@@ -411,14 +418,21 @@ public class OpenShockContext : DbContext
             entity.Property(e => e.IsPaused)
                 .HasDefaultValue(false)
                 .HasColumnName("is_paused");
+            entity.Property(e => e.CreatedAt)
+                .HasDefaultValueSql("CURRENT_TIMESTAMP")
+                .HasColumnName("created_at");
 
-            entity.HasOne(d => d.SharedWithUser).WithMany(p => p.ShockerShares)
+            entity.HasOne(d => d.Owner).WithMany(p => p.OwnedUserShares)
+                .HasForeignKey(d => d.OwnerId)
+                .HasConstraintName("fk_user_shares_owner_id");
+
+            entity.HasOne(d => d.SharedWithUser).WithMany(p => p.ReceivedUserShares)
                 .HasForeignKey(d => d.SharedWithUserId)
-                .HasConstraintName("fk_shocker_shares_shared_with_user_id");
+                .HasConstraintName("fk_user_shares_shared_with_user_id");
 
             entity.HasOne(d => d.Shocker).WithMany(p => p.ShockerShares)
                 .HasForeignKey(d => d.ShockerId)
-                .HasConstraintName("fk_shocker_shares_shocker_id");
+                .HasConstraintName("fk_user_shares_shocker_id");
         });
 
         modelBuilder.Entity<ShockerShareCode>(entity =>
@@ -465,6 +479,7 @@ public class OpenShockContext : DbContext
 
             entity.ToTable("public_shares");
 
+            // What does this do? please leave comment
             entity.HasIndex(e => e.OwnerId).HasAnnotation("Npgsql:StorageParameter:deduplicate_items", "true");
 
             entity.Property(e => e.Id)
@@ -588,8 +603,10 @@ public class OpenShockContext : DbContext
 
             entity.HasIndex(e => e.UserId);
 
+            // What does this do? please leave comment
             entity.HasIndex(e => e.CreatedAt).HasAnnotation("Npgsql:StorageParameter:deduplicate_items", "true");
 
+            // What does this do? please leave comment
             entity.HasIndex(e => e.UsedAt).HasAnnotation("Npgsql:StorageParameter:deduplicate_items", "true");
 
             entity.Property(e => e.Id)
@@ -618,10 +635,13 @@ public class OpenShockContext : DbContext
 
             entity.ToTable("user_name_changes");
 
+            // What does this do? please leave comment
             entity.HasIndex(e => e.CreatedAt).HasAnnotation("Npgsql:StorageParameter:deduplicate_items", "true");
 
+            // What does this do? please leave comment
             entity.HasIndex(e => e.OldName).HasAnnotation("Npgsql:StorageParameter:deduplicate_items", "true");
 
+            // What does this do? please leave comment
             entity.HasIndex(e => e.UserId).HasAnnotation("Npgsql:StorageParameter:deduplicate_items", "true");
 
             entity.Property(e => e.Id)

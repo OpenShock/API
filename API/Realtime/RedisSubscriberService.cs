@@ -86,7 +86,7 @@ public sealed class RedisSubscriberService : IHostedService, IAsyncDisposable
         if (data == null) return;
 
 
-        var sharedWith = await db.Users.Where(x => x.ShockerShares.Any(y => y.Shocker.DeviceId == deviceId))
+        var sharedWith = await db.Users.Where(x => x.OwnedUserShares.Any(y => y.Shocker.DeviceId == deviceId))
             .Select(x => x.Id).ToArrayAsync();
         var userIds = new List<string>
         {

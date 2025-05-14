@@ -47,19 +47,19 @@ public sealed partial class SharesController
 
         await using var transaction = await _db.Database.BeginTransactionAsync();
 
-        var shareRequest = new ShareRequest
+        var shareRequest = new UserShareInvite
         {
             Id = Guid.CreateVersion7(),
             OwnerId = CurrentUser.Id,
-            UserId = data.User
+            RecipientUserId = data.User
         };
         _db.ShareRequests.Add(shareRequest);
         
         foreach (var createShockerShare in data.Shockers)
         {
-            _db.ShareRequestShockerMappings.Add(new ShareRequestShocker
+            _db.ShareRequestShockerMappings.Add(new UserShareInviteShocker
             {
-                ShareRequestId = shareRequest.Id,
+                UserShareInviteId = shareRequest.Id,
                 ShockerId = createShockerShare.Id,
                 AllowShock = createShockerShare.Permissions.Shock,
                 AllowVibrate = createShockerShare.Permissions.Vibrate,

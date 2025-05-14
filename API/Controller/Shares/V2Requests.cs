@@ -30,13 +30,13 @@ public sealed partial class SharesController
                     Name = x.Owner.Name,
                     Image = x.Owner.GetImageUrl()
                 },
-                SharedWith = x.User == null
+                SharedWith = x.RecipientUser == null
                     ? null
                     : new GenericIni
                     {
-                        Id = x.User.Id,
-                        Name = x.User.Name,
-                        Image = x.User.GetImageUrl()
+                        Id = x.RecipientUser.Id,
+                        Name = x.RecipientUser.Name,
+                        Image = x.RecipientUser.GetImageUrl()
                     },
                 Shockers = x.ShockerMappings.Select(y => new ShockerPermLimitPairWithId
                 {
@@ -61,7 +61,7 @@ public sealed partial class SharesController
     [ApiVersion("2")]
     public IAsyncEnumerable<ShareRequestBaseDetails> GetIncomingRequestsList()
     {
-        return _db.ShareRequests.Where(x => x.UserId == CurrentUser.Id)
+        return _db.ShareRequests.Where(x => x.RecipientUserId == CurrentUser.Id)
             .Select(x => new ShareRequestBaseDetails
             {
                 Id = x.Id,
@@ -72,13 +72,13 @@ public sealed partial class SharesController
                     Name = x.Owner.Name,
                     Image = x.Owner.GetImageUrl()
                 },
-                SharedWith = x.User == null
+                SharedWith = x.RecipientUser == null
                     ? null
                     : new GenericIni
                     {
-                        Id = x.User.Id,
-                        Name = x.User.Name,
-                        Image = x.User.GetImageUrl()
+                        Id = x.RecipientUser.Id,
+                        Name = x.RecipientUser.Name,
+                        Image = x.RecipientUser.GetImageUrl()
                     },
                 Shockers = x.ShockerMappings.Select(y => new ShockerPermLimitPairWithId
                 {
@@ -120,7 +120,7 @@ public sealed partial class SharesController
     public async Task<IActionResult> DenyRequest(Guid id)
     {
         var deletedShareRequest = await _db.ShareRequests
-            .Where(x => x.Id == id && x.UserId == CurrentUser.Id).ExecuteDeleteAsync();
+            .Where(x => x.Id == id && x.RecipientUserId == CurrentUser.Id).ExecuteDeleteAsync();
         
         if (deletedShareRequest <= 0) return Problem(ShareError.ShareRequestNotFound);
         
@@ -140,7 +140,7 @@ public sealed partial class SharesController
     public async Task<IActionResult> RedeemRequest(Guid id, [FromServices] IDeviceUpdateService deviceUpdateService)
     {
         var shareRequest = await _db.ShareRequests
-            .Where(x => x.Id == id && (x.UserId == null || x.UserId == CurrentUser.Id)).Include(x => x.ShockerMappings).FirstOrDefaultAsync();
+            .Where(x => x.Id == id && (x.RecipientUserId == null || x.RecipientUserId == CurrentUser.Id)).Include(x => x.ShockerMappings).FirstOrDefaultAsync();
         
         if (shareRequest == null) return Problem(ShareError.ShareRequestNotFound);
         
@@ -161,10 +161,11 @@ public sealed partial class SharesController
             }
             else
             {
-                var newShare = new ShockerShare
+                var newShare = new UserShare
                 {
-                    ShockerId = shareRequestShocker.ShockerId,
+                    OwnerId = shareRequest.OwnerId,
                     SharedWithUserId = CurrentUser.Id,
+                    ShockerId = shareRequestShocker.ShockerId,
                     AllowShock = shareRequestShocker.AllowShock,
                     AllowVibrate = shareRequestShocker.AllowVibrate,
                     AllowSound = shareRequestShocker.AllowSound,

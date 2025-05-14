@@ -40,10 +40,11 @@ public sealed partial class SharesController
         if (await _db.ShockerShares.AnyAsync(x => x.ShockerId == shareCode.Share.ShockerId && x.SharedWithUserId == CurrentUser.Id))
             return Problem(ShareCodeError.ShockerAlreadyLinked);
         
-        _db.ShockerShares.Add(new ShockerShare
+        _db.ShockerShares.Add(new UserShare
         {
-            ShockerId = shareCode.Share.ShockerId,
+            OwnerId = shareCode.OwnerId,
             SharedWithUserId = CurrentUser.Id,
+            ShockerId = shareCode.Share.ShockerId,
             AllowShock = shareCode.Share.AllowShock,
             AllowVibrate = shareCode.Share.AllowVibrate,
             AllowSound = shareCode.Share.AllowSound,
