@@ -4,7 +4,7 @@
 
 namespace OpenShock.Common.OpenShockDb;
 
-public class AdminUsersView
+public sealed class AdminUsersView
 {
     public required Guid Id { get; set; }
 

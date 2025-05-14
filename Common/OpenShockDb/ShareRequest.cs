@@ -1,18 +1,17 @@
 ﻿namespace OpenShock.Common.OpenShockDb;
 
-public partial class ShareRequest
+public sealed class ShareRequest
 {
-    public Guid Id { get; set; }
+    public required Guid Id { get; set; }
 
-    public Guid OwnerId { get; set; }
-
-    public DateTime CreatedAt { get; set; }
+    public required Guid OwnerId { get; set; }
 
     public Guid? UserId { get; set; }
 
-    public virtual User Owner { get; set; } = null!;
+    public DateTime CreatedAt { get; set; }
 
-    public virtual ICollection<ShareRequestShocker> ShockerMappings { get; set; } = new List<ShareRequestShocker>();
-
-    public virtual User? User { get; set; }
+    // Navigations
+    public User Owner { get; set; } = null!;
+    public User? User { get; set; }
+    public ICollection<ShareRequestShocker> ShockerMappings { get; } = [];
 }

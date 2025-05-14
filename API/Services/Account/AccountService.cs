@@ -157,8 +157,8 @@ public sealed class AccountService : IAccountService
         var passwordReset = new UserPasswordReset
         {
             Id = Guid.CreateVersion7(),
-            SecretHash = secretHash,
-            User = user.User
+            UserId = user.User.Id,
+            SecretHash = secretHash
         };
         _db.UserPasswordResets.Add(passwordReset);
         await _db.SaveChangesAsync();

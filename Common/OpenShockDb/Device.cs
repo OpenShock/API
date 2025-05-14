@@ -1,20 +1,19 @@
 ﻿namespace OpenShock.Common.OpenShockDb;
 
-public partial class Device
+public sealed class Device
 {
-    public Guid Id { get; set; }
+    public required Guid Id { get; set; }
 
-    public Guid OwnerId { get; set; }
+    public required Guid OwnerId { get; set; }
 
-    public string Name { get; set; } = null!;
+    public required string Name { get; set; }
+
+    public required string Token { get; set; }
 
     public DateTime CreatedAt { get; set; }
 
-    public string Token { get; set; } = null!;
-
-    public virtual ICollection<DeviceOtaUpdate> OtaUpdates { get; set; } = new List<DeviceOtaUpdate>();
-
-    public virtual User Owner { get; set; } = null!;
-
-    public virtual ICollection<Shocker> Shockers { get; set; } = new List<Shocker>();
+    // Navigations
+    public User Owner { get; set; } = null!;
+    public ICollection<Shocker> Shockers { get; } = [];
+    public ICollection<DeviceOtaUpdate> OtaUpdates { get; } = [];
 }

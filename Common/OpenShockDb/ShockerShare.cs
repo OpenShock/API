@@ -1,14 +1,14 @@
 ﻿namespace OpenShock.Common.OpenShockDb;
 
-public partial class ShockerShare : SafetySettings
+public sealed class ShockerShare : SafetySettings
 {
-    public Guid ShockerId { get; set; }
+    public required Guid ShockerId { get; set; }
 
-    public Guid SharedWithUserId { get; set; }
+    public required Guid SharedWithUserId { get; set; }
 
     public DateTime CreatedAt { get; set; }
 
-    public virtual User SharedWithUser { get; set; } = null!;
-
-    public virtual Shocker Shocker { get; set; } = null!;
+    // Navigations
+    public Shocker Shocker { get; set; } = null!;
+    public User SharedWithUser { get; set; } = null!;
 }
