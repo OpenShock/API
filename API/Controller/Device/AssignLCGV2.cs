@@ -20,11 +20,25 @@ public sealed partial class DeviceController
     /// <response code="200">Successfully assigned LCG node</response>
     /// <response code="503">Unable to find suitable LCG node</response>
     [HttpGet("assignLCG")]
-    [ProducesResponseType<LcgNodeResponseV2>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
-    [ProducesResponseType<OpenShockProblem>(StatusCodes.Status503ServiceUnavailable, MediaTypeNames.Application.ProblemJson)] // NoLcgNodesAvailable
     [MapToApiVersion("2")]
-    public async Task<IActionResult> GetLiveControlGatewayV2([FromServices] ILCGNodeProvisioner geoLocation, [FromServices] IWebHostEnvironment env)
+    [ProducesResponseType<LcgNodeResponseV2>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
+    [ProducesResponseType<OpenShockProblem>(StatusCodes.Status400BadRequest, MediaTypeNames.Application.ProblemJson)] // BadSchemaVersion
+    [ProducesResponseType<OpenShockProblem>(StatusCodes.Status503ServiceUnavailable, MediaTypeNames.Application.ProblemJson)] // NoLcgNodesAvailable
+    public async Task<IActionResult> GetLiveControlGatewayV2([FromQuery] uint SchemaVersion, [FromServices] ILCGNodeProvisioner geoLocation, [FromServices] IWebHostEnvironment env)
     {
+        string path;
+        switch (SchemaVersion)
+        {
+            case 1:
+                path = "/1/ws/hub";
+                break;
+            case 2:
+                path = "/2/ws/hub";
+                break;
+            default:
+                return Problem(AssignLcgError.BadSchemaVersion);
+        }
+
         var countryCode = Alpha2CountryCode.UnknownCountry;
         if (HttpContext.TryGetCFIPCountry(out var countryHeader))
         {
@@ -49,7 +63,7 @@ public sealed partial class DeviceController
         {
             Host = closestNode.Fqdn,
             Port = 443,
-            Path = "/2/ws/hub",
+            Path = path,
             Country = closestNode.Country
         });
     }
