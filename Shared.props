@@ -8,9 +8,9 @@
     <Description>Backend for the OpenShock solution, that enables controlling shock collars over the internet.</Description>
     <RepositoryUrl>https://github.com/OpenShock/API</RepositoryUrl>
     <PackageProjectUrl>https://openshock.org</PackageProjectUrl>
+    <PackageId>$(Product.Replace(" ", "_"))</PackageId>
     <PackageReadmeFile>README.md</PackageReadmeFile>
-    <PackageLicenseFile>LICENSE</PackageLicenseFile>
-    <PackageLicenseUrl>$(RepositoryUrl)/blob/develop/LICENSE</PackageLicenseUrl>
+    <PackageLicenseExpression>AGPL-3.0-or-later</PackageLicenseExpression>
     <PackageRequireLicenseAcceptance>True</PackageRequireLicenseAcceptance>
     <RepositoryType>git</RepositoryType>
     <PackageTags>openshock</PackageTags>
@@ -18,7 +18,6 @@
 
   <ItemGroup>
     <None Include="../README.md" Pack="true" PackagePath="/"/>
-    <None Include="../LICENSE" Pack="true" PackagePath="/"/>
   </ItemGroup>
 
   <PropertyGroup>
