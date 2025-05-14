@@ -41,9 +41,9 @@ public sealed partial class ShockerController
         {
             Id = Guid.CreateVersion7(),
             Name = body.Name,
+            Model = body.Model,
             RfId = body.RfId,
-            DeviceId = body.Device,
-            Model = body.Model
+            DeviceId = body.Device
         };
         _db.Shockers.Add(shocker);
         await _db.SaveChangesAsync();

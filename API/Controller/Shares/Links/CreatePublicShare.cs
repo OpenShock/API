@@ -17,9 +17,9 @@ public sealed partial class ShareLinksController
         var entity = new PublicShare
         {
             Id = Guid.CreateVersion7(),
-            Owner = CurrentUser,
-            ExpiresAt = body.ExpiresOn == null ? null : DateTime.SpecifyKind(body.ExpiresOn.Value, DateTimeKind.Utc),
-            Name = body.Name
+            OwnerId = CurrentUser.Id,
+            Name = body.Name,
+            ExpiresAt = body.ExpiresOn == null ? null : DateTime.SpecifyKind(body.ExpiresOn.Value, DateTimeKind.Utc)
         };
         _db.PublicShares.Add(entity);
         await _db.SaveChangesAsync();
