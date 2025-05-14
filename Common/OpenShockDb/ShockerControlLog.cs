@@ -2,27 +2,27 @@
 
 namespace OpenShock.Common.OpenShockDb;
 
-public partial class ShockerControlLog
+public sealed class ShockerControlLog
 {
-    public Guid Id { get; set; }
+    public required Guid Id { get; set; }
 
-    public Guid ShockerId { get; set; }
+    public required Guid ShockerId { get; set; }
 
-    public DateTime CreatedAt { get; set; }
+    public required Guid? ControlledByUserId { get; set; }
 
-    public Guid? ControlledByUserId { get; set; }
+    public required byte Intensity { get; set; }
 
-    public byte Intensity { get; set; }
-
-    public uint Duration { get; set; }
+    public required uint Duration { get; set; }
     
-    public ControlType Type { get; set; }
+    public required ControlType Type { get; set; }
 
-    public string? CustomName { get; set; }
+    public required string? CustomName { get; set; }
 
     public bool LiveControl { get; set; }
 
-    public virtual Shocker Shocker { get; set; } = null!;
+    public required DateTime CreatedAt { get; set; }
 
-    public virtual User? ControlledByUser { get; set; }
+    // Navigations
+    public Shocker Shocker { get; set; } = null!;
+    public User? ControlledByUser { get; set; }
 }

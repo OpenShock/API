@@ -42,8 +42,8 @@ public sealed partial class SharesController
         
         _db.ShockerShares.Add(new ShockerShare
         {
-            SharedWithUserId = CurrentUser.Id,
             ShockerId = shareCode.Share.ShockerId,
+            SharedWithUserId = CurrentUser.Id,
             AllowShock = shareCode.Share.AllowShock,
             AllowVibrate = shareCode.Share.AllowVibrate,
             AllowSound = shareCode.Share.AllowSound,

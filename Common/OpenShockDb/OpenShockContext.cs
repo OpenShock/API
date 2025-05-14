@@ -8,7 +8,7 @@ namespace OpenShock.Common.OpenShockDb;
 /// <summary>
 /// This is meant for use in migrations only.
 /// </summary>
-public class MigrationOpenShockContext : OpenShockContext
+public sealed class MigrationOpenShockContext : OpenShockContext
 {
     private readonly string? _connectionString = null;
     private readonly bool _debug;
@@ -46,7 +46,7 @@ public class MigrationOpenShockContext : OpenShockContext
 /// <summary>
 /// Main OpenShock DB Context
 /// </summary>
-public partial class OpenShockContext : DbContext
+public class OpenShockContext : DbContext
 {
     public OpenShockContext()
     {
@@ -76,39 +76,39 @@ public partial class OpenShockContext : DbContext
         }
     }
 
-    public virtual DbSet<ApiToken> ApiTokens { get; set; }
+    public DbSet<ApiToken> ApiTokens { get; set; }
 
-    public virtual DbSet<Device> Devices { get; set; }
+    public DbSet<Device> Devices { get; set; }
 
-    public virtual DbSet<DeviceOtaUpdate> DeviceOtaUpdates { get; set; }
+    public DbSet<DeviceOtaUpdate> DeviceOtaUpdates { get; set; }
 
-    public virtual DbSet<UserPasswordReset> UserPasswordResets { get; set; }
+    public DbSet<UserPasswordReset> UserPasswordResets { get; set; }
 
-    public virtual DbSet<ShareRequest> ShareRequests { get; set; }
+    public DbSet<ShareRequest> ShareRequests { get; set; }
 
-    public virtual DbSet<ShareRequestShocker> ShareRequestShockerMappings { get; set; }
+    public DbSet<ShareRequestShocker> ShareRequestShockerMappings { get; set; }
 
-    public virtual DbSet<Shocker> Shockers { get; set; }
+    public DbSet<Shocker> Shockers { get; set; }
 
-    public virtual DbSet<ShockerControlLog> ShockerControlLogs { get; set; }
+    public DbSet<ShockerControlLog> ShockerControlLogs { get; set; }
 
-    public virtual DbSet<ShockerShare> ShockerShares { get; set; }
+    public DbSet<ShockerShare> ShockerShares { get; set; }
 
-    public virtual DbSet<ShockerShareCode> ShockerShareCodes { get; set; }
+    public DbSet<ShockerShareCode> ShockerShareCodes { get; set; }
 
-    public virtual DbSet<PublicShare> PublicShares { get; set; }
+    public DbSet<PublicShare> PublicShares { get; set; }
 
-    public virtual DbSet<PublicShareShocker> PublicShareShockerMappings { get; set; }
+    public DbSet<PublicShareShocker> PublicShareShockerMappings { get; set; }
 
-    public virtual DbSet<User> Users { get; set; }
+    public DbSet<User> Users { get; set; }
 
-    public virtual DbSet<UserActivation> UserActivations { get; set; }
+    public DbSet<UserActivation> UserActivations { get; set; }
 
-    public virtual DbSet<UserEmailChange> UserEmailChanges { get; set; }
+    public DbSet<UserEmailChange> UserEmailChanges { get; set; }
 
-    public virtual DbSet<UserNameChange> UserNameChanges { get; set; }
+    public DbSet<UserNameChange> UserNameChanges { get; set; }
 
-    public virtual DbSet<AdminUsersView> AdminUsersViews { get; set; }
+    public DbSet<AdminUsersView> AdminUsersViews { get; set; }
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {

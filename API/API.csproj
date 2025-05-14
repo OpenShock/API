@@ -2,18 +2,6 @@
   <Import Project="../Framework.props" />
   <Import Project="../Shared.props" />
 
-  <PropertyGroup>
-    <GenerateDocumentationFile>true</GenerateDocumentationFile>
-  </PropertyGroup>
-
-  <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">
-    <NoWarn>1701;1702;IL2121;1591</NoWarn>
-  </PropertyGroup>
-
-  <PropertyGroup Condition=" '$(Configuration)' == 'Release' ">
-    <NoWarn>1701;1702;IL2121;1591</NoWarn>
-  </PropertyGroup>
-
   <ItemGroup>
     <PackageReference Include="Fluid.Core" Version="2.24.0" />
     <PackageReference Include="MailKit" Version="4.12.0" />

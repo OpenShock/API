@@ -1,14 +1,15 @@
 ﻿namespace OpenShock.Common.OpenShockDb;
 
-public partial class UserNameChange
+public sealed class UserNameChange
 {
-    public int Id { get; set; }
+    public int Id { get; set; } // TODO: Make this Guid
 
-    public Guid UserId { get; set; }
+    public required Guid UserId { get; set; }
 
-    public string OldName { get; set; } = null!;
+    public required string OldName { get; set; }
 
     public DateTime CreatedAt { get; set; }
 
-    public virtual User User { get; set; } = null!;
+    // Navigations
+    public User User { get; set; } = null!;
 }
