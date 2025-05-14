@@ -132,7 +132,7 @@ public sealed class LiveControlController : WebsocketBaseController<LiveControlR
             return;
         }
 
-        _sharedShockers = await db.ShockerShares
+        _sharedShockers = await db.UserShares
             .Where(x => x.Shocker.DeviceId == Id && x.SharedWithUserId == _currentUser.Id).Select(x => new
             {
                 x.ShockerId,

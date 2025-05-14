@@ -84,15 +84,15 @@ public class OpenShockContext : DbContext
 
     public DbSet<UserPasswordReset> UserPasswordResets { get; set; }
 
-    public DbSet<UserShareInvite> ShareRequests { get; set; }
+    public DbSet<UserShareInvite> UserShareInvites { get; set; }
 
-    public DbSet<UserShareInviteShocker> ShareRequestShockerMappings { get; set; }
+    public DbSet<UserShareInviteShocker> UserShareInviteShockers { get; set; }
 
     public DbSet<Shocker> Shockers { get; set; }
 
     public DbSet<ShockerControlLog> ShockerControlLogs { get; set; }
 
-    public DbSet<UserShare> ShockerShares { get; set; }
+    public DbSet<UserShare> UserShares { get; set; }
 
     public DbSet<ShockerShareCode> ShockerShareCodes { get; set; }
 

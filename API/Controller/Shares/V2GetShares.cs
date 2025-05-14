@@ -13,7 +13,7 @@ public sealed partial class SharesController
     [ApiVersion("2")]
     public async Task<V2UserShares> GetSharesByUsers(CancellationToken cancellationToken)
     {
-        var sharedWithOthersFuture = _db.ShockerShares
+        var sharedWithOthersFuture = _db.UserShares
             .Where(x => x.Shocker.Device.OwnerId == CurrentUser.Id)
             .AsNoTracking()
             .GroupBy(x => x.SharedWithUserId)
@@ -45,7 +45,7 @@ public sealed partial class SharesController
             })
             .Future();
 
-        var sharedWithMeFuture = _db.ShockerShares
+        var sharedWithMeFuture = _db.UserShares
             .Where(x => x.SharedWithUserId == CurrentUser.Id)
             .AsNoTracking()
             .GroupBy(x => x.Shocker.Device.OwnerId)

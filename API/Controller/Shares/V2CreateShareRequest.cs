@@ -53,11 +53,11 @@ public sealed partial class SharesController
             OwnerId = CurrentUser.Id,
             RecipientUserId = data.User
         };
-        _db.ShareRequests.Add(shareRequest);
+        _db.UserShareInvites.Add(shareRequest);
         
         foreach (var createShockerShare in data.Shockers)
         {
-            _db.ShareRequestShockerMappings.Add(new UserShareInviteShocker
+            _db.UserShareInviteShockers.Add(new UserShareInviteShocker
             {
                 UserShareInviteId = shareRequest.Id,
                 ShockerId = createShockerShare.Id,

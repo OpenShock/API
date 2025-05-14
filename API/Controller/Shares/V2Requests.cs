@@ -19,7 +19,7 @@ public sealed partial class SharesController
     [ApiVersion("2")]
     public IAsyncEnumerable<ShareRequestBaseDetails> GetOutgoingRequestsList()
     {
-        return _db.ShareRequests.Where(x => x.OwnerId == CurrentUser.Id)
+        return _db.UserShareInvites.Where(x => x.OwnerId == CurrentUser.Id)
             .Select(x => new ShareRequestBaseDetails
             {
                 Id = x.Id,
@@ -61,7 +61,7 @@ public sealed partial class SharesController
     [ApiVersion("2")]
     public IAsyncEnumerable<ShareRequestBaseDetails> GetIncomingRequestsList()
     {
-        return _db.ShareRequests.Where(x => x.RecipientUserId == CurrentUser.Id)
+        return _db.UserShareInvites.Where(x => x.RecipientUserId == CurrentUser.Id)
             .Select(x => new ShareRequestBaseDetails
             {
                 Id = x.Id,
@@ -105,7 +105,7 @@ public sealed partial class SharesController
     [ApiVersion("2")]
     public async Task<IActionResult> DeleteRequest(Guid id)
     {
-        var deletedShareRequest = await _db.ShareRequests
+        var deletedShareRequest = await _db.UserShareInvites
             .Where(x => x.Id == id && x.OwnerId == CurrentUser.Id).ExecuteDeleteAsync();
         
         if (deletedShareRequest <= 0) return Problem(ShareError.ShareRequestNotFound);
@@ -119,7 +119,7 @@ public sealed partial class SharesController
     [ApiVersion("2")]
     public async Task<IActionResult> DenyRequest(Guid id)
     {
-        var deletedShareRequest = await _db.ShareRequests
+        var deletedShareRequest = await _db.UserShareInvites
             .Where(x => x.Id == id && x.RecipientUserId == CurrentUser.Id).ExecuteDeleteAsync();
         
         if (deletedShareRequest <= 0) return Problem(ShareError.ShareRequestNotFound);
@@ -139,12 +139,12 @@ public sealed partial class SharesController
     [ApiVersion("2")]
     public async Task<IActionResult> RedeemRequest(Guid id, [FromServices] IDeviceUpdateService deviceUpdateService)
     {
-        var shareRequest = await _db.ShareRequests
+        var shareRequest = await _db.UserShareInvites
             .Where(x => x.Id == id && (x.RecipientUserId == null || x.RecipientUserId == CurrentUser.Id)).Include(x => x.ShockerMappings).FirstOrDefaultAsync();
         
         if (shareRequest == null) return Problem(ShareError.ShareRequestNotFound);
         
-        var alreadySharedShockers = await _db.ShockerShares.Where(x => x.Shocker.Device.Owner.Id == shareRequest.OwnerId && x.SharedWithUserId == CurrentUser.Id).ToListAsync();
+        var alreadySharedShockers = await _db.UserShares.Where(x => x.Shocker.Device.Owner.Id == shareRequest.OwnerId && x.SharedWithUserId == CurrentUser.Id).ToListAsync();
         
         foreach (var shareRequestShocker in shareRequest.ShockerMappings)
         {
@@ -179,7 +179,7 @@ public sealed partial class SharesController
             }
         }
         
-        _db.ShareRequests.Remove(shareRequest);
+        _db.UserShareInvites.Remove(shareRequest);
 
         if (await _db.SaveChangesAsync() < 1) throw new Exception("Error while linking share code to your account");
 
