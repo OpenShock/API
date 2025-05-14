@@ -41,6 +41,6 @@
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
 
     <!-- Disable Prefer framework type warning -->
-    <NoWarn>IDE0049</NoWarn>
+    <NoWarn>$(NoWarn);IDE0049</NoWarn>
   </PropertyGroup>
 </Project>
