@@ -52,14 +52,14 @@ public sealed class AccountService : IAccountService
         return CreateAccount(email, username, password, true);
     }
 
-    public async Task<OneOf<Success, NotFound>> DeactivateAccount(Guid userId)
+    public async Task<OneOf<Success, CannotDeactivatePrivilegedAccount, NotFound>> DeactivateAccount(Guid userId)
     {
         var user = await _db.Users.Where(u => u.Id == userId).FirstOrDefaultAsync();
         if (user == null) return new NotFound();
         
         if (user.Roles.Any(r => r is RoleType.Admin or RoleType.System))
         {
-            throw new NotImplementedException();
+            return new CannotDeactivatePrivilegedAccount();
         }
 
         if (user.DeletedAt.HasValue)
@@ -79,11 +79,20 @@ public sealed class AccountService : IAccountService
         throw new NotImplementedException();
     }
 
-    public async Task<OneOf<Success, NotFound>> DeleteAccount(Guid userId)
+    public async Task<OneOf<Success, CannotDeletePrivilegedAccount, NotFound>> DeleteAccount(Guid userId)
     {
-        var nDeleted = await _db.Users.Where(u => u.Id == userId).DeleteAsync();
+        var user = await _db.Users.Where(u => u.Id == userId).FirstOrDefaultAsync();
+        if (user == null) return new NotFound();
 
-        throw new NotImplementedException();
+        if (user.Roles.Any(r => r is RoleType.Admin or RoleType.System))
+        {
+            return new CannotDeletePrivilegedAccount();
+        }
+
+        // TODO: Do more checks?
+
+        _db.Remove(user);
+        await _db.SaveChangesAsync();
         
         return new Success();
     }

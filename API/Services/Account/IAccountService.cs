@@ -19,11 +19,11 @@ public interface IAccountService
     /// <returns></returns>
     public Task<OneOf<Success<User>, AccountWithEmailOrUsernameExists>> CreateAccount(string email, string username, string password);
     
-    public Task<OneOf<Success, NotFound>> DeactivateAccount(Guid userId);
+    public Task<OneOf<Success, CannotDeactivatePrivilegedAccount, NotFound>> DeactivateAccount(Guid userId);
     
     public Task<OneOf<Success, NotFound>> ReactivateAccount(Guid userId);
     
-    public Task<OneOf<Success, NotFound>> DeleteAccount(Guid userId);
+    public Task<OneOf<Success, CannotDeletePrivilegedAccount, NotFound>> DeleteAccount(Guid userId);
 
     /// <summary>
     /// When a user uses the signup form, this also handles email verification mail
@@ -96,6 +96,8 @@ public interface IAccountService
 }
 
 public readonly struct AccountWithEmailOrUsernameExists;
+public readonly struct CannotDeactivatePrivilegedAccount;
+public readonly struct CannotDeletePrivilegedAccount;
 public readonly struct TooManyPasswordResets;
 public readonly struct SecretInvalid;
 
