@@ -19,7 +19,7 @@ public static class QueryStringTokenizer
     /// <summary>
     /// Parses a query string into a list of words, handling spaces, quoted strings, and escape sequences.
     /// </summary>
-    /// <param name="query">The input query as a <see cref="ReadOnlySpan{char}"/>.</param>
+    /// <param name="query">The input query as a readonly char span.</param>
     /// <returns>A list of parsed words from the query.</returns>
     /// <exception cref="QueryStringTokenizerException">
     /// Thrown when the query contains an invalid escape sequence, an unclosed quoted string, or other syntax errors.

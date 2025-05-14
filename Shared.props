@@ -32,4 +32,15 @@
     <UserSecretsId>a2109c1e-fb11-44d7-8127-346ef60cb9a5</UserSecretsId>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
   </PropertyGroup>
+  
+  <PropertyGroup>
+    <!-- Disable Missing XML comment warning -->
+    <NoWarn>1591</NoWarn>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+
+    <!-- Disable Prefer framework type warning -->
+    <NoWarn>IDE0049</NoWarn>
+  </PropertyGroup>
 </Project>
