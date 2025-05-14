@@ -4,6 +4,7 @@
     <Product>$(Company).$(MSBuildProjectName)</Product>
     <Version>3.13.0</Version>
 
+    <Title>$(Product)</Title>
     <Authors>OpenShock</Authors>
     <Description>Backend for the OpenShock solution, that enables controlling shock collars over the internet.</Description>
     <RepositoryUrl>https://github.com/OpenShock/API</RepositoryUrl>
