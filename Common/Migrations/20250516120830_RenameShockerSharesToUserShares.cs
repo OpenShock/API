@@ -154,92 +154,42 @@ namespace OpenShock.Common.Migrations
             // Recreate the admin_users_view with modified names
             migrationBuilder.Sql(
                 """
-                CREATE OR REPLACE VIEW admin_users_view AS
-                WITH
-                  api_tokens_count AS (
-                    SELECT user_id, COUNT(*) AS cnt
-                    FROM api_tokens
-                    GROUP BY user_id
-                  ),
-                  password_resets_count AS (
-                    SELECT user_id, COUNT(*) AS cnt
-                    FROM user_password_resets
-                    GROUP BY user_id
-                  ),
-                  user_shares_count AS (
-                    SELECT dev.owner_id AS user_id, COUNT(*) AS cnt
-                    FROM devices dev
-                    INNER JOIN shockers sck    ON sck.device_id = dev.id
-                    INNER JOIN user_shares ush ON ush.shocker_id = sck.id
-                    GROUP BY dev.owner_id
-                  ),
-                  public_shares_count AS (
-                    SELECT owner_id AS user_id, COUNT(*) AS cnt
-                    FROM public_shares
-                    GROUP BY owner_id
-                  ),
-                  email_changes_count AS (
-                    SELECT user_id, COUNT(*) AS cnt
-                    FROM users_email_changes
-                    GROUP BY user_id
-                  ),
-                  name_changes_count AS (
-                    SELECT user_id, COUNT(*) AS cnt
-                    FROM users_name_changes
-                    GROUP BY user_id
-                  ),
-                  activation_count AS (
-                    SELECT user_id, COUNT(*) AS cnt
-                    FROM users_activation
-                    GROUP BY user_id
-                  ),
-                  device_count AS (
-                    SELECT owner_id AS user_id, COUNT(*) AS cnt
-                    FROM devices
-                    GROUP BY owner_id
-                  ),
-                  shocker_count AS (
-                    SELECT dev.owner_id AS user_id, COUNT(sck.id) AS cnt
-                    FROM devices dev
-                    INNER JOIN shockers sck ON sck.device_id = dev.id
-                    GROUP BY dev.owner_id
-                  ),
-                  shocker_control_log_count AS (
-                    SELECT dev.owner_id AS user_id, COUNT(scl.id) AS cnt
-                    FROM devices dev
-                    INNER JOIN shockers sck             ON sck.device_id = dev.id
-                    INNER JOIN shocker_control_logs scl ON scl.shocker_id = sck.id
-                    GROUP BY dev.owner_id
-                  )
+                DROP VIEW admin_users_view;
+                CREATE VIEW admin_users_view AS
                 SELECT
-                  u.id,
-                  u.name,
-                  u.email,
-                  SPLIT_PART(u.password_hash, ':', 1) AS password_hash_type,
-                  u.created_at,
-                  u.email_activated,
-                  u.roles,
-                  COALESCE(at.cnt, 0)  AS api_token_count,
-                  COALESCE(pr.cnt, 0)  AS password_reset_count,
-                  COALESCE(us.cnt, 0)  AS user_share_count,
-                  COALESCE(ps.cnt, 0)  AS public_share_count,
-                  COALESCE(ec.cnt, 0)  AS email_change_request_count,
-                  COALESCE(nc.cnt, 0)  AS name_change_request_count,
-                  COALESCE(ac.cnt, 0)  AS user_activation_count,
-                  COALESCE(dc.cnt, 0)  AS device_count,
-                  COALESCE(sc.cnt, 0)  AS shocker_count,
-                  COALESCE(scl.cnt, 0) AS shocker_control_log_count
-                FROM users u
-                LEFT JOIN api_tokens_count          at ON at.user_id = u.id
-                LEFT JOIN password_resets_count     pr ON pr.user_id = u.id
-                LEFT JOIN user_shares_count         us ON us.user_id = u.id
-                LEFT JOIN public_shares_count       ps ON ps.user_id = u.id
-                LEFT JOIN email_changes_count       ec ON ec.user_id = u.id
-                LEFT JOIN name_changes_count        nc ON nc.user_id = u.id
-                LEFT JOIN activation_count          ac ON ac.user_id = u.id
-                LEFT JOIN device_count              dc ON dc.user_id = u.id
-                LEFT JOIN shocker_count             sc ON sc.user_id = u.id
-                LEFT JOIN shocker_control_log_count sl ON sl.user_id = u.id;
+                    u.id,
+                    u.name,
+                    u.email,
+                    SPLIT_PART(u.password_hash, ':', 1) AS password_hash_type,
+                    u.created_at,
+                    u.email_activated,
+                    u.roles,
+                    (SELECT COUNT(*) FROM api_tokens token WHERE token.user_id = u.id) AS api_token_count,
+                    (SELECT COUNT(*) FROM user_password_resets reset WHERE reset.user_id = u.id) AS password_reset_count,
+                    (
+                        SELECT COUNT(*) FROM devices device
+                        INNER JOIN shockers shocker ON shocker.device_id = device.id
+                        INNER JOIN user_shares share ON share.shocker_id = shocker.id
+                        WHERE device.owner_id = u.id
+                    ) AS shocker_user_share_count,
+                    (SELECT COUNT(*) FROM public_shares share WHERE share.owner_id = u.id) AS shocker_public_share_count,
+                    (SELECT COUNT(*) FROM user_email_changes entry WHERE entry.user_id = u.id) AS email_change_request_count,
+                    (SELECT COUNT(*) FROM user_name_changes entry WHERE entry.user_id = u.id) AS name_change_request_count,
+                    (SELECT COUNT(*) FROM user_activations entry WHERE entry.user_id = u.id) AS user_activation_count,
+                    (SELECT COUNT(*) FROM devices device WHERE device.owner_id = u.id) AS device_count,
+                    (
+                        SELECT COUNT(*) FROM devices device
+                        INNER JOIN shockers shocker ON shocker.device_id = device.id
+                        WHERE device.owner_id = u.id
+                    ) AS shocker_count,
+                    (
+                        SELECT COUNT(*) FROM devices device
+                        INNER JOIN shockers shocker ON shocker.device_id = device.id
+                        INNER JOIN shocker_control_logs log ON log.shocker_id = shocker.id
+                        WHERE device.owner_id = u.id
+                ) AS shocker_control_log_count
+                FROM
+                    users u;
                 """
             );
         }
