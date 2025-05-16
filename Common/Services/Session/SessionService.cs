@@ -61,7 +61,7 @@ public sealed class SessionService : ISessionService
 
     public async Task<LoginSession?> GetSessionById(Guid sessionId)
     {
-        return await _loginSessions.Where(x => x.PublicId == sessionId).FirstOrDefaultAsync();
+        return await _loginSessions.FirstOrDefaultAsync(x => x.PublicId == sessionId);
     }
 
     public async Task UpdateSession(LoginSession session, TimeSpan ttl)
@@ -86,7 +86,7 @@ public sealed class SessionService : ISessionService
 
     public async Task<bool> DeleteSessionById(Guid sessionId)
     {
-        var session = await _loginSessions.Where(x => x.PublicId == sessionId).FirstOrDefaultAsync();
+        var session = await _loginSessions.FirstOrDefaultAsync(x => x.PublicId == sessionId);
         if (session == null) return false;
 
         await _loginSessions.DeleteAsync(session);
