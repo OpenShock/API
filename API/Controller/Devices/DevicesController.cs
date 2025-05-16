@@ -79,8 +79,7 @@ public sealed partial class DevicesController
     [MapToApiVersion("1")]
     public async Task<IActionResult> EditDevice([FromRoute] Guid deviceId, [FromBody] HubEditRequest body, [FromServices] IDeviceUpdateService updateService)
     {
-        var device = await _db.Devices.Where(x => x.OwnerId == CurrentUser.Id && x.Id == deviceId)
-            .FirstOrDefaultAsync();
+        var device = await _db.Devices.FirstOrDefaultAsync(x => x.OwnerId == CurrentUser.Id && x.Id == deviceId);
         if (device == null) return Problem(DeviceError.DeviceNotFound);
 
         device.Name = body.Name;
@@ -105,8 +104,7 @@ public sealed partial class DevicesController
     [MapToApiVersion("1")]
     public async Task<IActionResult> RegenerateDeviceToken([FromRoute] Guid deviceId)
     {
-        var device = await _db.Devices.Where(x => x.OwnerId == CurrentUser.Id && x.Id == deviceId)
-            .FirstOrDefaultAsync();
+        var device = await _db.Devices.FirstOrDefaultAsync(x => x.OwnerId == CurrentUser.Id && x.Id == deviceId);
         if (device == null) return Problem(DeviceError.DeviceNotFound);
 
         device.Token = CryptoUtils.RandomString(256);

@@ -37,8 +37,7 @@ public sealed class OtaService : IOtaService
     public async Task Progress(Guid deviceId, int updateId)
     {
         var updateTask = await _db.DeviceOtaUpdates
-            .Where(x => x.DeviceId == deviceId && x.UpdateId == updateId)
-            .FirstOrDefaultAsync();
+            .FirstOrDefaultAsync(x => x.DeviceId == deviceId && x.UpdateId == updateId);
         if (updateTask == null) return;
         updateTask.Status = OtaUpdateStatus.Running;
 
@@ -49,8 +48,7 @@ public sealed class OtaService : IOtaService
     public async Task Error(Guid deviceId, int updateId, bool fatal, string message)
     {
         var updateTask = await _db.DeviceOtaUpdates
-            .Where(x => x.DeviceId == deviceId && x.UpdateId == updateId)
-            .FirstOrDefaultAsync();
+            .FirstOrDefaultAsync(x => x.DeviceId == deviceId && x.UpdateId == updateId);
         if (updateTask == null) return;
         updateTask.Status = OtaUpdateStatus.Error;
         updateTask.Message = message;
@@ -62,8 +60,7 @@ public sealed class OtaService : IOtaService
     public async Task<bool> Success(Guid deviceId, int updateId)
     {
         var updateTask = await _db.DeviceOtaUpdates
-            .Where(x => x.DeviceId == deviceId && x.UpdateId == updateId)
-            .FirstOrDefaultAsync();
+            .FirstOrDefaultAsync(x => x.DeviceId == deviceId && x.UpdateId == updateId);
         if (updateTask == null) return false;
         updateTask.Status = OtaUpdateStatus.Finished;
 

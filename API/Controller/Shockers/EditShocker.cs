@@ -34,8 +34,7 @@ public sealed partial class ShockerController
         var device = await _db.Devices.AnyAsync(x => x.OwnerId == CurrentUser.Id && x.Id == body.Device);
         if (!device) return Problem(DeviceError.DeviceNotFound);
 
-        var shocker = await _db.Shockers.Where(x => x.Device.OwnerId == CurrentUser.Id && x.Id == shockerId)
-            .FirstOrDefaultAsync();
+        var shocker = await _db.Shockers.FirstOrDefaultAsync(x => x.Device.OwnerId == CurrentUser.Id && x.Id == shockerId);
         if (shocker == null) return Problem(ShockerError.ShockerNotFound);
         var oldDevice = shocker.DeviceId;
 

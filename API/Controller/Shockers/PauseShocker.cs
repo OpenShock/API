@@ -29,8 +29,7 @@ public sealed partial class ShockerController
     public async Task<IActionResult> PauseShocker([FromRoute] Guid shockerId, [FromBody] PauseRequest body,
         [FromServices] IDeviceUpdateService deviceUpdateService)
     {
-        var shocker = await _db.Shockers.Where(x => x.Id == shockerId && x.Device.OwnerId == CurrentUser.Id)
-            .FirstOrDefaultAsync();
+        var shocker = await _db.Shockers.FirstOrDefaultAsync(x => x.Id == shockerId && x.Device.OwnerId == CurrentUser.Id);
         if (shocker == null) return Problem(ShockerError.ShockerNotFound);
         shocker.IsPaused = body.Pause;
         await _db.SaveChangesAsync();

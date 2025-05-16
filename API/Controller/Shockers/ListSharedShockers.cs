@@ -29,7 +29,6 @@ public sealed partial class ShockerController
     {
         var sharedShockersData = await _db.ShockerShares
             .AsNoTracking()
-            .Include(x => x.Shocker.Device.Owner)
             .Where(x => x.SharedWithUserId == CurrentUser.Id)
             .Select(x => new
             {

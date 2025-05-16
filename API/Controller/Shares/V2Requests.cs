@@ -140,7 +140,8 @@ public sealed partial class SharesController
     public async Task<IActionResult> RedeemRequest(Guid id, [FromServices] IDeviceUpdateService deviceUpdateService)
     {
         var shareRequest = await _db.ShareRequests
-            .Where(x => x.Id == id && (x.UserId == null || x.UserId == CurrentUser.Id)).Include(x => x.ShockerMappings).FirstOrDefaultAsync();
+            .Include(x => x.ShockerMappings)
+            .FirstOrDefaultAsync(x => x.Id == id && (x.UserId == null || x.UserId == CurrentUser.Id));
         
         if (shareRequest == null) return Problem(ShareError.ShareRequestNotFound);
         

@@ -194,7 +194,7 @@ public sealed partial class ShockerController
         var affected = await _db.ShockerShares.Where(x =>
                 x.ShockerId == shockerId && x.SharedWithUserId == sharedWithUserId &&
                 x.Shocker.Device.OwnerId == CurrentUser.Id).Select(x =>
-                new { Share = x, DeviceId = x.Shocker.DeviceId, Owner = x.Shocker.Device.OwnerId })
+                new { Share = x, x.Shocker.DeviceId, Owner = x.Shocker.Device.OwnerId })
             .FirstOrDefaultAsync();
         if (affected == null) return Problem(ShockerError.ShockerNotFound);
 
@@ -237,7 +237,8 @@ public sealed partial class ShockerController
         var affected = await _db.ShockerShares.Where(x =>
             x.ShockerId == shockerId && x.SharedWithUserId == sharedWithUserId &&
             x.Shocker.Device.OwnerId == CurrentUser.Id).Select(x =>
-            new { Share = x, DeviceId = x.Shocker.DeviceId, Owner = x.Shocker.Device.OwnerId }).FirstOrDefaultAsync();
+            new { Share = x, x.Shocker.DeviceId, Owner = x.Shocker.Device.OwnerId })
+            .FirstOrDefaultAsync();
         if (affected == null) return Problem(ShockerError.ShockerNotFound);
 
         affected.Share.IsPaused = body.Pause;
