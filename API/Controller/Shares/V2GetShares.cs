@@ -13,9 +13,10 @@ public sealed partial class SharesController
     [ApiVersion("2")]
     public async Task<V2UserShares> GetSharesByUsers(CancellationToken cancellationToken)
     {
-        var sharedWithOthersFuture = _db.UserShares
+        _db.ChangeTracker.QueryTrackingBehavior = QueryTrackingBehavior.NoTracking;
+
+        var outgoingSharesFuture = _db.UserShares
             .Where(x => x.Shocker.Device.OwnerId == CurrentUser.Id)
-            .AsNoTracking()
             .GroupBy(x => x.SharedWithUserId)
             .Select(g => new V2UserSharesListItemDto
             {
@@ -45,9 +46,8 @@ public sealed partial class SharesController
             })
             .Future();
 
-        var sharedWithMeFuture = _db.UserShares
+        var incomingSharesFuture = _db.UserShares
             .Where(x => x.SharedWithUserId == CurrentUser.Id)
-            .AsNoTracking()
             .GroupBy(x => x.Shocker.Device.OwnerId)
             .Select(g => new V2UserSharesListItemDto
             {
@@ -79,14 +79,14 @@ public sealed partial class SharesController
 
         return new V2UserShares
         {
-            SharedWithMe = (await sharedWithMeFuture.ToArrayAsync(cancellationToken)).Select(x => x.FromDto()),
-            SharedWithOthers = (await sharedWithOthersFuture.ToArrayAsync(cancellationToken)).Select(x => x.FromDto())
+            Outgoing = (await outgoingSharesFuture.ToArrayAsync(cancellationToken)).Select(x => x.FromDto()),
+            Incoming = (await incomingSharesFuture.ToArrayAsync(cancellationToken)).Select(x => x.FromDto())
         };
     }
 
     public sealed class V2UserShares
     {
-        public required IEnumerable<V2UserSharesListItem> SharedWithMe { get; set; }
-        public required IEnumerable<V2UserSharesListItem> SharedWithOthers { get; set; }
+        public required IEnumerable<V2UserSharesListItem> Outgoing { get; set; }
+        public required IEnumerable<V2UserSharesListItem> Incoming { get; set; }
     }
 }

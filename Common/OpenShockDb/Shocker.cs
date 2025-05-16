@@ -20,7 +20,7 @@ public sealed class Shocker
 
     // Navigations
     public Device Device { get; set; } = null!;
-    public ICollection<UserShareInviteShocker> UserShareInviteShockers { get; } = [];
+    public ICollection<UserShareInviteShocker> UserShareInviteShockerMappings { get; } = [];
     public ICollection<ShockerControlLog> ShockerControlLogs { get; } = [];
     public ICollection<ShockerShareCode> ShockerShareCodes { get; } = [];
     public ICollection<UserShare> UserShares { get; } = [];

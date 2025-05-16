@@ -12,25 +12,25 @@ namespace OpenShock.API.Controller.Shares;
 
 public sealed partial class SharesController
 {
-    [HttpPost("requests")]
+    [HttpPost("invites")]
     [ProducesResponseType<Guid>(StatusCodes.Status200OK, MediaTypeNames.Text.Plain)]
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status404NotFound, MediaTypeNames.Application.ProblemJson)] // UserNotFound, ShareCreateShockerNotFound
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status400BadRequest, MediaTypeNames.Application.ProblemJson)] // ShareCreateCannotShareWithSelf
     [ApiVersion("2")]
-    public async Task<IActionResult> CreateShare([FromBody] CreateShareRequest data)
+    public async Task<IActionResult> CreateShareInvite([FromBody] CreateShareRequest body)
     {
-        if (data.User == CurrentUser.Id)
+        if (body.User == CurrentUser.Id)
         {
             return Problem(ShareError.ShareRequestCreateCannotShareWithSelf);
         }
         
-        var providedShockerIds = data.Shockers.Select(x => x.Id).ToArray();
+        var providedShockerIds = body.Shockers.Select(x => x.Id).ToArray();
         var belongsToUsFuture = _db.Shockers.AsNoTracking().Where(x =>
             x.Device.OwnerId == CurrentUser.Id && providedShockerIds.Contains(x.Id)).Select(x => x.Id).Future();
         
-        if (data.User != null)
+        if (body.User != null)
         {
-            var existsFuture = _db.Users.AsNoTracking().DeferredAny(x => x.Id == data.User).FutureValue();
+            var existsFuture = _db.Users.AsNoTracking().DeferredAny(x => x.Id == body.User).FutureValue();
             
             // We can already resolve the futures here since this is the last future query
             if (!await existsFuture.ValueAsync()) return Problem(UserError.UserNotFound);
@@ -47,26 +47,26 @@ public sealed partial class SharesController
 
         await using var transaction = await _db.Database.BeginTransactionAsync();
 
-        var shareRequest = new UserShareInvite
+        var shareInvite = new UserShareInvite
         {
             Id = Guid.CreateVersion7(),
             OwnerId = CurrentUser.Id,
-            RecipientUserId = data.User
+            RecipientUserId = body.User
         };
-        _db.UserShareInvites.Add(shareRequest);
+        _db.UserShareInvites.Add(shareInvite);
         
-        foreach (var createShockerShare in data.Shockers)
+        foreach (var createUserShare in body.Shockers)
         {
             _db.UserShareInviteShockers.Add(new UserShareInviteShocker
             {
-                UserShareInviteId = shareRequest.Id,
-                ShockerId = createShockerShare.Id,
-                AllowShock = createShockerShare.Permissions.Shock,
-                AllowVibrate = createShockerShare.Permissions.Vibrate,
-                AllowSound = createShockerShare.Permissions.Sound,
-                AllowLiveControl = createShockerShare.Permissions.Live,
-                MaxIntensity = createShockerShare.Limits.Intensity,
-                MaxDuration = createShockerShare.Limits.Duration,
+                InviteId = shareInvite.Id,
+                ShockerId = createUserShare.Id,
+                AllowShock = createUserShare.Permissions.Shock,
+                AllowVibrate = createUserShare.Permissions.Vibrate,
+                AllowSound = createUserShare.Permissions.Sound,
+                AllowLiveControl = createUserShare.Permissions.Live,
+                MaxIntensity = createUserShare.Limits.Intensity,
+                MaxDuration = createUserShare.Limits.Duration,
                 IsPaused = false
             });
         }
@@ -75,6 +75,6 @@ public sealed partial class SharesController
 
         await transaction.CommitAsync();
 
-        return Ok(shareRequest.Id);
+        return Ok(shareInvite.Id);
     }
 }

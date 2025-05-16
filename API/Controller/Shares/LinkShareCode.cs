@@ -42,7 +42,6 @@ public sealed partial class SharesController
         
         _db.UserShares.Add(new UserShare
         {
-            OwnerId = shareCode.OwnerId,
             SharedWithUserId = CurrentUser.Id,
             ShockerId = shareCode.Share.ShockerId,
             AllowShock = shareCode.Share.AllowShock,
