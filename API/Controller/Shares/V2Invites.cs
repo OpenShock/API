@@ -15,28 +15,28 @@ namespace OpenShock.API.Controller.Shares;
 
 public sealed partial class SharesController
 {
-    [HttpGet("requests/outgoing")]
+    [HttpGet("invites/outgoing")]
     [ApiVersion("2")]
-    public IAsyncEnumerable<ShareRequestBaseDetails> GetOutgoingRequestsList()
+    public IAsyncEnumerable<ShareInviteBaseDetails> GetOutgoingInvitesList()
     {
-        return _db.ShareRequests.Where(x => x.OwnerId == CurrentUser.Id)
-            .Select(x => new ShareRequestBaseDetails
+        return _db.UserShareInvites.Where(x => x.OwnerId == CurrentUser.Id)
+            .Select(x => new ShareInviteBaseDetails
             {
                 Id = x.Id,
-                CreatedOn = x.CreatedAt,
+                CreatedAt = x.CreatedAt,
                 Owner = new GenericIni
                 {
                     Id = x.Owner.Id,
                     Name = x.Owner.Name,
                     Image = x.Owner.GetImageUrl()
                 },
-                SharedWith = x.User == null
+                SharedWith = x.RecipientUser == null
                     ? null
                     : new GenericIni
                     {
-                        Id = x.User.Id,
-                        Name = x.User.Name,
-                        Image = x.User.GetImageUrl()
+                        Id = x.RecipientUser.Id,
+                        Name = x.RecipientUser.Name,
+                        Image = x.RecipientUser.GetImageUrl()
                     },
                 Shockers = x.ShockerMappings.Select(y => new ShockerPermLimitPairWithId
                 {
@@ -57,28 +57,28 @@ public sealed partial class SharesController
             }).AsAsyncEnumerable();
     }
     
-    [HttpGet("requests/incoming")]
+    [HttpGet("invites/incoming")]
     [ApiVersion("2")]
-    public IAsyncEnumerable<ShareRequestBaseDetails> GetIncomingRequestsList()
+    public IAsyncEnumerable<ShareInviteBaseDetails> GetIncomingInvitesList()
     {
-        return _db.ShareRequests.Where(x => x.UserId == CurrentUser.Id)
-            .Select(x => new ShareRequestBaseDetails
+        return _db.UserShareInvites.Where(x => x.RecipientUserId == CurrentUser.Id)
+            .Select(x => new ShareInviteBaseDetails
             {
                 Id = x.Id,
-                CreatedOn = x.CreatedAt,
+                CreatedAt = x.CreatedAt,
                 Owner = new GenericIni
                 {
                     Id = x.Owner.Id,
                     Name = x.Owner.Name,
                     Image = x.Owner.GetImageUrl()
                 },
-                SharedWith = x.User == null
+                SharedWith = x.RecipientUser == null
                     ? null
                     : new GenericIni
                     {
-                        Id = x.User.Id,
-                        Name = x.User.Name,
-                        Image = x.User.GetImageUrl()
+                        Id = x.RecipientUser.Id,
+                        Name = x.RecipientUser.Name,
+                        Image = x.RecipientUser.GetImageUrl()
                     },
                 Shockers = x.ShockerMappings.Select(y => new ShockerPermLimitPairWithId
                 {
@@ -99,13 +99,13 @@ public sealed partial class SharesController
             }).AsAsyncEnumerable();
     }
     
-    [HttpDelete("requests/outgoing/{id:guid}")]
+    [HttpDelete("invites/outgoing/{id:guid}")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status404NotFound, MediaTypeNames.Application.ProblemJson)] // ShareRequestNotFound
     [ApiVersion("2")]
-    public async Task<IActionResult> DeleteRequest(Guid id)
+    public async Task<IActionResult> DeleteOutgoingInvite(Guid id)
     {
-        var deletedShareRequest = await _db.ShareRequests
+        var deletedShareRequest = await _db.UserShareInvites
             .Where(x => x.Id == id && x.OwnerId == CurrentUser.Id).ExecuteDeleteAsync();
         
         if (deletedShareRequest <= 0) return Problem(ShareError.ShareRequestNotFound);
@@ -113,14 +113,14 @@ public sealed partial class SharesController
         return Ok();
     }
     
-    [HttpDelete("requests/incoming/{id:guid}")]
+    [HttpDelete("invites/incoming/{id:guid}")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status404NotFound, MediaTypeNames.Application.ProblemJson)] // ShareRequestNotFound
     [ApiVersion("2")]
-    public async Task<IActionResult> DenyRequest(Guid id)
+    public async Task<IActionResult> DenyIncomingInvite(Guid id)
     {
-        var deletedShareRequest = await _db.ShareRequests
-            .Where(x => x.Id == id && x.UserId == CurrentUser.Id).ExecuteDeleteAsync();
+        var deletedShareRequest = await _db.UserShareInvites
+            .Where(x => x.Id == id && x.RecipientUserId == CurrentUser.Id).ExecuteDeleteAsync();
         
         if (deletedShareRequest <= 0) return Problem(ShareError.ShareRequestNotFound);
         
@@ -133,53 +133,53 @@ public sealed partial class SharesController
     /// <param name="id"></param>
     /// <param name="deviceUpdateService"></param>
     /// <returns></returns>
-    [HttpPost("requests/incoming/{id:guid}")]
+    [HttpPost("invites/incoming/{id:guid}")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status404NotFound, MediaTypeNames.Application.ProblemJson)] // ShareRequestNotFound
     [ApiVersion("2")]
-    public async Task<IActionResult> RedeemRequest(Guid id, [FromServices] IDeviceUpdateService deviceUpdateService)
+    public async Task<IActionResult> RedeemInvite(Guid id, [FromServices] IDeviceUpdateService deviceUpdateService)
     {
-        var shareRequest = await _db.ShareRequests
+        var shareRequest = await _db.UserShareInvites
             .Include(x => x.ShockerMappings)
-            .FirstOrDefaultAsync(x => x.Id == id && (x.UserId == null || x.UserId == CurrentUser.Id));
+            .FirstOrDefaultAsync(x => x.Id == id && (x.RecipientUserId == null || x.RecipientUserId == CurrentUser.Id));
         
         if (shareRequest == null) return Problem(ShareError.ShareRequestNotFound);
         
-        var alreadySharedShockers = await _db.ShockerShares.Where(x => x.Shocker.Device.Owner.Id == shareRequest.OwnerId && x.SharedWithUserId == CurrentUser.Id).ToListAsync();
+        var alreadySharedShockers = await _db.UserShares.Where(x => x.Shocker.Device.Owner.Id == shareRequest.OwnerId && x.SharedWithUserId == CurrentUser.Id).ToListAsync();
         
-        foreach (var shareRequestShocker in shareRequest.ShockerMappings)
+        foreach (var shareInvitationShocker in shareRequest.ShockerMappings)
         {
-            var existingShare = alreadySharedShockers.FirstOrDefault(x => x.ShockerId == shareRequestShocker.ShockerId);
+            var existingShare = alreadySharedShockers.FirstOrDefault(x => x.ShockerId == shareInvitationShocker.ShockerId);
             if (existingShare != null)
             {
-                existingShare.AllowShock = shareRequestShocker.AllowShock;
-                existingShare.AllowVibrate = shareRequestShocker.AllowVibrate;
-                existingShare.AllowSound = shareRequestShocker.AllowSound;
-                existingShare.AllowLiveControl = shareRequestShocker.AllowLiveControl;
-                existingShare.MaxIntensity = shareRequestShocker.MaxIntensity;
-                existingShare.MaxDuration = shareRequestShocker.MaxDuration;
-                existingShare.IsPaused = shareRequestShocker.IsPaused;
+                existingShare.AllowShock = shareInvitationShocker.AllowShock;
+                existingShare.AllowVibrate = shareInvitationShocker.AllowVibrate;
+                existingShare.AllowSound = shareInvitationShocker.AllowSound;
+                existingShare.AllowLiveControl = shareInvitationShocker.AllowLiveControl;
+                existingShare.MaxIntensity = shareInvitationShocker.MaxIntensity;
+                existingShare.MaxDuration = shareInvitationShocker.MaxDuration;
+                existingShare.IsPaused = shareInvitationShocker.IsPaused;
             }
             else
             {
-                var newShare = new ShockerShare
+                var newShare = new UserShare
                 {
-                    ShockerId = shareRequestShocker.ShockerId,
                     SharedWithUserId = CurrentUser.Id,
-                    AllowShock = shareRequestShocker.AllowShock,
-                    AllowVibrate = shareRequestShocker.AllowVibrate,
-                    AllowSound = shareRequestShocker.AllowSound,
-                    AllowLiveControl = shareRequestShocker.AllowLiveControl,
-                    MaxIntensity = shareRequestShocker.MaxIntensity,
-                    MaxDuration = shareRequestShocker.MaxDuration,
-                    IsPaused = shareRequestShocker.IsPaused
+                    ShockerId = shareInvitationShocker.ShockerId,
+                    AllowShock = shareInvitationShocker.AllowShock,
+                    AllowVibrate = shareInvitationShocker.AllowVibrate,
+                    AllowSound = shareInvitationShocker.AllowSound,
+                    AllowLiveControl = shareInvitationShocker.AllowLiveControl,
+                    MaxIntensity = shareInvitationShocker.MaxIntensity,
+                    MaxDuration = shareInvitationShocker.MaxDuration,
+                    IsPaused = shareInvitationShocker.IsPaused
                 };
                 
                 alreadySharedShockers.Add(newShare);
             }
         }
         
-        _db.ShareRequests.Remove(shareRequest);
+        _db.UserShareInvites.Remove(shareRequest);
 
         if (await _db.SaveChangesAsync() < 1) throw new Exception("Error while linking share code to your account");
 
@@ -196,12 +196,12 @@ public sealed partial class SharesController
 public class ShareRequestBase
 {
     public required Guid Id { get; set; }
-    public required DateTime CreatedOn { get; set; }
+    public required DateTime CreatedAt { get; set; }
     public required GenericIni Owner { get; set; }
     public required GenericIni? SharedWith { get; set; }
 }
 
-public sealed class ShareRequestBaseItem : ShareRequestBase
+public sealed class ShareInviteBaseItem : ShareRequestBase
 {
     public required ShareRequestCounts Counts { get; set; }
     
@@ -211,7 +211,7 @@ public sealed class ShareRequestBaseItem : ShareRequestBase
     }
 }
 
-public sealed class ShareRequestBaseDetails : ShareRequestBase
+public sealed class ShareInviteBaseDetails : ShareRequestBase
 {
     public required IEnumerable<ShockerPermLimitPairWithId> Shockers { get; set; }
 }

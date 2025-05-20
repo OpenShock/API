@@ -27,7 +27,7 @@ public sealed partial class ShockerController
     [MapToApiVersion("1")]
     public async Task<LegacyDataResponse<IEnumerable<OwnerShockerResponse>>> ListSharedShockers()
     {
-        var sharedShockersData = await _db.ShockerShares
+        var sharedShockersData = await _db.UserShares
             .AsNoTracking()
             .Where(x => x.SharedWithUserId == CurrentUser.Id)
             .Select(x => new

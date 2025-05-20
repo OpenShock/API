@@ -24,7 +24,7 @@ public sealed class AdminUsersView
 
     public required int PasswordResetCount { get; set; }
 
-    public required int ShockerShareCount { get; set; }
+    public required int ShockerUserShareCount { get; set; }
 
     public required int ShockerPublicShareCount { get; set; }
 

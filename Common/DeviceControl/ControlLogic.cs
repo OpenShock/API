@@ -31,7 +31,7 @@ public static class ControlLogic
                 PermsAndLimits = null
             }).ToListAsync();
         
-        var sharedShockers = await db.ShockerShares.Where(x => x.SharedWithUserId == sender.Id).Select(x =>
+        var sharedShockers = await db.UserShares.Where(x => x.SharedWithUserId == sender.Id).Select(x =>
             new ControlShockerObj
             {
                 Id = x.Shocker.Id,

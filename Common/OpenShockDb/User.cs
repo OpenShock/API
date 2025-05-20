@@ -21,11 +21,11 @@ public sealed class User
     // Navigations
     public ICollection<ApiToken> ApiTokens { get; } = [];
     public ICollection<Device> Devices { get; } = [];
-    public ICollection<ShareRequest> OwnedShockerShareRequests { get; } = [];
-    public ICollection<ShareRequest> UserShockerShareRequests { get; } = [];
+    public ICollection<UserShare> IncomingUserShares { get; } = [];
+    public ICollection<UserShareInvite> OutgoingUserShareInvites { get; } = [];
+    public ICollection<UserShareInvite> IncomingUserShareInvites { get; } = [];
     public ICollection<PublicShare> OwnedPublicShares { get; } = [];
     public ICollection<ShockerControlLog> ShockerControlLogs { get; } = [];
-    public ICollection<ShockerShare> ShockerShares { get; } = [];
     public ICollection<UserActivation> UserActivations { get; } = [];
     public ICollection<UserNameChange> NameChanges { get; } = [];
     public ICollection<UserEmailChange> EmailChanges { get; } = [];
