@@ -123,6 +123,60 @@ namespace OpenShock.Common.Migrations
                 name: "IX_user_deactivations_deactivated_by_user_id",
                 table: "user_deactivations",
                 column: "deactivated_by_user_id");
+
+            // Recreate the admin_users_view
+            migrationBuilder.Sql(
+                """
+                DROP VIEW admin_users_view;
+                CREATE VIEW admin_users_view AS
+                SELECT
+                    u.id,
+                    u.name,
+                    u.email,
+                    SPLIT_PART(u.password_hash, ':', 1) AS password_hash_type,
+                    u.roles,
+                    u.created_at,
+                    u.activated_at,
+                    deact.created_at                           AS deactivated_at,
+                    deact.deactivated_by_user_id,
+                    (SELECT d.created_at FROM user_deactivations d WHERE d.deactivated_user_id = u.id ORDER BY d.created_at DESC LIMIT 1) AS deactivated_at,
+                    EXISTS (SELECT 1 FROM user_deactivations d WHERE d.deactivated_user_id = u.id) AS pending_deactivation,
+                    (SELECT COUNT(*) FROM api_tokens token WHERE token.user_id = u.id) AS api_token_count,
+                    (SELECT COUNT(*) FROM user_password_resets reset WHERE reset.user_id = u.id) AS password_reset_count,
+                    (
+                        SELECT COUNT(*) FROM devices device
+                        INNER JOIN shockers shocker ON shocker.device_id = device.id
+                        INNER JOIN user_shares share ON share.shocker_id = shocker.id
+                        WHERE device.owner_id = u.id
+                    ) AS shocker_user_share_count,
+                    (SELECT COUNT(*) FROM public_shares share WHERE share.owner_id = u.id) AS shocker_public_share_count,
+                    (SELECT COUNT(*) FROM user_email_changes entry WHERE entry.user_id = u.id) AS email_change_request_count,
+                    (SELECT COUNT(*) FROM user_name_changes entry WHERE entry.user_id = u.id) AS name_change_request_count,
+                    (SELECT COUNT(*) FROM devices device WHERE device.owner_id = u.id) AS device_count,
+                    (
+                        SELECT COUNT(*) FROM devices device
+                        INNER JOIN shockers shocker ON shocker.device_id = device.id
+                        WHERE device.owner_id = u.id
+                    ) AS shocker_count,
+                    (
+                        SELECT COUNT(*) FROM devices device
+                        INNER JOIN shockers shocker ON shocker.device_id = device.id
+                        INNER JOIN shocker_control_logs log ON log.shocker_id = shocker.id
+                        WHERE device.owner_id = u.id
+                ) AS shocker_control_log_count
+                FROM
+                    users u
+                LEFT JOIN LATERAL (
+                  SELECT
+                    d.created_at,
+                    d.deactivated_by_user_id
+                  FROM user_deactivations d
+                  WHERE d.deactivated_user_id = u.id
+                  ORDER BY d.created_at DESC
+                  LIMIT 1
+                ) AS deact ON TRUE;
+                """
+            );
         }
 
         /// <inheritdoc />
@@ -198,6 +252,48 @@ namespace OpenShock.Common.Migrations
             migrationBuilder.DropColumn(
                 name: "activated_at",
                 table: "users");
+
+            // Recreate the admin_users_view back to original state
+            migrationBuilder.Sql(
+                """
+                DROP VIEW admin_users_view;
+                CREATE VIEW admin_users_view AS
+                SELECT
+                    u.id,
+                    u.name,
+                    u.email,
+                    SPLIT_PART(u.password_hash, ':', 1) AS password_hash_type,
+                    u.created_at,
+                    u.email_activated,
+                    u.roles,
+                    (SELECT COUNT(*) FROM api_tokens token WHERE token.user_id = u.id) AS api_token_count,
+                    (SELECT COUNT(*) FROM user_password_resets reset WHERE reset.user_id = u.id) AS password_reset_count,
+                    (
+                        SELECT COUNT(*) FROM devices device
+                        INNER JOIN shockers shocker ON shocker.device_id = device.id
+                        INNER JOIN user_shares share ON share.shocker_id = shocker.id
+                        WHERE device.owner_id = u.id
+                    ) AS shocker_user_share_count,
+                    (SELECT COUNT(*) FROM public_shares share WHERE share.owner_id = u.id) AS shocker_public_share_count,
+                    (SELECT COUNT(*) FROM user_email_changes entry WHERE entry.user_id = u.id) AS email_change_request_count,
+                    (SELECT COUNT(*) FROM user_name_changes entry WHERE entry.user_id = u.id) AS name_change_request_count,
+                    (SELECT COUNT(*) FROM user_activations entry WHERE entry.user_id = u.id) AS user_activation_count,
+                    (SELECT COUNT(*) FROM devices device WHERE device.owner_id = u.id) AS device_count,
+                    (
+                        SELECT COUNT(*) FROM devices device
+                        INNER JOIN shockers shocker ON shocker.device_id = device.id
+                        WHERE device.owner_id = u.id
+                    ) AS shocker_count,
+                    (
+                        SELECT COUNT(*) FROM devices device
+                        INNER JOIN shockers shocker ON shocker.device_id = device.id
+                        INNER JOIN shocker_control_logs log ON log.shocker_id = shocker.id
+                        WHERE device.owner_id = u.id
+                ) AS shocker_control_log_count
+                FROM
+                    users u;
+                """
+            );
         }
     }
 }

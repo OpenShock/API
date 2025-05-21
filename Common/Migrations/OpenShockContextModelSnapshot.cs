@@ -34,6 +34,10 @@ namespace OpenShock.Common.Migrations
 
             modelBuilder.Entity("OpenShock.Common.OpenShockDb.AdminUsersView", b =>
                 {
+                    b.Property<DateTime?>("ActivatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("activated_at");
+
                     b.Property<int>("ApiTokenCount")
                         .HasColumnType("integer")
                         .HasColumnName("api_token_count");
@@ -41,6 +45,13 @@ namespace OpenShock.Common.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("created_at");
+
+                    b.Property<DateTime?>("DeactivatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("deactivated_at");
+
+                    b.Property<Guid?>("DeactivatedByUserId")
+                        .HasColumnType("uuid");
 
                     b.Property<int>("DeviceCount")
                         .HasColumnType("integer")
@@ -50,10 +61,6 @@ namespace OpenShock.Common.Migrations
                         .IsRequired()
                         .HasColumnType("character varying")
                         .HasColumnName("email");
-
-                    b.Property<bool>("EmailActivated")
-                        .HasColumnType("boolean")
-                        .HasColumnName("email_activated");
 
                     b.Property<int>("EmailChangeRequestCount")
                         .HasColumnType("integer")
@@ -101,10 +108,6 @@ namespace OpenShock.Common.Migrations
                     b.Property<int>("ShockerUserShareCount")
                         .HasColumnType("integer")
                         .HasColumnName("shocker_user_share_count");
-
-                    b.Property<int>("UserActivationCount")
-                        .HasColumnType("integer")
-                        .HasColumnName("user_activation_count");
 
                     b.ToTable((string)null);
 

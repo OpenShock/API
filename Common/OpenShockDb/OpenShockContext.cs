@@ -677,14 +677,16 @@ public class OpenShockContext : DbContext
             entity.Property(e => e.PasswordHashType)
                 .HasColumnType("character varying")
                 .HasColumnName("password_hash_type");
-            entity.Property(e => e.CreatedAt)
-                .HasColumnName("created_at");
-            entity.Property(e => e.EmailActivated)
-                .HasColumnName("email_activated");
             entity.Property(e => e.Roles)
                 .HasColumnType("role_type[]")
                 .HasColumnName("roles")
                 .HasConversion(x => x.ToArray(), x => x.ToList());
+            entity.Property(e => e.CreatedAt)
+                .HasColumnName("created_at");
+            entity.Property(e => e.ActivatedAt)
+                .HasColumnName("activated_at");
+            entity.Property(e => e.DeactivatedAt)
+                .HasColumnName("deactivated_at");
             entity.Property(e => e.ApiTokenCount)
                 .HasColumnName("api_token_count");
             entity.Property(e => e.PasswordResetCount)
@@ -697,8 +699,6 @@ public class OpenShockContext : DbContext
                 .HasColumnName("email_change_request_count");
             entity.Property(e => e.NameChangeRequestCount)
                 .HasColumnName("name_change_request_count");
-            entity.Property(e => e.UserActivationCount)
-                .HasColumnName("user_activation_count");
             entity.Property(e => e.DeviceCount)
                 .HasColumnName("device_count");
             entity.Property(e => e.ShockerCount)
