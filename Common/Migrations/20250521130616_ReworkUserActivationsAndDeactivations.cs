@@ -72,6 +72,9 @@ namespace OpenShock.Common.Migrations
                 type: "integer",
                 nullable: false,
                 defaultValue: 0);
+            
+            // At least 1 email has been sent per activation
+            migrationBuilder.Sql("UPDATE user_activations SET email_send_attempts = 1;");
 
             migrationBuilder.RenameTable(
                 name: "user_activations",
