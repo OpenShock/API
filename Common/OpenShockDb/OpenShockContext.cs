@@ -595,8 +595,8 @@ public class OpenShockContext : DbContext
             entity.HasOne(d => d.DeactivatedUser).WithOne(p => p.UserDeactivation)
                 .HasForeignKey<UserDeactivation>(d => d.DeactivatedUserId)
                 .HasConstraintName("fk_user_deactivations_deactivated_user_id");
-            entity.HasOne(d => d.DeactivatedByUser).WithOne(p => p.UserDeactivation)
-                .HasForeignKey<UserDeactivation>(d => d.DeactivatedByUserId)
+            entity.HasOne(d => d.DeactivatedByUser).WithMany()
+                .HasForeignKey(d => d.DeactivatedByUserId)
                 .HasConstraintName("fk_user_deactivations_deactivated_by_user_id");
         });
 
