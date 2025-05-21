@@ -51,20 +51,26 @@ public sealed class AccountService : IAccountService
         return CreateAccount(email, username, password, true);
     }
 
-    public async Task<OneOf<Success, CannotDeactivatePrivilegedAccount, AccountDeactivationAlreadyInProgress, NotFound>> DeactivateAccount(Guid executingUserId, Guid userId, bool deleteLater)
+    public async Task<OneOf<Success, CannotDeactivatePrivilegedAccount, AccountDeactivationAlreadyInProgress, Unauthorized, NotFound>> DeactivateAccount(Guid executingUserId, Guid userId, bool deleteLater)
     {
         if (executingUserId != userId)
         {
-            if (await _db.Users.AnyAsync(u => u.Id == executingUserId && u.Roles.Any(r => r == RoleType.Staff || r == RoleType.Admin || r == RoleType.System)))
+            var isPrivileged = await _db.Users
+                            .Where(u => u.Id == executingUserId)
+                            .SelectMany(u => u.Roles)
+                            .AnyAsync(r =>
+                                r == RoleType.Staff ||
+                                r == RoleType.Admin ||
+                                r == RoleType.System);
+            if (!isPrivileged)
             {
-                // Executing user does not have the authority
-                throw new NotImplementedException();
+                return new Unauthorized();
             }
         }
 
-        var user = await _db.Users.Include(u => u.UserDeactivation).Where(u => u.Id == userId).FirstOrDefaultAsync();
+        var user = await _db.Users.Include(u => u.UserDeactivation).FirstOrDefaultAsync(u => u.Id == userId);
         if (user == null) return new NotFound();
-        
+
         if (user.Roles.Any(r => r is RoleType.Admin or RoleType.System))
         {
             return new CannotDeactivatePrivilegedAccount();
@@ -87,20 +93,52 @@ public sealed class AccountService : IAccountService
         return new Success();
     }
 
-    public Task<OneOf<Success, NotFound>> ReactivateAccount(Guid userId)
+    public async Task<OneOf<Success, Unauthorized, NotFound>> ReactivateAccount(Guid executingUserId, Guid userId)
     {
-        throw new NotImplementedException();
-    }
+        var user = await _db.Users.Include(u => u.UserDeactivation).FirstOrDefaultAsync(u => u.Id == userId && u.UserDeactivation != null);
+        if (user == null) return new NotFound();
 
-    public async Task<OneOf<Success, CannotDeletePrivilegedAccount, NotFound>> DeleteAccount(Guid executingUserId, Guid userId)
-    {
-        if (await _db.Users.AnyAsync(u => u.Id == executingUserId && u.Roles.Any(r => r == RoleType.Staff || r == RoleType.Admin || r == RoleType.System)))
+        var deactivation = user.UserDeactivation!;
+        bool isSelfReactivation =
+            executingUserId == userId &&
+            deactivation.DeactivatedByUserId == deactivation.DeactivatedUserId;
+
+        if (!isSelfReactivation)
         {
-            // Executing user does not have the authority
-            throw new NotImplementedException();
+            var isPrivileged = await _db.Users
+                            .Where(u => u.Id == executingUserId)
+                            .SelectMany(u => u.Roles)
+                            .AnyAsync(r =>
+                                r == RoleType.Staff ||
+                                r == RoleType.Admin ||
+                                r == RoleType.System);
+            if (!isPrivileged)
+            {
+                return new Unauthorized();
+            }
         }
 
-        var user = await _db.Users.Where(u => u.Id == userId).FirstOrDefaultAsync();
+        _db.Remove(deactivation);
+        await _db.SaveChangesAsync();
+
+        return new Success();
+    }
+
+    public async Task<OneOf<Success, CannotDeletePrivilegedAccount, Unauthorized, NotFound>> DeleteAccount(Guid executingUserId, Guid userId)
+    {
+        var isPrivileged = await _db.Users
+                        .Where(u => u.Id == executingUserId)
+                        .SelectMany(u => u.Roles)
+                        .AnyAsync(r =>
+                            r == RoleType.Staff ||
+                            r == RoleType.Admin ||
+                            r == RoleType.System);
+        if (!isPrivileged)
+        {
+            return new Unauthorized();
+        }
+
+        var user = await _db.Users.Include(u => u.UserDeactivation).FirstOrDefaultAsync(u => u.Id == userId);
         if (user == null) return new NotFound();
 
         if (user.Roles.Any(r => r is RoleType.Admin or RoleType.System))
@@ -110,9 +148,9 @@ public sealed class AccountService : IAccountService
 
         // TODO: Do more checks?
 
-        _db.Remove(user);
+        _db.Users.Remove(user);
         await _db.SaveChangesAsync();
-        
+
         return new Success();
     }
 

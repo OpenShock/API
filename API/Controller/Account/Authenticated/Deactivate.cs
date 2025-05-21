@@ -19,8 +19,9 @@ public sealed partial class AuthenticatedAccountController
         var deactivationResult = await _accountService.DeactivateAccount(CurrentUser.Id, CurrentUser.Id, deleteLater: true);
         return deactivationResult.Match(
             success => Ok("Valid password reset process"),
-            cannotDeletePrivileged => Problem(DeleteAccountError.CannotDeactivatePrivledgedAccount),
-            alreadyDeactivated => Problem(DeleteAccountError.AlreadyDeactivated),
+            cannotDeletePrivileged => Problem(DeactivateAccountError.CannotDeactivatePrivledgedAccount),
+            alreadyDeactivated => Problem(DeactivateAccountError.AlreadyDeactivated),
+            unauthorized => Problem(DeactivateAccountError.Unauthorized),
             notFound => throw new Exception("This is not supposed to happen, wtf?")
         );
     }
