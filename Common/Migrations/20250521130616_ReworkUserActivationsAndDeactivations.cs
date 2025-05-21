@@ -20,17 +20,13 @@ namespace OpenShock.Common.Migrations
             // Set 'activated_at' based on 'user_activations.created_at', or fallback to 'users.created_at'
             migrationBuilder.Sql(
                 """
-                UPDATE users
-                SET activated_at = CASE
-                    WHEN email_activated THEN ua.created_at
-                    ELSE NULL
-                END
-                FROM (
-                    SELECT user_id, MIN(created_at) AS created_at
-                    FROM user_activations
-                    GROUP BY user_id
-                ) ua
-                WHERE users.id = ua.user_id;
+                UPDATE users SET activated_at = CASE
+                  WHEN email_activated THEN COALESCE(
+                    (SELECT MIN(ua.used_at) FROM user_activations ua WHERE ua.user_id = users.id),
+                    users.created_at
+                  )
+                  ELSE NULL
+                END;
                 """
              );
 
