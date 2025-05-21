@@ -5,11 +5,13 @@ using OneOf.Types;
 using OpenShock.API.Services.Email;
 using OpenShock.API.Services.Email.Mailjet.Mail;
 using OpenShock.Common.Constants;
+using OpenShock.Common.Models;
 using OpenShock.Common.OpenShockDb;
 using OpenShock.Common.Options;
 using OpenShock.Common.Services.Session;
 using OpenShock.Common.Utils;
 using OpenShock.Common.Validation;
+using Z.EntityFramework.Plus;
 
 namespace OpenShock.API.Services.Account;
 
@@ -49,6 +51,109 @@ public sealed class AccountService : IAccountService
         return CreateAccount(email, username, password, true);
     }
 
+    public async Task<OneOf<Success, CannotDeactivatePrivilegedAccount, AccountDeactivationAlreadyInProgress, Unauthorized, NotFound>> DeactivateAccount(Guid executingUserId, Guid userId, bool deleteLater)
+    {
+        if (executingUserId != userId)
+        {
+            var isPrivileged = await _db.Users
+                            .Where(u => u.Id == executingUserId)
+                            .SelectMany(u => u.Roles)
+                            .AnyAsync(r =>
+                                r == RoleType.Staff ||
+                                r == RoleType.Admin ||
+                                r == RoleType.System);
+            if (!isPrivileged)
+            {
+                return new Unauthorized();
+            }
+        }
+
+        var user = await _db.Users.Include(u => u.UserDeactivation).FirstOrDefaultAsync(u => u.Id == userId);
+        if (user == null) return new NotFound();
+
+        if (user.Roles.Any(r => r is RoleType.Admin or RoleType.System))
+        {
+            return new CannotDeactivatePrivilegedAccount();
+        }
+
+        if (user.UserDeactivation != null)
+        {
+            return new AccountDeactivationAlreadyInProgress();
+        }
+
+        user.UserDeactivation = new UserDeactivation
+        {
+            DeactivatedUserId = userId,
+            DeactivatedByUserId = executingUserId,
+            DeleteLater = deleteLater,
+        };
+
+        await _db.SaveChangesAsync();
+
+        return new Success();
+    }
+
+    public async Task<OneOf<Success, Unauthorized, NotFound>> ReactivateAccount(Guid executingUserId, Guid userId)
+    {
+        var user = await _db.Users.Include(u => u.UserDeactivation).FirstOrDefaultAsync(u => u.Id == userId && u.UserDeactivation != null);
+        if (user == null) return new NotFound();
+
+        var deactivation = user.UserDeactivation!;
+        bool isSelfReactivation =
+            executingUserId == userId &&
+            deactivation.DeactivatedByUserId == deactivation.DeactivatedUserId;
+
+        if (!isSelfReactivation)
+        {
+            var isPrivileged = await _db.Users
+                            .Where(u => u.Id == executingUserId)
+                            .SelectMany(u => u.Roles)
+                            .AnyAsync(r =>
+                                r == RoleType.Staff ||
+                                r == RoleType.Admin ||
+                                r == RoleType.System);
+            if (!isPrivileged)
+            {
+                return new Unauthorized();
+            }
+        }
+
+        _db.Remove(deactivation);
+        await _db.SaveChangesAsync();
+
+        return new Success();
+    }
+
+    public async Task<OneOf<Success, CannotDeletePrivilegedAccount, Unauthorized, NotFound>> DeleteAccount(Guid executingUserId, Guid userId)
+    {
+        var isPrivileged = await _db.Users
+                        .Where(u => u.Id == executingUserId)
+                        .SelectMany(u => u.Roles)
+                        .AnyAsync(r =>
+                            r == RoleType.Staff ||
+                            r == RoleType.Admin ||
+                            r == RoleType.System);
+        if (!isPrivileged)
+        {
+            return new Unauthorized();
+        }
+
+        var user = await _db.Users.Include(u => u.UserDeactivation).FirstOrDefaultAsync(u => u.Id == userId);
+        if (user == null) return new NotFound();
+
+        if (user.Roles.Any(r => r is RoleType.Admin or RoleType.System))
+        {
+            return new CannotDeletePrivilegedAccount();
+        }
+
+        // TODO: Do more checks?
+
+        _db.Users.Remove(user);
+        await _db.SaveChangesAsync();
+
+        return new Success();
+    }
+
     private async Task<OneOf<Success<User>, AccountWithEmailOrUsernameExists>> CreateAccount(string email,
         string username,
         string password, bool emailActivated)
@@ -62,8 +167,7 @@ public sealed class AccountService : IAccountService
             Id = newGuid,
             Name = username,
             Email = email.ToLowerInvariant(),
-            PasswordHash = HashingUtils.HashPassword(password),
-            EmailActivated = emailActivated
+            PasswordHash = HashingUtils.HashPassword(password)
         };
         _db.Users.Add(user);
 
@@ -81,21 +185,18 @@ public sealed class AccountService : IAccountService
 
         var user = accountCreate.AsT0.Value;
 
-        var id = Guid.CreateVersion7();
         var secret = CryptoUtils.RandomString(AuthConstants.GeneratedTokenLength);
-        var secretHash = HashingUtils.HashToken(secret);
 
-        _db.UserActivations.Add(new UserActivation
+        user.UserActivationRequest = new UserActivationRequest
         {
-            Id = id,
             UserId = user.Id,
-            SecretHash = secretHash
-        });
+            SecretHash = HashingUtils.HashToken(secret)
+        };
 
         await _db.SaveChangesAsync();
 
         await _emailService.VerifyEmail(new Contact(email, username),
-            new Uri(_frontendConfig.BaseUrl, $"/#/account/activate/{id}/{secret}"));
+            new Uri(_frontendConfig.BaseUrl, $"/#/account/activate/{user.Id}/{secret}"));
         return new Success<User>(user);
     }
 

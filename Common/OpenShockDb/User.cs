@@ -12,13 +12,14 @@ public sealed class User
 
     public required string PasswordHash { get; set; }
 
-    public required bool EmailActivated { get; set; }
-
     public List<RoleType> Roles { get; set; } = [];
 
     public DateTime CreatedAt { get; set; }
+    public DateTime? ActivatedAt { get; set; }
 
     // Navigations
+    public UserActivationRequest? UserActivationRequest { get; set; }
+    public UserDeactivation? UserDeactivation { get; set; }
     public ICollection<ApiToken> ApiTokens { get; } = [];
     public ICollection<Device> Devices { get; } = [];
     public ICollection<UserShare> IncomingUserShares { get; } = [];
@@ -26,7 +27,6 @@ public sealed class User
     public ICollection<UserShareInvite> IncomingUserShareInvites { get; } = [];
     public ICollection<PublicShare> OwnedPublicShares { get; } = [];
     public ICollection<ShockerControlLog> ShockerControlLogs { get; } = [];
-    public ICollection<UserActivation> UserActivations { get; } = [];
     public ICollection<UserNameChange> NameChanges { get; } = [];
     public ICollection<UserEmailChange> EmailChanges { get; } = [];
     public ICollection<UserPasswordReset> PasswordResets { get; } = [];
