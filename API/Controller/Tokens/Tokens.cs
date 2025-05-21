@@ -76,12 +76,12 @@ public sealed partial class TokensController
 
         var tokenDto = new ApiToken
         {
+            Id = Guid.CreateVersion7(),
             UserId = CurrentUser.Id,
+            Name = body.Name,
             TokenHash = HashingUtils.HashToken(token),
             CreatedByIp = HttpContext.GetRemoteIP(),
             Permissions = body.Permissions.Distinct().ToList(),
-            Id = Guid.CreateVersion7(),
-            Name = body.Name,
             ValidUntil = body.ValidUntil?.ToUniversalTime()
         };
         _db.ApiTokens.Add(tokenDto);

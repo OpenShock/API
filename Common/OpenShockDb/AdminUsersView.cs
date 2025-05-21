@@ -4,7 +4,7 @@
 
 namespace OpenShock.Common.OpenShockDb;
 
-public class AdminUsersView
+public sealed class AdminUsersView
 {
     public required Guid Id { get; set; }
 
@@ -24,7 +24,7 @@ public class AdminUsersView
 
     public required int PasswordResetCount { get; set; }
 
-    public required int ShockerShareCount { get; set; }
+    public required int ShockerUserShareCount { get; set; }
 
     public required int ShockerPublicShareCount { get; set; }
 

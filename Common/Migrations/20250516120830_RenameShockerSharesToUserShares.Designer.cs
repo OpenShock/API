@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Net;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using OpenShock.Common.Models;
@@ -14,14 +15,16 @@ using OpenShock.Common.OpenShockDb;
 namespace OpenShock.Common.Migrations
 {
     [DbContext(typeof(MigrationOpenShockContext))]
-    partial class OpenShockContextModelSnapshot : ModelSnapshot
+    [Migration("20250516120830_RenameShockerSharesToUserShares")]
+    partial class RenameShockerSharesToUserShares
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
                 .HasAnnotation("Npgsql:CollationDefinition:public.ndcoll", "und-u-ks-level2,und-u-ks-level2,icu,False")
-                .HasAnnotation("ProductVersion", "9.0.5")
+                .HasAnnotation("ProductVersion", "9.0.4")
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "control_type", new[] { "sound", "vibrate", "shock", "stop" });
@@ -165,9 +168,11 @@ namespace OpenShock.Common.Migrations
                     b.HasIndex("TokenHash")
                         .IsUnique();
 
-                    b.HasIndex("UserId");
+                    b.HasIndex("UserId")
+                        .HasAnnotation("Npgsql:StorageParameter:deduplicate_items", "true");
 
-                    b.HasIndex("ValidUntil");
+                    b.HasIndex("ValidUntil")
+                        .HasAnnotation("Npgsql:StorageParameter:deduplicate_items", "true");
 
                     b.ToTable("api_tokens", (string)null);
                 });
@@ -203,7 +208,8 @@ namespace OpenShock.Common.Migrations
                     b.HasKey("Id")
                         .HasName("devices_pkey");
 
-                    b.HasIndex("OwnerId");
+                    b.HasIndex("OwnerId")
+                        .HasAnnotation("Npgsql:StorageParameter:deduplicate_items", "true");
 
                     b.HasIndex("Token")
                         .IsUnique();
@@ -245,7 +251,8 @@ namespace OpenShock.Common.Migrations
                     b.HasKey("DeviceId", "UpdateId")
                         .HasName("device_ota_updates_pkey");
 
-                    b.HasIndex(new[] { "CreatedAt" }, "device_ota_updates_created_at_idx");
+                    b.HasIndex(new[] { "CreatedAt" }, "device_ota_updates_created_at_idx")
+                        .HasAnnotation("Npgsql:StorageParameter:deduplicate_items", "true");
 
                     b.ToTable("device_ota_updates", (string)null);
                 });
@@ -279,7 +286,8 @@ namespace OpenShock.Common.Migrations
                     b.HasKey("Id")
                         .HasName("public_shares_pkey");
 
-                    b.HasIndex("OwnerId");
+                    b.HasIndex("OwnerId")
+                        .HasAnnotation("Npgsql:StorageParameter:deduplicate_items", "true");
 
                     b.ToTable("public_shares", (string)null);
                 });
@@ -383,7 +391,8 @@ namespace OpenShock.Common.Migrations
                     b.HasKey("Id")
                         .HasName("shockers_pkey");
 
-                    b.HasIndex("DeviceId");
+                    b.HasIndex("DeviceId")
+                        .HasAnnotation("Npgsql:StorageParameter:deduplicate_items", "true");
 
                     b.ToTable("shockers", (string)null);
                 });
@@ -436,7 +445,8 @@ namespace OpenShock.Common.Migrations
 
                     b.HasIndex("ControlledByUserId");
 
-                    b.HasIndex("ShockerId");
+                    b.HasIndex("ShockerId")
+                        .HasAnnotation("Npgsql:StorageParameter:deduplicate_items", "true");
 
                     b.ToTable("shocker_control_logs", (string)null);
                 });
@@ -628,9 +638,11 @@ namespace OpenShock.Common.Migrations
                     b.HasKey("Id")
                         .HasName("user_email_changes_pkey");
 
-                    b.HasIndex("CreatedAt");
+                    b.HasIndex("CreatedAt")
+                        .HasAnnotation("Npgsql:StorageParameter:deduplicate_items", "true");
 
-                    b.HasIndex("UsedAt");
+                    b.HasIndex("UsedAt")
+                        .HasAnnotation("Npgsql:StorageParameter:deduplicate_items", "true");
 
                     b.HasIndex("UserId");
 
@@ -665,11 +677,14 @@ namespace OpenShock.Common.Migrations
                     b.HasKey("Id", "UserId")
                         .HasName("user_name_changes_pkey");
 
-                    b.HasIndex("CreatedAt");
+                    b.HasIndex("CreatedAt")
+                        .HasAnnotation("Npgsql:StorageParameter:deduplicate_items", "true");
 
-                    b.HasIndex("OldName");
+                    b.HasIndex("OldName")
+                        .HasAnnotation("Npgsql:StorageParameter:deduplicate_items", "true");
 
-                    b.HasIndex("UserId");
+                    b.HasIndex("UserId")
+                        .HasAnnotation("Npgsql:StorageParameter:deduplicate_items", "true");
 
                     b.ToTable("user_name_changes", (string)null);
                 });
@@ -703,7 +718,8 @@ namespace OpenShock.Common.Migrations
                     b.HasKey("Id")
                         .HasName("user_password_resets_pkey");
 
-                    b.HasIndex("UserId");
+                    b.HasIndex("UserId")
+                        .HasAnnotation("Npgsql:StorageParameter:deduplicate_items", "true");
 
                     b.ToTable("user_password_resets", (string)null);
                 });
@@ -765,7 +781,8 @@ namespace OpenShock.Common.Migrations
                     b.HasKey("SharedWithUserId", "ShockerId")
                         .HasName("user_shares_pkey");
 
-                    b.HasIndex("SharedWithUserId");
+                    b.HasIndex("SharedWithUserId")
+                        .HasAnnotation("Npgsql:StorageParameter:deduplicate_items", "true");
 
                     b.HasIndex("ShockerId");
 
@@ -795,7 +812,8 @@ namespace OpenShock.Common.Migrations
                     b.HasKey("Id")
                         .HasName("user_share_invites_pkey");
 
-                    b.HasIndex("OwnerId");
+                    b.HasIndex("OwnerId")
+                        .HasAnnotation("Npgsql:StorageParameter:deduplicate_items", "true");
 
                     b.HasIndex("RecipientUserId");
 

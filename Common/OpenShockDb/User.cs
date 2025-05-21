@@ -2,43 +2,34 @@
 
 namespace OpenShock.Common.OpenShockDb;
 
-public partial class User
+public sealed class User
 {
-    public Guid Id { get; set; }
+    public required Guid Id { get; set; }
 
-    public string Name { get; set; } = null!;
+    public required string Name { get; set; }
 
-    public string Email { get; set; } = null!;
+    public required string Email { get; set; }
 
-    public string PasswordHash { get; set; } = null!;
+    public required string PasswordHash { get; set; }
+
+    public required bool EmailActivated { get; set; }
+
+    public List<RoleType> Roles { get; set; } = [];
 
     public DateTime CreatedAt { get; set; }
     
     public DateTimeOffset? DeletedAt { get; set; }
 
-    public bool EmailActivated { get; set; }
-
-    public List<RoleType> Roles { get; set; } = null!;
-
-    public virtual ICollection<ApiToken> ApiTokens { get; set; } = new List<ApiToken>();
-
-    public virtual ICollection<Device> Devices { get; set; } = new List<Device>();
-
-    public virtual ICollection<ShareRequest> OwnedShockerShareRequests { get; set; } = new List<ShareRequest>();
-
-    public virtual ICollection<ShareRequest> UserShockerShareRequests { get; set; } = new List<ShareRequest>();
-
-    public virtual ICollection<PublicShare> OwnedPublicShares { get; set; } = new List<PublicShare>();
-
-    public virtual ICollection<ShockerControlLog> ShockerControlLogs { get; set; } = new List<ShockerControlLog>();
-
-    public virtual ICollection<ShockerShare> ShockerShares { get; set; } = new List<ShockerShare>();
-
-    public virtual ICollection<UserActivation> UserActivations { get; set; } = new List<UserActivation>();
-
-    public virtual ICollection<UserNameChange> NameChanges { get; set; } = new List<UserNameChange>();
-
-    public virtual ICollection<UserEmailChange> EmailChanges { get; set; } = new List<UserEmailChange>();
-
-    public virtual ICollection<UserPasswordReset> PasswordResets { get; set; } = new List<UserPasswordReset>();
+    // Navigations
+    public ICollection<ApiToken> ApiTokens { get; } = [];
+    public ICollection<Device> Devices { get; } = [];
+    public ICollection<UserShare> IncomingUserShares { get; } = [];
+    public ICollection<UserShareInvite> OutgoingUserShareInvites { get; } = [];
+    public ICollection<UserShareInvite> IncomingUserShareInvites { get; } = [];
+    public ICollection<PublicShare> OwnedPublicShares { get; } = [];
+    public ICollection<ShockerControlLog> ShockerControlLogs { get; } = [];
+    public ICollection<UserActivation> UserActivations { get; } = [];
+    public ICollection<UserNameChange> NameChanges { get; } = [];
+    public ICollection<UserEmailChange> EmailChanges { get; } = [];
+    public ICollection<UserPasswordReset> PasswordResets { get; } = [];
 }

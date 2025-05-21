@@ -43,7 +43,7 @@ public sealed class UserHub : Hub<IUserHub>
         await Clients.Caller.Welcome(Context.ConnectionId);
         var devicesOnline = _provider.RedisCollection<DeviceOnline>(false);
         var sharedDevices = await _db.Devices
-            .Where(x => x.Shockers.Any(y => y.ShockerShares.Any(z => z.SharedWithUserId == UserId)))
+            .Where(x => x.Shockers.Any(y => y.UserShares.Any(z => z.SharedWithUserId == UserId)))
             .Select(x => x.Id.ToString()).ToArrayAsync();
 
         var own = devicesOnline.Where(x => x.Owner == UserId).ToArrayAsync();

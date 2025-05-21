@@ -6,7 +6,7 @@ public static class HardLimits
     public const byte MaxControlIntensity = 100;
 
     public const ushort MinControlDuration = 300;
-    public const ushort MaxControlDuration = 30000; // TODO: No reason to hard limit this to 30 seconds, can we extend it to ushort.MaxValue (65535)?
+    public const ushort MaxControlDuration = ushort.MaxValue; // 65.535 seconds
     
     public const int UsernameMinLength = 3;
     public const int UsernameMaxLength = 32;

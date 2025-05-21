@@ -1,4 +1,5 @@
-﻿using System.Diagnostics.CodeAnalysis;
+﻿using OpenShock.Common.Geo;
+using System.Diagnostics.CodeAnalysis;
 using System.Net;
 
 namespace OpenShock.Common.Utils;
@@ -15,28 +16,29 @@ public static class ConnectionDetailsFetcher
         return context.Request.Headers.UserAgent.ToString();
     }
 
-    public static bool TryGetCFIPCountry(this HttpContext context, [NotNullWhen(true)] out string? cfIpCountry)
+    public static bool TryGetCFIPCountryCode(this HttpContext context, out Alpha2CountryCode code)
     {
         if (!context.Request.Headers.TryGetValue("CF-IPCountry", out var value))
         {
-            cfIpCountry = null;
+            code = Alpha2CountryCode.UnknownCountry;
             return false;
         }
 
-        if (string.IsNullOrEmpty(value))
+        if (value.Count != 1)
         {
-            cfIpCountry = null;
+            code = Alpha2CountryCode.UnknownCountry;
             return false;
         }
 
-        cfIpCountry = value.ToString();
-
-        return true;
+        return Alpha2CountryCode.TryParse(value[0], out code);
     }
 
     public static string? GetCFIPCountry(this HttpContext context)
     {
-        if (!TryGetCFIPCountry(context, out var value)) return null;
+        if (!context.Request.Headers.TryGetValue("CF-IPCountry", out var value))
+        {
+            return null;
+        }
 
         return value;
     }

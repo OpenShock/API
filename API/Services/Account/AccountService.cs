@@ -111,8 +111,7 @@ public sealed class AccountService : IAccountService
             Name = username,
             Email = email.ToLowerInvariant(),
             PasswordHash = HashingUtils.HashPassword(password),
-            EmailActivated = emailActivated,
-            Roles = []
+            EmailActivated = emailActivated
         };
         _db.Users.Add(user);
 
@@ -134,7 +133,7 @@ public sealed class AccountService : IAccountService
         var secret = CryptoUtils.RandomString(AuthConstants.GeneratedTokenLength);
         var secretHash = HashingUtils.HashToken(secret);
 
-        _db.UserActivations.Add(new UserActivation()
+        _db.UserActivations.Add(new UserActivation
         {
             Id = id,
             UserId = user.Id,
@@ -205,8 +204,8 @@ public sealed class AccountService : IAccountService
         var passwordReset = new UserPasswordReset
         {
             Id = Guid.CreateVersion7(),
-            SecretHash = secretHash,
-            User = user.User
+            UserId = user.User.Id,
+            SecretHash = secretHash
         };
         _db.UserPasswordResets.Add(passwordReset);
         await _db.SaveChangesAsync();

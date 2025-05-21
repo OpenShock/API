@@ -36,8 +36,8 @@ public sealed partial class ShareLinksController
 
         _db.PublicShareShockerMappings.Add(new PublicShareShocker
         {
-            ShockerId = shockerId,
             PublicShareId = publicShareId,
+            ShockerId = shockerId,
             AllowShock = true,
             AllowVibrate = true,
             AllowSound = true,
