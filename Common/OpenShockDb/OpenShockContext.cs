@@ -687,6 +687,8 @@ public class OpenShockContext : DbContext
                 .HasColumnName("activated_at");
             entity.Property(e => e.DeactivatedAt)
                 .HasColumnName("deactivated_at");
+            entity.Property(e => e.DeactivatedByUserId)
+                .HasColumnName("deactivated_by_user_id");
             entity.Property(e => e.ApiTokenCount)
                 .HasColumnName("api_token_count");
             entity.Property(e => e.PasswordResetCount)

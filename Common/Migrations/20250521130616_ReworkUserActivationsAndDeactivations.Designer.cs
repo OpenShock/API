@@ -54,7 +54,8 @@ namespace OpenShock.Common.Migrations
                         .HasColumnName("deactivated_at");
 
                     b.Property<Guid?>("DeactivatedByUserId")
-                        .HasColumnType("uuid");
+                        .HasColumnType("uuid")
+                        .HasColumnName("deactivated_by_user_id");
 
                     b.Property<int>("DeviceCount")
                         .HasColumnType("integer")
