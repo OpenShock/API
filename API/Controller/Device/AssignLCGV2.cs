@@ -22,10 +22,10 @@ public sealed partial class DeviceController
     [ProducesResponseType<LcgNodeResponseV2>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status400BadRequest, MediaTypeNames.Application.ProblemJson)] // BadSchemaVersion
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status503ServiceUnavailable, MediaTypeNames.Application.ProblemJson)] // NoLcgNodesAvailable
-    public async Task<IActionResult> GetLiveControlGatewayV2([FromQuery] uint SchemaVersion, [FromServices] ILCGNodeProvisioner geoLocation, [FromServices] IWebHostEnvironment env)
+    public async Task<IActionResult> GetLiveControlGatewayV2([FromQuery(Name = "version")] uint version, [FromServices] ILCGNodeProvisioner geoLocation, [FromServices] IWebHostEnvironment env)
     {
         string path;
-        switch (SchemaVersion)
+        switch (version)
         {
             case 1:
                 path = "/1/ws/hub";
