@@ -31,7 +31,7 @@ public static class ControlLogic
                 PermsAndLimits = null
             }).ToListAsync();
         
-        var sharedShockers = await db.ShockerShares.Where(x => x.SharedWithUserId == sender.Id).Select(x =>
+        var sharedShockers = await db.UserShares.Where(x => x.SharedWithUserId == sender.Id).Select(x =>
             new ControlShockerObj
             {
                 Id = x.Shocker.Id,
@@ -124,11 +124,11 @@ public static class ControlLogic
                 Id = Guid.CreateVersion7(),
                 ShockerId = shockerInfo.Id,
                 ControlledByUserId = sender.Id == Guid.Empty ? null : sender.Id,
-                CreatedAt = curTime,
                 Intensity = intensity,
                 Duration = duration,
                 Type = shock.Type,
-                CustomName = sender.CustomName
+                CustomName = sender.CustomName,
+                CreatedAt = curTime
             });
 
             var ownerLog = logs.GetValueOrAddDefault(shockerInfo.Owner, []);

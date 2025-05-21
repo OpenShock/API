@@ -23,21 +23,9 @@ public sealed partial class DeviceController
     public async Task<IActionResult> GetLiveControlGateway([FromServices] ILCGNodeProvisioner geoLocation,
         [FromServices] IWebHostEnvironment env)
     {
-        var countryCode = Alpha2CountryCode.UnknownCountry;
-        if (HttpContext.TryGetCFIPCountry(out var countryHeader))
+        if (!HttpContext.TryGetCFIPCountryCode(out var countryCode))
         {
-            if (Alpha2CountryCode.TryParseAndValidate(countryHeader, out var code))
-            {
-                countryCode = code;
-            }
-            else
-            {
-                _logger.LogWarning("Country alpha2 code could not be parsed [{CountryHeader}]", countryHeader);
-            }
-        }
-        else
-        {
-            _logger.LogWarning("CF-IPCountry header could not be parsed");
+            _logger.LogWarning("CF-IPCountry header could not be parsed into a alpha2 country code");
         }
 
         var closestNode = await geoLocation.GetOptimalNode(countryCode, env.EnvironmentName);

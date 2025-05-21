@@ -17,7 +17,7 @@ public sealed partial class AdminController
     [ProducesResponseType(StatusCodes.Status200OK)]
     public async Task<IActionResult> DeleteUser([FromRoute] Guid userId)
     {
-        var user = await _db.Users.Where(x => x.Id == userId).FirstOrDefaultAsync();
+        var user = await _db.Users.FirstOrDefaultAsync(x => x.Id == userId);
         if (user == null)
         {
             return Problem(AdminError.UserNotFound);

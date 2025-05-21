@@ -17,10 +17,10 @@ public sealed class Alpha2CountryCodeAttribute : ValidationAttribute
         if (asString.Length != 2)
             return new ValidationResult("Input string must be exactly 2 characters long");
 
-        if (!char.IsAsciiLetterUpper(asString[0]) || !char.IsAsciiLetterUpper(asString[1]))
+        if (asString[0] is not > 'A' and < 'Z' || asString[1] is not > 'A' and < 'Z')
             return new ValidationResult("Characters must be uppercase");
 
-        if (!Alpha2CountryCode.TryParseAndValidate(asString, out var countryCode))
+        if (!Alpha2CountryCode.TryParse(asString, out var countryCode))
             return new ValidationResult($"Failed to create {nameof(Alpha2CountryCode)}");
 
         if (!CountryInfo.CodeDictionary.ContainsKey(countryCode))
