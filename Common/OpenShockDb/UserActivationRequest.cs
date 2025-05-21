@@ -6,6 +6,8 @@ public sealed class UserActivationRequest
 
     public required string SecretHash { get; set; }
 
+    public int EmailSendAttempts { get; set; }
+
     public DateTime CreatedAt { get; set; }
 
     // Navigations

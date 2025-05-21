@@ -565,6 +565,8 @@ public class OpenShockContext : DbContext
             entity.Property(e => e.SecretHash)
                 .VarCharWithLength(HardLimits.UserActivationRequestSecretMaxLength)
                 .HasColumnName("secret");
+            entity.Property(e => e.EmailSendAttempts)
+                .HasColumnName("email_send_attempts");
             entity.Property(e => e.CreatedAt)
                 .HasDefaultValueSql("CURRENT_TIMESTAMP")
                 .HasColumnName("created_at");
