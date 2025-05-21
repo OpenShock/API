@@ -5,7 +5,6 @@ using OneOf.Types;
 using OpenShock.API.Services.Email;
 using OpenShock.API.Services.Email.Mailjet.Mail;
 using OpenShock.Common.Constants;
-using OpenShock.Common.Extensions;
 using OpenShock.Common.Models;
 using OpenShock.Common.OpenShockDb;
 using OpenShock.Common.Options;
@@ -52,9 +51,18 @@ public sealed class AccountService : IAccountService
         return CreateAccount(email, username, password, true);
     }
 
-    public async Task<OneOf<Success, CannotDeactivatePrivilegedAccount, NotFound>> DeactivateAccount(Guid userId)
+    public async Task<OneOf<Success, CannotDeactivatePrivilegedAccount, AccountDeactivationAlreadyInProgress, NotFound>> DeactivateAccount(Guid executingUserId, Guid userId, bool deleteLater)
     {
-        var user = await _db.Users.Where(u => u.Id == userId).FirstOrDefaultAsync();
+        if (executingUserId != userId)
+        {
+            if (await _db.Users.AnyAsync(u => u.Id == executingUserId && u.Roles.Any(r => r == RoleType.Staff || r == RoleType.Admin || r == RoleType.System)))
+            {
+                // Executing user does not have the authority
+                throw new NotImplementedException();
+            }
+        }
+
+        var user = await _db.Users.Include(u => u.UserDeactivation).Where(u => u.Id == userId).FirstOrDefaultAsync();
         if (user == null) return new NotFound();
         
         if (user.Roles.Any(r => r is RoleType.Admin or RoleType.System))
@@ -62,12 +70,17 @@ public sealed class AccountService : IAccountService
             return new CannotDeactivatePrivilegedAccount();
         }
 
-        if (user.DeletedAt.HasValue)
+        if (user.UserDeactivation != null)
         {
-            throw new NotImplementedException();
+            return new AccountDeactivationAlreadyInProgress();
         }
-        
-        user.DeletedAt = DateTime.UtcNow;
+
+        user.UserDeactivation = new UserDeactivation
+        {
+            DeactivatedUserId = userId,
+            DeactivatedByUserId = executingUserId,
+            DeleteLater = deleteLater,
+        };
 
         await _db.SaveChangesAsync();
 
@@ -79,8 +92,14 @@ public sealed class AccountService : IAccountService
         throw new NotImplementedException();
     }
 
-    public async Task<OneOf<Success, CannotDeletePrivilegedAccount, NotFound>> DeleteAccount(Guid userId)
+    public async Task<OneOf<Success, CannotDeletePrivilegedAccount, NotFound>> DeleteAccount(Guid executingUserId, Guid userId)
     {
+        if (await _db.Users.AnyAsync(u => u.Id == executingUserId && u.Roles.Any(r => r == RoleType.Staff || r == RoleType.Admin || r == RoleType.System)))
+        {
+            // Executing user does not have the authority
+            throw new NotImplementedException();
+        }
+
         var user = await _db.Users.Where(u => u.Id == userId).FirstOrDefaultAsync();
         if (user == null) return new NotFound();
 
@@ -110,8 +129,7 @@ public sealed class AccountService : IAccountService
             Id = newGuid,
             Name = username,
             Email = email.ToLowerInvariant(),
-            PasswordHash = HashingUtils.HashPassword(password),
-            EmailActivated = emailActivated
+            PasswordHash = HashingUtils.HashPassword(password)
         };
         _db.Users.Add(user);
 
@@ -129,21 +147,18 @@ public sealed class AccountService : IAccountService
 
         var user = accountCreate.AsT0.Value;
 
-        var id = Guid.CreateVersion7();
         var secret = CryptoUtils.RandomString(AuthConstants.GeneratedTokenLength);
-        var secretHash = HashingUtils.HashToken(secret);
 
-        _db.UserActivations.Add(new UserActivation
+        user.UserActivationRequest = new UserActivationRequest
         {
-            Id = id,
             UserId = user.Id,
-            SecretHash = secretHash
-        });
+            SecretHash = HashingUtils.HashToken(secret)
+        };
 
         await _db.SaveChangesAsync();
 
         await _emailService.VerifyEmail(new Contact(email, username),
-            new Uri(_frontendConfig.BaseUrl, $"/#/account/activate/{id}/{secret}"));
+            new Uri(_frontendConfig.BaseUrl, $"/#/account/activate/{user.Id}/{secret}"));
         return new Success<User>(user);
     }
 

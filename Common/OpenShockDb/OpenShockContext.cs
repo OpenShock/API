@@ -102,7 +102,9 @@ public class OpenShockContext : DbContext
 
     public DbSet<User> Users { get; set; }
 
-    public DbSet<UserActivation> UserActivations { get; set; }
+    public DbSet<UserActivationRequest> UserActivationRequests { get; set; }
+
+    public DbSet<UserDeactivation> UserDeactivations { get; set; }
 
     public DbSet<UserEmailChange> UserEmailChanges { get; set; }
 
@@ -532,52 +534,70 @@ public class OpenShockContext : DbContext
             entity.Property(e => e.Id)
                 .ValueGeneratedNever()
                 .HasColumnName("id");
-            entity.Property(e => e.CreatedAt)
-                .HasDefaultValueSql("CURRENT_TIMESTAMP")
-                .HasColumnName("created_at");
-            entity.Property(e => e.DeletedAt)
-                .HasColumnName("deleted_at");
-            entity.Property(e => e.Email)
-                .VarCharWithLength(HardLimits.EmailAddressMaxLength)
-                .HasColumnName("email");
-            entity.Property(e => e.EmailActivated)
-                .HasDefaultValue(false)
-                .HasColumnName("email_activated");
             entity.Property(e => e.Name)
                 .UseCollation("ndcoll")
                 .VarCharWithLength(HardLimits.UsernameMaxLength)
                 .HasColumnName("name");
+            entity.Property(e => e.Email)
+                .VarCharWithLength(HardLimits.EmailAddressMaxLength)
+                .HasColumnName("email");
             entity.Property(e => e.PasswordHash)
                 .VarCharWithLength(HardLimits.PasswordHashMaxLength)
                 .HasColumnName("password_hash");
             entity.Property(e => e.Roles)
                 .HasColumnType("role_type[]")
                 .HasColumnName("roles");
-        });
-
-        modelBuilder.Entity<UserActivation>(entity =>
-        {
-            entity.HasKey(e => e.Id).HasName("user_activations_pkey");
-
-            entity.ToTable("user_activations");
-
-            entity.HasIndex(e => e.UserId);
-
-            entity.Property(e => e.Id)
-                .ValueGeneratedNever()
-                .HasColumnName("id");
             entity.Property(e => e.CreatedAt)
                 .HasDefaultValueSql("CURRENT_TIMESTAMP")
                 .HasColumnName("created_at");
-            entity.Property(e => e.SecretHash)
-                .VarCharWithLength(HardLimits.UserActivationSecretMaxLength)
-                .HasColumnName("secret");
-            entity.Property(e => e.UsedAt).HasColumnName("used_at");
-            entity.Property(e => e.UserId).HasColumnName("user_id");
+            entity.Property(e => e.ActivatedAt)
+                .HasColumnName("activated_at");
+        });
 
-            entity.HasOne(d => d.User).WithMany(p => p.UserActivations)
-                .HasForeignKey(d => d.UserId)
-                .HasConstraintName("fk_user_activations_user_id");
+        modelBuilder.Entity<UserActivationRequest>(entity =>
+        {
+            entity.HasKey(e => e.UserId).HasName("user_activation_requests_pkey");
+
+            entity.ToTable("user_activation_requests");
+
+            entity.Property(e => e.UserId)
+                .HasColumnName("user_id");
+            entity.Property(e => e.SecretHash)
+                .VarCharWithLength(HardLimits.UserActivationRequestSecretMaxLength)
+                .HasColumnName("secret");
+            entity.Property(e => e.CreatedAt)
+                .HasDefaultValueSql("CURRENT_TIMESTAMP")
+                .HasColumnName("created_at");
+
+            entity.HasOne(d => d.User).WithOne(p => p.UserActivationRequest)
+                .HasForeignKey<UserActivationRequest>(d => d.UserId)
+                .HasConstraintName("fk_user_activation_requests_user_id");
+        });
+
+        modelBuilder.Entity<UserDeactivation>(entity =>
+        {
+            entity.HasKey(e => e.DeactivatedUserId).HasName("user_deactivations_pkey");
+
+            entity.ToTable("user_deactivations");
+
+            entity.Property(e => e.DeactivatedUserId)
+                .HasColumnName("deactivated_user_id");
+            entity.Property(e => e.DeactivatedByUserId)
+                .HasColumnName("deactivated_by_user_id");
+            entity.Property(e => e.DeleteLater)
+                .HasColumnName("delete_later");
+            entity.Property(e => e.UserModerationId)
+                .HasColumnName("user_moderation_id");
+            entity.Property(e => e.CreatedAt)
+                .HasDefaultValueSql("CURRENT_TIMESTAMP")
+                .HasColumnName("created_at");
+
+            entity.HasOne(d => d.DeactivatedUser).WithOne(p => p.UserDeactivation)
+                .HasForeignKey<UserDeactivation>(d => d.DeactivatedUserId)
+                .HasConstraintName("fk_user_deactivations_deactivated_user_id");
+            entity.HasOne(d => d.DeactivatedByUser).WithOne(p => p.UserDeactivation)
+                .HasForeignKey<UserDeactivation>(d => d.DeactivatedByUserId)
+                .HasConstraintName("fk_user_deactivations_deactivated_by_user_id");
         });
 
         modelBuilder.Entity<UserEmailChange>(entity =>

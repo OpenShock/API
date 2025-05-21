@@ -41,7 +41,7 @@ public static class HardLimits
     public const int PasswordHashMaxLength = 100;
 
     public const int UserEmailChangeSecretMaxLength = 128;
-    public const int UserActivationSecretMaxLength = 128;
+    public const int UserActivationRequestSecretMaxLength = 128;
     public const int PasswordResetSecretMaxLength = 100;
     public const int ShockerControlLogCustomNameMaxLength = 64;
     

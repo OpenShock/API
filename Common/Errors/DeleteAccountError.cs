@@ -7,4 +7,6 @@ public static class DeleteAccountError
 {
     public static OpenShockProblem CannotDeactivatePrivledgedAccount => new OpenShockProblem(
         "Account.Deactivate.DeniedPrivileged", "Privileged accounts cannot be deactivated!", HttpStatusCode.Forbidden);
+    public static OpenShockProblem AlreadyDeactivated => new OpenShockProblem(
+        "Account.Deactivate.AlreadyDeactivated", "Account is already deactivated!", HttpStatusCode.Forbidden);
 }
