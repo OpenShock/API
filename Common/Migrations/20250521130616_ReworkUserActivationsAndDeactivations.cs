@@ -34,6 +34,8 @@ namespace OpenShock.Common.Migrations
                 """
              );
 
+            migrationBuilder.Sql("DROP VIEW admin_users_view;");
+
             migrationBuilder.DropColumn(
                 name: "email_activated",
                 table: "users");
@@ -127,7 +129,6 @@ namespace OpenShock.Common.Migrations
             // Recreate the admin_users_view
             migrationBuilder.Sql(
                 """
-                DROP VIEW admin_users_view;
                 CREATE VIEW admin_users_view AS
                 SELECT
                     u.id,
@@ -137,10 +138,8 @@ namespace OpenShock.Common.Migrations
                     u.roles,
                     u.created_at,
                     u.activated_at,
-                    deact.created_at                           AS deactivated_at,
+                    deact.created_at AS deactivated_at,
                     deact.deactivated_by_user_id,
-                    (SELECT d.created_at FROM user_deactivations d WHERE d.deactivated_user_id = u.id ORDER BY d.created_at DESC LIMIT 1) AS deactivated_at,
-                    EXISTS (SELECT 1 FROM user_deactivations d WHERE d.deactivated_user_id = u.id) AS pending_deactivation,
                     (SELECT COUNT(*) FROM api_tokens token WHERE token.user_id = u.id) AS api_token_count,
                     (SELECT COUNT(*) FROM user_password_resets reset WHERE reset.user_id = u.id) AS password_reset_count,
                     (
@@ -249,6 +248,8 @@ namespace OpenShock.Common.Migrations
                 """
             );
 
+            migrationBuilder.Sql("DROP VIEW admin_users_view;");
+
             migrationBuilder.DropColumn(
                 name: "activated_at",
                 table: "users");
@@ -256,7 +257,6 @@ namespace OpenShock.Common.Migrations
             // Recreate the admin_users_view back to original state
             migrationBuilder.Sql(
                 """
-                DROP VIEW admin_users_view;
                 CREATE VIEW admin_users_view AS
                 SELECT
                     u.id,
