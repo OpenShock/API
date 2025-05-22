@@ -32,11 +32,11 @@ public sealed class ClearOldShockerControlLogs
              WITH ranked_logs AS (
                SELECT
                  l.id,
-                 ROW_NUMBER() OVER (PARTITION BY u.id ORDER BY l.created_on DESC) AS rn
+                 ROW_NUMBER() OVER (PARTITION BY u.id ORDER BY l.created_at DESC) AS rn
                FROM shocker_control_logs l
                JOIN shockers s ON s.id = l.shocker_id
-               JOIN devices d ON d.id = s.device
-               JOIN users u ON d.owner = u.id
+               JOIN devices d ON d.id = s.device_id
+               JOIN users u ON d.owner_id = u.id
              )
              DELETE FROM shocker_control_logs
              WHERE id IN (
