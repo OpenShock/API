@@ -24,7 +24,7 @@ public sealed partial class SharesController
             {
                 Id = x.Id,
                 CreatedAt = x.CreatedAt,
-                Owner = new GenericIni
+                Owner = new BasicUserInfo
                 {
                     Id = x.Owner.Id,
                     Name = x.Owner.Name,
@@ -32,7 +32,7 @@ public sealed partial class SharesController
                 },
                 SharedWith = x.RecipientUser == null
                     ? null
-                    : new GenericIni
+                    : new BasicUserInfo
                     {
                         Id = x.RecipientUser.Id,
                         Name = x.RecipientUser.Name,
@@ -66,7 +66,7 @@ public sealed partial class SharesController
             {
                 Id = x.Id,
                 CreatedAt = x.CreatedAt,
-                Owner = new GenericIni
+                Owner = new BasicUserInfo
                 {
                     Id = x.Owner.Id,
                     Name = x.Owner.Name,
@@ -74,7 +74,7 @@ public sealed partial class SharesController
                 },
                 SharedWith = x.RecipientUser == null
                     ? null
-                    : new GenericIni
+                    : new BasicUserInfo
                     {
                         Id = x.RecipientUser.Id,
                         Name = x.RecipientUser.Name,
@@ -197,8 +197,8 @@ public class ShareRequestBase
 {
     public required Guid Id { get; set; }
     public required DateTime CreatedAt { get; set; }
-    public required GenericIni Owner { get; set; }
-    public required GenericIni? SharedWith { get; set; }
+    public required BasicUserInfo Owner { get; set; }
+    public required BasicUserInfo? SharedWith { get; set; }
 }
 
 public sealed class ShareInviteBaseItem : ShareRequestBase

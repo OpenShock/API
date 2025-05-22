@@ -9,7 +9,7 @@ public sealed class PublicShareResponse
     
     public required DateTime CreatedOn { get; set; }
     public DateTime? ExpiresOn { get; set; }
-    public required GenericIni Author { get; set; }
+    public required BasicUserInfo Author { get; set; }
 
     public IList<PublicShareDevice> Devices { get; set; } =
         new List<PublicShareDevice>();

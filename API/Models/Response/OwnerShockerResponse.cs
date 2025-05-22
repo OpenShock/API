@@ -1,9 +1,10 @@
-﻿using OpenShock.Common.Models;
+﻿namespace OpenShock.API.Models.Response;
 
-namespace OpenShock.API.Models.Response;
-
-public sealed class OwnerShockerResponse : GenericIni
+public sealed class OwnerShockerResponse
 {
+    public required Guid Id { get; set; }
+    public required string Name { get; set; }
+    public required Uri Image { get; set; }
     public required SharedDevice[] Devices { get; set; }
 
     public sealed class SharedDevice

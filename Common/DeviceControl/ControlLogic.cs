@@ -135,7 +135,7 @@ public static class ControlLogic
 
             ownerLog.Add(new ControlLog
             {
-                Shocker = new GenericIn
+                ShockerInfo = new BasicShockerInfo
                 {
                     Id = shockerInfo.Id,
                     Name = shockerInfo.Name

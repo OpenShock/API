@@ -37,7 +37,7 @@ public sealed partial class ShockerController
                 new ShareInfo
                 {
                     Paused = x.IsPaused,
-                    SharedWith = new GenericIni
+                    SharedWith = new BasicUserInfo
                     {
                         Name = x.SharedWithUser.Name,
                         Id = x.SharedWithUserId,

@@ -43,7 +43,7 @@ public sealed class PublicShareHub : Hub<IPublicShareHub>
             return;
         }
         
-        GenericIni? user = null;
+        BasicUserInfo? user = null;
 
         if (httpContext.TryGetUserSessionToken(out var sessionToken))
         {
@@ -129,12 +129,12 @@ public sealed class PublicShareHub : Hub<IPublicShareHub>
     private CustomDataHolder CustomData => (CustomDataHolder)Context.Items[PublicShareCustomData]!;
     private const string PublicShareCustomData = "ShareLinkCustomData";
 
-    private async Task<GenericIni?> SessionAuth(string sessionToken)
+    private async Task<BasicUserInfo?> SessionAuth(string sessionToken)
     {
         var session = await _sessionService.GetSessionByToken(sessionToken);
         if (session == null) return null;
         
-        return await _db.Users.Select(x => new GenericIni
+        return await _db.Users.Select(x => new BasicUserInfo
         {
             Id = x.Id,
             Image = x.GetImageUrl(),
@@ -145,7 +145,7 @@ public sealed class PublicShareHub : Hub<IPublicShareHub>
     private sealed class CustomDataHolder
     {
         public required Guid PublicShareId { get; init; }
-        public required GenericIni? User { get; set; }
+        public required BasicUserInfo? User { get; set; }
         public required string? CustomName { get; init; }
         public required ControlLogSender CachedControlLogSender { get; set; }
     }

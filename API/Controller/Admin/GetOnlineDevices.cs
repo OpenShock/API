@@ -24,20 +24,20 @@ public sealed partial class AdminController
         var devicesOnline = _redis.RedisCollection<DeviceOnline>(false);
 
         var allOnlineDevices = await devicesOnline.ToArrayAsync();
-        var dbLookup = await _db.Devices.Where(x => allOnlineDevices.Select(y => y.Id)
-            .Contains(x.Id)).Select(
-            x =>
-                new
+        var dbLookup = await _db.Devices
+            .Where(x => allOnlineDevices.Select(y => y.Id).Contains(x.Id))
+            .Select(x => new
+            {
+                x.Id,
+                x.Name,
+                Owner = new BasicUserInfo
                 {
-                    x.Id,
-                    x.Name,
-                    Owner = new GenericIni
-                    {
-                        Id = x.Owner.Id,
-                        Image = x.Owner.GetImageUrl(),
-                        Name = x.Owner.Name
-                    }
-                }).ToArrayAsync();
+                    Id = x.Owner.Id,
+                    Image = x.Owner.GetImageUrl(),
+                    Name = x.Owner.Name
+                }
+            })
+            .ToArrayAsync();
 
         return LegacyDataOk(
             allOnlineDevices
@@ -65,7 +65,7 @@ public sealed partial class AdminController
     {
         public required Guid Id { get; init; }
         public required string Name { get; init; }
-        public required GenericIni Owner { get; init; }
+        public required BasicUserInfo Owner { get; init; }
 
         [JsonConverter(typeof(SemVersionJsonConverter))]
         public required SemVersion FirmwareVersion { get; init; }

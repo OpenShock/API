@@ -3,9 +3,27 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using OpenShock.API.Models.Response;
 using OpenShock.Common.Extensions;
+using OpenShock.Common.Utils;
 using Z.EntityFramework.Plus;
 
 namespace OpenShock.API.Controller.Shares;
+
+file sealed class V2UserSharesListItemDto
+{
+
+    public required Guid Id { get; set; }
+    public required string Name { get; set; }
+    public required string Email { get; init; }
+    public required IEnumerable<UserShareInfo> Shares { get; init; }
+    
+    public V2UserSharesListItem ToV2UserSharesListItem() => new()
+    {
+        Id = Id,
+        Name = Name,
+        Image = GravatarUtils.GetUserImageUrl(Email),
+        Shares = Shares
+    };
+}
 
 public sealed partial class SharesController
 {
@@ -79,8 +97,8 @@ public sealed partial class SharesController
 
         return new V2UserShares
         {
-            Outgoing = (await outgoingSharesFuture.ToArrayAsync(cancellationToken)).Select(x => x.FromDto()),
-            Incoming = (await incomingSharesFuture.ToArrayAsync(cancellationToken)).Select(x => x.FromDto())
+            Outgoing = (await outgoingSharesFuture.ToArrayAsync(cancellationToken)).Select(x => x.ToV2UserSharesListItem()),
+            Incoming = (await incomingSharesFuture.ToArrayAsync(cancellationToken)).Select(x => x.ToV2UserSharesListItem())
         };
     }
 

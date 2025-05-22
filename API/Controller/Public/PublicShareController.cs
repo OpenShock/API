@@ -26,7 +26,7 @@ public sealed partial class PublicController
     {
         var publicShare = await _db.PublicShares.Where(x => x.Id == publicShareId).Select(x => new
         {
-            Author = new GenericIni
+            Author = new BasicUserInfo
             {
                 Id = x.Owner.Id,
                 Name = x.Owner.Name,
