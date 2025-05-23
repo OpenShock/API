@@ -13,90 +13,66 @@ using OpenShock.Common.Problems;
 
 namespace OpenShock.API.Controller.Shares;
 
+file static class QueryHelper
+{
+    public static readonly System.Linq.Expressions.Expression<Func<UserShareInvite, ShareInviteBaseDetails>> SelectShareInvite = x =>
+        new ShareInviteBaseDetails
+        {
+            Id = x.Id,
+            CreatedAt = x.CreatedAt,
+            Owner = new BasicUserInfo
+            {
+                Id = x.Owner.Id,
+                Name = x.Owner.Name,
+                Image = x.Owner.GetImageUrl()
+            },
+            SharedWith = x.RecipientUser == null
+                ? null
+                : new BasicUserInfo
+                {
+                    Id = x.RecipientUser.Id,
+                    Name = x.RecipientUser.Name,
+                    Image = x.RecipientUser.GetImageUrl()
+                },
+            Shockers = x.ShockerMappings.Select(y => new ShockerPermLimitPairWithId
+            {
+                Id = y.ShockerId,
+                Limits = new ShockerLimits
+                {
+                    Intensity = y.MaxIntensity,
+                    Duration = y.MaxDuration
+                },
+                Permissions = new ShockerPermissions
+                {
+                    Vibrate = y.AllowVibrate,
+                    Sound = y.AllowSound,
+                    Shock = y.AllowShock,
+                    Live = y.AllowLiveControl
+                }
+            })
+        };
+}
+
 public sealed partial class SharesController
 {
     [HttpGet("invites/outgoing")]
     [ApiVersion("2")]
     public IAsyncEnumerable<ShareInviteBaseDetails> GetOutgoingInvitesList()
     {
-        return _db.UserShareInvites.Where(x => x.OwnerId == CurrentUser.Id)
-            .Select(x => new ShareInviteBaseDetails
-            {
-                Id = x.Id,
-                CreatedAt = x.CreatedAt,
-                Owner = new BasicUserInfo
-                {
-                    Id = x.Owner.Id,
-                    Name = x.Owner.Name,
-                    Image = x.Owner.GetImageUrl()
-                },
-                SharedWith = x.RecipientUser == null
-                    ? null
-                    : new BasicUserInfo
-                    {
-                        Id = x.RecipientUser.Id,
-                        Name = x.RecipientUser.Name,
-                        Image = x.RecipientUser.GetImageUrl()
-                    },
-                Shockers = x.ShockerMappings.Select(y => new ShockerPermLimitPairWithId
-                {
-                    Id = y.ShockerId,
-                    Limits = new ShockerLimits
-                    {
-                        Intensity = y.MaxIntensity,
-                        Duration = y.MaxDuration
-                    },
-                    Permissions = new ShockerPermissions
-                    {
-                        Vibrate = y.AllowVibrate,
-                        Sound = y.AllowSound,
-                        Shock = y.AllowShock,
-                        Live = y.AllowLiveControl
-                    }
-                })
-            }).AsAsyncEnumerable();
+        return _db.UserShareInvites
+            .Where(x => x.OwnerId == CurrentUser.Id)
+            .Select(QueryHelper.SelectShareInvite)
+            .AsAsyncEnumerable();
     }
     
     [HttpGet("invites/incoming")]
     [ApiVersion("2")]
     public IAsyncEnumerable<ShareInviteBaseDetails> GetIncomingInvitesList()
     {
-        return _db.UserShareInvites.Where(x => x.RecipientUserId == CurrentUser.Id)
-            .Select(x => new ShareInviteBaseDetails
-            {
-                Id = x.Id,
-                CreatedAt = x.CreatedAt,
-                Owner = new BasicUserInfo
-                {
-                    Id = x.Owner.Id,
-                    Name = x.Owner.Name,
-                    Image = x.Owner.GetImageUrl()
-                },
-                SharedWith = x.RecipientUser == null
-                    ? null
-                    : new BasicUserInfo
-                    {
-                        Id = x.RecipientUser.Id,
-                        Name = x.RecipientUser.Name,
-                        Image = x.RecipientUser.GetImageUrl()
-                    },
-                Shockers = x.ShockerMappings.Select(y => new ShockerPermLimitPairWithId
-                {
-                    Id = y.ShockerId,
-                    Limits = new ShockerLimits
-                    {
-                        Duration = y.MaxDuration,
-                        Intensity = y.MaxIntensity
-                    },
-                    Permissions = new ShockerPermissions
-                    {
-                        Vibrate = y.AllowVibrate,
-                        Sound = y.AllowSound,
-                        Shock = y.AllowShock,
-                        Live = y.AllowLiveControl
-                    }
-                })
-            }).AsAsyncEnumerable();
+        return _db.UserShareInvites
+            .Where(x => x.RecipientUserId == CurrentUser.Id)
+            .Select(QueryHelper.SelectShareInvite)
+            .AsAsyncEnumerable();
     }
     
     [HttpDelete("invites/outgoing/{id:guid}")]
