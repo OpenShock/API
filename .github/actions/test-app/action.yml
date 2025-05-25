@@ -1,0 +1,36 @@
+name: test-app
+description: Build and Test in Docker
+inputs:
+  dockerfile:
+    required: true
+    description: Dockerfile path
+  image:
+    required: true
+    description: Image name
+  target:
+    required: true
+    description: Target to run in Dockerfile
+
+runs:
+  using: composite
+  
+  steps:
+    - name: Build Test Image
+      uses: docker/build-push-action@v6
+      with:
+        context: .
+        file: ${{ inputs.dockerfile }}
+        tags: ${{ inputs.image }}
+        target: ${{ inputs.target }}
+        load: true
+        push: false
+        cache-from: |
+          type=gha
+        cache-to: |
+            type=gha
+    - name: Run Test Image
+      shell: bash
+      run: |
+        docker run --rm \
+          -v /var/run/docker.sock:/var/run/docker.sock \
+          ${{ inputs.image }}

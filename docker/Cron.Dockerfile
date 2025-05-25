@@ -1,6 +1,6 @@
 # syntax = devthefuture/dockerfile-x
 
-FROM ./docker/Base.Dockerfile AS build-cron
+FROM ./docker/Base.Dockerfile#build-common AS build-cron
 
 COPY --link Cron/*.csproj Cron/
 RUN dotnet restore Cron/Cron.csproj
