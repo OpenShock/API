@@ -5,7 +5,7 @@ public interface IBatchUpdateService
     /// <summary>
     /// Update time of last used for a token
     /// </summary>
-    /// <param name="tokenId"></param>
-    public void UpdateTokenLastUsed(Guid tokenId);
-    public void UpdateSessionLastUsed(string sessionKey, DateTimeOffset lastUsed);
+    /// <param name="apiTokenId"></param>
+    public void UpdateApiTokenLastUsed(Guid apiTokenId);
+    public void UpdateSessionLastUsed(string sessionToken, DateTimeOffset lastUsed);
 }

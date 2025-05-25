@@ -22,9 +22,8 @@ public sealed class LCGNodeProvisioner : ILCGNodeProvisioner
     public async Task<LcgNode?> GetOptimalNode(string environment)
     {
         var node = await _lcgNodes
-            .Where(x => x.Environment == environment)
             .OrderBy(x => x.Load)
-            .FirstOrDefaultAsync();
+            .FirstOrDefaultAsync(x => x.Environment == environment);
 
         if (node == null) _logger.LogWarning("No LCG nodes available!");
         if (_logger.IsEnabled(LogLevel.Debug)) _logger.LogDebug("LCG node provisioned: {@LcgNode}", node);

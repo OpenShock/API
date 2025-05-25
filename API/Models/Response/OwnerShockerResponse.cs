@@ -1,17 +1,18 @@
-﻿using OpenShock.Common.Models;
+﻿namespace OpenShock.API.Models.Response;
 
-namespace OpenShock.API.Models.Response;
-
-public sealed class OwnerShockerResponse : GenericIni
+public sealed class OwnerShockerResponse
 {
-    public IList<SharedDevice> Devices { get; set; } = new List<SharedDevice>();
+    public required Guid Id { get; set; }
+    public required string Name { get; set; }
+    public required Uri Image { get; set; }
+    public required SharedDevice[] Devices { get; set; }
 
     public sealed class SharedDevice
     {
         public required Guid Id { get; set; }
         public required string Name { get; set; }
         // ReSharper disable once CollectionNeverQueried.Global
-        public IList<SharedShocker> Shockers { get; set; } = new List<SharedShocker>();
+        public required SharedShocker[] Shockers { get; set; }
 
         public sealed class SharedShocker
         {

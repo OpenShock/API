@@ -10,7 +10,6 @@ using OpenShock.Common.Models.WebSocket;
 using OpenShock.Common.OpenShockDb;
 using OpenShock.Common.Redis;
 using OpenShock.Common.Services.RedisPubSub;
-using OpenShock.Common.Utils;
 using Redis.OM;
 using Redis.OM.Contracts;
 using Semver;
@@ -25,7 +24,7 @@ public sealed class UserHub : Hub<IUserHub>
     private readonly IRedisConnectionProvider _provider;
     private readonly IRedisPubService _redisPubService;
     private readonly IUserReferenceService _userReferenceService;
-    private IReadOnlyCollection<PermissionType>? _tokenPermissions = null;
+    private IReadOnlyList<PermissionType>? _tokenPermissions = null;
 
     public UserHub(ILogger<UserHub> logger, OpenShockContext db, IRedisConnectionProvider provider,
         IRedisPubService redisPubService, IUserReferenceService userReferenceService)
@@ -44,7 +43,7 @@ public sealed class UserHub : Hub<IUserHub>
         await Clients.Caller.Welcome(Context.ConnectionId);
         var devicesOnline = _provider.RedisCollection<DeviceOnline>(false);
         var sharedDevices = await _db.Devices
-            .Where(x => x.Shockers.Any(y => y.ShockerShares.Any(z => z.SharedWith == UserId)))
+            .Where(x => x.Shockers.Any(y => y.UserShares.Any(z => z.SharedWithUserId == UserId)))
             .Select(x => x.Id.ToString()).ToArrayAsync();
 
         var own = devicesOnline.Where(x => x.Owner == UserId).ToArrayAsync();
@@ -69,12 +68,12 @@ public sealed class UserHub : Hub<IUserHub>
         await Clients.Caller.DeviceStatus(final);
     }
 
-    public Task Control(IEnumerable<Common.Models.WebSocket.User.Control> shocks)
+    public Task Control(IReadOnlyList<Models.WebSocket.User.Control> shocks)
     {
         return ControlV2(shocks, null);
     }
 
-    public async Task ControlV2(IEnumerable<Common.Models.WebSocket.User.Control> shocks, string? customName)
+    public async Task ControlV2(IReadOnlyList<Models.WebSocket.User.Control> shocks, string? customName)
     {
         if (!_tokenPermissions.IsAllowedAllowOnNull(PermissionType.Shockers_Use)) return;
 
@@ -100,7 +99,7 @@ public sealed class UserHub : Hub<IUserHub>
         // Require a user session basically
         if (_tokenPermissions != null) return;
 
-        var devices = await _db.Devices.Where(x => x.Owner == UserId)
+        var devices = await _db.Devices.Where(x => x.OwnerId == UserId)
             .AnyAsync(x => x.Id == deviceId);
         if (!devices) return;
 
@@ -112,7 +111,7 @@ public sealed class UserHub : Hub<IUserHub>
         // Require a user session basically
         if (_tokenPermissions != null) return;
 
-        var devices = await _db.Devices.Where(x => x.Owner == UserId)
+        var devices = await _db.Devices.Where(x => x.OwnerId == UserId)
             .AnyAsync(x => x.Id == deviceId);
         if (!devices) return;
 

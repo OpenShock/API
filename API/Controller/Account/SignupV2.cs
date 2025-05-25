@@ -3,7 +3,6 @@ using OpenShock.API.Models.Requests;
 using System.Net;
 using System.Net.Mime;
 using Asp.Versioning;
-using OpenShock.API.Services.Account;
 using OpenShock.Common.Errors;
 using OpenShock.Common.Problems;
 using OpenShock.Common.Services.Turnstile;
@@ -23,7 +22,7 @@ public sealed partial class AccountController
     /// <response code="200">User successfully signed up</response>
     /// <response code="400">Username or email already exists</response>
     [HttpPost("signup")]
-    [ProducesResponseType<BaseResponse<object>>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
+    [ProducesResponseType<LegacyEmptyResponse>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status409Conflict, MediaTypeNames.Application.ProblemJson)] // EmailOrUsernameAlreadyExists
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status403Forbidden, MediaTypeNames.Application.ProblemJson)] // InvalidTurnstileResponse
     [MapToApiVersion("2")]
@@ -35,7 +34,7 @@ public sealed partial class AccountController
         var turnStile = await turnstileService.VerifyUserResponseToken(body.TurnstileResponse, HttpContext.GetRemoteIP(), cancellationToken);
         if (!turnStile.IsT0)
         {
-            var cfErrors = turnStile.AsT1.Value!;
+            var cfErrors = turnStile.AsT1.Value;
             if (cfErrors.All(err => err == CloduflareTurnstileError.InvalidResponse))
                 return Problem(TurnstileError.InvalidTurnstile);
 
@@ -43,9 +42,9 @@ public sealed partial class AccountController
         }
 
         var creationAction = await _accountService.Signup(body.Email, body.Username, body.Password);
-        if (creationAction.IsT1)
-            return Problem(SignupError.EmailAlreadyExists);
-
-        return RespondSuccessLegacySimple("Successfully signed up");
+        return creationAction.Match(
+            _ => LegacyEmptyOk("Successfully signed up"),
+            _ => Problem(SignupError.EmailAlreadyExists)
+        );
     }
 }

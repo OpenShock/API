@@ -1,5 +1,4 @@
-﻿using System.Net;
-using System.Net.Mime;
+﻿using System.Net.Mime;
 using Asp.Versioning;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -23,7 +22,7 @@ public sealed partial class SharesController
     /// <response code="400">You cannot link your own shocker code / You already have this shocker linked to your account</response>
     /// <response code="500">Error while linking share code to your account</response>
     [HttpPost("code/{shareCodeId}")]
-    [ProducesResponseType<BaseResponse<object>>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
+    [ProducesResponseType<LegacyEmptyResponse>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status404NotFound, MediaTypeNames.Application.ProblemJson)] // ShareCodeNotFound
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status400BadRequest, MediaTypeNames.Application.ProblemJson)] // CantLinkOwnShareCode, ShockerAlreadyLinked
     [MapToApiVersion("1")]
@@ -34,30 +33,31 @@ public sealed partial class SharesController
     {
         var shareCode = await _db.ShockerShareCodes.Where(x => x.Id == shareCodeId).Select(x => new
         {
-            Share = x, x.Shocker.DeviceNavigation.Owner, x.Shocker.Device
+            Share = x, x.Shocker.Device.OwnerId, x.Shocker.DeviceId
         }).FirstOrDefaultAsync();
         if (shareCode == null) return Problem(ShareCodeError.ShareCodeNotFound);
-        if (shareCode.Owner == CurrentUser.Id) return Problem(ShareCodeError.CantLinkOwnShareCode);
-        if (await _db.ShockerShares.AnyAsync(x => x.ShockerId == shareCode.Share.ShockerId && x.SharedWith == CurrentUser.Id))
+        if (shareCode.OwnerId == CurrentUser.Id) return Problem(ShareCodeError.CantLinkOwnShareCode);
+        if (await _db.UserShares.AnyAsync(x => x.ShockerId == shareCode.Share.ShockerId && x.SharedWithUserId == CurrentUser.Id))
             return Problem(ShareCodeError.ShockerAlreadyLinked);
         
-        _db.ShockerShares.Add(new ShockerShare
+        _db.UserShares.Add(new UserShare
         {
-            SharedWith = CurrentUser.Id,
+            SharedWithUserId = CurrentUser.Id,
             ShockerId = shareCode.Share.ShockerId,
-            PermSound = shareCode.Share.PermSound,
-            PermVibrate = shareCode.Share.PermVibrate,
-            PermShock = shareCode.Share.PermShock,
-            LimitDuration = shareCode.Share.LimitDuration,
-            LimitIntensity = shareCode.Share.LimitIntensity,
-            PermLive = true
+            AllowShock = shareCode.Share.AllowShock,
+            AllowVibrate = shareCode.Share.AllowVibrate,
+            AllowSound = shareCode.Share.AllowSound,
+            AllowLiveControl = shareCode.Share.AllowLiveControl,
+            MaxIntensity = shareCode.Share.MaxIntensity,
+            MaxDuration = shareCode.Share.MaxDuration,
+            IsPaused = shareCode.Share.IsPaused
         });
         _db.ShockerShareCodes.Remove(shareCode.Share);
 
         if (await _db.SaveChangesAsync() <= 1) throw new Exception("Error while linking share code to your account");
 
-        await deviceUpdateService.UpdateDevice(shareCode.Owner, shareCode.Device, DeviceUpdateType.ShockerUpdated, CurrentUser.Id);
+        await deviceUpdateService.UpdateDevice(shareCode.OwnerId, shareCode.DeviceId, DeviceUpdateType.ShockerUpdated, CurrentUser.Id);
 
-        return RespondSuccessLegacySimple("Successfully linked share code");
+        return LegacyEmptyOk("Successfully linked share code");
     }
 }

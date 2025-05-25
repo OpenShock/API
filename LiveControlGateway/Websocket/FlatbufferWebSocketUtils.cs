@@ -38,8 +38,6 @@ public static class FlatbufferWebSocketUtils
                 bytes += result.Count;
                 if (result.MessageType == WebSocketMessageType.Close)
                 {
-                    await socket.CloseAsync(WebSocketCloseStatus.NormalClosure, "Closure during message read",
-                        cancellationToken);
                     return new WebsocketClosure();
                 }
 

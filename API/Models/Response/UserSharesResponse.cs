@@ -1,15 +1,9 @@
-﻿using OpenShock.Common.Models;
-using OpenShock.Common.Models.WebSocket.User;
+﻿namespace OpenShock.API.Models.Response;
 
-namespace OpenShock.API.Models.Response;
-
-public sealed class UserSharesResponse
+public sealed class UserShareInfo
 {
-    public required IEnumerable<UserShareInfo> Shockers { get; init; }
-}
-
-public sealed class UserShareInfo : GenericIn
-{
+    public required Guid Id { get; set; }
+    public required string Name { get; set; }
     public required DateTime CreatedOn { get; set; }
     public required ShockerPermissions Permissions { get; set; }
     public required ShockerLimits Limits { get; set; }

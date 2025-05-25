@@ -2,13 +2,13 @@
 using Microsoft.AspNetCore.Mvc;
 using OpenShock.Common.Authentication;
 using OpenShock.Common.Authentication.ControllerBase;
-using OpenShock.Common.Models;
 using OpenShock.Common.OpenShockDb;
 using Redis.OM.Contracts;
 
 namespace OpenShock.API.Controller.Admin;
 
 [ApiController]
+[Tags("Admin")]
 [Route("/{version:apiVersion}/admin")]
 [Authorize(AuthenticationSchemes = OpenShockAuthSchemas.UserSessionCookie, Roles = "Admin")]
 public sealed partial class AdminController : AuthenticatedSessionControllerBase

@@ -1,66 +1,110 @@
-﻿using System.Net;
-using System.Net.Mime;
-using Asp.Versioning;
+﻿using Asp.Versioning;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using OpenShock.API.Models.Response;
-using OpenShock.Common.Errors;
 using OpenShock.Common.Extensions;
-using OpenShock.Common.Models;
-using OpenShock.Common.Problems;
 using OpenShock.Common.Utils;
+using Z.EntityFramework.Plus;
 
 namespace OpenShock.API.Controller.Shares;
+
+file sealed class V2UserSharesListItemDto
+{
+
+    public required Guid Id { get; set; }
+    public required string Name { get; set; }
+    public required string Email { get; init; }
+    public required IEnumerable<UserShareInfo> Shares { get; init; }
+    
+    public V2UserSharesListItem ToV2UserSharesListItem() => new()
+    {
+        Id = Id,
+        Name = Name,
+        Image = GravatarUtils.GetUserImageUrl(Email),
+        Shares = Shares
+    };
+}
 
 public sealed partial class SharesController
 {
     [HttpGet]
-    [ProducesResponseType<IEnumerable<GenericIni>>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
     [ApiVersion("2")]
-    public async Task<GenericIni[]> GetSharesByUsers()
+    public async Task<V2UserShares> GetSharesByUsers(CancellationToken cancellationToken)
     {
-        var sharedToUsers = await _db.ShockerShares.Where(x => x.Shocker.DeviceNavigation.Owner == CurrentUser.Id)
-            .Select(x => new GenericIni
+        _db.ChangeTracker.QueryTrackingBehavior = QueryTrackingBehavior.NoTracking;
+
+        var outgoingSharesFuture = _db.UserShares
+            .Where(x => x.Shocker.Device.OwnerId == CurrentUser.Id)
+            .GroupBy(x => x.SharedWithUserId)
+            .Select(g => new V2UserSharesListItemDto
             {
-                Id = x.SharedWithNavigation.Id,
-                Image = x.SharedWithNavigation.GetImageUrl(),
-                Name = x.SharedWithNavigation.Name
-            }).OrderBy(x => x.Name).Distinct().ToArrayAsync();
-        return sharedToUsers;
-    }
-    
-    [HttpGet("{userId:guid}")]
-    [ProducesResponseType<UserShareInfo[]>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
-    [ProducesResponseType<OpenShockProblem>(StatusCodes.Status404NotFound, MediaTypeNames.Application.ProblemJson)] // UserNotFound
-    [ApiVersion("2")]
-    public async Task<IActionResult> GetSharesToUser(Guid userId)
-    {
-        var sharedWithUser = await _db.ShockerShares.Where(x => x.Shocker.DeviceNavigation.Owner == CurrentUser.Id && x.SharedWith == userId)
-            .Select(x => new UserShareInfo
+                Id = g.Key,
+                Email = g.First().SharedWithUser.Email,
+                Name = g.First().SharedWithUser.Name,
+                Shares = g.Select(y => new UserShareInfo
+                    {
+                        Id = y.Shocker.Id,
+                        Name = y.Shocker.Name,
+                        CreatedOn = y.CreatedAt,
+                        Permissions = new ShockerPermissions
+                        {
+                            Vibrate = y.AllowVibrate,
+                            Sound = y.AllowSound,
+                            Shock = y.AllowShock,
+                            Live = y.AllowLiveControl
+                        },
+                        Limits = new ShockerLimits
+                        {
+                            Intensity = y.MaxIntensity,
+                            Duration = y.MaxDuration
+                        },
+                        Paused = y.IsPaused
+                    })
+                    .ToArray()
+            })
+            .Future();
+
+        var incomingSharesFuture = _db.UserShares
+            .Where(x => x.SharedWithUserId == CurrentUser.Id)
+            .GroupBy(x => x.Shocker.Device.OwnerId)
+            .Select(g => new V2UserSharesListItemDto
             {
-                Id = x.Shocker.Id,
-                Name = x.Shocker.Name,
-                CreatedOn = x.CreatedOn,
-                Permissions = new ShockerPermissions
-                {
-                    Sound = x.PermSound,
-                    Vibrate = x.PermVibrate,
-                    Shock = x.PermShock,
-                    Live = x.PermLive
-                },
-                Limits = new ShockerLimits
-                {
-                    Duration = x.LimitDuration,
-                    Intensity = x.LimitIntensity
-                },
-                Paused = x.Paused
-            }).ToArrayAsync();
-        
-        if(sharedWithUser.Length == 0)
+                Id = g.Key,
+                Email = g.First().Shocker.Device.Owner.Email,
+                Name = g.First().Shocker.Device.Owner.Name,
+                Shares = g.Select(y => new UserShareInfo
+                    {
+                        Id = y.Shocker.Id,
+                        Name = y.Shocker.Name,
+                        CreatedOn = y.CreatedAt,
+                        Permissions = new ShockerPermissions
+                        {
+                            Sound = y.AllowSound,
+                            Vibrate = y.AllowVibrate,
+                            Shock = y.AllowShock,
+                            Live = y.AllowLiveControl
+                        },
+                        Limits = new ShockerLimits
+                        {
+                            Duration = y.MaxDuration,
+                            Intensity = y.MaxIntensity
+                        },
+                        Paused = y.IsPaused
+                    })
+                    .ToArray()
+            })
+            .Future();
+
+        return new V2UserShares
         {
-            return Problem(ShareError.ShareGetNoShares);
-        }
-        
-        return Ok(sharedWithUser);
+            Outgoing = (await outgoingSharesFuture.ToArrayAsync(cancellationToken)).Select(x => x.ToV2UserSharesListItem()),
+            Incoming = (await incomingSharesFuture.ToArrayAsync(cancellationToken)).Select(x => x.ToV2UserSharesListItem())
+        };
+    }
+
+    public sealed class V2UserShares
+    {
+        public required IEnumerable<V2UserSharesListItem> Outgoing { get; set; }
+        public required IEnumerable<V2UserSharesListItem> Incoming { get; set; }
     }
 }

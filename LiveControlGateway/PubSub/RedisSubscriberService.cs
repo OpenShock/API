@@ -31,15 +31,15 @@ public sealed class RedisSubscriberService : IHostedService, IAsyncDisposable
     public async Task StartAsync(CancellationToken cancellationToken)
     {
         await _subscriber.SubscribeAsync(RedisChannels.DeviceControl,
-            (_, message) => { LucTask.Run(() => DeviceControl(message)); });
+            (_, message) => { OsTask.Run(() => DeviceControl(message)); });
         await _subscriber.SubscribeAsync(RedisChannels.DeviceCaptive,
-            (_, message) => { LucTask.Run(() => DeviceControlCaptive(message)); });
+            (_, message) => { OsTask.Run(() => DeviceControlCaptive(message)); });
         await _subscriber.SubscribeAsync(RedisChannels.DeviceUpdate,
-            (_, message) => { LucTask.Run(() => DeviceUpdate(message)); });
+            (_, message) => { OsTask.Run(() => DeviceUpdate(message)); });
 
         // OTA
         await _subscriber.SubscribeAsync(RedisChannels.DeviceOtaInstall,
-            (_, message) => { LucTask.Run(() => DeviceOtaInstall(message)); });
+            (_, message) => { OsTask.Run(() => DeviceOtaInstall(message)); });
     }
 
     private async Task DeviceControl(RedisValue value)

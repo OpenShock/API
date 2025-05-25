@@ -4,7 +4,7 @@
 
 namespace OpenShock.Common.OpenShockDb;
 
-public class AdminUsersView
+public sealed class AdminUsersView
 {
     public required Guid Id { get; set; }
 
@@ -14,25 +14,27 @@ public class AdminUsersView
 
     public required PasswordHashingAlgorithm PasswordHashType { get; set; }
 
+    public required List<RoleType> Roles { get; set; }
+
     public required DateTime CreatedAt { get; set; }
 
-    public required bool EmailActivated { get; set; }
+    public required DateTime? ActivatedAt { get; set; }
 
-    public required List<RoleType> Roles { get; set; }
+    public required DateTime? DeactivatedAt { get; set; }
+
+    public required Guid? DeactivatedByUserId { get; set; }
 
     public required int ApiTokenCount { get; set; }
 
     public required int PasswordResetCount { get; set; }
 
-    public required int ShockerShareCount { get; set; }
+    public required int ShockerUserShareCount { get; set; }
 
-    public required int ShockerShareLinkCount { get; set; }
+    public required int ShockerPublicShareCount { get; set; }
 
     public required int EmailChangeRequestCount { get; set; }
 
     public required int NameChangeRequestCount { get; set; }
-
-    public required int UserActivationCount { get; set; }
 
     public required int DeviceCount { get; set; }
 

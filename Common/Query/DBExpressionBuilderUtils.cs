@@ -8,7 +8,6 @@ namespace OpenShock.Common.Query;
 public static class DBExpressionBuilderUtils
 {
     private static readonly MethodInfo EfFunctionsCollateMethodInfo = typeof(RelationalDbFunctionsExtensions).GetMethod("Collate")?.MakeGenericMethod(typeof(string)) ?? throw new MissingMethodException("EF.Functions", "Collate(string,string)");
-    //private static readonly MethodInfo EfFunctionsLikeMethodInfo = typeof(NpgsqlDbFunctionsExtensions).GetMethod("Like", [typeof(DbFunctions), typeof(string), typeof(string)]) ?? throw new MissingMethodException("EF.Functions", "Like(string,string)");
     private static readonly MethodInfo EfFunctionsILikeMethodInfo = typeof(NpgsqlDbFunctionsExtensions).GetMethod("ILike", [typeof(DbFunctions), typeof(string), typeof(string)]) ?? throw new MissingMethodException("EF.Functions", "ILike(string,string)");
     private static readonly MethodInfo StringEqualsMethodInfo = typeof(string).GetMethod("Equals", [typeof(string)]) ?? throw new MissingMethodException("string", "Equals(string,StringComparison)");
     private static readonly MethodInfo StringStartsWithMethodInfo = typeof(string).GetMethod("StartsWith", [typeof(string)]) ?? throw new MissingMethodException("string", "StartsWith(string)");
@@ -42,8 +41,26 @@ public static class DBExpressionBuilderUtils
         return (memberInfo, memberType);
     }
 
+    public static LambdaExpression CreatePropertyOrFieldAccessorExpression<T>(string propOrFieldName)
+    {
+        var parameterExpr = Expression.Parameter(typeof(T), "x");
+
+        var memberExpr = Expression.PropertyOrField(parameterExpr, propOrFieldName);
+
+        return Expression.Lambda(memberExpr, parameterExpr);
+    }
+
     private static ConstantExpression GetConstant(Type type, string value)
     {
+        // Handling of nullable types
+        if (Nullable.GetUnderlyingType(type) is { } underlyingType)
+        {
+            if (string.IsNullOrWhiteSpace(value))
+                return Expression.Constant(null, type); // null literal
+
+            return GetConstant(underlyingType, value); // recurse with unwrapped
+        }
+
         if (type.IsEnum)
         {
             if (string.IsNullOrWhiteSpace(value))
@@ -105,18 +122,6 @@ public static class DBExpressionBuilderUtils
             throw new NotImplementedException();
         }
     }
-
-    /*
-    public static MethodCallExpression? BuildEfFunctionsLikeExpression(Type memberType, Expression memberExpr, string value)
-    {
-        if (memberType != typeof(string)) return null;
-
-        var valueConstant = Expression.Constant(value, typeof(string));
-        var efFunctionsConstant = Expression.Constant(EF.Functions, typeof(DbFunctions));
-
-        return Expression.Call(null, EfFunctionsLikeMethodInfo, efFunctionsConstant, memberExpr, valueConstant);
-    }
-    */
 
     public static MethodCallExpression? BuildEfFunctionsCollatedILikeExpression(Type memberType, Expression memberExpr, string value)
     {

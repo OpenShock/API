@@ -3,15 +3,13 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using OpenShock.API.Models.Requests;
 using OpenShock.API.Services;
-using OpenShock.Common;
 using OpenShock.Common.Authentication.Attributes;
 using OpenShock.Common.Errors;
+using OpenShock.Common.Extensions;
 using OpenShock.Common.Models;
 using OpenShock.Common.Problems;
 using OpenShock.Common.Redis;
 using OpenShock.Common.Utils;
-using System.Linq.Expressions;
-using System.Net;
 using System.Net.Mime;
 
 namespace OpenShock.API.Controller.Devices;
@@ -23,19 +21,20 @@ public sealed partial class DevicesController
     /// </summary>
     /// <response code="200">All devices for the current user</response>
     [HttpGet]
-    [ProducesResponseType<BaseResponse<Models.Response.ResponseDevice[]>>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
     [MapToApiVersion("1")]
-    public async Task<IActionResult> ListDevices()
+    public LegacyDataResponse<IAsyncEnumerable<Models.Response.ResponseDevice>> ListDevices()
     {
-        var devices = await _db.Devices.Where(x => x.Owner == CurrentUser.Id)
+        var devices = _db.Devices
+            .Where(x => x.OwnerId == CurrentUser.Id)
             .Select(x => new Models.Response.ResponseDevice
             {
                 Id = x.Id,
                 Name = x.Name,
-                CreatedOn = x.CreatedOn
-            }).ToArrayAsync();
+                CreatedOn = x.CreatedAt
+            })
+            .AsAsyncEnumerable();
 
-        return RespondSuccessLegacy(devices);
+        return new(devices);
     }
 
     /// <summary>
@@ -44,7 +43,7 @@ public sealed partial class DevicesController
     /// <param name="deviceId"></param>
     /// <response code="200">The device</response>
     [HttpGet("{deviceId}")]
-    [ProducesResponseType<BaseResponse<Models.Response.ResponseDeviceWithToken>>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
+    [ProducesResponseType<LegacyDataResponse<Models.Response.ResponseDeviceWithToken>>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status404NotFound, MediaTypeNames.Application.ProblemJson)] // DeviceNotFound
     [MapToApiVersion("1")]
     public async Task<IActionResult> GetDeviceById([FromRoute] Guid deviceId)
@@ -52,17 +51,17 @@ public sealed partial class DevicesController
         var hasAuthPerms = IsAllowed(PermissionType.Devices_Auth);
         
         
-        var device = await _db.Devices.Where(x => x.Owner == CurrentUser.Id && x.Id == deviceId)
+        var device = await _db.Devices.Where(x => x.OwnerId == CurrentUser.Id && x.Id == deviceId)
             .Select(x => new Models.Response.ResponseDeviceWithToken
             {
                 Id = x.Id,
                 Name = x.Name,
-                CreatedOn = x.CreatedOn,
+                CreatedOn = x.CreatedAt,
                 Token = hasAuthPerms ? x.Token : null
             }).FirstOrDefaultAsync();
         if (device == null) return Problem(DeviceError.DeviceNotFound);
 
-        return RespondSuccessLegacy(device);
+        return LegacyDataOk(device);
     }
 
     /// <summary>
@@ -80,8 +79,7 @@ public sealed partial class DevicesController
     [MapToApiVersion("1")]
     public async Task<IActionResult> EditDevice([FromRoute] Guid deviceId, [FromBody] HubEditRequest body, [FromServices] IDeviceUpdateService updateService)
     {
-        var device = await _db.Devices.Where(x => x.Owner == CurrentUser.Id && x.Id == deviceId)
-            .FirstOrDefaultAsync();
+        var device = await _db.Devices.FirstOrDefaultAsync(x => x.OwnerId == CurrentUser.Id && x.Id == deviceId);
         if (device == null) return Problem(DeviceError.DeviceNotFound);
 
         device.Name = body.Name;
@@ -106,8 +104,7 @@ public sealed partial class DevicesController
     [MapToApiVersion("1")]
     public async Task<IActionResult> RegenerateDeviceToken([FromRoute] Guid deviceId)
     {
-        var device = await _db.Devices.Where(x => x.Owner == CurrentUser.Id && x.Id == deviceId)
-            .FirstOrDefaultAsync();
+        var device = await _db.Devices.FirstOrDefaultAsync(x => x.OwnerId == CurrentUser.Id && x.Id == deviceId);
         if (device == null) return Problem(DeviceError.DeviceNotFound);
 
         device.Token = CryptoUtils.RandomString(256);
@@ -132,7 +129,7 @@ public sealed partial class DevicesController
     [MapToApiVersion("1")]
     public async Task<IActionResult> RemoveDevice([FromRoute] Guid deviceId, [FromServices] IDeviceUpdateService updateService)
     {
-        var affected = await _db.Devices.Where(x => x.Id == deviceId).WhereIsUserOrPrivileged(x => x.OwnerNavigation, CurrentUser).ExecuteDeleteAsync();
+        var affected = await _db.Devices.Where(x => x.Id == deviceId).WhereIsUserOrPrivileged(x => x.Owner, CurrentUser).ExecuteDeleteAsync();
         if (affected <= 0) return Problem(DeviceError.DeviceNotFound);
         
         await updateService.UpdateDeviceForAllShared(CurrentUser.Id, deviceId, DeviceUpdateType.Deleted);
@@ -146,9 +143,9 @@ public sealed partial class DevicesController
     /// <response code="201">Successfully created device</response>
     [HttpPost]
     [TokenPermission(PermissionType.Devices_Edit)]
-    [ProducesResponseType<Guid>(StatusCodes.Status201Created, MediaTypeNames.Application.Json)]
+    [ProducesResponseType<Guid>(StatusCodes.Status201Created, MediaTypeNames.Text.Plain)]
     [MapToApiVersion("1")]
-    public Task<Guid> CreateDevice([FromServices] IDeviceUpdateService updateService)
+    public Task<IActionResult> CreateDevice([FromServices] IDeviceUpdateService updateService)
     => CreateDeviceV2(new HubCreateRequest
         {
             Name = $"New Hub {DateTimeOffset.UtcNow:d}"
@@ -161,14 +158,14 @@ public sealed partial class DevicesController
     /// <response code="201">Successfully created device</response>
     [HttpPost]
     [TokenPermission(PermissionType.Devices_Edit)]
-    [ProducesResponseType<Guid>(StatusCodes.Status201Created, MediaTypeNames.Application.Json)]
+    [ProducesResponseType<Guid>(StatusCodes.Status201Created, MediaTypeNames.Text.Plain)]
     [MapToApiVersion("2")]
-    public async Task<Guid> CreateDeviceV2([FromBody] HubCreateRequest data, [FromServices] IDeviceUpdateService updateService)
+    public async Task<IActionResult> CreateDeviceV2([FromBody] HubCreateRequest data, [FromServices] IDeviceUpdateService updateService)
     {
         var device = new Common.OpenShockDb.Device
         {
             Id = Guid.CreateVersion7(),
-            Owner = CurrentUser.Id,
+            OwnerId = CurrentUser.Id,
             Name = data.Name,
             Token = CryptoUtils.RandomString(256)
         };
@@ -177,8 +174,7 @@ public sealed partial class DevicesController
         
         await updateService.UpdateDevice(CurrentUser.Id, device.Id, DeviceUpdateType.Created);
 
-        Response.StatusCode = (int)HttpStatusCode.Created;
-        return device.Id;
+        return Created($"/1/devices/{device.Id}", device.Id);
     }
 
     /// <summary>
@@ -189,14 +185,14 @@ public sealed partial class DevicesController
     /// <response code="404">Device does not exist or does not belong to you</response>
     [HttpGet("{deviceId}/pair")]
     [TokenPermission(PermissionType.Devices_Edit)]
-    [ProducesResponseType<BaseResponse<string>>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
+    [ProducesResponseType<LegacyDataResponse<string>>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status404NotFound, MediaTypeNames.Application.ProblemJson)] // DeviceNotFound
     [MapToApiVersion("1")]
     public async Task<IActionResult> GetPairCode([FromRoute] Guid deviceId)
     {
         var devicePairs = _redis.RedisCollection<DevicePair>();
 
-        var deviceExists = await _db.Devices.AnyAsync(x => x.Id == deviceId && x.Owner == CurrentUser.Id);
+        var deviceExists = await _db.Devices.AnyAsync(x => x.Id == deviceId && x.OwnerId == CurrentUser.Id);
         if (!deviceExists) Problem(DeviceError.DeviceNotFound);
         // replace with unlink?
         var existing = await devicePairs.FindByIdAsync(deviceId.ToString());
@@ -211,7 +207,7 @@ public sealed partial class DevicesController
         };
         await devicePairs.InsertAsync(devicePairDto, TimeSpan.FromMinutes(15));
 
-        return RespondSuccessLegacy(pairCode);
+        return LegacyDataOk(pairCode);
     }
 
     /// <summary>
@@ -224,7 +220,7 @@ public sealed partial class DevicesController
     /// <response code="412">Device is online but not connected to a LCG node, you might need to upgrade your firmware to use this feature</response>
     /// <response code="500">Internal server error, lcg node could not be found</response>
     [HttpGet("{deviceId}/lcg")]
-    [ProducesResponseType<BaseResponse<LcgResponse>>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
+    [ProducesResponseType<LegacyDataResponse<LcgResponse>>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status404NotFound, MediaTypeNames.Application.ProblemJson)] // DeviceNotFound, DeviceIsNotOnline
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status412PreconditionFailed, MediaTypeNames.Application.ProblemJson)] // DeviceNotConnectedToGateway
     [MapToApiVersion("1")]
@@ -232,8 +228,8 @@ public sealed partial class DevicesController
     {
         // Check if user owns device or has a share
         var deviceExistsAndYouHaveAccess = await _db.Devices.AnyAsync(x =>
-            x.Id == deviceId && (x.Owner == CurrentUser.Id || x.Shockers.Any(y => y.ShockerShares.Any(
-                z => z.SharedWith == CurrentUser.Id))));
+            x.Id == deviceId && (x.OwnerId == CurrentUser.Id || x.Shockers.Any(y => y.UserShares.Any(
+                z => z.SharedWithUserId == CurrentUser.Id))));
         if (!deviceExistsAndYouHaveAccess) return Problem(DeviceError.DeviceNotFound);
 
         // Check if device is online
@@ -249,7 +245,7 @@ public sealed partial class DevicesController
         var gateway = await lcgNodes.FindByIdAsync(online.Gateway);
         if (gateway == null) throw new Exception("Internal server error, lcg node could not be found");
 
-        return RespondSuccessLegacy(new LcgResponse
+        return LegacyDataOk(new LcgResponse
         {
             Gateway = gateway.Fqdn,
             Country = gateway.Country
