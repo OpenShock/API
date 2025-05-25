@@ -24,6 +24,10 @@ runs:
         target: ${{ inputs.target }}
         load: true
         push: false
+        cache-from: |
+          type=gha
+        cache-to: |
+            type=gha
     - name: Run Test Image
       shell: bash
       run: |
