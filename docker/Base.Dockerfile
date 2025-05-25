@@ -9,3 +9,13 @@ COPY --link Common/. Common/
 COPY --link .git/ .
 
 RUN dotnet build --no-restore -c Release Common/Common.csproj
+
+FROM build-common AS test-common
+WORKDIR /src
+
+COPY --link Common.Tests/*.csproj Common.Tests/
+RUN dotnet restore Common.Tests/Common.Tests.csproj
+COPY --link Common.Tests/. Common.Tests/
+RUN dotnet build --no-restore -c Release Common.Tests/Common.Tests.csproj
+ENTRYPOINT ["dotnet", "test", "--no-build", "-c", "Release", "Common.Tests/Common.Tests.csproj"]
+

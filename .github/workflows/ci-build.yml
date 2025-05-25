@@ -45,6 +45,20 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Run Common Unit Tests
+        uses: ./.github/actions/test-app
+        with:
+          dockerfile: docker/Base.Dockerfile
+          image: test-common
+          target: test-common
+
+      - name: Run API Integration Tests
+        uses: ./.github/actions/test-app
+        with:
+          dockerfile: docker/API.Dockerfile
+          image: api-integration-tests
+          target: integration-test-api
+
       - name: Build API
         uses: ./.github/actions/build-app
         with:
