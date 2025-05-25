@@ -22,6 +22,7 @@ runs:
         file: ${{ inputs.dockerfile }}
         tags: ${{ inputs.image }}
         target: ${{ inputs.target }}
+        load: true
         push: false
     - name: Run Test Image
       shell: bash
