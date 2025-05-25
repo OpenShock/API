@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using OpenShock.Common.Errors;
 using OpenShock.Common.Services.Webhook;
 
 namespace OpenShock.API.Controller.Admin;
@@ -17,6 +18,6 @@ public sealed partial class AdminController
     public async Task<IActionResult> RemoveWebhook([FromRoute] Guid id, [FromServices] IWebhookService webhookService)
     {
         bool removed = await webhookService.RemoveWebhook(id);
-        return removed ? Ok() : NotFound();
+        return removed ? Ok() : Problem(AdminError.WebhookNotFound);
     }
 }
