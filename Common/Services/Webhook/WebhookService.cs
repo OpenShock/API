@@ -29,7 +29,7 @@ public sealed class WebhookService : IWebhookService
                 DnsSafeHost: "discord.com",
                 Segments: ["/", "api/", "webhooks/", {} webhookIdStr, {} webhookToken]
             } ||
-            !long.TryParse(webhookIdStr, out var webhookId)
+            !long.TryParse(webhookIdStr[..^1], out var webhookId)
            )
         {
             return new UnsupportedWebhookUrl();
