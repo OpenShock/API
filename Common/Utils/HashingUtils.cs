@@ -105,8 +105,10 @@ public static class HashingUtils
 
     public static string HashToken(string token)
     {
+        // BE CAREFUL, changing this will break leaked token reporting.
         return HashSha256(token);
     }
+
     public static VerifyHashResult VerifyToken(string token, string hashedToken)
     {
         if (string.IsNullOrEmpty(token)) return VerifyHashFailureResult;

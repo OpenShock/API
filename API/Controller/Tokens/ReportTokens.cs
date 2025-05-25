@@ -51,7 +51,7 @@ public sealed partial class TokensController
             var hashes = new string[body.Secrets.Length];
             for (int i = 0; i < body.Secrets.Length; i++)
             {
-                body.Secrets[i] = HashingUtils.HashSha256(body.Secrets[i]);
+                hashes[i] = HashingUtils.HashToken(body.Secrets[i]);
             }
             
             nAffected = await _db.ApiTokens
