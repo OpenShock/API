@@ -20,6 +20,7 @@ public sealed partial class TokensController
     /// </summary>
     /// <param name="body"></param>
     /// <param name="turnstileService"></param>
+    /// <param name="webhookService"></param>
     /// <param name="cancellationToken"></param>
     /// <response code="200">The tokens were deleted if found</response>
     [HttpPost("report")]
