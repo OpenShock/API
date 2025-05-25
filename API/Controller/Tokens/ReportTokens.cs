@@ -78,10 +78,8 @@ public sealed partial class TokensController
 
         await webhookService.SendWebhook(
             "TokensReported",
-            "ApiToken leak report submitted", 
+            "🔒 Leaked API Tokens Report Submitted", 
         $"""
-               🔒 **API Token Report**
-               
                A new API token leak report has been submitted by **{CurrentUser.Name}** (`{CurrentUser.Id}`).
                
                • 📄 **Submitted Tokens**: {body.Secrets.Length}
