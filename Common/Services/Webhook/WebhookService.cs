@@ -85,10 +85,7 @@ public sealed class WebhookService : IWebhookService
         if (webhook is null)
             return new NotFound();
 
-        // Do not dispose of HttpClient created from factory
-#pragma warning disable IDISP001
-        var httpClient = _httpClientFactory.CreateClient();
-#pragma warning restore IDISP001
+        using var httpClient = _httpClientFactory.CreateClient();
         httpClient.Timeout = TimeSpan.FromSeconds(10);
 
         var embed = new
