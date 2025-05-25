@@ -6,7 +6,7 @@ public class ApiTokenReport
 {
     public required Guid Id { get; set; }
 
-    public required DateTimeOffset ReportedAt { get; set; }
+    public required DateTime ReportedAt { get; set; }
 
     public required Guid ReportedByUserId { get; set; }
 

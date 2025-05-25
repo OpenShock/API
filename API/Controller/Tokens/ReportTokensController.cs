@@ -18,7 +18,6 @@ public sealed partial class TokensController
     /// </summary>
     /// <param name="body"></param>
     /// <param name="turnstileService"></param>
-    /// <param name="apiConfig"></param>
     /// <param name="cancellationToken"></param>
     /// <response code="200">The tokens were deleted if found</response>
     [HttpPost("report")]
@@ -26,7 +25,6 @@ public sealed partial class TokensController
     public async Task<IActionResult> ReportTokens(
         [FromBody] ReportTokensRequest body,
         [FromServices] ICloudflareTurnstileService turnstileService,
-        [FromServices] ApiConfig apiConfig,
         CancellationToken cancellationToken)
     {
         var remoteIP = HttpContext.GetRemoteIP();
@@ -41,9 +39,9 @@ public sealed partial class TokensController
             return Problem(new OpenShockProblem("InternalServerError", "Internal Server Error", HttpStatusCode.InternalServerError));
         }
 
-        _db.ApiTokensReports.Add(new Common.OpenShockDb.ApiTokenReport {
+        _db.ApiTokenReports.Add(new Common.OpenShockDb.ApiTokenReport {
             Id = Guid.CreateVersion7(),
-            ReportedAt = DateTimeOffset.UtcNow,
+            ReportedAt = DateTime.UtcNow,
             ReportedByUserId = CurrentUser.Id,
             ReportedByIp = remoteIP,
             ReportedByIpCountry = HttpContext.GetCFIPCountry(),

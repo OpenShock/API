@@ -21,6 +21,7 @@ public sealed class User
     public UserActivationRequest? UserActivationRequest { get; set; }
     public UserDeactivation? UserDeactivation { get; set; }
     public ICollection<ApiToken> ApiTokens { get; } = [];
+    public ICollection<ApiTokenReport> ReportedApiTokens { get; } = [];
     public ICollection<Device> Devices { get; } = [];
     public ICollection<UserShare> IncomingUserShares { get; } = [];
     public ICollection<UserShareInvite> OutgoingUserShareInvites { get; } = [];
