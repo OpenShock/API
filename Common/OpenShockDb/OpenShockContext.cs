@@ -78,6 +78,8 @@ public class OpenShockContext : DbContext
 
     public DbSet<ApiToken> ApiTokens { get; set; }
 
+    public DbSet<ApiTokenReport> ApiTokenReports { get; set; }
+
     public DbSet<Device> Devices { get; set; }
 
     public DbSet<DeviceOtaUpdate> DeviceOtaUpdates { get; set; }
@@ -169,6 +171,41 @@ public class OpenShockContext : DbContext
             entity.HasOne(d => d.User).WithMany(p => p.ApiTokens)
                 .HasForeignKey(d => d.UserId)
                 .HasConstraintName("fk_api_tokens_user_id");
+        });
+
+        modelBuilder.Entity<ApiTokenReport>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("api_token_reports_pkey");
+            
+            entity.ToTable("api_token_reports");
+            
+            entity.Property(e => e.Id)
+                .ValueGeneratedNever()
+                .HasColumnName("id");
+        });
+        
+        modelBuilder.Entity<ApiTokenReport>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("api_token_reports_pkey");
+
+            entity.ToTable("api_token_reports");
+
+            entity.Property(e => e.Id)
+                .ValueGeneratedNever()
+                .HasColumnName("id");
+            entity.Property(e => e.ReportedAt)
+                .HasDefaultValueSql("CURRENT_TIMESTAMP")
+                .HasColumnName("reported_at");
+            entity.Property(e => e.ReportedByUserId)
+                .HasColumnName("reported_by_user_id");
+            entity.Property(e => e.ReportedByIp)
+                .HasColumnName("reported_by_ip");
+            entity.Property(e => e.ReportedByIpCountry)
+                .HasColumnName("reported_by_ip_country");
+
+            entity.HasOne(r => r.ReportedByUser).WithMany(u => u.ReportedApiTokens)
+                .HasForeignKey(r => r.ReportedByUserId)
+                .HasConstraintName("fk_api_token_reports_reported_by_user_id");
         });
 
         modelBuilder.Entity<Device>(entity =>
