@@ -26,6 +26,6 @@ runs:
     - name: Run Test Image
       shell: bash
       run: |
-        docker run --rm -it \
+        docker run --rm \
           -v /var/run/docker.sock.raw:/var/run/docker.sock \
           ${{ inputs.image }}
