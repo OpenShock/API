@@ -6,7 +6,7 @@ namespace OpenShock.Common.Models.WebSocket.User;
 // ReSharper disable once ClassNeverInstantiated.Global
 public sealed class ControlLog
 {
-    public required BasicShockerInfo ShockerInfo { get; set; }
+    public required BasicShockerInfo Shocker { get; set; }
 
     public required ControlType Type { get; set; }
 
