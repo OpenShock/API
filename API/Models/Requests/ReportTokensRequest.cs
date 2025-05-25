@@ -6,5 +6,5 @@ public class ReportTokensRequest
 {
     [Required(AllowEmptyStrings = false)]
     public required string TurnstileResponse { get; set; }
-    public required IEnumerable<string> Secrets { get; set; }
+    public required string[] Secrets { get; set; }
 }

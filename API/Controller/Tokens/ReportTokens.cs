@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Authorization;
+﻿using System.Drawing;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using OpenShock.API.Models.Requests;
@@ -8,6 +9,7 @@ using OpenShock.Common.Problems;
 using OpenShock.Common.Services.Turnstile;
 using OpenShock.Common.Utils;
 using System.Net;
+using OpenShock.Common.Services.Webhook;
 
 namespace OpenShock.API.Controller.Tokens;
 
@@ -25,6 +27,7 @@ public sealed partial class TokensController
     public async Task<IActionResult> ReportTokens(
         [FromBody] ReportTokensRequest body,
         [FromServices] ICloudflareTurnstileService turnstileService,
+        [FromServices] IWebhookService webhookService,
         CancellationToken cancellationToken)
     {
         var remoteIP = HttpContext.GetRemoteIP();
@@ -52,7 +55,8 @@ public sealed partial class TokensController
         var hashes = body.Secrets.Select(HashingUtils.HashSha256).ToArray();
         await _db.ApiTokens.Where(x => hashes.Contains(x.TokenHash)).ExecuteDeleteAsync(cancellationToken);
 
-        // TODO: Push to webhook
+        await webhookService.SendWebhook("TokensReported",
+            $"Someone reported {body.Secrets.Length} secret(s) as leaked", "AAA", Color.OrangeRed);
 
         return Ok();
     }
