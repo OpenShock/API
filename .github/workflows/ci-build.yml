@@ -1,12 +1,10 @@
 on:
   push:
     branches:
-      - master
-      - develop
+      - '**'
   pull_request:
     branches:
-      - master
-      - develop
+      - '**'
     types: [ opened, reopened, synchronize ]
   workflow_call:
     inputs:
@@ -45,11 +43,25 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Run Common Unit Tests
+        uses: ./.github/actions/test-app
+        with:
+          dockerfile: docker/Base.Dockerfile
+          image: test-common
+          target: test-common
+
+      - name: Run API Integration Tests
+        uses: ./.github/actions/test-app
+        with:
+          dockerfile: docker/API.Dockerfile
+          image: api-integration-tests
+          target: integration-test-api
+
       - name: Build API
         uses: ./.github/actions/build-app
         with:
           dockerfile: docker/API.Dockerfile
-          push: ${{ github.event_name != 'pull_request' }}
+          push: ${{ github.ref_protected && github.event_name != 'pull_request' }}
           image: api
           platforms: ${{ inputs.platforms || 'linux/amd64' }}
           latest: ${{ inputs.latest || false }}
@@ -58,7 +70,7 @@ jobs:
         uses: ./.github/actions/build-app
         with:
           dockerfile: docker/LiveControlGateway.Dockerfile
-          push: ${{ github.event_name != 'pull_request' }}
+          push: ${{ github.ref_protected && github.event_name != 'pull_request' }}
           image: live-control-gateway
           platforms: ${{ inputs.platforms || 'linux/amd64' }}
           latest: ${{ inputs.latest || false }}
@@ -67,7 +79,7 @@ jobs:
         uses: ./.github/actions/build-app
         with:
           dockerfile: docker/Cron.Dockerfile
-          push: ${{ github.event_name != 'pull_request' }}
+          push: ${{ github.ref_protected && github.event_name != 'pull_request' }}
           image: cron
           platforms: ${{ inputs.platforms || 'linux/amd64' }}
           latest: ${{ inputs.latest || false }}

@@ -1,6 +1,6 @@
 # syntax = devthefuture/dockerfile-x
 
-FROM ./docker/Base.Dockerfile AS build-gateway
+FROM ./docker/Base.Dockerfile#build-common AS build-gateway
 
 COPY --link LiveControlGateway/*.csproj LiveControlGateway/
 RUN dotnet restore LiveControlGateway/LiveControlGateway.csproj

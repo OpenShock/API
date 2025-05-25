@@ -111,6 +111,8 @@ public class OpenShockContext : DbContext
     public DbSet<UserEmailChange> UserEmailChanges { get; set; }
 
     public DbSet<UserNameChange> UserNameChanges { get; set; }
+    
+    public DbSet<DiscordWebhook> DiscordWebhooks { get; set; }
 
     public DbSet<AdminUsersView> AdminUsersViews { get; set; }
 
@@ -695,6 +697,25 @@ public class OpenShockContext : DbContext
             entity.HasOne(d => d.User).WithMany(p => p.NameChanges)
                 .HasForeignKey(d => d.UserId)
                 .HasConstraintName("fk_user_name_changes_user_id");
+        });
+
+        modelBuilder.Entity<DiscordWebhook>(entity =>
+        {
+            entity.HasKey(e => e.Name).HasName("discord_webhooks_pkey");
+            
+            entity.ToTable("discord_webhooks");
+            
+            entity.Property(e => e.Id)
+                .HasColumnName("id");
+            entity.Property(e => e.Name)
+                .HasColumnName("name");
+            entity.Property(e => e.WebhookId)
+                .HasColumnName("webhook_id");
+            entity.Property(e => e.WebhookToken)
+                .HasColumnName("webhook_token");
+            entity.Property(e => e.CreatedAt)
+                .HasDefaultValueSql("CURRENT_TIMESTAMP")
+                .HasColumnName("created_at");
         });
 
         modelBuilder.Entity<AdminUsersView>(entity =>

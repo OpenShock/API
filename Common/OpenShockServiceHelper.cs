@@ -15,6 +15,7 @@ using OpenShock.Common.Problems;
 using OpenShock.Common.Services.BatchUpdate;
 using OpenShock.Common.Services.RedisPubSub;
 using OpenShock.Common.Services.Session;
+using OpenShock.Common.Services.Webhook;
 using OpenTelemetry.Metrics;
 using Redis.OM;
 using Redis.OM.Contracts;
@@ -189,6 +190,7 @@ public static class OpenShockServiceHelper
         // <---- OpenShock Services ---->
 
         services.AddScoped<ISessionService, SessionService>();
+        services.AddSingleton<IWebhookService, WebhookService>();
         services.AddSingleton<IBatchUpdateService, BatchUpdateService>();
         services.AddHostedService<BatchUpdateService>(provider =>
             (BatchUpdateService)provider.GetRequiredService<IBatchUpdateService>());
