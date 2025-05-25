@@ -193,18 +193,22 @@ public class OpenShockContext : DbContext
             entity.Property(e => e.Id)
                 .ValueGeneratedNever()
                 .HasColumnName("id");
-            entity.Property(e => e.ReportedAt)
+            entity.Property(e => e.SubmittedCount)
+                .HasColumnName("submitted_count");
+            entity.Property(e => e.AffectedCount)
+                .HasColumnName("affected_count");
+            entity.Property(e => e.UserId)
+                .HasColumnName("user_id");
+            entity.Property(e => e.IpAddress)
+                .HasColumnName("ip_address");
+            entity.Property(e => e.IpCountry)
+                .HasColumnName("ip_country");
+            entity.Property(e => e.CreatedAt)
                 .HasDefaultValueSql("CURRENT_TIMESTAMP")
-                .HasColumnName("reported_at");
-            entity.Property(e => e.ReportedByUserId)
-                .HasColumnName("reported_by_user_id");
-            entity.Property(e => e.ReportedByIp)
-                .HasColumnName("reported_by_ip");
-            entity.Property(e => e.ReportedByIpCountry)
-                .HasColumnName("reported_by_ip_country");
+                .HasColumnName("created_at");
 
             entity.HasOne(r => r.ReportedByUser).WithMany(u => u.ReportedApiTokens)
-                .HasForeignKey(r => r.ReportedByUserId)
+                .HasForeignKey(r => r.UserId)
                 .HasConstraintName("fk_api_token_reports_reported_by_user_id");
         });
 

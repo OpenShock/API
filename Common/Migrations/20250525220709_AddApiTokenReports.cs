@@ -17,26 +17,28 @@ namespace OpenShock.Common.Migrations
                 columns: table => new
                 {
                     id = table.Column<Guid>(type: "uuid", nullable: false),
-                    reported_at = table.Column<DateTime>(type: "timestamp with time zone", nullable: false, defaultValueSql: "CURRENT_TIMESTAMP"),
-                    reported_by_user_id = table.Column<Guid>(type: "uuid", nullable: false),
-                    reported_by_ip = table.Column<IPAddress>(type: "inet", nullable: false),
-                    reported_by_ip_country = table.Column<string>(type: "text", nullable: true)
+                    submitted_count = table.Column<int>(type: "integer", nullable: false),
+                    affected_count = table.Column<int>(type: "integer", nullable: false),
+                    user_id = table.Column<Guid>(type: "uuid", nullable: false),
+                    ip_address = table.Column<IPAddress>(type: "inet", nullable: false),
+                    ip_country = table.Column<string>(type: "text", nullable: true),
+                    created_at = table.Column<DateTime>(type: "timestamp with time zone", nullable: false, defaultValueSql: "CURRENT_TIMESTAMP")
                 },
                 constraints: table =>
                 {
                     table.PrimaryKey("api_token_reports_pkey", x => x.id);
                     table.ForeignKey(
                         name: "fk_api_token_reports_reported_by_user_id",
-                        column: x => x.reported_by_user_id,
+                        column: x => x.user_id,
                         principalTable: "users",
                         principalColumn: "id",
                         onDelete: ReferentialAction.Cascade);
                 });
 
             migrationBuilder.CreateIndex(
-                name: "IX_api_token_reports_reported_by_user_id",
+                name: "IX_api_token_reports_user_id",
                 table: "api_token_reports",
-                column: "reported_by_user_id");
+                column: "user_id");
         }
 
         /// <inheritdoc />

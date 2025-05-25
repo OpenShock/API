@@ -43,21 +43,56 @@ public sealed partial class TokensController
             return Problem(new OpenShockProblem("InternalServerError", "Internal Server Error", HttpStatusCode.InternalServerError));
         }
 
+        var reportId = Guid.CreateVersion7();
+
+        int nAffected = 0;
+        try
+        {
+            var hashes = new string[body.Secrets.Length];
+            for (int i = 0; i < body.Secrets.Length; i++)
+            {
+                body.Secrets[i] = HashingUtils.HashSha256(body.Secrets[i]);
+            }
+            
+            nAffected = await _db.ApiTokens
+                .Where(x => hashes.Contains(x.TokenHash))
+                .ExecuteDeleteAsync(cancellationToken);
+        }
+        catch (Exception e)
+        {
+            _logger.LogError(e,"Failed to delete reported api tokens.");
+        }
+
+        var ipCountry = HttpContext.GetCFIPCountry();
+        
         _db.ApiTokenReports.Add(new Common.OpenShockDb.ApiTokenReport {
-            Id = Guid.CreateVersion7(),
-            ReportedAt = DateTime.UtcNow,
-            ReportedByUserId = CurrentUser.Id,
-            ReportedByIp = remoteIP,
-            ReportedByIpCountry = HttpContext.GetCFIPCountry(),
+            Id = reportId,
+            SubmittedCount = body.Secrets.Length,
+            AffectedCount = nAffected,
+            UserId = CurrentUser.Id,
+            IpAddress = remoteIP,
+            IpCountry = ipCountry,
             ReportedByUser = CurrentUser
         });
         await _db.SaveChangesAsync(cancellationToken);
 
-        var hashes = body.Secrets.Select(HashingUtils.HashSha256).ToArray();
-        await _db.ApiTokens.Where(x => hashes.Contains(x.TokenHash)).ExecuteDeleteAsync(cancellationToken);
-
-        await webhookService.SendWebhook("TokensReported",
-            $"Someone reported {body.Secrets.Length} secret(s) as leaked", "AAA", Color.OrangeRed);
+        await webhookService.SendWebhook(
+            "TokensReported",
+            "ApiToken leak report submitted", 
+        $"""
+               🔒 **API Token Report**
+               
+               A new API token leak report has been submitted by **{CurrentUser.Name}** (`{CurrentUser.Id}`).
+               
+               • 📄 **Submitted Tokens**: {body.Secrets.Length}
+               • 🧹 **Deleted Tokens**: {nAffected}
+               • 🌍 **IP Address**: {remoteIP}
+               • 📍 **Country**: {ipCountry}
+               • 🆔 **Report ID**: `{reportId}`
+               
+               Please investigate further if necessary.
+               """,
+            Color.OrangeRed);
 
         return Ok();
     }

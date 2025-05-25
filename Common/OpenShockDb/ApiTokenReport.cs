@@ -5,14 +5,18 @@ namespace OpenShock.Common.OpenShockDb;
 public class ApiTokenReport
 {
     public required Guid Id { get; set; }
+    
+    public required int SubmittedCount { get; set; }
+    
+    public required int AffectedCount { get; set; }
 
-    public required DateTime ReportedAt { get; set; }
+    public required Guid UserId { get; set; }
 
-    public required Guid ReportedByUserId { get; set; }
+    public required IPAddress IpAddress { get; set; }
 
-    public required IPAddress ReportedByIp { get; set; }
+    public required string? IpCountry { get; set; }
 
-    public string? ReportedByIpCountry { get; set; } = null;
+    public DateTime CreatedAt { get; set; }
 
-    public virtual User ReportedByUser { get; set; } = null!;
+    public User ReportedByUser { get; set; } = null!;
 }

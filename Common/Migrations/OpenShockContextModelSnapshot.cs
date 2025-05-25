@@ -182,29 +182,37 @@ namespace OpenShock.Common.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("id");
 
-                    b.Property<DateTime>("ReportedAt")
+                    b.Property<int>("AffectedCount")
+                        .HasColumnType("integer")
+                        .HasColumnName("affected_count");
+
+                    b.Property<DateTime>("CreatedAt")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("timestamp with time zone")
-                        .HasColumnName("reported_at")
+                        .HasColumnName("created_at")
                         .HasDefaultValueSql("CURRENT_TIMESTAMP");
 
-                    b.Property<IPAddress>("ReportedByIp")
+                    b.Property<IPAddress>("IpAddress")
                         .IsRequired()
                         .HasColumnType("inet")
-                        .HasColumnName("reported_by_ip");
+                        .HasColumnName("ip_address");
 
-                    b.Property<string>("ReportedByIpCountry")
+                    b.Property<string>("IpCountry")
                         .HasColumnType("text")
-                        .HasColumnName("reported_by_ip_country");
+                        .HasColumnName("ip_country");
 
-                    b.Property<Guid>("ReportedByUserId")
+                    b.Property<int>("SubmittedCount")
+                        .HasColumnType("integer")
+                        .HasColumnName("submitted_count");
+
+                    b.Property<Guid>("UserId")
                         .HasColumnType("uuid")
-                        .HasColumnName("reported_by_user_id");
+                        .HasColumnName("user_id");
 
                     b.HasKey("Id")
                         .HasName("api_token_reports_pkey");
 
-                    b.HasIndex("ReportedByUserId");
+                    b.HasIndex("UserId");
 
                     b.ToTable("api_token_reports", (string)null);
                 });
@@ -966,7 +974,7 @@ namespace OpenShock.Common.Migrations
                 {
                     b.HasOne("OpenShock.Common.OpenShockDb.User", "ReportedByUser")
                         .WithMany("ReportedApiTokens")
-                        .HasForeignKey("ReportedByUserId")
+                        .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired()
                         .HasConstraintName("fk_api_token_reports_reported_by_user_id");
