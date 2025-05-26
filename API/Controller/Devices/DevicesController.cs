@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using OpenShock.API.Models.Requests;
 using OpenShock.API.Services;
 using OpenShock.Common.Authentication.Attributes;
+using OpenShock.Common.Constants;
 using OpenShock.Common.Errors;
 using OpenShock.Common.Extensions;
 using OpenShock.Common.Models;
@@ -162,6 +163,11 @@ public sealed partial class DevicesController
     [MapToApiVersion("2")]
     public async Task<IActionResult> CreateDeviceV2([FromBody] HubCreateRequest data, [FromServices] IDeviceUpdateService updateService)
     {
+        if (_db.Devices.Count(d => d.OwnerId == CurrentUser.Id) >= HardLimits.MaxDevicesPerUser)
+        {
+            return Problem(DeviceError.DeviceNotFound);
+        }
+
         var device = new Common.OpenShockDb.Device
         {
             Id = Guid.CreateVersion7(),
