@@ -26,51 +26,46 @@ public static class UserSeeder
             .RuleFor(u => u.Id, f => Guid.CreateVersion7())
             // For random users, generate a username—but we'll override it for “well‐defined” accounts.
             .RuleFor(u => u.Name, f => f.Internet.UserNameUnicode().Truncate(HardLimits.UsernameMaxLength))
-            // Email depends on Name
-            .RuleFor(u => u.Email, (f, u) => f.Internet.Email(u.Name))
             // Random alphanumeric hash (truncated to the max length)
             .RuleFor(u => u.PasswordHash, f => HashingUtils.HashPassword(f.Random.AlphaNumeric(32)))
-            // Default “no roles” (we'll override Roles when we clone for Admin/System/Generic-type fakes)
-            .RuleFor(u => u.Roles, f => [])
             // Created sometime in the past year
             .RuleFor(u => u.CreatedAt, f => f.Date.PastOffset(25).UtcDateTime)
             // Activated between 1 second and 30 days of creation
             .RuleFor(u => u.ActivatedAt, (f, u) => f.Random.Bool(0.1f) ? f.Date.Between(u.CreatedAt.AddSeconds(1), u.CreatedAt.AddDays(30)) : null);
 
-        var genericUserFaker = baseUserFaker.Clone();
-
         var adminUserFaker = baseUserFaker.Clone()
+            .RuleFor(u => u.Email, (f, u) => f.Internet.Email(u.Name, null, "openshock.app"))
             .RuleFor(u => u.Roles, _ => [RoleType.Admin]);
 
         var systemUserFaker = baseUserFaker.Clone()
+            .RuleFor(u => u.Email, (f, u) => f.Internet.Email(u.Name, null, "openshock.app"))
             .RuleFor(u => u.Roles, _ => [RoleType.System]);
 
-        // 2a) Well‐defined Admin account
-        var adminUser = adminUserFaker.Clone()
-            // Override Name+Email+PasswordHash to our constants
-            .RuleFor(u => u.Name, _ => "admin")
-            .RuleFor(u => u.Email, _ => "admin@openshock.com")
-            .RuleFor(u => u.PasswordHash, _ => HashingUtils.HashPassword("AdminPassword123!"))
-            .Generate();
+        var genericUserFaker = baseUserFaker.Clone()
+            // Email depends on Name
+            .RuleFor(u => u.Email, (f, u) => f.Internet.Email(u.Name))
+            // Default “no roles” (we'll override Roles when we clone for Admin/System/Generic-type fakes)
+            .RuleFor(u => u.Roles, f => []);
 
-        // 2b) Well‐defined System account
-        var systemUser = systemUserFaker.Clone()
-            .RuleFor(u => u.Name, _ => "system")
-            .RuleFor(u => u.Email, _ => "system@openshock.com")
-            .RuleFor(u => u.PasswordHash, _ => HashingUtils.HashPassword("SystemPassword123!"))
-            .Generate();
-
-        // 2c) Well‐defined “Generic user” account (no roles)
-        var genericUser = baseUserFaker.Clone()
-            .RuleFor(u => u.Name, _ => "user")
-            .RuleFor(u => u.Email, _ => "user@openshock.com")
-            .RuleFor(u => u.PasswordHash, _ => HashingUtils.HashPassword("UserPassword123!"))
-            // Roles default to an empty array (clone already set Roles = Array.Empty<RoleType>())
-            .Generate();
-
-        // Add those three first
+        // Admin account
+        var adminUser = adminUserFaker.Generate();
+        adminUser.Name = "Admin";
+        adminUser.Email = "test.admin@openshock.app";
+        adminUser.PasswordHash = HashingUtils.HashPassword("AdminPassword123!");
         db.Users.Add(adminUser);
+
+        // System account
+        var systemUser = systemUserFaker.Generate();
+        systemUser.Name = "System";
+        systemUser.Email = "test.system@openshock.app";
+        systemUser.PasswordHash = "SystemPassword123!";
         db.Users.Add(systemUser);
+
+        // Generic user account
+        var genericUser = genericUserFaker.Generate();
+        genericUser.Name = "User";
+        genericUser.Email = "test.user@openshock.app";
+        genericUser.PasswordHash = HashingUtils.HashPassword("UserPassword123!");
         db.Users.Add(genericUser);
 
         // --- 3) GENERATE “X” FAKE USERS OF EACH TYPE (Admin / System / Generic) ---
