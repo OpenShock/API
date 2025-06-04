@@ -38,8 +38,6 @@ using (var scope = app.Services.CreateScope())
     await DeviceSeeder.SeedAsync(db);
     await ShockerSeeder.SeedAsync(db);
     await ControlLogSeeder.SeedAsync(db);
-
-    Console.WriteLine("Database seeding complete.");
 }
 
-await app.RunAsync();
+Console.WriteLine("Database seeding complete.");
