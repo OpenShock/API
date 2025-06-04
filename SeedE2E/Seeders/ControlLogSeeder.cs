@@ -20,7 +20,7 @@ public static class ControlLogSeeder
             .RuleFor(l => l.Id, f => Guid.NewGuid())
             .RuleFor(l => l.ShockerId, f => f.PickRandom(allShockerIds))
             .RuleFor(l => l.ControlledByUserId, f => f.PickRandom(allUserIds))
-            .RuleFor(l => l.Intensity, f => f.Random.Int(1, 10))
+            .RuleFor(l => l.Intensity, f => f.Random.Byte(1, 100))
             .RuleFor(l => l.Duration, f => f.Random.UInt(100, 60000))
             .RuleFor(l => l.Type, f => f.PickRandom(ControlType.Sound, ControlType.Vibrate, ControlType.Shock, ControlType.Stop))
             .RuleFor(l => l.LiveControl, f => f.Random.Bool(0.1f))
