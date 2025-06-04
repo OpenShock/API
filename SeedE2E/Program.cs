@@ -1,10 +1,16 @@
-﻿using Microsoft.Extensions.Configuration;
+﻿using Bogus;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
 using OpenShock.Common;
+using OpenShock.Common.Constants;
 using OpenShock.Common.Extensions;
+using OpenShock.Common.Models;
+using OpenShock.Common.OpenShockDb;
 using OpenShock.Common.Options;
+using OpenShock.Common.Utils;
+using OpenShock.SeedE2E.Seeders;
 
 var builder = OpenShockApplication.CreateDefaultBuilder<Program>(args);
 
@@ -28,5 +34,18 @@ builder.Services.AddOpenShockServices();
 var app = builder.Build();
 
 await app.ApplyPendingOpenShockMigrations(databaseConfig);
+
+// --- SEED ALL THE DATABASE TABLES ---
+using (var scope = app.Services.CreateScope())
+{
+    var db = scope.ServiceProvider.GetRequiredService<OpenShockContext>();
+
+    await UserSeeder.SeedAsync(db);
+    await DeviceSeeder.SeedAsync(db);
+    await ShockerSeeder.SeedAsync(db);
+    await ControlLogSeeder.SeedAsync(db);
+
+    Console.WriteLine("Database seeding complete.");
+}
 
 await app.RunAsync();
