@@ -6,7 +6,7 @@ public sealed class DiscordWebhook
 
     public required string Name { get; set; }
 
-    public required long WebhookId { get; set; }
+    public required long WebhookId { get; set; } // TODO: This should probably be ulong
     
     public required string WebhookToken { get; set; }
 

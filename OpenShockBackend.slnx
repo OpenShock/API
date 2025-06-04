@@ -6,4 +6,5 @@
   <Project Path="LiveControlGateway\LiveControlGateway.csproj" Type="Classic C#" />
   <Project Path="Cron\Cron.csproj" Type="Classic C#" />
   <Project Path="MigrationHelper\MigrationHelper.csproj" Type="Classic C#" />
+  <Project Path="SeedE2E/SeedE2E.csproj" Type="Classic C#" />
 </Solution>
