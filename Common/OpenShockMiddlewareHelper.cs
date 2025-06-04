@@ -1,5 +1,8 @@
 ﻿using Microsoft.AspNetCore.HttpOverrides;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using OpenShock.Common.OpenShockDb;
 using OpenShock.Common.Options;
 using OpenShock.Common.Redis;
 using OpenShock.Common.Utils;
@@ -84,6 +87,32 @@ public static class OpenShockMiddlewareHelper
         
         app.MapControllers();
         
+        return app;
+    }
+
+    public static async Task<IApplicationBuilder> ApplyPendingOpenShockMigrations(this IApplicationBuilder app, DatabaseOptions options)
+    {
+        using var scope = app.ApplicationServices.CreateScope();
+        var loggerFactory = scope.ServiceProvider.GetRequiredService<ILoggerFactory>();
+        var logger = loggerFactory.CreateLogger("MigrationHelper");
+
+        logger.LogInformation("Running database migrations...");
+
+        await using var migrationContext = new MigrationOpenShockContext(options.Conn, options.Debug, loggerFactory);
+
+        var pendingMigrations = migrationContext.Database.GetPendingMigrations().ToArray();
+
+        if (pendingMigrations.Length > 0)
+        {
+            logger.LogInformation("Found pending migrations, applying [{@Migrations}]", pendingMigrations);
+            await migrationContext.Database.MigrateAsync();
+            logger.LogInformation("Applied database migrations... proceeding with startup");
+        }
+        else
+        {
+            logger.LogInformation("No pending migrations found, proceeding with startup");
+        }
+
         return app;
     }
 }
