@@ -17,7 +17,7 @@ public static class UserSeeder
         // Create two well‐defined accounts: Admin + System user
         var adminUser = new User
         {
-            Id = Guid.NewGuid(),
+            Id = Guid.CreateVersion7(),
             Name = "admin",
             Email = "admin@openshock.com",
             PasswordHash = HashingUtils.HashPassword("AdminPassword123!"),
@@ -28,7 +28,7 @@ public static class UserSeeder
 
         var systemUser = new User
         {
-            Id = Guid.NewGuid(),
+            Id = Guid.CreateVersion7(),
             Name = "system",
             Email = "system@openshock.com",
             PasswordHash = HashingUtils.HashPassword("SystemPassword123!"),
@@ -42,7 +42,7 @@ public static class UserSeeder
 
         // “Support” user faker
         var supportUserFaker = new Faker<User>()
-            .RuleFor(u => u.Id, f => Guid.NewGuid())
+            .RuleFor(u => u.Id, f => Guid.CreateVersion7())
             .RuleFor(u => u.Name, f => f.Internet.UserName().Truncate(HardLimits.UsernameMaxLength))
             .RuleFor(u => u.Email, (f, u) => f.Internet.Email(u.Name))
             .RuleFor(u => u.PasswordHash, f => HashingUtils.HashPassword(f.Random.AlphaNumeric(HardLimits.PasswordMaxLength)))
@@ -52,7 +52,7 @@ public static class UserSeeder
 
         // Unprivledged user faker
         var unprivledgedUserFaker = new Faker<User>()
-            .RuleFor(u => u.Id, f => Guid.NewGuid())
+            .RuleFor(u => u.Id, f => Guid.CreateVersion7())
             .RuleFor(u => u.Name, f => f.Internet.UserName().Truncate(HardLimits.UsernameMaxLength))
             .RuleFor(u => u.Email, (f, u) => f.Internet.Email(u.Name))
             .RuleFor(u => u.PasswordHash, f => HashingUtils.HashPassword(f.Random.AlphaNumeric(HardLimits.PasswordMaxLength)))
