@@ -9,7 +9,7 @@ namespace OpenShock.SeedE2E.Seeders;
 
 public static class ApiTokenSeeder
 {
-    private static readonly PermissionType[] PermissionTypes = Enum.GetValues<PermissionType>().Cast<PermissionType>().ToArray();
+    private static readonly PermissionType[] PermissionTypes = Enum.GetValues<PermissionType>();
 
     public static async Task SeedAsync(OpenShockContext db)
     {

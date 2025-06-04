@@ -8,8 +8,6 @@ namespace OpenShock.SeedE2E.Seeders;
 
 public static class DeviceOtaUpdateSeeder
 {
-    private static readonly OtaUpdateStatus[] OtaUpdateStatuses = Enum.GetValues<OtaUpdateStatus>().Cast<OtaUpdateStatus>().ToArray();
-
     public static async Task SeedAsync(OpenShockContext db)
     {
         if (db.DeviceOtaUpdates.Any())
@@ -22,7 +20,7 @@ public static class DeviceOtaUpdateSeeder
             .RuleFor(o => o.UpdateId, f => f.Random.Int())
             .RuleFor(o => o.Version, f => $"{f.System.Semver()}")
             .RuleFor(o => o.Message, f => f.Lorem.Sentence().Truncate(HardLimits.OtaUpdateMessageMaxLength))
-            .RuleFor(o => o.Status, f => f.PickRandom(OtaUpdateStatuses))
+            .RuleFor(o => o.Status, f => f.PickRandom<OtaUpdateStatus>())
             .RuleFor(o => o.CreatedAt, f => f.Date.RecentOffset(30).UtcDateTime);
 
         // For each device, generate between 1 and 5 OTA updates
