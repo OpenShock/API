@@ -12,8 +12,8 @@ public static class PublicShareShockerSeeder
         if (db.PublicShareShockerMappings.Any())
             return;
 
-        var allPublicShareIds = db.PublicShares.Select(p => p.Id).ToList();
-        var allShockerIds = db.Shockers.Select(s => s.Id).ToList();
+        var allPublicShareIds = await db.PublicShares.Select(p => p.Id).ToListAsync();
+        var allShockerIds = await db.Shockers.Select(s => s.Id).ToListAsync();
 
         var mappingFaker = new Faker<PublicShareShocker>()
             .ApplySafetySettingsRules()

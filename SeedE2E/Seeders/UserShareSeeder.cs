@@ -12,8 +12,8 @@ public static class UserShareSeeder
         if (db.UserShares.Any())
             return;
 
-        var allUserIds = db.Users.Select(u => u.Id).ToList();
-        var allShockerIds = db.Shockers.Select(s => s.Id).ToList();
+        var allUserIds = await db.Users.Select(u => u.Id).ToListAsync();
+        var allShockerIds = await db.Shockers.Select(s => s.Id).ToListAsync();
 
         var shareFaker = new Faker<UserShare>()
             .ApplySafetySettingsRules()

@@ -1,4 +1,5 @@
 ﻿using Bogus;
+using Microsoft.EntityFrameworkCore;
 using OpenShock.Common.OpenShockDb;
 
 namespace OpenShock.SeedE2E.Seeders;
@@ -10,7 +11,7 @@ public static class UserDeactivationSeeder
         if (db.UserDeactivations.Any())
             return;
 
-        var allUserIds = db.Users.Select(u => u.Id).ToList();
+        var allUserIds = await db.Users.Select(u => u.Id).ToListAsync();
         var possibleModerators = allUserIds.ToList();
 
         var deactivationFaker = new Faker<UserDeactivation>()

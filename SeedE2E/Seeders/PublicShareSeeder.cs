@@ -13,7 +13,7 @@ public static class PublicShareSeeder
         if (db.PublicShares.Any())
             return;
 
-        var allUserIds = db.Users.Select(u => u.Id).ToList();
+        var allUserIds = await db.Users.Select(u => u.Id).ToListAsync();
 
         var publicShareFaker = new Faker<PublicShare>()
             .RuleFor(p => p.Id, f => Guid.CreateVersion7())

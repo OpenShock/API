@@ -34,6 +34,8 @@ using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<OpenShockContext>();
 
+    using var transaction = await db.Database.BeginTransactionAsync();
+
     // Core entities
     await UserSeeder.SeedAsync(db);
     await DeviceSeeder.SeedAsync(db);
@@ -62,6 +64,8 @@ using (var scope = app.Services.CreateScope())
 
     // Discord webhooks
     await DiscordWebhookSeeder.SeedAsync(db);
+
+    await transaction.CommitAsync();
 }
 
 Console.WriteLine("Database seeding complete.");

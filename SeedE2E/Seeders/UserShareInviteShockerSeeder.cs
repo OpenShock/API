@@ -1,4 +1,5 @@
 ﻿using Bogus;
+using Microsoft.EntityFrameworkCore;
 using OpenShock.Common.OpenShockDb;
 using OpenShock.SeedE2E.Fakers;
 
@@ -11,8 +12,8 @@ public static class UserShareInviteShockerSeeder
         if (db.UserShareInviteShockers.Any())
             return;
 
-        var allInviteIds = db.UserShareInvites.Select(i => i.Id).ToList();
-        var allShockerIds = db.Shockers.Select(s => s.Id).ToList();
+        var allInviteIds = await db.UserShareInvites.Select(i => i.Id).ToListAsync();
+        var allShockerIds = await db.Shockers.Select(s => s.Id).ToListAsync();
 
         var mappingFaker = new Faker<UserShareInviteShocker>()
             .ApplySafetySettingsRules()

@@ -1,4 +1,5 @@
 ﻿using Bogus;
+using Microsoft.EntityFrameworkCore;
 using OpenShock.Common.Constants;
 using OpenShock.Common.OpenShockDb;
 using OpenShock.Common.Utils;
@@ -14,7 +15,7 @@ public static class DeviceSeeder
             return;
 
         // Grab all user IDs (including Admin and System) to assign ownership
-        var allUserIds = db.Users.Select(u => u.Id).ToList();
+        var allUserIds = await db.Users.Select(u => u.Id).ToListAsync();
 
         var deviceFaker = new Faker<Device>()
             .RuleFor(d => d.Id, f => Guid.CreateVersion7())

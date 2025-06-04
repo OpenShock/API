@@ -1,4 +1,5 @@
 ﻿using Bogus;
+using Microsoft.EntityFrameworkCore;
 using OpenShock.Common.Constants;
 using OpenShock.Common.Models;
 using OpenShock.Common.OpenShockDb;
@@ -16,7 +17,7 @@ public static class ApiTokenSeeder
         if (db.ApiTokens.Any())
             return;
 
-        var allUserIds = db.Users.Select(u => u.Id).ToList();
+        var allUserIds = await db.Users.Select(u => u.Id).ToListAsync();
 
         var apiTokenFaker = new Faker<ApiToken>()
             .RuleFor(t => t.Id, f => Guid.CreateVersion7())
@@ -36,7 +37,7 @@ public static class ApiTokenSeeder
                 return f.PickRandom(PermissionTypes, take).ToList();
             })
             .RuleFor(t => t.ValidUntil, f => f.Date.FutureOffset(1).UtcDateTime)
-            .RuleFor(t => t.ValidUntil, f => f.Date.PastOffset(1).UtcDateTime)
+            .RuleFor(t => t.CreatedAt, f => f.Date.PastOffset(1).UtcDateTime)
             .RuleFor(t => t.LastUsed, _ => DateTime.UnixEpoch);
 
         // Generate roughly 3 tokens per user

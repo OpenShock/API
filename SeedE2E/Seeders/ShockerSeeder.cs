@@ -1,9 +1,9 @@
 ﻿using Bogus;
+using Microsoft.EntityFrameworkCore;
 using OpenShock.Common.Constants;
 using OpenShock.Common.Models;
 using OpenShock.Common.OpenShockDb;
 using OpenShock.Common.Utils;
-using OpenShock.SeedE2E.Extensions;
 
 namespace OpenShock.SeedE2E.Seeders;
 
@@ -16,7 +16,7 @@ public static class ShockerSeeder
             return;
 
         // Grab all device IDs from the database
-        var allDeviceIds = db.Devices.Select(d => d.Id).ToList();
+        var allDeviceIds = await db.Devices.Select(d => d.Id).ToListAsync();
 
         var shockerFaker = new Faker<Shocker>()
             .RuleFor(s => s.Id, f => Guid.CreateVersion7())

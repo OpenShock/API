@@ -1,4 +1,5 @@
 ﻿using Bogus;
+using Microsoft.EntityFrameworkCore;
 using OpenShock.Common.OpenShockDb;
 
 namespace OpenShock.SeedE2E.Seeders;
@@ -10,7 +11,7 @@ public static class UserShareInviteSeeder
         if (db.UserShareInvites.Any())
             return;
 
-        var allUserIds = db.Users.Select(u => u.Id).ToList();
+        var allUserIds = await db.Users.Select(u => u.Id).ToListAsync();
         // Exclude self-invites
         var inviteFaker = new Faker<UserShareInvite>()
             .RuleFor(i => i.Id, f => Guid.CreateVersion7())

@@ -1,4 +1,5 @@
 ﻿using Bogus;
+using Microsoft.EntityFrameworkCore;
 using OpenShock.Common.Constants;
 using OpenShock.Common.Models;
 using OpenShock.Common.OpenShockDb;
@@ -13,7 +14,7 @@ public static class DeviceOtaUpdateSeeder
         if (db.DeviceOtaUpdates.Any())
             return;
 
-        var allDeviceIds = db.Devices.Select(d => d.Id).ToList();
+        var allDeviceIds = await db.Devices.Select(d => d.Id).ToListAsync();
 
         var otaFaker = new Faker<DeviceOtaUpdate>()
             .RuleFor(o => o.DeviceId, f => f.PickRandom(allDeviceIds))

@@ -1,4 +1,5 @@
 ﻿using Bogus;
+using Microsoft.EntityFrameworkCore;
 using OpenShock.Common.Constants;
 using OpenShock.Common.OpenShockDb;
 using OpenShock.Common.Utils;
@@ -12,7 +13,7 @@ public static class UserNameChangeSeeder
         if (db.UserNameChanges.Any())
             return;
 
-        var allUserIds = db.Users.Select(u => u.Id).ToList();
+        var allUserIds = await db.Users.Select(u => u.Id).ToListAsync();
 
         var nameChangeFaker = new Faker<UserNameChange>()
             .RuleFor(n => n.UserId, f => f.PickRandom(allUserIds))

@@ -12,7 +12,7 @@ public static class ShockerShareCodeSeeder
         if (db.ShockerShareCodes.Any())
             return;
 
-        var allShockerIds = db.Shockers.Select(s => s.Id).ToList();
+        var allShockerIds = await db.Shockers.Select(s => s.Id).ToListAsync();
 
         var codeFaker = new Faker<ShockerShareCode>()
             .ApplySafetySettingsRules()

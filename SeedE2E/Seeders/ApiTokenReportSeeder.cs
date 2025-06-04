@@ -1,4 +1,5 @@
 ﻿using Bogus;
+using Microsoft.EntityFrameworkCore;
 using OpenShock.Common.OpenShockDb;
 using OpenShock.SeedE2E.Extensions;
 
@@ -11,8 +12,8 @@ public static class ApiTokenReportSeeder
         if (db.ApiTokenReports.Any())
             return;
 
-        var allTokenIds = db.ApiTokens.Select(t => t.Id).ToList();
-        var allUserIds = db.Users.Select(u => u.Id).ToList();
+        var allTokenIds = await db.ApiTokens.Select(t => t.Id).ToListAsync();
+        var allUserIds = await db.Users.Select(u => u.Id).ToListAsync();
 
         var reportFaker = new Faker<ApiTokenReport>()
             .RuleFor(r => r.Id, f => Guid.CreateVersion7())

@@ -1,4 +1,5 @@
 ﻿using Bogus;
+using Microsoft.EntityFrameworkCore;
 using OpenShock.Common.Constants;
 using OpenShock.Common.OpenShockDb;
 using OpenShock.Common.Utils;
@@ -12,7 +13,7 @@ public static class UserEmailChangeSeeder
         if (db.UserEmailChanges.Any())
             return;
 
-        var allUserIds = db.Users.Select(u => u.Id).ToList();
+        var allUserIds = await db.Users.Select(u => u.Id).ToListAsync();
 
         var emailChangeFaker = new Faker<UserEmailChange>()
             .RuleFor(e => e.Id, f => Guid.CreateVersion7())

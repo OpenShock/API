@@ -1,4 +1,5 @@
 ﻿using Bogus;
+using Microsoft.EntityFrameworkCore;
 using OpenShock.Common.Models;
 using OpenShock.Common.OpenShockDb;
 
@@ -13,8 +14,8 @@ public static class ControlLogSeeder
             return;
 
         // Grab all shocker IDs and all user IDs
-        var allShockerIds = db.Shockers.Select(s => s.Id).ToList();
-        var allUserIds = db.Users.Select(u => u.Id).ToList();
+        var allShockerIds = await db.Shockers.Select(s => s.Id).ToListAsync();
+        var allUserIds = await db.Users.Select(u => u.Id).ToListAsync();
 
         var controlLogFaker = new Faker<ShockerControlLog>()
             .RuleFor(l => l.Id, f => Guid.CreateVersion7())
