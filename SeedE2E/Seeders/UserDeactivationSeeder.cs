@@ -1,15 +1,19 @@
 ﻿using Bogus;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
+using OpenShock.Common.Models;
 using OpenShock.Common.OpenShockDb;
 
 namespace OpenShock.SeedE2E.Seeders;
 
 public static class UserDeactivationSeeder
 {
-    public static async Task SeedAsync(OpenShockContext db)
+    public static async Task SeedAsync(OpenShockContext db, ILogger logger)
     {
         if (db.UserDeactivations.Any())
             return;
+
+        logger.LogInformation("Generating UserDeactivations...");
 
         var allUserIds = await db.Users.Select(u => u.Id).ToListAsync();
         var possibleModerators = allUserIds.ToList();

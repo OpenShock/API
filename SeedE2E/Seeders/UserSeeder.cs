@@ -1,4 +1,5 @@
 ﻿using Bogus;
+using Microsoft.Extensions.Logging;
 using OpenShock.Common.Constants;
 using OpenShock.Common.Models;
 using OpenShock.Common.OpenShockDb;
@@ -8,11 +9,13 @@ namespace OpenShock.SeedE2E.Seeders;
 
 public static class UserSeeder
 {
-    public static async Task SeedAsync(OpenShockContext db)
+    public static async Task SeedAsync(OpenShockContext db, ILogger logger)
     {
         // If there are already users, assume we’ve seeded before.
         if (db.Users.Any())
             return;
+
+        logger.LogInformation("Generating Users...");
 
         // --- 1) DEFINE A SINGLE BASE FAKER FOR ALL USERS ---
         //

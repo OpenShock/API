@@ -1,5 +1,6 @@
 ﻿using Bogus;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using OpenShock.Common.Models;
 using OpenShock.Common.OpenShockDb;
 
@@ -7,11 +8,13 @@ namespace OpenShock.SeedE2E.Seeders;
 
 public static class ControlLogSeeder
 {
-    public static async Task SeedAsync(OpenShockContext db)
+    public static async Task SeedAsync(OpenShockContext db, ILogger logger)
     {
         // Only seed if there are no control logs yet
         if (db.ShockerControlLogs.Any())
             return;
+
+        logger.LogInformation("Generating ControlLogs...");
 
         // Grab all shocker IDs and all user IDs
         var allShockerIds = await db.Shockers.Select(s => s.Id).ToListAsync();

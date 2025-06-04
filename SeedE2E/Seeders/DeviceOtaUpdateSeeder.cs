@@ -1,18 +1,19 @@
 ﻿using Bogus;
 using Microsoft.EntityFrameworkCore;
-using OpenShock.Common.Constants;
+using Microsoft.Extensions.Logging;
 using OpenShock.Common.Models;
 using OpenShock.Common.OpenShockDb;
-using OpenShock.Common.Utils;
 
 namespace OpenShock.SeedE2E.Seeders;
 
 public static class DeviceOtaUpdateSeeder
 {
-    public static async Task SeedAsync(OpenShockContext db)
+    public static async Task SeedAsync(OpenShockContext db, ILogger logger)
     {
         if (db.DeviceOtaUpdates.Any())
             return;
+
+        logger.LogInformation("Generating DeviceOtaUpdates...");
 
         var allDeviceIds = await db.Devices.Select(d => d.Id).ToListAsync();
 

@@ -4,16 +4,19 @@ using OpenShock.Common.Constants;
 using OpenShock.Common.Models;
 using OpenShock.Common.OpenShockDb;
 using OpenShock.Common.Utils;
+using Microsoft.Extensions.Logging;
 
 namespace OpenShock.SeedE2E.Seeders;
 
 public static class ShockerSeeder
 {
-    public static async Task SeedAsync(OpenShockContext db)
+    public static async Task SeedAsync(OpenShockContext db, ILogger logger)
     {
         // Only seed if there are no shockers yet
         if (db.Shockers.Any())
             return;
+
+        logger.LogInformation("Generating Shockers...");
 
         // Grab all device IDs from the database
         var allDeviceIds = await db.Devices.Select(d => d.Id).ToListAsync();

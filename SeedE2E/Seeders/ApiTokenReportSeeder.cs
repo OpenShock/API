@@ -1,5 +1,6 @@
 ﻿using Bogus;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using OpenShock.Common.OpenShockDb;
 using OpenShock.SeedE2E.Extensions;
 
@@ -7,10 +8,12 @@ namespace OpenShock.SeedE2E.Seeders;
 
 public static class ApiTokenReportSeeder
 {
-    public static async Task SeedAsync(OpenShockContext db)
+    public static async Task SeedAsync(OpenShockContext db, ILogger logger)
     {
         if (db.ApiTokenReports.Any())
             return;
+
+        logger.LogInformation("Generating ApiTokenReports...");
 
         var allTokenIds = await db.ApiTokens.Select(t => t.Id).ToListAsync();
         var allUserIds = await db.Users.Select(u => u.Id).ToListAsync();

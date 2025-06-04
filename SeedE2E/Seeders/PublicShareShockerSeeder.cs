@@ -1,5 +1,6 @@
 ﻿using Bogus;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using OpenShock.Common.OpenShockDb;
 using OpenShock.SeedE2E.Fakers;
 
@@ -7,10 +8,12 @@ namespace OpenShock.SeedE2E.Seeders;
 
 public static class PublicShareShockerSeeder
 {
-    public static async Task SeedAsync(OpenShockContext db)
+    public static async Task SeedAsync(OpenShockContext db, ILogger logger)
     {
         if (db.PublicShareShockerMappings.Any())
             return;
+
+        logger.LogInformation("Generating PublicShareShockers...");
 
         var allPublicShareIds = await db.PublicShares.Select(p => p.Id).ToListAsync();
         var allShockerIds = await db.Shockers.Select(s => s.Id).ToListAsync();

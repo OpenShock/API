@@ -1,5 +1,6 @@
 ﻿using Bogus;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using OpenShock.Common.Constants;
 using OpenShock.Common.OpenShockDb;
 using OpenShock.Common.Utils;
@@ -8,11 +9,13 @@ namespace OpenShock.SeedE2E.Seeders;
 
 public static class DeviceSeeder
 {
-    public static async Task SeedAsync(OpenShockContext db)
+    public static async Task SeedAsync(OpenShockContext db, ILogger logger)
     {
         // Only seed if there are no devices yet
         if (db.Devices.Any())
             return;
+
+        logger.LogInformation("Generating Devices...");
 
         // Grab all user IDs (including Admin and System) to assign ownership
         var allUserIds = await db.Users.Select(u => u.Id).ToListAsync();

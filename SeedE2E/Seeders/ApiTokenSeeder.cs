@@ -1,5 +1,6 @@
 ﻿using Bogus;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using OpenShock.Common.Constants;
 using OpenShock.Common.Models;
 using OpenShock.Common.OpenShockDb;
@@ -12,10 +13,12 @@ public static class ApiTokenSeeder
 {
     private static readonly PermissionType[] PermissionTypes = Enum.GetValues<PermissionType>();
 
-    public static async Task SeedAsync(OpenShockContext db)
+    public static async Task SeedAsync(OpenShockContext db, ILogger logger)
     {
         if (db.ApiTokens.Any())
             return;
+
+        logger.LogInformation("Generating ApiTokens...");
 
         var allUserIds = await db.Users.Select(u => u.Id).ToListAsync();
 

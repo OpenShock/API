@@ -1,4 +1,5 @@
 ﻿using Bogus;
+using Microsoft.Extensions.Logging;
 using OpenShock.Common.OpenShockDb;
 using OpenShock.Common.Utils;
 
@@ -6,10 +7,12 @@ namespace OpenShock.SeedE2E.Seeders;
 
 public static class DiscordWebhookSeeder
 {
-    public static async Task SeedAsync(OpenShockContext db)
+    public static async Task SeedAsync(OpenShockContext db, ILogger logger)
     {
         if (db.DiscordWebhooks.Any())
             return;
+
+        logger.LogInformation("Generating DiscordWebhooks...");
 
         var webhookFaker = new Faker<DiscordWebhook>()
             .RuleFor(w => w.Name, f => f.Internet.UserName().Truncate(50))

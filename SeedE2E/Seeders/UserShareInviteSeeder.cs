@@ -1,15 +1,18 @@
 ﻿using Bogus;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using OpenShock.Common.OpenShockDb;
 
 namespace OpenShock.SeedE2E.Seeders;
 
 public static class UserShareInviteSeeder
 {
-    public static async Task SeedAsync(OpenShockContext db)
+    public static async Task SeedAsync(OpenShockContext db, ILogger logger)
     {
         if (db.UserShareInvites.Any())
             return;
+
+        logger.LogInformation("Generating UserShareInvites...");
 
         var allUserIds = await db.Users.Select(u => u.Id).ToListAsync();
         // Exclude self-invites

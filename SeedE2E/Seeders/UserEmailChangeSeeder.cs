@@ -1,5 +1,6 @@
 ﻿using Bogus;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using OpenShock.Common.Constants;
 using OpenShock.Common.OpenShockDb;
 using OpenShock.Common.Utils;
@@ -8,10 +9,12 @@ namespace OpenShock.SeedE2E.Seeders;
 
 public static class UserEmailChangeSeeder
 {
-    public static async Task SeedAsync(OpenShockContext db)
+    public static async Task SeedAsync(OpenShockContext db, ILogger logger)
     {
         if (db.UserEmailChanges.Any())
             return;
+
+        logger.LogInformation("Generating UserEmailChanges...");
 
         var allUserIds = await db.Users.Select(u => u.Id).ToListAsync();
 

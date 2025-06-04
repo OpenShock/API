@@ -1,6 +1,7 @@
 ﻿using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using OpenShock.Common;
 using OpenShock.Common.Extensions;
@@ -32,38 +33,40 @@ await app.ApplyPendingOpenShockMigrations(databaseConfig);
 // --- SEED ALL THE DATABASE TABLES ---
 using (var scope = app.Services.CreateScope())
 {
-    var db = scope.ServiceProvider.GetRequiredService<OpenShockContext>();
+    using var loggerFactory = scope.ServiceProvider.GetRequiredService<ILoggerFactory>();
+    var logger = loggerFactory.CreateLogger("OpenShock.SeedE2E");
 
+    using var db = scope.ServiceProvider.GetRequiredService<OpenShockContext>();
     using var transaction = await db.Database.BeginTransactionAsync();
 
     // Core entities
-    await UserSeeder.SeedAsync(db);
-    await DeviceSeeder.SeedAsync(db);
-    await ShockerSeeder.SeedAsync(db);
-    await ControlLogSeeder.SeedAsync(db);
+    await UserSeeder.SeedAsync(db, logger);
+    await DeviceSeeder.SeedAsync(db, logger);
+    await ShockerSeeder.SeedAsync(db, logger);
+    await ControlLogSeeder.SeedAsync(db, logger);
 
     // API tokens and related reports
-    await ApiTokenSeeder.SeedAsync(db);
-    await ApiTokenReportSeeder.SeedAsync(db);
+    await ApiTokenSeeder.SeedAsync(db, logger);
+    await ApiTokenReportSeeder.SeedAsync(db, logger);
 
     // Device OTA updates
-    await DeviceOtaUpdateSeeder.SeedAsync(db);
+    await DeviceOtaUpdateSeeder.SeedAsync(db, logger);
 
     // User-related audit tables
-    await UserPasswordResetSeeder.SeedAsync(db);
-    await UserShareInviteSeeder.SeedAsync(db);
-    await UserShareInviteShockerSeeder.SeedAsync(db);
-    await UserShareSeeder.SeedAsync(db);
-    await ShockerShareCodeSeeder.SeedAsync(db);
-    await PublicShareSeeder.SeedAsync(db);
-    await PublicShareShockerSeeder.SeedAsync(db);
-    await UserEmailChangeSeeder.SeedAsync(db);
-    await UserNameChangeSeeder.SeedAsync(db);
-    await UserActivationRequestSeeder.SeedAsync(db);
-    await UserDeactivationSeeder.SeedAsync(db);
+    await UserPasswordResetSeeder.SeedAsync(db, logger);
+    await UserShareInviteSeeder.SeedAsync(db, logger);
+    await UserShareInviteShockerSeeder.SeedAsync(db, logger);
+    await UserShareSeeder.SeedAsync(db, logger);
+    await ShockerShareCodeSeeder.SeedAsync(db, logger);
+    await PublicShareSeeder.SeedAsync(db, logger);
+    await PublicShareShockerSeeder.SeedAsync(db, logger);
+    await UserEmailChangeSeeder.SeedAsync(db, logger);
+    await UserNameChangeSeeder.SeedAsync(db, logger);
+    await UserActivationRequestSeeder.SeedAsync(db, logger);
+    await UserDeactivationSeeder.SeedAsync(db, logger);
 
     // Discord webhooks
-    await DiscordWebhookSeeder.SeedAsync(db);
+    await DiscordWebhookSeeder.SeedAsync(db, logger);
 
     await transaction.CommitAsync();
 }

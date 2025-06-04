@@ -1,4 +1,5 @@
 ﻿using Bogus;
+using Microsoft.Extensions.Logging;
 using OpenShock.Common.Constants;
 using OpenShock.Common.OpenShockDb;
 using OpenShock.Common.Utils;
@@ -7,10 +8,12 @@ namespace OpenShock.SeedE2E.Seeders;
 
 public static class UserActivationRequestSeeder
 {
-    public static async Task SeedAsync(OpenShockContext db)
+    public static async Task SeedAsync(OpenShockContext db, ILogger logger)
     {
         if (db.UserActivationRequests.Any())
             return;
+
+        logger.LogInformation("Generating UserActivationRequests...");
 
         var allUserIds = db.Users.Where(u => u.ActivatedAt == default).Select(u => u.Id).ToList();
         if (!allUserIds.Any())
