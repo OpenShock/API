@@ -1,5 +1,6 @@
 ﻿using Bogus;
 using OpenShock.Common.OpenShockDb;
+using OpenShock.SeedE2E.Fakers;
 
 namespace OpenShock.SeedE2E.Seeders;
 
@@ -14,15 +15,9 @@ public static class UserShareInviteShockerSeeder
         var allShockerIds = db.Shockers.Select(s => s.Id).ToList();
 
         var mappingFaker = new Faker<UserShareInviteShocker>()
+            .ApplySafetySettingsRules()
             .RuleFor(m => m.InviteId, f => f.PickRandom(allInviteIds))
-            .RuleFor(m => m.ShockerId, f => f.PickRandom(allShockerIds))
-            .RuleFor(m => m.AllowShock, f => f.Random.Bool(0.8f))
-            .RuleFor(m => m.AllowVibrate, f => f.Random.Bool(0.8f))
-            .RuleFor(m => m.AllowSound, f => f.Random.Bool(0.8f))
-            .RuleFor(m => m.AllowLiveControl, f => f.Random.Bool(0.3f))
-            .RuleFor(m => m.MaxIntensity, f => f.Random.Byte(10, 100))
-            .RuleFor(m => m.MaxDuration, f => f.Random.UShort(500, 30000))
-            .RuleFor(m => m.IsPaused, f => f.Random.Bool(0.1f));
+            .RuleFor(m => m.ShockerId, f => f.PickRandom(allShockerIds));
 
         // Roughly 2 mappings per invite
         var mappings = mappingFaker.Generate(allInviteIds.Count * 2);
