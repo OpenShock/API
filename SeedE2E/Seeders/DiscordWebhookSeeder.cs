@@ -15,6 +15,7 @@ public static class DiscordWebhookSeeder
         logger.LogInformation("Generating DiscordWebhooks...");
 
         var webhookFaker = new Faker<DiscordWebhook>()
+            .RuleFor(w => w.Id, f => Guid.CreateVersion7())
             .RuleFor(w => w.Name, f => f.Internet.UserName().Truncate(50))
             .RuleFor(w => w.WebhookId, f => f.Random.Long())
             .RuleFor(w => w.WebhookToken, f => f.Random.AlphaNumeric(30))

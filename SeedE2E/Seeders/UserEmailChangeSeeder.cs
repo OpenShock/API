@@ -25,7 +25,7 @@ public static class UserEmailChangeSeeder
             .RuleFor(e => e.SecretHash, f =>
             {
                 var raw = f.Random.AlphaNumeric(20);
-                return HashingUtils.HashPassword(raw).Truncate(HardLimits.UserEmailChangeSecretMaxLength);
+                return HashingUtils.HashToken(raw).Truncate(HardLimits.UserEmailChangeSecretMaxLength);
             })
             .RuleFor(e => e.UsedAt, f => f.Random.Bool(0.4f) ? f.Date.RecentOffset(20).UtcDateTime : (DateTime?)null)
             .RuleFor(e => e.CreatedAt, f => f.Date.RecentOffset(40).UtcDateTime);

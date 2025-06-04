@@ -35,7 +35,7 @@ public static class UserSeeder
             // Created sometime in the past year
             .RuleFor(u => u.CreatedAt, f => f.Date.PastOffset(25).UtcDateTime)
             // Activated between 1 second and 30 days of creation
-            .RuleFor(u => u.ActivatedAt, (f, u) => f.Date.Between(u.CreatedAt.AddSeconds(1), u.CreatedAt.AddDays(30)));
+            .RuleFor(u => u.ActivatedAt, (f, u) => f.Random.Bool(0.1f) ? f.Date.Between(u.CreatedAt.AddSeconds(1), u.CreatedAt.AddDays(30)) : null);
 
         var genericUserFaker = baseUserFaker.Clone();
 

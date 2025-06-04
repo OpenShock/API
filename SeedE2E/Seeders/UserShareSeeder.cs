@@ -21,11 +21,20 @@ public static class UserShareSeeder
         var shareFaker = new Faker<UserShare>()
             .ApplySafetySettingsRules()
             .RuleFor(s => s.SharedWithUserId, f => f.PickRandom(allUserIds))
-            .RuleFor(s => s.ShockerId, f => f.PickRandom(allShockerIds))
             .RuleFor(s => s.CreatedAt, f => f.Date.RecentOffset(30).UtcDateTime);
 
+        int sharesCount = allShockerIds.Count / 4 + 1;
+
         // Generate roughly 1 share per 4 shockers
-        var shares = shareFaker.Generate(allShockerIds.Count / 4 + 1);
+        var shares = new List<UserShare>(sharesCount);
+        for (int i = 0; i < sharesCount; i++)
+        {
+            var faked = shareFaker.Generate();
+            faked.ShockerId = allShockerIds[i];
+
+            shares.Add(faked);
+        }
+
         // Exclude shares where user == owner of shocker via Device→Shocker→Device→Owner
         var validShares = new List<UserShare>();
         foreach (var share in shares)

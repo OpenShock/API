@@ -16,17 +16,13 @@ public static class UserDeactivationSeeder
         logger.LogInformation("Generating UserDeactivations...");
 
         var allUserIds = await db.Users.Select(u => u.Id).ToListAsync();
-        var possibleModerators = allUserIds.ToList();
+        var moderatorIds = await db.Users.Where(u => u.Roles.Any(r => r == RoleType.Staff || r == RoleType.Admin)).Select(m => m.Id).ToListAsync();
 
         var deactivationFaker = new Faker<UserDeactivation>()
             .RuleFor(d => d.DeactivatedUserId, f => f.PickRandom(allUserIds))
-            .RuleFor(d => d.DeactivatedByUserId, (f, d) =>
-            {
-                var moderator = f.PickRandom(possibleModerators.Where(x => x != d.DeactivatedUserId));
-                return moderator;
-            })
             .RuleFor(d => d.DeleteLater, f => f.Random.Bool(0.2f))
-            .RuleFor(d => d.UserModerationId, f => f.Random.Uuid()) // placeholder moderation ID
+            .RuleFor(d => d.UserModerationId, f => f.Random.Bool(0.1f) ? f.Random.Uuid() : null) // placeholder moderation ID
+            .RuleFor(d => d.DeactivatedByUserId, (f, d) => d.UserModerationId is null ? d.DeactivatedUserId : f.PickRandom(moderatorIds.Where(id => id != d.DeactivatedUserId)))
             .RuleFor(d => d.CreatedAt, f => f.Date.RecentOffset(60).UtcDateTime);
 
         // Roughly deactivating 10% of users

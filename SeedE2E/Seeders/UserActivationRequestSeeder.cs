@@ -16,11 +16,10 @@ public static class UserActivationRequestSeeder
         logger.LogInformation("Generating UserActivationRequests...");
 
         var allUserIds = db.Users.Where(u => u.ActivatedAt == default).Select(u => u.Id).ToList();
-        if (!allUserIds.Any())
+        if (allUserIds.Count == 0)
             return;
 
         var activationFaker = new Faker<UserActivationRequest>()
-            .RuleFor(a => a.UserId, f => f.PickRandom(allUserIds))
             .RuleFor(a => a.SecretHash, f =>
             {
                 var raw = f.Random.AlphaNumeric(20);
@@ -29,7 +28,15 @@ public static class UserActivationRequestSeeder
             .RuleFor(a => a.EmailSendAttempts, f => f.Random.Number(0, 3))
             .RuleFor(a => a.CreatedAt, f => f.Date.RecentOffset(20).UtcDateTime);
 
-        var requests = activationFaker.Generate(allUserIds.Count);
+        var requests = new List<UserActivationRequest>(allUserIds.Count);
+        for (int i = 0; i < allUserIds.Count; i++)
+        {
+            var faked = activationFaker.Generate();
+            faked.UserId = allUserIds[i];
+
+            requests.Add(faked);
+        }
+
         db.UserActivationRequests.AddRange(requests);
         await db.SaveChangesAsync();
     }

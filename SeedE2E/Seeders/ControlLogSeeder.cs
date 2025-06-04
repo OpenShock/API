@@ -31,8 +31,8 @@ public static class ControlLogSeeder
             .RuleFor(l => l.CreatedAt, f => f.Date.RecentOffset(15).UtcDateTime)
             .RuleFor(l => l.CustomName, f => f.Random.Bool(0.3f) ? f.Commerce.ProductAdjective() : null);
 
-        // Generate roughly 256 logs per Shocker
-        var bogusControlLogs = controlLogFaker.Generate(allShockerIds.Count * 256);
+        // Generate roughly 100 logs per Shocker
+        var bogusControlLogs = controlLogFaker.Generate(allShockerIds.Count * 100);
         db.ShockerControlLogs.AddRange(bogusControlLogs);
 
         await db.SaveChangesAsync();

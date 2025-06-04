@@ -26,7 +26,7 @@ public static class UserPasswordResetSeeder
                 var raw = f.Random.AlphaNumeric(20);
                 return HashingUtils.HashPassword(raw).Truncate(HardLimits.PasswordResetSecretMaxLength);
             })
-            .RuleFor(p => p.UsedAt, f => f.Random.Bool(0.3f) ? f.Date.RecentOffset(15).UtcDateTime : (DateTime?)null)
+            .RuleFor(p => p.UsedAt, f => f.Random.Bool(0.3f) ? f.Date.RecentOffset(15).UtcDateTime : null)
             .RuleFor(p => p.CreatedAt, f => f.Date.RecentOffset(30).UtcDateTime);
 
         // Roughly 2 resets per user
