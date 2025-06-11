@@ -9,14 +9,14 @@ using System.Drawing;
 namespace OpenShock.Cron.Jobs;
 
 /// <summary>
-/// Deletes shocker control logs by enforcing a maximum log count per user
+/// Notifies via webhook if some users have more devices registered than they should have
 /// </summary>
 [CronJob("0 0 * * *")] // Every day at midnight (https://crontab.guru/)
-public sealed class NotifyLimitsExceeded
+public sealed class NotifyDeviceLimitsExceeded
 {
     private readonly OpenShockContext _db;
     private readonly IWebhookService _webhookService;
-    private readonly ILogger<NotifyLimitsExceeded> _logger;
+    private readonly ILogger<NotifyDeviceLimitsExceeded> _logger;
 
     /// <summary>
     /// DI constructor
@@ -24,7 +24,7 @@ public sealed class NotifyLimitsExceeded
     /// <param name="db"></param>
     /// <param name="webhookService"></param>
     /// <param name="logger"></param>
-    public NotifyLimitsExceeded(OpenShockContext db, IWebhookService webhookService, ILogger<NotifyLimitsExceeded> logger)
+    public NotifyDeviceLimitsExceeded(OpenShockContext db, IWebhookService webhookService, ILogger<NotifyDeviceLimitsExceeded> logger)
     {
         _db = db;
         _webhookService = webhookService;
