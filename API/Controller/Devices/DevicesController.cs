@@ -165,7 +165,7 @@ public sealed partial class DevicesController
     {
         if (_db.Devices.Count(d => d.OwnerId == CurrentUser.Id) >= HardLimits.MaxDevicesPerUser)
         {
-            return Problem(DeviceError.DeviceNotFound);
+            return Problem(DeviceError.TooManyDevices);
         }
 
         var device = new Common.OpenShockDb.Device
