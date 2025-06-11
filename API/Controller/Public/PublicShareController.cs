@@ -24,42 +24,45 @@ public sealed partial class PublicController
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status404NotFound, MediaTypeNames.Application.ProblemJson)] // PublicShareNotFound
     public async Task<IActionResult> GetPublicShare([FromRoute] Guid publicShareId)
     {
-        var publicShare = await _db.PublicShares.Where(x => x.Id == publicShareId).Select(x => new
-        {
-            Author = new BasicUserInfo
+        var publicShare = await _db.PublicShares
+            .Where(x => x.Id == publicShareId && x.Owner.UserDeactivation != null)
+            .Select(x => new
             {
-                Id = x.Owner.Id,
-                Name = x.Owner.Name,
-                Image = x.Owner.GetImageUrl()
-            },
-            x.Id,
-            x.Name,
-            x.ExpiresAt,
-            x.CreatedAt,
-            Shockers = x.ShockerMappings.Select(y => new
-            {
-                DeviceId = y.Shocker.Device.Id,
-                DeviceName = y.Shocker.Device.Name,
-                Shocker = new PublicShareShocker
+                Author = new BasicUserInfo
                 {
-                    Id = y.Shocker.Id,
-                    Name = y.Shocker.Name,
-                    Limits = new ShockerLimits
+                    Id = x.Owner.Id,
+                    Name = x.Owner.Name,
+                    Image = x.Owner.GetImageUrl()
+                },
+                x.Id,
+                x.Name,
+                x.ExpiresAt,
+                x.CreatedAt,
+                Shockers = x.ShockerMappings.Select(y => new
+                {
+                    DeviceId = y.Shocker.Device.Id,
+                    DeviceName = y.Shocker.Device.Name,
+                    Shocker = new PublicShareShocker
                     {
-                        Intensity = y.MaxIntensity,
-                        Duration = y.MaxDuration
-                    },
-                    Permissions = new ShockerPermissions
-                    {
-                        Vibrate = y.AllowVibrate,
-                        Sound = y.AllowSound,
-                        Shock = y.AllowShock,
-                        Live = y.AllowLiveControl
-                    },
-                    Paused = PublicShareUtils.GetPausedReason(y.IsPaused, y.Shocker.IsPaused),
-                }
+                        Id = y.Shocker.Id,
+                        Name = y.Shocker.Name,
+                        Limits = new ShockerLimits
+                        {
+                            Intensity = y.MaxIntensity,
+                            Duration = y.MaxDuration
+                        },
+                        Permissions = new ShockerPermissions
+                        {
+                            Vibrate = y.AllowVibrate,
+                            Sound = y.AllowSound,
+                            Shock = y.AllowShock,
+                            Live = y.AllowLiveControl
+                        },
+                        Paused = PublicShareUtils.GetPausedReason(y.IsPaused, y.Shocker.IsPaused),
+                    }
+                })
             })
-        }).FirstOrDefaultAsync();
+            .FirstOrDefaultAsync();
 
         if (publicShare == null) return Problem(PublicShareError.PublicShareNotFound);
         

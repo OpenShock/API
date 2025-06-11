@@ -50,9 +50,15 @@ public sealed class ApiTokenAuthentication : AuthenticationHandler<Authenticatio
 
         var tokenHash = HashingUtils.HashToken(token);
 
-        var tokenDto = await _db.ApiTokens.Include(x => x.User).FirstOrDefaultAsync(x => x.TokenHash == tokenHash &&
-            (x.ValidUntil == null || x.ValidUntil >= DateTime.UtcNow));
+        var tokenDto = await _db.ApiTokens
+            .Include(x => x.User)
+            .Include(x => x.User.UserDeactivation)
+            .FirstOrDefaultAsync(x => x.TokenHash == tokenHash && (x.ValidUntil == null || x.ValidUntil >= DateTime.UtcNow));
         if (tokenDto == null) return Fail(AuthResultError.TokenInvalid);
+        if (tokenDto.User.UserDeactivation is not null)
+        {
+            return Fail(AuthResultError.AccountDeactivated);
+        }
 
         _batchUpdateService.UpdateApiTokenLastUsed(tokenDto.Id);
         _authService.CurrentClient = tokenDto.User;
