@@ -21,8 +21,8 @@ public sealed class RedisSubscriberService : IHostedService, IAsyncDisposable
 {
     private readonly IHubContext<UserHub, IUserHub> _hubContext;
     private readonly IDbContextFactory<OpenShockContext> _dbContextFactory;
+    private readonly IRedisConnectionProvider _redisConnectionProvider;
     private readonly ISubscriber _subscriber;
-    private readonly IRedisCollection<DeviceOnline> _devicesOnline;
 
     /// <summary>
     /// DI Constructor
@@ -39,8 +39,8 @@ public sealed class RedisSubscriberService : IHostedService, IAsyncDisposable
     {
         _hubContext = hubContext;
         _dbContextFactory = dbContextFactory;
+        _redisConnectionProvider = redisConnectionProvider;
         _subscriber = connectionMultiplexer.GetSubscriber();
-        _devicesOnline = redisConnectionProvider.RedisCollection<DeviceOnline>(false);
     }
     
     /// <inheritdoc />
@@ -96,7 +96,9 @@ public sealed class RedisSubscriberService : IHostedService, IAsyncDisposable
             "local#" + data.OwnerId
         };
         userIds.AddRange(sharedWith.Select(x => "local#" + x));
-        var deviceOnline = await _devicesOnline.FindByIdAsync(deviceId.ToString());
+        
+        var devicesOnlineCollection = _redisConnectionProvider.RedisCollection<DeviceOnline>(false);
+        var deviceOnline = await devicesOnlineCollection.FindByIdAsync(deviceId.ToString());
         
         await _hubContext.Clients.Users(userIds).DeviceStatus([
             new DeviceOnlineState

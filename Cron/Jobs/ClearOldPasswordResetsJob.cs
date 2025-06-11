@@ -25,7 +25,7 @@ public sealed class ClearOldPasswordResetsJob
         _logger = logger;
     }
 
-    public async Task Execute()
+    public async Task<int> Execute()
     {
         var expiredAtUtc = DateTime.UtcNow - Duration.PasswordResetRequestLifetime;
         var earliestCreatedOnUtc = expiredAtUtc - Duration.AuditRetentionTime;
@@ -36,5 +36,7 @@ public sealed class ClearOldPasswordResetsJob
                                     .ExecuteDeleteAsync();
         
         _logger.LogInformation("Deleted {deletedCount} expired password resets since {earliestCreatedOnUtc}", nDeleted, earliestCreatedOnUtc);
+
+        return nDeleted;
     }
 }

@@ -46,10 +46,9 @@ builder.Services.AddScoped<IDeviceService, DeviceService>();
 builder.Services.AddScoped<IOtaService, OtaService>();
 builder.Services.AddScoped<IDeviceUpdateService, DeviceUpdateService>();
 builder.Services.AddScoped<IAccountService, AccountService>();
+builder.Services.AddScoped<ILCGNodeProvisioner, LCGNodeProvisioner>();
 
 builder.Services.AddSwaggerExt<Program>();
-
-builder.Services.AddSingleton<ILCGNodeProvisioner, LCGNodeProvisioner>();
 
 builder.AddCloudflareTurnstileService();
 builder.AddEmailService();
