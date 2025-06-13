@@ -1,5 +1,4 @@
 using Microsoft.AspNetCore.Http.Connections;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using OpenShock.API.Realtime;
 using OpenShock.API.Services;
@@ -9,7 +8,6 @@ using OpenShock.Common;
 using OpenShock.Common.Extensions;
 using OpenShock.Common.Hubs;
 using OpenShock.Common.JsonSerialization;
-using OpenShock.Common.OpenShockDb;
 using OpenShock.Common.Options;
 using OpenShock.Common.Services.Device;
 using OpenShock.Common.Services.LCGNodeProvisioner;
@@ -32,7 +30,9 @@ var redisConfig = builder.Configuration.GetRedisConfigurationOptions();
 
 #endregion
 
-builder.Services.AddOpenShockServices(databaseConfig, redisConfig);
+builder.Services.AddOpenShockMemDB(redisConfig);
+builder.Services.AddOpenShockDB(databaseConfig);
+builder.Services.AddOpenShockServices();
 
 builder.Services.AddSignalR()
     .AddOpenShockStackExchangeRedis(options => { options.Configuration = redisConfig; })
@@ -63,25 +63,7 @@ await app.UseCommonOpenShockMiddleware();
 
 if (!databaseConfig.SkipMigration)
 {
-    Log.Information("Running database migrations...");
-    using var scope = app.Services.CreateScope();
-
-    await using var migrationContext = new MigrationOpenShockContext(
-        databaseConfig.Conn,
-        databaseConfig.Debug,
-        scope.ServiceProvider.GetRequiredService<ILoggerFactory>());
-    var pendingMigrations = migrationContext.Database.GetPendingMigrations().ToArray();
-
-    if (pendingMigrations.Length > 0)
-    {
-        Log.Information("Found pending migrations, applying [{@Migrations}]", pendingMigrations);
-        migrationContext.Database.Migrate();
-        Log.Information("Applied database migrations... proceeding with startup");
-    }
-    else
-    {
-        Log.Information("No pending migrations found, proceeding with startup");
-    }
+    await app.ApplyPendingOpenShockMigrations(databaseConfig);
 }
 else
 {

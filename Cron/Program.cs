@@ -13,7 +13,9 @@ builder.RegisterCommonOpenShockOptions();
 var databaseConfig = builder.Configuration.GetDatabaseOptions();
 var redisConfig = builder.Configuration.GetRedisConfigurationOptions();
 
-builder.Services.AddOpenShockServices(databaseConfig, redisConfig);
+builder.Services.AddOpenShockMemDB(redisConfig);
+builder.Services.AddOpenShockDB(databaseConfig);
+builder.Services.AddOpenShockServices();
 
 builder.Services.AddHangfire(hangfire =>
     hangfire.UsePostgreSqlStorage(c =>
