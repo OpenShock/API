@@ -78,7 +78,7 @@ public sealed class SessionService : ISessionService
         }
         
         var session = await _loginSessions.FindByIdAsync(sessionToken);
-        if (session == null) return false;
+        if (session is null) return false;
 
         await _loginSessions.DeleteAsync(session);
         return true;
@@ -87,7 +87,7 @@ public sealed class SessionService : ISessionService
     public async Task<bool> DeleteSessionById(Guid sessionId)
     {
         var session = await _loginSessions.FirstOrDefaultAsync(x => x.PublicId == sessionId);
-        if (session == null) return false;
+        if (session is null) return false;
 
         await _loginSessions.DeleteAsync(session);
         return true;

@@ -34,7 +34,7 @@ public sealed partial class ShockerController
             .WhereIsUserOrPrivileged(x => x.Device.Owner, CurrentUser)
             .FirstOrDefaultAsync();
 
-        if (affected == null)
+        if (affected is null)
         {
             return Problem(ShockerError.ShockerNotFound);
         }

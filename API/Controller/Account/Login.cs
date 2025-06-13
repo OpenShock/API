@@ -30,7 +30,7 @@ public sealed partial class AccountController
         CancellationToken cancellationToken)
     {
         var cookieDomainToUse = options.Value.CookieDomain.Split(',').FirstOrDefault(domain => Request.Headers.Host.ToString().EndsWith(domain, StringComparison.OrdinalIgnoreCase));
-        if (cookieDomainToUse == null) return Problem(LoginError.InvalidDomain);
+        if (cookieDomainToUse is null) return Problem(LoginError.InvalidDomain);
 
         var loginAction = await _accountService.Login(body.Email, body.Password, new LoginContext
         {

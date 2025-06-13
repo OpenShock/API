@@ -24,7 +24,7 @@ public sealed partial class TokensSelfController : AuthenticatedSessionControlle
     {
         var x = userReferenceService.AuthReference;
         
-        if (x == null) throw new Exception("This should not be reachable due to AuthenticatedSession requirement");
+        if (x is null) throw new Exception("This should not be reachable due to AuthenticatedSession requirement");
         if (!x.Value.IsT1) throw new Exception("This should not be reachable due to the [TokenOnly] attribute");
         
         var token = x.Value.AsT1;

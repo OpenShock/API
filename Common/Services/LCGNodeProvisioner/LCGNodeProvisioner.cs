@@ -25,7 +25,7 @@ public sealed class LCGNodeProvisioner : ILCGNodeProvisioner
             .OrderBy(x => x.Load)
             .FirstOrDefaultAsync(x => x.Environment == environment);
 
-        if (node == null) _logger.LogWarning("No LCG nodes available!");
+        if (node is null) _logger.LogWarning("No LCG nodes available!");
         if (_logger.IsEnabled(LogLevel.Debug)) _logger.LogDebug("LCG node provisioned: {@LcgNode}", node);
 
         return node;
@@ -48,7 +48,7 @@ public sealed class LCGNodeProvisioner : ILCGNodeProvisioner
             .ThenBy(x => x.Load)
             .FirstOrDefault();
 
-        if (node == null) _logger.LogWarning("No LCG nodes available!");
+        if (node is null) _logger.LogWarning("No LCG nodes available!");
         if (_logger.IsEnabled(LogLevel.Debug)) _logger.LogDebug("LCG node provisioned: {@LcgNode}", node);
 
         return node;

@@ -61,7 +61,7 @@ public sealed partial class PublicController
             })
         }).FirstOrDefaultAsync();
 
-        if (publicShare == null) return Problem(PublicShareError.PublicShareNotFound);
+        if (publicShare is null) return Problem(PublicShareError.PublicShareNotFound);
         
         
         var final = new PublicShareResponse

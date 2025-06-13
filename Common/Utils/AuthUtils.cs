@@ -93,7 +93,7 @@ public static class AuthUtils
     public static string GetAuthenticationMethod(this HttpContext context)
     {
         var authMethodClaim = context.User.Claims.FirstOrDefault(x => x.Type == ClaimTypes.AuthenticationMethod);
-        if (authMethodClaim == null)
+        if (authMethodClaim is null)
         {
             throw new Exception("No authentication method claim found, this should not happen and is a bug!");
         }

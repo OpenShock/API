@@ -18,10 +18,10 @@ public static class CronJobCollector
                 if (!type.IsClass) continue;
 
                 var attribute = type.GetCustomAttribute<CronJobAttribute>();
-                if (attribute == null) continue;
+                if (attribute is null) continue;
 
                 var execFunc = type.GetMethod("Execute", BindingFlags.Public | BindingFlags.Instance);
-                if (execFunc == null) throw new Exception($"Failed to find \"Execute()\" method of {type.FullName}");
+                if (execFunc is null) throw new Exception($"Failed to find \"Execute()\" method of {type.FullName}");
 
                 jobs.Add(new CronJob(attribute.JobName ?? type.Name, attribute.Schedule, new Job(execFunc)));
             }

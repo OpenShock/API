@@ -8,7 +8,7 @@ sealed class InterceptedHttpMessageHandler : DelegatingHandler
 {
     private async Task<HttpResponseMessage> HandleCloudflareTurnstileRequest(HttpRequestMessage request, CancellationToken cancellationToken)
     {
-        var formData = request.Content != null ? await request.Content.ReadAsStringAsync(cancellationToken) : string.Empty;
+        var formData = request.Content is not null ? await request.Content.ReadAsStringAsync(cancellationToken) : string.Empty;
         var parsedForm = HttpUtility.ParseQueryString(formData);
         var responseToken = parsedForm["response"];
 

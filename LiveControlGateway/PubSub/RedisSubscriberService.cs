@@ -46,7 +46,7 @@ public sealed class RedisSubscriberService : IHostedService, IAsyncDisposable
     {
         if (!value.HasValue) return;
         var data = JsonSerializer.Deserialize<ControlMessage>(value.ToString());
-        if (data == null) return;
+        if (data is null) return;
 
         await Task.WhenAll(data.ControlMessages.Select(x => _hubLifetimeManager.Control(x.Key, x.Value)));
     }
@@ -55,7 +55,7 @@ public sealed class RedisSubscriberService : IHostedService, IAsyncDisposable
     {
         if (!value.HasValue) return;
         var data = JsonSerializer.Deserialize<CaptiveMessage>(value.ToString());
-        if (data == null) return;
+        if (data is null) return;
 
         await _hubLifetimeManager.ControlCaptive(data.DeviceId, data.Enabled);
     }
@@ -69,7 +69,7 @@ public sealed class RedisSubscriberService : IHostedService, IAsyncDisposable
     {
         if (!value.HasValue) return;
         var data = JsonSerializer.Deserialize<DeviceUpdatedMessage>(value.ToString());
-        if (data == null) return;
+        if (data is null) return;
         
         await _hubLifetimeManager.UpdateDevice(data.Id);
     }
@@ -83,7 +83,7 @@ public sealed class RedisSubscriberService : IHostedService, IAsyncDisposable
     {
         if (!value.HasValue) return;
         var data = JsonSerializer.Deserialize<DeviceOtaInstallMessage>(value.ToString());
-        if (data == null) return;
+        if (data is null) return;
         
         await _hubLifetimeManager.OtaInstall(data.Id, data.Version);
     }

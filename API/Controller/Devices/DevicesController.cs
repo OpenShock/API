@@ -60,7 +60,7 @@ public sealed partial class DevicesController
                 CreatedOn = x.CreatedAt,
                 Token = hasAuthPerms ? x.Token : null
             }).FirstOrDefaultAsync();
-        if (device == null) return Problem(HubError.HubNotFound);
+        if (device is null) return Problem(HubError.HubNotFound);
 
         return LegacyDataOk(device);
     }
@@ -81,7 +81,7 @@ public sealed partial class DevicesController
     public async Task<IActionResult> EditDevice([FromRoute] Guid deviceId, [FromBody] HubEditRequest body, [FromServices] IDeviceUpdateService updateService)
     {
         var device = await _db.Devices.FirstOrDefaultAsync(x => x.OwnerId == CurrentUser.Id && x.Id == deviceId);
-        if (device == null) return Problem(HubError.HubNotFound);
+        if (device is null) return Problem(HubError.HubNotFound);
 
         device.Name = body.Name;
         await _db.SaveChangesAsync();
@@ -106,7 +106,7 @@ public sealed partial class DevicesController
     public async Task<IActionResult> RegenerateDeviceToken([FromRoute] Guid deviceId)
     {
         var device = await _db.Devices.FirstOrDefaultAsync(x => x.OwnerId == CurrentUser.Id && x.Id == deviceId);
-        if (device == null) return Problem(HubError.HubNotFound);
+        if (device is null) return Problem(HubError.HubNotFound);
 
         device.Token = CryptoUtils.RandomString(256);
 
@@ -203,7 +203,7 @@ public sealed partial class DevicesController
         if (!deviceExists) return Problem(HubError.HubNotFound);
         // replace with unlink?
         var existing = await devicePairs.FindByIdAsync(deviceId.ToString());
-        if (existing != null) await devicePairs.DeleteAsync(existing);
+        if (existing is not null) await devicePairs.DeleteAsync(existing);
 
         string pairCode = CryptoUtils.RandomNumericString(6);
 
@@ -242,15 +242,15 @@ public sealed partial class DevicesController
         // Check if device is online
         var devicesOnline = _redis.RedisCollection<DeviceOnline>();
         var online = await devicesOnline.FindByIdAsync(deviceId.ToString());
-        if (online == null) return Problem(HubError.HubIsNotOnline);
+        if (online is null) return Problem(HubError.HubIsNotOnline);
 
         // Check if device is connected to a LCG node
-        if (online.Gateway == null) return Problem(HubError.HubNotConnectedToGateway);
+        if (online.Gateway is null) return Problem(HubError.HubNotConnectedToGateway);
 
         // Get LCG node info
         var lcgNodes = _redis.RedisCollection<LcgNode>();
         var gateway = await lcgNodes.FindByIdAsync(online.Gateway);
-        if (gateway == null) throw new Exception("Internal server error, lcg node could not be found");
+        if (gateway is null) throw new Exception("Internal server error, lcg node could not be found");
 
         return LegacyDataOk(new LcgResponse
         {

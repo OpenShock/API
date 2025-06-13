@@ -40,7 +40,7 @@ public static class UserShareSeeder
         foreach (var share in shares)
         {
             var shocker = await db.Shockers.Include(s => s.Device).FirstOrDefaultAsync(s => s.Id == share.ShockerId);
-            if (shocker != null && shocker.Device.OwnerId != share.SharedWithUserId)
+            if (shocker is not null && shocker.Device.OwnerId != share.SharedWithUserId)
                 validShares.Add(share);
         }
 

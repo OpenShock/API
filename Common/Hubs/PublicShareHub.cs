@@ -48,7 +48,7 @@ public sealed class PublicShareHub : Hub<IPublicShareHub>
         if (httpContext.TryGetUserSessionToken(out var sessionToken))
         {
             user = await SessionAuth(sessionToken);
-            if (user == null)
+            if (user is null)
             {
                 _logger.LogDebug("Connection tried authentication with invalid user session cookie, terminating connection...");
                 Context.Abort();
@@ -70,7 +70,7 @@ public sealed class PublicShareHub : Hub<IPublicShareHub>
 
         var customName = httpContext.Request.Query["name"].FirstOrDefault();
 
-        if (user == null && customName == null)
+        if (user is null && customName is null)
         {
             _logger.LogDebug("customName was not set nor was the user authenticated, terminating connection...");
             Context.Abort();
@@ -94,7 +94,7 @@ public sealed class PublicShareHub : Hub<IPublicShareHub>
             PublicShareId = id,
             CustomName = customName,
             User = user,
-            CachedControlLogSender = user == null
+            CachedControlLogSender = user is null
                 ? new ControlLogSender
                 {
                     Id = Guid.Empty,
@@ -115,7 +115,7 @@ public sealed class PublicShareHub : Hub<IPublicShareHub>
                 }
         };
         await Groups.AddToGroupAsync(Context.ConnectionId, $"share-link-{param}");
-        await Clients.Caller.Welcome(user != null ? AuthType.Authenticated : AuthType.Guest);
+        await Clients.Caller.Welcome(user is null ? AuthType.Guest : AuthType.Authenticated);
     }
 
     public Task Control(IReadOnlyList<Models.WebSocket.User.Control> shocks)
@@ -132,7 +132,7 @@ public sealed class PublicShareHub : Hub<IPublicShareHub>
     private async Task<BasicUserInfo?> SessionAuth(string sessionToken)
     {
         var session = await _sessionService.GetSessionByToken(sessionToken);
-        if (session == null) return null;
+        if (session is null) return null;
         
         return await _db.Users.Select(x => new BasicUserInfo
         {

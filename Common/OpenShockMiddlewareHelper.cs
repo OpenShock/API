@@ -72,7 +72,7 @@ public static class OpenShockMiddlewareHelper
             if(context.Request.Path != "/metrics") return false;
             
             var remoteIp = context.Connection.RemoteIpAddress;
-            return remoteIp != null && metricsAllowedIpNetworks.Any(x => x.Contains(remoteIp));
+            return remoteIp is not null && metricsAllowedIpNetworks.Any(x => x.Contains(remoteIp));
         });
         
         app.UseSwagger();

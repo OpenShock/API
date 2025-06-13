@@ -31,7 +31,7 @@ public sealed partial class ShareLinksController
         var shocker =
             await _db.PublicShareShockerMappings.FirstOrDefaultAsync(x =>
                 x.PublicShareId == publicShareId && x.ShockerId == shockerId);
-        if (shocker == null) return Problem(PublicShareError.ShockerNotInPublicShare);
+        if (shocker is null) return Problem(PublicShareError.ShockerNotInPublicShare);
 
         shocker.AllowShock = body.Permissions.Shock;
         shocker.AllowVibrate = body.Permissions.Vibrate;
