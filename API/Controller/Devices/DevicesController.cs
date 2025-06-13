@@ -163,7 +163,8 @@ public sealed partial class DevicesController
     [MapToApiVersion("2")]
     public async Task<IActionResult> CreateDeviceV2([FromBody] HubCreateRequest data, [FromServices] IDeviceUpdateService updateService)
     {
-        if (_db.Devices.Count(d => d.OwnerId == CurrentUser.Id) >= HardLimits.MaxHubsPerUser)
+        int nDevices = await _db.Devices.CountAsync(d => d.OwnerId == CurrentUser.Id);
+        if (nDevices >= HardLimits.MaxHubsPerUser)
         {
             return Problem(HubError.TooManyHubs);
         }
