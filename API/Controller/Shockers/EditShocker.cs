@@ -32,7 +32,7 @@ public sealed partial class ShockerController
         [FromServices] IDeviceUpdateService deviceUpdateService)
     {
         var device = await _db.Devices.AnyAsync(x => x.OwnerId == CurrentUser.Id && x.Id == body.Device);
-        if (!device) return Problem(DeviceError.DeviceNotFound);
+        if (!device) return Problem(HubError.HubNotFound);
 
         var shocker = await _db.Shockers.FirstOrDefaultAsync(x => x.Device.OwnerId == CurrentUser.Id && x.Id == shockerId);
         if (shocker == null) return Problem(ShockerError.ShockerNotFound);
