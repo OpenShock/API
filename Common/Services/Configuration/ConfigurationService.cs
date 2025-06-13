@@ -1,5 +1,6 @@
 ﻿using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Memory;
 using OneOf;
 using OneOf.Types;
 using OpenShock.Common.OpenShockDb;
@@ -8,22 +9,38 @@ namespace OpenShock.Common.Services.Configuration;
 
 public sealed class ConfigurationService : IConfigurationService
 {
+    private readonly IMemoryCache _cache;
     private readonly OpenShockContext _db;
     private readonly ILogger<ConfigurationService> _logger;
 
-    public ConfigurationService(OpenShockContext db, ILogger<ConfigurationService> logger)
+    private static readonly TimeSpan CacheDuration = TimeSpan.FromMinutes(5);
+
+    public ConfigurationService(IMemoryCache cache, OpenShockContext db, ILogger<ConfigurationService> logger)
     {
         _db = db;
         _logger = logger;
+        _cache = cache;
     }
 
     private sealed record TypeValuePair(ConfigurationValueType Type, string Value);
     private async Task<TypeValuePair?> TryGetTypeValuePair(string name)
     {
-        return await _db.Configuration
+        if (_cache.TryGetValue(name, out TypeValuePair? cachedPair))
+        {
+            return cachedPair;
+        }
+
+        var pair = await _db.Configuration
             .Where(ci => ci.Name == name)
             .Select(ci => new TypeValuePair(ci.Type, ci.Value))
             .FirstOrDefaultAsync();
+
+        if (pair is not null)
+        {
+            _cache.Set(name, pair, CacheDuration);
+        }
+
+        return pair;
     }
 
     private async Task<bool> SetValueAsync(string name, string newValue, ConfigurationValueType type)
@@ -57,6 +74,7 @@ public sealed class ConfigurationService : IConfigurationService
         }
 
         await _db.SaveChangesAsync();
+        _cache.Remove(name); // Invalidate the cache
         return true;
     }
 
