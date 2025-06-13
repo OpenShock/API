@@ -103,6 +103,9 @@ public static class OpenShockServiceHelper
     /// <returns></returns>
     public static IServiceCollection AddOpenShockServices(this IServiceCollection services)
     {
+        // <---- .NET ---->
+        services.AddHttpClient();
+        
         // <---- ASP.NET ---->
         services.AddExceptionHandler<OpenShockExceptionHandler>();
         
