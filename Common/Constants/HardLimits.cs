@@ -47,8 +47,8 @@ public static class HardLimits
     
     public const int CreateShareRequestMaxShockers = 128;
 
-    public const int MaxDevicesPerUser = 4;
-    public const int MaxShockersPerDevice = 11;
+    public const int MaxHubsPerUser = 4;
+    public const int MaxShockersPerHub = 11;
     public const int MaxShockerControlLogsPerUser = 2048;
     
     // Don't allow any firmware prior to 2024.

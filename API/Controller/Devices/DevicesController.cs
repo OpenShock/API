@@ -60,7 +60,7 @@ public sealed partial class DevicesController
                 CreatedOn = x.CreatedAt,
                 Token = hasAuthPerms ? x.Token : null
             }).FirstOrDefaultAsync();
-        if (device == null) return Problem(DeviceError.DeviceNotFound);
+        if (device == null) return Problem(HubError.HubNotFound);
 
         return LegacyDataOk(device);
     }
@@ -81,7 +81,7 @@ public sealed partial class DevicesController
     public async Task<IActionResult> EditDevice([FromRoute] Guid deviceId, [FromBody] HubEditRequest body, [FromServices] IDeviceUpdateService updateService)
     {
         var device = await _db.Devices.FirstOrDefaultAsync(x => x.OwnerId == CurrentUser.Id && x.Id == deviceId);
-        if (device == null) return Problem(DeviceError.DeviceNotFound);
+        if (device == null) return Problem(HubError.HubNotFound);
 
         device.Name = body.Name;
         await _db.SaveChangesAsync();
@@ -106,7 +106,7 @@ public sealed partial class DevicesController
     public async Task<IActionResult> RegenerateDeviceToken([FromRoute] Guid deviceId)
     {
         var device = await _db.Devices.FirstOrDefaultAsync(x => x.OwnerId == CurrentUser.Id && x.Id == deviceId);
-        if (device == null) return Problem(DeviceError.DeviceNotFound);
+        if (device == null) return Problem(HubError.HubNotFound);
 
         device.Token = CryptoUtils.RandomString(256);
 
@@ -131,7 +131,7 @@ public sealed partial class DevicesController
     public async Task<IActionResult> RemoveDevice([FromRoute] Guid deviceId, [FromServices] IDeviceUpdateService updateService)
     {
         var affected = await _db.Devices.Where(x => x.Id == deviceId).WhereIsUserOrPrivileged(x => x.Owner, CurrentUser).ExecuteDeleteAsync();
-        if (affected <= 0) return Problem(DeviceError.DeviceNotFound);
+        if (affected <= 0) return Problem(HubError.HubNotFound);
         
         await updateService.UpdateDeviceForAllShared(CurrentUser.Id, deviceId, DeviceUpdateType.Deleted);
         
@@ -163,9 +163,9 @@ public sealed partial class DevicesController
     [MapToApiVersion("2")]
     public async Task<IActionResult> CreateDeviceV2([FromBody] HubCreateRequest data, [FromServices] IDeviceUpdateService updateService)
     {
-        if (_db.Devices.Count(d => d.OwnerId == CurrentUser.Id) >= HardLimits.MaxDevicesPerUser)
+        if (_db.Devices.Count(d => d.OwnerId == CurrentUser.Id) >= HardLimits.MaxHubsPerUser)
         {
-            return Problem(DeviceError.TooManyDevices);
+            return Problem(HubError.TooManyHubs);
         }
 
         var device = new Common.OpenShockDb.Device
@@ -199,7 +199,7 @@ public sealed partial class DevicesController
         var devicePairs = _redis.RedisCollection<DevicePair>();
 
         var deviceExists = await _db.Devices.AnyAsync(x => x.Id == deviceId && x.OwnerId == CurrentUser.Id);
-        if (!deviceExists) Problem(DeviceError.DeviceNotFound);
+        if (!deviceExists) Problem(HubError.HubNotFound);
         // replace with unlink?
         var existing = await devicePairs.FindByIdAsync(deviceId.ToString());
         if (existing != null) await devicePairs.DeleteAsync(existing);
@@ -236,15 +236,15 @@ public sealed partial class DevicesController
         var deviceExistsAndYouHaveAccess = await _db.Devices.AnyAsync(x =>
             x.Id == deviceId && (x.OwnerId == CurrentUser.Id || x.Shockers.Any(y => y.UserShares.Any(
                 z => z.SharedWithUserId == CurrentUser.Id))));
-        if (!deviceExistsAndYouHaveAccess) return Problem(DeviceError.DeviceNotFound);
+        if (!deviceExistsAndYouHaveAccess) return Problem(HubError.HubNotFound);
 
         // Check if device is online
         var devicesOnline = _redis.RedisCollection<DeviceOnline>();
         var online = await devicesOnline.FindByIdAsync(deviceId.ToString());
-        if (online == null) return Problem(DeviceError.DeviceIsNotOnline);
+        if (online == null) return Problem(HubError.HubIsNotOnline);
 
         // Check if device is connected to a LCG node
-        if (online.Gateway == null) return Problem(DeviceError.DeviceNotConnectedToGateway);
+        if (online.Gateway == null) return Problem(HubError.HubNotConnectedToGateway);
 
         // Get LCG node info
         var lcgNodes = _redis.RedisCollection<LcgNode>();
