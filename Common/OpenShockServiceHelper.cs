@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Hybrid;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using OpenShock.Common.Authentication;
 using OpenShock.Common.Authentication.AuthenticationHandlers;
@@ -13,6 +14,7 @@ using OpenShock.Common.OpenShockDb;
 using OpenShock.Common.Options;
 using OpenShock.Common.Problems;
 using OpenShock.Common.Services.BatchUpdate;
+using OpenShock.Common.Services.Configuration;
 using OpenShock.Common.Services.RedisPubSub;
 using OpenShock.Common.Services.Session;
 using OpenShock.Common.Services.Webhook;
@@ -105,7 +107,18 @@ public static class OpenShockServiceHelper
     {
         // <---- ASP.NET ---->
         services.AddExceptionHandler<OpenShockExceptionHandler>();
-        
+
+        services.AddHybridCache(options =>
+        {
+            options.MaximumPayloadBytes = 1024 * 1024;
+            options.MaximumKeyLength = 1024;
+            options.DefaultEntryOptions = new HybridCacheEntryOptions
+            {
+                Expiration = TimeSpan.FromMinutes(5),
+                LocalCacheExpiration = TimeSpan.FromMinutes(5)
+            };
+        });
+
         services.AddScoped<IClientAuthService<User>, ClientAuthService<User>>();
         services.AddScoped<IClientAuthService<Device>, ClientAuthService<Device>>();
         services.AddScoped<IUserReferenceService, UserReferenceService>();
@@ -197,6 +210,7 @@ public static class OpenShockServiceHelper
         
         // <---- OpenShock Services ---->
 
+        services.AddScoped<IConfigurationService, ConfigurationService>();
         services.AddScoped<ISessionService, SessionService>();
         services.AddScoped<IWebhookService, WebhookService>();
         services.AddSingleton<IBatchUpdateService, BatchUpdateService>();
