@@ -200,7 +200,7 @@ public sealed partial class DevicesController
         var devicePairs = _redis.RedisCollection<DevicePair>();
 
         var deviceExists = await _db.Devices.AnyAsync(x => x.Id == deviceId && x.OwnerId == CurrentUser.Id);
-        if (!deviceExists) Problem(HubError.HubNotFound);
+        if (!deviceExists) return Problem(HubError.HubNotFound);
         // replace with unlink?
         var existing = await devicePairs.FindByIdAsync(deviceId.ToString());
         if (existing != null) await devicePairs.DeleteAsync(existing);
