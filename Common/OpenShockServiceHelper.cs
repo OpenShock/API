@@ -103,9 +103,6 @@ public static class OpenShockServiceHelper
     /// <returns></returns>
     public static IServiceCollection AddOpenShockServices(this IServiceCollection services)
     {
-        // <---- .NET ---->
-        services.AddHttpClient();
-        
         // <---- ASP.NET ---->
         services.AddExceptionHandler<OpenShockExceptionHandler>();
         
@@ -201,7 +198,10 @@ public static class OpenShockServiceHelper
         // <---- OpenShock Services ---->
 
         services.AddScoped<ISessionService, SessionService>();
-        services.AddScoped<IWebhookService, WebhookService>();
+        services.AddHttpClient<IWebhookService, WebhookService>(client =>
+        {
+            client.Timeout = TimeSpan.FromSeconds(30);
+        });
         services.AddSingleton<IBatchUpdateService, BatchUpdateService>();
         services.AddHostedService<BatchUpdateService>(provider =>
             (BatchUpdateService)provider.GetRequiredService<IBatchUpdateService>());
