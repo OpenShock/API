@@ -27,9 +27,10 @@ public static class DeviceOtaUpdateSeeder
 
         // For each device, generate between 1 and 5 OTA updates
         var allOtaUpdates = new List<DeviceOtaUpdate>();
+        var random = new Random();
         foreach (var deviceId in allDeviceIds)
         {
-            var count = new Random().Next(1, 6);
+            var count = random.Next(1, 6);
             allOtaUpdates.AddRange(otaFaker.Clone().RuleFor(o => o.DeviceId, _ => deviceId).Generate(count));
         }
 
