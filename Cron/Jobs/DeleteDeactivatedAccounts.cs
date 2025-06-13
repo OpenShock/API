@@ -31,7 +31,7 @@ public sealed class DeleteDeactivatedAccounts
 
         // Run the delete query
         int nDeleted = await _db.Users
-                                    .Where(x => x.UserDeactivation != null && x.UserDeactivation.DeleteLater && x.UserDeactivation.CreatedAt == earliestCreatedAtUtc)
+                                    .Where(x => x.UserDeactivation != null && x.UserDeactivation.DeleteLater && x.UserDeactivation.CreatedAt <= earliestCreatedAtUtc)
                                     .ExecuteDeleteAsync();
 
         _logger.LogInformation("Deleted {deletedCount} deactivated accounts since {earliestCreatedOnUtc}", nDeleted, earliestCreatedAtUtc);
