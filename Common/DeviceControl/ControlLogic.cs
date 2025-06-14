@@ -95,7 +95,7 @@ public static class ControlLogic
         {
             var shockerInfo = allowedShockers.FirstOrDefault(x => x.Id == shock.Id);
             
-            if (shockerInfo == null) return new ShockerNotFoundOrNoAccess(shock.Id);
+            if (shockerInfo is null) return new ShockerNotFoundOrNoAccess(shock.Id);
             
             if (shockerInfo.Paused) return new ShockerPaused(shock.Id);
 
@@ -161,9 +161,9 @@ public static class ControlLogic
         return new Success();
     }
 
-    private static bool IsAllowed(ControlType type, SharePermsAndLimits? perms)
+    private static bool IsAllowed(ControlType type, SharePermsAndLimits? perms) // TODO: Duplicate logic (LiveControlGateway.csproj -> LiveControlController.cs -> IsAllowed)
     {
-        if (perms == null) return true;
+        if (perms is null) return true;
         return type switch
         {
             ControlType.Shock => perms.Shock,

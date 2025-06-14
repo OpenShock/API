@@ -57,8 +57,7 @@ public abstract class WebsocketBaseController<T> : OpenShockControllerBase, IAsy
     [NonAction]
     public ValueTask QueueMessage(T data)
     {
-        if (WebSocket == null || WebSocket.State == WebSocketState.Closed ||
-            WebSocket.State == WebSocketState.CloseSent)
+        if (WebSocket is null or { State: WebSocketState.Closed or WebSocketState.CloseSent })
         {
             Logger.LogDebug("WebSocket is null or closed, not sending message");
             return ValueTask.CompletedTask;
@@ -231,7 +230,7 @@ public abstract class WebsocketBaseController<T> : OpenShockControllerBase, IAsy
         {
             try
             {
-                if (WebSocket == null)
+                if (WebSocket is null)
                 {
                     Logger.LogWarning("WebSocket is null, aborting");
                     return;

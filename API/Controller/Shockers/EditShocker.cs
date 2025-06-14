@@ -35,7 +35,7 @@ public sealed partial class ShockerController
         if (!device) return Problem(HubError.HubNotFound);
 
         var shocker = await _db.Shockers.FirstOrDefaultAsync(x => x.Device.OwnerId == CurrentUser.Id && x.Id == shockerId);
-        if (shocker == null) return Problem(ShockerError.ShockerNotFound);
+        if (shocker is null) return Problem(ShockerError.ShockerNotFound);
         var oldDevice = shocker.DeviceId;
 
         shocker.DeviceId = body.Device;

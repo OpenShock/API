@@ -59,7 +59,7 @@ public sealed class CloudflareTurnstileService : ICloudflareTurnstileService
             { "response", responseToken }
         };
 
-        if (remoteIpAddress != null) formUrlValues["remoteip"] = remoteIpAddress.ToString();
+        if (remoteIpAddress is not null) formUrlValues["remoteip"] = remoteIpAddress.ToString();
 
         using var httpContent = new FormUrlEncodedContent(formUrlValues);
 

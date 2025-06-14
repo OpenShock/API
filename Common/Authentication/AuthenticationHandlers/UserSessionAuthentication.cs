@@ -54,7 +54,7 @@ public sealed class UserSessionAuthentication : AuthenticationHandler<Authentica
         }
 
         var session = await _sessionService.GetSessionByToken(sessionToken);
-        if (session == null) return Fail(AuthResultError.SessionInvalid);
+        if (session is null) return Fail(AuthResultError.SessionInvalid);
 
         if (session.Expires!.Value < DateTime.UtcNow.Subtract(Duration.LoginSessionExpansionAfter))
         {

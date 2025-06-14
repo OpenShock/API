@@ -52,7 +52,7 @@ public sealed class ApiTokenAuthentication : AuthenticationHandler<Authenticatio
 
         var tokenDto = await _db.ApiTokens.Include(x => x.User).FirstOrDefaultAsync(x => x.TokenHash == tokenHash &&
             (x.ValidUntil == null || x.ValidUntil >= DateTime.UtcNow));
-        if (tokenDto == null) return Fail(AuthResultError.TokenInvalid);
+        if (tokenDto is null) return Fail(AuthResultError.TokenInvalid);
 
         _batchUpdateService.UpdateApiTokenLastUsed(tokenDto.Id);
         _authService.CurrentClient = tokenDto.User;

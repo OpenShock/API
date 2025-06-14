@@ -69,14 +69,14 @@ public sealed class AccountService : IAccountService
         }
 
         var user = await _db.Users.Include(u => u.UserDeactivation).FirstOrDefaultAsync(u => u.Id == userId);
-        if (user == null) return new NotFound();
+        if (user is null) return new NotFound();
 
         if (user.Roles.Any(r => r is RoleType.Admin or RoleType.System))
         {
             return new CannotDeactivatePrivilegedAccount();
         }
 
-        if (user.UserDeactivation != null)
+        if (user.UserDeactivation is not null)
         {
             return new AccountDeactivationAlreadyInProgress();
         }
@@ -96,7 +96,7 @@ public sealed class AccountService : IAccountService
     public async Task<OneOf<Success, Unauthorized, NotFound>> ReactivateAccount(Guid executingUserId, Guid userId)
     {
         var user = await _db.Users.Include(u => u.UserDeactivation).FirstOrDefaultAsync(u => u.Id == userId && u.UserDeactivation != null);
-        if (user == null) return new NotFound();
+        if (user is null) return new NotFound();
 
         var deactivation = user.UserDeactivation!;
         bool isSelfReactivation =
@@ -139,7 +139,7 @@ public sealed class AccountService : IAccountService
         }
 
         var user = await _db.Users.Include(u => u.UserDeactivation).FirstOrDefaultAsync(u => u.Id == userId);
-        if (user == null) return new NotFound();
+        if (user is null) return new NotFound();
 
         if (user.Roles.Any(r => r is RoleType.Admin or RoleType.System))
         {
@@ -208,7 +208,7 @@ public sealed class AccountService : IAccountService
         var user = await _db.Users.FirstOrDefaultAsync(
             x => x.Email == lowercaseUsernameOrEmail || x.Name == lowercaseUsernameOrEmail,
             cancellationToken: cancellationToken);
-        if (user == null)
+        if (user is null)
         {
             await Task.Delay(100,
                 cancellationToken); // TODO: Set appropriate time to match password hashing time, preventing timing attacks
@@ -231,7 +231,7 @@ public sealed class AccountService : IAccountService
                 x.Id == passwordResetId && x.UsedAt == null && x.CreatedAt < validUntil,
             cancellationToken: cancellationToken);
 
-        if (reset == null) return new NotFound();
+        if (reset is null) return new NotFound();
 
         var result = HashingUtils.VerifyToken(secret, reset.SecretHash);
         if (!result.Verified) return new SecretInvalid();
@@ -249,7 +249,7 @@ public sealed class AccountService : IAccountService
             User = x,
             PasswordResetCount = x.PasswordResets.Count(y => y.UsedAt == null && y.CreatedAt < validUntil)
         }).FirstOrDefaultAsync();
-        if (user == null) return new NotFound();
+        if (user is null) return new NotFound();
         if (user.PasswordResetCount >= 3) return new TooManyPasswordResets();
 
         var secret = CryptoUtils.RandomString(AuthConstants.GeneratedTokenLength);
@@ -278,7 +278,7 @@ public sealed class AccountService : IAccountService
         var reset = await _db.UserPasswordResets.Include(x => x.User).FirstOrDefaultAsync(x =>
             x.Id == passwordResetId && x.UsedAt == null && x.CreatedAt < validUntil);
 
-        if (reset == null) return new NotFound();
+        if (reset is null) return new NotFound();
 
         var result = HashingUtils.VerifyToken(secret, reset.SecretHash);
         if (!result.Verified) return new SecretInvalid();
@@ -323,7 +323,7 @@ public sealed class AccountService : IAccountService
         await using var transaction = await _db.Database.BeginTransactionAsync();
 
         var user = await _db.Users.FirstOrDefaultAsync(x => x.Id == userId);
-        if (user == null) return new NotFound();
+        if (user is null) return new NotFound();
 
         var oldName = user.Name;
 

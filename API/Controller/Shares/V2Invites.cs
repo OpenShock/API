@@ -119,14 +119,14 @@ public sealed partial class SharesController
             .Include(x => x.ShockerMappings)
             .FirstOrDefaultAsync(x => x.Id == id && (x.RecipientUserId == null || x.RecipientUserId == CurrentUser.Id));
         
-        if (shareRequest == null) return Problem(ShareError.ShareRequestNotFound);
+        if (shareRequest is null) return Problem(ShareError.ShareRequestNotFound);
         
         var alreadySharedShockers = await _db.UserShares.Where(x => x.Shocker.Device.Owner.Id == shareRequest.OwnerId && x.SharedWithUserId == CurrentUser.Id).ToListAsync();
         
         foreach (var shareInvitationShocker in shareRequest.ShockerMappings)
         {
             var existingShare = alreadySharedShockers.FirstOrDefault(x => x.ShockerId == shareInvitationShocker.ShockerId);
-            if (existingShare != null)
+            if (existingShare is not null)
             {
                 existingShare.AllowShock = shareInvitationShocker.AllowShock;
                 existingShare.AllowVibrate = shareInvitationShocker.AllowVibrate;

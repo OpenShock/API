@@ -58,7 +58,7 @@ public sealed class UserHub : Hub<IUserHub>
                 Online = true,
                 FirmwareVersion = x.FirmwareVersion
             }));
-        final.AddRange(shared.Result.Values.Where(x => x != null).Select(x =>
+        final.AddRange(shared.Result.Values.Where(x => x is not null).Select(x =>
             new DeviceOnlineState
             {
                 Device = x!.Id,
@@ -79,7 +79,7 @@ public sealed class UserHub : Hub<IUserHub>
 
         var additionalItems = new Dictionary<string, object>();
         var apiTokenId = Context.User?.FindFirst(OpenShockAuthClaims.ApiTokenId);
-        if (apiTokenId != null) additionalItems[OpenShockAuthClaims.ApiTokenId] = apiTokenId.Value;
+        if (apiTokenId is not null) additionalItems[OpenShockAuthClaims.ApiTokenId] = apiTokenId.Value;
 
         var sender = await _db.Users.Where(x => x.Id == UserId).Select(x => new ControlLogSender
         {
@@ -97,7 +97,7 @@ public sealed class UserHub : Hub<IUserHub>
     public async Task CaptivePortal(Guid deviceId, bool enabled)
     {
         // Require a user session basically
-        if (_tokenPermissions != null) return;
+        if (_tokenPermissions is not null) return;
 
         var devices = await _db.Devices.Where(x => x.OwnerId == UserId)
             .AnyAsync(x => x.Id == deviceId);
@@ -109,7 +109,7 @@ public sealed class UserHub : Hub<IUserHub>
     public async Task OtaInstall(Guid deviceId, SemVersion version)
     {
         // Require a user session basically
-        if (_tokenPermissions != null) return;
+        if (_tokenPermissions is not null) return;
 
         var devices = await _db.Devices.Where(x => x.OwnerId == UserId)
             .AnyAsync(x => x.Id == deviceId);

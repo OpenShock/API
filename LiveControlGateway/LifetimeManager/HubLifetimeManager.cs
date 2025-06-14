@@ -176,7 +176,7 @@ public sealed class HubLifetimeManager
     /// <exception cref="ArgumentNullException"></exception>
     public async Task<OneOf.OneOf<HubLifetime, NotFound, Busy>> AddLiveControlConnection(LiveControlController liveControlController)
     {
-        if(liveControlController.HubId == null) throw new ArgumentNullException(nameof(liveControlController), "HubId is null");
+        if (!liveControlController.HubId.HasValue) throw new ArgumentException(nameof(liveControlController), "LiveControlController does not have a hubId");
         
         using (await _lifetimesLock.LockAsyncScoped())
         {
