@@ -38,7 +38,7 @@ public sealed class MigrationOpenShockContext : OpenShockContext
             throw new InvalidOperationException("Connection string is not set.");
         ConfigureOptionsBuilder(optionsBuilder, _connectionString, _debug);
         
-        if (_loggerFactory != null)
+        if (_loggerFactory is not null)
             optionsBuilder.UseLoggerFactory(_loggerFactory);
     }
 }

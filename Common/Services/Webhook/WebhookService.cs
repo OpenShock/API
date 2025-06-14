@@ -10,12 +10,12 @@ namespace OpenShock.Common.Services.Webhook;
 public sealed class WebhookService : IWebhookService
 {
     private readonly OpenShockContext _db;
-    private readonly IHttpClientFactory _httpClientFactory;
+    private readonly HttpClient _httpClient;
     
-    public WebhookService(OpenShockContext db, IHttpClientFactory httpClientFactory)
+    public WebhookService(OpenShockContext db, HttpClient httpClient)
     {
         _db = db;
-        _httpClientFactory = httpClientFactory;
+        _httpClient = httpClient;
     }
 
     private static string GetWebhookUrl(long webhookId, string webhookToken) =>
@@ -85,9 +85,6 @@ public sealed class WebhookService : IWebhookService
         if (webhook is null)
             return new NotFound();
 
-        using var httpClient = _httpClientFactory.CreateClient();
-        httpClient.Timeout = TimeSpan.FromSeconds(10);
-
         var embed = new
         {
             title,
@@ -102,7 +99,7 @@ public sealed class WebhookService : IWebhookService
 
         try
         {
-            using var response = await httpClient.PostAsJsonAsync(
+            using var response = await _httpClient.PostAsJsonAsync(
                 GetWebhookUrl(webhook.WebhookId, webhook.WebhookToken),
                 payload);
 

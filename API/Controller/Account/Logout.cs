@@ -26,7 +26,7 @@ public sealed partial class AccountController
 
         // Make sure cookie is removed, no matter if authenticated or not
         var cookieDomainToUse = config.CookieDomain.Split(',').FirstOrDefault(domain => Request.Headers.Host.ToString().EndsWith(domain, StringComparison.OrdinalIgnoreCase));
-        if (cookieDomainToUse != null)
+        if (cookieDomainToUse is not null)
         {
             HttpContext.RemoveSessionKeyCookie("." + cookieDomainToUse);
         }

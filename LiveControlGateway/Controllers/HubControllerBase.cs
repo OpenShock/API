@@ -178,7 +178,7 @@ public abstract class HubControllerBase<TIn, TOut> : FlatbuffersWebsocketBaseCon
     /// <inheritdoc />
     public async Task DisconnectOld()
     {
-        if (WebSocket == null)
+        if (WebSocket is null)
             return;
 
         await ForceClose(WebSocketCloseStatus.NormalClosure, "Hub is connecting from a different location");

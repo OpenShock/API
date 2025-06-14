@@ -6,7 +6,7 @@ COPY --link *.props .
 RUN dotnet restore Common/Common.csproj
 
 COPY --link Common/. Common/
-COPY --link .git/ .
+COPY --link .git/ .git/
 
 RUN dotnet build --no-restore -c Release Common/Common.csproj
 

@@ -34,7 +34,7 @@ public sealed partial class ShockerController
             IsPaused = x.IsPaused
         }).FirstOrDefaultAsync();
 
-        if (shocker == null) return Problem(ShockerError.ShockerNotFound);
+        if (shocker is null) return Problem(ShockerError.ShockerNotFound);
         return LegacyDataOk(shocker);
     }
 }

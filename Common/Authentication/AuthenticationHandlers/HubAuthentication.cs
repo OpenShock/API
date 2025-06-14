@@ -48,7 +48,7 @@ public sealed class HubAuthentication : AuthenticationHandler<AuthenticationSche
         }
 
         var device = await _db.Devices.FirstOrDefaultAsync(x => x.Token == sessionKey);
-        if (device == null)
+        if (device is null)
         {
             return Fail(AuthResultError.TokenInvalid);
         }

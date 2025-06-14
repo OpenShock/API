@@ -95,7 +95,7 @@ public static partial class DBExpressionBuilder
 
         var completeExpr = ParseFilters(filterQuery)
             .Select(filter => CreateMemberCompareExpression(entityType, parameterExpr, filter.MemberName, filter.Operation, filter.Value))
-            .Aggregate<Expression, Expression?>(null, (prev, next) => prev == null ? next : Expression.And(prev, next));
+            .Aggregate<Expression, Expression?>(null, (prev, next) => prev is null ? next : Expression.And(prev, next));
 
         return Expression.Lambda<Func<T, bool>>(completeExpr ?? Expression.Constant(true), parameterExpr);
     }

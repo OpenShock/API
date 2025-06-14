@@ -212,7 +212,10 @@ public static class OpenShockServiceHelper
 
         services.AddScoped<IConfigurationService, ConfigurationService>();
         services.AddScoped<ISessionService, SessionService>();
-        services.AddScoped<IWebhookService, WebhookService>();
+        services.AddHttpClient<IWebhookService, WebhookService>(client =>
+        {
+            client.Timeout = TimeSpan.FromSeconds(30);
+        });
         services.AddSingleton<IBatchUpdateService, BatchUpdateService>();
         services.AddHostedService<BatchUpdateService>(provider =>
             (BatchUpdateService)provider.GetRequiredService<IBatchUpdateService>());

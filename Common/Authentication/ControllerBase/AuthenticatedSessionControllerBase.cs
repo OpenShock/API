@@ -26,7 +26,7 @@ public class AuthenticatedSessionControllerBase : OpenShockControllerBase, IActi
     {
         var userReferenceService = HttpContext.RequestServices.GetRequiredService<IUserReferenceService>();
 
-        if (userReferenceService.AuthReference == null) throw new Exception("UserReferenceService.AuthReference is null, this should not happen");
+        if (userReferenceService.AuthReference is null) throw new Exception("UserReferenceService.AuthReference is null, this should not happen");
 
         return userReferenceService.AuthReference.Value.Match(
             loginSession => true, // We are in a session

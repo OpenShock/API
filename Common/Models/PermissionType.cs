@@ -30,7 +30,7 @@ public static class PermissionTypeExtensions
         IsAllowedInternal(permissions, permissionType);
     
     public static bool IsAllowedAllowOnNull(this IReadOnlyList<PermissionType>? permissions,
-        PermissionType permissionType) => permissions == null || IsAllowedInternal(permissions, permissionType);
+        PermissionType permissionType) => permissions is null || IsAllowedInternal(permissions, permissionType);
     
     private static bool IsAllowedInternal(IReadOnlyList<PermissionType> permissions, PermissionType permissionType)
     {

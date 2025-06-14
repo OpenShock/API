@@ -29,8 +29,9 @@ var app = builder.Build();
 await app.UseCommonOpenShockMiddleware();
 
 var hangfireOptions = new DashboardOptions();
-if (app.Environment.IsProduction())
+if (app.Environment.IsProduction() || Environment.GetEnvironmentVariable("DOTNET_RUNNING_IN_CONTAINER") == "true")
 {
+    hangfireOptions.Authorization = [ ];
     hangfireOptions.AsyncAuthorization = [ new DashboardAdminAuth() ];
 }
 
