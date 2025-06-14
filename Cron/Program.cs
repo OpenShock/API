@@ -31,6 +31,7 @@ await app.UseCommonOpenShockMiddleware();
 var hangfireOptions = new DashboardOptions();
 if (app.Environment.IsProduction())
 {
+    hangfireOptions.Authorization = [ ];
     hangfireOptions.AsyncAuthorization = [ new DashboardAdminAuth() ];
 }
 
