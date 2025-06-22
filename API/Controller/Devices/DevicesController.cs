@@ -244,9 +244,6 @@ public sealed partial class DevicesController
         var online = await devicesOnline.FindByIdAsync(deviceId.ToString());
         if (online is null) return Problem(HubError.HubIsNotOnline);
 
-        // Check if device is connected to a LCG node
-        if (online.Gateway is null) return Problem(HubError.HubNotConnectedToGateway);
-
         // Get LCG node info
         var lcgNodes = _redis.RedisCollection<LcgNode>();
         var gateway = await lcgNodes.FindByIdAsync(online.Gateway);
