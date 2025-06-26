@@ -100,7 +100,7 @@ public sealed partial class DevicesController
     /// <response code="500">Failed to save regenerated token</response>
     [HttpPut("{deviceId}")]
     [TokenPermission(PermissionType.Devices_Edit)]
-    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType<string>(StatusCodes.Status200OK, MediaTypeNames.Text.Plain)]
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status404NotFound, MediaTypeNames.Application.ProblemJson)] // DeviceNotFound
     [MapToApiVersion("1")]
     public async Task<IActionResult> RegenerateDeviceToken([FromRoute] Guid deviceId)
@@ -113,7 +113,7 @@ public sealed partial class DevicesController
         var affected = await _db.SaveChangesAsync();
         if (affected <= 0) throw new Exception("Failed to save regenerated token");
 
-        return Ok();
+        return Ok(device.Token);
     }
 
     /// <summary>
