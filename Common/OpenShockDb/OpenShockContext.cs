@@ -114,6 +114,8 @@ public class OpenShockContext : DbContext
     
     public DbSet<DiscordWebhook> DiscordWebhooks { get; set; }
 
+    public DbSet<ConfigurationItem> Configuration { get; set; }
+
     public DbSet<AdminUsersView> AdminUsersViews { get; set; }
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
@@ -717,6 +719,27 @@ public class OpenShockContext : DbContext
                 .HasColumnName("webhook_id");
             entity.Property(e => e.WebhookToken)
                 .HasColumnName("webhook_token");
+            entity.Property(e => e.CreatedAt)
+                .HasDefaultValueSql("CURRENT_TIMESTAMP")
+                .HasColumnName("created_at");
+        });
+
+        modelBuilder.Entity<ConfigurationItem>(entity =>
+        {
+            entity.HasKey(e => e.Name).HasName("configuration_pkey");
+
+            entity.ToTable("configuration");
+
+            entity.Property(e => e.Name)
+                .HasColumnName("name");
+            entity.Property(e => e.Description)
+                .HasColumnName("description");
+            entity.Property(e => e.Type)
+                .HasColumnName("type");
+            entity.Property(e => e.Value)
+                .HasColumnName("value");
+            entity.Property(e => e.UpdatedAt)
+                .HasColumnName("updated_at");
             entity.Property(e => e.CreatedAt)
                 .HasDefaultValueSql("CURRENT_TIMESTAMP")
                 .HasColumnName("created_at");
