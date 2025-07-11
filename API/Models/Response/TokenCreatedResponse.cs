@@ -4,7 +4,7 @@ namespace OpenShock.API.Models.Response;
 
 public sealed class TokenCreatedResponse
 {
-    public required Guid Id { get; set; 
+    public required Guid Id { get; set; } 
 
     public required string Name { get; set; }
 
