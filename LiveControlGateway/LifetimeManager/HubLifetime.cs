@@ -238,7 +238,7 @@ public sealed class HubLifetime : IAsyncDisposable
 
     private async Task Update()
     {
-        List<ShockerCommand> commandList = [];
+        var commandList = new List<ShockerCommand>(_shockerStates.Count);
         foreach (var (_, state) in _shockerStates)
         {
             var cur = DateTimeOffset.UtcNow;
@@ -320,7 +320,7 @@ public sealed class HubLifetime : IAsyncDisposable
     /// <returns></returns>
     public ValueTask Control(IReadOnlyList<ControlMessage.ShockerControlInfo> shocks)
     {
-        var shocksTransformed = new List<ShockerCommand>();
+        var shocksTransformed = new List<ShockerCommand>(shocks.Count);
         foreach (var shock in shocks)
         {
             if (!_shockerStates.TryGetValue(shock.Id, out var state)) continue;

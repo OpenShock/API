@@ -58,11 +58,12 @@ public sealed class ApiTokenAuthentication : AuthenticationHandler<Authenticatio
         _authService.CurrentClient = tokenDto.User;
         _userReferenceService.AuthReference = tokenDto;
 
-        List<Claim> claims = [
+        List<Claim> claims = new List<Claim>(3 + tokenDto.Permissions.Count)
+        {
             new(ClaimTypes.AuthenticationMethod, OpenShockAuthSchemas.ApiToken),
             new(ClaimTypes.NameIdentifier, tokenDto.User.Id.ToString()),
             new(OpenShockAuthClaims.ApiTokenId, tokenDto.Id.ToString())
-        ];
+        };
 
         foreach (var perm in tokenDto.Permissions)
         {
