@@ -11,6 +11,7 @@ namespace OpenShock.API.Controller.Account.Authenticated;
 /// User account management
 /// </summary>
 [ApiController]
+[Tags("Account")]
 [ApiVersion("1")]
 [Route("/{version:apiVersion}/account")]
 [Authorize(AuthenticationSchemes = OpenShockAuthSchemas.UserSessionCookie)]

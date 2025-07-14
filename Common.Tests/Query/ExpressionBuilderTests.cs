@@ -1,8 +1,6 @@
 ﻿using OpenShock.Common.Query;
 using TUnit.Assertions.AssertConditions.Throws;
 using Bogus;
-using System.Linq.Expressions;
-using OpenShock.Common.Extensions;
 
 namespace OpenShock.Common.Tests.Query;
 

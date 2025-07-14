@@ -1,34 +1,28 @@
-﻿using System;
-using System.Collections.Generic;
-using OpenShock.Common.Models;
+﻿using OpenShock.Common.Models;
 
 namespace OpenShock.Common.OpenShockDb;
 
-public partial class Shocker
+public sealed class Shocker
 {
-    public Guid Id { get; set; }
+    public required Guid Id { get; set; }
 
-    public ushort RfId { get; set; }
+    public required string Name { get; set; }
 
-    public string Name { get; set; } = null!;
+    public required ShockerModelType Model { get; set; }
 
-    public Guid Device { get; set; }
+    public required ushort RfId { get; set; }
 
-    public DateTime CreatedOn { get; set; }
+    public required Guid DeviceId { get; set; }
 
-    public bool Paused { get; set; }
-    
-    public ShockerModelType Model { get; set; }
+    public bool IsPaused { get; set; }
 
-    public virtual Device DeviceNavigation { get; set; } = null!;
+    public DateTime CreatedAt { get; set; }
 
-    public virtual ICollection<ShareRequestsShocker> ShareRequestsShockers { get; set; } = new List<ShareRequestsShocker>();
-
-    public virtual ICollection<ShockerControlLog> ShockerControlLogs { get; set; } = new List<ShockerControlLog>();
-
-    public virtual ICollection<ShockerShareCode> ShockerShareCodes { get; set; } = new List<ShockerShareCode>();
-
-    public virtual ICollection<ShockerShare> ShockerShares { get; set; } = new List<ShockerShare>();
-
-    public virtual ICollection<ShockerSharesLinksShocker> ShockerSharesLinksShockers { get; set; } = new List<ShockerSharesLinksShocker>();
+    // Navigations
+    public Device Device { get; set; } = null!;
+    public ICollection<UserShareInviteShocker> UserShareInviteShockerMappings { get; } = [];
+    public ICollection<ShockerControlLog> ShockerControlLogs { get; } = [];
+    public ICollection<ShockerShareCode> ShockerShareCodes { get; } = [];
+    public ICollection<UserShare> UserShares { get; } = [];
+    public ICollection<PublicShareShocker> PublicShareMappings { get; } = [];
 }

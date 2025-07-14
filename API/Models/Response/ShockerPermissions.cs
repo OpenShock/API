@@ -1,4 +1,4 @@
-﻿namespace OpenShock.API.Models.Response;
+namespace OpenShock.API.Models.Response;
 
 public sealed class ShockerPermissions
 {

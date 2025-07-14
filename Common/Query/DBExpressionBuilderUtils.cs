@@ -24,7 +24,7 @@ public static class DBExpressionBuilderUtils
     public static (MemberInfo, Type) GetPropertyOrField(Type type, string propOrFieldName)
     {
         var memberInfo = type.GetMember(propOrFieldName, BindingFlags.Public | BindingFlags.Instance | BindingFlags.GetProperty | BindingFlags.GetField | BindingFlags.IgnoreCase).SingleOrDefault();
-        if (memberInfo == null)
+        if (memberInfo is null)
             throw new DBExpressionBuilderException($"'{propOrFieldName}' is not a valid property of type {type.Name}");
 
         var isIgnored = memberInfo.GetCustomAttributes(typeof(IgnoreDataMemberAttribute), true).Any();

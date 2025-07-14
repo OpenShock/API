@@ -2,7 +2,7 @@
 using System.Text;
 using System.Text.Json;
 
-namespace API.IntegrationTests;
+namespace OpenShock.API.IntegrationTests;
 
 public class AccountTests : BaseIntegrationTest
 {

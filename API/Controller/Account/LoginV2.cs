@@ -4,8 +4,6 @@ using System.Net;
 using System.Net.Mime;
 using Asp.Versioning;
 using OpenShock.API.Services.Account;
-using OpenShock.Common;
-using OpenShock.Common.Constants;
 using OpenShock.Common.Errors;
 using OpenShock.Common.Problems;
 using OpenShock.Common.Services.Turnstile;
@@ -24,7 +22,7 @@ public sealed partial class AccountController
     /// <response code="200">User successfully logged in</response>
     /// <response code="401">Invalid username or password</response>
     [HttpPost("login")]
-    [ProducesResponseType<BaseResponse<object>>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
+    [ProducesResponseType<LegacyEmptyResponse>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status401Unauthorized, MediaTypeNames.Application.ProblemJson)] // InvalidCredentials
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status403Forbidden, MediaTypeNames.Application.ProblemJson)] // InvalidDomain
     [MapToApiVersion("2")]
@@ -35,14 +33,14 @@ public sealed partial class AccountController
         CancellationToken cancellationToken)
     {
         var cookieDomainToUse = options.Value.CookieDomain.Split(',').FirstOrDefault(domain => Request.Headers.Host.ToString().EndsWith(domain, StringComparison.OrdinalIgnoreCase));
-        if (cookieDomainToUse == null) return Problem(LoginError.InvalidDomain);
+        if (cookieDomainToUse is null) return Problem(LoginError.InvalidDomain);
 
         var remoteIP = HttpContext.GetRemoteIP();
 
         var turnStile = await turnstileService.VerifyUserResponseToken(body.TurnstileResponse, remoteIP, cancellationToken);
         if (!turnStile.IsT0)
         {
-            var cfErrors = turnStile.AsT1.Value!;
+            var cfErrors = turnStile.AsT1.Value;
             if (cfErrors.All(err => err == CloduflareTurnstileError.InvalidResponse))
                 return Problem(TurnstileError.InvalidTurnstile);
 
@@ -59,6 +57,6 @@ public sealed partial class AccountController
 
         HttpContext.SetSessionKeyCookie(loginAction.AsT0.Value, "." + cookieDomainToUse);
 
-        return RespondSuccessLegacySimple("Successfully logged in");
+        return LegacyEmptyOk("Successfully logged in");
     }
 }

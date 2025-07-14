@@ -1,6 +1,5 @@
 ﻿using OpenShock.API.Options;
 using OpenShock.API.Services.Email.Mailjet;
-using OpenShock.API.Services.Email.Mailjet.Mail;
 using OpenShock.API.Services.Email.Smtp;
 
 namespace OpenShock.API.Services.Email;
@@ -37,8 +36,7 @@ public static class EmailServiceExtension
 
     private static WebApplicationBuilder AddSenderContactConfiguration(this WebApplicationBuilder builder)
     {
-        builder.Services.Configure<Contact>(MailOptions.SenderSectionName,
-            builder.Configuration.GetRequiredSection(MailOptions.SectionName));
+        builder.Services.Configure<MailOptions.MailSenderContact>(builder.Configuration.GetRequiredSection(MailOptions.SenderSectionName));
         return builder;
     }
 }

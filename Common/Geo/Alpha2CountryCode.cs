@@ -1,49 +1,79 @@
-﻿using System.Diagnostics.CodeAnalysis;
+﻿namespace OpenShock.Common.Geo;
 
-namespace OpenShock.Common.Geo;
-
-public readonly record struct Alpha2CountryCode(char Char1, char Char2)
+public readonly struct Alpha2CountryCode : IEquatable<Alpha2CountryCode>, IComparable<Alpha2CountryCode>
 {
-    public static readonly Alpha2CountryCode UnknownCountry = "XX"; // Country code for unknown country
+    public static readonly Alpha2CountryCode UnknownCountry = new('X', 'X');
 
-    public static bool TryParseAndValidate(string str, [NotNullWhen(true)] out Alpha2CountryCode code)
+    private readonly ushort _code;
+    public char Char1 => (char)(_code >> 8);
+    public char Char2 => (char)(_code & 0xFF);
+
+    private Alpha2CountryCode(char c1, char c2)
     {
-        if (str.Length != 2 || !char.IsAsciiLetterUpper(str[0]) || !char.IsAsciiLetterUpper(str[1]))
+        _code = (ushort)((c1 << 8) | c2);
+    }
+
+    public static Alpha2CountryCode FromString(ReadOnlySpan<char> str)
+    {
+        if (str is not [>= 'A' and <= 'Z', >= 'A' and <= 'Z'])
+            throw new ArgumentOutOfRangeException(nameof(str), "Country code must be exactly 2 uppercase ASCII characters");
+
+        return new Alpha2CountryCode(str[0], str[1]);
+    }
+    public static Alpha2CountryCode FromString(string str)
+    {
+        if (str is not [>= 'A' and <= 'Z', >= 'A' and <= 'Z'])
+            throw new ArgumentOutOfRangeException(nameof(str), "Country code must be exactly 2 uppercase ASCII characters");
+
+        return new Alpha2CountryCode(str[0], str[1]);
+    }
+
+    public static bool TryParse(ReadOnlySpan<char> str, out Alpha2CountryCode code)
+    {
+        if (str is not [>= 'A' and <= 'Z', >= 'A' and <= 'Z'])
         {
             code = UnknownCountry;
             return false;
         }
 
-        code = new(str[0], str[1]);
-
+        code = FromString(str);
         return true;
-    }
-
-    public static implicit operator Alpha2CountryCode(string str)
-    {
-        if (str.Length != 2)
-            throw new ArgumentOutOfRangeException(nameof(str), "Country code must be exactly 2 characters long");
-
-        if (!char.IsAsciiLetterUpper(str[0]) || !char.IsAsciiLetterUpper(str[1]))
-            throw new ArgumentOutOfRangeException(nameof(str), "Country code must be uppercase ASCII characters only");
-
-        return new Alpha2CountryCode(str[0], str[1]);
     }
 
     public static int GetCombinedHashCode(Alpha2CountryCode code1, Alpha2CountryCode code2)
     {
-        int a = code1.GetHashCode();
-        int b = code2.GetHashCode();
+        ushort a = code1._code;
+        ushort b = code2._code;
 
-        int v = (a << 16) | b;
+        if (a > b) (b, a) = (a,b);
 
-        if (a > b) v = int.RotateLeft(v, 16);
-
-        return v;
+        return (a << 16) | b;
     }
 
-    public bool IsUnknown() => this == UnknownCountry;
+    public bool IsUnknown() => _code == UnknownCountry._code;
 
-    public override int GetHashCode() => (Char1 << 8) | Char2;
-    public override string ToString() => new([Char1, Char2]);
+    public override int GetHashCode() => _code;
+
+    public override string ToString() => string.Create(2, _code, (span, code) =>
+    {
+        span[0] = (char)(code >> 8);
+        span[1] = (char)(code & 0xFF);
+    });
+
+    public bool Equals(Alpha2CountryCode other) => _code == other._code;
+
+    public override bool Equals(object? obj) => obj is Alpha2CountryCode other && Equals(other);
+
+    public int CompareTo(Alpha2CountryCode other) => _code.CompareTo(other._code);
+
+    public static bool operator ==(Alpha2CountryCode left, Alpha2CountryCode right) => left.Equals(right);
+
+    public static bool operator !=(Alpha2CountryCode left, Alpha2CountryCode right) => !left.Equals(right);
+
+    public static bool operator <(Alpha2CountryCode left, Alpha2CountryCode right) => left._code < right._code;
+
+    public static bool operator >(Alpha2CountryCode left, Alpha2CountryCode right) => left._code > right._code;
+
+    public static implicit operator Alpha2CountryCode(ReadOnlySpan<char> str) => FromString(str);
+    public static implicit operator Alpha2CountryCode(string str) => FromString(str);
 }

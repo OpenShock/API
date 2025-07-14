@@ -1,8 +1,8 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using OpenShock.API.Models.Response;
 using OpenShock.Common.Geo;
-using System.Net;
 using System.Net.Mime;
+using Asp.Versioning;
 using OpenShock.Common.Errors;
 using OpenShock.Common.Problems;
 using OpenShock.Common.Services.LCGNodeProvisioner;
@@ -19,32 +19,21 @@ public sealed partial class DeviceController
     /// <response code="200">Successfully assigned LCG node</response>
     /// <response code="503">Unable to find suitable LCG node</response>
     [HttpGet("assignLCG")]
-    [ProducesResponseType<BaseResponse<LcgNodeResponse>>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
+    [MapToApiVersion("1")]
+    [ProducesResponseType<LegacyDataResponse<LcgNodeResponse>>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status503ServiceUnavailable, MediaTypeNames.Application.ProblemJson)] // NoLcgNodesAvailable
     public async Task<IActionResult> GetLiveControlGateway([FromServices] ILCGNodeProvisioner geoLocation,
         [FromServices] IWebHostEnvironment env)
     {
-        var countryCode = Alpha2CountryCode.UnknownCountry;
-        if (HttpContext.TryGetCFIPCountry(out var countryHeader))
+        if (!HttpContext.TryGetCFIPCountryCode(out var countryCode))
         {
-            if (Alpha2CountryCode.TryParseAndValidate(countryHeader, out var code))
-            {
-                countryCode = code;
-            }
-            else
-            {
-                _logger.LogWarning("Country alpha2 code could not be parsed [{CountryHeader}]", countryHeader);
-            }
-        }
-        else
-        {
-            _logger.LogWarning("CF-IPCountry header could not be parsed");
+            _logger.LogWarning("CF-IPCountry header could not be parsed into a alpha2 country code");
         }
 
         var closestNode = await geoLocation.GetOptimalNode(countryCode, env.EnvironmentName);
-        if (closestNode == null) return Problem(AssignLcgError.NoLcgNodesAvailable);
+        if (closestNode is null) return Problem(AssignLcgError.NoLcgNodesAvailable);
 
-        return RespondSuccessLegacy(new LcgNodeResponse
+        return LegacyDataOk(new LcgNodeResponse
         {
             Fqdn = closestNode.Fqdn,
             Country = closestNode.Country

@@ -1,0 +1,10 @@
+﻿<Solution>
+  <Project Path="API\API.csproj" Type="Classic C#" />
+  <Project Path="API.IntegrationTests\API.IntegrationTests.csproj" Type="Classic C#" />
+  <Project Path="Common\Common.csproj" Type="Classic C#" />
+  <Project Path="Common.Tests\Common.Tests.csproj" Type="Classic C#" />
+  <Project Path="LiveControlGateway\LiveControlGateway.csproj" Type="Classic C#" />
+  <Project Path="Cron\Cron.csproj" Type="Classic C#" />
+  <Project Path="MigrationHelper\MigrationHelper.csproj" Type="Classic C#" />
+  <Project Path="SeedE2E/SeedE2E.csproj" Type="Classic C#" />
+</Solution>

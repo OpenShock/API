@@ -15,6 +15,7 @@ using OpenShock.Common.Problems;
 using OpenShock.Common.Services.BatchUpdate;
 using OpenShock.Common.Services.RedisPubSub;
 using OpenShock.Common.Services.Session;
+using OpenShock.Common.Services.Webhook;
 using OpenTelemetry.Metrics;
 using Redis.OM;
 using Redis.OM.Contracts;
@@ -68,14 +69,39 @@ public static class OpenShockServiceHelper
         return configurationOptions;
     }
 
+    public static IServiceCollection AddOpenShockMemDB(this IServiceCollection services, ConfigurationOptions options)
+    {
+        // <---- Redis ---->
+        services.AddSingleton<IConnectionMultiplexer>(ConnectionMultiplexer.Connect(options));
+        services.AddSingleton<IRedisConnectionProvider, RedisConnectionProvider>();
+        services.AddSingleton<IRedisPubService, RedisPubService>();
+
+        return services;
+    }
+
+    public static IServiceCollection AddOpenShockDB(this IServiceCollection services, DatabaseOptions options)
+    {
+        // <---- Postgres EF Core ---->
+        services.AddDbContextPool<OpenShockContext>(builder => OpenShockContext.ConfigureOptionsBuilder(builder, options.Conn, options.Debug));
+        services.AddPooledDbContextFactory<OpenShockContext>(builder =>
+        {
+            builder.UseNpgsql(options.Conn);
+            if (options.Debug)
+            {
+                builder.EnableSensitiveDataLogging();
+                builder.EnableDetailedErrors();
+            }
+        });
+
+        return services;
+    }
+
     /// <summary>
     /// Register all OpenShock services for PRODUCTION use
     /// </summary>
     /// <param name="services"></param>
-    /// <param name="databaseOptions"></param>
-    /// <param name="redisConfigurationOptions"></param>
     /// <returns></returns>
-    public static IServiceCollection AddOpenShockServices(this IServiceCollection services, DatabaseOptions databaseOptions, ConfigurationOptions redisConfigurationOptions)
+    public static IServiceCollection AddOpenShockServices(this IServiceCollection services)
     {
         // <---- ASP.NET ---->
         services.AddExceptionHandler<OpenShockExceptionHandler>();
@@ -168,27 +194,14 @@ public static class OpenShockServiceHelper
                 .AddAspNetCoreInstrumentation()
                 .AddHttpClientInstrumentation()
                 .AddPrometheusExporter());
-
-        // <---- Redis ---->
-        services.AddSingleton<IConnectionMultiplexer>(ConnectionMultiplexer.Connect(redisConfigurationOptions));
-        services.AddSingleton<IRedisConnectionProvider, RedisConnectionProvider>();
-        services.AddSingleton<IRedisPubService, RedisPubService>();
-
-        // <---- Postgres EF Core ---->
-        services.AddDbContextPool<OpenShockContext>(builder => OpenShockContext.ConfigureOptionsBuilder(builder, databaseOptions.Conn, databaseOptions.Debug));
-        services.AddPooledDbContextFactory<OpenShockContext>(builder =>
-        {
-            builder.UseNpgsql(databaseOptions.Conn);
-            if (databaseOptions.Debug)
-            {
-                builder.EnableSensitiveDataLogging();
-                builder.EnableDetailedErrors();
-            }
-        });
         
         // <---- OpenShock Services ---->
 
         services.AddScoped<ISessionService, SessionService>();
+        services.AddHttpClient<IWebhookService, WebhookService>(client =>
+        {
+            client.Timeout = TimeSpan.FromSeconds(30);
+        });
         services.AddSingleton<IBatchUpdateService, BatchUpdateService>();
         services.AddHostedService<BatchUpdateService>(provider =>
             (BatchUpdateService)provider.GetRequiredService<IBatchUpdateService>());

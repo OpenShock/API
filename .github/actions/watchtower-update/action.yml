@@ -1,0 +1,20 @@
+﻿name: watchtower-update
+description: Trigger a watchtower update
+inputs:
+  url:
+    required: true
+    description: Watchtower HTTP API URL (e.g. `http://example.org:8080/v1/update`)
+  token:
+    required: true
+    description: Bearer Token for Authentication
+
+runs:
+  using: composite
+  
+  steps:
+    - name: Trigger Watchtower Update 
+      shell: bash
+      run: |
+          echo "Deploying to watchtower..."
+          curl -k -f -o /dev/null -X POST "${{ inputs.url }}" \
+          --header "Authorization: Bearer ${{ inputs.token }}" \

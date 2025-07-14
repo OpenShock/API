@@ -10,7 +10,7 @@ public sealed class MetricsOptions
     public IReadOnlyCollection<string> AllowedNetworks { get; init; } = TrustedProxiesFetcher.PrivateNetworks;
 }
 
-public partial class MetricsOptionsValidator : IValidateOptions<MetricsOptions>
+public class MetricsOptionsValidator : IValidateOptions<MetricsOptions>
 {
     public ValidateOptionsResult Validate(string? name, MetricsOptions options)
     {

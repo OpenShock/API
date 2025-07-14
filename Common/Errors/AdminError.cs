@@ -17,4 +17,7 @@ public static class AdminError
 
     public static OpenShockProblem EmailInvalid => new OpenShockProblem("Account.Email.Invalid",
         "This email is not valid", HttpStatusCode.BadRequest);
+    
+    public static OpenShockProblem WebhookNotFound => new OpenShockProblem("Webhook.NotFound", "Webhook not found", HttpStatusCode.NotFound);
+    public static OpenShockProblem WebhookOnlyDiscord => new OpenShockProblem("Webhook.Unsupported", "Only discord webhooks work as of now! Make sure to use discord.com as the host, and not canary or ptb.", HttpStatusCode.BadRequest);
 }

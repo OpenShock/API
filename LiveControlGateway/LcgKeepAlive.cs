@@ -16,7 +16,6 @@ public sealed class LcgKeepAlive : IHostedService
     private readonly IWebHostEnvironment _env;
     private readonly LcgOptions _options;
     private readonly ILogger<LcgKeepAlive> _logger;
-    private readonly IRedisCollection<LcgNode> _lcgNodes;
     
     private const uint KeepAliveInterval = 35; // 35 seconds
 
@@ -33,15 +32,16 @@ public sealed class LcgKeepAlive : IHostedService
         _env = env;
         _options = options.Value;
         _logger = logger;
-        _lcgNodes = redisConnectionProvider.RedisCollection<LcgNode>(false);
     }
 
     private async Task SelfOnline()
     {
-        var online = await _lcgNodes.FindByIdAsync(_options.Fqdn);
-        if (online == null)
+        var lcgNodes = _redisConnectionProvider.RedisCollection<LcgNode>(false);
+        
+        var online = await lcgNodes.FindByIdAsync(_options.Fqdn);
+        if (online is null)
         {
-            await _lcgNodes.InsertAsync(new LcgNode
+            await lcgNodes.InsertAsync(new LcgNode
             {
                 Fqdn = _options.Fqdn,
                 Country = _options.CountryCode,
@@ -55,7 +55,7 @@ public sealed class LcgKeepAlive : IHostedService
         {
             var changeTracker = _redisConnectionProvider.RedisCollection<LcgNode>();
             var tracked = await changeTracker.FindByIdAsync(_options.Fqdn);
-            if (tracked != null)
+            if (tracked is not null)
             {
                 tracked.Country = _options.CountryCode;
                 await changeTracker.SaveAsync();

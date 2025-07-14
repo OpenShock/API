@@ -1,17 +1,18 @@
-﻿using BCrypt.Net;
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using OneOf;
 using OneOf.Types;
 using OpenShock.API.Services.Email;
 using OpenShock.API.Services.Email.Mailjet.Mail;
 using OpenShock.Common.Constants;
+using OpenShock.Common.Models;
 using OpenShock.Common.OpenShockDb;
 using OpenShock.Common.Options;
 using OpenShock.Common.Services.Session;
 using OpenShock.Common.Utils;
 using OpenShock.Common.Validation;
 using System.Net.Mail;
+using Z.EntityFramework.Plus;
 
 namespace OpenShock.API.Services.Account;
 
@@ -20,8 +21,6 @@ namespace OpenShock.API.Services.Account;
 /// </summary>
 public sealed class AccountService : IAccountService
 {
-    private const HashType HashAlgo = HashType.SHA512;
-
     private readonly OpenShockContext _db;
     private readonly IEmailService _emailService;
     private readonly ISessionService _sessionService;
@@ -53,6 +52,109 @@ public sealed class AccountService : IAccountService
         return CreateAccount(email, username, password, true);
     }
 
+    public async Task<OneOf<Success, CannotDeactivatePrivilegedAccount, AccountDeactivationAlreadyInProgress, Unauthorized, NotFound>> DeactivateAccount(Guid executingUserId, Guid userId, bool deleteLater)
+    {
+        if (executingUserId != userId)
+        {
+            var isPrivileged = await _db.Users
+                            .Where(u => u.Id == executingUserId)
+                            .SelectMany(u => u.Roles)
+                            .AnyAsync(r =>
+                                r == RoleType.Staff ||
+                                r == RoleType.Admin ||
+                                r == RoleType.System);
+            if (!isPrivileged)
+            {
+                return new Unauthorized();
+            }
+        }
+
+        var user = await _db.Users.Include(u => u.UserDeactivation).FirstOrDefaultAsync(u => u.Id == userId);
+        if (user is null) return new NotFound();
+
+        if (user.Roles.Any(r => r is RoleType.Admin or RoleType.System))
+        {
+            return new CannotDeactivatePrivilegedAccount();
+        }
+
+        if (user.UserDeactivation is not null)
+        {
+            return new AccountDeactivationAlreadyInProgress();
+        }
+
+        user.UserDeactivation = new UserDeactivation
+        {
+            DeactivatedUserId = userId,
+            DeactivatedByUserId = executingUserId,
+            DeleteLater = deleteLater,
+        };
+
+        await _db.SaveChangesAsync();
+
+        return new Success();
+    }
+
+    public async Task<OneOf<Success, Unauthorized, NotFound>> ReactivateAccount(Guid executingUserId, Guid userId)
+    {
+        var user = await _db.Users.Include(u => u.UserDeactivation).FirstOrDefaultAsync(u => u.Id == userId && u.UserDeactivation != null);
+        if (user is null) return new NotFound();
+
+        var deactivation = user.UserDeactivation!;
+        bool isSelfReactivation =
+            executingUserId == userId &&
+            deactivation.DeactivatedByUserId == deactivation.DeactivatedUserId;
+
+        if (!isSelfReactivation)
+        {
+            var isPrivileged = await _db.Users
+                            .Where(u => u.Id == executingUserId)
+                            .SelectMany(u => u.Roles)
+                            .AnyAsync(r =>
+                                r == RoleType.Staff ||
+                                r == RoleType.Admin ||
+                                r == RoleType.System);
+            if (!isPrivileged)
+            {
+                return new Unauthorized();
+            }
+        }
+
+        _db.Remove(deactivation);
+        await _db.SaveChangesAsync();
+
+        return new Success();
+    }
+
+    public async Task<OneOf<Success, CannotDeletePrivilegedAccount, Unauthorized, NotFound>> DeleteAccount(Guid executingUserId, Guid userId)
+    {
+        var isPrivileged = await _db.Users
+                        .Where(u => u.Id == executingUserId)
+                        .SelectMany(u => u.Roles)
+                        .AnyAsync(r =>
+                            r == RoleType.Staff ||
+                            r == RoleType.Admin ||
+                            r == RoleType.System);
+        if (!isPrivileged)
+        {
+            return new Unauthorized();
+        }
+
+        var user = await _db.Users.Include(u => u.UserDeactivation).FirstOrDefaultAsync(u => u.Id == userId);
+        if (user is null) return new NotFound();
+
+        if (user.Roles.Any(r => r is RoleType.Admin or RoleType.System))
+        {
+            return new CannotDeletePrivilegedAccount();
+        }
+
+        // TODO: Do more checks?
+
+        _db.Users.Remove(user);
+        await _db.SaveChangesAsync();
+
+        return new Success();
+    }
+
     private async Task<OneOf<Success<User>, AccountWithEmailOrUsernameExists>> CreateAccount(string email,
         string username,
         string password, bool emailActivated)
@@ -66,9 +168,7 @@ public sealed class AccountService : IAccountService
             Id = newGuid,
             Name = username,
             Email = email.ToLowerInvariant(),
-            PasswordHash = PasswordHashingUtils.HashPassword(password),
-            EmailActivated = emailActivated,
-            Roles = []
+            PasswordHash = HashingUtils.HashPassword(password)
         };
         _db.Users.Add(user);
 
@@ -86,21 +186,18 @@ public sealed class AccountService : IAccountService
 
         var user = accountCreate.AsT0.Value;
 
-        var id = Guid.CreateVersion7();
-        var secret = CryptoUtils.RandomString(32);
-        var secretHash = BCrypt.Net.BCrypt.EnhancedHashPassword(secret, HashAlgo);
+        var secret = CryptoUtils.RandomString(AuthConstants.GeneratedTokenLength);
 
-        _db.UsersActivations.Add(new UsersActivation()
+        user.UserActivationRequest = new UserActivationRequest
         {
-            Id = id,
             UserId = user.Id,
-            Secret = secretHash
-        });
+            SecretHash = HashingUtils.HashToken(secret)
+        };
 
         await _db.SaveChangesAsync();
 
         await _emailService.VerifyEmail(new Contact(email, username),
-            new Uri(_frontendConfig.BaseUrl, $"/#/account/activate/{id}/{secret}"));
+            new Uri(_frontendConfig.BaseUrl, $"/#/account/activate/{user.Id}/{secret}"));
         return new Success<User>(user);
     }
 
@@ -112,7 +209,7 @@ public sealed class AccountService : IAccountService
         var user = await _db.Users.FirstOrDefaultAsync(
             x => x.Email == lowercaseUsernameOrEmail || x.Name == lowercaseUsernameOrEmail,
             cancellationToken: cancellationToken);
-        if (user == null)
+        if (user is null)
         {
             await Task.Delay(100,
                 cancellationToken); // TODO: Set appropriate time to match password hashing time, preventing timing attacks
@@ -121,11 +218,9 @@ public sealed class AccountService : IAccountService
 
         if (!await CheckPassword(password, user)) return new NotFound();
 
-        var randomSessionId = CryptoUtils.RandomString(64);
+        var createdSession = await _sessionService.CreateSessionAsync(user.Id, loginContext.UserAgent, loginContext.Ip);
 
-        await _sessionService.CreateSessionAsync(randomSessionId, user.Id, loginContext.UserAgent, loginContext.Ip);
-
-        return new Success<string>(randomSessionId);
+        return new Success<string>(createdSession.Token);
     }
 
     /// <inheritdoc />
@@ -133,12 +228,15 @@ public sealed class AccountService : IAccountService
         CancellationToken cancellationToken = default)
     {
         var validUntil = DateTime.UtcNow.Add(Duration.PasswordResetRequestLifetime);
-        var reset = await _db.PasswordResets.FirstOrDefaultAsync(x =>
-                x.Id == passwordResetId && x.UsedOn == null && x.CreatedOn < validUntil,
+        var reset = await _db.UserPasswordResets.FirstOrDefaultAsync(x =>
+                x.Id == passwordResetId && x.UsedAt == null && x.CreatedAt < validUntil,
             cancellationToken: cancellationToken);
 
-        if (reset == null) return new NotFound();
-        if (!BCrypt.Net.BCrypt.EnhancedVerify(secret, reset.Secret, HashAlgo)) return new SecretInvalid();
+        if (reset is null) return new NotFound();
+
+        var result = HashingUtils.VerifyToken(secret, reset.SecretHash);
+        if (!result.Verified) return new SecretInvalid();
+        
         return new Success();
     }
 
@@ -150,20 +248,20 @@ public sealed class AccountService : IAccountService
         var user = await _db.Users.Where(x => x.Email == lowerCaseEmail).Select(x => new
         {
             User = x,
-            PasswordResetCount = x.PasswordResets.Count(y => y.UsedOn == null && y.CreatedOn < validUntil)
+            PasswordResetCount = x.PasswordResets.Count(y => y.UsedAt == null && y.CreatedAt < validUntil)
         }).FirstOrDefaultAsync();
-        if (user == null) return new NotFound();
+        if (user is null) return new NotFound();
         if (user.PasswordResetCount >= 3) return new TooManyPasswordResets();
 
-        var secret = CryptoUtils.RandomString(32);
-        var hash = BCrypt.Net.BCrypt.EnhancedHashPassword(secret, HashAlgo);
-        var passwordReset = new PasswordReset
+        var secret = CryptoUtils.RandomString(AuthConstants.GeneratedTokenLength);
+        var secretHash = HashingUtils.HashToken(secret);
+        var passwordReset = new UserPasswordReset
         {
             Id = Guid.CreateVersion7(),
-            Secret = hash,
-            User = user.User
+            UserId = user.User.Id,
+            SecretHash = secretHash
         };
-        _db.PasswordResets.Add(passwordReset);
+        _db.UserPasswordResets.Add(passwordReset);
         await _db.SaveChangesAsync();
 
         await _emailService.PasswordReset(new Contact(user.User.Email, user.User.Name),
@@ -178,14 +276,16 @@ public sealed class AccountService : IAccountService
     {
         var validUntil = DateTime.UtcNow.Add(Duration.PasswordResetRequestLifetime);
 
-        var reset = await _db.PasswordResets.Include(x => x.User).FirstOrDefaultAsync(x =>
-            x.Id == passwordResetId && x.UsedOn == null && x.CreatedOn < validUntil);
+        var reset = await _db.UserPasswordResets.Include(x => x.User).FirstOrDefaultAsync(x =>
+            x.Id == passwordResetId && x.UsedAt == null && x.CreatedAt < validUntil);
 
-        if (reset == null) return new NotFound();
-        if (!BCrypt.Net.BCrypt.EnhancedVerify(secret, reset.Secret, HashAlgo)) return new SecretInvalid();
+        if (reset is null) return new NotFound();
 
-        reset.UsedOn = DateTime.UtcNow;
-        reset.User.PasswordHash = PasswordHashingUtils.HashPassword(newPassword);
+        var result = HashingUtils.VerifyToken(secret, reset.SecretHash);
+        if (!result.Verified) return new SecretInvalid();
+
+        reset.UsedAt = DateTime.UtcNow;
+        reset.User.PasswordHash = HashingUtils.HashPassword(newPassword);
         await _db.SaveChangesAsync();
         return new Success();
     }
@@ -220,7 +320,7 @@ public sealed class AccountService : IAccountService
             string username, bool ignoreLimit = false)
     {
         var cooldownSubtracted = DateTime.UtcNow.Subtract(Duration.NameChangeCooldown);
-        if (!ignoreLimit && await _db.UsersNameChanges.Where(x => x.UserId == userId && x.CreatedOn >= cooldownSubtracted).AnyAsync())
+        if (!ignoreLimit && await _db.UserNameChanges.Where(x => x.UserId == userId && x.CreatedAt >= cooldownSubtracted).AnyAsync())
         {
             return new OneOf.Types.Error<OneOf<UsernameTaken, UsernameError, RecentlyChanged>>(new RecentlyChanged());
         }
@@ -234,14 +334,14 @@ public sealed class AccountService : IAccountService
         await using var transaction = await _db.Database.BeginTransactionAsync();
 
         var user = await _db.Users.FirstOrDefaultAsync(x => x.Id == userId);
-        if (user == null) return new NotFound();
+        if (user is null) return new NotFound();
 
         var oldName = user.Name;
 
         user.Name = username;
         await _db.SaveChangesAsync();
 
-        _db.UsersNameChanges.Add(new UsersNameChange
+        _db.UserNameChanges.Add(new UserNameChange
         {
             UserId = userId,
             OldName = oldName
@@ -282,7 +382,7 @@ public sealed class AccountService : IAccountService
     public async Task<OneOf<Success, NotFound>> ChangePassword(Guid userId, string newPassword)
     {
         var user = await _db.Users.Where(x => x.Id == userId).ExecuteUpdateAsync(calls =>
-            calls.SetProperty(x => x.PasswordHash, PasswordHashingUtils.HashPassword(newPassword)));
+            calls.SetProperty(x => x.PasswordHash, HashingUtils.HashPassword(newPassword)));
         return user switch
         {
             <= 0 => new NotFound(),
@@ -294,7 +394,7 @@ public sealed class AccountService : IAccountService
 
     private async Task<bool> CheckPassword(string password, User user)
     {
-        var result = PasswordHashingUtils.VerifyPassword(password, user.PasswordHash);
+        var result = HashingUtils.VerifyPassword(password, user.PasswordHash);
 
         if (!result.Verified)
         {
@@ -305,7 +405,7 @@ public sealed class AccountService : IAccountService
         if (result.NeedsRehash)
         {
             _logger.LogInformation("Rehashing password for user ID: [{Id}]", user.Id);
-            user.PasswordHash = PasswordHashingUtils.HashPassword(password);
+            user.PasswordHash = HashingUtils.HashPassword(password);
             await _db.SaveChangesAsync();
         }
 

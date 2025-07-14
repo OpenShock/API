@@ -1,6 +1,4 @@
-﻿using System.Reflection;
-using Microsoft.AspNetCore.Server.Kestrel.Core;
-using Serilog;
+﻿using Serilog;
 
 namespace OpenShock.Common;
 
@@ -20,6 +18,7 @@ public static class OpenShockApplication
         {
             builder.Configuration
                 .AddJsonFile("appsettings.json", optional: true, reloadOnChange: false)
+                .AddJsonFile("appsettings.Container.json", optional: true, reloadOnChange: false)
                 .AddJsonFile($"appsettings.{builder.Environment.EnvironmentName}.json", optional: true, reloadOnChange: false)
                 .AddJsonFile("appsettings.Custom.json", optional: true, reloadOnChange: false)
                 .AddEnvironmentVariables()
@@ -35,7 +34,7 @@ public static class OpenShockApplication
         });
 
         // Since we use slim builders, this allows for HTTPS during local development
-        if (isDevelopment) builder.WebHost.UseKestrelHttpsConfiguration();
+        builder.WebHost.UseKestrelHttpsConfiguration();
         
         builder.WebHost.ConfigureKestrel(serverOptions =>
         {

@@ -8,7 +8,7 @@ sealed class InterceptedHttpMessageHandler : DelegatingHandler
 {
     private async Task<HttpResponseMessage> HandleCloudflareTurnstileRequest(HttpRequestMessage request, CancellationToken cancellationToken)
     {
-        var formData = request.Content != null ? await request.Content.ReadAsStringAsync(cancellationToken) : string.Empty;
+        var formData = request.Content is null ? string.Empty : await request.Content.ReadAsStringAsync(cancellationToken);
         var parsedForm = HttpUtility.ParseQueryString(formData);
         var responseToken = parsedForm["response"];
 
@@ -53,9 +53,9 @@ sealed class InterceptedHttpMessageHandler : DelegatingHandler
         return responseMessage;
     }
 
-    private async Task<HttpResponseMessage> HandleMailJetApiHost(HttpRequestMessage request, CancellationToken cancellationToken)
+    private Task<HttpResponseMessage> HandleMailJetApiHost(HttpRequestMessage request, CancellationToken cancellationToken)
     {
-        return new HttpResponseMessage(HttpStatusCode.NotFound);
+        return Task.FromResult(new HttpResponseMessage(HttpStatusCode.NotFound));
     }
 
     protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
@@ -70,11 +70,11 @@ sealed class InterceptedHttpMessageHandler : DelegatingHandler
 
     private class CloudflareTurnstileVerifyResponseDto
     {
-        public bool Success { get; set; }
-        public string[] ErrorCodes { get; set; }
-        public DateTime ChallengeTs { get; set; }
-        public string Hostname { get; set; }
-        public string Action { get; set; }
-        public string Cdata { get; set; }
+        public bool Success { get; init; }
+        public required string[] ErrorCodes { get; init; }
+        public DateTime ChallengeTs { get; init; }
+        public required string Hostname { get; init; }
+        public required string Action { get; init; }
+        public required string Cdata { get; init; }
     }
 }

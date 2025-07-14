@@ -20,7 +20,9 @@ builder.Services.AddSingleton<IValidateOptions<LcgOptions>, LcgOptionsValidator>
 var databaseConfig = builder.Configuration.GetDatabaseOptions();
 var redisConfig = builder.Configuration.GetRedisConfigurationOptions();
 
-builder.Services.AddOpenShockServices(databaseConfig, redisConfig);
+builder.Services.AddOpenShockMemDB(redisConfig);
+builder.Services.AddOpenShockDB(databaseConfig);
+builder.Services.AddOpenShockServices();
 
 builder.Services.AddSignalR()
     .AddOpenShockStackExchangeRedis(options => { options.Configuration = redisConfig; })
@@ -44,10 +46,6 @@ builder.Services.AddSingleton<HubLifetimeManager>();
 
 var app = builder.Build();
 
-app.UseCommonOpenShockMiddleware();
+await app.UseCommonOpenShockMiddleware();
 
-app.UseSwagger();
-
-app.MapControllers();
-
-app.Run();
+await app.RunAsync();

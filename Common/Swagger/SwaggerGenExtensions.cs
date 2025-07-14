@@ -3,12 +3,8 @@ using OpenShock.Common.Constants;
 using OpenShock.Common.DataAnnotations;
 using OpenShock.Common.Models;
 using Semver;
-using Asp.Versioning.ApiExplorer;
 using OpenShock.Common.Utils;
 using Asp.Versioning;
-using Microsoft.AspNetCore.Mvc;
-using System.Reflection;
-using System.Linq;
 using OpenShock.Common.Extensions;
 using OpenShock.Common.Authentication;
 

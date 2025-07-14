@@ -42,12 +42,13 @@ public sealed class UsernameAttribute : ValidationAttribute, IParameterAttribute
         if (value is null) return new ValidationResult(ErrMsgCannotBeNull);
         
         if (value is not string displayName) return new ValidationResult(ErrMsgMustBeString);
-        
-        var result = UsernameValidator.Validate(displayName);
 
-        if (!result.IsT0) return new ValidationResult($"{result.AsT1.Type} - {result.AsT1.Message}");
+        var result = UsernameValidator.Validate(displayName);
         
-        return ValidationResult.Success;
+        return result.Match(
+            _ => ValidationResult.Success,
+            error => new ValidationResult($"{error.Type} - {error.Message}")
+        );
     }
 
     /// <inheritdoc/>
