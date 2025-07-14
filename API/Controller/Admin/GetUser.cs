@@ -11,70 +11,89 @@ namespace OpenShock.API.Controller.Admin;
 
 public sealed partial class AdminController
 {
+    public sealed class AdminUserView_UserRef
+    {
+        public required Guid Id { get; init; }
+        public required string Name { get; init; }
+    public sealed class AdminUserView_Shocker
+    {
+        public required Guid Id { get; init; }
+        public required string Name { get; init; }
+        public required DateTimeOffset CreatedAt { get; init; }
+    }
     public sealed class AdminUserView_Hub
     {
-        public required Guid Id { get; set; }
-        public required string Name { get; set; }
-        public required DateTime CreatedAt { get; set; }
+        public required Guid Id { get; init; }
+        public required string Name { get; init; }
+        public required DateTimeOffset CreatedAt { get; init; }
+        public required AdminUserView_Shocker[] Shockers { get; init; }
     }
     public sealed class AdminUserView_ApiToken
     {
-        public required Guid Id { get; set; }
-        public required string Name { get; set; }
-        public required List<PermissionType> Permissions { get; set; }
-        public required DateTime? ValidUntil { get; set; }
-        public required DateTime LastUsed { get; set; }
-        public required DateTime CreatedAt { get; set; }
-        public required IPAddress CreatedByIp { get; set; }
+        public required Guid Id { get; init; }
+        public required string Name { get; init; }
+        public required List<PermissionType> Permissions { get; init; }
+        public required DateTimeOffset? ValidUntil { get; init; }
+        public required DateTimeOffset LastUsed { get; init; }
+        public required DateTimeOffset CreatedAt { get; init; }
+        public required IPAddress CreatedByIp { get; init; }
     }
     public sealed class AdminUserView_PasswordReset
     {
-        public required Guid Id { get; set; }
-        public required DateTime CreatedAt { get; set; }
-        public required DateTime? UsedAt { get; set; }
+        public required Guid Id { get; init; }
+        public required DateTimeOffset CreatedAt { get; init; }
+        public required DateTimeOffset? UsedAt { get; init; }
     }
-    public sealed class AdminUserView_UserActivation
+    public sealed class AdminUserView_UserActivationRequest
     {
-        public required Guid Id { get; set; }
-        public required DateTime CreatedAt { get; set; }
-        public required DateTime? UsedAt { get; set; }
+        public required int EmailSendAttempts { get; init; }
+        public required DateTimeOffset CreatedAt { get; init; }
+    }
+    public sealed class AdminUserView_UserDeactivation
+    {
+        public required AdminUserView_UserRef DeactivatedBy { get; init; }
+        public required DateTimeOffset? ScheduledDeletionTime { get; init; }
+        public required DateTimeOffset DeactivatedAt { get; init; }
     }
     public sealed class AdminUserView_EmailChange
     {
-        public required Guid Id { get; set; }
-        public required string Email { get; set; }
-        public required DateTime CreatedAt { get; set; }
-        public required DateTime? UsedAt { get; set; }
+        public required Guid Id { get; init; }
+        public required string Email { get; init; }
+        public required DateTimeOffset CreatedAt { get; init; }
+        public required DateTimeOffset? UsedAt { get; init; }
     }
     public sealed class AdminUserView_NameChange
     {
-        public required int Id { get; set; }
-        public required string OldName { get; set; }
-        public required DateTime CreatedAt { get; set; }
+        public required int Id { get; init; }
+        public required string OldName { get; init; }
+        public required DateTimeOffset CreatedAt { get; init; }
     }
     public sealed class AdminUserView
     {
-        public required Guid Id { get; set; }
+        public required Guid Id { get; init; }
 
-        public required string Name { get; set; }
+        public required string Name { get; init; }
 
-        public required string Email { get; set; }
+        public required string Email { get; init; }
 
-        public required PasswordHashingAlgorithm PasswordHashType { get; set; }
+        public required PasswordHashingAlgorithm PasswordHashType { get; init; }
 
-        public required DateTime CreatedAt { get; set; }
+        public required List<RoleType> Roles { get; init; }
 
-        public required bool EmailActivated { get; set; }
+        public required DateTimeOffset CreatedAt { get; init; }
 
-        public required List<RoleType> Roles { get; set; }
+        public required DateTimeOffset? ActivatedAt { get; init; }
 
-        public required AdminUserView_Hub[] Hubs { get; set; }
-        public required AdminUserView_ApiToken[] ApiTokens { get; set; }
-        public required AdminUserView_NameChange[] UsersNameChanges { get; set; }
-        public required AdminUserView_EmailChange[] UsersEmailChanges { get; set; }
-        public required AdminUserView_PasswordReset[] PasswordResets { get; set; }
-        public required AdminUserView_UserActivation[] UsersActivations { get; set; }
-        public required int ShockerControlLogsCount { get; set; }
+        public required AdminUserView_UserActivationRequest? ActivationRequest { get; init; }
+
+        public required AdminUserView_UserDeactivation? Deactivation { get; init; }
+
+        public required AdminUserView_Hub[] Hubs { get; init; }
+        public required AdminUserView_ApiToken[] ApiTokens { get; init; }
+        public required AdminUserView_NameChange[] UsersNameChanges { get; init; }
+        public required AdminUserView_EmailChange[] UsersEmailChanges { get; init; }
+        public required AdminUserView_PasswordReset[] PasswordResets { get; init; }
+        public required int ShockerControlLogsCount { get; init; }
     }
 
     [NonAction]
@@ -88,15 +107,21 @@ public sealed partial class AdminController
                 u.Name,
                 u.Email,
                 u.PasswordHash,
-                u.CreatedAt,
-                u.EmailActivated,
                 u.Roles,
+                u.CreatedAt,
+                u.ActivatedAt,
                 Hubs = u.Devices.Select(hub =>
                     new AdminUserView_Hub
                     {
                         Id = hub.Id,
                         Name = hub.Name,
-                        CreatedAt = hub.CreatedOn,
+                        CreatedAt = hub.CreatedAt,
+                        Shockers = hub.Shockers.Select(shocker => new AdminUserView_Shocker
+                        {
+                            Id = shocker.Id,
+                            Name = shocker.Name,
+                            CreatedAt = shocker.CreatedAt,
+                        }).ToArray()
                     }
                 ).ToArray(),
                 ApiTokens = u.ApiTokens.Select(token =>
@@ -107,7 +132,7 @@ public sealed partial class AdminController
                         Permissions = token.Permissions,
                         ValidUntil = token.ValidUntil,
                         LastUsed = token.LastUsed,
-                        CreatedAt = token.CreatedOn,
+                        CreatedAt = token.CreatedAt,
                         CreatedByIp = token.CreatedByIp,
                     }
                 ).ToArray(),
@@ -115,33 +140,33 @@ public sealed partial class AdminController
                     new AdminUserView_PasswordReset
                     {
                         Id = reset.Id,
-                        CreatedAt = reset.CreatedOn,
-                        UsedAt = reset.UsedOn,
+                        CreatedAt = reset.CreatedAt,
+                        UsedAt = reset.UsedAt,
                     }
                 ).ToArray(),
-                UsersActivations = u.UsersActivations.Select(activation =>
-                    new AdminUserView_UserActivation
+                UsersActivations = u.UserActivationRequest.Select(activation =>
+                    new AdminUserView_UserActivationRequest
                     {
                         Id = activation.Id,
                         CreatedAt = activation.CreatedOn,
                         UsedAt = activation.UsedOn,
                     }
                 ).ToArray(),
-                UsersEmailChanges = u.UsersEmailChanges.Select(change =>
+                UsersEmailChanges = u.EmailChanges.Select(change =>
                     new AdminUserView_EmailChange
                     {
                         Id = change.Id,
                         Email = change.Email,
-                        CreatedAt = change.CreatedOn,
-                        UsedAt = change.UsedOn,
+                        CreatedAt = change.CreatedAt,
+                        UsedAt = change.UsedAt,
                     }
                 ).ToArray(),
-                UsersNameChanges = u.UsersNameChanges.Select(change =>
+                UsersNameChanges = u.NameChanges.Select(change =>
                     new AdminUserView_NameChange
                     {
                         Id = change.Id,
                         OldName = change.OldName,
-                        CreatedAt = change.CreatedOn,
+                        CreatedAt = change.CreatedAt,
                     }
                 ).ToArray(),
                 ShockerControlLogsCount = u.ShockerControlLogs.Count()
@@ -161,13 +186,13 @@ public sealed partial class AdminController
             Name = user.Name,
             Email = user.Email,
             PasswordHashType = passwordHashingAlgorithm,
-            CreatedAt = user.CreatedAt,
-            EmailActivated = user.EmailActivated,
             Roles = user.Roles,
+            CreatedAt = user.CreatedAt,
+            ActivatedAt = user.ActivatedAt,
             Hubs = user.Hubs,
             ApiTokens = user.ApiTokens,
             PasswordResets = user.PasswordResets,
-            UsersActivations = user.UsersActivations,
+            ActivationRequest = user.UsersActivations,
             UsersEmailChanges = user.UsersEmailChanges,
             UsersNameChanges = user.UsersNameChanges,
             ShockerControlLogsCount = user.ShockerControlLogsCount,
