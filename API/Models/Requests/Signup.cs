@@ -10,6 +10,6 @@ public sealed class SignUp
     [Password(true)]
     public required string Password { get; set; }
     
-    [EmailAddress(true, false, false)]
+    [EmailAddress(true)]
     public required string Email { get; set; }
 }

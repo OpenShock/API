@@ -26,28 +26,17 @@ public sealed class EmailAddressAttribute : ValidationAttribute, IParameterAttri
     private const string ErrMsgTooShort = "Email is too short";
     private const string ErrMsgTooLong = "Email is too long";
     private const string ErrMsgMustBeEmail = "Email must be an email address";
-    private const string ErrMsgNoAlias = "Email address cannot have an alias";
-    private const string ErrMsgNoDisplayName = "Email address cannot have display name";
 
     /// <summary>
     /// Indicates whether validation should be performed.
     /// </summary>
-    private bool ShouldValidate { get; }
-    private bool CanContainAlias { get; }
-    private bool CanContainDisplayName { get; }
+    public bool ShouldValidate { get; }
 
     /// <summary>
     /// Initializes a new instance of the <see cref="EmailAddressAttribute"/> class with the specified validation behavior.
     /// </summary>
     /// <param name="shouldValidate">True if validation should be performed; otherwise, false.</param>
-    /// <param name="canContainAlias">True if the email address can contain an alias; otherwise, false.</param>
-    /// <param name="canContainDisplay">True if the email address can contain a display name; otherwise, false.</param>
-    public EmailAddressAttribute(bool shouldValidate, bool canContainAlias, bool canContainDisplay)
-    {
-        ShouldValidate = shouldValidate;
-        CanContainAlias = canContainAlias;
-        CanContainDisplayName = canContainDisplay;
-    }
+    public EmailAddressAttribute(bool shouldValidate) => ShouldValidate = shouldValidate;
 
     /// <inheritdoc/>
     protected override ValidationResult? IsValid(object? value, ValidationContext validationContext)
@@ -62,11 +51,7 @@ public sealed class EmailAddressAttribute : ValidationAttribute, IParameterAttri
         
         if (email.Length > HardLimits.EmailAddressMaxLength) return new ValidationResult(ErrMsgTooLong);
 
-        if (!MailAddress.TryCreate(email, out var parsed)) return new ValidationResult(ErrMsgMustBeEmail);
-        
-        if (!string.IsNullOrEmpty(parsed.DisplayName)) return new ValidationResult(ErrMsgNoDisplayName);
-        
-        if (parsed.User.Contains('+')) return new ValidationResult(ErrMsgNoAlias);
+        if (!MailAddress.TryCreate(email, out _)) return new ValidationResult(ErrMsgMustBeEmail);
         
         return ValidationResult.Success;
     }
