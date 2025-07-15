@@ -1,12 +1,12 @@
-﻿using System.ComponentModel.DataAnnotations;
+﻿using OpenShock.Common.DataAnnotations;
 
 namespace OpenShock.API.Models.Requests;
 
 public sealed class PasswordResetRequestV2
 {
-    [Required(AllowEmptyStrings = false)]
+    [EmailAddress(true)]
     public required string Email { get; set; }
     
-    [Required(AllowEmptyStrings = false)]
+    [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = false)]
     public required string TurnstileResponse { get; set; }
 }
