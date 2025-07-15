@@ -10,7 +10,7 @@ public sealed class SignUpV2
     [Password(true)]
     public required string Password { get; set; }
     
-    [EmailAddress(true)]
+    [EmailAddress(true, false, false)]
     public required string Email { get; set; }
     
     [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = false)]
