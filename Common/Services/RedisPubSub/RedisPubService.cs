@@ -64,6 +64,17 @@ public sealed class RedisPubService : IRedisPubService
     }
 
     /// <inheritdoc />
+    public Task SendDeviceEmergencyStop(Guid deviceId)
+    {
+        var redisMessage = new DeviceEmergencyStopMessage
+        {
+            Id = deviceId
+        };
+        
+        return _subscriber.PublishAsync(RedisChannels.DeviceEmergencyStop, JsonSerializer.Serialize(redisMessage));
+    }
+
+    /// <inheritdoc />
     public Task SendDeviceOtaInstall(Guid deviceId, SemVersion version)
     {
         var redisMessage = new DeviceOtaInstallMessage
@@ -73,5 +84,16 @@ public sealed class RedisPubService : IRedisPubService
         };
         
         return _subscriber.PublishAsync(RedisChannels.DeviceOtaInstall, JsonSerializer.Serialize(redisMessage));
+    }
+
+    /// <inheritdoc />
+    public Task SendDeviceReboot(Guid deviceId)
+    {
+        var redisMessage = new DeviceEmergencyStopMessage
+        {
+            Id = deviceId
+        };
+        
+        return _subscriber.PublishAsync(RedisChannels.DeviceReboot, JsonSerializer.Serialize(redisMessage));
     }
 }
