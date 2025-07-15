@@ -11,6 +11,6 @@ public sealed class LegacyDataResponse<T>
         Data = data;
     }
     
-    public required string Message { get; set; }
-    public required T Data { get; set; }
+    public required string Message { get; init; }
+    public required T Data { get; init; }
 }

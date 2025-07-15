@@ -2,5 +2,5 @@
 
 public sealed class ShockerWithDevice : ShockerResponse
 {
-    public required Guid Device { get; set; }
+    public required Guid Device { get; init; }
 }
