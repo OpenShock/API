@@ -2,7 +2,7 @@
 
 public sealed class PublicShareDevice
 {
-    public required Guid Id { get; set; }
-    public required string Name { get; set; }
-    public required IList<PublicShareShocker> Shockers { get; set; }
+    public required Guid Id { get; init; }
+    public required string Name { get; init; }
+    public required IList<PublicShareShocker> Shockers { get; init; }
 }

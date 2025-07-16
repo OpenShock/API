@@ -49,11 +49,11 @@ public sealed partial class VersionController : OpenShockControllerBase
 
     public sealed class ApiVersionResponse
     {
-        public required string Version { get; set; }
-        public required string Commit { get; set; }
-        public required DateTimeOffset CurrentTime { get; set; }
-        public required Uri FrontendUrl { get; set; }
-        public required Uri ShortLinkUrl { get; set; }
-        public required string? TurnstileSiteKey { get; set; }
+        public required string Version { get; init; }
+        public required string Commit { get; init; }
+        public required DateTimeOffset CurrentTime { get; init; }
+        public required Uri FrontendUrl { get; init; }
+        public required Uri ShortLinkUrl { get; init; }
+        public required string? TurnstileSiteKey { get; init; }
     }
 }

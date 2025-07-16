@@ -11,6 +11,6 @@ public sealed class LegacyEmptyResponse
         Data = data;
     }
     
-    public required string Message { get; set; }
-    public object? Data { get; set; }
+    public required string Message { get; init; }
+    public object? Data { get; init; }
 }

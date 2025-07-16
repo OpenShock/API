@@ -42,6 +42,6 @@ public sealed class UsernameCheckResponse
         Error = error;
     }
     
-    public required UsernameAvailability Availability { get; set; }
-    public UsernameError? Error { get; set; }
+    public required UsernameAvailability Availability { get; init; }
+    public UsernameError? Error { get; init; }
 }
