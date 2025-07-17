@@ -37,8 +37,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <None Update="cloudflare-ips.txt">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
+    <EmbeddedResource Include="cloudflare-ips.txt">
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+    </EmbeddedResource>
   </ItemGroup>
 </Project>
