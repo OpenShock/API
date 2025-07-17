@@ -12,12 +12,14 @@ public sealed class CloudflareTurnstileService : ICloudflareTurnstileService
 
     private readonly HttpClient _httpClient;
     private readonly CloudflareTurnstileOptions _options;
+    private readonly IHostEnvironment _environment;
     private readonly ILogger<CloudflareTurnstileService> _logger;
 
-    public CloudflareTurnstileService(HttpClient httpClient, IOptions<CloudflareTurnstileOptions> options, ILogger<CloudflareTurnstileService> logger)
+    public CloudflareTurnstileService(HttpClient httpClient, IOptions<CloudflareTurnstileOptions> options, IHostEnvironment environment, ILogger<CloudflareTurnstileService> logger)
     {
         _httpClient = httpClient;
         _options = options.Value;
+        _environment = environment;
         _logger = logger;
     }
 
@@ -49,9 +51,10 @@ public sealed class CloudflareTurnstileService : ICloudflareTurnstileService
         
         if (string.IsNullOrEmpty(responseToken)) return CreateError(CloduflareTurnstileError.MissingResponse);
 
-#if DEBUG
-        if (responseToken == "dev-bypass") return new Success();
-#endif
+        if (_environment.IsDevelopment() && responseToken == "dev-bypass")
+        {
+            return new Success();
+        }
         
         var formUrlValues = new Dictionary<string, string>
         {
