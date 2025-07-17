@@ -26,6 +26,7 @@ public static class OpenShockMiddlewareHelper
     public static async Task<IApplicationBuilder> UseCommonOpenShockMiddleware(this WebApplication app)
     {
         var metricsOptions = app.Services.GetRequiredService<IOptions<MetricsOptions>>().Value;
+        var metricsAllowedIpNetworks = metricsOptions.AllowedNetworks.Select(x => IPNetwork.Parse(x)).ToArray();
 
         foreach (var proxy in await TrustedProxiesFetcher.GetTrustedNetworksAsync())
         {
@@ -68,8 +69,6 @@ public static class OpenShockMiddlewareHelper
         redisConnection.CreateIndex(typeof(DeviceOnline));
         redisConnection.CreateIndex(typeof(DevicePair));
         redisConnection.CreateIndex(typeof(LcgNode));
-
-        var metricsAllowedIpNetworks = metricsOptions.AllowedNetworks.Select(x => IPNetwork.Parse(x));
 
         app.UseOpenTelemetryPrometheusScrapingEndpoint(context =>
         {
