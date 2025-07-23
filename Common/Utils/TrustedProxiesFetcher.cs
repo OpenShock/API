@@ -77,7 +77,14 @@ public static class TrustedProxiesFetcher
             cfProxies = await FetchCloudflareIPs();
         }
 
-        cfProxies ??= ParseNetworks(File.ReadAllText("cloudflare-ips.txt"));
+        if (cfProxies == null)
+        {
+            var assembly = typeof(TrustedProxiesFetcher).Assembly;
+            var resourceName = assembly.GetName().Name + ".cloudflare-ips.txt";
+            using var stream = assembly.GetManifestResourceStream(resourceName) ?? throw new NullReferenceException("Could not open embedded cloudflare-ips.txt file");
+            using var reader = new StreamReader(stream);
+            cfProxies = ParseNetworks(reader.ReadToEnd());
+        }
 
         return [.. PrivateNetworksParsed, .. cfProxies];
     }

@@ -88,8 +88,13 @@ public sealed partial class TokensController
 
         return new TokenCreatedResponse
         {
+            Id = tokenDto.Id,
+            Name = body.Name,
             Token = token,
-            Id = tokenDto.Id
+            CreatedAt = tokenDto.CreatedAt,
+            ValidUntil = tokenDto.ValidUntil,
+            LastUsed = tokenDto.LastUsed,
+            Permissions = tokenDto.Permissions
         };
     }
 

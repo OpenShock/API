@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using OpenShock.Common.Models;
 using Asp.Versioning;
+using OpenShock.Common.DataAnnotations;
 
 namespace OpenShock.API.Controller.Account;
 
@@ -20,6 +21,7 @@ public sealed partial class AccountController
 
     public sealed class ResetRequest
     {
+        [EmailAddress(true)]
         public required string Email { get; init; }
     }
 }
