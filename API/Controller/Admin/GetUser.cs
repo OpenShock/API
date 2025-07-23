@@ -15,6 +15,7 @@ public sealed partial class AdminController
     {
         public required Guid Id { get; init; }
         public required string Name { get; init; }
+    }
     public sealed class AdminUserView_Shocker
     {
         public required Guid Id { get; init; }
