@@ -58,12 +58,13 @@ public sealed partial class AdminController
             return Problem(ExpressionError.ExpressionExceptionError(e.Message));
         }
 
+        var deferredCount = query.DeferredLongCount().FutureValue();
+
         if (offset != 0)
         {
             query = query.Skip(offset);
         }
 
-        var deferredCount = query.DeferredLongCount().FutureValue();
         var deferredUsers = query.Take(limit).Future();
 
         return Ok(new Paginated<AdminUsersView>
