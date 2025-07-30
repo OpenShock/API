@@ -83,8 +83,9 @@ public interface IAccountService
     /// <param name="userId"></param>
     /// <param name="username"></param>
     /// <param name="ignoreLimit">Ignore the username change limit, set this to true when an admin is changing the username</param>
+    /// <param name="cancellationToken"></param>
     /// <returns><see cref="Error{UsernameCheckResult}"/> only returns when the result is != Available</returns>
-    public Task<OneOf<Success, Error<OneOf<UsernameTaken, UsernameError, RecentlyChanged>>, NotFound>> ChangeUsername(Guid userId, string username, bool ignoreLimit = false);
+    public Task<OneOf<Success, Error<OneOf<UsernameTaken, UsernameError, RecentlyChanged>>, NotFound>> ChangeUsernameAsync(Guid userId, string username, bool ignoreLimit = false, CancellationToken cancellationToken = default);
     
     /// <summary>
     /// Change the password of a user
