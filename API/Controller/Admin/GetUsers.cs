@@ -27,8 +27,6 @@ public sealed partial class AdminController
         [FromQuery(Name = "$limit")][Range(1, 1000)] int limit = 100
         )
     {
-        var deferredCount = _db.Users.DeferredLongCount().FutureValue();
-
         var query = _db.AdminUsersViews.AsNoTracking();
 
         try
@@ -65,6 +63,7 @@ public sealed partial class AdminController
             query = query.Skip(offset);
         }
 
+        var deferredCount = query.DeferredLongCount().FutureValue();
         var deferredUsers = query.Take(limit).Future();
 
         return Ok(new Paginated<AdminUsersView>
