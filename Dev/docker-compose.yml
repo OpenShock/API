@@ -1,0 +1,46 @@
+﻿# THIS IS MEANT FOR DEVELOPMENT; NOT PRODUCTION; DATA SAVED BY THIS STACK IS NOT CONSIDERED SECRET AND SAFE
+
+services:
+  postgres:
+    image: postgres:17
+    container_name: openshock-postgres
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -d $${POSTGRES_DB} -U $${POSTGRES_USER}" ]
+      start_period: 20s
+      interval: 30s
+      retries: 5
+      timeout: 5s
+    networks:
+      - openshock
+    environment:
+      POSTGRES_PASSWORD: openshock # This is not safe for production
+      POSTGRES_USER: openshock
+      POSTGRES_DB: openshock
+    volumes:
+      - ./postgres:/var/lib/postgresql/data
+    ports:
+      - 5432:5432
+
+  dragonfly:
+    image: ghcr.io/dragonflydb/dragonfly:latest
+    container_name: openshock-dragonfly
+    command: '--notify_keyspace_events=Ex'
+    volumes:
+      - ./dragonfly:/data
+    networks:
+      - openshock
+    ports:
+      - 6379:6379
+        
+  webui:
+    image: ghcr.io/openshock/webui:latest
+    environment:
+      OPENSHOCK_NAME: "OpenShock Local"
+      OPENSHOCK_URL: "http://localhost:8080"
+      OPENSHOCK_API_URL: "http://localhost:80"
+      OPENSHOCK_SHARE_URL: "http://localhost:8080"
+    ports:
+        - 8080:80
+
+networks:
+  openshock:

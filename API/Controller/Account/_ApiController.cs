@@ -1,10 +1,7 @@
 ﻿using Asp.Versioning;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using OpenShock.Common;
 using OpenShock.API.Services.Account;
-using OpenShock.Common.OpenShockDb;
-using Redis.OM.Contracts;
 
 namespace OpenShock.API.Controller.Account;
 
@@ -12,8 +9,8 @@ namespace OpenShock.API.Controller.Account;
 /// User account management
 /// </summary>
 [ApiController]
-[ApiVersion("1")]
-[ApiVersion("2")]
+[Tags("Account")]
+[ApiVersion("1"), ApiVersion("2")]
 [Route("/{version:apiVersion}/account")]
 public sealed partial class AccountController : OpenShockControllerBase
 {

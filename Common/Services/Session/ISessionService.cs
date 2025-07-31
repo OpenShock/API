@@ -4,19 +4,21 @@ namespace OpenShock.Common.Services.Session;
 
 public interface ISessionService
 {
-    public Task<Guid> CreateSessionAsync(string sessionId, Guid userId, string userAgent, string ipAddress);
+    public Task<CreateSessionResult> CreateSessionAsync(Guid userId, string userAgent, string ipAddress);
 
-    public Task<IReadOnlyList<LoginSession>> ListSessionsByUserId(Guid userId);
+    public Task<IReadOnlyList<LoginSession>> ListSessionsByUserIdAsync(Guid userId);
 
-    public Task<LoginSession?> GetSessionById(string sessionId);
+    public Task<LoginSession?> GetSessionByTokenAsync(string sessionToken);
 
-    public Task<LoginSession?> GetSessionByPulbicId(Guid publicSessionId);
+    public Task<LoginSession?> GetSessionByIdAsync(Guid sessionId);
 
-    public Task UpdateSession(LoginSession loginSession, TimeSpan ttl);
+    public Task UpdateSessionAsync(LoginSession loginSession, TimeSpan ttl);
 
-    public Task<bool> DeleteSessionById(string sessionId);
+    public Task<bool> DeleteSessionByTokenAsync(string sessionToken);
 
-    public Task<bool> DeleteSessionByPublicId(Guid publicSessionId);
+    public Task<bool> DeleteSessionByIdAsync(Guid sessionId);
 
-    public Task DeleteSession(LoginSession loginSession);
+    public Task DeleteSessionAsync(LoginSession loginSession);
 }
+
+public sealed record CreateSessionResult(Guid Id, string Token);

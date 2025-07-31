@@ -1,7 +1,4 @@
-﻿using System.Security.Claims;
-using System.Text.Json;
-using System.Text.Json.Serialization;
-using Asp.Versioning;
+﻿using Asp.Versioning;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -9,36 +6,103 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using OpenShock.Common.Authentication;
 using OpenShock.Common.Authentication.AuthenticationHandlers;
-using OpenShock.Common.Authentication.Requirements;
 using OpenShock.Common.Authentication.Services;
-using OpenShock.Common.Config;
 using OpenShock.Common.ExceptionHandle;
 using OpenShock.Common.JsonSerialization;
-using OpenShock.Common.Models;
 using OpenShock.Common.OpenShockDb;
+using OpenShock.Common.Options;
 using OpenShock.Common.Problems;
 using OpenShock.Common.Services.BatchUpdate;
 using OpenShock.Common.Services.RedisPubSub;
 using OpenShock.Common.Services.Session;
+using OpenShock.Common.Services.Webhook;
 using OpenTelemetry.Metrics;
 using Redis.OM;
 using Redis.OM.Contracts;
 using StackExchange.Redis;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace OpenShock.Common;
 
 public static class OpenShockServiceHelper
 {
+    public static DatabaseOptions GetDatabaseOptions(this ConfigurationManager configuration)
+    {
+        var section = configuration.GetRequiredSection(DatabaseOptions.SectionName);
+        if (!section.Exists()) throw new Exception("TODO");
+
+        return section.Get<DatabaseOptions>() ?? throw new Exception("TODO");
+    }
+
+    public static ConfigurationOptions GetRedisConfigurationOptions(this ConfigurationManager configuration)
+    {
+        var section = configuration.GetRequiredSection(RedisOptions.SectionName);
+        if (!section.Exists()) throw new Exception("TODO");
+
+        var options = section.Get<RedisOptions>() ?? throw new Exception("TODO");
+
+
+        ConfigurationOptions configurationOptions;
+
+        if (string.IsNullOrWhiteSpace(options.Conn))
+        {
+            configurationOptions = new ConfigurationOptions
+            {
+                AbortOnConnectFail = true,
+                Password = options.Password,
+                User = options.User,
+                Ssl = false,
+                EndPoints = new EndPointCollection
+                {
+                    { options.Host, options.Port }
+                }
+            };
+        }
+        else
+        {
+            configurationOptions = ConfigurationOptions.Parse(options.Conn);
+        }
+
+        configurationOptions.AbortOnConnectFail = true;
+
+        return configurationOptions;
+    }
+
+    public static IServiceCollection AddOpenShockMemDB(this IServiceCollection services, ConfigurationOptions options)
+    {
+        // <---- Redis ---->
+        services.AddSingleton<IConnectionMultiplexer>(ConnectionMultiplexer.Connect(options));
+        services.AddSingleton<IRedisConnectionProvider, RedisConnectionProvider>();
+        services.AddSingleton<IRedisPubService, RedisPubService>();
+
+        return services;
+    }
+
+    public static IServiceCollection AddOpenShockDB(this IServiceCollection services, DatabaseOptions options)
+    {
+        // <---- Postgres EF Core ---->
+        services.AddDbContextPool<OpenShockContext>(builder => OpenShockContext.ConfigureOptionsBuilder(builder, options.Conn, options.Debug));
+        services.AddPooledDbContextFactory<OpenShockContext>(builder =>
+        {
+            builder.UseNpgsql(options.Conn);
+            if (options.Debug)
+            {
+                builder.EnableSensitiveDataLogging();
+                builder.EnableDetailedErrors();
+            }
+        });
+
+        return services;
+    }
+
     /// <summary>
     /// Register all OpenShock services for PRODUCTION use
     /// </summary>
     /// <param name="services"></param>
-    /// <param name="config"></param>
     /// <returns></returns>
-    public static ServicesResult AddOpenShockServices(this IServiceCollection services, BaseConfig config)
+    public static IServiceCollection AddOpenShockServices(this IServiceCollection services)
     {
-        services.AddSingleton<BaseConfig>();
-        
         // <---- ASP.NET ---->
         services.AddExceptionHandler<OpenShockExceptionHandler>();
         
@@ -131,66 +195,18 @@ public static class OpenShockServiceHelper
                 .AddHttpClientInstrumentation()
                 .AddPrometheusExporter());
         
-        // <---- Redis ---->
-        
-        ConfigurationOptions configurationOptions;
-
-        if (string.IsNullOrWhiteSpace(config.Redis.Conn))
-        {
-            if (string.IsNullOrWhiteSpace(config.Redis.Host))
-                throw new Exception("You need to specify either OPENSHOCK__REDIS__CONN or OPENSHOCK__REDIS__HOST");
-
-            configurationOptions = new ConfigurationOptions
-            {
-                AbortOnConnectFail = true,
-                Password = config.Redis.Password,
-                User = config.Redis.User,
-                Ssl = false,
-                EndPoints = new EndPointCollection
-                {
-                    { config.Redis.Host, config.Redis.Port }
-                }
-            };
-        }
-        else
-        {
-            configurationOptions = ConfigurationOptions.Parse(config.Redis.Conn);
-        }
-
-        configurationOptions.AbortOnConnectFail = true;
-
-        services.AddSingleton<IConnectionMultiplexer>(ConnectionMultiplexer.Connect(configurationOptions));
-        services.AddSingleton<IRedisConnectionProvider, RedisConnectionProvider>();
-        services.AddSingleton<IRedisPubService, RedisPubService>();
-        
-        // <---- Postgres EF Core ---->
-        
-        services.AddDbContextPool<OpenShockContext>(builder =>
-        {
-            OpenShockContext.ConfigureOptionsBuilder(builder, config.Db.Conn, config.Db.Debug);
-        });
-
-        services.AddPooledDbContextFactory<OpenShockContext>(builder =>
-        {
-            builder.UseNpgsql(config.Db.Conn);
-            if (config.Db.Debug)
-            {
-                builder.EnableSensitiveDataLogging();
-                builder.EnableDetailedErrors();
-            }
-        });
-        
         // <---- OpenShock Services ---->
 
         services.AddScoped<ISessionService, SessionService>();
+        services.AddHttpClient<IWebhookService, WebhookService>(client =>
+        {
+            client.Timeout = TimeSpan.FromSeconds(30);
+        });
         services.AddSingleton<IBatchUpdateService, BatchUpdateService>();
         services.AddHostedService<BatchUpdateService>(provider =>
             (BatchUpdateService)provider.GetRequiredService<IBatchUpdateService>());
-        
-        return new ServicesResult
-        {
-            RedisConfig = configurationOptions
-        };
+
+        return services;
     }
 
     public readonly record struct ServicesResult(ConfigurationOptions RedisConfig);

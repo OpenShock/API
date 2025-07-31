@@ -1,6 +1,7 @@
-﻿using Microsoft.Extensions.Primitives;
+﻿using OpenShock.Common.Geo;
 using System.Diagnostics.CodeAnalysis;
 using System.Net;
+// ReSharper disable InconsistentNaming
 
 namespace OpenShock.Common.Utils;
 
@@ -8,7 +9,7 @@ public static class ConnectionDetailsFetcher
 {
     public static IPAddress GetRemoteIP(this HttpContext context)
     {
-        return context.Connection?.RemoteIpAddress ?? throw new NullReferenceException("Unable to get any IP address, underlying transport type is not TCP???"); // This should never happen, as the underlying transport type will always be TCP
+        return context.Connection.RemoteIpAddress ?? IPAddress.Loopback; // IPAddress is null under integration testing
     }
 
     public static string GetUserAgent(this HttpContext context)
@@ -16,28 +17,29 @@ public static class ConnectionDetailsFetcher
         return context.Request.Headers.UserAgent.ToString();
     }
 
-    public static bool TryGetCFIPCountry(this HttpContext context, [NotNullWhen(true)] out string? cfIpCountry)
+    public static bool TryGetCFIPCountryCode(this HttpContext context, out Alpha2CountryCode code)
     {
         if (!context.Request.Headers.TryGetValue("CF-IPCountry", out var value))
         {
-            cfIpCountry = null;
+            code = Alpha2CountryCode.UnknownCountry;
             return false;
         }
 
-        if (string.IsNullOrEmpty(value))
+        if (value.Count != 1)
         {
-            cfIpCountry = null;
+            code = Alpha2CountryCode.UnknownCountry;
             return false;
         }
 
-        cfIpCountry = value.ToString();
-
-        return true;
+        return Alpha2CountryCode.TryParse(value[0], out code);
     }
 
     public static string? GetCFIPCountry(this HttpContext context)
     {
-        if (!TryGetCFIPCountry(context, out var value)) return null;
+        if (!context.Request.Headers.TryGetValue("CF-IPCountry", out var value))
+        {
+            return null;
+        }
 
         return value;
     }

@@ -1,7 +1,7 @@
 ﻿using Microsoft.EntityFrameworkCore;
-using OpenShock.Common.Authentication.AuthenticationHandlers;
 using OpenShock.Common.Constants;
 using OpenShock.Common.Redis;
+using OpenShock.Common.Utils;
 using Redis.OM;
 using Redis.OM.Contracts;
 using Redis.OM.Searching;
@@ -24,112 +24,77 @@ public sealed class SessionService : ISessionService
         _loginSessions = redisConnectionProvider.RedisCollection<LoginSession>(false);
     }
 
-    public async Task<Guid> CreateSessionAsync(string sessionId, Guid userId, string userAgent, string ipAddress)
+    public async Task<CreateSessionResult> CreateSessionAsync(Guid userId, string userAgent, string ipAddress)
     {
-        Guid publicId = Guid.CreateVersion7();
+        Guid id = Guid.CreateVersion7();
+        string token = CryptoUtils.RandomString(AuthConstants.GeneratedTokenLength);
 
         await _loginSessions.InsertAsync(new LoginSession
         {
-            Id = sessionId,
+            Id = HashingUtils.HashToken(token),
             UserId = userId,
             UserAgent = userAgent,
             Ip = ipAddress,
-            PublicId = publicId,
+            PublicId = id,
             Created = DateTime.UtcNow,
             Expires = DateTime.UtcNow.Add(Duration.LoginSessionLifetime),
         }, Duration.LoginSessionLifetime);
 
-        return publicId;
+        return new CreateSessionResult(id, token);
     }
 
-    public async Task<IReadOnlyList<LoginSession>> ListSessionsByUserId(Guid userId)
+    public async Task<IReadOnlyList<LoginSession>> ListSessionsByUserIdAsync(Guid userId)
     {
-        var sessions = await _loginSessions.Where(x => x.UserId == userId).ToArrayAsync();
+        return await _loginSessions.Where(x => x.UserId == userId).ToArrayAsync();
+    }
 
-        var needsSave = false;
-        foreach (var session in sessions)
+    public async Task<LoginSession?> GetSessionByTokenAsync(string sessionToken)
+    {
+        // Only hash new tokens, old ones are 64 chars long
+        if (sessionToken.Length == AuthConstants.GeneratedTokenLength)
         {
-            needsSave |= UpdateOlderSessions(session);
+            sessionToken = HashingUtils.HashToken(sessionToken);
         }
-
-        if (needsSave)
-        {
-            await _loginSessions.SaveAsync();
-        }
-
-        return sessions;
+        
+        return await _loginSessions.FindByIdAsync(sessionToken);
     }
 
-    public async Task<LoginSession?> GetSessionById(string sessionId)
+    public async Task<LoginSession?> GetSessionByIdAsync(Guid sessionId)
     {
-        var session = await _loginSessions.FindByIdAsync(sessionId);
-
-        if (UpdateOlderSessions(session)) await _loginSessions.SaveAsync();
-
-        return session;
+        return await _loginSessions.FirstOrDefaultAsync(x => x.PublicId == sessionId);
     }
 
-    public async Task<LoginSession?> GetSessionByPulbicId(Guid publicSessionId)
-    {
-        var session = await _loginSessions.Where(x => x.PublicId == publicSessionId).FirstOrDefaultAsync();
-
-        if (UpdateOlderSessions(session)) await _loginSessions.SaveAsync();
-
-        return session;
-    }
-
-    public async Task UpdateSession(LoginSession session, TimeSpan ttl)
+    public async Task UpdateSessionAsync(LoginSession session, TimeSpan ttl)
     {
         await _loginSessions.UpdateAsync(session, ttl);
     }
 
-    public async Task<bool> DeleteSessionById(string sessionId)
+    public async Task<bool> DeleteSessionByTokenAsync(string sessionToken)
     {
-        var session = await _loginSessions.FindByIdAsync(sessionId);
-        if (session == null) return false;
+        // Only hash new tokens, old ones are 64 chars long
+        if (sessionToken.Length == AuthConstants.GeneratedTokenLength)
+        {
+            sessionToken = HashingUtils.HashToken(sessionToken);
+        }
+        
+        var session = await _loginSessions.FindByIdAsync(sessionToken);
+        if (session is null) return false;
 
         await _loginSessions.DeleteAsync(session);
         return true;
     }
 
-    public async Task<bool> DeleteSessionByPublicId(Guid publicSessionId)
+    public async Task<bool> DeleteSessionByIdAsync(Guid sessionId)
     {
-        var session = await _loginSessions.Where(x => x.PublicId == publicSessionId).FirstOrDefaultAsync();
-        if (session == null) return false;
+        var session = await _loginSessions.FirstOrDefaultAsync(x => x.PublicId == sessionId);
+        if (session is null) return false;
 
         await _loginSessions.DeleteAsync(session);
         return true;
     }
 
-    public async Task DeleteSession(LoginSession loginSession)
+    public async Task DeleteSessionAsync(LoginSession loginSession)
     {
         await _loginSessions.DeleteAsync(loginSession);
-    }
-
-    private static bool UpdateOlderSessions(LoginSession? session)
-    {
-        if (session == null) return false;
-
-        var save = false;
-
-        if (session.PublicId == null)
-        {
-            session.PublicId = Guid.CreateVersion7();
-            save = true;
-        }
-
-        if (session.Created == null)
-        {
-            session.Created = DateTime.UtcNow;
-            save = true;
-        }
-
-        if (session.Expires == null)
-        {
-            session.Expires = DateTime.UtcNow;
-            save = true;
-        }
-
-        return save;
     }
 }

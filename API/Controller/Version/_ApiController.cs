@@ -1,12 +1,10 @@
-﻿using System.Net.Mime;
-using System.Reflection;
-using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Mvc;
-using OpenShock.API.Utils;
+﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Options;
 using OpenShock.Common;
 using OpenShock.Common.Models;
-using OpenShock.Common.Problems;
+using OpenShock.Common.Options;
 using OpenShock.Common.Utils;
+using System.Reflection;
 
 namespace OpenShock.API.Controller.Version;
 
@@ -15,6 +13,7 @@ namespace OpenShock.API.Controller.Version;
 /// Version stuff
 /// </summary>
 [ApiController]
+[Tags("Meta")]
 [Route("/{version:apiVersion}")]
 public sealed partial class VersionController : OpenShockControllerBase
 {
@@ -26,29 +25,35 @@ public sealed partial class VersionController : OpenShockControllerBase
     /// </summary>
     /// <response code="200">The version was successfully retrieved.</response>
     [HttpGet]
-    [ProducesResponseType<BaseResponse<RootResponse>>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
-    public IActionResult GetBackendVersion([FromServices] ApiConfig apiConfig)
+    public LegacyDataResponse<ApiVersionResponse> GetBackendVersion(
+        [FromServices] IOptions<FrontendOptions> frontendOptions,
+        [FromServices] IOptions<CloudflareTurnstileOptions> turnstileOptions
+        )
     {
-        return RespondSuccessLegacy(
-            data: new RootResponse {
+        var frontendConfig = frontendOptions.Value;
+        var turnstileConfig = turnstileOptions.Value;
+
+        return new(
+            new ApiVersionResponse
+            {
                 Version = OpenShockBackendVersion,
                 Commit = GitHashAttribute.FullHash,
                 CurrentTime = DateTimeOffset.UtcNow,
-                FrontendUrl = apiConfig.Frontend.BaseUrl,
-                ShortLinkUrl = apiConfig.Frontend.ShortUrl,
-                TurnstileSiteKey = apiConfig.Turnstile.SiteKey
+                FrontendUrl = frontendConfig.BaseUrl,
+                ShortLinkUrl = frontendConfig.ShortUrl,
+                TurnstileSiteKey = turnstileConfig.SiteKey
             },
-            message: "OpenShock"
+            "OpenShock"
         );
     }
 
-    public sealed class RootResponse
+    public sealed class ApiVersionResponse
     {
-        public required string Version { get; set; }
-        public required string Commit { get; set; }
-        public required DateTimeOffset CurrentTime { get; set; }
-        public required Uri FrontendUrl { get; set; }
-        public required Uri ShortLinkUrl { get; set; }
-        public required string? TurnstileSiteKey { get; set; }
+        public required string Version { get; init; }
+        public required string Commit { get; init; }
+        public required DateTimeOffset CurrentTime { get; init; }
+        public required Uri FrontendUrl { get; init; }
+        public required Uri ShortLinkUrl { get; init; }
+        public required string? TurnstileSiteKey { get; init; }
     }
 }

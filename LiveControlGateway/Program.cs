@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Options;
 using OpenShock.Common;
 using OpenShock.Common.Extensions;
 using OpenShock.Common.JsonSerialization;
@@ -6,23 +7,25 @@ using OpenShock.Common.Services.Ota;
 using OpenShock.Common.Swagger;
 using OpenShock.LiveControlGateway;
 using OpenShock.LiveControlGateway.LifetimeManager;
+using OpenShock.LiveControlGateway.Options;
 using OpenShock.LiveControlGateway.PubSub;
 
-var builder = OpenShockApplication.CreateDefaultBuilder<Program>(args, options =>
-{
-#if DEBUG
-    options.ListenAnyIP(580);
-    options.ListenAnyIP(5443, options => options.UseHttps("devcert.pfx"));
-#else
-    options.ListenAnyIP(80);
-#endif
-});
+var builder = OpenShockApplication.CreateDefaultBuilder<Program>(args);
 
-var config = builder.GetAndRegisterOpenShockConfig<LCGConfig>();
-var commonService = builder.Services.AddOpenShockServices(config);
+builder.RegisterCommonOpenShockOptions();
+
+builder.Services.Configure<LcgOptions>(builder.Configuration.GetRequiredSection(LcgOptions.SectionName));
+builder.Services.AddSingleton<IValidateOptions<LcgOptions>, LcgOptionsValidator>();
+
+var databaseConfig = builder.Configuration.GetDatabaseOptions();
+var redisConfig = builder.Configuration.GetRedisConfigurationOptions();
+
+builder.Services.AddOpenShockMemDB(redisConfig);
+builder.Services.AddOpenShockDB(databaseConfig);
+builder.Services.AddOpenShockServices();
 
 builder.Services.AddSignalR()
-    .AddOpenShockStackExchangeRedis(options => { options.Configuration = commonService.RedisConfig; })
+    .AddOpenShockStackExchangeRedis(options => { options.Configuration = redisConfig; })
     .AddJsonProtocol(options =>
     {
         options.PayloadSerializerOptions.PropertyNameCaseInsensitive = true;
@@ -32,7 +35,7 @@ builder.Services.AddSignalR()
 builder.Services.AddScoped<IDeviceService, DeviceService>();
 builder.Services.AddScoped<IOtaService, OtaService>();
 
-builder.Services.AddSwaggerExt<Program>();
+builder.AddSwaggerExt<Program>();
 
 //services.AddHealthChecks().AddCheck<DatabaseHealthCheck>("database");
 
@@ -43,10 +46,6 @@ builder.Services.AddSingleton<HubLifetimeManager>();
 
 var app = builder.Build();
 
-app.UseCommonOpenShockMiddleware();
+await app.UseCommonOpenShockMiddleware();
 
-app.UseSwaggerExt();
-
-app.MapControllers();
-
-app.Run();
+await app.RunAsync();

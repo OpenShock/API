@@ -3,3 +3,6 @@
 obj/
 bin/
 *.user
+**/launchSettings.json
+Dev/dragonfly
+Dev/postgres

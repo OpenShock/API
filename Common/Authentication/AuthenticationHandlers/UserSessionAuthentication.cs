@@ -48,26 +48,26 @@ public sealed class UserSessionAuthentication : AuthenticationHandler<Authentica
 
     protected override async Task<AuthenticateResult> HandleAuthenticateAsync()
     {
-        if (!Context.TryGetUserSession(out var sessionKey))
+        if (!Context.TryGetUserSessionToken(out var sessionToken))
         {
             return Fail(AuthResultError.CookieMissingOrInvalid);
         }
 
-        var session = await _sessionService.GetSessionById(sessionKey);
-        if (session == null) return Fail(AuthResultError.SessionInvalid);
+        var session = await _sessionService.GetSessionByTokenAsync(sessionToken);
+        if (session is null) return Fail(AuthResultError.SessionInvalid);
 
         if (session.Expires!.Value < DateTime.UtcNow.Subtract(Duration.LoginSessionExpansionAfter))
         {
 #pragma warning disable CS4014
-            LucTask.Run(async () =>
+            OsTask.Run(async () =>
 #pragma warning restore CS4014
             {
                 session.Expires = DateTime.UtcNow.Add(Duration.LoginSessionLifetime);
-                await _sessionService.UpdateSession(session, Duration.LoginSessionLifetime);
+                await _sessionService.UpdateSessionAsync(session, Duration.LoginSessionLifetime);
             });
         }
 
-        _batchUpdateService.UpdateSessionLastUsed(sessionKey, DateTime.UtcNow);
+        _batchUpdateService.UpdateSessionLastUsed(sessionToken, DateTimeOffset.UtcNow);
 
         var retrievedUser = await _db.Users.FirstAsync(user => user.Id == session.UserId);
 

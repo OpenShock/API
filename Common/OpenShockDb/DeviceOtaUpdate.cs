@@ -1,22 +1,21 @@
-﻿using System;
-using System.Collections.Generic;
-using OpenShock.Common.Models;
+﻿using OpenShock.Common.Models;
 
 namespace OpenShock.Common.OpenShockDb;
 
-public partial class DeviceOtaUpdate
+public sealed class DeviceOtaUpdate
 {
-    public Guid Device { get; set; }
+    public required Guid DeviceId { get; set; }
 
-    public DateTime CreatedOn { get; set; }
+    public required int UpdateId { get; set; }
 
-    public string Version { get; set; } = null!;
+    public required OtaUpdateStatus Status { get; set; }
 
-    public int UpdateId { get; set; }
-    
-    public OtaUpdateStatus Status { get; set; }
+    public required string Version { get; set; }
 
     public string? Message { get; set; }
 
-    public virtual Device DeviceNavigation { get; set; } = null!;
+    public DateTime CreatedAt { get; set; }
+
+    // Navigations
+    public Device Device { get; set; } = null!;
 }

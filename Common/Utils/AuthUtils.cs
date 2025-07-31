@@ -38,7 +38,7 @@ public static class AuthUtils
         context.Response.Cookies.Append(AuthConstants.UserSessionCookieName, string.Empty, GetCookieOptions(domain, TimeSpan.FromDays(-1)));
     }
 
-    public static bool TryGetUserSession(this HttpContext context, [NotNullWhen(true)] out string? sessionToken)
+    public static bool TryGetUserSessionToken(this HttpContext context, [NotNullWhen(true)] out string? sessionToken)
     {
         if (context.Request.Cookies.TryGetValue(AuthConstants.UserSessionCookieName, out sessionToken) && !string.IsNullOrEmpty(sessionToken))
         {
@@ -93,7 +93,7 @@ public static class AuthUtils
     public static string GetAuthenticationMethod(this HttpContext context)
     {
         var authMethodClaim = context.User.Claims.FirstOrDefault(x => x.Type == ClaimTypes.AuthenticationMethod);
-        if (authMethodClaim == null)
+        if (authMethodClaim is null)
         {
             throw new Exception("No authentication method claim found, this should not happen and is a bug!");
         }

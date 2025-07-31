@@ -48,19 +48,18 @@ public sealed class HubAuthentication : AuthenticationHandler<AuthenticationSche
         }
 
         var device = await _db.Devices.FirstOrDefaultAsync(x => x.Token == sessionKey);
-        if (device == null)
+        if (device is null)
         {
             return Fail(AuthResultError.TokenInvalid);
         }
 
         _authService.CurrentClient = device;
 
-        var claims = new[]
-        {
+        Claim[] claims = [
             new(ClaimTypes.AuthenticationMethod, OpenShockAuthSchemas.HubToken),
-            new Claim(ClaimTypes.NameIdentifier, device.Owner.ToString()),
+            new Claim(ClaimTypes.NameIdentifier, device.OwnerId.ToString()),
             new Claim(OpenShockAuthClaims.HubId, _authService.CurrentClient.Id.ToString()),
-        };
+        ];
         var ident = new ClaimsIdentity(claims, nameof(HubAuthentication));
         var ticket = new AuthenticationTicket(new ClaimsPrincipal(ident), Scheme.Name);
 

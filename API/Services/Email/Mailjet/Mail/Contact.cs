@@ -3,10 +3,11 @@ using System.Diagnostics.CodeAnalysis;
 
 namespace OpenShock.API.Services.Email.Mailjet.Mail;
 
-public sealed class Contact
+public class Contact
 {
     [Required(AllowEmptyStrings = false)]
     public required string Email { get; set; }
+
     [Required(AllowEmptyStrings = false)]
     public required string Name { get; set; }
 

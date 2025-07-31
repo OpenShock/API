@@ -1,6 +1,7 @@
 ﻿using Asp.Versioning;
 using Microsoft.AspNetCore.Mvc;
-using OpenShock.Common.Problems;
+using Microsoft.Extensions.Options;
+using OpenShock.Common.Options;
 using OpenShock.Common.Services.Session;
 using OpenShock.Common.Utils;
 
@@ -13,23 +14,25 @@ public sealed partial class AccountController
     [MapToApiVersion("1")]
     public async Task<IActionResult> Logout(
         [FromServices] ISessionService sessionService,
-        [FromServices] ApiConfig apiConfig)
+        [FromServices] IOptions<FrontendOptions> options)
     {
+        var config = options.Value;
+
         // Remove session if valid
-        if (HttpContext.TryGetUserSession(out var sessionCookie))
+        if (HttpContext.TryGetUserSessionToken(out var sessionToken))
         {
-            await sessionService.DeleteSessionById(sessionCookie);
+            await sessionService.DeleteSessionByTokenAsync(sessionToken);
         }
-        
+
         // Make sure cookie is removed, no matter if authenticated or not
-        var cookieDomainToUse = apiConfig.Frontend.CookieDomain.Split(',').FirstOrDefault(domain => Request.Headers.Host.ToString().EndsWith(domain, StringComparison.OrdinalIgnoreCase));
-        if (cookieDomainToUse != null)
+        var cookieDomainToUse = config.CookieDomain.Split(',').FirstOrDefault(domain => Request.Headers.Host.ToString().EndsWith(domain, StringComparison.OrdinalIgnoreCase));
+        if (cookieDomainToUse is not null)
         {
             HttpContext.RemoveSessionKeyCookie("." + cookieDomainToUse);
         }
         else // Fallback to all domains
         {
-            foreach (var domain in apiConfig.Frontend.CookieDomain.Split(','))
+            foreach (var domain in config.CookieDomain.Split(','))
             {
                 HttpContext.RemoveSessionKeyCookie("." + domain);
             }

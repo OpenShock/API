@@ -1,8 +1,10 @@
 ﻿using System.Text.Encodings.Web;
 using Fluid;
 using MailKit.Net.Smtp;
+using Microsoft.Extensions.Options;
 using MimeKit;
 using MimeKit.Text;
+using OpenShock.API.Options;
 using OpenShock.API.Services.Email.Mailjet.Mail;
 using OpenShock.Common.Utils;
 
@@ -10,34 +12,36 @@ namespace OpenShock.API.Services.Email.Smtp;
 
 public sealed class SmtpEmailService : IEmailService
 {
-    private readonly ILogger<SmtpEmailService> _logger;
-    private readonly ApiConfig.MailConfig.SmtpConfig _smtpConfig;
     private readonly SmtpServiceTemplates _templates;
     private readonly MailboxAddress _sender;
-    private static readonly TemplateOptions TemplateOptions;
+    private readonly SmtpOptions _options;
+    private readonly ILogger<SmtpEmailService> _logger;
 
-    static SmtpEmailService()
-    {
-        TemplateOptions = new TemplateOptions();
-        TemplateOptions.MemberAccessStrategy.Register<Contact>();
-    }
+    private readonly TemplateOptions _templateOptions;
+
 
     /// <summary>
     /// DI Constructor
     /// </summary>
-    /// <param name="logger"></param>
-    /// <param name="smtpConfig"></param>
-    /// <param name="sender"></param>
     /// <param name="templates"></param>
-    public SmtpEmailService(ILogger<SmtpEmailService> logger,
-        ApiConfig.MailConfig.SmtpConfig smtpConfig,
-        Contact sender, SmtpServiceTemplates templates)
+    /// <param name="sender"></param>
+    /// <param name="options"></param>
+    /// <param name="logger"></param>
+    public SmtpEmailService(
+            SmtpServiceTemplates templates,
+            IOptions<MailOptions.MailSenderContact> sender,
+            IOptions<SmtpOptions> options,
+            ILogger<SmtpEmailService> logger
+        )
     {
+        _templates = templates;
+        _sender = sender.Value.ToMailAddress();
+        _options = options.Value;
         _logger = logger;
 
-        _smtpConfig = smtpConfig;
-        _templates = templates;
-        _sender = sender.ToMailAddress();
+        // This class is will be registered as a singleton, static members are not needed
+        _templateOptions = new TemplateOptions();
+        _templateOptions.MemberAccessStrategy.Register<Contact>();
     }
 
     /// <inheritdoc />
@@ -68,14 +72,14 @@ public sealed class SmtpEmailService : IEmailService
 
     private void SendMailAndForget<T>(Contact to, SmtpTemplate template, T data,
         CancellationToken cancellationToken = default) =>
-        LucTask.Run(() => SendMail(to, template, data, cancellationToken));
+        OsTask.Run(() => SendMail(to, template, data, cancellationToken));
 
 
     private async Task SendMail<T>(Contact to, SmtpTemplate template, T data,
         CancellationToken cancellationToken = default)
     {
         _logger.LogDebug("Sending email");
-        var context = new TemplateContext(data, TemplateOptions);
+        var context = new TemplateContext(data, _templateOptions);
         var subject = await template.Subject.RenderAsync(context);
 
         await using var buffer = new MemoryStream();
@@ -96,15 +100,15 @@ public sealed class SmtpEmailService : IEmailService
 
         _logger.LogTrace("Creating smtp client and connecting...");
         using var smtpClient = new SmtpClient();
-        if (!_smtpConfig.VerifyCertificate)
+        if (!_options.VerifyCertificate)
         {
             smtpClient.ServerCertificateValidationCallback = (sender, certificate, chain, errors) => true;
             smtpClient.CheckCertificateRevocation = false;
         }
 
-        await smtpClient.ConnectAsync(_smtpConfig.Host, _smtpConfig.Port, _smtpConfig.EnableSsl, cancellationToken);
+        await smtpClient.ConnectAsync(_options.Host, _options.Port, _options.EnableSsl, cancellationToken);
         _logger.LogTrace("Authenticating...");
-        await smtpClient.AuthenticateAsync(_smtpConfig.Username, _smtpConfig.Password, cancellationToken);
+        await smtpClient.AuthenticateAsync(_options.Username, _options.Password, cancellationToken);
 
         _logger.LogTrace("Smtp client connected, sending email...");
 

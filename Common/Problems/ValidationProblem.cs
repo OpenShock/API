@@ -6,7 +6,7 @@ namespace OpenShock.Common.Problems;
 public sealed class ValidationProblem : OpenShockProblem
 {
     public ValidationProblem(ModelStateDictionary state) : base("Validation.Error",
-        "One or more validation errors occurred", HttpStatusCode.BadRequest, null)
+        "One or more validation errors occurred", HttpStatusCode.BadRequest)
     {
         Errors = CreateErrorDictionary(state);
     }
@@ -17,7 +17,7 @@ public sealed class ValidationProblem : OpenShockProblem
     {
         ArgumentNullException.ThrowIfNull(modelState);
 
-        var errorDictionary = new Dictionary<string, string[]>(StringComparer.Ordinal);
+        var errorDictionary = new Dictionary<string, string[]>(modelState.Count, StringComparer.Ordinal);
 
         foreach (var keyModelStatePair in modelState)
         {

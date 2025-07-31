@@ -1,24 +1,24 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
-    <Import Project="../Shared.props" />
+<Project Sdk="Microsoft.NET.Sdk">
+  <Import Project="../Framework.props" />
+  <Import Project="../Shared.props" />
 
-    <ItemGroup>
-        <PackageReference Include="Testcontainers" Version="4.3.0" />
-        <PackageReference Include="Testcontainers.PostgreSql" Version="4.3.0" />
-        <PackageReference Include="Testcontainers.Redis" Version="4.3.0" />
-        <PackageReference Include="Bogus" Version="35.6.2" />
-        <PackageReference Include="TUnit" Version="0.17.3" />
-    </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Testcontainers.PostgreSql" Version="4.6.0" />
+    <PackageReference Include="Testcontainers.Redis" Version="4.6.0" />
+    <PackageReference Include="Bogus" Version="35.6.3" />
+    <PackageReference Include="TUnit" Version="0.25.21" />
+  </ItemGroup>
 
-    <ItemGroup>
-        <ProjectReference Include="..\Common\Common.csproj" />
-    </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Common\Common.csproj" />
+  </ItemGroup>
 
-    <ItemGroup>
-        <None Update="Validation\DataSets\BlackList.txt">
-            <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-        </None>
-        <None Update="Validation\DataSets\WhiteList.txt">
-            <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-        </None>
-    </ItemGroup>
+  <ItemGroup>
+    <None Update="Validation\DataSets\BlackList.txt">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Validation\DataSets\WhiteList.txt">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
 </Project>

@@ -1,25 +1,26 @@
-﻿using OpenShock.Common.Models;
+﻿namespace OpenShock.API.Models.Response;
 
-namespace OpenShock.API.Models.Response;
-
-public sealed class OwnerShockerResponse : GenericIni
+public sealed class OwnerShockerResponse
 {
-    public required SharedDevice[] Devices { get; set; }
+    public required Guid Id { get; init; }
+    public required string Name { get; init; }
+    public required Uri Image { get; init; }
+    public required SharedDevice[] Devices { get; init; }
 
     public sealed class SharedDevice
     {
-        public required Guid Id { get; set; }
-        public required string Name { get; set; }
+        public required Guid Id { get; init; }
+        public required string Name { get; init; }
         // ReSharper disable once CollectionNeverQueried.Global
-        public required SharedShocker[] Shockers { get; set; }
+        public required SharedShocker[] Shockers { get; init; }
 
         public sealed class SharedShocker
         {
-            public required Guid Id { get; set; }
-            public required string Name { get; set; }
-            public required bool IsPaused { get; set; }
-            public required ShockerPermissions Permissions { get; set; }
-            public required ShockerLimits Limits { get; set; }
+            public required Guid Id { get; init; }
+            public required string Name { get; init; }
+            public required bool IsPaused { get; init; }
+            public required ShockerPermissions Permissions { get; init; }
+            public required ShockerLimits Limits { get; init; }
         }
     }
 }

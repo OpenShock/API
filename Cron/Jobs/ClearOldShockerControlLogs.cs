@@ -32,18 +32,15 @@ public sealed class ClearOldShockerControlLogs
              WITH ranked_logs AS (
                SELECT
                  l.id,
-                 ROW_NUMBER() OVER (PARTITION BY u.id ORDER BY l.created_on DESC) AS rn
+                 ROW_NUMBER() OVER (PARTITION BY d.owner_id ORDER BY l.created_at DESC) AS rn
                FROM shocker_control_logs l
                JOIN shockers s ON s.id = l.shocker_id
-               JOIN devices d ON d.id = s.device
-               JOIN users u ON d.owner = u.id
+               JOIN devices d ON d.id = s.device_id
              )
-             DELETE FROM shocker_control_logs
-             WHERE id IN (
-               SELECT id
-               FROM ranked_logs
-               WHERE rn > {HardLimits.MaxShockerControlLogsPerUser}
-             );
+             DELETE FROM shocker_control_logs l
+             USING ranked_logs rl
+             WHERE l.id = rl.id
+               AND rl.rn > {HardLimits.MaxShockerControlLogsPerUser}
              """);
 
         _logger.LogInformation("Deleted {deletedUserLimits} shocker control logs exceeding the per-user limit",

@@ -1,12 +1,15 @@
-﻿using System.Net;
-using Microsoft.AspNetCore.HttpOverrides;
-using OpenShock.Common.Config;
+﻿using Microsoft.AspNetCore.HttpOverrides;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
+using OpenShock.Common.OpenShockDb;
+using OpenShock.Common.Options;
 using OpenShock.Common.Redis;
 using OpenShock.Common.Utils;
 using Redis.OM;
 using Redis.OM.Contracts;
+using Scalar.AspNetCore;
 using Serilog;
-using IPNetwork = Microsoft.AspNetCore.HttpOverrides.IPNetwork;
 
 namespace OpenShock.Common;
 
@@ -20,11 +23,12 @@ public static class OpenShockMiddlewareHelper
         ForwardedForHeaderName = "CF-Connecting-IP"
     };
     
-    public static IApplicationBuilder UseCommonOpenShockMiddleware(this IApplicationBuilder app)
+    public static async Task<IApplicationBuilder> UseCommonOpenShockMiddleware(this WebApplication app)
     {
-        var config = app.ApplicationServices.GetRequiredService<BaseConfig>();
-        
-        foreach (var proxy in TrustedProxiesFetcher.GetTrustedNetworks())
+        var metricsOptions = app.Services.GetRequiredService<IOptions<MetricsOptions>>().Value;
+        var metricsAllowedIpNetworks = metricsOptions.AllowedNetworks.Select(x => IPNetwork.Parse(x)).ToArray();
+
+        foreach (var proxy in await TrustedProxiesFetcher.GetTrustedNetworksAsync())
         {
             ForwardedSettings.KnownNetworks.Add(proxy);
         }
@@ -32,15 +36,19 @@ public static class OpenShockMiddlewareHelper
         app.UseForwardedHeaders(ForwardedSettings);
         
         app.UseSerilogRequestLogging();
-        
-        // Enable request body buffering. Needed to allow rewinding the body reader,
-        // if the body has already been read before.
-        // Runs before the request action is executed and body is read.
-        app.Use((context, next) =>
+
+        // We will only log request body in development
+        if (app.Environment.IsDevelopment())
         {
-            context.Request.EnableBuffering();
-            return next.Invoke();
-        });
+            // Enable request body buffering. Needed to allow rewinding the body reader,
+            // if the body has already been read before.
+            // Runs before the request action is executed and body is read.
+            app.Use((context, next) =>
+            {
+                context.Request.EnableBuffering();
+                return next.Invoke();
+            });
+        }
         app.UseExceptionHandler();
 
         // global cors policy
@@ -55,23 +63,59 @@ public static class OpenShockMiddlewareHelper
         app.UseAuthorization();
         
         // Redis
-        var redisConnection = app.ApplicationServices.GetRequiredService<IRedisConnectionProvider>().Connection;
+        var redisConnection = app.Services.GetRequiredService<IRedisConnectionProvider>().Connection;
 
         redisConnection.CreateIndex(typeof(LoginSession));
         redisConnection.CreateIndex(typeof(DeviceOnline));
         redisConnection.CreateIndex(typeof(DevicePair));
         redisConnection.CreateIndex(typeof(LcgNode));
 
-        var metricsAllowedIpNetworks = config.Metrics.AllowedNetworks.Select(x => IPNetwork.Parse(x));
-        
         app.UseOpenTelemetryPrometheusScrapingEndpoint(context =>
         {
             if(context.Request.Path != "/metrics") return false;
             
             var remoteIp = context.Connection.RemoteIpAddress;
-            return remoteIp != null && metricsAllowedIpNetworks.Any(x => x.Contains(remoteIp));
+            return remoteIp is not null && metricsAllowedIpNetworks.Any(x => x.Contains(remoteIp));
         });
         
+        app.UseSwagger();
+        
+        Action<ScalarOptions> scalarOptions = options =>
+            options
+                .WithOpenApiRoutePattern("/swagger/{documentName}/swagger.json")
+                .AddDocument("1", "Version 1")
+                .AddDocument("2", "Version 2");
+        
+        app.MapScalarApiReference("/scalar/viewer", scalarOptions);
+        
+        app.MapControllers();
+        
+        return app;
+    }
+
+    public static async Task<IApplicationBuilder> ApplyPendingOpenShockMigrations(this IApplicationBuilder app, DatabaseOptions options)
+    {
+        using var scope = app.ApplicationServices.CreateScope();
+        var loggerFactory = scope.ServiceProvider.GetRequiredService<ILoggerFactory>();
+        var logger = loggerFactory.CreateLogger("MigrationHelper");
+
+        logger.LogInformation("Running database migrations...");
+
+        await using var migrationContext = new MigrationOpenShockContext(options.Conn, options.Debug, loggerFactory);
+
+        var pendingMigrations = migrationContext.Database.GetPendingMigrations().ToArray();
+
+        if (pendingMigrations.Length > 0)
+        {
+            logger.LogInformation("Found pending migrations, applying [{@Migrations}]", pendingMigrations);
+            await migrationContext.Database.MigrateAsync();
+            logger.LogInformation("Applied database migrations... proceeding with startup");
+        }
+        else
+        {
+            logger.LogInformation("No pending migrations found, proceeding with startup");
+        }
+
         return app;
     }
 }

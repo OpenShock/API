@@ -23,7 +23,7 @@ public sealed class SmtpTemplate
     {
         using var streamReader = new StreamReader(fileStream);
         var subject = await streamReader.ReadLineAsync();
-        if (subject == null) throw new InvalidDataException("Subject is null");
+        if (subject is null) throw new InvalidDataException("Subject is null");
 
         if (!FluidParser.TryParse(subject, out var subjectTemplate, out var errorSubject)) return errorSubject;
         var body = await streamReader.ReadToEndAsync();

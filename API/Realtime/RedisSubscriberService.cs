@@ -3,7 +3,6 @@ using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using OpenShock.Common.Hubs;
 using OpenShock.Common.Models.WebSocket;
-using OpenShock.Common.Models.WebSocket.Device;
 using OpenShock.Common.OpenShockDb;
 using OpenShock.Common.Redis;
 using OpenShock.Common.Redis.PubSub;
@@ -22,8 +21,8 @@ public sealed class RedisSubscriberService : IHostedService, IAsyncDisposable
 {
     private readonly IHubContext<UserHub, IUserHub> _hubContext;
     private readonly IDbContextFactory<OpenShockContext> _dbContextFactory;
+    private readonly IRedisConnectionProvider _redisConnectionProvider;
     private readonly ISubscriber _subscriber;
-    private readonly IRedisCollection<DeviceOnline> _devicesOnline;
 
     /// <summary>
     /// DI Constructor
@@ -40,22 +39,22 @@ public sealed class RedisSubscriberService : IHostedService, IAsyncDisposable
     {
         _hubContext = hubContext;
         _dbContextFactory = dbContextFactory;
+        _redisConnectionProvider = redisConnectionProvider;
         _subscriber = connectionMultiplexer.GetSubscriber();
-        _devicesOnline = redisConnectionProvider.RedisCollection<DeviceOnline>(false);
     }
     
     /// <inheritdoc />
     public async Task StartAsync(CancellationToken cancellationToken)
     {
-        await _subscriber.SubscribeAsync(RedisChannels.KeyEventExpired, (_, message) => { LucTask.Run(() => HandleKeyExpired(message)); });
-        await _subscriber.SubscribeAsync(RedisChannels.DeviceOnlineStatus, (_, message) => { LucTask.Run(() => HandleDeviceOnlineStatus(message)); });
+        await _subscriber.SubscribeAsync(RedisChannels.KeyEventExpired, (_, message) => { OsTask.Run(() => HandleKeyExpired(message)); });
+        await _subscriber.SubscribeAsync(RedisChannels.DeviceOnlineStatus, (_, message) => { OsTask.Run(() => HandleDeviceOnlineStatus(message)); });
     }
 
     private async Task HandleDeviceOnlineStatus(RedisValue message)
     {
         if (!message.HasValue) return;
         var data = JsonSerializer.Deserialize<DeviceUpdatedMessage>(message.ToString());
-        if (data == null) return;
+        if (data is null) return;
 
         await LogicDeviceOnlineStatus(data.Id);
     }
@@ -81,30 +80,34 @@ public sealed class RedisSubscriberService : IHostedService, IAsyncDisposable
         
         var data = await db.Devices.Where(x => x.Id == deviceId).Select(x => new
         {
-            x.Owner,
-            SharedWith = x.Shockers.SelectMany(y => y.ShockerShares)
+            x.OwnerId,
+            SharedWith = x.Shockers.SelectMany(y => y.UserShares)
         }).FirstOrDefaultAsync();
-        if (data == null) return;
+        if (data is null) return;
 
 
-        var sharedWith = await db.Users.Where(x => x.ShockerShares.Any(y => y.Shocker.Device == deviceId))
-            .Select(x => x.Id).ToArrayAsync();
+        var sharedWith = await db.Shockers
+            .Where(s => s.DeviceId == deviceId)
+            .SelectMany(s => s.UserShares)
+            .Select(u => u.SharedWithUserId)
+            .ToArrayAsync();
         var userIds = new List<string>
         {
-            "local#" + data.Owner
+            "local#" + data.OwnerId
         };
         userIds.AddRange(sharedWith.Select(x => "local#" + x));
-        var deviceOnline = await _devicesOnline.FindByIdAsync(deviceId.ToString());
-        var arr = new[]
-        {
+        
+        var devicesOnlineCollection = _redisConnectionProvider.RedisCollection<DeviceOnline>(false);
+        var deviceOnline = await devicesOnlineCollection.FindByIdAsync(deviceId.ToString());
+        
+        await _hubContext.Clients.Users(userIds).DeviceStatus([
             new DeviceOnlineState
             {
                 Device = deviceId,
-                Online = deviceOnline != null,
+                Online = deviceOnline is not null,
                 FirmwareVersion = deviceOnline?.FirmwareVersion ?? null
             }
-        };
-        await _hubContext.Clients.Users(userIds).DeviceStatus(arr);
+        ]);
     }
 
     /// <inheritdoc />
