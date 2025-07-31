@@ -251,9 +251,9 @@ public sealed class AccountService : IAccountService
     public async Task<OneOf<Success, NotFound, SecretInvalid>> PasswordResetExists(Guid passwordResetId, string secret,
         CancellationToken cancellationToken = default)
     {
-        var validUntil = DateTime.UtcNow.Add(Duration.PasswordResetRequestLifetime);
+        var validSince = DateTime.UtcNow - Duration.PasswordResetRequestLifetime;
         var reset = await _db.UserPasswordResets.FirstOrDefaultAsync(x =>
-                x.Id == passwordResetId && x.UsedAt == null && x.CreatedAt < validUntil,
+                x.Id == passwordResetId && x.UsedAt == null && x.CreatedAt >= validSince,
             cancellationToken: cancellationToken);
 
         if (reset is null) return new NotFound();
@@ -267,12 +267,12 @@ public sealed class AccountService : IAccountService
     /// <inheritdoc />
     public async Task<OneOf<Success, TooManyPasswordResets, NotFound>> CreatePasswordReset(string email)
     {
-        var validUntil = DateTime.UtcNow.Add(Duration.PasswordResetRequestLifetime);
+        var validSince = DateTime.UtcNow - Duration.PasswordResetRequestLifetime;
         var lowerCaseEmail = email.ToLowerInvariant();
         var user = await _db.Users.Where(x => x.Email == lowerCaseEmail).Select(x => new
         {
             User = x,
-            PasswordResetCount = x.PasswordResets.Count(y => y.UsedAt == null && y.CreatedAt < validUntil)
+            PasswordResetCount = x.PasswordResets.Count(y => y.UsedAt == null && y.CreatedAt >= validSince)
         }).FirstOrDefaultAsync();
         if (user is null) return new NotFound();
         if (user.PasswordResetCount >= 3) return new TooManyPasswordResets();
@@ -298,10 +298,10 @@ public sealed class AccountService : IAccountService
     public async Task<OneOf<Success, NotFound, SecretInvalid>> PasswordResetComplete(Guid passwordResetId,
         string secret, string newPassword)
     {
-        var validUntil = DateTime.UtcNow.Add(Duration.PasswordResetRequestLifetime);
+        var validSince = DateTime.UtcNow - Duration.PasswordResetRequestLifetime;
 
         var reset = await _db.UserPasswordResets.Include(x => x.User).FirstOrDefaultAsync(x =>
-            x.Id == passwordResetId && x.UsedAt == null && x.CreatedAt < validUntil);
+            x.Id == passwordResetId && x.UsedAt == null && x.CreatedAt >= validSince);
 
         if (reset is null) return new NotFound();
 
@@ -333,30 +333,34 @@ public sealed class AccountService : IAccountService
 
     /// <inheritdoc />
     public async Task<OneOf<Success, OneOf.Types.Error<OneOf<UsernameTaken, UsernameError, RecentlyChanged>>, NotFound>>
-        ChangeUsername(Guid userId,
-            string username, bool ignoreLimit = false)
+        ChangeUsernameAsync(Guid userId,
+            string username, bool ignoreLimit = false, CancellationToken cancellationToken = default)
     {
-        var cooldownSubtracted = DateTime.UtcNow.Subtract(Duration.NameChangeCooldown);
-        if (!ignoreLimit && await _db.UserNameChanges.Where(x => x.UserId == userId && x.CreatedAt >= cooldownSubtracted).AnyAsync())
+        if (!ignoreLimit)
         {
-            return new OneOf.Types.Error<OneOf<UsernameTaken, UsernameError, RecentlyChanged>>(new RecentlyChanged());
+            var cooldownSubtracted = DateTime.UtcNow.Subtract(Duration.NameChangeCooldown);
+            if (await _db.UserNameChanges.Where(x => x.UserId == userId && x.CreatedAt >= cooldownSubtracted).AnyAsync(cancellationToken))
+            {
+                return new OneOf.Types.Error<OneOf<UsernameTaken, UsernameError, RecentlyChanged>>(new RecentlyChanged());
+            }
         }
 
-        var availability = await CheckUsernameAvailability(username);
+        var availability = await CheckUsernameAvailability(username, cancellationToken);
         if (availability.IsT1)
             return new OneOf.Types.Error<OneOf<UsernameTaken, UsernameError, RecentlyChanged>>(availability.AsT1);
         if (availability.IsT2)
             return new OneOf.Types.Error<OneOf<UsernameTaken, UsernameError, RecentlyChanged>>(availability.AsT2);
 
-        await using var transaction = await _db.Database.BeginTransactionAsync();
-
-        var user = await _db.Users.FirstOrDefaultAsync(x => x.Id == userId);
+        var user = await _db.Users.FirstOrDefaultAsync(x => x.Id == userId, cancellationToken);
         if (user is null) return new NotFound();
+        if (user.Name == username) return new Success(); // Unchanged
+
+        await using var transaction = await _db.Database.BeginTransactionAsync(cancellationToken);
 
         var oldName = user.Name;
 
         user.Name = username;
-        await _db.SaveChangesAsync();
+        await _db.SaveChangesAsync(cancellationToken);
 
         _db.UserNameChanges.Add(new UserNameChange
         {
@@ -364,9 +368,9 @@ public sealed class AccountService : IAccountService
             OldName = oldName
         });
 
-        await _db.SaveChangesAsync();
+        await _db.SaveChangesAsync(cancellationToken);
 
-        await transaction.CommitAsync();
+        await transaction.CommitAsync(cancellationToken);
 
         return new Success();
     }
