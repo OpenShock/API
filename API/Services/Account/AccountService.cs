@@ -251,12 +251,17 @@ public sealed class AccountService : IAccountService
     {
         var validSince = DateTime.UtcNow - Duration.PasswordResetRequestLifetime;
         var lowerCaseEmail = email.ToLowerInvariant();
-        var user = await _db.Users.Where(x => x.Email == lowerCaseEmail).Select(x => new
-        {
-            User = x,
-            PasswordResetCount = x.PasswordResets.Count(y => y.UsedAt == null && y.CreatedAt >= validSince)
-        }).FirstOrDefaultAsync();
+        var user = await _db.Users
+            .Where(x => x.Email == lowerCaseEmail)
+            .Include(x => x.UserDeactivation)
+            .Select(x => new
+            {
+                User = x,
+                PasswordResetCount = x.PasswordResets.Count(y => y.UsedAt == null && y.CreatedAt >= validSince)
+            })
+            .FirstOrDefaultAsync();
         if (user is null) return new NotFound();
+        if (user.User.UserDeactivation is not null) return new AccountDeactivated();
         if (user.PasswordResetCount >= 3) return new TooManyPasswordResets();
 
         var secret = CryptoUtils.RandomString(AuthConstants.GeneratedTokenLength);
@@ -282,10 +287,12 @@ public sealed class AccountService : IAccountService
     {
         var validSince = DateTime.UtcNow - Duration.PasswordResetRequestLifetime;
 
-        var reset = await _db.UserPasswordResets.Include(x => x.User).FirstOrDefaultAsync(x =>
-            x.Id == passwordResetId && x.UsedAt == null && x.CreatedAt >= validSince);
-
+        var reset = await _db.UserPasswordResets
+            .Include(x => x.User)
+            .Include(x => x.User.UserDeactivation)
+            .FirstOrDefaultAsync(x => x.Id == passwordResetId && x.UsedAt == null && x.CreatedAt >= validSince);
         if (reset is null) return new NotFound();
+        if (reset.User.UserDeactivation is not null) return new AccountDeactivated();
 
         var result = HashingUtils.VerifyToken(secret, reset.SecretHash);
         if (!result.Verified) return new SecretInvalid();

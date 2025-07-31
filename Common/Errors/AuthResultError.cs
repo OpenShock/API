@@ -12,5 +12,4 @@ public static class AuthResultError
     public static OpenShockProblem SessionInvalid => new("Authentication.SessionInvalid", "The session is invalid", HttpStatusCode.Unauthorized);
     public static OpenShockProblem TokenInvalid => new("Authentication.TokenInvalid", "The token is invalid", HttpStatusCode.Unauthorized);
     public static OpenShockProblem AccountDeactivated => new("Authentication.AccountDeactivated", "The account has been deactivated.", HttpStatusCode.Unauthorized);
-// Line removed as it is unused.
 }
