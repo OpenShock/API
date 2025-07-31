@@ -8,6 +8,7 @@ using OpenShock.Common.Constants;
 using OpenShock.Common.Models;
 using OpenShock.Common.OpenShockDb;
 using OpenShock.Common.Options;
+using MatchTypeEnum = OpenShock.Common.OpenShockDb.MatchType;
 using OpenShock.Common.Services.Session;
 using OpenShock.Common.Utils;
 using OpenShock.Common.Validation;
@@ -42,6 +43,27 @@ public sealed class AccountService : IAccountService
         _logger = logger;
         _frontendConfig = options.Value;
         _sessionService = sessionService;
+    }
+
+    private bool IsUserNameBlacklisted(string username)
+    {
+        foreach (var entry in _db.UserNameBlacklists)
+        {
+            if (entry.MatchType == MatchTypeEnum.Exact && string.Equals(username, entry.Value, StringComparison.OrdinalIgnoreCase))
+                return true;
+            if (entry.MatchType == MatchTypeEnum.Contains && username.Contains(entry.Value, StringComparison.OrdinalIgnoreCase))
+                return true;
+        }
+
+        return false;
+    }
+
+    private bool IsEmailProviderBlacklisted(string email)
+    {
+        var at = email.LastIndexOf('@');
+        if (at < 0) return false;
+        var domain = email[(at + 1)..].ToLowerInvariant();
+        return _db.EmailProviderBlacklists.Any(e => e.Domain == domain);
     }
 
     /// <inheritdoc />
@@ -158,6 +180,9 @@ public sealed class AccountService : IAccountService
         string username,
         string password, bool emailActivated)
     {
+        if (IsUserNameBlacklisted(username) || IsEmailProviderBlacklisted(email))
+            return new AccountWithEmailOrUsernameExists();
+
         if (await _db.Users.AnyAsync(x => x.Email == email.ToLowerInvariant() || x.Name == username))
             return new AccountWithEmailOrUsernameExists();
 
@@ -296,6 +321,9 @@ public sealed class AccountService : IAccountService
         var validationResult = UsernameValidator.Validate(username);
         if (validationResult.IsT1)
             return validationResult.AsT1;
+
+        if (IsUserNameBlacklisted(username))
+            return new UsernameError(UsernameErrorType.Blacklisted, "Username is blacklisted");
 
         var isTaken = await _db.Users.AnyAsync(x => x.Name == username, cancellationToken: cancellationToken);
         if (isTaken) return new UsernameTaken();

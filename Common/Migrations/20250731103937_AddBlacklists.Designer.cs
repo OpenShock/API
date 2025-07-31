@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Net;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using OpenShock.Common.Models;
@@ -15,9 +16,11 @@ using MatchTypeEnum = OpenShock.Common.OpenShockDb.MatchType;
 namespace OpenShock.Common.Migrations
 {
     [DbContext(typeof(MigrationOpenShockContext))]
-    partial class OpenShockContextModelSnapshot : ModelSnapshot
+    [Migration("20250731103937_AddBlacklists")]
+    partial class AddBlacklists
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder

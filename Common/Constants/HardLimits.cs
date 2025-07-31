@@ -13,6 +13,7 @@ public static class HardLimits
 
     public const int EmailAddressMinLength = 5; // "a@b.c" (5 chars)
     public const int EmailAddressMaxLength = 320; // 64 + 1 + 255 (RFC 2821)
+    public const int EmailProviderDomainMaxLength = 255;
 
     public const int PasswordMinLength = 12;
     public const int PasswordMaxLength = 256;
