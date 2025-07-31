@@ -291,3 +291,8 @@ public readonly struct DeviceNotFound;
 /// OneOf
 /// </summary>
 public readonly record struct ShockerExclusive(DateTimeOffset Until);
+
+/// <summary>
+/// This hub is too outdated to use this command
+/// </summary>
+public readonly struct DeviceMissingFeature;
