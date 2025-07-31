@@ -24,7 +24,7 @@ public sealed partial class AccountController
     public async Task<IActionResult> PasswordResetComplete([FromRoute] Guid passwordResetId,
         [FromRoute] string secret, [FromBody] PasswordResetProcessData body)
     {
-        var passwordResetComplete = await _accountService.PasswordResetComplete(passwordResetId, secret, body.Password);
+        var passwordResetComplete = await _accountService.CompletePasswordResetFlowAsync(passwordResetId, secret, body.Password);
 
         return passwordResetComplete.Match(
             success => LegacyEmptyOk("Password successfully changed"),

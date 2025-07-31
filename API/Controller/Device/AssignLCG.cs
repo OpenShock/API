@@ -30,7 +30,7 @@ public sealed partial class DeviceController
             _logger.LogWarning("CF-IPCountry header could not be parsed into a alpha2 country code");
         }
 
-        var closestNode = await geoLocation.GetOptimalNode(countryCode, env.EnvironmentName);
+        var closestNode = await geoLocation.GetOptimalNodeAsync(countryCode, env.EnvironmentName);
         if (closestNode is null) return Problem(AssignLcgError.NoLcgNodesAvailable);
 
         return LegacyDataOk(new LcgNodeResponse

@@ -16,7 +16,7 @@ public sealed partial class AccountController
     [HttpPost("username/check")]
     public async Task<UsernameCheckResponse> CheckUsername(ChangeUsernameRequest data, CancellationToken cancellationToken)
     {
-        var result = await _accountService.CheckUsernameAvailability(data.Username, cancellationToken);
+        var result = await _accountService.CheckUsernameAvailabilityAsync(data.Username, cancellationToken);
 
         return result.Match(
             success => new UsernameCheckResponse(UsernameAvailability.Available),

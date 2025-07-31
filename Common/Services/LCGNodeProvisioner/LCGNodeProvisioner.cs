@@ -19,7 +19,7 @@ public sealed class LCGNodeProvisioner : ILCGNodeProvisioner
         _lcgNodes = redisConnectionProvider.RedisCollection<LcgNode>(false);
     }
 
-    public async Task<LcgNode?> GetOptimalNode(string environment)
+    public async Task<LcgNode?> GetOptimalNodeAsync(string environment)
     {
         var node = await _lcgNodes
             .OrderBy(x => x.Load)
@@ -31,12 +31,12 @@ public sealed class LCGNodeProvisioner : ILCGNodeProvisioner
         return node;
     }
 
-    public async Task<LcgNode?> GetOptimalNode(Alpha2CountryCode countryCode, string environment)
+    public async Task<LcgNode?> GetOptimalNodeAsync(Alpha2CountryCode countryCode, string environment)
     {
         if (countryCode.IsUnknown())
         {
             _logger.LogInformation("Country code is unknown, getting optimal node without geo location information");
-            return await GetOptimalNode(environment);
+            return await GetOptimalNodeAsync(environment);
         }
 
         var nodes = await _lcgNodes
