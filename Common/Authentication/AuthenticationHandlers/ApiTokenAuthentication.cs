@@ -48,21 +48,22 @@ public sealed class ApiTokenAuthentication : AuthenticationHandler<Authenticatio
             return Fail(AuthResultError.HeaderMissingOrInvalid);
         }
 
-        var tokenHash = HashingUtils.HashSha256(token);
+        var tokenHash = HashingUtils.HashToken(token);
 
         var tokenDto = await _db.ApiTokens.Include(x => x.User).FirstOrDefaultAsync(x => x.TokenHash == tokenHash &&
             (x.ValidUntil == null || x.ValidUntil >= DateTime.UtcNow));
-        if (tokenDto == null) return Fail(AuthResultError.TokenInvalid);
+        if (tokenDto is null) return Fail(AuthResultError.TokenInvalid);
 
-        _batchUpdateService.UpdateTokenLastUsed(tokenDto.Id);
+        _batchUpdateService.UpdateApiTokenLastUsed(tokenDto.Id);
         _authService.CurrentClient = tokenDto.User;
         _userReferenceService.AuthReference = tokenDto;
 
-        List<Claim> claims = [
+        List<Claim> claims = new List<Claim>(3 + tokenDto.Permissions.Count)
+        {
             new(ClaimTypes.AuthenticationMethod, OpenShockAuthSchemas.ApiToken),
             new(ClaimTypes.NameIdentifier, tokenDto.User.Id.ToString()),
             new(OpenShockAuthClaims.ApiTokenId, tokenDto.Id.ToString())
-        ];
+        };
 
         foreach (var perm in tokenDto.Permissions)
         {

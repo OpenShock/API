@@ -29,7 +29,7 @@ public class Alpha2CountryCodeTests
                 Alpha2CountryCode c = str;
             })
             .ThrowsExactly<ArgumentOutOfRangeException>()
-            .WithMessage("Country code must be exactly 2 characters long (Parameter 'str')");
+            .WithMessage("Country code must be exactly 2 uppercase ASCII characters (Parameter 'str')");
     }
 
     [Test]
@@ -49,7 +49,7 @@ public class Alpha2CountryCodeTests
                 Alpha2CountryCode c = str;
             })
             .ThrowsExactly<ArgumentOutOfRangeException>()
-            .WithMessage("Country code must be uppercase ASCII characters only (Parameter 'str')");
+            .WithMessage("Country code must be exactly 2 uppercase ASCII characters (Parameter 'str')");
     }
 
     [Test]
@@ -58,7 +58,7 @@ public class Alpha2CountryCodeTests
     public async Task TryParseAndValidate_ValidCode_ShouldReturnTrue(string str, char char1, char char2)
     {
         // Act
-        var result = Alpha2CountryCode.TryParseAndValidate(str, out var c);
+        var result = Alpha2CountryCode.TryParse(str, out var c);
 
         // Assert
         await Assert.That(result).IsTrue();
@@ -84,7 +84,7 @@ public class Alpha2CountryCodeTests
     public async Task TryParseAndValidate_InvalidCode_ShouldReturnFalse(string str)
     {
         // Act
-        var result = Alpha2CountryCode.TryParseAndValidate(str, out var c);
+        var result = Alpha2CountryCode.TryParse(str, out var c);
 
         // Assert
         await Assert.That(result).IsFalse();

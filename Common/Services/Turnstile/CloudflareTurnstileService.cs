@@ -2,23 +2,24 @@
 using Microsoft.Extensions.Options;
 using OneOf;
 using OneOf.Types;
+using OpenShock.Common.Options;
 
 namespace OpenShock.Common.Services.Turnstile;
 
 public sealed class CloudflareTurnstileService : ICloudflareTurnstileService
 {
-    private const string BaseUrl = "https://challenges.cloudflare.com/turnstile/v0/";
     private const string SiteVerifyEndpoint = "siteverify";
 
     private readonly HttpClient _httpClient;
     private readonly CloudflareTurnstileOptions _options;
+    private readonly IHostEnvironment _environment;
     private readonly ILogger<CloudflareTurnstileService> _logger;
 
-    public CloudflareTurnstileService(HttpClient httpClient, IOptions<CloudflareTurnstileOptions> options, ILogger<CloudflareTurnstileService> logger)
+    public CloudflareTurnstileService(HttpClient httpClient, IOptions<CloudflareTurnstileOptions> options, IHostEnvironment environment, ILogger<CloudflareTurnstileService> logger)
     {
         _httpClient = httpClient;
-        _httpClient.BaseAddress = new Uri(BaseUrl);
         _options = options.Value;
+        _environment = environment;
         _logger = logger;
     }
 
@@ -43,16 +44,17 @@ public sealed class CloudflareTurnstileService : ICloudflareTurnstileService
     }
 
     /// <inheritdoc />
-    public async Task<OneOf<Success, Error<CloduflareTurnstileError[]>>> VerifyUserResponseToken(
+    public async Task<OneOf<Success, Error<CloduflareTurnstileError[]>>> VerifyUserResponseTokenAsync(
         string responseToken, IPAddress? remoteIpAddress, CancellationToken cancellationToken = default)
     {
         if (!_options.Enabled) return new Success();
         
         if (string.IsNullOrEmpty(responseToken)) return CreateError(CloduflareTurnstileError.MissingResponse);
 
-#if DEBUG
-        if (responseToken == "dev-bypass") return new Success();
-#endif
+        if (_environment.IsDevelopment() && responseToken == "dev-bypass")
+        {
+            return new Success();
+        }
         
         var formUrlValues = new Dictionary<string, string>
         {
@@ -60,7 +62,7 @@ public sealed class CloudflareTurnstileService : ICloudflareTurnstileService
             { "response", responseToken }
         };
 
-        if (remoteIpAddress != null) formUrlValues["remoteip"] = remoteIpAddress.ToString();
+        if (remoteIpAddress is not null) formUrlValues["remoteip"] = remoteIpAddress.ToString();
 
         using var httpContent = new FormUrlEncodedContent(formUrlValues);
 

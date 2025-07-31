@@ -1,5 +1,4 @@
 ﻿using System.ComponentModel.DataAnnotations;
-using OpenShock.Common;
 using OpenShock.Common.Constants;
 using OpenShock.Common.Models;
 

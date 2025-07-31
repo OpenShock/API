@@ -21,10 +21,10 @@ public static class OpenApiSchemas
 
             Each bit corresponds to:
             - 1: Shocker
-            - 2: Share
-            - 4: ShareLink
+            - 2: UserShare
+            - 4: PublicShare
 
-            For example, a value of 6 (2 | 4) indicates both 'Share' and 'ShareLink' reasons.
+            For example, a value of 6 (2 | 4) indicates both 'UserShare' and 'PublicShare' reasons.
             """,
         Example = new OpenApiInteger(6)
     };

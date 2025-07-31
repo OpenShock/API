@@ -42,18 +42,29 @@ public sealed class OpenShockRedisHubLifetimeManager<THub> : RedisHubLifetimeMan
     {
         if (userIds.Count <= 0) return Task.CompletedTask;
 
-        var message = new SerializedHubMessage(new InvocationMessage(methodName, args));
-
-        var localUsers = new List<string>();
-        var remoteUsers = new List<string>();
+        var localUsers = new List<string>(userIds.Count);
+        var remoteUsers = new List<string>(userIds.Count);
 
         foreach (var userId in userIds)
             if (userId.StartsWith("local#")) localUsers.Add(userId);
             else remoteUsers.Add(userId);
-        var tasks = new List<Task> { base.SendUsersAsync(remoteUsers, methodName, args, cancellationToken) };
-        // Do not closure allocate here, just foreach :3
-        // ReSharper disable once ForeachCanBeConvertedToQueryUsingAnotherGetEnumerator
-        foreach (var localUser in localUsers) tasks.Add(SendLocalMessageToUser(localUser, message, cancellationToken));
+
+        var tasks = new List<Task>(1 + localUsers.Count);
+
+        if (remoteUsers.Count > 0)
+        {
+            tasks.Add(base.SendUsersAsync(remoteUsers, methodName, args, cancellationToken));
+        }
+
+        if (localUsers.Count > 0)
+        {
+            var message = new SerializedHubMessage(new InvocationMessage(methodName, args));
+
+            foreach (var userId in localUsers)
+            {
+                tasks.Add(SendLocalUserAsync(userId, message, cancellationToken));
+            }
+        }
 
         return Task.WhenAll(tasks);
     }
@@ -62,24 +73,13 @@ public sealed class OpenShockRedisHubLifetimeManager<THub> : RedisHubLifetimeMan
     public override Task SendUserAsync(string userId, string methodName, object?[] args,
         CancellationToken cancellationToken = default)
     {
-        return !userId.StartsWith("local#")
-            ? base.SendUserAsync(userId, methodName, args, cancellationToken)
-            : SendLocalMessageToUser(userId, methodName, args, cancellationToken);
-    }
-    
-    /// <summary>
-    /// Composes a new hub message and sends it to the locally connected user
-    /// </summary>
-    /// <param name="userId"></param>
-    /// <param name="methodName"></param>
-    /// <param name="args"></param>
-    /// <param name="cancellationToken"></param>
-    /// <returns></returns>
-    private Task SendLocalMessageToUser(string userId, string methodName, object?[] args,
-        CancellationToken cancellationToken)
-    {
-        var message = new SerializedHubMessage(new InvocationMessage(methodName, args));
-        return SendLocalMessageToUser(userId, message, cancellationToken);
+        if (userId.StartsWith("local#"))
+        {
+            var message = new SerializedHubMessage(new InvocationMessage(methodName, args));
+            return SendLocalUserAsync(userId, message, cancellationToken);
+        }
+
+        return base.SendUserAsync(userId, methodName, args, cancellationToken);
     }
 
     /// <summary>
@@ -89,7 +89,7 @@ public sealed class OpenShockRedisHubLifetimeManager<THub> : RedisHubLifetimeMan
     /// <param name="message"></param>
     /// <param name="cancellationToken"></param>
     /// <returns></returns>
-    private Task SendLocalMessageToUser(string userId, SerializedHubMessage message,
+    private Task SendLocalUserAsync(string userId, SerializedHubMessage message,
         CancellationToken cancellationToken)
     {
         var users = _usersField.GetValue(this)!;

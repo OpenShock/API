@@ -1,10 +1,11 @@
-﻿using System.Net.Mime;
+﻿using Asp.Versioning;
 using Microsoft.AspNetCore.Mvc;
-using System.Reflection;
-using Asp.Versioning;
+using Microsoft.Extensions.Options;
 using OpenShock.Common;
-using OpenShock.Common.Problems;
 using OpenShock.Common.Utils;
+using OpenShock.LiveControlGateway.Options;
+using System.Net.Mime;
+using System.Reflection;
 
 namespace OpenShock.LiveControlGateway.Controllers;
 
@@ -27,7 +28,7 @@ public sealed class InstanceDetailsController : OpenShockControllerBase
     [HttpGet]
     [ProducesResponseType<InstanceDetailsResponse>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
     [MapToApiVersion("1")]
-    public InstanceDetailsResponse GetNodeInfo([FromServices] LCGConfig lcgConfig)
+    public InstanceDetailsResponse GetNodeInfo([FromServices] IOptions<LcgOptions> options)
     {
         return new InstanceDetailsResponse
         {
@@ -35,8 +36,8 @@ public sealed class InstanceDetailsController : OpenShockControllerBase
             Version = AssemblyVersion,
             Commit = GitHashAttribute.FullHash,
             CurrentTime = DateTimeOffset.UtcNow,
-            Fqdn = lcgConfig.Lcg.Fqdn,
-            CountryCode = lcgConfig.Lcg.CountryCode
+            Fqdn = options.Value.Fqdn,
+            CountryCode = options.Value.CountryCode
         };
     }
 
@@ -53,7 +54,7 @@ public sealed class InstanceDetailsController : OpenShockControllerBase
         /// <summary>
         /// Commit hash of the instance.
         /// </summary>
-        public required string Commit { get; set; }
+        public required string Commit { get; init; }
 
         /// <summary>
         /// Version of the instance.

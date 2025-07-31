@@ -17,9 +17,9 @@ public sealed class DeviceService : IDeviceService
     }
 
     /// <inheritdoc />
-    public async Task<IList<Guid>> GetSharedUsers(Guid deviceId)
+    public async Task<IList<Guid>> GetSharedUserIdsAsync(Guid deviceId)
     {
-        var sharedUsers = await _db.ShockerShares.AsNoTracking().Where(x => x.Shocker.Device == deviceId).GroupBy(x => x.SharedWith)
+        var sharedUsers = await _db.UserShares.AsNoTracking().Where(x => x.Shocker.DeviceId == deviceId).GroupBy(x => x.SharedWithUserId)
             .Select(x => x.Key)
             .ToListAsync();
         return sharedUsers;

@@ -37,11 +37,17 @@ public static class UsernameValidator
     }
 }
 
-[method: SetsRequiredMembers]
-public readonly struct UsernameError(UsernameErrorType type, string message)
+public readonly struct UsernameError
 {
-    public required string Message { get; init; } = message;
-    public required UsernameErrorType Type { get; init; } = type;
+    [SetsRequiredMembers]
+    public UsernameError(UsernameErrorType type, string message)
+    {
+        Message = message;
+        Type = type;
+    }
+    
+    public required string Message { get; init; }
+    public required UsernameErrorType Type { get; init; }
 }
 
 public enum UsernameErrorType

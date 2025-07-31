@@ -5,6 +5,6 @@ namespace OpenShock.Common.Services.LCGNodeProvisioner;
 
 public interface ILCGNodeProvisioner
 {
-    public Task<LcgNode?> GetOptimalNode(string environment = "Production");
-    public Task<LcgNode?> GetOptimalNode(Alpha2CountryCode countryCode, string environment = "Production");
+    public Task<LcgNode?> GetOptimalNodeAsync();
+    public Task<LcgNode?> GetOptimalNodeAsync(Alpha2CountryCode countryCode);
 }

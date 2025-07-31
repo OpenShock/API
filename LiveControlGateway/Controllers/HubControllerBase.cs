@@ -1,27 +1,20 @@
 ﻿using System.Net.WebSockets;
 using FlatSharp;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
-using Microsoft.AspNetCore.SignalR;
-using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 using OneOf;
 using OneOf.Types;
-using OpenShock.Common;
-using OpenShock.Common.Authentication;
 using OpenShock.Common.Authentication.Services;
 using OpenShock.Common.Constants;
 using OpenShock.Common.Errors;
-using OpenShock.Common.Hubs;
 using OpenShock.Common.OpenShockDb;
 using OpenShock.Common.Problems;
-using OpenShock.Common.Redis;
-using OpenShock.Common.Services.RedisPubSub;
 using OpenShock.Common.Utils;
 using OpenShock.LiveControlGateway.LifetimeManager;
+using OpenShock.LiveControlGateway.Options;
 using OpenShock.LiveControlGateway.Websocket;
 using OpenShock.Serialization.Gateway;
-using Redis.OM.Contracts;
 using Semver;
 using Timer = System.Timers.Timer;
 
@@ -43,8 +36,15 @@ public abstract class HubControllerBase<TIn, TOut> : FlatbuffersWebsocketBaseCon
     /// Service provider
     /// </summary>
     protected readonly IServiceProvider ServiceProvider;
-
-    private readonly LCGConfig _lcgConfig;
+    
+    private HubLifetime? _hubLifetime;
+    
+    /// <summary>
+    /// Hub lifetime
+    /// </summary>
+    /// <exception cref="InvalidOperationException"></exception>
+    protected HubLifetime HubLifetime => _hubLifetime ?? throw new InvalidOperationException("Hub lifetime is null but was tried to access");
+    private readonly LcgOptions _options;
 
     private readonly HubLifetimeManager _hubLifetimeManager;
 
@@ -79,30 +79,36 @@ public abstract class HubControllerBase<TIn, TOut> : FlatbuffersWebsocketBaseCon
     /// <summary>
     /// Base for hub websocket controllers
     /// </summary>
-    /// <param name="logger"></param>
-    /// <param name="lifetime"></param>
     /// <param name="incomingSerializer"></param>
     /// <param name="outgoingSerializer"></param>
     /// <param name="hubLifetimeManager"></param>
     /// <param name="serviceProvider"></param>
-    /// <param name="lcgConfig"></param>
+    /// <param name="options"></param>
+    /// <param name="logger"></param>
     protected HubControllerBase(
-        ILogger<FlatbuffersWebsocketBaseController<TIn, TOut>> logger,
-        IHostApplicationLifetime lifetime,
         ISerializer<TIn> incomingSerializer,
         ISerializer<TOut> outgoingSerializer,
         HubLifetimeManager hubLifetimeManager,
         IServiceProvider serviceProvider,
-        LCGConfig lcgConfig
-        ) : base(logger, lifetime, incomingSerializer, outgoingSerializer)
+        IOptions<LcgOptions> options,
+        ILogger<FlatbuffersWebsocketBaseController<TIn, TOut>> logger
+        ) : base(logger, incomingSerializer, outgoingSerializer)
     {
         _hubLifetimeManager = hubLifetimeManager;
         ServiceProvider = serviceProvider;
-        _lcgConfig = lcgConfig;
-        _keepAliveTimeoutTimer.Elapsed += async (sender, args) =>
+        _options = options.Value;
+        _keepAliveTimeoutTimer.Elapsed += async (_, _) =>
         {
-            Logger.LogInformation("Keep alive timeout reached, closing websocket connection");
-            await Close.CancelAsync();
+            try
+            {
+                Logger.LogInformation("Keep alive timeout reached, closing websocket connection");
+                await ForceClose(WebSocketCloseStatus.ProtocolError, "Keep alive timeout reached");
+                WebSocket?.Abort();
+            }
+            catch (Exception ex)
+            {
+                Logger.LogError(ex, "Error while closing websocket connection from keep alive timeout");
+            }
         };
         _keepAliveTimeoutTimer.Start();
     }
@@ -111,7 +117,7 @@ public abstract class HubControllerBase<TIn, TOut> : FlatbuffersWebsocketBaseCon
     private SemVersion? _firmwareVersion;
 
     /// <inheritdoc />
-    protected override Task<OneOf<Success, Error<OpenShockProblem>>> ConnectionPrecondition()
+    protected override async Task<OneOf<Success, Error<OpenShockProblem>>> ConnectionPrecondition()
     {
         _connected = DateTimeOffset.UtcNow;
 
@@ -123,24 +129,29 @@ public abstract class HubControllerBase<TIn, TOut> : FlatbuffersWebsocketBaseCon
         else
         {
             var err = new Error<OpenShockProblem>(WebsocketError.WebsocketHubFirmwareVersionInvalid);
-            return Task.FromResult(OneOf<Success, Error<OpenShockProblem>>.FromT1(err));
+            return err;
         }
         
         _userAgent = HttpContext.Request.Headers.UserAgent.ToString().Truncate(256);
+        var hubLifetimeResult = await _hubLifetimeManager.TryAddDeviceConnection(5, this, LinkedToken);
 
-        return Task.FromResult(OneOf<Success, Error<OpenShockProblem>>.FromT0(new Success()));
+        if (hubLifetimeResult.IsT1)
+        {
+            Logger.LogWarning("Hub lifetime busy, closing connection");
+            return new Error<OpenShockProblem>(WebsocketError.WebsocketHubLifetimeBusy);
+        }
+        
+        if (hubLifetimeResult.IsT2)
+        {
+            Logger.LogError("Hub lifetime error, closing connection");
+            return new Error<OpenShockProblem>(ExceptionError.Exception);
+        }
+        
+        _hubLifetime = hubLifetimeResult.AsT0;
+        
+        return new Success();
     }
     
-    
-    /// <summary>
-    /// Register to the hub lifetime manager
-    /// </summary>
-    /// <returns></returns>
-    protected override async Task<bool> TryRegisterConnection()
-    {
-        return await _hubLifetimeManager.TryAddDeviceConnection(5, this, LinkedToken);
-    }
-
     private bool _unregistered;
     
     /// <summary>
@@ -164,41 +175,57 @@ public abstract class HubControllerBase<TIn, TOut> : FlatbuffersWebsocketBaseCon
     /// <inheritdoc />
     public abstract ValueTask OtaInstall(SemVersion version);
 
+    /// <inheritdoc />
+    public async Task DisconnectOld()
+    {
+        if (WebSocket is null)
+            return;
 
+        await ForceClose(WebSocketCloseStatus.NormalClosure, "Hub is connecting from a different location");
+    }
+
+    private static DateTimeOffset? GetBootedAtFromUptimeMs(ulong uptimeMs)
+    {
+        var uptime = TimeSpan.FromMilliseconds(uptimeMs);
+        if (uptime > HardLimits.FirmwareMaxUptime) return null; // Yeah, ok bro.
+
+        return DateTimeOffset.UtcNow.Subtract(uptime);
+    }
+    
     /// <summary>
     /// Keep the hub online
     /// </summary>
-    protected async Task SelfOnline(DateTimeOffset bootedAt, ushort? latency = null, int? rssi = null)
+    protected async Task<bool> SelfOnline(ulong uptimeMs, ushort? latency = null, int? rssi = null)
     {
+        var bootedAt = GetBootedAtFromUptimeMs(uptimeMs);
+        if (!bootedAt.HasValue)
+        {
+            Logger.LogDebug("Client attempted to abuse reported boot time, uptime indicated that hub [{HubId}] booted prior to 2024", CurrentHub.Id);
+            return false;
+        }
+        
         Logger.LogDebug("Received keep alive from hub [{HubId}]", CurrentHub.Id);
 
         // Reset the keep alive timeout
         _keepAliveTimeoutTimer.Interval = Duration.DeviceKeepAliveTimeout.TotalMilliseconds;
 
-        var result = await _hubLifetimeManager.DeviceOnline(CurrentHub.Id, new SelfOnlineData()
+        await HubLifetime.Online(CurrentHub.Id, new SelfOnlineData()
         {
-            Owner = CurrentHub.Owner,
-            Gateway = _lcgConfig.Lcg.Fqdn,
+            Owner = CurrentHub.OwnerId,
+            Gateway = _options.Fqdn,
             FirmwareVersion = _firmwareVersion!,
             ConnectedAt = _connected,
             UserAgent = _userAgent,
-            BootedAt = bootedAt,
+            BootedAt = bootedAt.Value,
             LatencyMs = latency,
             Rssi = rssi
         });
-        
-        if (result.IsT1)
-        {
-            Logger.LogError("Error while updating hub online status [{HubId}], we dont exist in the managers list", CurrentHub.Id);
-            await Close.CancelAsync();
-            if (WebSocket != null)
-                await WebSocket.CloseAsync(WebSocketCloseStatus.InternalServerError, "Hub not found in manager",
-                    CancellationToken.None);
-        }
+
+        return true;
     }
     
     /// <inheritdoc />
-    public override ValueTask DisposeControllerAsync()
+    protected override ValueTask DisposeControllerAsync()
     {
         Logger.LogTrace("Disposing controller timer");
         _keepAliveTimeoutTimer.Dispose();

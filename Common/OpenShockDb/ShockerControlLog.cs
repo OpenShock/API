@@ -1,30 +1,28 @@
-﻿using System;
-using System.Collections.Generic;
-using OpenShock.Common.Models;
+﻿using OpenShock.Common.Models;
 
 namespace OpenShock.Common.OpenShockDb;
 
-public partial class ShockerControlLog
+public sealed class ShockerControlLog
 {
-    public Guid Id { get; set; }
+    public required Guid Id { get; set; }
 
-    public Guid ShockerId { get; set; }
+    public required Guid ShockerId { get; set; }
 
-    public DateTime CreatedOn { get; set; }
+    public required Guid? ControlledByUserId { get; set; }
 
-    public Guid? ControlledBy { get; set; }
+    public required byte Intensity { get; set; }
 
-    public byte Intensity { get; set; }
-
-    public uint Duration { get; set; }
+    public required uint Duration { get; set; }
     
-    public ControlType Type { get; set; }
+    public required ControlType Type { get; set; }
 
-    public string? CustomName { get; set; }
+    public required string? CustomName { get; set; }
 
     public bool LiveControl { get; set; }
 
-    public virtual User? ControlledByNavigation { get; set; }
+    public required DateTime CreatedAt { get; set; }
 
-    public virtual Shocker Shocker { get; set; } = null!;
+    // Navigations
+    public Shocker Shocker { get; set; } = null!;
+    public User? ControlledByUser { get; set; }
 }

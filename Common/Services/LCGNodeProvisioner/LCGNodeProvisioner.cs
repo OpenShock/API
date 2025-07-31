@@ -10,38 +10,39 @@ namespace OpenShock.Common.Services.LCGNodeProvisioner;
 
 public sealed class LCGNodeProvisioner : ILCGNodeProvisioner
 {
-    private readonly ILogger<LCGNodeProvisioner> _logger;
+    private readonly string _environmentName;
     private readonly IRedisCollection<LcgNode> _lcgNodes;
+    private readonly ILogger<LCGNodeProvisioner> _logger;
 
-    public LCGNodeProvisioner(IRedisConnectionProvider redisConnectionProvider, ILogger<LCGNodeProvisioner> logger)
+    public LCGNodeProvisioner(IRedisConnectionProvider redisConnectionProvider, IWebHostEnvironment environment, ILogger<LCGNodeProvisioner> logger)
     {
-        _logger = logger;
+        _environmentName = environment.EnvironmentName;
         _lcgNodes = redisConnectionProvider.RedisCollection<LcgNode>(false);
+        _logger = logger;
     }
 
-    public async Task<LcgNode?> GetOptimalNode(string environment)
+    public async Task<LcgNode?> GetOptimalNodeAsync()
     {
         var node = await _lcgNodes
-            .Where(x => x.Environment == environment)
             .OrderBy(x => x.Load)
-            .FirstOrDefaultAsync();
+            .FirstOrDefaultAsync(x => x.Environment == _environmentName);
 
-        if (node == null) _logger.LogWarning("No LCG nodes available!");
+        if (node is null) _logger.LogWarning("No LCG nodes available!");
         if (_logger.IsEnabled(LogLevel.Debug)) _logger.LogDebug("LCG node provisioned: {@LcgNode}", node);
 
         return node;
     }
 
-    public async Task<LcgNode?> GetOptimalNode(Alpha2CountryCode countryCode, string environment)
+    public async Task<LcgNode?> GetOptimalNodeAsync(Alpha2CountryCode countryCode)
     {
         if (countryCode.IsUnknown())
         {
             _logger.LogInformation("Country code is unknown, getting optimal node without geo location information");
-            return await GetOptimalNode(environment);
+            return await GetOptimalNodeAsync(_environmentName);
         }
 
         var nodes = await _lcgNodes
-            .Where(x => x.Environment == environment)
+            .Where(x => x.Environment == _environmentName)
             .ToArrayAsync();
 
         var node = nodes
@@ -49,7 +50,7 @@ public sealed class LCGNodeProvisioner : ILCGNodeProvisioner
             .ThenBy(x => x.Load)
             .FirstOrDefault();
 
-        if (node == null) _logger.LogWarning("No LCG nodes available!");
+        if (node is null) _logger.LogWarning("No LCG nodes available!");
         if (_logger.IsEnabled(LogLevel.Debug)) _logger.LogDebug("LCG node provisioned: {@LcgNode}", node);
 
         return node;

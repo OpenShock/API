@@ -5,7 +5,7 @@ OpenShock backend
 ### API Documentation 
 You can access our Open API Doc here:
 
-https://api.openshock.app/swagger
+https://api.openshock.app/scalar/viewer
 
 # Configuration
 

@@ -1,7 +1,10 @@
 ﻿namespace OpenShock.Common.Models;
 
-public class ControlLogSenderLight : GenericIni
+public class ControlLogSenderLight
 {
+    public required Guid Id { get; set; }
+    public required string Name { get; set; }
+    public required Uri Image { get; set; }
     public required string? CustomName { get; set; }
 }
 

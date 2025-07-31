@@ -13,24 +13,24 @@ env:
 
 jobs:
 
+  # Pre-job to find the latest tag
+  get-latest-tag:
+    runs-on: ubuntu-latest
+    outputs:
+      latest-tag: ${{ steps.latest-tag.outputs.tag }}
+    steps:
+      - name: Find latest tag
+        id: latest-tag
+        uses: oprypin/find-latest-tag@v1
+        with:
+          repository: ${{ github.repository }}
+          regex: '^\d+\.\d+\.\d+$'
+          releases-only: false
+
   # Delegate building and containerizing to a single workflow.
   build-and-containerize:
+    needs: get-latest-tag
     uses: ./.github/workflows/ci-build.yml
-  
-  release:
-    runs-on: ubuntu-latest
-    needs: build-and-containerize
-
-    steps:
-      - name: Download release notes
-        uses: actions/checkout@v4
-        with:
-          sparse-checkout: |
-            README.md
-      
-      - name: Create release
-        uses: softprops/action-gh-release@v2
-        with:
-          body_path: README.md
-          tag_name: ${{ github.ref_name }}
-          prerelease: ${{ contains(github.ref_name, '-rc') }}
+    with:
+      platforms: linux/amd64,linux/arm64
+      latest: ${{ needs.get-latest-tag.outputs.latest-tag == github.ref_name }}

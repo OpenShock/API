@@ -1,5 +1,4 @@
 ﻿using System.ComponentModel.DataAnnotations;
-using OpenShock.Common.Constants;
 
 namespace OpenShock.API.Models.Requests;
 
@@ -9,5 +8,5 @@ public sealed class Login
     public required string Password { get; set; }
     
     [Required(AllowEmptyStrings = false)]
-    public required string Email { get; set; }
+    public required string Email { get; set; } // This says email, but it's actually Username or Email.
 }

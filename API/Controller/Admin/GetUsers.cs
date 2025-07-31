@@ -1,14 +1,13 @@
-﻿using System.ComponentModel.DataAnnotations;
-using System.Net.Mime;
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using OpenShock.Common.Errors;
 using OpenShock.Common.Extensions;
 using OpenShock.Common.Models;
-using OpenShock.Common.Utils;
-using Z.EntityFramework.Plus;
 using OpenShock.Common.OpenShockDb;
 using OpenShock.Common.Query;
+using System.ComponentModel.DataAnnotations;
+using System.Net.Mime;
+using Z.EntityFramework.Plus;
 
 namespace OpenShock.API.Controller.Admin;
 
@@ -24,12 +23,10 @@ public sealed partial class AdminController
     public async Task<IActionResult> GetUsers(
         [FromQuery(Name = "$filter")] string filterQuery = "",
         [FromQuery(Name = "$orderby")] string orderbyQuery = "",
-        [FromQuery(Name = "$offset")] [Range(0, int.MaxValue)] int offset = 0,
-        [FromQuery(Name = "$limit")] [Range(1, 1000)] int limit = 100
+        [FromQuery(Name = "$offset")][Range(0, int.MaxValue)] int offset = 0,
+        [FromQuery(Name = "$limit")][Range(1, 1000)] int limit = 100
         )
     {
-        var deferredCount = _db.Users.DeferredLongCount().FutureValue();
-
         var query = _db.AdminUsersViews.AsNoTracking();
 
         try
@@ -61,11 +58,13 @@ public sealed partial class AdminController
             return Problem(ExpressionError.ExpressionExceptionError(e.Message));
         }
 
+        var deferredCount = query.DeferredLongCount().FutureValue();
+
         if (offset != 0)
         {
             query = query.Skip(offset);
         }
-        
+
         var deferredUsers = query.Take(limit).Future();
 
         return Ok(new Paginated<AdminUsersView>

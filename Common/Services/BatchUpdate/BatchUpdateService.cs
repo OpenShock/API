@@ -1,14 +1,38 @@
-﻿using System.Collections.Concurrent;
-using System.Timers;
+﻿using System.Timers;
 using Microsoft.EntityFrameworkCore;
 using NRedisStack.RedisStackCommands;
+using OpenShock.Common.Constants;
 using OpenShock.Common.OpenShockDb;
 using OpenShock.Common.Redis;
-using Redis.OM.Contracts;
+using OpenShock.Common.Utils;
 using StackExchange.Redis;
 using Timer = System.Timers.Timer;
 
 namespace OpenShock.Common.Services.BatchUpdate;
+
+internal sealed class ConcurrentUniqueBatchQueue<TKey, TValue> where TKey : notnull
+{
+    private readonly Lock _lock = new();
+    private Dictionary<TKey, TValue> _dictionary = new();
+
+    public void Enqueue(TKey key, TValue value)
+    {
+        lock (_lock)
+        {
+            _dictionary[key] = value;
+        }
+    }
+
+    public Dictionary<TKey, TValue> DequeueAll()
+    {
+        lock (_lock)
+        {
+            var items = _dictionary;
+            _dictionary = new Dictionary<TKey, TValue>();
+            return items;
+        }
+    }
+}
 
 public sealed class BatchUpdateService : IHostedService, IBatchUpdateService
 {
@@ -17,18 +41,16 @@ public sealed class BatchUpdateService : IHostedService, IBatchUpdateService
     private readonly IDbContextFactory<OpenShockContext> _dbFactory;
     private readonly ILogger<BatchUpdateService> _logger;
     private readonly IConnectionMultiplexer _connectionMultiplexer;
-    private readonly IRedisConnectionProvider _redisConnectionProvider;
     private readonly Timer _updateTimer;
 
-    private readonly ConcurrentDictionary<Guid, bool> _tokenLastUsed = new();
-    private readonly ConcurrentDictionary<string, DateTimeOffset> _sessionLastUsed = new();
+    private readonly ConcurrentUniqueBatchQueue<Guid, bool> _tokenLastUsed = new();
+    private readonly ConcurrentUniqueBatchQueue<string, DateTimeOffset> _sessionLastUsed = new();
 
-    public BatchUpdateService(IDbContextFactory<OpenShockContext> dbFactory, ILogger<BatchUpdateService> logger, IConnectionMultiplexer connectionMultiplexer, IRedisConnectionProvider redisConnectionProvider)
+    public BatchUpdateService(IDbContextFactory<OpenShockContext> dbFactory, ILogger<BatchUpdateService> logger, IConnectionMultiplexer connectionMultiplexer)
     {
         _dbFactory = dbFactory;
         _logger = logger;
         _connectionMultiplexer = connectionMultiplexer;
-        _redisConnectionProvider = redisConnectionProvider;
 
         _updateTimer = new Timer(Interval);
         _updateTimer.Elapsed += UpdateTimerOnElapsed;
@@ -48,13 +70,10 @@ public sealed class BatchUpdateService : IHostedService, IBatchUpdateService
 
     private async Task UpdateTokens()
     {
-        var keys = _tokenLastUsed.Keys.ToArray();
+        var keys = _tokenLastUsed.DequeueAll().Keys.ToArray();
 
         // Skip if there is nothing
         if (keys.Length < 1) return;
-
-        // Yeah
-        foreach (var guid in keys) _tokenLastUsed.TryRemove(guid, out _);
             
         await using var db = await _dbFactory.CreateDbContextAsync();
         await db.ApiTokens.Where(x => keys.Contains(x.Id))
@@ -69,10 +88,9 @@ public sealed class BatchUpdateService : IHostedService, IBatchUpdateService
         
         var json = _connectionMultiplexer.GetDatabase().JSON();
         
-        foreach (var sessionKey in _sessionLastUsed.Keys)
+        foreach (var (sessionToken, lastUsed) in _sessionLastUsed.DequeueAll())
         {
-            if (!_sessionLastUsed.TryRemove(sessionKey, out var lastUsed)) return;
-            sessionsToUpdate.Add(json.SetAsync(typeof(LoginSession).FullName + ":" + sessionKey, "LastUsed", lastUsed.ToUnixTimeMilliseconds(), When.Always));
+            sessionsToUpdate.Add(json.SetAsync(typeof(LoginSession).FullName + ":" + sessionToken, "LastUsed", lastUsed.ToUnixTimeMilliseconds(), When.Always));
         }
 
         try
@@ -84,14 +102,20 @@ public sealed class BatchUpdateService : IHostedService, IBatchUpdateService
         }
     }
 
-    public void UpdateTokenLastUsed(Guid tokenId)
+    public void UpdateApiTokenLastUsed(Guid apiTokenId)
     {
-        _tokenLastUsed[tokenId] = false;
+        _tokenLastUsed.Enqueue(apiTokenId, false);
     }
     
-    public void UpdateSessionLastUsed(string sessionKey, DateTimeOffset lastUsed)
+    public void UpdateSessionLastUsed(string sessionToken, DateTimeOffset lastUsed)
     {
-        _sessionLastUsed[sessionKey] = lastUsed;
+        // Only hash new tokens, old ones are 64 chars long
+        if (sessionToken.Length == AuthConstants.GeneratedTokenLength)
+        {
+            sessionToken = HashingUtils.HashToken(sessionToken);
+        }
+        
+        _sessionLastUsed.Enqueue(sessionToken, lastUsed);
     }
 
     public Task StartAsync(CancellationToken cancellationToken)
