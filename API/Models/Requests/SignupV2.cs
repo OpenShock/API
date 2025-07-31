@@ -1,4 +1,5 @@
-﻿using OpenShock.Common.DataAnnotations;
+﻿using OpenShock.Common.Constants;
+using OpenShock.Common.DataAnnotations;
 
 namespace OpenShock.API.Models.Requests;
 
@@ -14,5 +15,6 @@ public sealed class SignUpV2
     public required string Email { get; set; }
     
     [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = false)]
+    [System.ComponentModel.DataAnnotations.StringLength(HardLimits.MaxTurnstileResponseTokenLength)]
     public required string TurnstileResponse { get; set; }
 }

@@ -15,6 +15,6 @@ public sealed partial class AdminController
     [HttpGet("webhooks")]
     public async Task<WebhookDto[]> ListWebhooks([FromServices] IWebhookService webhookService)
     {
-        return await webhookService.GetWebhooks();
+        return await webhookService.GetWebhooksAsync();
     }
 }

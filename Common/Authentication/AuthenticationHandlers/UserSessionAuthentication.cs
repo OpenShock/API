@@ -53,7 +53,7 @@ public sealed class UserSessionAuthentication : AuthenticationHandler<Authentica
             return Fail(AuthResultError.CookieMissingOrInvalid);
         }
 
-        var session = await _sessionService.GetSessionByToken(sessionToken);
+        var session = await _sessionService.GetSessionByTokenAsync(sessionToken);
         if (session is null) return Fail(AuthResultError.SessionInvalid);
 
         if (session.Expires!.Value < DateTime.UtcNow.Subtract(Duration.LoginSessionExpansionAfter))
@@ -63,7 +63,7 @@ public sealed class UserSessionAuthentication : AuthenticationHandler<Authentica
 #pragma warning restore CS4014
             {
                 session.Expires = DateTime.UtcNow.Add(Duration.LoginSessionLifetime);
-                await _sessionService.UpdateSession(session, Duration.LoginSessionLifetime);
+                await _sessionService.UpdateSessionAsync(session, Duration.LoginSessionLifetime);
             });
         }
 

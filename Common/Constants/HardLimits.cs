@@ -50,7 +50,9 @@ public static class HardLimits
     public const int MaxHubsPerUser = 4;
     public const int MaxShockersPerHub = 11;
     public const int MaxShockerControlLogsPerUser = 2048;
-    
+
+    public const int MaxTurnstileResponseTokenLength = 2048; // https://developers.cloudflare.com/turnstile/get-started/server-side-validation/
+
     // Don't allow any firmware prior to 2024.
     // Ridiculous edgecase: environment reports year at or prior to 2024, revert to 10 year limit just to be on the safe side
     public static readonly TimeSpan FirmwareMaxUptime = DateTime.UtcNow.Year <= 2024 ?

@@ -18,7 +18,7 @@ public sealed partial class AdminController
     [ProducesResponseType(StatusCodes.Status200OK)]
     public async Task<IActionResult> DeactivateUser([FromRoute] Guid userId, [FromQuery(Name="deleteLater")] bool deleteLater, IAccountService accountService)
     {
-        var deactivationResult = await accountService.DeactivateAccount(CurrentUser.Id, userId, deleteLater);
+        var deactivationResult = await accountService.DeactivateAccountAsync(CurrentUser.Id, userId, deleteLater);
         return deactivationResult.Match(
             success => Ok("Account deactivated"),
             cannotDeactivatePrivledged => Problem(AccountActivationError.CannotDeactivateOrDeletePrivledgedAccount),
