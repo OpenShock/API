@@ -32,7 +32,7 @@ public sealed class DashboardAdminAuth : IDashboardAsyncAuthorizationFilter
     
     private static async Task<bool> SessionAuthAdmin(string sessionKey, ISessionService sessionService, OpenShockContext db)
     {
-        var session = await sessionService.GetSessionByToken(sessionKey);
+        var session = await sessionService.GetSessionByTokenAsync(sessionKey);
         if (session is null) return false;
 
         var retrievedUser = await db.Users.FirstAsync(user => user.Id == session.UserId);

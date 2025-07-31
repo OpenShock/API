@@ -8,5 +8,5 @@ public sealed class Login
     public required string Password { get; set; }
     
     [Required(AllowEmptyStrings = false)]
-    public required string Email { get; set; }
+    public required string Email { get; set; } // This says email, but it's actually Username or Email.
 }

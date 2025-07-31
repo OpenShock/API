@@ -32,7 +32,7 @@ public sealed partial class AccountController
         var cookieDomainToUse = options.Value.CookieDomain.Split(',').FirstOrDefault(domain => Request.Headers.Host.ToString().EndsWith(domain, StringComparison.OrdinalIgnoreCase));
         if (cookieDomainToUse is null) return Problem(LoginError.InvalidDomain);
 
-        var loginAction = await _accountService.Login(body.Email, body.Password, new LoginContext
+        var loginAction = await _accountService.CreateUserLoginSessionAsync(body.Email, body.Password, new LoginContext
         {
             Ip = HttpContext.GetRemoteIP().ToString(),
             UserAgent = HttpContext.GetUserAgent(),

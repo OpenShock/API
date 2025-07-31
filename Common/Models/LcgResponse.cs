@@ -2,6 +2,6 @@
 
 public sealed class LcgResponse
 {
-    public required string Gateway { get; set; }
-    public required string Country { get; set; }
+    public required string Gateway { get; init; }
+    public required string Country { get; init; }
 }

@@ -35,7 +35,7 @@ builder.Services.AddSignalR()
 builder.Services.AddScoped<IDeviceService, DeviceService>();
 builder.Services.AddScoped<IOtaService, OtaService>();
 
-builder.Services.AddSwaggerExt<Program>();
+builder.AddSwaggerExt<Program>();
 
 //services.AddHealthChecks().AddCheck<DatabaseHealthCheck>("database");
 
