@@ -23,7 +23,7 @@ public sealed class OpenShockEnricher : ILogEventEnricher
 
     public void Enrich(LogEvent logEvent, ILogEventPropertyFactory propertyFactory)
     {
-        if(_contextAccessor.HttpContext == null) return;
+        if(_contextAccessor.HttpContext is null) return;
 
         var ctx = _contextAccessor.HttpContext;
     
@@ -61,7 +61,7 @@ public static class OpenShockEnricherLoggerConfigurationExtensions
 {
     public static LoggerConfiguration WithOpenShockEnricher(this LoggerEnrichmentConfiguration enrichmentConfiguration)
     {
-        if (enrichmentConfiguration == null) throw new ArgumentNullException(nameof(enrichmentConfiguration));
+        ArgumentNullException.ThrowIfNull(enrichmentConfiguration);
         return enrichmentConfiguration.With<OpenShockEnricher>();
     }
 }

@@ -20,7 +20,9 @@ builder.Services.AddSingleton<IValidateOptions<LcgOptions>, LcgOptionsValidator>
 var databaseConfig = builder.Configuration.GetDatabaseOptions();
 var redisConfig = builder.Configuration.GetRedisConfigurationOptions();
 
-builder.Services.AddOpenShockServices(databaseConfig, redisConfig);
+builder.Services.AddOpenShockMemDB(redisConfig);
+builder.Services.AddOpenShockDB(databaseConfig);
+builder.Services.AddOpenShockServices();
 
 builder.Services.AddSignalR()
     .AddOpenShockStackExchangeRedis(options => { options.Configuration = redisConfig; })
@@ -33,7 +35,7 @@ builder.Services.AddSignalR()
 builder.Services.AddScoped<IDeviceService, DeviceService>();
 builder.Services.AddScoped<IOtaService, OtaService>();
 
-builder.Services.AddSwaggerExt<Program>();
+builder.AddSwaggerExt<Program>();
 
 //services.AddHealthChecks().AddCheck<DatabaseHealthCheck>("database");
 

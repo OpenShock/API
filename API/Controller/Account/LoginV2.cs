@@ -33,11 +33,11 @@ public sealed partial class AccountController
         CancellationToken cancellationToken)
     {
         var cookieDomainToUse = options.Value.CookieDomain.Split(',').FirstOrDefault(domain => Request.Headers.Host.ToString().EndsWith(domain, StringComparison.OrdinalIgnoreCase));
-        if (cookieDomainToUse == null) return Problem(LoginError.InvalidDomain);
+        if (cookieDomainToUse is null) return Problem(LoginError.InvalidDomain);
 
         var remoteIP = HttpContext.GetRemoteIP();
 
-        var turnStile = await turnstileService.VerifyUserResponseToken(body.TurnstileResponse, remoteIP, cancellationToken);
+        var turnStile = await turnstileService.VerifyUserResponseTokenAsync(body.TurnstileResponse, remoteIP, cancellationToken);
         if (!turnStile.IsT0)
         {
             var cfErrors = turnStile.AsT1.Value;
@@ -47,7 +47,7 @@ public sealed partial class AccountController
             return Problem(new OpenShockProblem("InternalServerError", "Internal Server Error", HttpStatusCode.InternalServerError));
         }
             
-        var loginAction = await _accountService.Login(body.UsernameOrEmail, body.Password, new LoginContext
+        var loginAction = await _accountService.CreateUserLoginSessionAsync(body.UsernameOrEmail, body.Password, new LoginContext
         {
             Ip = remoteIP.ToString(),
             UserAgent = HttpContext.GetUserAgent(),

@@ -54,7 +54,7 @@ public sealed class RedisSubscriberService : IHostedService, IAsyncDisposable
     {
         if (!message.HasValue) return;
         var data = JsonSerializer.Deserialize<DeviceUpdatedMessage>(message.ToString());
-        if (data == null) return;
+        if (data is null) return;
 
         await LogicDeviceOnlineStatus(data.Id);
     }
@@ -83,7 +83,7 @@ public sealed class RedisSubscriberService : IHostedService, IAsyncDisposable
             x.OwnerId,
             SharedWith = x.Shockers.SelectMany(y => y.UserShares)
         }).FirstOrDefaultAsync();
-        if (data == null) return;
+        if (data is null) return;
 
 
         var sharedWith = await db.Shockers
@@ -104,7 +104,7 @@ public sealed class RedisSubscriberService : IHostedService, IAsyncDisposable
             new DeviceOnlineState
             {
                 Device = deviceId,
-                Online = deviceOnline != null,
+                Online = deviceOnline is not null,
                 FirmwareVersion = deviceOnline?.FirmwareVersion ?? null
             }
         ]);

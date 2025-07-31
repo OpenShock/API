@@ -196,7 +196,7 @@ public sealed partial class ShockerController
                 x.Shocker.Device.OwnerId == CurrentUser.Id).Select(x =>
                 new { Share = x, x.Shocker.DeviceId, Owner = x.Shocker.Device.OwnerId })
             .FirstOrDefaultAsync();
-        if (affected == null) return Problem(ShockerError.ShockerNotFound);
+        if (affected is null) return Problem(ShockerError.ShockerNotFound);
 
         var share = affected.Share;
         
@@ -239,7 +239,7 @@ public sealed partial class ShockerController
             x.Shocker.Device.OwnerId == CurrentUser.Id).Select(x =>
             new { Share = x, x.Shocker.DeviceId, Owner = x.Shocker.Device.OwnerId })
             .FirstOrDefaultAsync();
-        if (affected == null) return Problem(ShockerError.ShockerNotFound);
+        if (affected is null) return Problem(ShockerError.ShockerNotFound);
 
         affected.Share.IsPaused = body.Pause;
 

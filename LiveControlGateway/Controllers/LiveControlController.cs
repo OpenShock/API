@@ -102,7 +102,7 @@ public sealed class LiveControlController : WebsocketBaseController<LiveControlR
         if (Interlocked.Exchange(ref _unregistered, true))
             return;
 
-        if (_hubLifetime == null) return;
+        if (_hubLifetime is null) return;
         if (!await _hubLifetime.RemoveLiveControlClient(this))
         {
             _logger.LogError("Failed to remove live control client from hub lifetime {HubId} {CurrentUserId}", HubId,
@@ -263,7 +263,7 @@ public sealed class LiveControlController : WebsocketBaseController<LiveControlR
 
         var continueLoop = await message.Match(async request =>
             {
-                if (request?.Data == null)
+                if (request?.Data is null)
                 {
                     Logger.LogWarning("Received null data from client");
                     await ForceClose(WebSocketCloseStatus.InvalidPayloadData, "Invalid json message received");
@@ -389,7 +389,7 @@ public sealed class LiveControlController : WebsocketBaseController<LiveControlR
         {
             frame = requestData.NewSlDeserialize<ClientLiveFrame>();
 
-            if (frame == null)
+            if (frame is null)
             {
                 Logger.LogWarning("Error while deserializing frame");
                 await QueueMessage(new LiveControlResponse<LiveResponseType>
@@ -492,9 +492,9 @@ public sealed class LiveControlController : WebsocketBaseController<LiveControlR
         return new Success<SharePermsAndLimitsLive>(shockerShare.PermsAndLimits);
     }
 
-    private static bool IsAllowed(ControlType type, SharePermsAndLimitsLive? perms)
+    private static bool IsAllowed(ControlType type, SharePermsAndLimitsLive? perms) // TODO: Duplicate logic (Common.csproj -> ControlLogic.cs -> IsAllowed)
     {
-        if (perms == null) return true;
+        if (perms is null) return true;
         if (!perms.Live) return false;
         return type switch
         {

@@ -54,7 +54,7 @@ public sealed class ApiTokenAuthentication : AuthenticationHandler<Authenticatio
             .Include(x => x.User)
             .Include(x => x.User.UserDeactivation)
             .FirstOrDefaultAsync(x => x.TokenHash == tokenHash && (x.ValidUntil == null || x.ValidUntil >= DateTime.UtcNow));
-        if (tokenDto == null) return Fail(AuthResultError.TokenInvalid);
+        if (tokenDto is null) return Fail(AuthResultError.TokenInvalid);
         if (tokenDto.User.UserDeactivation is not null)
         {
             return Fail(AuthResultError.AccountDeactivated);
@@ -64,11 +64,12 @@ public sealed class ApiTokenAuthentication : AuthenticationHandler<Authenticatio
         _authService.CurrentClient = tokenDto.User;
         _userReferenceService.AuthReference = tokenDto;
 
-        List<Claim> claims = [
+        List<Claim> claims = new List<Claim>(3 + tokenDto.Permissions.Count)
+        {
             new(ClaimTypes.AuthenticationMethod, OpenShockAuthSchemas.ApiToken),
             new(ClaimTypes.NameIdentifier, tokenDto.User.Id.ToString()),
             new(OpenShockAuthClaims.ApiTokenId, tokenDto.Id.ToString())
-        ];
+        };
 
         foreach (var perm in tokenDto.Permissions)
         {

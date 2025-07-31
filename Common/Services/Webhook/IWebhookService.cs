@@ -7,11 +7,11 @@ namespace OpenShock.Common.Services.Webhook;
 
 public interface IWebhookService
 {
-    public Task<OneOf<Success<WebhookDto>, UnsupportedWebhookUrl>> AddWebhook(string name, Uri webhookUrl);
-    public Task<bool> RemoveWebhook(Guid webhookId);
-    public Task<WebhookDto[]> GetWebhooks();
+    public Task<OneOf<Success<WebhookDto>, UnsupportedWebhookUrl>> AddWebhookAsync(string name, Uri webhookUrl);
+    public Task<bool> RemoveWebhookAsync(Guid webhookId);
+    public Task<WebhookDto[]> GetWebhooksAsync();
 
-    public Task<OneOf<Success, NotFound, Error, WebhookTimeout>> SendWebhook(string webhookName, string title, string content, Color color);
+    public Task<OneOf<Success, NotFound, Error, WebhookTimeout>> SendWebhookAsync(string webhookName, string title, string content, Color color);
 }
 
 public struct UnsupportedWebhookUrl;

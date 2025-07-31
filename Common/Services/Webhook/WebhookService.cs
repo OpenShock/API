@@ -10,18 +10,18 @@ namespace OpenShock.Common.Services.Webhook;
 public sealed class WebhookService : IWebhookService
 {
     private readonly OpenShockContext _db;
-    private readonly IHttpClientFactory _httpClientFactory;
+    private readonly HttpClient _httpClient;
     
-    public WebhookService(OpenShockContext db, IHttpClientFactory httpClientFactory)
+    public WebhookService(OpenShockContext db, HttpClient httpClient)
     {
         _db = db;
-        _httpClientFactory = httpClientFactory;
+        _httpClient = httpClient;
     }
 
     private static string GetWebhookUrl(long webhookId, string webhookToken) =>
         $"https://discord.com/api/webhooks/{webhookId}/{webhookToken}";
     
-    public async Task<OneOf<Success<WebhookDto>, UnsupportedWebhookUrl>> AddWebhook(string name, Uri webhookUrl)
+    public async Task<OneOf<Success<WebhookDto>, UnsupportedWebhookUrl>> AddWebhookAsync(string name, Uri webhookUrl)
     {
         if (webhookUrl is not
             {
@@ -56,13 +56,13 @@ public sealed class WebhookService : IWebhookService
         });
     }
 
-    public async Task<bool> RemoveWebhook(Guid webhookId)
+    public async Task<bool> RemoveWebhookAsync(Guid webhookId)
     {
         var nDeleted = await _db.DiscordWebhooks.Where(w => w.Id == webhookId).ExecuteDeleteAsync();
         return nDeleted > 0;
     }
 
-    public async Task<WebhookDto[]> GetWebhooks()
+    public async Task<WebhookDto[]> GetWebhooksAsync()
     {
         return await _db.DiscordWebhooks
             .OrderByDescending(w => w.CreatedAt)
@@ -76,7 +76,7 @@ public sealed class WebhookService : IWebhookService
             .ToArrayAsync();
     }
 
-    public async Task<OneOf<Success, NotFound, Error, WebhookTimeout>> SendWebhook(string webhookName, string title, string content, Color color)
+    public async Task<OneOf<Success, NotFound, Error, WebhookTimeout>> SendWebhookAsync(string webhookName, string title, string content, Color color)
     {
         var webhook = await _db.DiscordWebhooks
             .Where(w => w.Name == webhookName)
@@ -84,9 +84,6 @@ public sealed class WebhookService : IWebhookService
 
         if (webhook is null)
             return new NotFound();
-
-        using var httpClient = _httpClientFactory.CreateClient();
-        httpClient.Timeout = TimeSpan.FromSeconds(10);
 
         var embed = new
         {
@@ -102,7 +99,7 @@ public sealed class WebhookService : IWebhookService
 
         try
         {
-            using var response = await httpClient.PostAsJsonAsync(
+            using var response = await _httpClient.PostAsJsonAsync(
                 GetWebhookUrl(webhook.WebhookId, webhook.WebhookToken),
                 payload);
 

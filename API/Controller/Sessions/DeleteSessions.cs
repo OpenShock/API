@@ -14,15 +14,15 @@ public sealed partial class SessionsController
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status404NotFound, MediaTypeNames.Application.ProblemJson)] // SessionNotFound
     public async Task<IActionResult> DeleteSession(Guid sessionId)
     {
-        var loginSession = await _sessionService.GetSessionById(sessionId);
+        var loginSession = await _sessionService.GetSessionByIdAsync(sessionId);
 
         // If the session was not found, or the user does not have the privledges to access it, return NotFound
-        if (loginSession == null || !CurrentUser.IsUserOrRole(loginSession.UserId, RoleType.Admin))
+        if (loginSession is null || !CurrentUser.IsUserOrRole(loginSession.UserId, RoleType.Admin))
         {
             return Problem(SessionError.SessionNotFound);
         }
 
-        await _sessionService.DeleteSession(loginSession);
+        await _sessionService.DeleteSessionAsync(loginSession);
 
         return Ok();
     }

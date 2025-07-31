@@ -19,7 +19,7 @@ public sealed partial class ShareLinksController
             Id = Guid.CreateVersion7(),
             OwnerId = CurrentUser.Id,
             Name = body.Name,
-            ExpiresAt = body.ExpiresOn == null ? null : DateTime.SpecifyKind(body.ExpiresOn.Value, DateTimeKind.Utc)
+            ExpiresAt = body.ExpiresOn is null ? null : DateTime.SpecifyKind(body.ExpiresOn.Value, DateTimeKind.Utc)
         };
         _db.PublicShares.Add(entity);
         await _db.SaveChangesAsync();

@@ -28,7 +28,7 @@ public sealed partial class SharesController
         var belongsToUsFuture = _db.Shockers.AsNoTracking().Where(x =>
             x.Device.OwnerId == CurrentUser.Id && providedShockerIds.Contains(x.Id)).Select(x => x.Id).Future();
         
-        if (body.User != null)
+        if (body.User is not null)
         {
             var existsFuture = _db.Users.AsNoTracking().DeferredAny(x => x.Id == body.User).FutureValue();
             

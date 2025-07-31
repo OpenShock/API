@@ -5,6 +5,7 @@ using Microsoft.EntityFrameworkCore;
 using OpenShock.API.Models.Requests;
 using OpenShock.API.Services;
 using OpenShock.Common.Authentication.Attributes;
+using OpenShock.Common.Constants;
 using OpenShock.Common.Errors;
 using OpenShock.Common.Models;
 using OpenShock.Common.OpenShockDb;
@@ -32,10 +33,10 @@ public sealed partial class ShockerController
     {
         var device = await _db.Devices.Where(x => x.OwnerId == CurrentUser.Id && x.Id == body.Device)
             .Select(x => x.Id).FirstOrDefaultAsync();
-        if (device == Guid.Empty) return Problem(DeviceError.DeviceNotFound);
+        if (device == Guid.Empty) return Problem(HubError.HubNotFound);
         var shockerCount = await _db.Shockers.CountAsync(x => x.DeviceId == body.Device);
 
-        if (shockerCount >= 11) return Problem(DeviceError.TooManyShockers);
+        if (shockerCount >= HardLimits.MaxShockersPerHub) return Problem(HubError.TooManyShockers);
 
         var shocker = new Shocker
         {

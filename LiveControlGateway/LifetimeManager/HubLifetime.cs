@@ -238,12 +238,11 @@ public sealed class HubLifetime : IAsyncDisposable
 
     private async Task Update()
     {
-        List<ShockerCommand>? commandList = null;
+        var commandList = new List<ShockerCommand>(_shockerStates.Count);
         foreach (var (_, state) in _shockerStates)
         {
             var cur = DateTimeOffset.UtcNow;
             if (state.ActiveUntil < cur || state.ExclusiveUntil >= cur) continue;
-            commandList ??= [];
 
             commandList.Add(new ShockerCommand
             {
@@ -255,7 +254,7 @@ public sealed class HubLifetime : IAsyncDisposable
             });
         }
 
-        if (commandList == null) return;
+        if (commandList.Count == 0) return;
 
         await HubController.Control(commandList);
     }
@@ -321,7 +320,7 @@ public sealed class HubLifetime : IAsyncDisposable
     /// <returns></returns>
     public ValueTask Control(IReadOnlyList<ControlMessage.ShockerControlInfo> shocks)
     {
-        var shocksTransformed = new List<ShockerCommand>();
+        var shocksTransformed = new List<ShockerCommand>(shocks.Count);
         foreach (var shock in shocks)
         {
             if (!_shockerStates.TryGetValue(shock.Id, out var state)) continue;
@@ -368,7 +367,7 @@ public sealed class HubLifetime : IAsyncDisposable
         var deviceOnline = _redisConnectionProvider.RedisCollection<DeviceOnline>();
         var deviceId = device.ToString();
         var online = await deviceOnline.FindByIdAsync(deviceId);
-        if (online == null)
+        if (online is null)
         {
             await deviceOnline.InsertAsync(new DeviceOnline
             {

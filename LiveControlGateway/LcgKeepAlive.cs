@@ -39,7 +39,7 @@ public sealed class LcgKeepAlive : IHostedService
         var lcgNodes = _redisConnectionProvider.RedisCollection<LcgNode>(false);
         
         var online = await lcgNodes.FindByIdAsync(_options.Fqdn);
-        if (online == null)
+        if (online is null)
         {
             await lcgNodes.InsertAsync(new LcgNode
             {
@@ -55,7 +55,7 @@ public sealed class LcgKeepAlive : IHostedService
         {
             var changeTracker = _redisConnectionProvider.RedisCollection<LcgNode>();
             var tracked = await changeTracker.FindByIdAsync(_options.Fqdn);
-            if (tracked != null)
+            if (tracked is not null)
             {
                 tracked.Country = _options.CountryCode;
                 await changeTracker.SaveAsync();

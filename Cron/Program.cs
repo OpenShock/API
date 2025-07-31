@@ -13,22 +13,25 @@ builder.RegisterCommonOpenShockOptions();
 var databaseConfig = builder.Configuration.GetDatabaseOptions();
 var redisConfig = builder.Configuration.GetRedisConfigurationOptions();
 
-builder.Services.AddOpenShockServices(databaseConfig, redisConfig);
+builder.Services.AddOpenShockMemDB(redisConfig);
+builder.Services.AddOpenShockDB(databaseConfig);
+builder.Services.AddOpenShockServices();
 
 builder.Services.AddHangfire(hangfire =>
     hangfire.UsePostgreSqlStorage(c =>
         c.UseNpgsqlConnection(databaseConfig.Conn)));
 builder.Services.AddHangfireServer();
 
-builder.Services.AddSwaggerExt<Program>();
+builder.AddSwaggerExt<Program>();
 
 var app = builder.Build();
 
 await app.UseCommonOpenShockMiddleware();
 
 var hangfireOptions = new DashboardOptions();
-if (app.Environment.IsProduction())
+if (app.Environment.IsProduction() || Environment.GetEnvironmentVariable("DOTNET_RUNNING_IN_CONTAINER") == "true")
 {
+    hangfireOptions.Authorization = [ ];
     hangfireOptions.AsyncAuthorization = [ new DashboardAdminAuth() ];
 }
 

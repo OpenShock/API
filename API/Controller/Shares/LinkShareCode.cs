@@ -35,7 +35,7 @@ public sealed partial class SharesController
         {
             Share = x, x.Shocker.Device.OwnerId, x.Shocker.DeviceId
         }).FirstOrDefaultAsync();
-        if (shareCode == null) return Problem(ShareCodeError.ShareCodeNotFound);
+        if (shareCode is null) return Problem(ShareCodeError.ShareCodeNotFound);
         if (shareCode.OwnerId == CurrentUser.Id) return Problem(ShareCodeError.CantLinkOwnShareCode);
         if (await _db.UserShares.AnyAsync(x => x.ShockerId == shareCode.Share.ShockerId && x.SharedWithUserId == CurrentUser.Id))
             return Problem(ShareCodeError.ShockerAlreadyLinked);

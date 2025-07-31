@@ -22,16 +22,15 @@ public sealed partial class DeviceController
     [MapToApiVersion("1")]
     [ProducesResponseType<LegacyDataResponse<LcgNodeResponse>>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status503ServiceUnavailable, MediaTypeNames.Application.ProblemJson)] // NoLcgNodesAvailable
-    public async Task<IActionResult> GetLiveControlGateway([FromServices] ILCGNodeProvisioner geoLocation,
-        [FromServices] IWebHostEnvironment env)
+    public async Task<IActionResult> GetLiveControlGateway([FromServices] ILCGNodeProvisioner geoLocation)
     {
         if (!HttpContext.TryGetCFIPCountryCode(out var countryCode))
         {
             _logger.LogWarning("CF-IPCountry header could not be parsed into a alpha2 country code");
         }
 
-        var closestNode = await geoLocation.GetOptimalNode(countryCode, env.EnvironmentName);
-        if (closestNode == null) return Problem(AssignLcgError.NoLcgNodesAvailable);
+        var closestNode = await geoLocation.GetOptimalNodeAsync(countryCode);
+        if (closestNode is null) return Problem(AssignLcgError.NoLcgNodesAvailable);
 
         return LegacyDataOk(new LcgNodeResponse
         {

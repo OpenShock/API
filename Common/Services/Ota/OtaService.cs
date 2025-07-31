@@ -38,7 +38,7 @@ public sealed class OtaService : IOtaService
     {
         var updateTask = await _db.DeviceOtaUpdates
             .FirstOrDefaultAsync(x => x.DeviceId == deviceId && x.UpdateId == updateId);
-        if (updateTask == null) return;
+        if (updateTask is null) return;
         updateTask.Status = OtaUpdateStatus.Running;
 
         await _db.SaveChangesAsync();
@@ -49,7 +49,7 @@ public sealed class OtaService : IOtaService
     {
         var updateTask = await _db.DeviceOtaUpdates
             .FirstOrDefaultAsync(x => x.DeviceId == deviceId && x.UpdateId == updateId);
-        if (updateTask == null) return;
+        if (updateTask is null) return;
         updateTask.Status = OtaUpdateStatus.Error;
         updateTask.Message = message;
 
@@ -61,7 +61,7 @@ public sealed class OtaService : IOtaService
     {
         var updateTask = await _db.DeviceOtaUpdates
             .FirstOrDefaultAsync(x => x.DeviceId == deviceId && x.UpdateId == updateId);
-        if (updateTask == null) return false;
+        if (updateTask is null) return false;
         updateTask.Status = OtaUpdateStatus.Finished;
 
         await _db.SaveChangesAsync();

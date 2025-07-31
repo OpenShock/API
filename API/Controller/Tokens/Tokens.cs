@@ -58,7 +58,7 @@ public sealed partial class TokensController
             Id = x.Id
         }).FirstOrDefaultAsync();
         
-        if (apiToken == null) return Problem(ApiTokenError.ApiTokenNotFound);
+        if (apiToken is null) return Problem(ApiTokenError.ApiTokenNotFound);
         
         return Ok(apiToken);
     }
@@ -88,8 +88,13 @@ public sealed partial class TokensController
 
         return new TokenCreatedResponse
         {
+            Id = tokenDto.Id,
+            Name = body.Name,
             Token = token,
-            Id = tokenDto.Id
+            CreatedAt = tokenDto.CreatedAt,
+            ValidUntil = tokenDto.ValidUntil,
+            LastUsed = tokenDto.LastUsed,
+            Permissions = tokenDto.Permissions
         };
     }
 
@@ -107,7 +112,7 @@ public sealed partial class TokensController
     {
         var token = await _db.ApiTokens
             .FirstOrDefaultAsync(x => x.UserId == CurrentUser.Id && x.Id == tokenId && (x.ValidUntil == null || x.ValidUntil > DateTime.UtcNow));
-        if (token == null) return Problem(ApiTokenError.ApiTokenNotFound);
+        if (token is null) return Problem(ApiTokenError.ApiTokenNotFound);
 
         token.Name = body.Name;
         token.Permissions = body.Permissions.Distinct().ToList();

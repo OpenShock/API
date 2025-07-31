@@ -21,12 +21,12 @@ public sealed partial class AccountController
         // Remove session if valid
         if (HttpContext.TryGetUserSessionToken(out var sessionToken))
         {
-            await sessionService.DeleteSessionByToken(sessionToken);
+            await sessionService.DeleteSessionByTokenAsync(sessionToken);
         }
 
         // Make sure cookie is removed, no matter if authenticated or not
         var cookieDomainToUse = config.CookieDomain.Split(',').FirstOrDefault(domain => Request.Headers.Host.ToString().EndsWith(domain, StringComparison.OrdinalIgnoreCase));
-        if (cookieDomainToUse != null)
+        if (cookieDomainToUse is not null)
         {
             HttpContext.RemoveSessionKeyCookie("." + cookieDomainToUse);
         }

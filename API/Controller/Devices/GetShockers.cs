@@ -24,7 +24,7 @@ public sealed partial class DevicesController
     public async Task<IActionResult> GetShockers([FromRoute] Guid deviceId)
     {
         var deviceExists = await _db.Devices.AnyAsync(x => x.OwnerId == CurrentUser.Id && x.Id == deviceId);
-        if (!deviceExists) return Problem(DeviceError.DeviceNotFound);
+        if (!deviceExists) return Problem(HubError.HubNotFound);
         
         var shockers = _db.Shockers
             .Where(x => x.DeviceId == deviceId)
