@@ -73,7 +73,7 @@ public sealed class UserSessionAuthentication : AuthenticationHandler<Authentica
         if (retrievedUser == null) return Fail(AuthResultError.SessionInvalid);
         if (retrievedUser.UserDeactivation is not null)
         {
-            await _sessionService.DeleteSession(session); // This session shouldnt exist
+            await _sessionService.DeleteSessionAsync(session); // This session shouldnt exist
             return Fail(AuthResultError.AccountDeactivated);
         }
 
