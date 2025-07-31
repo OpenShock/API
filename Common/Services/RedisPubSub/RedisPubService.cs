@@ -89,7 +89,7 @@ public sealed class RedisPubService : IRedisPubService
     /// <inheritdoc />
     public Task SendDeviceReboot(Guid deviceId)
     {
-        var redisMessage = new DeviceEmergencyStopMessage
+        var redisMessage = new DeviceRebootMessage
         {
             Id = deviceId
         };
