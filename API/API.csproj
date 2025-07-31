@@ -3,8 +3,8 @@
   <Import Project="../Shared.props" />
 
   <ItemGroup>
-    <PackageReference Include="Fluid.Core" Version="2.24.0" />
-    <PackageReference Include="MailKit" Version="4.12.1" />
+    <PackageReference Include="Fluid.Core" Version="2.25.0" />
+    <PackageReference Include="MailKit" Version="4.13.0" />
   </ItemGroup>
 
   <Target Name="SetSourceRevisionId" BeforeTargets="InitializeSourceControlInformation">

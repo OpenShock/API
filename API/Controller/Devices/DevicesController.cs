@@ -100,7 +100,7 @@ public sealed partial class DevicesController
     /// <response code="500">Failed to save regenerated token</response>
     [HttpPut("{deviceId}")]
     [TokenPermission(PermissionType.Devices_Edit)]
-    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType<string>(StatusCodes.Status200OK, MediaTypeNames.Text.Plain)]
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status404NotFound, MediaTypeNames.Application.ProblemJson)] // DeviceNotFound
     [MapToApiVersion("1")]
     public async Task<IActionResult> RegenerateDeviceToken([FromRoute] Guid deviceId)
@@ -113,7 +113,7 @@ public sealed partial class DevicesController
         var affected = await _db.SaveChangesAsync();
         if (affected <= 0) throw new Exception("Failed to save regenerated token");
 
-        return Ok();
+        return Ok(device.Token);
     }
 
     /// <summary>
@@ -243,9 +243,6 @@ public sealed partial class DevicesController
         var devicesOnline = _redis.RedisCollection<DeviceOnline>();
         var online = await devicesOnline.FindByIdAsync(deviceId.ToString());
         if (online is null) return Problem(HubError.HubIsNotOnline);
-
-        // Check if device is connected to a LCG node
-        if (online.Gateway is null) return Problem(HubError.HubNotConnectedToGateway);
 
         // Get LCG node info
         var lcgNodes = _redis.RedisCollection<LcgNode>();

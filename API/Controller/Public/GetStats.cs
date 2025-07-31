@@ -28,5 +28,5 @@ public sealed partial class PublicController
 
 public sealed class StatsResponse
 {
-    public required long DevicesOnline { get; set; }
+    public required long DevicesOnline { get; init; }
 }

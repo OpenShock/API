@@ -2,5 +2,5 @@
 
 public sealed class ResponseDeviceWithShockers : ResponseDevice
 {
-    public required ShockerResponse[] Shockers { get; set; }
+    public required ShockerResponse[] Shockers { get; init; }
 }

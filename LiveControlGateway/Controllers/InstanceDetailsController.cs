@@ -54,7 +54,7 @@ public sealed class InstanceDetailsController : OpenShockControllerBase
         /// <summary>
         /// Commit hash of the instance.
         /// </summary>
-        public required string Commit { get; set; }
+        public required string Commit { get; init; }
 
         /// <summary>
         /// Version of the instance.

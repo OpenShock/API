@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using OpenShock.Common.Models;
 using Asp.Versioning;
+using OpenShock.Common.DataAnnotations;
 
 namespace OpenShock.API.Controller.Account;
 
@@ -14,12 +15,13 @@ public sealed partial class AccountController
     [MapToApiVersion("1")]
     public async Task<LegacyEmptyResponse> PasswordResetInitiate([FromBody] ResetRequest body)
     {
-        await _accountService.CreatePasswordReset(body.Email);
+        await _accountService.CreatePasswordResetFlowAsync(body.Email);
         return new LegacyEmptyResponse("Password reset has been sent via email if the email is associated to an registered account");
     }
 
     public sealed class ResetRequest
     {
+        [EmailAddress(true)]
         public required string Email { get; init; }
     }
 }

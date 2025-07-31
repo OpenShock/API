@@ -12,7 +12,7 @@ namespace OpenShock.Common.Swagger;
 
 public static class SwaggerGenExtensions
 {
-    public static IServiceCollection AddSwaggerExt<TProgram>(this IServiceCollection services) where TProgram : class
+    public static IServiceCollection AddSwaggerExt<TProgram>(this WebApplicationBuilder builder) where TProgram : class
     {
         var assembly = typeof(TProgram).Assembly;
 
@@ -32,7 +32,7 @@ public static class SwaggerGenExtensions
             throw new InvalidDataException($"Found invalid API versions: [{string.Join(", ", versions.Where(v => !int.TryParse(v, out _)))}]");
         }
 
-        return services
+        return builder.Services
             .AddSwaggerGen(options =>
             {
                 options.CustomOperationIds(e =>
@@ -82,9 +82,11 @@ public static class SwaggerGenExtensions
                 });
                 options.AddServer(new OpenApiServer { Url = "https://api.openshock.app" });
                 options.AddServer(new OpenApiServer { Url = "https://api.openshock.dev" });
-#if DEBUG
-                options.AddServer(new OpenApiServer { Url = "https://localhost" });
-#endif
+                if (builder.Environment.IsDevelopment())
+                {
+                    options.AddServer(new OpenApiServer { Url = "https://localhost" });
+                }
+
                 foreach (var version in versions)
                 {
                     options.SwaggerDoc("v" + version, new OpenApiInfo { Title = "OpenShock", Version = version });

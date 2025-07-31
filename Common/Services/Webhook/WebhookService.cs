@@ -21,7 +21,7 @@ public sealed class WebhookService : IWebhookService
     private static string GetWebhookUrl(long webhookId, string webhookToken) =>
         $"https://discord.com/api/webhooks/{webhookId}/{webhookToken}";
     
-    public async Task<OneOf<Success<WebhookDto>, UnsupportedWebhookUrl>> AddWebhook(string name, Uri webhookUrl)
+    public async Task<OneOf<Success<WebhookDto>, UnsupportedWebhookUrl>> AddWebhookAsync(string name, Uri webhookUrl)
     {
         if (webhookUrl is not
             {
@@ -56,13 +56,13 @@ public sealed class WebhookService : IWebhookService
         });
     }
 
-    public async Task<bool> RemoveWebhook(Guid webhookId)
+    public async Task<bool> RemoveWebhookAsync(Guid webhookId)
     {
         var nDeleted = await _db.DiscordWebhooks.Where(w => w.Id == webhookId).ExecuteDeleteAsync();
         return nDeleted > 0;
     }
 
-    public async Task<WebhookDto[]> GetWebhooks()
+    public async Task<WebhookDto[]> GetWebhooksAsync()
     {
         return await _db.DiscordWebhooks
             .OrderByDescending(w => w.CreatedAt)
@@ -76,7 +76,7 @@ public sealed class WebhookService : IWebhookService
             .ToArrayAsync();
     }
 
-    public async Task<OneOf<Success, NotFound, Error, WebhookTimeout>> SendWebhook(string webhookName, string title, string content, Color color)
+    public async Task<OneOf<Success, NotFound, Error, WebhookTimeout>> SendWebhookAsync(string webhookName, string title, string content, Color color)
     {
         var webhook = await _db.DiscordWebhooks
             .Where(w => w.Name == webhookName)

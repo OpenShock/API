@@ -22,7 +22,7 @@ builder.Services.AddHangfire(hangfire =>
         c.UseNpgsqlConnection(databaseConfig.Conn)));
 builder.Services.AddHangfireServer();
 
-builder.Services.AddSwaggerExt<Program>();
+builder.AddSwaggerExt<Program>();
 
 var app = builder.Build();
 

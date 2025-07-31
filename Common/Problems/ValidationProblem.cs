@@ -17,7 +17,7 @@ public sealed class ValidationProblem : OpenShockProblem
     {
         ArgumentNullException.ThrowIfNull(modelState);
 
-        var errorDictionary = new Dictionary<string, string[]>(StringComparer.Ordinal);
+        var errorDictionary = new Dictionary<string, string[]>(modelState.Count, StringComparer.Ordinal);
 
         foreach (var keyModelStatePair in modelState)
         {

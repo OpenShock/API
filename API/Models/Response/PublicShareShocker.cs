@@ -4,9 +4,9 @@ namespace OpenShock.API.Models.Response;
 
 public sealed class PublicShareShocker
 {
-    public required Guid Id { get; set; }
-    public required string Name { get; set; }
-    public required ShockerPermissions Permissions { get; set; }
-    public required ShockerLimits Limits { get; set; }
-    public required PauseReason Paused { get; set; }
+    public required Guid Id { get; init; }
+    public required string Name { get; init; }
+    public required ShockerPermissions Permissions { get; init; }
+    public required ShockerLimits Limits { get; init; }
+    public required PauseReason Paused { get; init; }
 }

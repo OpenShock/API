@@ -51,7 +51,7 @@ public sealed class DeviceUpdateService : IDeviceUpdateService
     {
         var task1 = _redisPubService.SendDeviceUpdate(deviceId);
         
-        var sharedWith = await _deviceService.GetSharedUsers(deviceId);
+        var sharedWith = await _deviceService.GetSharedUserIdsAsync(deviceId);
         sharedWith.Add(ownerId); // Add the owner to the list of users to send to
         var task2 = _hubContext.Clients.Users(sharedWith.Select(x => x.ToString()))
             .DeviceUpdate(deviceId, type);

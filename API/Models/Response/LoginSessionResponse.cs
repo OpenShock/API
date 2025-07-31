@@ -17,10 +17,10 @@ public sealed class LoginSessionResponse
         };
     }
 
-    public required Guid Id { get; set; }
-    public required string Ip { get; set; }
-    public required string UserAgent { get; set; }
-    public required DateTimeOffset Created { get; set; }
-    public required DateTimeOffset Expires { get; set; }
-    public required DateTimeOffset? LastUsed { get; set; }
+    public required Guid Id { get; init; }
+    public required string Ip { get; init; }
+    public required string UserAgent { get; init; }
+    public required DateTimeOffset Created { get; init; }
+    public required DateTimeOffset Expires { get; init; }
+    public required DateTimeOffset? LastUsed { get; init; }
 }

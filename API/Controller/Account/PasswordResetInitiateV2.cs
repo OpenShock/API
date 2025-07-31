@@ -25,7 +25,7 @@ public sealed partial class AccountController
     [MapToApiVersion("2")]
     public async Task<IActionResult> PasswordResetInitiateV2([FromBody] PasswordResetRequestV2 body, [FromServices] ICloudflareTurnstileService turnstileService, CancellationToken cancellationToken)
     {
-        var turnStile = await turnstileService.VerifyUserResponseToken(body.TurnstileResponse, HttpContext.GetRemoteIP(), cancellationToken);
+        var turnStile = await turnstileService.VerifyUserResponseTokenAsync(body.TurnstileResponse, HttpContext.GetRemoteIP(), cancellationToken);
         if (!turnStile.IsT0)
         {
             var cfErrors = turnStile.AsT1.Value!;
@@ -35,7 +35,7 @@ public sealed partial class AccountController
             return Problem(new OpenShockProblem("InternalServerError", "Internal Server Error", HttpStatusCode.InternalServerError));
         }
         
-        await _accountService.CreatePasswordReset(body.Email);
+        await _accountService.CreatePasswordResetFlowAsync(body.Email);
         
         return Ok();
     }

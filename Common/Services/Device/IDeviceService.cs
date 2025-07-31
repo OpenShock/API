@@ -7,5 +7,5 @@ public interface IDeviceService
     /// </summary>
     /// <param name="deviceId"></param>
     /// <returns></returns>
-    public Task<IList<Guid>> GetSharedUsers(Guid deviceId);
+    public Task<IList<Guid>> GetSharedUserIdsAsync(Guid deviceId);
 }

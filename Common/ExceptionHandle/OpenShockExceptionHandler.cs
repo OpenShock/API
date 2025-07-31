@@ -7,18 +7,23 @@ namespace OpenShock.Common.ExceptionHandle;
 public sealed class OpenShockExceptionHandler : IExceptionHandler
 {
     private readonly IProblemDetailsService _problemDetailsService;
+    private readonly IHostEnvironment _env;
     private readonly ILogger _logger;
     
-    public OpenShockExceptionHandler(IProblemDetailsService problemDetailsService, ILoggerFactory loggerFactory)
+    public OpenShockExceptionHandler(IProblemDetailsService problemDetailsService, IHostEnvironment env, ILoggerFactory loggerFactory)
     {
         _problemDetailsService = problemDetailsService;
+        _env = env;
         _logger = loggerFactory.CreateLogger("RequestInfo");
     }
     
     public async ValueTask<bool> TryHandleAsync(HttpContext context, Exception exception, CancellationToken cancellationToken)
     {
         context.Response.StatusCode = (int)HttpStatusCode.InternalServerError;
-        await PrintRequestInfo(context);
+        if (_env.IsDevelopment())
+        {
+            await PrintRequestInfo(context);
+        }
         
         var responseObject = ExceptionError.Exception;
         responseObject.AddContext(context);
