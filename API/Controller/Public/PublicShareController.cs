@@ -27,42 +27,41 @@ public sealed partial class PublicController
         var publicShare = await _db.PublicShares
             .Where(x => x.Id == publicShareId && x.Owner.UserDeactivation != null)
             .Select(x => new
+        {
+            Author = new BasicUserInfo
             {
-                Author = new BasicUserInfo
+                Id = x.Owner.Id,
+                Name = x.Owner.Name,
+                Image = x.Owner.GetImageUrl()
+            },
+            x.Id,
+            x.Name,
+            x.ExpiresAt,
+            x.CreatedAt,
+            Shockers = x.ShockerMappings.Select(y => new
+            {
+                DeviceId = y.Shocker.Device.Id,
+                DeviceName = y.Shocker.Device.Name,
+                Shocker = new PublicShareShocker
                 {
-                    Id = x.Owner.Id,
-                    Name = x.Owner.Name,
-                    Image = x.Owner.GetImageUrl()
-                },
-                x.Id,
-                x.Name,
-                x.ExpiresAt,
-                x.CreatedAt,
-                Shockers = x.ShockerMappings.Select(y => new
-                {
-                    DeviceId = y.Shocker.Device.Id,
-                    DeviceName = y.Shocker.Device.Name,
-                    Shocker = new PublicShareShocker
+                    Id = y.Shocker.Id,
+                    Name = y.Shocker.Name,
+                    Limits = new ShockerLimits
                     {
-                        Id = y.Shocker.Id,
-                        Name = y.Shocker.Name,
-                        Limits = new ShockerLimits
-                        {
-                            Intensity = y.MaxIntensity,
-                            Duration = y.MaxDuration
-                        },
-                        Permissions = new ShockerPermissions
-                        {
-                            Vibrate = y.AllowVibrate,
-                            Sound = y.AllowSound,
-                            Shock = y.AllowShock,
-                            Live = y.AllowLiveControl
-                        },
-                        Paused = PublicShareUtils.GetPausedReason(y.IsPaused, y.Shocker.IsPaused),
-                    }
-                })
+                        Intensity = y.MaxIntensity,
+                        Duration = y.MaxDuration
+                    },
+                    Permissions = new ShockerPermissions
+                    {
+                        Vibrate = y.AllowVibrate,
+                        Sound = y.AllowSound,
+                        Shock = y.AllowShock,
+                        Live = y.AllowLiveControl
+                    },
+                    Paused = PublicShareUtils.GetPausedReason(y.IsPaused, y.Shocker.IsPaused),
+                }
             })
-            .FirstOrDefaultAsync();
+        }).FirstOrDefaultAsync();
 
         if (publicShare is null) return Problem(PublicShareError.PublicShareNotFound);
         
