@@ -326,7 +326,7 @@ public sealed class AccountService : IAccountService
         if (availability.IsT1) return availability.AsT1;
         if (availability.IsT2) return availability.AsT2;
 
-        var user = await _db.Users.FirstOrDefaultAsync(x => x.Id == userId, cancellationToken);
+        var user = await _db.Users.Include(u => u.UserDeactivation).FirstOrDefaultAsync(x => x.Id == userId, cancellationToken);
         if (user is null) return new NotFound();
         if (user.UserDeactivation is not null) return new AccountDeactivated();
         if (user.Name == username) return new Success(); // Unchanged

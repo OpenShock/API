@@ -25,7 +25,7 @@ public sealed partial class PublicController
     public async Task<IActionResult> GetPublicShare([FromRoute] Guid publicShareId)
     {
         var publicShare = await _db.PublicShares
-            .Where(x => x.Id == publicShareId && x.Owner.UserDeactivation != null)
+            .Where(x => x.Id == publicShareId && x.Owner.UserDeactivation == null)
             .Select(x => new
         {
             Author = new BasicUserInfo
