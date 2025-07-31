@@ -22,7 +22,7 @@ public sealed partial class DeviceController
     [ProducesResponseType<LcgNodeResponseV2>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status400BadRequest, MediaTypeNames.Application.ProblemJson)] // BadSchemaVersion
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status503ServiceUnavailable, MediaTypeNames.Application.ProblemJson)] // NoLcgNodesAvailable
-    public async Task<IActionResult> GetLiveControlGatewayV2([FromQuery(Name = "version")] uint version, [FromServices] ILCGNodeProvisioner geoLocation, [FromServices] IWebHostEnvironment env)
+    public async Task<IActionResult> GetLiveControlGatewayV2([FromQuery(Name = "version")] uint version, [FromServices] ILCGNodeProvisioner geoLocation)
     {
         string path;
         switch (version)
@@ -42,7 +42,7 @@ public sealed partial class DeviceController
             _logger.LogWarning("CF-IPCountry header could not be parsed into a alpha2 country code");
         }
 
-        var closestNode = await geoLocation.GetOptimalNodeAsync(countryCode, env.EnvironmentName);
+        var closestNode = await geoLocation.GetOptimalNodeAsync(countryCode);
         if (closestNode is null) return Problem(AssignLcgError.NoLcgNodesAvailable);
 
         return Ok(new LcgNodeResponseV2
