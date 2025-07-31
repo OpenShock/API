@@ -42,7 +42,7 @@ public interface IAccountService
     /// <param name="loginContext"></param>
     /// <param name="cancellationToken"></param>
     /// <returns></returns>
-    public Task<OneOf<Success<string>, NotFound>> CreateUserLoginSessionAsync(string usernameOrEmail, string password, LoginContext loginContext, CancellationToken cancellationToken = default);
+    public Task<OneOf<Success<string>, AccountDeactivated, NotFound>> CreateUserLoginSessionAsync(string usernameOrEmail, string password, LoginContext loginContext, CancellationToken cancellationToken = default);
     
     /// <summary>
     /// Check if a password reset request exists and the secret is valid
@@ -58,7 +58,7 @@ public interface IAccountService
     /// </summary>
     /// <param name="email"></param>
     /// <returns></returns>
-    public Task<OneOf<Success, TooManyPasswordResets, NotFound>> CreatePasswordResetFlowAsync(string email);
+    public Task<OneOf<Success, TooManyPasswordResets, AccountDeactivated, NotFound>> CreatePasswordResetFlowAsync(string email);
     
     /// <summary>
     /// Completes a password reset process, sets a new password
@@ -67,7 +67,7 @@ public interface IAccountService
     /// <param name="secret"></param>
     /// <param name="newPassword"></param>
     /// <returns></returns>
-    public Task<OneOf<Success, NotFound, SecretInvalid>> CompletePasswordResetFlowAsync(Guid passwordResetId, string secret, string newPassword);
+    public Task<OneOf<Success, NotFound, AccountDeactivated, SecretInvalid>> CompletePasswordResetFlowAsync(Guid passwordResetId, string secret, string newPassword);
     
     /// <summary>
     /// Check the availability of a username
@@ -85,7 +85,7 @@ public interface IAccountService
     /// <param name="ignoreLimit">Ignore the username change limit, set this to true when an admin is changing the username</param>
     /// <param name="cancellationToken"></param>
     /// <returns><see cref="Error{UsernameCheckResult}"/> only returns when the result is != Available</returns>
-    public Task<OneOf<Success, Error<OneOf<UsernameTaken, UsernameError, RecentlyChanged>>, NotFound>> ChangeUsernameAsync(Guid userId, string username, bool ignoreLimit = false, CancellationToken cancellationToken = default);
+    public Task<OneOf<Success, UsernameTaken, UsernameError, RecentlyChanged, AccountDeactivated, NotFound>> ChangeUsernameAsync(Guid userId, string username, bool ignoreLimit = false, CancellationToken cancellationToken = default);
     
     /// <summary>
     /// Change the password of a user
@@ -93,9 +93,10 @@ public interface IAccountService
     /// <param name="userId"></param>
     /// <param name="newPassword"></param>
     /// <returns></returns>
-    public Task<OneOf<Success, NotFound>> ChangePasswordAsync(Guid userId, string newPassword);
+    public Task<OneOf<Success, AccountDeactivated, NotFound>> ChangePasswordAsync(Guid userId, string newPassword);
 }
 
+public readonly record struct AccountDeactivated;
 public readonly struct AccountWithEmailOrUsernameExists;
 public readonly struct CannotDeactivatePrivilegedAccount;
 public readonly struct AccountDeactivationAlreadyInProgress;

@@ -93,6 +93,15 @@ public sealed class SessionService : ISessionService
         return true;
     }
 
+    public async Task<int> DeleteSessionsByUserIdAsync(Guid userId)
+    {
+        var sessions = await _loginSessions.Where(x => x.UserId == userId).ToArrayAsync();
+
+        await _loginSessions.DeleteAsync(sessions);
+
+        return sessions.Length;
+    }
+
     public async Task DeleteSessionAsync(LoginSession loginSession)
     {
         await _loginSessions.DeleteAsync(loginSession);

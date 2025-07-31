@@ -18,6 +18,8 @@ public interface ISessionService
 
     public Task<bool> DeleteSessionByIdAsync(Guid sessionId);
 
+    public Task<int> DeleteSessionsByUserIdAsync(Guid userId);
+
     public Task DeleteSessionAsync(LoginSession loginSession);
 }
 
