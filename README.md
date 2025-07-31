@@ -28,8 +28,8 @@ Preferred way is a .env file.
 | `OPENSHOCK__LCG__FQDN`              | x        |               | `de1-gateway.my-openshock-instance.net` `de1-gateway.shocklink.net`                                      |
 | `OPENSHOCK__LCG__COUNTRYCODE`       | x        |               | `DE`                                                                                                     |
 
-Reffer to the [Npgsql Connection String](https://www.npgsql.org/doc/connection-string-parameters.html) documentation page for details about `OPENSHOCK__DB_CONN`.  
-Reffer to [StackExchange.Redis Configuration](https://stackexchange.github.io/StackExchange.Redis/Configuration.html) documention page for details about `OPENSHOCK__REDIS__CONN`.
+Refer to the [Npgsql Connection String](https://www.npgsql.org/doc/connection-string-parameters.html) documentation page for details about `OPENSHOCK__DB_CONN`.
+Refer to [StackExchange.Redis Configuration](https://stackexchange.github.io/StackExchange.Redis/Configuration.html) documentation page for details about `OPENSHOCK__REDIS__CONN`.
 
 ## Turnstile
 
