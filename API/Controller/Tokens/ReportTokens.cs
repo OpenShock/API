@@ -33,7 +33,7 @@ public sealed partial class TokensController
     {
         var remoteIP = HttpContext.GetRemoteIP();
 
-        var turnStile = await turnstileService.VerifyUserResponseToken(body.TurnstileResponse, remoteIP, cancellationToken);
+        var turnStile = await turnstileService.VerifyUserResponseTokenAsync(body.TurnstileResponse, remoteIP, cancellationToken);
         if (!turnStile.IsT0)
         {
             var cfErrors = turnStile.AsT1.Value!;
@@ -76,7 +76,7 @@ public sealed partial class TokensController
         });
         await _db.SaveChangesAsync(cancellationToken);
 
-        await webhookService.SendWebhook(
+        await webhookService.SendWebhookAsync(
             "TokensReported",
             "🔒 Leaked API Tokens Report Submitted", 
         $"""

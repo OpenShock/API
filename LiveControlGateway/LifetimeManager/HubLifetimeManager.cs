@@ -233,6 +233,18 @@ public sealed class HubLifetimeManager
     }
 
     /// <summary>
+    /// Emergency stop from redis, this cannot be undone remotely
+    /// </summary>
+    /// <param name="device"></param>
+    /// <returns></returns>
+    public async Task<OneOf.OneOf<Success, DeviceMissingFeature, DeviceNotFound>> EmergencyStop(Guid device)
+    {
+        if (!_lifetimes.TryGetValue(device, out var deviceLifetime)) return new DeviceNotFound();
+        bool ok = await deviceLifetime.EmergencyStop();
+        return ok ? new Success() : new DeviceMissingFeature();
+    }
+
+    /// <summary>
     /// Ota start install
     /// </summary>
     /// <param name="device"></param>
@@ -243,6 +255,18 @@ public sealed class HubLifetimeManager
         if (!_lifetimes.TryGetValue(device, out var deviceLifetime)) return new DeviceNotFound();
         await deviceLifetime.OtaInstall(version);
         return new Success();
+    }
+
+    /// <summary>
+    /// Reboot device
+    /// </summary>
+    /// <param name="device"></param>
+    /// <returns></returns>
+    public async Task<OneOf.OneOf<Success, DeviceMissingFeature, DeviceNotFound>> Reboot(Guid device)
+    {
+        if (!_lifetimes.TryGetValue(device, out var deviceLifetime)) return new DeviceNotFound();
+        bool ok = await deviceLifetime.Reboot();
+        return ok ? new Success() : new DeviceMissingFeature();
     }
 
     /// <summary>
@@ -267,3 +291,8 @@ public readonly struct DeviceNotFound;
 /// OneOf
 /// </summary>
 public readonly record struct ShockerExclusive(DateTimeOffset Until);
+
+/// <summary>
+/// This hub is too outdated to use this command
+/// </summary>
+public readonly struct DeviceMissingFeature;

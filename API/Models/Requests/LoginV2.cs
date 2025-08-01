@@ -1,4 +1,5 @@
-﻿using System.ComponentModel.DataAnnotations;
+﻿using OpenShock.Common.Constants;
+using System.ComponentModel.DataAnnotations;
 
 namespace OpenShock.API.Models.Requests;
 
@@ -11,5 +12,6 @@ public sealed class LoginV2
     public required string UsernameOrEmail { get; set; }
     
     [Required(AllowEmptyStrings = false)]
+    [StringLength(HardLimits.MaxTurnstileResponseTokenLength)]
     public required string TurnstileResponse { get; set; }
 }

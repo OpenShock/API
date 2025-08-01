@@ -67,13 +67,13 @@ public sealed class AccountService : IAccountService
     }
 
     /// <inheritdoc />
-    public Task<OneOf<Success<User>, AccountWithEmailOrUsernameExists>> CreateAccount(string email, string username,
+    public Task<OneOf<Success<User>, AccountWithEmailOrUsernameExists>> CreateUnverifiedAccountLegacyAsync(string email, string username,
         string password)
     {
         return CreateAccount(email, username, password, true);
     }
 
-    public async Task<OneOf<Success, CannotDeactivatePrivilegedAccount, AccountDeactivationAlreadyInProgress, Unauthorized, NotFound>> DeactivateAccount(Guid executingUserId, Guid userId, bool deleteLater)
+    public async Task<OneOf<Success, CannotDeactivatePrivilegedAccount, AccountDeactivationAlreadyInProgress, Unauthorized, NotFound>> DeactivateAccountAsync(Guid executingUserId, Guid userId, bool deleteLater)
     {
         if (executingUserId != userId)
         {
@@ -112,10 +112,13 @@ public sealed class AccountService : IAccountService
 
         await _db.SaveChangesAsync();
 
+        // Remove all login sessions
+        await _sessionService.DeleteSessionsByUserIdAsync(userId);
+
         return new Success();
     }
 
-    public async Task<OneOf<Success, Unauthorized, NotFound>> ReactivateAccount(Guid executingUserId, Guid userId)
+    public async Task<OneOf<Success, Unauthorized, NotFound>> ReactivateAccountAsync(Guid executingUserId, Guid userId)
     {
         var user = await _db.Users.Include(u => u.UserDeactivation).FirstOrDefaultAsync(u => u.Id == userId && u.UserDeactivation != null);
         if (user is null) return new NotFound();
@@ -146,7 +149,7 @@ public sealed class AccountService : IAccountService
         return new Success();
     }
 
-    public async Task<OneOf<Success, CannotDeletePrivilegedAccount, Unauthorized, NotFound>> DeleteAccount(Guid executingUserId, Guid userId)
+    public async Task<OneOf<Success, CannotDeletePrivilegedAccount, Unauthorized, NotFound>> DeleteAccountAsync(Guid executingUserId, Guid userId)
     {
         var isPrivileged = await _db.Users
                         .Where(u => u.Id == executingUserId)
@@ -202,7 +205,7 @@ public sealed class AccountService : IAccountService
     }
 
     /// <inheritdoc />
-    public async Task<OneOf<Success<User>, AccountWithEmailOrUsernameExists>> Signup(string email, string username,
+    public async Task<OneOf<Success<User>, AccountWithEmailOrUsernameExists>> CreateAccountWithVerificationFlowAsync(string email, string username,
         string password)
     {
         var accountCreate = await CreateAccount(email, username, password, false);
@@ -226,18 +229,22 @@ public sealed class AccountService : IAccountService
     }
 
     /// <inheritdoc />
-    public async Task<OneOf<Success<string>, NotFound>> Login(string usernameOrEmail, string password,
+    public async Task<OneOf<Success<string>, AccountDeactivated, NotFound>> CreateUserLoginSessionAsync(string usernameOrEmail, string password,
         LoginContext loginContext, CancellationToken cancellationToken = default)
     {
         var lowercaseUsernameOrEmail = usernameOrEmail.ToLowerInvariant();
-        var user = await _db.Users.FirstOrDefaultAsync(
-            x => x.Email == lowercaseUsernameOrEmail || x.Name == lowercaseUsernameOrEmail,
-            cancellationToken: cancellationToken);
+        var user = await _db.Users
+            .Include(u => u.UserDeactivation)
+            .FirstOrDefaultAsync(x => x.Email == lowercaseUsernameOrEmail || x.Name == lowercaseUsernameOrEmail, cancellationToken);
         if (user is null)
         {
-            await Task.Delay(100,
-                cancellationToken); // TODO: Set appropriate time to match password hashing time, preventing timing attacks
+            // TODO: Set appropriate time to match password hashing time, preventing timing attacks
+            await Task.Delay(100, cancellationToken);
             return new NotFound();
+        }
+        if (user.UserDeactivation is not null)
+        {
+            return new AccountDeactivated();
         }
 
         if (!await CheckPassword(password, user)) return new NotFound();
@@ -248,7 +255,7 @@ public sealed class AccountService : IAccountService
     }
 
     /// <inheritdoc />
-    public async Task<OneOf<Success, NotFound, SecretInvalid>> PasswordResetExists(Guid passwordResetId, string secret,
+    public async Task<OneOf<Success, NotFound, SecretInvalid>> CheckPasswordResetExistsAsync(Guid passwordResetId, string secret,
         CancellationToken cancellationToken = default)
     {
         var validSince = DateTime.UtcNow - Duration.PasswordResetRequestLifetime;
@@ -265,16 +272,21 @@ public sealed class AccountService : IAccountService
     }
 
     /// <inheritdoc />
-    public async Task<OneOf<Success, TooManyPasswordResets, NotFound>> CreatePasswordReset(string email)
+    public async Task<OneOf<Success, TooManyPasswordResets, AccountDeactivated, NotFound>> CreatePasswordResetFlowAsync(string email)
     {
         var validSince = DateTime.UtcNow - Duration.PasswordResetRequestLifetime;
         var lowerCaseEmail = email.ToLowerInvariant();
-        var user = await _db.Users.Where(x => x.Email == lowerCaseEmail).Select(x => new
-        {
-            User = x,
-            PasswordResetCount = x.PasswordResets.Count(y => y.UsedAt == null && y.CreatedAt >= validSince)
-        }).FirstOrDefaultAsync();
+        var user = await _db.Users
+            .Where(x => x.Email == lowerCaseEmail)
+            .Include(x => x.UserDeactivation)
+            .Select(x => new
+            {
+                User = x,
+                PasswordResetCount = x.PasswordResets.Count(y => y.UsedAt == null && y.CreatedAt >= validSince)
+            })
+            .FirstOrDefaultAsync();
         if (user is null) return new NotFound();
+        if (user.User.UserDeactivation is not null) return new AccountDeactivated();
         if (user.PasswordResetCount >= 3) return new TooManyPasswordResets();
 
         var secret = CryptoUtils.RandomString(AuthConstants.GeneratedTokenLength);
@@ -295,15 +307,17 @@ public sealed class AccountService : IAccountService
     }
 
     /// <inheritdoc />
-    public async Task<OneOf<Success, NotFound, SecretInvalid>> PasswordResetComplete(Guid passwordResetId,
+    public async Task<OneOf<Success, NotFound, AccountDeactivated, SecretInvalid>> CompletePasswordResetFlowAsync(Guid passwordResetId,
         string secret, string newPassword)
     {
         var validSince = DateTime.UtcNow - Duration.PasswordResetRequestLifetime;
 
-        var reset = await _db.UserPasswordResets.Include(x => x.User).FirstOrDefaultAsync(x =>
-            x.Id == passwordResetId && x.UsedAt == null && x.CreatedAt >= validSince);
-
+        var reset = await _db.UserPasswordResets
+            .Include(x => x.User)
+            .Include(x => x.User.UserDeactivation)
+            .FirstOrDefaultAsync(x => x.Id == passwordResetId && x.UsedAt == null && x.CreatedAt >= validSince);
         if (reset is null) return new NotFound();
+        if (reset.User.UserDeactivation is not null) return new AccountDeactivated();
 
         var result = HashingUtils.VerifyToken(secret, reset.SecretHash);
         if (!result.Verified) return new SecretInvalid();
@@ -315,7 +329,7 @@ public sealed class AccountService : IAccountService
     }
 
     /// <inheritdoc />
-    public async Task<OneOf<Success, UsernameTaken, UsernameError>> CheckUsernameAvailability(string username,
+    public async Task<OneOf<Success, UsernameTaken, UsernameError>> CheckUsernameAvailabilityAsync(string username,
         CancellationToken cancellationToken = default)
     {
         var validationResult = UsernameValidator.Validate(username);
@@ -332,27 +346,24 @@ public sealed class AccountService : IAccountService
     }
 
     /// <inheritdoc />
-    public async Task<OneOf<Success, OneOf.Types.Error<OneOf<UsernameTaken, UsernameError, RecentlyChanged>>, NotFound>>
-        ChangeUsernameAsync(Guid userId,
-            string username, bool ignoreLimit = false, CancellationToken cancellationToken = default)
+    public async Task<OneOf<Success, UsernameTaken, UsernameError, RecentlyChanged, AccountDeactivated, NotFound>> ChangeUsernameAsync(Guid userId, string username, bool ignoreLimit = false, CancellationToken cancellationToken = default)
     {
         if (!ignoreLimit)
         {
             var cooldownSubtracted = DateTime.UtcNow.Subtract(Duration.NameChangeCooldown);
             if (await _db.UserNameChanges.Where(x => x.UserId == userId && x.CreatedAt >= cooldownSubtracted).AnyAsync(cancellationToken))
             {
-                return new OneOf.Types.Error<OneOf<UsernameTaken, UsernameError, RecentlyChanged>>(new RecentlyChanged());
+                return new RecentlyChanged();
             }
         }
 
-        var availability = await CheckUsernameAvailability(username, cancellationToken);
-        if (availability.IsT1)
-            return new OneOf.Types.Error<OneOf<UsernameTaken, UsernameError, RecentlyChanged>>(availability.AsT1);
-        if (availability.IsT2)
-            return new OneOf.Types.Error<OneOf<UsernameTaken, UsernameError, RecentlyChanged>>(availability.AsT2);
+        var availability = await CheckUsernameAvailabilityAsync(username, cancellationToken);
+        if (availability.IsT1) return availability.AsT1;
+        if (availability.IsT2) return availability.AsT2;
 
-        var user = await _db.Users.FirstOrDefaultAsync(x => x.Id == userId, cancellationToken);
+        var user = await _db.Users.Include(u => u.UserDeactivation).FirstOrDefaultAsync(x => x.Id == userId, cancellationToken);
         if (user is null) return new NotFound();
+        if (user.UserDeactivation is not null) return new AccountDeactivated();
         if (user.Name == username) return new Success(); // Unchanged
 
         await using var transaction = await _db.Database.BeginTransactionAsync(cancellationToken);
@@ -377,16 +388,17 @@ public sealed class AccountService : IAccountService
 
 
     /// <inheritdoc />
-    public async Task<OneOf<Success, NotFound>> ChangePassword(Guid userId, string newPassword)
+    public async Task<OneOf<Success, AccountDeactivated, NotFound>> ChangePasswordAsync(Guid userId, string newPassword)
     {
-        var user = await _db.Users.Where(x => x.Id == userId).ExecuteUpdateAsync(calls =>
-            calls.SetProperty(x => x.PasswordHash, HashingUtils.HashPassword(newPassword)));
-        return user switch
-        {
-            <= 0 => new NotFound(),
-            1 => new Success(),
-            _ => throw new Exception("Updated more than row during password reset"),
-        };
+        var user = await _db.Users.Include(u => u.UserDeactivation).FirstOrDefaultAsync(x => x.Id == userId);
+        if (user is null) return new NotFound();
+        if (user.UserDeactivation is not null) return new AccountDeactivated();
+
+        user.PasswordHash = HashingUtils.HashPassword(newPassword);
+
+        await _db.SaveChangesAsync();
+
+        return new Success();
     }
 
 

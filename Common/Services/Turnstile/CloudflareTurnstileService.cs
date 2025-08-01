@@ -44,7 +44,7 @@ public sealed class CloudflareTurnstileService : ICloudflareTurnstileService
     }
 
     /// <inheritdoc />
-    public async Task<OneOf<Success, Error<CloduflareTurnstileError[]>>> VerifyUserResponseToken(
+    public async Task<OneOf<Success, Error<CloduflareTurnstileError[]>>> VerifyUserResponseTokenAsync(
         string responseToken, IPAddress? remoteIpAddress, CancellationToken cancellationToken = default)
     {
         if (!_options.Enabled) return new Success();

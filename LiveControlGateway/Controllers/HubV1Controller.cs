@@ -182,6 +182,12 @@ public sealed class HubV1Controller : HubControllerBase<HubToGatewayMessage, Gat
         });
 
     /// <inheritdoc />
+    public override ValueTask<bool> EmergencyStop()
+    {
+        return ValueTask.FromResult(false);
+    }
+
+    /// <inheritdoc />
     public override ValueTask CaptivePortal(bool enable)
         => QueueMessage(new GatewayToHubMessage
         {
@@ -190,6 +196,12 @@ public sealed class HubV1Controller : HubControllerBase<HubToGatewayMessage, Gat
                 Enabled = enable
             })
         });
+
+    /// <inheritdoc />
+    public override ValueTask<bool> Reboot()
+    {
+        return ValueTask.FromResult(false);
+    }
 
 
     /// <inheritdoc />

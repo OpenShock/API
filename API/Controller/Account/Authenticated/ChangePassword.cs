@@ -22,9 +22,12 @@ public sealed partial class AuthenticatedAccountController
             return Problem(AccountError.PasswordChangeInvalidPassword);
         }
         
-        var result = await _accountService.ChangePassword(CurrentUser.Id, data.NewPassword);
+        var result = await _accountService.ChangePasswordAsync(CurrentUser.Id, data.NewPassword);
 
-        return result.Match(success => Ok(),
-            notFound => throw new Exception("Unexpected result, apparently our current user does not exist..."));
+        return result.Match<IActionResult>(
+            success => Ok(),
+            deactivated => Problem(AccountError.AccountDeactivated),
+            notFound => throw new Exception("Unexpected result, apparently our current user does not exist...")
+            );
     }
 }

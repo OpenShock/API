@@ -106,6 +106,18 @@ public sealed class UserHub : Hub<IUserHub>
         await _redisPubService.SendDeviceCaptivePortal(deviceId, enabled);
     }
 
+    public async Task EmergencyStop(Guid deviceId)
+    {
+        // Require a user session basically
+        if (_tokenPermissions is not null) return;
+
+        var devices = await _db.Devices.Where(x => x.OwnerId == UserId)
+            .AnyAsync(x => x.Id == deviceId);
+        if (!devices) return;
+
+        await _redisPubService.SendDeviceEmergencyStop(deviceId);
+    }
+
     public async Task OtaInstall(Guid deviceId, SemVersion version)
     {
         // Require a user session basically
@@ -116,6 +128,18 @@ public sealed class UserHub : Hub<IUserHub>
         if (!devices) return;
 
         await _redisPubService.SendDeviceOtaInstall(deviceId, version);
+    }
+
+    public async Task Reboot(Guid deviceId)
+    {
+        // Require a user session basically
+        if (_tokenPermissions is not null) return;
+
+        var devices = await _db.Devices.Where(x => x.OwnerId == UserId)
+            .AnyAsync(x => x.Id == deviceId);
+        if (!devices) return;
+
+        await _redisPubService.SendDeviceReboot(deviceId);
     }
 
 
