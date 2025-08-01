@@ -56,5 +56,6 @@ public enum UsernameErrorType
     TooLong,
     StartOrEndWithWhitespace,
     ResembleEmail,
-    ObnoxiousCharacters
+    ObnoxiousCharacters,
+    Blacklisted
 }
