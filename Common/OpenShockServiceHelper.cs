@@ -159,6 +159,7 @@ public static class OpenShockServiceHelper
         
         // generic ASP.NET stuff
         services.AddMemoryCache();
+        services.AddResponseCaching();
         services.AddHttpContextAccessor();
         services.AddWebEncoders();
         services.AddProblemDetails();

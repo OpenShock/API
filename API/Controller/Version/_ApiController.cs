@@ -4,6 +4,7 @@ using OpenShock.Common;
 using OpenShock.Common.Models;
 using OpenShock.Common.Options;
 using OpenShock.Common.Utils;
+using System.Net.Mime;
 using System.Reflection;
 
 namespace OpenShock.API.Controller.Version;
@@ -25,6 +26,7 @@ public sealed partial class VersionController : OpenShockControllerBase
     /// </summary>
     /// <response code="200">The version was successfully retrieved.</response>
     [HttpGet]
+    [ResponseCache(Duration = 60, Location = ResponseCacheLocation.Any)]
     public LegacyDataResponse<ApiVersionResponse> GetBackendVersion(
         [FromServices] IOptions<FrontendOptions> frontendOptions,
         [FromServices] IOptions<CloudflareTurnstileOptions> turnstileOptions

@@ -3,6 +3,7 @@ using NRedisStack.RedisStackCommands;
 using OpenShock.Common.Models;
 using OpenShock.Common.Redis;
 using StackExchange.Redis;
+using System.Net.Mime;
 
 namespace OpenShock.API.Controller.Public;
 
@@ -12,8 +13,9 @@ public sealed partial class PublicController
     /// Gets online devices statistics
     /// </summary>
     /// <response code="200">The statistics were successfully retrieved.</response>
-    [HttpGet("stats")]
     [Tags("Meta")]
+    [HttpGet("stats")]
+    [ResponseCache(Duration = 60, Location = ResponseCacheLocation.Any)]
     public async Task<LegacyDataResponse<StatsResponse>> GetOnlineDevicesStatistics([FromServices] IConnectionMultiplexer redisConnectionMultiplexer)
     {
         var ft = redisConnectionMultiplexer.GetDatabase().FT();
