@@ -2,7 +2,7 @@
 
 public sealed class EmailProviderBlacklist
 {
-    public Guid Id { get; set; }
+    public required Guid Id { get; set; }
 
     public required string Domain { get; set; }
     

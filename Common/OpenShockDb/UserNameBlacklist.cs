@@ -10,9 +10,9 @@ public sealed class UserNameBlacklist
 {
     public required Guid Id { get; set; }
 
-    public string Value { get; set; } = null!;
+    public required string Value { get; set; } = null!;
 
-    public MatchTypeEnum MatchType { get; set; }
+    public required MatchTypeEnum MatchType { get; set; }
     
     public DateTime CreatedAt { get; set; }
 }
