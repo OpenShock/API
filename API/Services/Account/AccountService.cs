@@ -44,25 +44,20 @@ public sealed class AccountService : IAccountService
         _sessionService = sessionService;
     }
 
-    private bool IsUserNameBlacklisted(string username)
+    private async Task<bool> IsUserNameBlacklisted(string username)
     {
-        foreach (var entry in _db.UserNameBlacklists)
-        {
-            if (entry.MatchType == MatchTypeEnum.Exact && string.Equals(username, entry.Value, StringComparison.OrdinalIgnoreCase))
-                return true;
-            if (entry.MatchType == MatchTypeEnum.Contains && username.Contains(entry.Value, StringComparison.OrdinalIgnoreCase))
-                return true;
-        }
-
-        return false;
+        return await _db.UserNameBlacklists.AnyAsync(entry =>
+                (entry.MatchType == MatchTypeEnum.Exact && entry.Value.Equals(username)) ||
+                (entry.MatchType == MatchTypeEnum.Contains && username.Contains(entry.Value))
+            );
     }
 
-    private bool IsEmailProviderBlacklisted(string email)
+    private async Task<bool> IsEmailProviderBlacklisted(string email)
     {
         var at = email.LastIndexOf('@');
-        if (at < 0) return false;
-        var domain = email[(at + 1)..].ToLowerInvariant();
-        return _db.EmailProviderBlacklists.Any(e => e.Domain == domain);
+        if (at < 0) return true;
+        var domain = email[(at + 1)..];
+        return await _db.EmailProviderBlacklists.AnyAsync(e => e.Domain == domain);
     }
 
     /// <inheritdoc />
@@ -182,7 +177,7 @@ public sealed class AccountService : IAccountService
         string username,
         string password, bool emailActivated)
     {
-        if (IsUserNameBlacklisted(username) || IsEmailProviderBlacklisted(email))
+        if (await IsUserNameBlacklisted(username) || await IsEmailProviderBlacklisted(email))
             return new AccountWithEmailOrUsernameExists();
 
         if (await _db.Users.AnyAsync(x => x.Email == email.ToLowerInvariant() || x.Name == username))
@@ -335,7 +330,7 @@ public sealed class AccountService : IAccountService
         if (validationResult.IsT1)
             return validationResult.AsT1;
 
-        if (IsUserNameBlacklisted(username))
+        if (await IsUserNameBlacklisted(username))
             return new UsernameError(UsernameErrorType.Blacklisted, "Username is blacklisted");
 
         var isTaken = await _db.Users.AnyAsync(x => x.Name == username, cancellationToken: cancellationToken);

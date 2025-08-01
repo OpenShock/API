@@ -140,7 +140,7 @@ public class OpenShockContext : DbContext
             .HasPostgresEnum("role_type", ["support", "staff", "admin", "system"])
             .HasPostgresEnum("shocker_model_type", ["caiXianlin", "petTrainer", "petrainer998DR"])
             .HasPostgresEnum("match_type_enum", ["exact", "contains"])
-            .HasAnnotation("Npgsql:CollationDefinition:public.ndcoll", "und-u-ks-level2,und-u-ks-level2,icu,False");
+            .HasCollation("public", "ndcoll", "und-u-ks-level2", "icu", false); // Add case-insensitive, accent-sensitive comparison collation
 
         modelBuilder.Entity<ApiToken>(entity =>
         {
@@ -734,12 +734,13 @@ public class OpenShockContext : DbContext
 
             entity.ToTable("user_name_blacklist");
 
-            entity.HasIndex(e => e.Value);
+            entity.HasIndex(e => e.Value).UseCollation("ndcoll").IsUnique();
 
             entity.Property(e => e.Id)
                 .ValueGeneratedNever()
                 .HasColumnName("id");
             entity.Property(e => e.Value)
+                .UseCollation("ndcoll")
                 .VarCharWithLength(HardLimits.UsernameMaxLength)
                 .HasColumnName("value");
             entity.Property(e => e.MatchType)
@@ -755,12 +756,13 @@ public class OpenShockContext : DbContext
 
             entity.ToTable("email_provider_blacklist");
 
-            entity.HasIndex(e => e.Domain);
+            entity.HasIndex(e => e.Domain).UseCollation("ndcoll").IsUnique();
 
             entity.Property(e => e.Id)
                 .ValueGeneratedNever()
                 .HasColumnName("id");
             entity.Property(e => e.Domain)
+                .UseCollation("ndcoll")
                 .VarCharWithLength(HardLimits.EmailProviderDomainMaxLength)
                 .HasColumnName("domain");
             entity.Property(e => e.CreatedAt)

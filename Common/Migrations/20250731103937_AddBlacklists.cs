@@ -34,7 +34,7 @@ namespace OpenShock.Common.Migrations
                 columns: table => new
                 {
                     id = table.Column<Guid>(type: "uuid", nullable: false),
-                    domain = table.Column<string>(type: "character varying(255)", maxLength: 255, nullable: false),
+                    domain = table.Column<string>(type: "character varying(255)", maxLength: 255, nullable: false, collation: "ndcoll"),
                     created_at = table.Column<DateTime>(type: "timestamp with time zone", nullable: false, defaultValueSql: "CURRENT_TIMESTAMP")
                 },
                 constraints: table =>
@@ -47,7 +47,7 @@ namespace OpenShock.Common.Migrations
                 columns: table => new
                 {
                     id = table.Column<Guid>(type: "uuid", nullable: false),
-                    value = table.Column<string>(type: "character varying(32)", maxLength: 32, nullable: false),
+                    value = table.Column<string>(type: "character varying(32)", maxLength: 32, nullable: false, collation: "ndcoll"),
                     match_type = table.Column<MatchTypeEnum>(type: "match_type_enum", nullable: false),
                     created_at = table.Column<DateTime>(type: "timestamp with time zone", nullable: false, defaultValueSql: "CURRENT_TIMESTAMP")
                 },
@@ -59,12 +59,16 @@ namespace OpenShock.Common.Migrations
             migrationBuilder.CreateIndex(
                 name: "IX_email_provider_blacklist_domain",
                 table: "email_provider_blacklist",
-                column: "domain");
+                column: "domain",
+                unique: true)
+                .Annotation("Relational:Collation", new[] { "ndcoll" });
 
             migrationBuilder.CreateIndex(
                 name: "IX_user_name_blacklist_value",
                 table: "user_name_blacklist",
-                column: "value");
+                column: "value",
+                unique: true)
+                .Annotation("Relational:Collation", new[] { "ndcoll" });
         }
 
         /// <inheritdoc />

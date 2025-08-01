@@ -346,12 +346,16 @@ namespace OpenShock.Common.Migrations
                         .IsRequired()
                         .HasMaxLength(255)
                         .HasColumnType("character varying(255)")
-                        .HasColumnName("domain");
+                        .HasColumnName("domain")
+                        .UseCollation("ndcoll");
 
                     b.HasKey("Id")
                         .HasName("email_provider_blacklist_pkey");
 
-                    b.HasIndex("Domain");
+                    b.HasIndex("Domain")
+                        .IsUnique();
+
+                    NpgsqlIndexBuilderExtensions.UseCollation(b.HasIndex("Domain"), new[] { "ndcoll" });
 
                     b.ToTable("email_provider_blacklist", (string)null);
                 });
@@ -787,12 +791,16 @@ namespace OpenShock.Common.Migrations
                         .IsRequired()
                         .HasMaxLength(32)
                         .HasColumnType("character varying(32)")
-                        .HasColumnName("value");
+                        .HasColumnName("value")
+                        .UseCollation("ndcoll");
 
                     b.HasKey("Id")
                         .HasName("user_name_blacklist_pkey");
 
-                    b.HasIndex("Value");
+                    b.HasIndex("Value")
+                        .IsUnique();
+
+                    NpgsqlIndexBuilderExtensions.UseCollation(b.HasIndex("Value"), new[] { "ndcoll" });
 
                     b.ToTable("user_name_blacklist", (string)null);
                 });
