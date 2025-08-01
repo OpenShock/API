@@ -6,9 +6,9 @@ namespace OpenShock.API.Controller.Admin;
 
 public sealed partial class AdminController
 {
-    [HttpGet("blacklists/usernames")]
-    public async Task<UserNameBlacklist[]> ListUsernameBlacklist()
+    [HttpGet("blacklist/usernames")]
+    public IAsyncEnumerable<UserNameBlacklist> ListUsernameBlacklist()
     {
-        return await _db.UserNameBlacklists.AsNoTracking().ToArrayAsync();
+        return _db.UserNameBlacklists.AsNoTracking().AsAsyncEnumerable();
     }
 }

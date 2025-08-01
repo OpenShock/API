@@ -6,9 +6,9 @@ namespace OpenShock.API.Controller.Admin;
 
 public sealed partial class AdminController
 {
-    [HttpGet("blacklists/emailProviders")]
-    public async Task<EmailProviderBlacklist[]> ListEmailProviderBlacklist()
+    [HttpGet("blacklist/emailProviders")]
+    public IAsyncEnumerable<EmailProviderBlacklist> ListEmailProviderBlacklist()
     {
-        return await _db.EmailProviderBlacklists.AsNoTracking().ToArrayAsync();
+        return _db.EmailProviderBlacklists.AsNoTracking().AsAsyncEnumerable();
     }
 }

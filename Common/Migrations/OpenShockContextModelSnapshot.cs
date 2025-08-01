@@ -8,7 +8,6 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using OpenShock.Common.Models;
 using OpenShock.Common.OpenShockDb;
-using MatchTypeEnum = OpenShock.Common.OpenShockDb.MatchType;
 
 #nullable disable
 
@@ -26,7 +25,7 @@ namespace OpenShock.Common.Migrations
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "control_type", new[] { "sound", "vibrate", "shock", "stop" });
-            NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "match_type", new[] { "exact", "contains" });
+            NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "match_type_enum", new[] { "exact", "contains" });
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "ota_update_status", new[] { "started", "running", "finished", "error", "timeout" });
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "password_encryption_type", new[] { "pbkdf2", "bcrypt_enhanced" });
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "permission_type", new[] { "shockers.use", "shockers.edit", "shockers.pause", "devices.edit", "devices.auth" });
@@ -330,10 +329,9 @@ namespace OpenShock.Common.Migrations
 
             modelBuilder.Entity("OpenShock.Common.OpenShockDb.EmailProviderBlacklist", b =>
                 {
-                    b.Property<string>("Domain")
-                        .HasMaxLength(255)
-                        .HasColumnType("character varying(255)")
-                        .HasColumnName("domain");
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
 
                     b.Property<DateTime>("CreatedAt")
                         .ValueGeneratedOnAdd()
@@ -341,8 +339,16 @@ namespace OpenShock.Common.Migrations
                         .HasColumnName("created_at")
                         .HasDefaultValueSql("CURRENT_TIMESTAMP");
 
-                    b.HasKey("Domain")
+                    b.Property<string>("Domain")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)")
+                        .HasColumnName("domain");
+
+                    b.HasKey("Id")
                         .HasName("email_provider_blacklist_pkey");
+
+                    b.HasIndex("Domain");
 
                     b.ToTable("email_provider_blacklist", (string)null);
                 });
@@ -771,7 +777,7 @@ namespace OpenShock.Common.Migrations
                         .HasDefaultValueSql("CURRENT_TIMESTAMP");
 
                     b.Property<MatchTypeEnum>("MatchType")
-                        .HasColumnType("match_type")
+                        .HasColumnType("match_type_enum")
                         .HasColumnName("match_type");
 
                     b.Property<string>("Value")

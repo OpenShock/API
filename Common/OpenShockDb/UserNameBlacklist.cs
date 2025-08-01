@@ -1,6 +1,6 @@
 ﻿namespace OpenShock.Common.OpenShockDb;
 
-public enum MatchType
+public enum MatchTypeEnum
 {
     Exact,
     Contains,
@@ -12,7 +12,7 @@ public sealed class UserNameBlacklist
 
     public string Value { get; set; } = null!;
 
-    public MatchType MatchType { get; set; }
+    public MatchTypeEnum MatchType { get; set; }
     
     public DateTime CreatedAt { get; set; }
 }

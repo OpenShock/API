@@ -1,4 +1,4 @@
-using MatchTypeEnum = OpenShock.Common.OpenShockDb.MatchType;
+using OpenShock.Common.OpenShockDb;
 
 namespace OpenShock.API.Controller.Admin.DTOs;
 

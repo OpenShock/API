@@ -1,7 +1,6 @@
 ﻿using System;
 using Microsoft.EntityFrameworkCore.Migrations;
 using OpenShock.Common.OpenShockDb;
-using MatchTypeEnum = OpenShock.Common.OpenShockDb.MatchType;
 
 #nullable disable
 
@@ -16,7 +15,7 @@ namespace OpenShock.Common.Migrations
             migrationBuilder.AlterDatabase()
                 .Annotation("Npgsql:CollationDefinition:public.ndcoll", "und-u-ks-level2,und-u-ks-level2,icu,False")
                 .Annotation("Npgsql:Enum:control_type", "sound,vibrate,shock,stop")
-                .Annotation("Npgsql:Enum:match_type", "exact,contains")
+                .Annotation("Npgsql:Enum:match_type_enum", "exact,contains")
                 .Annotation("Npgsql:Enum:ota_update_status", "started,running,finished,error,timeout")
                 .Annotation("Npgsql:Enum:password_encryption_type", "pbkdf2,bcrypt_enhanced")
                 .Annotation("Npgsql:Enum:permission_type", "shockers.use,shockers.edit,shockers.pause,devices.edit,devices.auth")
@@ -34,12 +33,13 @@ namespace OpenShock.Common.Migrations
                 name: "email_provider_blacklist",
                 columns: table => new
                 {
+                    id = table.Column<Guid>(type: "uuid", nullable: false),
                     domain = table.Column<string>(type: "character varying(255)", maxLength: 255, nullable: false),
                     created_at = table.Column<DateTime>(type: "timestamp with time zone", nullable: false, defaultValueSql: "CURRENT_TIMESTAMP")
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("email_provider_blacklist_pkey", x => x.domain);
+                    table.PrimaryKey("email_provider_blacklist_pkey", x => x.id);
                 });
 
             migrationBuilder.CreateTable(
@@ -48,13 +48,18 @@ namespace OpenShock.Common.Migrations
                 {
                     id = table.Column<Guid>(type: "uuid", nullable: false),
                     value = table.Column<string>(type: "character varying(32)", maxLength: 32, nullable: false),
-                    match_type = table.Column<MatchTypeEnum>(type: "match_type", nullable: false),
+                    match_type = table.Column<MatchTypeEnum>(type: "match_type_enum", nullable: false),
                     created_at = table.Column<DateTime>(type: "timestamp with time zone", nullable: false, defaultValueSql: "CURRENT_TIMESTAMP")
                 },
                 constraints: table =>
                 {
                     table.PrimaryKey("user_name_blacklist_pkey", x => x.id);
                 });
+
+            migrationBuilder.CreateIndex(
+                name: "IX_email_provider_blacklist_domain",
+                table: "email_provider_blacklist",
+                column: "domain");
 
             migrationBuilder.CreateIndex(
                 name: "IX_user_name_blacklist_value",
@@ -81,7 +86,7 @@ namespace OpenShock.Common.Migrations
                 .Annotation("Npgsql:Enum:shocker_model_type", "caiXianlin,petTrainer,petrainer998DR")
                 .OldAnnotation("Npgsql:CollationDefinition:public.ndcoll", "und-u-ks-level2,und-u-ks-level2,icu,False")
                 .OldAnnotation("Npgsql:Enum:control_type", "sound,vibrate,shock,stop")
-                .OldAnnotation("Npgsql:Enum:match_type", "exact,contains")
+                .OldAnnotation("Npgsql:Enum:match_type_enum", "exact,contains")
                 .OldAnnotation("Npgsql:Enum:ota_update_status", "started,running,finished,error,timeout")
                 .OldAnnotation("Npgsql:Enum:password_encryption_type", "pbkdf2,bcrypt_enhanced")
                 .OldAnnotation("Npgsql:Enum:permission_type", "shockers.use,shockers.edit,shockers.pause,devices.edit,devices.auth")

@@ -8,7 +8,6 @@ using OpenShock.Common.Constants;
 using OpenShock.Common.Models;
 using OpenShock.Common.OpenShockDb;
 using OpenShock.Common.Options;
-using MatchTypeEnum = OpenShock.Common.OpenShockDb.MatchType;
 using OpenShock.Common.Services.Session;
 using OpenShock.Common.Utils;
 using OpenShock.Common.Validation;

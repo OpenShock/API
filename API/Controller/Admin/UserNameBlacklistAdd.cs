@@ -6,13 +6,13 @@ namespace OpenShock.API.Controller.Admin;
 
 public sealed partial class AdminController
 {
-    [HttpPost("blacklists/usernames")]
+    [HttpPost("blacklist/usernames")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     public async Task<IActionResult> AddUsernameBlacklist([FromBody] AddUsernameBlacklistDto dto)
     {
         var entry = new UserNameBlacklist
         {
-            Id = Guid.NewGuid(),
+            Id = Guid.CreateVersion7(),
             Value = dto.Value,
             MatchType = dto.MatchType
         };
