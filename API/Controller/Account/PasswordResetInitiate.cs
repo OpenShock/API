@@ -15,7 +15,7 @@ public sealed partial class AccountController
     [MapToApiVersion("1")]
     public async Task<LegacyEmptyResponse> PasswordResetInitiate([FromBody] ResetRequest body)
     {
-        await _accountService.CreatePasswordReset(body.Email);
+        await _accountService.CreatePasswordResetFlowAsync(body.Email);
         return new LegacyEmptyResponse("Password reset has been sent via email if the email is associated to an registered account");
     }
 

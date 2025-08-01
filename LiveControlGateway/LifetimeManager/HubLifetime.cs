@@ -351,10 +351,22 @@ public sealed class HubLifetime : IAsyncDisposable
     public ValueTask ControlCaptive(bool enabled) => HubController.CaptivePortal(enabled);
 
     /// <summary>
+    /// Emergency stop from redis
+    /// </summary>
+    /// <returns></returns>
+    public ValueTask<bool> EmergencyStop() => HubController.EmergencyStop();
+
+    /// <summary>
     /// Ota install from redis
     /// </summary>
     /// <returns></returns>
     public ValueTask OtaInstall(SemVersion semVersion) => HubController.OtaInstall(semVersion);
+
+    /// <summary>
+    /// Reboot the device from redis
+    /// </summary>
+    /// <returns></returns>
+    public ValueTask<bool> Reboot() => HubController.Reboot();
 
     /// <summary>
     /// Update self online status

@@ -47,10 +47,14 @@ public sealed class HubAuthentication : AuthenticationHandler<AuthenticationSche
             return Fail(AuthResultError.HeaderMissingOrInvalid);
         }
 
-        var device = await _db.Devices.FirstOrDefaultAsync(x => x.Token == sessionKey);
+        var device = await _db.Devices.Include(d => d.Owner.UserDeactivation).FirstOrDefaultAsync(x => x.Token == sessionKey);
         if (device is null)
         {
             return Fail(AuthResultError.TokenInvalid);
+        }
+        if (device.Owner.UserDeactivation is not null)
+        {
+            return Fail(AuthResultError.AccountDeactivated);
         }
 
         _authService.CurrentClient = device;

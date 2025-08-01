@@ -131,7 +131,7 @@ public sealed class PublicShareHub : Hub<IPublicShareHub>
 
     private async Task<BasicUserInfo?> SessionAuth(string sessionToken)
     {
-        var session = await _sessionService.GetSessionByToken(sessionToken);
+        var session = await _sessionService.GetSessionByTokenAsync(sessionToken);
         if (session is null) return null;
         
         return await _db.Users.Select(x => new BasicUserInfo

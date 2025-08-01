@@ -1,9 +1,10 @@
-﻿using System.Net.Mime;
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using OpenShock.API.Models.Requests;
 using OpenShock.Common.Errors;
 using OpenShock.Common.Models;
 using OpenShock.Common.Problems;
+using OpenShock.Common.Validation;
+using System.Net.Mime;
 
 namespace OpenShock.API.Controller.Account.Authenticated;
 
@@ -22,15 +23,15 @@ public sealed partial class AuthenticatedAccountController
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status403Forbidden, MediaTypeNames.Application.ProblemJson)] // UsernameRecentlyChanged
     public async Task<IActionResult> ChangeUsername(ChangeUsernameRequest data)
     {
-        var result = await _accountService.ChangeUsername(CurrentUser.Id, data.Username,
+        var result = await _accountService.ChangeUsernameAsync(CurrentUser.Id, data.Username,
             CurrentUser.Roles.Any(r => r is RoleType.Staff or RoleType.Admin or RoleType.System));
 
         return result.Match<IActionResult>(
             success => Ok(),
-            error => Problem(error.Value.Match(
-                taken => AccountError.UsernameTaken,
-                AccountError.UsernameInvalid,
-                changed => AccountError.UsernameRecentlyChanged)),
-            found => throw new Exception("Unexpected result, apparently our current user does not exist..."));
+            usernametaken => Problem(AccountError.UsernameTaken),
+            usernameerror => Problem(AccountError.UsernameInvalid(usernameerror)),
+            recentlychanged => Problem(AccountError.UsernameRecentlyChanged),
+            accountdeactivated => Problem(AccountError.AccountDeactivated),
+            notfound => throw new Exception("Unexpected result, apparently our current user does not exist..."));
     }
 }
