@@ -218,6 +218,19 @@ public sealed class HubV2Controller : HubControllerBase<HubToGatewayMessage, Gat
         });
 
     /// <inheritdoc />
+    public override async ValueTask<bool> EmergencyStop()
+    {
+        await QueueMessage(new GatewayToHubMessage
+        {
+            Payload = new GatewayToHubMessagePayload(new Trigger
+            {
+                Type = TriggerType.EmergencyStop
+            })
+        });
+        return true;
+    }
+
+    /// <inheritdoc />
     public override ValueTask OtaInstall(SemVersion version)
         => QueueMessage(new GatewayToHubMessage
         {
@@ -226,6 +239,19 @@ public sealed class HubV2Controller : HubControllerBase<HubToGatewayMessage, Gat
                 Version = version.ToSemVer()
             })
         });
+
+    /// <inheritdoc />
+    public override async ValueTask<bool> Reboot()
+    {
+        await QueueMessage(new GatewayToHubMessage
+        {
+            Payload = new GatewayToHubMessagePayload(new Trigger
+            {
+                Type = TriggerType.Restart
+            })
+        });
+        return true;
+    }
 
 
     /// <inheritdoc />

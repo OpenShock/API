@@ -13,4 +13,7 @@ public static class RedisChannels
     
     // OTA
     public static readonly RedisChannel DeviceOtaInstall = new("msg-device-ota-install", RedisChannel.PatternMode.Literal);
+    
+    public static readonly RedisChannel DeviceEmergencyStop = new("msg-device-emergency-stop", RedisChannel.PatternMode.Literal);
+    public static readonly RedisChannel DeviceReboot = new("msg-device-reboot", RedisChannel.PatternMode.Literal);
 }
