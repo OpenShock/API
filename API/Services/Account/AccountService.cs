@@ -49,14 +49,7 @@ public sealed class AccountService : IAccountService
     {
         await foreach (var entry in _db.UserNameBlacklists.AsNoTracking().AsAsyncEnumerable())
         {
-            switch (entry.MatchType)
-            {
-                case MatchTypeEnum.Exact when entry.Value.Equals(username, StringComparison.InvariantCultureIgnoreCase):
-                case MatchTypeEnum.Contains when username.Contains(entry.Value, StringComparison.InvariantCultureIgnoreCase):
-                    return true;
-                default:
-                    continue;
-            }
+            if (entry.IsMatch(username)) return true;
         }
 
         return false;
