@@ -16,9 +16,11 @@ public sealed partial class AdminController
 
         foreach (var domain in dto.Domains)
         {
+            if (string.IsNullOrWhiteSpace(domain)) continue;
+            
             var normalized = domain.Trim().ToLowerInvariant();
             
-            if (existingDomains.Contains(normalized)) continue;
+            if (!existingDomains.Add(normalized)) continue;
 
             _db.EmailProviderBlacklists.Add(new EmailProviderBlacklist
             {

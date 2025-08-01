@@ -1,4 +1,5 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using System.Net.Mail;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using OneOf;
 using OneOf.Types;
@@ -63,9 +64,8 @@ public sealed class AccountService : IAccountService
 
     private async Task<bool> IsEmailProviderBlacklisted(string email)
     {
-        var at = email.LastIndexOf('@');
-        if (at < 0) return true;
-        var domain = email[(at + 1)..];
+        if (!MailAddress.TryCreate(email, out var address)) return false;
+        var domain = address.Host.ToLowerInvariant();
         return await _db.EmailProviderBlacklists.AnyAsync(e => e.Domain == domain);
     }
 
