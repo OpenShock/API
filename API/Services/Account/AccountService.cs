@@ -46,10 +46,19 @@ public sealed class AccountService : IAccountService
 
     private async Task<bool> IsUserNameBlacklisted(string username)
     {
-        return await _db.UserNameBlacklists.AnyAsync(entry =>
-                (entry.MatchType == MatchTypeEnum.Exact && entry.Value.Equals(username)) ||
-                (entry.MatchType == MatchTypeEnum.Contains && username.Contains(entry.Value))
-            );
+        await foreach (var entry in _db.UserNameBlacklists.AsNoTracking().AsAsyncEnumerable())
+        {
+            switch (entry.MatchType)
+            {
+                case MatchTypeEnum.Exact when entry.Value.Equals(username, StringComparison.InvariantCultureIgnoreCase):
+                case MatchTypeEnum.Contains when username.Contains(entry.Value, StringComparison.InvariantCultureIgnoreCase):
+                    return true;
+                default:
+                    continue;
+            }
+        }
+
+        return false;
     }
 
     private async Task<bool> IsEmailProviderBlacklisted(string email)
