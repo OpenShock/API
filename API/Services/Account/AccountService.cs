@@ -333,7 +333,7 @@ public sealed class AccountService : IAccountService
             return validationResult.AsT1;
 
         if (await IsUserNameBlacklisted(username))
-            return new UsernameError(UsernameErrorType.Blacklisted, "Username is blacklisted");
+            return new UsernameTaken(); // Don't inform the user about when the blacklist is hit
 
         var isTaken = await _db.Users.AnyAsync(x => x.Name == username, cancellationToken: cancellationToken);
         if (isTaken) return new UsernameTaken();
