@@ -54,7 +54,7 @@ builder.Services.AddRateLimiter(options =>
 
         var retryAfterSeconds = Math.Ceiling(retryAfter.TotalSeconds).ToString("F0");
 
-        context.HttpContext.Response.Headers["Retry-After"] = retryAfterSeconds;
+        context.HttpContext.Response.Headers.RetryAfter = retryAfterSeconds;
 
         logger.LogWarning("Rate limit hit. IP: {IP}, Path: {Path}, User: {User}, Retry-After: {RetryAfter}s",
             context.HttpContext.Connection.RemoteIpAddress,
@@ -62,7 +62,7 @@ builder.Services.AddRateLimiter(options =>
             context.HttpContext.User.Identity?.Name ?? "Anonymous",
             retryAfterSeconds);
 
-        await context.HttpContext.Response.WriteAsync("Too Many Requests. Please retry after the specified time.", cancellationToken);
+        await context.HttpContext.Response.WriteAsync("Too Many Requests. Please try again later.", cancellationToken);
     };
 
     // Global fallback limiter
@@ -75,7 +75,7 @@ builder.Services.AddRateLimiter(options =>
         }));
 
     // Per-IP limiter
-    options.AddPolicy("PerIpPolicy", context =>
+    options.AddPolicy("per-ip", context =>
     {
         var ip = context.GetRemoteIP();
         if (IPAddress.IsLoopback(ip))
@@ -94,7 +94,7 @@ builder.Services.AddRateLimiter(options =>
     });
 
     // Per-user limiter
-    options.AddPolicy("PerUserPolicy", context =>
+    options.AddPolicy("per-user", context =>
     {
         var user = context.User;
         var userId = user.FindFirstValue(ClaimTypes.NameIdentifier) ?? "anonymous";
@@ -115,7 +115,7 @@ builder.Services.AddRateLimiter(options =>
     });
 
     // Authentication endpoints limiter
-    options.AddPolicy("AuthEndpointsPolicy", context =>
+    options.AddPolicy("auth", context =>
     {
         var ip = context.GetRemoteIP();
         return RateLimitPartition.GetFixedWindowLimiter(ip, _ => new FixedWindowRateLimiterOptions
@@ -126,7 +126,7 @@ builder.Services.AddRateLimiter(options =>
     });
 
     // Token reporting endpoint concurrency limiter
-    options.AddPolicy("TokenReportingConcurrencyPolicy", _ =>
+    options.AddPolicy("token-reporting", _ =>
         RateLimitPartition.GetConcurrencyLimiter("token-reporting", _ => new ConcurrencyLimiterOptions
         {
             PermitLimit = 5,
@@ -135,8 +135,8 @@ builder.Services.AddRateLimiter(options =>
         }));
 
     // Log fetching endpoint concurrency limiter
-    options.AddPolicy("LogFetchingConcurrencyPolicy", _ =>
-        RateLimitPartition.GetConcurrencyLimiter("log-fetching", _ => new ConcurrencyLimiterOptions
+    options.AddPolicy("shocker-logs", _ =>
+        RateLimitPartition.GetConcurrencyLimiter("shocker-logs", _ => new ConcurrencyLimiterOptions
         {
             PermitLimit = 10,
             QueueProcessingOrder = QueueProcessingOrder.OldestFirst,

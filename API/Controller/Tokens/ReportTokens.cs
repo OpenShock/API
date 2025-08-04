@@ -9,6 +9,7 @@ using OpenShock.Common.Problems;
 using OpenShock.Common.Services.Turnstile;
 using OpenShock.Common.Utils;
 using System.Net;
+using Microsoft.AspNetCore.RateLimiting;
 using OpenShock.Common.Services.Webhook;
 
 namespace OpenShock.API.Controller.Tokens;
@@ -24,6 +25,7 @@ public sealed partial class TokensController
     /// <param name="cancellationToken"></param>
     /// <response code="200">The tokens were deleted if found</response>
     [HttpPost("report")]
+    [EnableRateLimiting("token-reporting")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     public async Task<IActionResult> ReportTokens(
         [FromBody] ReportTokensRequest body,
