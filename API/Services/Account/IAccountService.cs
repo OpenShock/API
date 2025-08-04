@@ -17,14 +17,8 @@ public interface IAccountService
     /// <param name="username"></param>
     /// <param name="password"></param>
     /// <returns></returns>
-    public Task<OneOf<Success<User>, AccountWithEmailOrUsernameExists>> CreateUnverifiedAccountLegacyAsync(string email, string username, string password);
+    public Task<OneOf<Success<User>, AccountWithEmailOrUsernameExists>> CreateAccountWithoutVerificationFlowLegacyAsync(string email, string username, string password);
     
-    public Task<OneOf<Success, CannotDeactivatePrivilegedAccount, AccountDeactivationAlreadyInProgress, Unauthorized, NotFound>> DeactivateAccountAsync(Guid executingUserId, Guid userId, bool deleteLater = true);
-    
-    public Task<OneOf<Success, Unauthorized, NotFound>> ReactivateAccountAsync(Guid executingUserId, Guid userId);
-
-    public Task<OneOf<Success, CannotDeletePrivilegedAccount, Unauthorized, NotFound>> DeleteAccountAsync(Guid executingUserId, Guid userId);
-
     /// <summary>
     /// When a user uses the signup form, this also handles email verification mail
     /// </summary>
@@ -33,6 +27,12 @@ public interface IAccountService
     /// <param name="password"></param>
     /// <returns></returns>
     public Task<OneOf<Success<User>, AccountWithEmailOrUsernameExists>> CreateAccountWithVerificationFlowAsync(string email, string username, string password);
+
+    public Task<OneOf<Success, CannotDeactivatePrivilegedAccount, AccountDeactivationAlreadyInProgress, Unauthorized, NotFound>> DeactivateAccountAsync(Guid executingUserId, Guid userId, bool deleteLater = true);
+    
+    public Task<OneOf<Success, Unauthorized, NotFound>> ReactivateAccountAsync(Guid executingUserId, Guid userId);
+
+    public Task<OneOf<Success, CannotDeletePrivilegedAccount, Unauthorized, NotFound>> DeleteAccountAsync(Guid executingUserId, Guid userId);
 
     /// <summary>
     /// Login a user into his user session

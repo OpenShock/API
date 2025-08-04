@@ -12,7 +12,6 @@ using OpenShock.Common.Options;
 using OpenShock.Common.Services.Session;
 using OpenShock.Common.Utils;
 using OpenShock.Common.Validation;
-using Z.EntityFramework.Plus;
 
 namespace OpenShock.API.Services.Account;
 
@@ -62,13 +61,68 @@ public sealed class AccountService : IAccountService
         return await _db.EmailProviderBlacklists.AnyAsync(e => e.Domain == domain);
     }
 
-    /// <inheritdoc />
-    public Task<OneOf<Success<User>, AccountWithEmailOrUsernameExists>> CreateUnverifiedAccountLegacyAsync(string email, string username,
-        string password)
+    private async Task<OneOf<Success<User>, AccountWithEmailOrUsernameExists>> CreateAccount(string email, string username, string password, bool verifyOnCreation)
     {
-        return CreateAccount(email, username, password, true);
+        email = email.ToLowerInvariant();
+
+        if (await IsUserNameBlacklisted(username) || await IsEmailProviderBlacklisted(email))
+            return new AccountWithEmailOrUsernameExists();
+        
+        if (await _db.Users.AnyAsync(x => x.Email == email || x.Name == username))
+            return new AccountWithEmailOrUsernameExists();
+
+        var user = new User
+        {
+            Id = Guid.CreateVersion7(),
+            Name = username,
+            Email = email,
+            PasswordHash = HashingUtils.HashPassword(password)
+        };
+        _db.Users.Add(user);
+
+        await _db.SaveChangesAsync();
+
+        // Use date created by the database to keep timing consistent
+        if (verifyOnCreation)
+        {
+            await _db.Users
+                .Where(u => u.Id == user.Id)
+                .ExecuteUpdateAsync(spc => spc.SetProperty(u => u.ActivatedAt, u => u.CreatedAt));
+        }
+
+        return new Success<User>(user);
+    }
+    
+    /// <inheritdoc />
+    public async Task<OneOf<Success<User>, AccountWithEmailOrUsernameExists>> CreateAccountWithoutVerificationFlowLegacyAsync(string email, string username, string password)
+    {
+        return await CreateAccount(email, username, password, true);
     }
 
+    /// <inheritdoc />
+    public async Task<OneOf<Success<User>, AccountWithEmailOrUsernameExists>> CreateAccountWithVerificationFlowAsync(string email, string username, string password)
+    {
+        var accountCreate = await CreateAccount(email, username, password, false);
+        if (accountCreate.IsT1) return accountCreate;
+
+        var user = accountCreate.AsT0.Value;
+
+        var secret = CryptoUtils.RandomString(AuthConstants.GeneratedTokenLength);
+
+        user.UserActivationRequest = new UserActivationRequest
+        {
+            UserId = user.Id,
+            SecretHash = HashingUtils.HashToken(secret)
+        };
+
+        await _db.SaveChangesAsync();
+
+        await _emailService.VerifyEmail(new Contact(email, username),
+            new Uri(_frontendConfig.BaseUrl, $"/#/account/activate/{user.Id}/{secret}"));
+        return new Success<User>(user);
+    }
+    
+    /// <inheritdoc />
     public async Task<OneOf<Success, CannotDeactivatePrivilegedAccount, AccountDeactivationAlreadyInProgress, Unauthorized, NotFound>> DeactivateAccountAsync(Guid executingUserId, Guid userId, bool deleteLater)
     {
         if (executingUserId != userId)
@@ -114,6 +168,7 @@ public sealed class AccountService : IAccountService
         return new Success();
     }
 
+    /// <inheritdoc />
     public async Task<OneOf<Success, Unauthorized, NotFound>> ReactivateAccountAsync(Guid executingUserId, Guid userId)
     {
         var user = await _db.Users.Include(u => u.UserDeactivation).FirstOrDefaultAsync(u => u.Id == userId && u.UserDeactivation != null);
@@ -145,6 +200,7 @@ public sealed class AccountService : IAccountService
         return new Success();
     }
 
+    /// <inheritdoc />
     public async Task<OneOf<Success, CannotDeletePrivilegedAccount, Unauthorized, NotFound>> DeleteAccountAsync(Guid executingUserId, Guid userId)
     {
         var isPrivileged = await _db.Users
@@ -173,55 +229,6 @@ public sealed class AccountService : IAccountService
         await _db.SaveChangesAsync();
 
         return new Success();
-    }
-
-    private async Task<OneOf<Success<User>, AccountWithEmailOrUsernameExists>> CreateAccount(string email,
-        string username,
-        string password, bool emailActivated)
-    {
-        if (await IsUserNameBlacklisted(username) || await IsEmailProviderBlacklisted(email))
-            return new AccountWithEmailOrUsernameExists();
-
-        if (await _db.Users.AnyAsync(x => x.Email == email.ToLowerInvariant() || x.Name == username))
-            return new AccountWithEmailOrUsernameExists();
-
-        var newGuid = Guid.CreateVersion7();
-        var user = new User
-        {
-            Id = newGuid,
-            Name = username,
-            Email = email.ToLowerInvariant(),
-            PasswordHash = HashingUtils.HashPassword(password)
-        };
-        _db.Users.Add(user);
-
-        await _db.SaveChangesAsync();
-
-        return new Success<User>(user);
-    }
-
-    /// <inheritdoc />
-    public async Task<OneOf<Success<User>, AccountWithEmailOrUsernameExists>> CreateAccountWithVerificationFlowAsync(string email, string username,
-        string password)
-    {
-        var accountCreate = await CreateAccount(email, username, password, false);
-        if (accountCreate.IsT1) return accountCreate;
-
-        var user = accountCreate.AsT0.Value;
-
-        var secret = CryptoUtils.RandomString(AuthConstants.GeneratedTokenLength);
-
-        user.UserActivationRequest = new UserActivationRequest
-        {
-            UserId = user.Id,
-            SecretHash = HashingUtils.HashToken(secret)
-        };
-
-        await _db.SaveChangesAsync();
-
-        await _emailService.VerifyEmail(new Contact(email, username),
-            new Uri(_frontendConfig.BaseUrl, $"/#/account/activate/{user.Id}/{secret}"));
-        return new Success<User>(user);
     }
 
     /// <inheritdoc />

@@ -22,9 +22,10 @@ public sealed partial class AccountController
     [MapToApiVersion("1")]
     public async Task<IActionResult> SignUp([FromBody] SignUp body)
     {
-        var creationAction = await _accountService.CreateUnverifiedAccountLegacyAsync(body.Email, body.Username, body.Password);
-        if (creationAction.IsT1) return Problem(SignupError.EmailAlreadyExists);
-
-        return LegacyEmptyOk("Successfully signed up");
+        var creationAction = await _accountService.CreateAccountWithoutVerificationFlowLegacyAsync(body.Email, body.Username, body.Password);
+        return creationAction.Match<IActionResult>(
+            ok => LegacyEmptyOk("Successfully signed up"),
+            alreadyExists => Problem(SignupError.EmailAlreadyExists)
+            );
     }
 }
