@@ -52,7 +52,7 @@ builder.Services.AddRateLimiter(options =>
             retryAfter = TimeSpan.FromMinutes(1);
         }
 
-        var retryAfterSeconds = Math.Ceiling(retryAfter.TotalSeconds).ToString("F0");
+        var retryAfterSeconds = Math.Ceiling(retryAfter.TotalSeconds).ToString("R");
 
         context.HttpContext.Response.Headers.RetryAfter = retryAfterSeconds;
 
@@ -68,10 +68,13 @@ builder.Services.AddRateLimiter(options =>
     // Global fallback limiter
     // Fixed window at 10k requests allows 20k bursts if burst occurs at window boundry
     options.GlobalLimiter = PartitionedRateLimiter.Create<HttpContext, string>(_ =>
-        RateLimitPartition.GetFixedWindowLimiter("global", _ => new FixedWindowRateLimiterOptions
+        RateLimitPartition.GetSlidingWindowLimiter("global-1m", _ => new SlidingWindowRateLimiterOptions
         {
-            PermitLimit = 10000,
-            Window = TimeSpan.FromMinutes(1)
+            PermitLimit = 10_000,
+            Window = TimeSpan.FromMinutes(1),
+            SegmentsPerWindow = 6,
+            QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
+            QueueLimit = 0
         }));
 
     // Per-IP limiter
@@ -169,7 +172,7 @@ builder.Services.AddHostedService<RedisSubscriberService>();
 
 var app = builder.Build();
 
-await app.UseCommonOpenShockMiddleware();
+await app.UseCommonOpenShockMiddleware(addRateLimiting: true);
 
 if (!databaseConfig.SkipMigration)
 {
@@ -180,8 +183,12 @@ else
     Log.Warning("Skipping possible database migrations...");
 }
 
-app.MapHub<UserHub>("/1/hubs/user", options => options.Transports = HttpTransportType.WebSockets);
-app.MapHub<PublicShareHub>("/1/hubs/share/link/{id:guid}", options => options.Transports = HttpTransportType.WebSockets);
+app.MapHub<UserHub>("/1/hubs/user", options => options.Transports = HttpTransportType.WebSockets)
+    .RequireRateLimiting("per-ip")
+    .RequireRateLimiting("per-user");
+app.MapHub<PublicShareHub>("/1/hubs/share/link/{id:guid}", options => options.Transports = HttpTransportType.WebSockets)
+    .RequireRateLimiting("per-ip")
+    .RequireRateLimiting("per-user");
 
 await app.RunAsync();
 
