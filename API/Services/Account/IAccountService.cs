@@ -94,6 +94,14 @@ public interface IAccountService
     /// <param name="newPassword"></param>
     /// <returns></returns>
     public Task<OneOf<Success, AccountDeactivated, NotFound>> ChangePasswordAsync(Guid userId, string newPassword);
+
+    /// <summary>
+    /// 
+    /// </summary>
+    /// <param name="secret"></param>
+    /// <param name="cancellationToken"></param>
+    /// <returns></returns>
+    Task<bool> TryVerifyEmailAsync(string secret, CancellationToken cancellationToken = default);
 }
 
 public readonly record struct AccountDeactivated;

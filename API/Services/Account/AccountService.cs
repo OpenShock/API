@@ -118,7 +118,7 @@ public sealed class AccountService : IAccountService
         await _db.SaveChangesAsync();
 
         await _emailService.VerifyEmail(new Contact(email, username),
-            new Uri(_frontendConfig.BaseUrl, $"/#/account/activate/{user.Id}/{secret}"));
+            new Uri(_frontendConfig.BaseUrl, $"/account/activate/{user.Id}/{secret}"));
         return new Success<User>(user);
     }
     
@@ -404,6 +404,23 @@ public sealed class AccountService : IAccountService
         return new Success();
     }
 
+    public async Task<bool> TryVerifyEmailAsync(string secret, CancellationToken cancellationToken = default)
+    {
+        var hash = HashingUtils.HashToken(secret);
+        
+        var user = await _db.Users
+            .Include(u => u.UserActivationRequest)
+            .FirstOrDefaultAsync(x => x.UserActivationRequest != null && x.UserActivationRequest.SecretHash == hash, cancellationToken);
+        if (user?.UserActivationRequest is null) return false;
+        
+        user.ActivatedAt = DateTime.UtcNow;
+        
+        _db.UserActivationRequests.Remove(user.UserActivationRequest);
+        
+        await _db.SaveChangesAsync(cancellationToken);
+
+        return true;
+    }
 
     private async Task<bool> CheckPassword(string password, User user)
     {
