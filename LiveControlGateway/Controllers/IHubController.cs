@@ -28,11 +28,23 @@ public interface IHubController : IAsyncDisposable
     public ValueTask CaptivePortal(bool enable);
     
     /// <summary>
+    /// Trigger EStop for device (cannot be undone remotely)
+    /// </summary>
+    /// <returns></returns>
+    public ValueTask<bool> EmergencyStop();
+    
+    /// <summary>
     /// Start an OTA install
     /// </summary>
     /// <param name="version"></param>
     /// <returns></returns>
     public ValueTask OtaInstall(SemVersion version);
+    
+    /// <summary>
+    /// Reboot the device
+    /// </summary>
+    /// <returns></returns>
+    public ValueTask<bool> Reboot();
 
     /// <summary>
     /// Disconnect the old connection in favor of the new one

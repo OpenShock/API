@@ -1,9 +1,10 @@
-﻿using System.Net.Mime;
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using OpenShock.API.Models.Requests;
 using OpenShock.Common.Errors;
 using OpenShock.Common.Models;
 using OpenShock.Common.Problems;
+using OpenShock.Common.Validation;
+using System.Net.Mime;
 
 namespace OpenShock.API.Controller.Account.Authenticated;
 
@@ -27,10 +28,10 @@ public sealed partial class AuthenticatedAccountController
 
         return result.Match<IActionResult>(
             success => Ok(),
-            error => Problem(error.Value.Match(
-                taken => AccountError.UsernameTaken,
-                AccountError.UsernameInvalid,
-                changed => AccountError.UsernameRecentlyChanged)),
-            found => throw new Exception("Unexpected result, apparently our current user does not exist..."));
+            usernametaken => Problem(AccountError.UsernameTaken),
+            usernameerror => Problem(AccountError.UsernameInvalid(usernameerror)),
+            recentlychanged => Problem(AccountError.UsernameRecentlyChanged),
+            accountdeactivated => Problem(AccountError.AccountDeactivated),
+            notfound => throw new Exception("Unexpected result, apparently our current user does not exist..."));
     }
 }

@@ -37,10 +37,24 @@ public interface IRedisPubService
     Task SendDeviceUpdate(Guid deviceId);
 
     /// <summary>
+    /// Trigger the emergency stop on the device if it's supported
+    /// </summary>
+    /// <param name="deviceId"></param>
+    /// <returns></returns>
+    Task SendDeviceEmergencyStop(Guid deviceId);
+
+    /// <summary>
     /// Start an OTA update on the device
     /// </summary>
     /// <param name="deviceId"></param>
     /// <param name="version"></param>
     /// <returns></returns>
     Task SendDeviceOtaInstall(Guid deviceId, SemVersion version);
+
+    /// <summary>
+    /// Reboot the device if it's supported
+    /// </summary>
+    /// <param name="deviceId"></param>
+    /// <returns></returns>
+    Task SendDeviceReboot(Guid deviceId);
 }

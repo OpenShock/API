@@ -40,6 +40,11 @@ public sealed class RedisSubscriberService : IHostedService, IAsyncDisposable
         // OTA
         await _subscriber.SubscribeAsync(RedisChannels.DeviceOtaInstall,
             (_, message) => OsTask.Run(() => DeviceOtaInstall(message)));
+        
+        await _subscriber.SubscribeAsync(RedisChannels.DeviceEmergencyStop,
+            (_, message) => OsTask.Run(() => DeviceEmergencyStop(message)));
+        await _subscriber.SubscribeAsync(RedisChannels.DeviceReboot,
+            (_, message) => OsTask.Run(() => DeviceReboot(message)));
     }
 
     private async Task DeviceControl(RedisValue value)
@@ -73,6 +78,20 @@ public sealed class RedisSubscriberService : IHostedService, IAsyncDisposable
         
         await _hubLifetimeManager.UpdateDevice(data.Id);
     }
+    
+    /// <summary>
+    /// Trigger the device's emergency stop the device if found and it supports it
+    /// </summary>
+    /// <param name="value"></param>
+    /// <returns></returns>
+    private async Task DeviceEmergencyStop(RedisValue value)
+    {
+        if (!value.HasValue) return;
+        var data = JsonSerializer.Deserialize<DeviceEmergencyStopMessage>(value.ToString());
+        if (data is null) return;
+        
+        await _hubLifetimeManager.EmergencyStop(data.Id);
+    }
 
     /// <summary>
     /// Update the device connection if found
@@ -86,6 +105,20 @@ public sealed class RedisSubscriberService : IHostedService, IAsyncDisposable
         if (data is null) return;
         
         await _hubLifetimeManager.OtaInstall(data.Id, data.Version);
+    }
+    
+    /// <summary>
+    /// Reboot the device if found and it supports it
+    /// </summary>
+    /// <param name="value"></param>
+    /// <returns></returns>
+    private async Task DeviceReboot(RedisValue value)
+    {
+        if (!value.HasValue) return;
+        var data = JsonSerializer.Deserialize<DeviceRebootMessage>(value.ToString());
+        if (data is null) return;
+        
+        await _hubLifetimeManager.Reboot(data.Id);
     }
 
 
