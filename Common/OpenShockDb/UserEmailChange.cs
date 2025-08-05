@@ -8,7 +8,7 @@ public sealed class UserEmailChange
 
     public string Email { get; set; } = null!;
 
-    public string SecretHash { get; set; } = null!;
+    public string TokenHash { get; set; } = null!;
 
     public DateTime? UsedAt { get; set; }
 

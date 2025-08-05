@@ -107,18 +107,18 @@ public sealed class AccountService : IAccountService
 
         var user = accountCreate.AsT0.Value;
 
-        var secret = CryptoUtils.RandomString(AuthConstants.GeneratedTokenLength);
+        var token = CryptoUtils.RandomString(AuthConstants.GeneratedTokenLength);
 
         user.UserActivationRequest = new UserActivationRequest
         {
             UserId = user.Id,
-            SecretHash = HashingUtils.HashToken(secret)
+            TokenHash = HashingUtils.HashToken(token)
         };
 
         await _db.SaveChangesAsync();
 
         await _emailService.VerifyEmail(new Contact(email, username),
-            new Uri(_frontendConfig.BaseUrl, $"/#/account/activate/{user.Id}/{secret}"));
+            new Uri(_frontendConfig.BaseUrl, $"/#/account/activate/{user.Id}/{token}"));
         return new Success<User>(user);
     }
     
@@ -268,7 +268,7 @@ public sealed class AccountService : IAccountService
 
         if (reset is null) return new NotFound();
 
-        var result = HashingUtils.VerifyToken(secret, reset.SecretHash);
+        var result = HashingUtils.VerifyToken(secret, reset.TokenHash);
         if (!result.Verified) return new SecretInvalid();
         
         return new Success();
@@ -292,19 +292,18 @@ public sealed class AccountService : IAccountService
         if (user.User.UserDeactivation is not null) return new AccountDeactivated();
         if (user.PasswordResetCount >= 3) return new TooManyPasswordResets();
 
-        var secret = CryptoUtils.RandomString(AuthConstants.GeneratedTokenLength);
-        var secretHash = HashingUtils.HashToken(secret);
+        var token = CryptoUtils.RandomString(AuthConstants.GeneratedTokenLength);
         var passwordReset = new UserPasswordReset
         {
             Id = Guid.CreateVersion7(),
             UserId = user.User.Id,
-            SecretHash = secretHash
+            TokenHash = HashingUtils.HashToken(token)
         };
         _db.UserPasswordResets.Add(passwordReset);
         await _db.SaveChangesAsync();
 
         await _emailService.PasswordReset(new Contact(user.User.Email, user.User.Name),
-            new Uri(_frontendConfig.BaseUrl, $"/#/account/password/recover/{passwordReset.Id}/{secret}"));
+            new Uri(_frontendConfig.BaseUrl, $"/#/account/password/recover/{passwordReset.Id}/{token}"));
 
         return new Success();
     }
@@ -322,7 +321,7 @@ public sealed class AccountService : IAccountService
         if (reset is null) return new NotFound();
         if (reset.User.UserDeactivation is not null) return new AccountDeactivated();
 
-        var result = HashingUtils.VerifyToken(secret, reset.SecretHash);
+        var result = HashingUtils.VerifyToken(secret, reset.TokenHash);
         if (!result.Verified) return new SecretInvalid();
 
         reset.UsedAt = DateTime.UtcNow;
