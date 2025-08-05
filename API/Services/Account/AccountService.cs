@@ -94,13 +94,13 @@ public sealed class AccountService : IAccountService
     }
     
     /// <inheritdoc />
-    public async Task<OneOf<Success<User>, AccountWithEmailOrUsernameExists>> CreateAccountWithoutVerificationFlowLegacyAsync(string email, string username, string password)
+    public async Task<OneOf<Success<User>, AccountWithEmailOrUsernameExists>> CreateAccountWithoutActivationFlowLegacyAsync(string email, string username, string password)
     {
         return await CreateAccount(email, username, password, true);
     }
 
     /// <inheritdoc />
-    public async Task<OneOf<Success<User>, AccountWithEmailOrUsernameExists>> CreateAccountWithVerificationFlowAsync(string email, string username, string password)
+    public async Task<OneOf<Success<User>, AccountWithEmailOrUsernameExists>> CreateAccountWithActivationFlowAsync(string email, string username, string password)
     {
         var accountCreate = await CreateAccount(email, username, password, false);
         if (accountCreate.IsT1) return accountCreate;
