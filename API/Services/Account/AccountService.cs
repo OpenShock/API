@@ -118,7 +118,7 @@ public sealed class AccountService : IAccountService
         await _db.SaveChangesAsync();
 
         await _emailService.VerifyEmail(new Contact(email, username),
-            new Uri(_frontendConfig.BaseUrl, $"/account/activate/{user.Id}/{secret}"));
+            new Uri(_frontendConfig.BaseUrl, $"/#/account/activate/{user.Id}/{secret}"));
         return new Success<User>(user);
     }
 
