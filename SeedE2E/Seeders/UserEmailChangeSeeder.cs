@@ -21,7 +21,7 @@ public static class UserEmailChangeSeeder
         var emailChangeFaker = new Faker<UserEmailChange>()
             .RuleFor(e => e.Id, f => Guid.CreateVersion7())
             .RuleFor(e => e.UserId, f => f.PickRandom(allUserIds))
-            .RuleFor(e => e.Email, f => f.Internet.Email().Truncate(HardLimits.EmailAddressMaxLength))
+            .RuleFor(e => e.OldEmail, f => f.Internet.Email().Truncate(HardLimits.EmailAddressMaxLength))
             .RuleFor(e => e.SecretHash, f =>
             {
                 var raw = f.Random.AlphaNumeric(20);

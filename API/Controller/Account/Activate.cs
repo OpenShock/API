@@ -9,16 +9,16 @@ namespace OpenShock.API.Controller.Account;
 public sealed partial class AccountController
 {
     /// <summary>
-    /// Verify account email
+    /// Activate account
     /// </summary>
     /// <response code="200"></response>
-    [HttpPost("verify-email")]
+    [HttpPost("activate")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status403Forbidden, MediaTypeNames.Application.Json)]
     [MapToApiVersion("2")]
-    public async Task<IActionResult> EmailVerify([FromQuery(Name = "token")] string token, CancellationToken cancellationToken)
+    public async Task<IActionResult> Activate([FromQuery(Name = "token")] string token, CancellationToken cancellationToken)
     {
-        bool ok = await _accountService.TryVerifyEmailAsync(token, cancellationToken);
+        bool ok = await _accountService.TryActivateAccountAsync(token, cancellationToken);
         
         return Ok();
     }

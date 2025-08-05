@@ -121,7 +121,25 @@ public sealed class AccountService : IAccountService
             new Uri(_frontendConfig.BaseUrl, $"/account/activate/{user.Id}/{secret}"));
         return new Success<User>(user);
     }
-    
+
+    public async Task<bool> TryActivateAccountAsync(string secret, CancellationToken cancellationToken = default)
+    {
+        var hash = HashingUtils.HashToken(secret);
+
+        var user = await _db.Users
+            .Include(u => u.UserActivationRequest)
+            .FirstOrDefaultAsync(x => x.UserDeactivation == null && x.UserActivationRequest != null && x.UserActivationRequest.SecretHash == hash, cancellationToken);
+        if (user?.UserActivationRequest is null) return false;
+
+        user.ActivatedAt = DateTime.UtcNow;
+
+        _db.UserActivationRequests.Remove(user.UserActivationRequest);
+
+        await _db.SaveChangesAsync(cancellationToken);
+
+        return true;
+    }
+
     /// <inheritdoc />
     public async Task<OneOf<Success, CannotDeactivatePrivilegedAccount, AccountDeactivationAlreadyInProgress, Unauthorized, NotFound>> DeactivateAccountAsync(Guid executingUserId, Guid userId, bool deleteLater)
     {
@@ -404,22 +422,18 @@ public sealed class AccountService : IAccountService
         return new Success();
     }
 
-    public async Task<bool> TryVerifyEmailAsync(string secret, CancellationToken cancellationToken = default)
+    public async Task<bool> TryVerifyEmailAsync(string token, CancellationToken cancellationToken = default)
     {
-        var hash = HashingUtils.HashToken(secret);
-        
-        var user = await _db.Users
-            .Include(u => u.UserActivationRequest)
-            .FirstOrDefaultAsync(x => x.UserActivationRequest != null && x.UserActivationRequest.SecretHash == hash, cancellationToken);
-        if (user?.UserActivationRequest is null) return false;
-        
-        user.ActivatedAt = DateTime.UtcNow;
-        
-        _db.UserActivationRequests.Remove(user.UserActivationRequest);
-        
-        await _db.SaveChangesAsync(cancellationToken);
+        var hash = HashingUtils.HashToken(token);
 
-        return true;
+        int nChanges = await _db.UserEmailChanges
+            .Where(x => x.SecretHash == hash && x.UsedAt == null && x.User.Email == x.OldEmail && x.User.UserDeactivation == null && x.User.ActivatedAt != null)
+            .ExecuteUpdateAsync(spc => spc
+                .SetProperty(x => x.UsedAt, _ => DateTime.UtcNow)
+                .SetProperty(x => x.User.Email, x => x.NewEmail)
+            , cancellationToken);
+
+        return nChanges > 0;
     }
 
     private async Task<bool> CheckPassword(string password, User user)

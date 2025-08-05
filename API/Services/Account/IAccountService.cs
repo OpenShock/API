@@ -28,6 +28,14 @@ public interface IAccountService
     /// <returns></returns>
     public Task<OneOf<Success<User>, AccountWithEmailOrUsernameExists>> CreateAccountWithVerificationFlowAsync(string email, string username, string password);
 
+    /// <summary>
+    /// 
+    /// </summary>
+    /// <param name="token"></param>
+    /// <param name="cancellationToken"></param>
+    /// <returns></returns>
+    Task<bool> TryActivateAccountAsync(string token, CancellationToken cancellationToken = default);
+
     public Task<OneOf<Success, CannotDeactivatePrivilegedAccount, AccountDeactivationAlreadyInProgress, Unauthorized, NotFound>> DeactivateAccountAsync(Guid executingUserId, Guid userId, bool deleteLater = true);
     
     public Task<OneOf<Success, Unauthorized, NotFound>> ReactivateAccountAsync(Guid executingUserId, Guid userId);
@@ -98,10 +106,10 @@ public interface IAccountService
     /// <summary>
     /// 
     /// </summary>
-    /// <param name="secret"></param>
+    /// <param name="token"></param>
     /// <param name="cancellationToken"></param>
     /// <returns></returns>
-    Task<bool> TryVerifyEmailAsync(string secret, CancellationToken cancellationToken = default);
+    Task<bool> TryVerifyEmailAsync(string token, CancellationToken cancellationToken = default);
 }
 
 public readonly record struct AccountDeactivated;
