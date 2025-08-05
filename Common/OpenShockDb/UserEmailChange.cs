@@ -10,7 +10,7 @@ public sealed class UserEmailChange
 
     public required string NewEmail { get; set; }
 
-    public required string SecretHash { get; set; }
+    public required string TokenHash { get; set; }
 
     public DateTime? UsedAt { get; set; }
 

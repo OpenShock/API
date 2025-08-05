@@ -167,7 +167,8 @@ public class OpenShockContext : DbContext
                 .HasMaxLength(HardLimits.ApiKeyNameMaxLength)
                 .HasColumnName("name");
             entity.Property(e => e.TokenHash)
-                .HasMaxLength(HardLimits.Sha256HashHexLength)
+                .UseCollation("C")
+                .VarCharWithLength(HardLimits.Sha256HashHexLength)
                 .HasColumnName("token_hash");
             entity.Property(e => e.UserId).HasColumnName("user_id");
             entity.Property(e => e.ValidUntil).HasColumnName("valid_until");
@@ -238,6 +239,7 @@ public class OpenShockContext : DbContext
                 .HasColumnName("name");
             entity.Property(e => e.OwnerId).HasColumnName("owner_id");
             entity.Property(e => e.Token)
+                .UseCollation("C")
                 .HasMaxLength(HardLimits.HubTokenMaxLength)
                 .HasColumnName("token");
 
@@ -288,9 +290,10 @@ public class OpenShockContext : DbContext
             entity.Property(e => e.CreatedAt)
                 .HasDefaultValueSql("CURRENT_TIMESTAMP")
                 .HasColumnName("created_at");
-            entity.Property(e => e.SecretHash)
+            entity.Property(e => e.TokenHash)
+                .UseCollation("C")
                 .VarCharWithLength(HardLimits.PasswordResetSecretMaxLength)
-                .HasColumnName("secret");
+                .HasColumnName("token_hash");
             entity.Property(e => e.UsedAt)
                 .HasColumnName("used_at");
             entity.Property(e => e.UserId).HasColumnName("user_id");
@@ -591,6 +594,7 @@ public class OpenShockContext : DbContext
                 .VarCharWithLength(HardLimits.EmailAddressMaxLength)
                 .HasColumnName("email");
             entity.Property(e => e.PasswordHash)
+                .UseCollation("C")
                 .VarCharWithLength(HardLimits.PasswordHashMaxLength)
                 .HasColumnName("password_hash");
             entity.Property(e => e.Roles)
@@ -607,13 +611,16 @@ public class OpenShockContext : DbContext
         {
             entity.HasKey(e => e.UserId).HasName("user_activation_requests_pkey");
 
+            entity.HasIndex(e => e.TokenHash).IsUnique();
+
             entity.ToTable("user_activation_requests");
 
             entity.Property(e => e.UserId)
                 .HasColumnName("user_id");
-            entity.Property(e => e.SecretHash)
+            entity.Property(e => e.TokenHash)
+                .UseCollation("C")
                 .VarCharWithLength(HardLimits.UserActivationRequestSecretMaxLength)
-                .HasColumnName("secret");
+                .HasColumnName("token_hash");
             entity.Property(e => e.EmailSendAttempts)
                 .HasColumnName("email_send_attempts");
             entity.Property(e => e.CreatedAt)
@@ -673,9 +680,10 @@ public class OpenShockContext : DbContext
             entity.Property(e => e.NewEmail)
                 .VarCharWithLength(HardLimits.EmailAddressMaxLength)
                 .HasColumnName("email_new");
-            entity.Property(e => e.SecretHash)
+            entity.Property(e => e.TokenHash)
+                .UseCollation("C")
                 .VarCharWithLength(HardLimits.UserEmailChangeSecretMaxLength)
-                .HasColumnName("secret");
+                .HasColumnName("token_hash");
             entity.Property(e => e.UsedAt)
                 .HasColumnName("used_at");
             entity.Property(e => e.CreatedAt)

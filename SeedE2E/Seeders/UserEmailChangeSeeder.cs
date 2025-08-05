@@ -24,10 +24,10 @@ public static class UserEmailChangeSeeder
             .RuleFor(e => e.UserId, f => f.PickRandom(allUserIds))
             .RuleFor(e => e.OldEmail, f => f.Internet.Email())
             .RuleFor(e => e.NewEmail, f => f.Internet.Email())
-            .RuleFor(e => e.SecretHash, f =>
+            .RuleFor(e => e.TokenHash, f =>
             {
-                var raw = f.Random.AlphaNumeric(20);
-                return HashingUtils.HashToken(raw).Truncate(HardLimits.UserEmailChangeSecretMaxLength);
+                var token = f.Random.AlphaNumeric(AuthConstants.GeneratedTokenLength);
+                return HashingUtils.HashToken(token);
             })
             .RuleFor(e => e.UsedAt, f => f.Random.Bool(0.4f) ? f.Date.RecentOffset(20).UtcDateTime : (DateTime?)null)
             .RuleFor(e => e.CreatedAt, f => f.Date.RecentOffset(40).UtcDateTime);
