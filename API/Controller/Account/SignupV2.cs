@@ -43,7 +43,7 @@ public sealed partial class AccountController
             return Problem(new OpenShockProblem("InternalServerError", "Internal Server Error", HttpStatusCode.InternalServerError));
         }
 
-        var creationAction = await _accountService.CreateAccountWithVerificationFlowAsync(body.Email, body.Username, body.Password);
+        var creationAction = await _accountService.CreateAccountWithActivationFlowAsync(body.Email, body.Username, body.Password);
         return creationAction.Match(
             _ => LegacyEmptyOk("Successfully signed up"),
             _ => Problem(SignupError.EmailAlreadyExists)
