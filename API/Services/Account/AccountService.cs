@@ -128,7 +128,7 @@ public sealed class AccountService : IAccountService
 
         var user = await _db.Users
             .Include(u => u.UserActivationRequest)
-            .FirstOrDefaultAsync(x => x.UserDeactivation == null && x.UserActivationRequest != null && x.UserActivationRequest.SecretHash == hash, cancellationToken);
+            .FirstOrDefaultAsync(x => x.UserDeactivation == null && x.UserActivationRequest != null && x.UserActivationRequest.TokenHash == hash, cancellationToken);
         if (user?.UserActivationRequest is null) return false;
 
         user.ActivatedAt = DateTime.UtcNow;
@@ -426,7 +426,7 @@ public sealed class AccountService : IAccountService
         var hash = HashingUtils.HashToken(token);
 
         int nChanges = await _db.UserEmailChanges
-            .Where(x => x.SecretHash == hash && x.UsedAt == null && x.User.Email == x.OldEmail && x.User.UserDeactivation == null && x.User.ActivatedAt != null)
+            .Where(x => x.TokenHash == hash && x.UsedAt == null && x.User.Email == x.OldEmail && x.User.UserDeactivation == null && x.User.ActivatedAt != null)
             .ExecuteUpdateAsync(spc => spc
                 .SetProperty(x => x.UsedAt, _ => DateTime.UtcNow)
                 .SetProperty(x => x.User.Email, x => x.NewEmail)
