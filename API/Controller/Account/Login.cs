@@ -38,10 +38,15 @@ public sealed partial class AccountController
             UserAgent = HttpContext.GetUserAgent(),
         }, cancellationToken);
 
-        if (loginAction.IsT1) return Problem(LoginError.InvalidCredentials);
-
-        HttpContext.SetSessionKeyCookie(loginAction.AsT0.Value, "." + cookieDomainToUse);
-
-        return LegacyEmptyOk("Successfully logged in");
+        return loginAction.Match<IActionResult>(
+            ok =>
+            {
+                HttpContext.SetSessionKeyCookie(loginAction.AsT0.Value, "." + cookieDomainToUse);
+                return LegacyEmptyOk("Successfully logged in");
+            },
+            notActivated => Problem(LoginError.AccountNotActivated),
+            deactivated => Problem(LoginError.AccountDeactivated),
+            notFound => Problem(LoginError.InvalidCredentials)
+        );
     }
 }

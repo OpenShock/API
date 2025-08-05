@@ -71,9 +71,14 @@ public sealed class UserSessionAuthentication : AuthenticationHandler<Authentica
 
         var retrievedUser = await _db.Users.Include(u => u.UserDeactivation).FirstOrDefaultAsync(user => user.Id == session.UserId);
         if (retrievedUser == null) return Fail(AuthResultError.SessionInvalid);
+        if (retrievedUser.ActivatedAt is null)
+        {
+            await _sessionService.DeleteSessionAsync(session);
+            return Fail(AuthResultError.AccountNotActivated);
+        }
         if (retrievedUser.UserDeactivation is not null)
         {
-            await _sessionService.DeleteSessionAsync(session); // This session shouldnt exist
+            await _sessionService.DeleteSessionAsync(session);
             return Fail(AuthResultError.AccountDeactivated);
         }
 

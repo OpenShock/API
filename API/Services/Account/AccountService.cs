@@ -250,7 +250,7 @@ public sealed class AccountService : IAccountService
     }
 
     /// <inheritdoc />
-    public async Task<OneOf<Success<string>, AccountDeactivated, NotFound>> CreateUserLoginSessionAsync(string usernameOrEmail, string password,
+    public async Task<OneOf<Success<string>, AccountNotActivated, AccountDeactivated, NotFound>> CreateUserLoginSessionAsync(string usernameOrEmail, string password,
         LoginContext loginContext, CancellationToken cancellationToken = default)
     {
         var lowercaseUsernameOrEmail = usernameOrEmail.ToLowerInvariant();
@@ -262,6 +262,10 @@ public sealed class AccountService : IAccountService
             // TODO: Set appropriate time to match password hashing time, preventing timing attacks
             await Task.Delay(100, cancellationToken);
             return new NotFound();
+        }
+        if (user.ActivatedAt is null)
+        {
+            return new AccountNotActivated();
         }
         if (user.UserDeactivation is not null)
         {

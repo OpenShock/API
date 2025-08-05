@@ -50,7 +50,7 @@ public interface IAccountService
     /// <param name="loginContext"></param>
     /// <param name="cancellationToken"></param>
     /// <returns></returns>
-    public Task<OneOf<Success<string>, AccountDeactivated, NotFound>> CreateUserLoginSessionAsync(string usernameOrEmail, string password, LoginContext loginContext, CancellationToken cancellationToken = default);
+    public Task<OneOf<Success<string>, AccountNotActivated, AccountDeactivated, NotFound>> CreateUserLoginSessionAsync(string usernameOrEmail, string password, LoginContext loginContext, CancellationToken cancellationToken = default);
     
     /// <summary>
     /// Check if a password reset request exists and the secret is valid
@@ -112,6 +112,7 @@ public interface IAccountService
     Task<bool> TryVerifyEmailAsync(string token, CancellationToken cancellationToken = default);
 }
 
+public readonly record struct AccountNotActivated;
 public readonly record struct AccountDeactivated;
 public readonly struct AccountWithEmailOrUsernameExists;
 public readonly struct CannotDeactivatePrivilegedAccount;
