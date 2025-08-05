@@ -15,8 +15,8 @@ using OpenShock.Common.OpenShockDb;
 namespace OpenShock.Common.Migrations
 {
     [DbContext(typeof(MigrationOpenShockContext))]
-    [Migration("20250805114659_FixHashColumns")]
-    partial class FixHashColumns
+    [Migration("20250805114659_CleanupTokenHashColumns")]
+    partial class CleanupTokenHashColumns
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)

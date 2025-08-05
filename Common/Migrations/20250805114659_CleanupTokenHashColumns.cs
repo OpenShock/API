@@ -5,7 +5,7 @@
 namespace OpenShock.Common.Migrations
 {
     /// <inheritdoc />
-    public partial class FixHashColumns : Migration
+    public partial class CleanupTokenHashColumns : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
