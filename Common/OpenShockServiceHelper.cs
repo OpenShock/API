@@ -238,40 +238,27 @@ public static class OpenShockServiceHelper
 
             // Global fallback limiter
             // Fixed window at 10k requests allows 20k bursts if burst occurs at window boundary
-            options.GlobalLimiter = PartitionedRateLimiter.Create<HttpContext, string>(_ =>
-                RateLimitPartition.GetSlidingWindowLimiter("global-1m", _ => new SlidingWindowRateLimiterOptions
-                {
-                    PermitLimit = 10_000,
-                    Window = TimeSpan.FromMinutes(1),
-                    SegmentsPerWindow = 6,
-                    QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
-                    QueueLimit = 200
-                }));
-
-            // Per-IP limiter
-            options.AddPolicy("per-ip", context =>
-            {
-                var ip = context.GetRemoteIP();
-                if (IPAddress.IsLoopback(ip)) return RateLimitPartition.GetNoLimiter(IPAddress.Loopback);
-
-                return RateLimitPartition.GetSlidingWindowLimiter(ip, _ => new SlidingWindowRateLimiterOptions
-                {
-                    PermitLimit = 1000,
-                    Window = TimeSpan.FromMinutes(1),
-                    SegmentsPerWindow = 6,
-                    QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
-                    QueueLimit = 100
-                });
-            });
-
-            // Per-user limiter
-            options.AddPolicy("per-user", context =>
+            options.GlobalLimiter = PartitionedRateLimiter.Create<HttpContext, string>(context =>
             {
                 var user = context.User;
-                var userId = user.FindFirstValue(ClaimTypes.NameIdentifier) ?? "anonymous";
+                var userId = user.FindFirstValue(ClaimTypes.NameIdentifier);
+                if (string.IsNullOrEmpty(userId))
+                {
+                    var ip = context.GetRemoteIP();
+                    if (IPAddress.IsLoopback(ip)) return RateLimitPartition.GetNoLimiter("ip-loopback-nolimit");
 
+                    return RateLimitPartition.GetSlidingWindowLimiter($"ip-{ip}", _ => new SlidingWindowRateLimiterOptions
+                    {
+                        PermitLimit = 1000,
+                        Window = TimeSpan.FromMinutes(1),
+                        SegmentsPerWindow = 6,
+                        QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
+                        QueueLimit = 100
+                    });
+                }
+                
                 if (user.HasClaim(claim => claim is { Type: ClaimTypes.Role, Value: "Admin" or "System" }))
-                    return RateLimitPartition.GetNoLimiter($"user-{userId}-privileged");
+                    return RateLimitPartition.GetNoLimiter("privileged-nolimit");
 
                 return RateLimitPartition.GetSlidingWindowLimiter($"user-{userId}", _ =>
                     new SlidingWindowRateLimiterOptions

@@ -70,12 +70,8 @@ else
     Log.Warning("Skipping possible database migrations...");
 }
 
-app.MapHub<UserHub>("/1/hubs/user", options => options.Transports = HttpTransportType.WebSockets)
-    .RequireRateLimiting("per-ip")
-    .RequireRateLimiting("per-user");
-app.MapHub<PublicShareHub>("/1/hubs/share/link/{id:guid}", options => options.Transports = HttpTransportType.WebSockets)
-    .RequireRateLimiting("per-ip")
-    .RequireRateLimiting("per-user");
+app.MapHub<UserHub>("/1/hubs/user", options => options.Transports = HttpTransportType.WebSockets);
+app.MapHub<PublicShareHub>("/1/hubs/share/link/{id:guid}", options => options.Transports = HttpTransportType.WebSockets);
 
 await app.RunAsync();
 

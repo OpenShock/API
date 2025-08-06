@@ -86,13 +86,10 @@ public static class OpenShockMiddlewareHelper
                 options
                     .WithOpenApiRoutePattern("/swagger/{documentName}/swagger.json")
                     .AddDocument("1", "Version 1")
-                    .AddDocument("2", "Version 2"))
-            .RequireRateLimiting("per-ip")
-            .RequireRateLimiting("per-user");
+                    .AddDocument("2", "Version 2")
+                );
         
-        app.MapControllers()
-            .RequireRateLimiting("per-ip")
-            .RequireRateLimiting("per-user");
+        app.MapControllers();
 
         return app;
     }
