@@ -46,6 +46,6 @@ builder.Services.AddSingleton<HubLifetimeManager>();
 
 var app = builder.Build();
 
-await app.UseCommonOpenShockMiddleware(addRateLimiting: false);
+await app.UseCommonOpenShockMiddleware();
 
 await app.RunAsync();

@@ -23,7 +23,7 @@ public static class OpenShockMiddlewareHelper
         ForwardedForHeaderName = "CF-Connecting-IP"
     };
     
-    public static async Task<IApplicationBuilder> UseCommonOpenShockMiddleware(this WebApplication app, bool addRateLimiting)
+    public static async Task<IApplicationBuilder> UseCommonOpenShockMiddleware(this WebApplication app)
     {
         var metricsOptions = app.Services.GetRequiredService<IOptions<MetricsOptions>>().Value;
         var metricsAllowedIpNetworks = metricsOptions.AllowedNetworks.Select(x => IPNetwork.Parse(x)).ToArray();
@@ -70,10 +70,7 @@ public static class OpenShockMiddlewareHelper
         await redisConnection.CreateIndexAsync(typeof(DevicePair));
         await redisConnection.CreateIndexAsync(typeof(LcgNode));
 
-        if (addRateLimiting)
-        {
-            app.UseRateLimiter();
-        }
+        app.UseRateLimiter();
         
         app.UseOpenTelemetryPrometheusScrapingEndpoint(context =>
         {
@@ -84,26 +81,18 @@ public static class OpenShockMiddlewareHelper
         });
         
         app.UseSwagger();
-        
-        Action<ScalarOptions> scalarOptions = options =>
-            options
-                .WithOpenApiRoutePattern("/swagger/{documentName}/swagger.json")
-                .AddDocument("1", "Version 1")
-                .AddDocument("2", "Version 2");
-        
-        var scalarEndpoints = app.MapScalarApiReference("/scalar/viewer", scalarOptions);
-        
-        var controllerEndpoints = app.MapControllers();
 
-        if (addRateLimiting)
-        {
-            scalarEndpoints
-                .RequireRateLimiting("per-ip")
-                .RequireRateLimiting("per-user");
-            controllerEndpoints
-                .RequireRateLimiting("per-ip")
-                .RequireRateLimiting("per-user");
-        }
+        app.MapScalarApiReference("/scalar/viewer", options => 
+                options
+                    .WithOpenApiRoutePattern("/swagger/{documentName}/swagger.json")
+                    .AddDocument("1", "Version 1")
+                    .AddDocument("2", "Version 2"))
+            .RequireRateLimiting("per-ip")
+            .RequireRateLimiting("per-user");
+        
+        app.MapControllers()
+            .RequireRateLimiting("per-ip")
+            .RequireRateLimiting("per-user");
 
         return app;
     }

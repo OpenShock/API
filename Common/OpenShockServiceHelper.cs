@@ -1,4 +1,6 @@
-﻿using Asp.Versioning;
+﻿using System.Net;
+using System.Security.Claims;
+using Asp.Versioning;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -22,6 +24,8 @@ using Redis.OM.Contracts;
 using StackExchange.Redis;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using System.Threading.RateLimiting;
+using OpenShock.Common.Utils;
 
 namespace OpenShock.Common;
 
@@ -205,6 +209,110 @@ public static class OpenShockServiceHelper
         services.AddSingleton<IBatchUpdateService, BatchUpdateService>();
         services.AddHostedService<BatchUpdateService>(provider =>
             (BatchUpdateService)provider.GetRequiredService<IBatchUpdateService>());
+
+        services.AddRateLimiter(options =>
+        {
+            options.OnRejected = async (context, cancellationToken) =>
+            {
+                var logger = context.HttpContext.RequestServices.GetRequiredService<ILoggerFactory>()
+                    .CreateLogger("RateLimiting");
+
+                context.HttpContext.Response.StatusCode = StatusCodes.Status429TooManyRequests;
+
+                if (!context.Lease.TryGetMetadata(MetadataName.RetryAfter, out var retryAfter))
+                    retryAfter = TimeSpan.FromMinutes(1);
+
+                var retryAfterSeconds = Math.Ceiling(retryAfter.TotalSeconds).ToString("R");
+
+                context.HttpContext.Response.Headers.RetryAfter = retryAfterSeconds;
+
+                logger.LogWarning("Rate limit hit. IP: {IP}, Path: {Path}, User: {User}, Retry-After: {RetryAfter}s",
+                    context.HttpContext.Connection.RemoteIpAddress,
+                    context.HttpContext.Request.Path,
+                    context.HttpContext.User.Identity?.Name ?? "Anonymous",
+                    retryAfterSeconds);
+
+                await context.HttpContext.Response.WriteAsync("Too Many Requests. Please try again later.",
+                    cancellationToken);
+            };
+
+            // Global fallback limiter
+            // Fixed window at 10k requests allows 20k bursts if burst occurs at window boundary
+            options.GlobalLimiter = PartitionedRateLimiter.Create<HttpContext, string>(_ =>
+                RateLimitPartition.GetSlidingWindowLimiter("global-1m", _ => new SlidingWindowRateLimiterOptions
+                {
+                    PermitLimit = 10_000,
+                    Window = TimeSpan.FromMinutes(1),
+                    SegmentsPerWindow = 6,
+                    QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
+                    QueueLimit = 200
+                }));
+
+            // Per-IP limiter
+            options.AddPolicy("per-ip", context =>
+            {
+                var ip = context.GetRemoteIP();
+                if (IPAddress.IsLoopback(ip)) return RateLimitPartition.GetNoLimiter(IPAddress.Loopback);
+
+                return RateLimitPartition.GetSlidingWindowLimiter(ip, _ => new SlidingWindowRateLimiterOptions
+                {
+                    PermitLimit = 1000,
+                    Window = TimeSpan.FromMinutes(1),
+                    SegmentsPerWindow = 6,
+                    QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
+                    QueueLimit = 100
+                });
+            });
+
+            // Per-user limiter
+            options.AddPolicy("per-user", context =>
+            {
+                var user = context.User;
+                var userId = user.FindFirstValue(ClaimTypes.NameIdentifier) ?? "anonymous";
+
+                if (user.HasClaim(claim => claim is { Type: ClaimTypes.Role, Value: "Admin" or "System" }))
+                    return RateLimitPartition.GetNoLimiter($"user-{userId}-privileged");
+
+                return RateLimitPartition.GetSlidingWindowLimiter($"user-{userId}", _ =>
+                    new SlidingWindowRateLimiterOptions
+                    {
+                        PermitLimit = 120,
+                        Window = TimeSpan.FromMinutes(1),
+                        SegmentsPerWindow = 6,
+                        QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
+                        QueueLimit = 10
+                    });
+            });
+
+            // Authentication endpoints limiter
+            options.AddPolicy("auth", context =>
+            {
+                var ip = context.GetRemoteIP();
+                return RateLimitPartition.GetFixedWindowLimiter(ip, _ => new FixedWindowRateLimiterOptions
+                {
+                    PermitLimit = 10,
+                    Window = TimeSpan.FromMinutes(1)
+                });
+            });
+
+            // Token reporting endpoint concurrency limiter
+            options.AddPolicy("token-reporting", _ =>
+                RateLimitPartition.GetConcurrencyLimiter("token-reporting", _ => new ConcurrencyLimiterOptions
+                {
+                    PermitLimit = 5,
+                    QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
+                    QueueLimit = 10
+                }));
+
+            // Log fetching endpoint concurrency limiter
+            options.AddPolicy("shocker-logs", _ =>
+                RateLimitPartition.GetConcurrencyLimiter("shocker-logs", _ => new ConcurrencyLimiterOptions
+                {
+                    PermitLimit = 10,
+                    QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
+                    QueueLimit = 20
+                }));
+        });
 
         return services;
     }
