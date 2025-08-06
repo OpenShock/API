@@ -66,7 +66,7 @@ builder.Services.AddRateLimiter(options =>
     };
 
     // Global fallback limiter
-    // Fixed window at 10k requests allows 20k bursts if burst occurs at window boundry
+    // Fixed window at 10k requests allows 20k bursts if burst occurs at window boundary
     options.GlobalLimiter = PartitionedRateLimiter.Create<HttpContext, string>(_ =>
         RateLimitPartition.GetSlidingWindowLimiter("global-1m", _ => new SlidingWindowRateLimiterOptions
         {
