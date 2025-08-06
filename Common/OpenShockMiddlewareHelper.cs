@@ -23,7 +23,7 @@ public static class OpenShockMiddlewareHelper
         ForwardedForHeaderName = "CF-Connecting-IP"
     };
     
-    public static async Task<IApplicationBuilder> UseCommonOpenShockMiddleware(this WebApplication app)
+    public static async Task<IApplicationBuilder> UseCommonOpenShockMiddleware(this WebApplication app, bool addRateLimiting)
     {
         var metricsOptions = app.Services.GetRequiredService<IOptions<MetricsOptions>>().Value;
         var metricsAllowedIpNetworks = metricsOptions.AllowedNetworks.Select(x => IPNetwork.Parse(x)).ToArray();
@@ -70,6 +70,11 @@ public static class OpenShockMiddlewareHelper
         await redisConnection.CreateIndexAsync(typeof(DevicePair));
         await redisConnection.CreateIndexAsync(typeof(LcgNode));
 
+        if (addRateLimiting)
+        {
+            app.UseRateLimiter();
+        }
+        
         app.UseOpenTelemetryPrometheusScrapingEndpoint(context =>
         {
             if(context.Request.Path != "/metrics") return false;
@@ -86,10 +91,20 @@ public static class OpenShockMiddlewareHelper
                 .AddDocument("1", "Version 1")
                 .AddDocument("2", "Version 2");
         
-        app.MapScalarApiReference("/scalar/viewer", scalarOptions);
+        var scalarEndpoints = app.MapScalarApiReference("/scalar/viewer", scalarOptions);
         
-        app.MapControllers();
-        
+        var controllerEndpoints = app.MapControllers();
+
+        if (addRateLimiting)
+        {
+            scalarEndpoints
+                .RequireRateLimiting("per-ip")
+                .RequireRateLimiting("per-user");
+            controllerEndpoints
+                .RequireRateLimiting("per-ip")
+                .RequireRateLimiting("per-user");
+        }
+
         return app;
     }
 

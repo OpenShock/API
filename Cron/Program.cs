@@ -26,7 +26,7 @@ builder.AddSwaggerExt<Program>();
 
 var app = builder.Build();
 
-await app.UseCommonOpenShockMiddleware();
+await app.UseCommonOpenShockMiddleware(addRateLimiting: false);
 
 var hangfireOptions = new DashboardOptions();
 if (app.Environment.IsProduction() || Environment.GetEnvironmentVariable("DOTNET_RUNNING_IN_CONTAINER") == "true")
