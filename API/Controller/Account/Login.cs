@@ -9,6 +9,7 @@ using OpenShock.Common.Options;
 using OpenShock.Common.Problems;
 using OpenShock.Common.Utils;
 using System.Net.Mime;
+using Microsoft.AspNetCore.RateLimiting;
 
 namespace OpenShock.API.Controller.Account;
 
@@ -20,6 +21,7 @@ public sealed partial class AccountController
     /// <response code="200">User successfully logged in</response>
     /// <response code="401">Invalid username or password</response>
     [HttpPost("login")]
+    [EnableRateLimiting("auth")]
     [ProducesResponseType<LegacyEmptyResponse>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status401Unauthorized, MediaTypeNames.Application.ProblemJson)] // InvalidCredentials
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status403Forbidden, MediaTypeNames.Application.ProblemJson)] // InvalidDomain

@@ -13,7 +13,7 @@ public sealed partial class AccountController
     /// <param name="data"></param>
     /// <param name="cancellationToken"></param>
     /// <returns></returns>
-    [HttpPost("username/check")]
+    [HttpPost("username/check")] // High-volume endpoint, we don't want to rate limit this
     public async Task<UsernameCheckResponse> CheckUsername(ChangeUsernameRequest data, CancellationToken cancellationToken)
     {
         var result = await _accountService.CheckUsernameAvailabilityAsync(data.Username, cancellationToken);

@@ -70,6 +70,8 @@ public static class OpenShockMiddlewareHelper
         await redisConnection.CreateIndexAsync(typeof(DevicePair));
         await redisConnection.CreateIndexAsync(typeof(LcgNode));
 
+        app.UseRateLimiter();
+        
         app.UseOpenTelemetryPrometheusScrapingEndpoint(context =>
         {
             if(context.Request.Path != "/metrics") return false;
@@ -79,17 +81,19 @@ public static class OpenShockMiddlewareHelper
         });
         
         app.UseSwagger();
+
+        app.MapScalarApiReference("/scalar/viewer", options => 
+                options
+                    .WithOpenApiRoutePattern("/swagger/{documentName}/swagger.json")
+                    .AddDocument("1", "Version 1")
+                    .AddDocument("2", "Version 2"))
+            .RequireRateLimiting("per-ip")
+            .RequireRateLimiting("per-user");
         
-        Action<ScalarOptions> scalarOptions = options =>
-            options
-                .WithOpenApiRoutePattern("/swagger/{documentName}/swagger.json")
-                .AddDocument("1", "Version 1")
-                .AddDocument("2", "Version 2");
-        
-        app.MapScalarApiReference("/scalar/viewer", scalarOptions);
-        
-        app.MapControllers();
-        
+        app.MapControllers()
+            .RequireRateLimiting("per-ip")
+            .RequireRateLimiting("per-user");
+
         return app;
     }
 
