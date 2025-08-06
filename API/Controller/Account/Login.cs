@@ -46,8 +46,8 @@ public sealed partial class AccountController
                 HttpContext.SetSessionKeyCookie(loginAction.AsT0.Value, "." + cookieDomainToUse);
                 return LegacyEmptyOk("Successfully logged in");
             },
-            notActivated => Problem(LoginError.AccountNotActivated),
-            deactivated => Problem(LoginError.AccountDeactivated),
+            notActivated => Problem(AccountError.AccountNotActivated),
+            deactivated => Problem(AccountError.AccountDeactivated),
             notFound => Problem(LoginError.InvalidCredentials)
         );
     }

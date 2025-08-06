@@ -297,7 +297,7 @@ public sealed class AccountService : IAccountService
     }
 
     /// <inheritdoc />
-    public async Task<OneOf<Success, TooManyPasswordResets, AccountDeactivated, NotFound>> CreatePasswordResetFlowAsync(string email)
+    public async Task<OneOf<Success, TooManyPasswordResets, AccountNotActivated, AccountDeactivated, NotFound>> CreatePasswordResetFlowAsync(string email)
     {
         var validSince = DateTime.UtcNow - Duration.PasswordResetRequestLifetime;
         var lowerCaseEmail = email.ToLowerInvariant();
@@ -311,6 +311,7 @@ public sealed class AccountService : IAccountService
             })
             .FirstOrDefaultAsync();
         if (user is null) return new NotFound();
+        if (user.User.ActivatedAt is null) return new AccountNotActivated();
         if (user.User.UserDeactivation is not null) return new AccountDeactivated();
         if (user.PasswordResetCount >= 3) return new TooManyPasswordResets();
 
@@ -331,7 +332,7 @@ public sealed class AccountService : IAccountService
     }
 
     /// <inheritdoc />
-    public async Task<OneOf<Success, NotFound, AccountDeactivated, SecretInvalid>> CompletePasswordResetFlowAsync(Guid passwordResetId,
+    public async Task<OneOf<Success, NotFound, AccountNotActivated, AccountDeactivated, SecretInvalid>> CompletePasswordResetFlowAsync(Guid passwordResetId,
         string secret, string newPassword)
     {
         var validSince = DateTime.UtcNow - Duration.PasswordResetRequestLifetime;
@@ -341,6 +342,7 @@ public sealed class AccountService : IAccountService
             .Include(x => x.User.UserDeactivation)
             .FirstOrDefaultAsync(x => x.Id == passwordResetId && x.UsedAt == null && x.CreatedAt >= validSince);
         if (reset is null) return new NotFound();
+        if (reset.User.ActivatedAt is null) return new AccountNotActivated();
         if (reset.User.UserDeactivation is not null) return new AccountDeactivated();
 
         var result = HashingUtils.VerifyToken(secret, reset.TokenHash);

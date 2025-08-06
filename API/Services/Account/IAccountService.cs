@@ -66,7 +66,7 @@ public interface IAccountService
     /// </summary>
     /// <param name="email"></param>
     /// <returns></returns>
-    public Task<OneOf<Success, TooManyPasswordResets, AccountDeactivated, NotFound>> CreatePasswordResetFlowAsync(string email);
+    public Task<OneOf<Success, TooManyPasswordResets, AccountNotActivated, AccountDeactivated, NotFound>> CreatePasswordResetFlowAsync(string email);
     
     /// <summary>
     /// Completes a password reset process, sets a new password
@@ -75,7 +75,7 @@ public interface IAccountService
     /// <param name="secret"></param>
     /// <param name="newPassword"></param>
     /// <returns></returns>
-    public Task<OneOf<Success, NotFound, AccountDeactivated, SecretInvalid>> CompletePasswordResetFlowAsync(Guid passwordResetId, string secret, string newPassword);
+    public Task<OneOf<Success, NotFound, AccountNotActivated, AccountDeactivated, SecretInvalid>> CompletePasswordResetFlowAsync(Guid passwordResetId, string secret, string newPassword);
     
     /// <summary>
     /// Check the availability of a username
