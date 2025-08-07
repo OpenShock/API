@@ -68,6 +68,7 @@ public class OpenShockContext : DbContext
             npgsqlBuilder.MapEnum<ShockerModelType>();
             npgsqlBuilder.MapEnum<OtaUpdateStatus>();
             npgsqlBuilder.MapEnum<MatchTypeEnum>();
+            npgsqlBuilder.MapEnum<ConfigurationValueType>();
         });
 
         if (debug)
@@ -115,6 +116,8 @@ public class OpenShockContext : DbContext
     
     public DbSet<DiscordWebhook> DiscordWebhooks { get; set; }
 
+    public DbSet<ConfigurationItem> Configuration { get; set; }
+
     public DbSet<AdminUsersView> AdminUsersViews { get; set; }
 
     public DbSet<UserNameBlacklist> UserNameBlacklists { get; set; }
@@ -140,6 +143,7 @@ public class OpenShockContext : DbContext
             .HasPostgresEnum("role_type", ["support", "staff", "admin", "system"])
             .HasPostgresEnum("shocker_model_type", ["caiXianlin", "petTrainer", "petrainer998DR"])
             .HasPostgresEnum("match_type_enum", ["exact", "contains"])
+            .HasPostgresEnum("configuration_value_type", ["string", "bool", "int", "float", "json"])
             .HasCollation("public", "ndcoll", "und-u-ks-level2", "icu", false); // Add case-insensitive, accent-sensitive comparison collation
 
         modelBuilder.Entity<ApiToken>(entity =>
@@ -736,6 +740,28 @@ public class OpenShockContext : DbContext
                 .HasColumnName("webhook_id");
             entity.Property(e => e.WebhookToken)
                 .HasColumnName("webhook_token");
+            entity.Property(e => e.CreatedAt)
+                .HasDefaultValueSql("CURRENT_TIMESTAMP")
+                .HasColumnName("created_at");
+        });
+
+        modelBuilder.Entity<ConfigurationItem>(entity =>
+        {
+            entity.HasKey(e => e.Name).HasName("configuration_pkey");
+
+            entity.ToTable("configuration");
+
+            entity.Property(e => e.Name)
+                .UseCollation("C")
+                .HasColumnName("name");
+            entity.Property(e => e.Description)
+                .HasColumnName("description");
+            entity.Property(e => e.Type)
+                .HasColumnName("type");
+            entity.Property(e => e.Value)
+                .HasColumnName("value");
+            entity.Property(e => e.UpdatedAt)
+                .HasColumnName("updated_at");
             entity.Property(e => e.CreatedAt)
                 .HasDefaultValueSql("CURRENT_TIMESTAMP")
                 .HasColumnName("created_at");
