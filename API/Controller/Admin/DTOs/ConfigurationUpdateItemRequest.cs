@@ -14,6 +14,7 @@ public sealed class ConfigurationUpdateItemRequest
     /// The name of the configuration item to update.
     /// Must consist only of uppercase letters and underscores.
     /// </summary>
+    [Required(AllowEmptyStrings = false)]
     public required string Name { get; set; }
 
     /// <summary>

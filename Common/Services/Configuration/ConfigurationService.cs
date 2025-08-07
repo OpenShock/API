@@ -101,7 +101,7 @@ public sealed class ConfigurationService : IConfigurationService
         return new Success();
     }
 
-    public async Task<OneOf<Success, NotFound, InvalidNameFormat, InvalidValueFormat, InvalidValueType>> TryUpdateItemAsync(string name, string? description, string? value)
+    public async Task<OneOf<Success, NotFound, InvalidNameFormat, InvalidValueFormat>> TryUpdateItemAsync(string name, string? description, string? value)
     {
         // Validate name
         if (!IsValidName(name))

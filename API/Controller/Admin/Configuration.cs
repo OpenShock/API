@@ -1,7 +1,11 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using OpenShock.API.Controller.Admin.DTOs;
+using OpenShock.Common.Errors;
+using OpenShock.Common.Models;
+using OpenShock.Common.Problems;
 using OpenShock.Common.Services.Configuration;
+using System.Net.Mime;
 
 namespace OpenShock.API.Controller.Admin;
 
@@ -13,6 +17,7 @@ public sealed partial class AdminController
     /// <response code="200"></response>
     /// <response code="401">Unauthorized</response>
     [HttpGet("config")]
+    [ProducesResponseType<IAsyncEnumerable<ConfigurationItemDto>>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)] // Ok
     public IAsyncEnumerable<ConfigurationItemDto> ConfigurationList([FromServices] IConfigurationService configurationService)
     {
         return configurationService
@@ -37,10 +42,10 @@ public sealed partial class AdminController
     /// <response code="409">Already exists</response>
     /// <response code="401">Unauthorized</response>
     [HttpPost("config")]
-    public async Task<IActionResult> ConfigurationAdd(
-        [FromBody] ConfigurationAddItemRequest body,
-        [FromServices] IConfigurationService configurationService,
-        CancellationToken cancellationToken)
+    [ProducesResponseType(StatusCodes.Status200OK)] // Ok
+    [ProducesResponseType<OpenShockProblem>(StatusCodes.Status409Conflict, MediaTypeNames.Application.ProblemJson)] // AlreadyExists
+    [ProducesResponseType<OpenShockProblem>(StatusCodes.Status400BadRequest, MediaTypeNames.Application.ProblemJson)] // InvalidNameFormat, InvalidValueFormat
+    public async Task<IActionResult> ConfigurationAdd([FromBody] ConfigurationAddItemRequest body, [FromServices] IConfigurationService configurationService, CancellationToken cancellationToken)
     {
         var result = await configurationService.TryAddItemAsync(
             body.Name,
@@ -51,9 +56,9 @@ public sealed partial class AdminController
 
         return result.Match<IActionResult>(
             success => Ok(),
-            alreadyExists => Conflict(new { Error = "AlreadyExists", Message = $"A configuration named '{body.Name}' already exists." }),
-            invalidName => BadRequest(new { Error = "InvalidNameFormat", Message = $"Invalid configuration name: '{body.Name}'. Only A–Z and '_' allowed." }),
-            invalidValue => BadRequest(new { Error = "InvalidValueFormat", Message = $"Value '{body.Value}' is not a valid {body.Type}." })
+            alreadyExists => Problem(ConfigurationError.AlreadyExists(body.Name)),
+            invalidName => Problem(ConfigurationError.InvalidNameFormat(body.Name)),
+            invalidValue => Problem(ConfigurationError.InvalidValueFormat(body.Value))
         );
     }
 
@@ -65,10 +70,11 @@ public sealed partial class AdminController
     /// <response code="400">Invalid name or value format or type mismatch</response>
     /// <response code="404">Not found</response>
     [HttpPut("config")]
-    public async Task<IActionResult> ConfigurationUpdate(
-        [FromBody] ConfigurationUpdateItemRequest body,
-        [FromServices] IConfigurationService configurationService,
-        CancellationToken cancellationToken)
+    [ProducesResponseType(StatusCodes.Status200OK)] // Ok
+    [ProducesResponseType<OpenShockProblem>(StatusCodes.Status409Conflict, MediaTypeNames.Application.ProblemJson)] // AlreadyExists
+    [ProducesResponseType<OpenShockProblem>(StatusCodes.Status404NotFound, MediaTypeNames.Application.ProblemJson)] // Not found
+    [ProducesResponseType<OpenShockProblem>(StatusCodes.Status400BadRequest, MediaTypeNames.Application.ProblemJson)] // InvalidNameFormat, InvalidValueFormat
+    public async Task<IActionResult> ConfigurationUpdate([FromBody] ConfigurationUpdateItemRequest body, [FromServices] IConfigurationService configurationService, CancellationToken cancellationToken)
     {
         var result = await configurationService.TryUpdateItemAsync(
             body.Name,
@@ -78,10 +84,9 @@ public sealed partial class AdminController
 
         return result.Match<IActionResult>(
             success => Ok(),
-            notFound => NotFound(new { Error = "NotFound", Message = $"No configuration named '{body.Name}'." }),
-            invalidName => BadRequest(new { Error = "InvalidNameFormat", Message = $"Invalid configuration name: '{body.Name}'." }),
-            invalidValue => BadRequest(new { Error = "InvalidValueFormat", Message = $"Value '{body.Value}' is not a valid format for '{body.Name}'." }),
-            invalidType => BadRequest(new { Error = "InvalidValueType", Message = $"Type mismatch when updating '{body.Name}'." })
+            notFound => Problem(ConfigurationError.NotFound(body.Name)),
+            invalidName => Problem(ConfigurationError.InvalidNameFormat(body.Name)),
+            invalidValue => Problem(ConfigurationError.InvalidValueFormat(body.Value!))
         );
     }
 
@@ -93,17 +98,17 @@ public sealed partial class AdminController
     /// <response code="400">Invalid name format</response>
     /// <response code="404">Not found</response>
     [HttpDelete("config/{name}")]
-    public async Task<IActionResult> ConfigurationDelete(
-        string name,
-        [FromServices] IConfigurationService configurationService,
-        CancellationToken cancellationToken)
+    [ProducesResponseType(StatusCodes.Status200OK)] // Deleted
+    [ProducesResponseType<OpenShockProblem>(StatusCodes.Status404NotFound, MediaTypeNames.Application.ProblemJson)] // Not found
+    [ProducesResponseType<OpenShockProblem>(StatusCodes.Status400BadRequest, MediaTypeNames.Application.ProblemJson)] // InvalidNameFormat
+    public async Task<IActionResult> ConfigurationDelete([FromRoute] string name, [FromServices] IConfigurationService configurationService, CancellationToken cancellationToken)
     {
         var result = await configurationService.TryDeleteItemAsync(name);
 
         return result.Match<IActionResult>(
             success => Ok(),
-            notFound => NotFound(new { Error = "NotFound", Message = $"No configuration named '{name}'." }),
-            invalidName => BadRequest(new { Error = "InvalidNameFormat", Message = $"Invalid configuration name: '{name}'." })
+            notFound => Problem(ConfigurationError.NotFound(name)),
+            invalidName => Problem(ConfigurationError.InvalidNameFormat(name))
         );
     }
 }
