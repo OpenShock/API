@@ -750,6 +750,7 @@ public class OpenShockContext : DbContext
             entity.ToTable("configuration");
 
             entity.Property(e => e.Name)
+                .UseCollation("C")
                 .HasColumnName("name");
             entity.Property(e => e.Description)
                 .HasColumnName("description");

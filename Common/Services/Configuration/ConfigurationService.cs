@@ -1,9 +1,11 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Hybrid;
-using Microsoft.Extensions.Caching.Memory;
+using Npgsql;
 using OneOf;
 using OneOf.Types;
 using OpenShock.Common.OpenShockDb;
+using System.Buffers;
+using System.Globalization;
 using System.Text.Json;
 
 namespace OpenShock.Common.Services.Configuration;
@@ -21,12 +23,154 @@ public sealed class ConfigurationService : IConfigurationService
         _logger = logger;
     }
 
+    public IQueryable<ConfigurationItem> GetAllItemsQuery()
+    {
+        return _db.Configuration.AsNoTracking();
+    }
+
+    private static readonly SearchValues<char> AllowedChars = SearchValues.Create("ABCDEFGHIJKLMNOPQRSTUVWXYZ_");
+    private static bool IsValidName(ReadOnlySpan<char> name)
+    {
+        return !name.IsEmpty && !name.ContainsAnyExcept(AllowedChars);
+    }
+
+    private static bool IsValidJson(string value)
+    {
+        try
+        {
+            JsonDocument.Parse(value);
+            return true;
+        }
+        catch (JsonException)
+        {
+            return false;
+        }
+    }
+    private static bool IsValidValueFormat(ConfigurationValueType type, string value)
+    {
+        return type switch
+        {
+            ConfigurationValueType.String => value is not null,
+            ConfigurationValueType.Bool => bool.TryParse(value, out _),
+            ConfigurationValueType.Int => int.TryParse(value, CultureInfo.InvariantCulture, out _),
+            ConfigurationValueType.Float => float.TryParse(value, CultureInfo.InvariantCulture, out float f) && (float.IsNormal(f) || f == 0f),
+            ConfigurationValueType.Json => IsValidJson(value),
+            _ => false
+        };
+    }
+
+    public async Task<OneOf<Success, AlreadyExists, InvalidNameFormat, InvalidValueFormat>> TryAddItemAsync(string name, string description, ConfigurationValueType type, string value)
+    {
+        // Validate name (only uppercase letters and underscores)
+        if (!IsValidName(name))
+        {
+            return new InvalidNameFormat();
+        }
+
+        // Validate value format against the expected type
+        if (!IsValidValueFormat(type, value))
+        {
+            return new InvalidValueFormat();
+        }
+
+        // Create new configuration entry
+        var now = DateTime.UtcNow;
+        var item = new ConfigurationItem
+        {
+            Name = name,
+            Description = description,
+            Type = type,
+            Value = value,
+            CreatedAt = now,
+            UpdatedAt = now
+        };
+
+        try
+        {
+            _db.Configuration.Add(item);
+            await _db.SaveChangesAsync();
+        }
+        catch (DbUpdateException ex) when (ex.InnerException is PostgresException { SqlState: "23505" }) // Unique constaint violation
+        {
+            return new AlreadyExists();
+        }
+
+        // Cache the new type/value pair for fast retrieval
+        await _cache.SetAsync(name, new TypeValuePair(type, value));
+
+        return new Success();
+    }
+
+    public async Task<OneOf<Success, NotFound, InvalidNameFormat, InvalidValueFormat, InvalidValueType>> TryUpdateItemAsync(string name, string? description, string? value)
+    {
+        // Validate name
+        if (!IsValidName(name))
+            return new InvalidNameFormat();
+
+        // If nothing to update, exit early
+        if (description is null && value is null)
+            return new Success();
+
+        // Load existing item
+        var item = await _db.Configuration.FirstOrDefaultAsync(ci => ci.Name == name);
+        if (item is null)
+            return new NotFound();
+
+        // If updating the value, validate it against the stored type
+        if (value is not null)
+        {
+            if (!IsValidValueFormat(item.Type, value))
+                return new InvalidValueFormat();
+
+            item.Value = value;
+        }
+
+        // If updating the description, apply it
+        if (description is not null)
+        {
+            item.Description = description;
+        }
+
+        item.UpdatedAt = DateTime.UtcNow;
+
+        await _db.SaveChangesAsync();
+
+        // Refresh cache if value changed
+        if (value is not null)
+        {
+            await _cache.SetAsync(
+                name.ToUpperInvariant(),
+                new TypeValuePair(item.Type, item.Value)
+            );
+        }
+
+        return new Success();
+    }
+
+    public async Task<OneOf<Success, NotFound, InvalidNameFormat>> TryDeleteItemAsync(string name)
+    {
+        // Find the item
+        var item = await _db.Configuration.FirstOrDefaultAsync(ci => ci.Name == name);
+        if (item is null)
+            return new NotFound();
+
+        // Remove and persist
+        _db.Configuration.Remove(item);
+        await _db.SaveChangesAsync();
+
+        // Evict from cache
+        await _cache.RemoveAsync(name);
+
+        return new Success();
+    }
+
     private sealed record TypeValuePair(ConfigurationValueType Type, string Value);
     private async Task<TypeValuePair?> TryGetTypeValuePair(string name)
     {
+        name = name.ToUpperInvariant();
         return await _cache.GetOrCreateAsync(name, async cancellationToken =>
         {
-            var pair = await _db.Configuration
+            var pair = await GetAllItemsQuery()
                 .Where(ci => ci.Name == name)
                 .Select(ci => new TypeValuePair(ci.Type, ci.Value))
                 .FirstOrDefaultAsync(cancellationToken);
@@ -41,9 +185,15 @@ public sealed class ConfigurationService : IConfigurationService
 
         if (item is null)
         {
+            if (!IsValidName(name))
+            {
+                _logger.LogError("system tried to set an invalid configuration name: {name}", name);
+                return false;
+            }
+
             var now = DateTime.UtcNow;
 
-            _db.Configuration.Add(new ConfigurationItem
+            item = new ConfigurationItem
             {
                 Name = name,
                 Description = "Auto-added by ConfigurationService",
@@ -51,7 +201,9 @@ public sealed class ConfigurationService : IConfigurationService
                 Value = newValue,
                 UpdatedAt = now,
                 CreatedAt = now
-            });
+            };
+
+            _db.Configuration.Add(item);
         }
         else
         {
@@ -66,56 +218,30 @@ public sealed class ConfigurationService : IConfigurationService
         }
 
         await _db.SaveChangesAsync();
-        await _cache.RemoveAsync(name); // Invalidate hybrid cache
+        await _cache.SetAsync(name, new TypeValuePair(type, newValue));
         return true;
     }
 
-    public async Task<ConfigurationItem[]> GetAllItemsAsync(string name)
-    {
-        return await _db.Configuration.ToArrayAsync();
-    }
-
-    public async Task<OneOf<ConfigurationItem, NotFound>> GetItemAsync(string name)
-    {
-        var item = await _db.Configuration.FirstOrDefaultAsync(ci => ci.Name == name);
-        return item is null ? new NotFound() : item;
-    }
-
-    public async Task<bool> CheckItemExistsAsync(string name)
-    {
-        return await _db.Configuration.AnyAsync(ci => ci.Name == name);
-    }
-
-    public async Task<OneOf<ConfigurationValueType, NotFound>> TryGetItemTypeAsync(string name)
-    {
-        var type = await _db.Configuration
-            .Where(c => c.Name == name)
-            .Select(c => (ConfigurationValueType?)c.Type)
-            .FirstOrDefaultAsync();
-
-        return type.HasValue ? type.Value : new NotFound();
-    }
-
-    public async Task<OneOf<string, NotFound, InvalidType>> TryGetStringAsync(string name)
+    public async Task<OneOf<string, NotFound, InvalidValueType>> TryGetStringAsync(string name)
     {
         var pair = await TryGetTypeValuePair(name);
         if (pair is null) return new NotFound();
-        if (pair.Type != ConfigurationValueType.String) return new InvalidType();
+        if (pair.Type != ConfigurationValueType.String) return new InvalidValueType();
         return pair.Value;
     }
 
     public Task<bool> TrySetStringAsync(string name, string value) =>
         SetValueAsync(name, value, ConfigurationValueType.String);
 
-    public async Task<OneOf<bool, NotFound, InvalidType, InvalidConfiguration>> TryGetBoolAsync(string name)
+    public async Task<OneOf<bool, NotFound, InvalidValueType, InvalidValueFormat>> TryGetBoolAsync(string name)
     {
         var pair = await TryGetTypeValuePair(name);
         if (pair is null) return new NotFound();
-        if (pair.Type != ConfigurationValueType.Bool) return new InvalidType();
+        if (pair.Type != ConfigurationValueType.Bool) return new InvalidValueType();
         if (!bool.TryParse(pair.Value, out var value))
         {
             _logger.LogWarning("Failed to parse bool for '{Name}': Value='{Value}'", name, pair.Value);
-            return new InvalidConfiguration();
+            return new InvalidValueFormat();
         }
         return value;
     }
@@ -123,15 +249,15 @@ public sealed class ConfigurationService : IConfigurationService
     public Task<bool> TrySetBoolAsync(string name, bool value) =>
         SetValueAsync(name, value.ToString(), ConfigurationValueType.Bool);
 
-    public async Task<OneOf<int, NotFound, InvalidType, InvalidConfiguration>> TryGetIntAsync(string name)
+    public async Task<OneOf<int, NotFound, InvalidValueType, InvalidValueFormat>> TryGetIntAsync(string name)
     {
         var pair = await TryGetTypeValuePair(name);
         if (pair is null) return new NotFound();
-        if (pair.Type != ConfigurationValueType.Int) return new InvalidType();
-        if (!sbyte.TryParse(pair.Value, out var value))
+        if (pair.Type != ConfigurationValueType.Int) return new InvalidValueType();
+        if (!int.TryParse(pair.Value, out var value))
         {
-            _logger.LogWarning("Failed to parse sbyte for '{Name}': Value='{Value}'", name, pair.Value);
-            return new InvalidConfiguration();
+            _logger.LogWarning("Failed to parse int for '{Name}': Value='{Value}'", name, pair.Value);
+            return new InvalidValueFormat();
         }
         return value;
     }
@@ -139,15 +265,15 @@ public sealed class ConfigurationService : IConfigurationService
     public Task<bool> TrySetIntAsync(string name, int value) =>
         SetValueAsync(name, value.ToString(), ConfigurationValueType.Int);
 
-    public async Task<OneOf<float, NotFound, InvalidType, InvalidConfiguration>> TryGetFloatAsync(string name)
+    public async Task<OneOf<float, NotFound, InvalidValueType, InvalidValueFormat>> TryGetFloatAsync(string name)
     {
         var pair = await TryGetTypeValuePair(name);
         if (pair is null) return new NotFound();
-        if (pair.Type != ConfigurationValueType.Float) return new InvalidType();
+        if (pair.Type != ConfigurationValueType.Float) return new InvalidValueType();
         if (!float.TryParse(pair.Value, out var value))
         {
             _logger.LogWarning("Failed to parse float for '{Name}': Value='{Value}'", name, pair.Value);
-            return new InvalidConfiguration();
+            return new InvalidValueFormat();
         }
         return value;
     }
@@ -155,21 +281,21 @@ public sealed class ConfigurationService : IConfigurationService
     public Task<bool> TrySetFloatAsync(string name, float value) =>
         SetValueAsync(name, value.ToString("R"), ConfigurationValueType.Float);
 
-    public async Task<OneOf<T, NotFound, InvalidType, InvalidConfiguration>> TryGetJsonAsync<T>(string name)
+    public async Task<OneOf<T, NotFound, InvalidValueType, InvalidValueFormat>> TryGetJsonAsync<T>(string name)
     {
         var pair = await TryGetTypeValuePair(name);
         if (pair is null) return new NotFound();
-        if (pair.Type != ConfigurationValueType.Json) return new InvalidType();
+        if (pair.Type != ConfigurationValueType.Json) return new InvalidValueType();
 
         try
         {
             var obj = JsonSerializer.Deserialize<T>(pair.Value);
-            return obj is not null ? obj : new InvalidConfiguration();
+            return obj is not null ? obj : new InvalidValueFormat();
         }
         catch (JsonException ex)
         {
             _logger.LogWarning(ex, "Failed to deserialize JSON for '{Name}'", name);
-            return new InvalidConfiguration();
+            return new InvalidValueFormat();
         }
     }
 

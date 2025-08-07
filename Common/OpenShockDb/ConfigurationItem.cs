@@ -9,7 +9,7 @@ public enum ConfigurationValueType
     Json
 }
 
-public class ConfigurationItem
+public sealed class ConfigurationItem
 {
     public required string Name { get; set; }
     public required string Description { get; set; }
