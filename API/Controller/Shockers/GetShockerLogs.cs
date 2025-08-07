@@ -2,6 +2,7 @@
 using System.Net.Mime;
 using Asp.Versioning;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using OpenShock.API.Models.Response;
 using OpenShock.Common.Errors;
@@ -23,6 +24,7 @@ public sealed partial class ShockerController
     /// <response code="200">The logs</response>
     /// <response code="404">Shocker does not exist</response>
     [HttpGet("{shockerId}/logs")]
+    [EnableRateLimiting("shocker-logs")]
     [ProducesResponseType<LegacyDataResponse<IAsyncEnumerable<LogEntry>>>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status404NotFound, MediaTypeNames.Application.ProblemJson)] // ShockerNotFound
     [MapToApiVersion("1")]

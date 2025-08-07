@@ -5,6 +5,7 @@ using OpenShock.Common.Redis;
 using Redis.OM;
 using System.Net.Mime;
 using Asp.Versioning;
+using Microsoft.AspNetCore.RateLimiting;
 using OpenShock.Common.Errors;
 using OpenShock.Common.Problems;
 using OpenShock.Common.Models;
@@ -23,6 +24,7 @@ public sealed partial class DeviceController
     [MapToApiVersion("1")]
     [HttpGet("pair/{pairCode}", Name = "Pair")]
     [HttpGet("~/{version:apiVersion}/pair/{pairCode}", Name = "Pair_DEPRECATED")] // Backwards compatibility
+    [EnableRateLimiting("auth")]
     [ProducesResponseType<LegacyDataResponse<string>>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status404NotFound, MediaTypeNames.Application.ProblemJson)] // PairCodeNotFound
     public async Task<IActionResult> Pair([FromRoute] string pairCode)

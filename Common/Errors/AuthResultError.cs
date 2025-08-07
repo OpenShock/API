@@ -11,4 +11,6 @@ public static class AuthResultError
     
     public static OpenShockProblem SessionInvalid => new("Authentication.SessionInvalid", "The session is invalid", HttpStatusCode.Unauthorized);
     public static OpenShockProblem TokenInvalid => new("Authentication.TokenInvalid", "The token is invalid", HttpStatusCode.Unauthorized);
+    public static OpenShockProblem AccountNotActivated => new("Authentication.AccountNotActivated", "The account has not been activated.", HttpStatusCode.Unauthorized);
+    public static OpenShockProblem AccountDeactivated => new("Authentication.AccountDeactivated", "The account has been deactivated.", HttpStatusCode.Unauthorized);
 }

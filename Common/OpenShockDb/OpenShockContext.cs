@@ -67,6 +67,7 @@ public class OpenShockContext : DbContext
             npgsqlBuilder.MapEnum<PermissionType>();
             npgsqlBuilder.MapEnum<ShockerModelType>();
             npgsqlBuilder.MapEnum<OtaUpdateStatus>();
+            npgsqlBuilder.MapEnum<MatchTypeEnum>();
         });
 
         if (debug)
@@ -118,6 +119,10 @@ public class OpenShockContext : DbContext
 
     public DbSet<AdminUsersView> AdminUsersViews { get; set; }
 
+    public DbSet<UserNameBlacklist> UserNameBlacklists { get; set; }
+
+    public DbSet<EmailProviderBlacklist> EmailProviderBlacklists { get; set; }
+
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {
         if (!optionsBuilder.IsConfigured)
@@ -136,7 +141,8 @@ public class OpenShockContext : DbContext
                 ["shockers.use", "shockers.edit", "shockers.pause", "devices.edit", "devices.auth"])
             .HasPostgresEnum("role_type", ["support", "staff", "admin", "system"])
             .HasPostgresEnum("shocker_model_type", ["caiXianlin", "petTrainer", "petrainer998DR"])
-            .HasAnnotation("Npgsql:CollationDefinition:public.ndcoll", "und-u-ks-level2,und-u-ks-level2,icu,False");
+            .HasPostgresEnum("match_type_enum", ["exact", "contains"])
+            .HasCollation("public", "ndcoll", "und-u-ks-level2", "icu", false); // Add case-insensitive, accent-sensitive comparison collation
 
         modelBuilder.Entity<ApiToken>(entity =>
         {
@@ -163,7 +169,8 @@ public class OpenShockContext : DbContext
                 .HasMaxLength(HardLimits.ApiKeyNameMaxLength)
                 .HasColumnName("name");
             entity.Property(e => e.TokenHash)
-                .HasMaxLength(HardLimits.Sha256HashHexLength)
+                .UseCollation("C")
+                .VarCharWithLength(HardLimits.Sha256HashHexLength)
                 .HasColumnName("token_hash");
             entity.Property(e => e.UserId).HasColumnName("user_id");
             entity.Property(e => e.ValidUntil).HasColumnName("valid_until");
@@ -234,6 +241,7 @@ public class OpenShockContext : DbContext
                 .HasColumnName("name");
             entity.Property(e => e.OwnerId).HasColumnName("owner_id");
             entity.Property(e => e.Token)
+                .UseCollation("C")
                 .HasMaxLength(HardLimits.HubTokenMaxLength)
                 .HasColumnName("token");
 
@@ -284,9 +292,10 @@ public class OpenShockContext : DbContext
             entity.Property(e => e.CreatedAt)
                 .HasDefaultValueSql("CURRENT_TIMESTAMP")
                 .HasColumnName("created_at");
-            entity.Property(e => e.SecretHash)
+            entity.Property(e => e.TokenHash)
+                .UseCollation("C")
                 .VarCharWithLength(HardLimits.PasswordResetSecretMaxLength)
-                .HasColumnName("secret");
+                .HasColumnName("token_hash");
             entity.Property(e => e.UsedAt)
                 .HasColumnName("used_at");
             entity.Property(e => e.UserId).HasColumnName("user_id");
@@ -587,6 +596,7 @@ public class OpenShockContext : DbContext
                 .VarCharWithLength(HardLimits.EmailAddressMaxLength)
                 .HasColumnName("email");
             entity.Property(e => e.PasswordHash)
+                .UseCollation("C")
                 .VarCharWithLength(HardLimits.PasswordHashMaxLength)
                 .HasColumnName("password_hash");
             entity.Property(e => e.Roles)
@@ -603,13 +613,16 @@ public class OpenShockContext : DbContext
         {
             entity.HasKey(e => e.UserId).HasName("user_activation_requests_pkey");
 
+            entity.HasIndex(e => e.TokenHash).IsUnique();
+
             entity.ToTable("user_activation_requests");
 
             entity.Property(e => e.UserId)
                 .HasColumnName("user_id");
-            entity.Property(e => e.SecretHash)
+            entity.Property(e => e.TokenHash)
+                .UseCollation("C")
                 .VarCharWithLength(HardLimits.UserActivationRequestSecretMaxLength)
-                .HasColumnName("secret");
+                .HasColumnName("token_hash");
             entity.Property(e => e.EmailSendAttempts)
                 .HasColumnName("email_send_attempts");
             entity.Property(e => e.CreatedAt)
@@ -655,23 +668,29 @@ public class OpenShockContext : DbContext
 
             entity.HasIndex(e => e.UserId);
 
-            entity.HasIndex(e => e.CreatedAt);
             entity.HasIndex(e => e.UsedAt);
+            entity.HasIndex(e => e.CreatedAt);
 
             entity.Property(e => e.Id)
                 .ValueGeneratedNever()
                 .HasColumnName("id");
+            entity.Property(e => e.UserId)
+                .HasColumnName("user_id");
+            entity.Property(e => e.OldEmail)
+                .VarCharWithLength(HardLimits.EmailAddressMaxLength)
+                .HasColumnName("email_old");
+            entity.Property(e => e.NewEmail)
+                .VarCharWithLength(HardLimits.EmailAddressMaxLength)
+                .HasColumnName("email_new");
+            entity.Property(e => e.TokenHash)
+                .UseCollation("C")
+                .VarCharWithLength(HardLimits.UserEmailChangeSecretMaxLength)
+                .HasColumnName("token_hash");
+            entity.Property(e => e.UsedAt)
+                .HasColumnName("used_at");
             entity.Property(e => e.CreatedAt)
                 .HasDefaultValueSql("CURRENT_TIMESTAMP")
                 .HasColumnName("created_at");
-            entity.Property(e => e.Email)
-                .VarCharWithLength(HardLimits.EmailAddressMaxLength)
-                .HasColumnName("email");
-            entity.Property(e => e.SecretHash)
-                .VarCharWithLength(HardLimits.UserEmailChangeSecretMaxLength)
-                .HasColumnName("secret");
-            entity.Property(e => e.UsedAt).HasColumnName("used_at");
-            entity.Property(e => e.UserId).HasColumnName("user_id");
 
             entity.HasOne(d => d.User).WithMany(p => p.EmailChanges)
                 .HasForeignKey(d => d.UserId)
@@ -740,6 +759,48 @@ public class OpenShockContext : DbContext
                 .HasColumnName("value");
             entity.Property(e => e.UpdatedAt)
                 .HasColumnName("updated_at");
+            entity.Property(e => e.CreatedAt)
+                .HasDefaultValueSql("CURRENT_TIMESTAMP")
+                .HasColumnName("created_at");
+        });
+
+        modelBuilder.Entity<UserNameBlacklist>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("user_name_blacklist_pkey");
+
+            entity.ToTable("user_name_blacklist");
+
+            entity.HasIndex(e => e.Value).UseCollation("ndcoll").IsUnique();
+
+            entity.Property(e => e.Id)
+                .ValueGeneratedNever()
+                .HasColumnName("id");
+            entity.Property(e => e.Value)
+                .UseCollation("ndcoll")
+                .VarCharWithLength(HardLimits.UsernameMaxLength)
+                .HasColumnName("value");
+            entity.Property(e => e.MatchType)
+                .HasColumnName("match_type");
+            entity.Property(e => e.CreatedAt)
+                .HasDefaultValueSql("CURRENT_TIMESTAMP")
+                .HasColumnName("created_at");
+        });
+
+        modelBuilder.Entity<EmailProviderBlacklist>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("email_provider_blacklist_pkey");
+
+            entity.ToTable("email_provider_blacklist");
+
+            entity.HasIndex(e => e.Domain).UseCollation("ndcoll").IsUnique();
+
+            entity.Property(e => e.Id)
+                .ValueGeneratedNever()
+                .HasColumnName("id");
+            entity.Property(e => e.Domain)
+                .UseCollation("ndcoll")
+                .VarCharWithLength(HardLimits.EmailProviderDomainMaxLength)
+                .HasColumnName("domain");
             entity.Property(e => e.CreatedAt)
                 .HasDefaultValueSql("CURRENT_TIMESTAMP")
                 .HasColumnName("created_at");

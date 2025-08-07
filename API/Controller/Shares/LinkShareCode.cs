@@ -31,7 +31,7 @@ public sealed partial class SharesController
         [FromServices] IDeviceUpdateService deviceUpdateService
     )
     {
-        var shareCode = await _db.ShockerShareCodes.Where(x => x.Id == shareCodeId).Select(x => new
+        var shareCode = await _db.ShockerShareCodes.Where(x => x.Id == shareCodeId && x.Shocker.Device.Owner.UserDeactivation == null).Select(x => new
         {
             Share = x, x.Shocker.Device.OwnerId, x.Shocker.DeviceId
         }).FirstOrDefaultAsync();

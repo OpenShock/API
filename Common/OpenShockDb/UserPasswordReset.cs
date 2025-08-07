@@ -6,7 +6,7 @@ public sealed class UserPasswordReset
 
     public required Guid UserId { get; set; }
 
-    public required string SecretHash { get; set; }
+    public required string TokenHash { get; set; }
 
     public DateTime? UsedAt { get; set; }
 
