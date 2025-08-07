@@ -666,24 +666,29 @@ public class OpenShockContext : DbContext
 
             entity.HasIndex(e => e.UserId);
 
-            entity.HasIndex(e => e.CreatedAt);
             entity.HasIndex(e => e.UsedAt);
+            entity.HasIndex(e => e.CreatedAt);
 
             entity.Property(e => e.Id)
                 .ValueGeneratedNever()
                 .HasColumnName("id");
-            entity.Property(e => e.CreatedAt)
-                .HasDefaultValueSql("CURRENT_TIMESTAMP")
-                .HasColumnName("created_at");
-            entity.Property(e => e.Email)
+            entity.Property(e => e.UserId)
+                .HasColumnName("user_id");
+            entity.Property(e => e.OldEmail)
                 .VarCharWithLength(HardLimits.EmailAddressMaxLength)
-                .HasColumnName("email");
+                .HasColumnName("email_old");
+            entity.Property(e => e.NewEmail)
+                .VarCharWithLength(HardLimits.EmailAddressMaxLength)
+                .HasColumnName("email_new");
             entity.Property(e => e.TokenHash)
                 .UseCollation("C")
                 .VarCharWithLength(HardLimits.UserEmailChangeSecretMaxLength)
                 .HasColumnName("token_hash");
-            entity.Property(e => e.UsedAt).HasColumnName("used_at");
-            entity.Property(e => e.UserId).HasColumnName("user_id");
+            entity.Property(e => e.UsedAt)
+                .HasColumnName("used_at");
+            entity.Property(e => e.CreatedAt)
+                .HasDefaultValueSql("CURRENT_TIMESTAMP")
+                .HasColumnName("created_at");
 
             entity.HasOne(d => d.User).WithMany(p => p.EmailChanges)
                 .HasForeignKey(d => d.UserId)

@@ -121,7 +121,25 @@ public sealed class AccountService : IAccountService
             new Uri(_frontendConfig.BaseUrl, $"/#/account/activate/{user.Id}/{token}"));
         return new Success<User>(user);
     }
-    
+
+    public async Task<bool> TryActivateAccountAsync(string secret, CancellationToken cancellationToken = default)
+    {
+        var hash = HashingUtils.HashToken(secret);
+
+        var user = await _db.Users
+            .Include(u => u.UserActivationRequest)
+            .FirstOrDefaultAsync(x => x.UserDeactivation == null && x.UserActivationRequest != null && x.UserActivationRequest.TokenHash == hash, cancellationToken);
+        if (user?.UserActivationRequest is null) return false;
+
+        user.ActivatedAt = DateTime.UtcNow;
+
+        _db.UserActivationRequests.Remove(user.UserActivationRequest);
+
+        await _db.SaveChangesAsync(cancellationToken);
+
+        return true;
+    }
+
     /// <inheritdoc />
     public async Task<OneOf<Success, CannotDeactivatePrivilegedAccount, AccountDeactivationAlreadyInProgress, Unauthorized, NotFound>> DeactivateAccountAsync(Guid executingUserId, Guid userId, bool deleteLater)
     {
@@ -232,7 +250,7 @@ public sealed class AccountService : IAccountService
     }
 
     /// <inheritdoc />
-    public async Task<OneOf<Success<string>, AccountDeactivated, NotFound>> CreateUserLoginSessionAsync(string usernameOrEmail, string password,
+    public async Task<OneOf<Success<string>, AccountNotActivated, AccountDeactivated, NotFound>> CreateUserLoginSessionAsync(string usernameOrEmail, string password,
         LoginContext loginContext, CancellationToken cancellationToken = default)
     {
         var lowercaseUsernameOrEmail = usernameOrEmail.ToLowerInvariant();
@@ -244,6 +262,10 @@ public sealed class AccountService : IAccountService
             // TODO: Set appropriate time to match password hashing time, preventing timing attacks
             await Task.Delay(100, cancellationToken);
             return new NotFound();
+        }
+        if (user.ActivatedAt is null)
+        {
+            return new AccountNotActivated();
         }
         if (user.UserDeactivation is not null)
         {
@@ -275,7 +297,7 @@ public sealed class AccountService : IAccountService
     }
 
     /// <inheritdoc />
-    public async Task<OneOf<Success, TooManyPasswordResets, AccountDeactivated, NotFound>> CreatePasswordResetFlowAsync(string email)
+    public async Task<OneOf<Success, TooManyPasswordResets, AccountNotActivated, AccountDeactivated, NotFound>> CreatePasswordResetFlowAsync(string email)
     {
         var validSince = DateTime.UtcNow - Duration.PasswordResetRequestLifetime;
         var lowerCaseEmail = email.ToLowerInvariant();
@@ -289,6 +311,7 @@ public sealed class AccountService : IAccountService
             })
             .FirstOrDefaultAsync();
         if (user is null) return new NotFound();
+        if (user.User.ActivatedAt is null) return new AccountNotActivated();
         if (user.User.UserDeactivation is not null) return new AccountDeactivated();
         if (user.PasswordResetCount >= 3) return new TooManyPasswordResets();
 
@@ -309,7 +332,7 @@ public sealed class AccountService : IAccountService
     }
 
     /// <inheritdoc />
-    public async Task<OneOf<Success, NotFound, AccountDeactivated, SecretInvalid>> CompletePasswordResetFlowAsync(Guid passwordResetId,
+    public async Task<OneOf<Success, NotFound, AccountNotActivated, AccountDeactivated, SecretInvalid>> CompletePasswordResetFlowAsync(Guid passwordResetId,
         string secret, string newPassword)
     {
         var validSince = DateTime.UtcNow - Duration.PasswordResetRequestLifetime;
@@ -319,6 +342,7 @@ public sealed class AccountService : IAccountService
             .Include(x => x.User.UserDeactivation)
             .FirstOrDefaultAsync(x => x.Id == passwordResetId && x.UsedAt == null && x.CreatedAt >= validSince);
         if (reset is null) return new NotFound();
+        if (reset.User.ActivatedAt is null) return new AccountNotActivated();
         if (reset.User.UserDeactivation is not null) return new AccountDeactivated();
 
         var result = HashingUtils.VerifyToken(secret, reset.TokenHash);
@@ -403,6 +427,19 @@ public sealed class AccountService : IAccountService
         return new Success();
     }
 
+    public async Task<bool> TryVerifyEmailAsync(string token, CancellationToken cancellationToken = default)
+    {
+        var hash = HashingUtils.HashToken(token);
+
+        int nChanges = await _db.UserEmailChanges
+            .Where(x => x.TokenHash == hash && x.UsedAt == null && x.User.Email == x.OldEmail && x.User.UserDeactivation == null && x.User.ActivatedAt != null)
+            .ExecuteUpdateAsync(spc => spc
+                .SetProperty(x => x.UsedAt, _ => DateTime.UtcNow)
+                .SetProperty(x => x.User.Email, x => x.NewEmail)
+            , cancellationToken);
+
+        return nChanges > 0;
+    }
 
     private async Task<bool> CheckPassword(string password, User user)
     {

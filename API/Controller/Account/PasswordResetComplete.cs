@@ -31,6 +31,7 @@ public sealed partial class AccountController
         return passwordResetComplete.Match(
             success => LegacyEmptyOk("Password successfully changed"),
             notFound => Problem(PasswordResetError.PasswordResetNotFound),
+            notActivated => Problem(AccountError.AccountNotActivated),
             deactivated => Problem(AccountError.AccountDeactivated),
             invalid => Problem(PasswordResetError.PasswordResetNotFound)
                 );

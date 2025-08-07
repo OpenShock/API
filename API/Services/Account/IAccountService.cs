@@ -28,6 +28,14 @@ public interface IAccountService
     /// <returns></returns>
     public Task<OneOf<Success<User>, AccountWithEmailOrUsernameExists>> CreateAccountWithActivationFlowAsync(string email, string username, string password);
 
+    /// <summary>
+    /// 
+    /// </summary>
+    /// <param name="token"></param>
+    /// <param name="cancellationToken"></param>
+    /// <returns></returns>
+    Task<bool> TryActivateAccountAsync(string token, CancellationToken cancellationToken = default);
+
     public Task<OneOf<Success, CannotDeactivatePrivilegedAccount, AccountDeactivationAlreadyInProgress, Unauthorized, NotFound>> DeactivateAccountAsync(Guid executingUserId, Guid userId, bool deleteLater = true);
     
     public Task<OneOf<Success, Unauthorized, NotFound>> ReactivateAccountAsync(Guid executingUserId, Guid userId);
@@ -42,7 +50,7 @@ public interface IAccountService
     /// <param name="loginContext"></param>
     /// <param name="cancellationToken"></param>
     /// <returns></returns>
-    public Task<OneOf<Success<string>, AccountDeactivated, NotFound>> CreateUserLoginSessionAsync(string usernameOrEmail, string password, LoginContext loginContext, CancellationToken cancellationToken = default);
+    public Task<OneOf<Success<string>, AccountNotActivated, AccountDeactivated, NotFound>> CreateUserLoginSessionAsync(string usernameOrEmail, string password, LoginContext loginContext, CancellationToken cancellationToken = default);
     
     /// <summary>
     /// Check if a password reset request exists and the secret is valid
@@ -58,7 +66,7 @@ public interface IAccountService
     /// </summary>
     /// <param name="email"></param>
     /// <returns></returns>
-    public Task<OneOf<Success, TooManyPasswordResets, AccountDeactivated, NotFound>> CreatePasswordResetFlowAsync(string email);
+    public Task<OneOf<Success, TooManyPasswordResets, AccountNotActivated, AccountDeactivated, NotFound>> CreatePasswordResetFlowAsync(string email);
     
     /// <summary>
     /// Completes a password reset process, sets a new password
@@ -67,7 +75,7 @@ public interface IAccountService
     /// <param name="secret"></param>
     /// <param name="newPassword"></param>
     /// <returns></returns>
-    public Task<OneOf<Success, NotFound, AccountDeactivated, SecretInvalid>> CompletePasswordResetFlowAsync(Guid passwordResetId, string secret, string newPassword);
+    public Task<OneOf<Success, NotFound, AccountNotActivated, AccountDeactivated, SecretInvalid>> CompletePasswordResetFlowAsync(Guid passwordResetId, string secret, string newPassword);
     
     /// <summary>
     /// Check the availability of a username
@@ -94,8 +102,17 @@ public interface IAccountService
     /// <param name="newPassword"></param>
     /// <returns></returns>
     public Task<OneOf<Success, AccountDeactivated, NotFound>> ChangePasswordAsync(Guid userId, string newPassword);
+
+    /// <summary>
+    /// 
+    /// </summary>
+    /// <param name="token"></param>
+    /// <param name="cancellationToken"></param>
+    /// <returns></returns>
+    Task<bool> TryVerifyEmailAsync(string token, CancellationToken cancellationToken = default);
 }
 
+public readonly record struct AccountNotActivated;
 public readonly record struct AccountDeactivated;
 public readonly struct AccountWithEmailOrUsernameExists;
 public readonly struct CannotDeactivatePrivilegedAccount;

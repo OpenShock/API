@@ -18,10 +18,12 @@ public static class UserEmailChangeSeeder
 
         var allUserIds = await db.Users.Select(u => u.Id).ToListAsync();
 
+        // This faker isn't entirely accurate, old email must match previous email, newemail must match current if usedat is not null, createdat must be earlier than usedat, etc etc...
         var emailChangeFaker = new Faker<UserEmailChange>()
             .RuleFor(e => e.Id, f => Guid.CreateVersion7())
             .RuleFor(e => e.UserId, f => f.PickRandom(allUserIds))
-            .RuleFor(e => e.Email, f => f.Internet.Email().Truncate(HardLimits.EmailAddressMaxLength))
+            .RuleFor(e => e.OldEmail, f => f.Internet.Email())
+            .RuleFor(e => e.NewEmail, f => f.Internet.Email())
             .RuleFor(e => e.TokenHash, f =>
             {
                 var token = f.Random.AlphaNumeric(AuthConstants.GeneratedTokenLength);
