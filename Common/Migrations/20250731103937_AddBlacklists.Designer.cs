@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Net;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using OpenShock.Common.Models;
@@ -14,9 +15,11 @@ using OpenShock.Common.OpenShockDb;
 namespace OpenShock.Common.Migrations
 {
     [DbContext(typeof(MigrationOpenShockContext))]
-    partial class OpenShockContextModelSnapshot : ModelSnapshot
+    [Migration("20250731103937_AddBlacklists")]
+    partial class AddBlacklists
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -24,7 +27,6 @@ namespace OpenShock.Common.Migrations
                 .HasAnnotation("ProductVersion", "9.0.7")
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
-            NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "configuration_value_type", new[] { "string", "bool", "int", "float", "json" });
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "control_type", new[] { "sound", "vibrate", "shock", "stop" });
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "match_type_enum", new[] { "exact", "contains" });
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "ota_update_status", new[] { "started", "running", "finished", "error", "timeout" });
@@ -155,8 +157,7 @@ namespace OpenShock.Common.Migrations
                         .IsRequired()
                         .HasMaxLength(64)
                         .HasColumnType("character varying(64)")
-                        .HasColumnName("token_hash")
-                        .UseCollation("C");
+                        .HasColumnName("token_hash");
 
                     b.Property<Guid>("UserId")
                         .HasColumnType("uuid")
@@ -220,43 +221,6 @@ namespace OpenShock.Common.Migrations
                     b.ToTable("api_token_reports", (string)null);
                 });
 
-            modelBuilder.Entity("OpenShock.Common.OpenShockDb.ConfigurationItem", b =>
-                {
-                    b.Property<string>("Name")
-                        .HasColumnType("text")
-                        .HasColumnName("name")
-                        .UseCollation("C");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("created_at")
-                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
-
-                    b.Property<string>("Description")
-                        .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("description");
-
-                    b.Property<ConfigurationValueType>("Type")
-                        .HasColumnType("configuration_value_type")
-                        .HasColumnName("type");
-
-                    b.Property<DateTime>("UpdatedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("updated_at");
-
-                    b.Property<string>("Value")
-                        .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("value");
-
-                    b.HasKey("Name")
-                        .HasName("configuration_pkey");
-
-                    b.ToTable("configuration", (string)null);
-                });
-
             modelBuilder.Entity("OpenShock.Common.OpenShockDb.Device", b =>
                 {
                     b.Property<Guid>("Id")
@@ -283,8 +247,7 @@ namespace OpenShock.Common.Migrations
                         .IsRequired()
                         .HasMaxLength(256)
                         .HasColumnType("character varying(256)")
-                        .HasColumnName("token")
-                        .UseCollation("C");
+                        .HasColumnName("token");
 
                     b.HasKey("Id")
                         .HasName("devices_pkey");
@@ -683,8 +646,7 @@ namespace OpenShock.Common.Migrations
                         .IsRequired()
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)")
-                        .HasColumnName("password_hash")
-                        .UseCollation("C");
+                        .HasColumnName("password_hash");
 
                     b.PrimitiveCollection<List<RoleType>>("Roles")
                         .IsRequired()
@@ -721,18 +683,14 @@ namespace OpenShock.Common.Migrations
                         .HasColumnType("integer")
                         .HasColumnName("email_send_attempts");
 
-                    b.Property<string>("TokenHash")
+                    b.Property<string>("SecretHash")
                         .IsRequired()
                         .HasMaxLength(128)
                         .HasColumnType("character varying(128)")
-                        .HasColumnName("token_hash")
-                        .UseCollation("C");
+                        .HasColumnName("secret");
 
                     b.HasKey("UserId")
                         .HasName("user_activation_requests_pkey");
-
-                    b.HasIndex("TokenHash")
-                        .IsUnique();
 
                     b.ToTable("user_activation_requests", (string)null);
                 });
@@ -781,24 +739,17 @@ namespace OpenShock.Common.Migrations
                         .HasColumnName("created_at")
                         .HasDefaultValueSql("CURRENT_TIMESTAMP");
 
-                    b.Property<string>("NewEmail")
+                    b.Property<string>("Email")
                         .IsRequired()
                         .HasMaxLength(320)
                         .HasColumnType("character varying(320)")
-                        .HasColumnName("email_new");
+                        .HasColumnName("email");
 
-                    b.Property<string>("OldEmail")
-                        .IsRequired()
-                        .HasMaxLength(320)
-                        .HasColumnType("character varying(320)")
-                        .HasColumnName("email_old");
-
-                    b.Property<string>("TokenHash")
+                    b.Property<string>("SecretHash")
                         .IsRequired()
                         .HasMaxLength(128)
                         .HasColumnType("character varying(128)")
-                        .HasColumnName("token_hash")
-                        .UseCollation("C");
+                        .HasColumnName("secret");
 
                     b.Property<DateTime?>("UsedAt")
                         .HasColumnType("timestamp with time zone")
@@ -903,12 +854,11 @@ namespace OpenShock.Common.Migrations
                         .HasColumnName("created_at")
                         .HasDefaultValueSql("CURRENT_TIMESTAMP");
 
-                    b.Property<string>("TokenHash")
+                    b.Property<string>("SecretHash")
                         .IsRequired()
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)")
-                        .HasColumnName("token_hash")
-                        .UseCollation("C");
+                        .HasColumnName("secret");
 
                     b.Property<DateTime?>("UsedAt")
                         .HasColumnType("timestamp with time zone")

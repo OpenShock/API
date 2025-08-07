@@ -21,10 +21,10 @@ public static class UserPasswordResetSeeder
         var prFaker = new Faker<UserPasswordReset>()
             .RuleFor(p => p.Id, f => Guid.CreateVersion7())
             .RuleFor(p => p.UserId, f => f.PickRandom(allUserIds))
-            .RuleFor(p => p.SecretHash, f =>
+            .RuleFor(p => p.TokenHash, f =>
             {
-                var raw = f.Random.AlphaNumeric(20);
-                return HashingUtils.HashPassword(raw).Truncate(HardLimits.PasswordResetSecretMaxLength);
+                var token = f.Random.AlphaNumeric(AuthConstants.GeneratedTokenLength);
+                return HashingUtils.HashToken(token);
             })
             .RuleFor(p => p.UsedAt, f => f.Random.Bool(0.3f) ? f.Date.RecentOffset(15).UtcDateTime : null)
             .RuleFor(p => p.CreatedAt, f => f.Date.RecentOffset(30).UtcDateTime);

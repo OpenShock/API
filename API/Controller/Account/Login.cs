@@ -9,6 +9,7 @@ using OpenShock.Common.Options;
 using OpenShock.Common.Problems;
 using OpenShock.Common.Utils;
 using System.Net.Mime;
+using Microsoft.AspNetCore.RateLimiting;
 
 namespace OpenShock.API.Controller.Account;
 
@@ -20,6 +21,7 @@ public sealed partial class AccountController
     /// <response code="200">User successfully logged in</response>
     /// <response code="401">Invalid username or password</response>
     [HttpPost("login")]
+    [EnableRateLimiting("auth")]
     [ProducesResponseType<LegacyEmptyResponse>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status401Unauthorized, MediaTypeNames.Application.ProblemJson)] // InvalidCredentials
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status403Forbidden, MediaTypeNames.Application.ProblemJson)] // InvalidDomain
@@ -38,10 +40,15 @@ public sealed partial class AccountController
             UserAgent = HttpContext.GetUserAgent(),
         }, cancellationToken);
 
-        if (loginAction.IsT1) return Problem(LoginError.InvalidCredentials);
-
-        HttpContext.SetSessionKeyCookie(loginAction.AsT0.Value, "." + cookieDomainToUse);
-
-        return LegacyEmptyOk("Successfully logged in");
+        return loginAction.Match<IActionResult>(
+            ok =>
+            {
+                HttpContext.SetSessionKeyCookie(loginAction.AsT0.Value, "." + cookieDomainToUse);
+                return LegacyEmptyOk("Successfully logged in");
+            },
+            notActivated => Problem(AccountError.AccountNotActivated),
+            deactivated => Problem(AccountError.AccountDeactivated),
+            notFound => Problem(LoginError.InvalidCredentials)
+        );
     }
 }

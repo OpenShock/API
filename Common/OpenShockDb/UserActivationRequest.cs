@@ -4,7 +4,7 @@ public sealed class UserActivationRequest
 {
     public required Guid UserId { get; set; }
 
-    public required string SecretHash { get; set; }
+    public required string TokenHash { get; set; }
 
     public int EmailSendAttempts { get; set; }
 

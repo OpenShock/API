@@ -31,9 +31,8 @@ public sealed partial class SharesController
     [ApiVersion("2")]
     public async Task<V2UserShares> GetSharesByUsers(CancellationToken cancellationToken)
     {
-        _db.ChangeTracker.QueryTrackingBehavior = QueryTrackingBehavior.NoTracking;
-
         var outgoingSharesFuture = _db.UserShares
+            .AsNoTracking()
             .Where(x => x.Shocker.Device.OwnerId == CurrentUser.Id)
             .GroupBy(x => x.SharedWithUserId)
             .Select(g => new V2UserSharesListItemDto
@@ -65,7 +64,8 @@ public sealed partial class SharesController
             .Future();
 
         var incomingSharesFuture = _db.UserShares
-            .Where(x => x.SharedWithUserId == CurrentUser.Id)
+            .AsNoTracking()
+            .Where(x => x.SharedWithUserId == CurrentUser.Id && x.SharedWithUser.UserDeactivation == null)
             .GroupBy(x => x.Shocker.Device.OwnerId)
             .Select(g => new V2UserSharesListItemDto
             {
