@@ -22,6 +22,23 @@ namespace OpenShock.Common.Migrations
                 maxLength: 320,
                 nullable: false,
                 defaultValue: "");
+
+            // Fix all non-activated accounts
+            migrationBuilder.Sql("""
+                UPDATE users
+                SET activated_at = created_at
+                WHERE activated_at IS NULL
+                  AND NOT EXISTS (
+                    SELECT 1
+                    FROM user_deactivations AS d
+                    WHERE d.deactivated_user_id = users.id
+                  )
+                  AND NOT EXISTS (
+                    SELECT 1
+                    FROM user_activation_requests AS r
+                    WHERE r.user_id = users.id
+                  );
+                """);
         }
 
         /// <inheritdoc />

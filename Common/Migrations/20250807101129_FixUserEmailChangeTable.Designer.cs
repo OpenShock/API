@@ -15,7 +15,7 @@ using OpenShock.Common.OpenShockDb;
 namespace OpenShock.Common.Migrations
 {
     [DbContext(typeof(MigrationOpenShockContext))]
-    [Migration("20250805124855_FixUserEmailChangeTable")]
+    [Migration("20250807101129_FixUserEmailChangeTable")]
     partial class FixUserEmailChangeTable
     {
         /// <inheritdoc />
