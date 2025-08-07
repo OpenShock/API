@@ -13,9 +13,9 @@ public sealed partial class AdminController
     /// <response code="200"></response>
     /// <response code="401">Unauthorized</response>
     [HttpGet("config")]
-    public async Task<ConfigurationItemDto[]> ConfigurationList([FromServices] IConfigurationService configurationService, CancellationToken cancellationToken)
+    public IAsyncEnumerable<ConfigurationItemDto> ConfigurationList([FromServices] IConfigurationService configurationService)
     {
-        return await configurationService
+        return configurationService
             .GetAllItemsQuery()
             .Select(ci => new ConfigurationItemDto
             {
@@ -26,7 +26,7 @@ public sealed partial class AdminController
                 UpdatedAt = ci.UpdatedAt,
                 CreatedAt = ci.CreatedAt,
             })
-            .ToArrayAsync(cancellationToken);
+            .AsAsyncEnumerable();
     }
 
     /// <summary>
