@@ -68,6 +68,7 @@ public class OpenShockContext : DbContext
             npgsqlBuilder.MapEnum<ShockerModelType>();
             npgsqlBuilder.MapEnum<OtaUpdateStatus>();
             npgsqlBuilder.MapEnum<MatchTypeEnum>();
+            npgsqlBuilder.MapEnum<ConfigurationValueType>();
         });
 
         if (debug)
@@ -142,6 +143,7 @@ public class OpenShockContext : DbContext
             .HasPostgresEnum("role_type", ["support", "staff", "admin", "system"])
             .HasPostgresEnum("shocker_model_type", ["caiXianlin", "petTrainer", "petrainer998DR"])
             .HasPostgresEnum("match_type_enum", ["exact", "contains"])
+            .HasPostgresEnum("configuration_value_type", ["string", "bool", "int", "float", "json"])
             .HasCollation("public", "ndcoll", "und-u-ks-level2", "icu", false); // Add case-insensitive, accent-sensitive comparison collation
 
         modelBuilder.Entity<ApiToken>(entity =>

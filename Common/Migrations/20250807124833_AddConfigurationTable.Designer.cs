@@ -27,6 +27,7 @@ namespace OpenShock.Common.Migrations
                 .HasAnnotation("ProductVersion", "9.0.7")
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
+            NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "configuration_value_type", new[] { "string", "bool", "int", "float", "json" });
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "control_type", new[] { "sound", "vibrate", "shock", "stop" });
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "match_type_enum", new[] { "exact", "contains" });
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "ota_update_status", new[] { "started", "running", "finished", "error", "timeout" });
@@ -240,8 +241,8 @@ namespace OpenShock.Common.Migrations
                         .HasColumnType("text")
                         .HasColumnName("description");
 
-                    b.Property<int>("Type")
-                        .HasColumnType("integer")
+                    b.Property<ConfigurationValueType>("Type")
+                        .HasColumnType("configuration_value_type")
                         .HasColumnName("type");
 
                     b.Property<DateTime>("UpdatedAt")
