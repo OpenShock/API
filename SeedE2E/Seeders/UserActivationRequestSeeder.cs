@@ -20,10 +20,10 @@ public static class UserActivationRequestSeeder
             return;
 
         var activationFaker = new Faker<UserActivationRequest>()
-            .RuleFor(a => a.SecretHash, f =>
+            .RuleFor(a => a.TokenHash, f =>
             {
-                var raw = f.Random.AlphaNumeric(20);
-                return HashingUtils.HashToken(raw).Truncate(HardLimits.UserActivationRequestSecretMaxLength);
+                var token = f.Random.AlphaNumeric(AuthConstants.GeneratedTokenLength);
+                return HashingUtils.HashToken(token);
             })
             .RuleFor(a => a.EmailSendAttempts, f => f.Random.Number(0, 3))
             .RuleFor(a => a.CreatedAt, f => f.Date.RecentOffset(20).UtcDateTime);

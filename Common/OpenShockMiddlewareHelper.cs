@@ -65,11 +65,13 @@ public static class OpenShockMiddlewareHelper
         // Redis
         var redisConnection = app.Services.GetRequiredService<IRedisConnectionProvider>().Connection;
 
-        redisConnection.CreateIndex(typeof(LoginSession));
-        redisConnection.CreateIndex(typeof(DeviceOnline));
-        redisConnection.CreateIndex(typeof(DevicePair));
-        redisConnection.CreateIndex(typeof(LcgNode));
+        await redisConnection.CreateIndexAsync(typeof(LoginSession));
+        await redisConnection.CreateIndexAsync(typeof(DeviceOnline));
+        await redisConnection.CreateIndexAsync(typeof(DevicePair));
+        await redisConnection.CreateIndexAsync(typeof(LcgNode));
 
+        app.UseRateLimiter();
+        
         app.UseOpenTelemetryPrometheusScrapingEndpoint(context =>
         {
             if(context.Request.Path != "/metrics") return false;
@@ -79,17 +81,16 @@ public static class OpenShockMiddlewareHelper
         });
         
         app.UseSwagger();
-        
-        Action<ScalarOptions> scalarOptions = options =>
-            options
-                .WithOpenApiRoutePattern("/swagger/{documentName}/swagger.json")
-                .AddDocument("1", "Version 1")
-                .AddDocument("2", "Version 2");
-        
-        app.MapScalarApiReference("/scalar/viewer", scalarOptions);
+
+        app.MapScalarApiReference("/scalar/viewer", options => 
+                options
+                    .WithOpenApiRoutePattern("/swagger/{documentName}/swagger.json")
+                    .AddDocument("1", "Version 1")
+                    .AddDocument("2", "Version 2")
+                );
         
         app.MapControllers();
-        
+
         return app;
     }
 
@@ -103,7 +104,7 @@ public static class OpenShockMiddlewareHelper
 
         await using var migrationContext = new MigrationOpenShockContext(options.Conn, options.Debug, loggerFactory);
 
-        var pendingMigrations = migrationContext.Database.GetPendingMigrations().ToArray();
+        var pendingMigrations = (await migrationContext.Database.GetPendingMigrationsAsync()).ToArray();
 
         if (pendingMigrations.Length > 0)
         {

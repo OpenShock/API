@@ -9,6 +9,7 @@ using OpenShock.Common.Problems;
 using OpenShock.Common.Services.Turnstile;
 using OpenShock.Common.Utils;
 using System.Net;
+using Microsoft.AspNetCore.RateLimiting;
 using OpenShock.Common.Services.Webhook;
 
 namespace OpenShock.API.Controller.Tokens;
@@ -24,6 +25,7 @@ public sealed partial class TokensController
     /// <param name="cancellationToken"></param>
     /// <response code="200">The tokens were deleted if found</response>
     [HttpPost("report")]
+    [EnableRateLimiting("token-reporting")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     public async Task<IActionResult> ReportTokens(
         [FromBody] ReportTokensRequest body,
@@ -33,7 +35,7 @@ public sealed partial class TokensController
     {
         var remoteIP = HttpContext.GetRemoteIP();
 
-        var turnStile = await turnstileService.VerifyUserResponseToken(body.TurnstileResponse, remoteIP, cancellationToken);
+        var turnStile = await turnstileService.VerifyUserResponseTokenAsync(body.TurnstileResponse, remoteIP, cancellationToken);
         if (!turnStile.IsT0)
         {
             var cfErrors = turnStile.AsT1.Value!;
@@ -76,7 +78,7 @@ public sealed partial class TokensController
         });
         await _db.SaveChangesAsync(cancellationToken);
 
-        await webhookService.SendWebhook(
+        await webhookService.SendWebhookAsync(
             "TokensReported",
             "🔒 Leaked API Tokens Report Submitted", 
         $"""

@@ -173,7 +173,13 @@ public abstract class HubControllerBase<TIn, TOut> : FlatbuffersWebsocketBaseCon
     public abstract ValueTask CaptivePortal(bool enable);
 
     /// <inheritdoc />
+    public abstract ValueTask<bool> EmergencyStop();
+
+    /// <inheritdoc />
     public abstract ValueTask OtaInstall(SemVersion version);
+
+    /// <inheritdoc />
+    public abstract ValueTask<bool> Reboot();
 
     /// <inheritdoc />
     public async Task DisconnectOld()

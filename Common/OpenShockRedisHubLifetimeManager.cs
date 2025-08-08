@@ -14,8 +14,7 @@ namespace OpenShock.Common;
 /// <typeparam name="THub"></typeparam>
 public sealed class OpenShockRedisHubLifetimeManager<THub> : RedisHubLifetimeManager<THub> where THub : Hub
 {
-    private readonly FieldInfo _usersField;
-    private readonly FieldInfo _subscriptionsField;
+    private readonly ConcurrentDictionary<string, HubConnectionStore> _subscriptions;
     private readonly string _redisPrefix = typeof(THub).FullName!;
     
     /// <summary>
@@ -32,8 +31,12 @@ public sealed class OpenShockRedisHubLifetimeManager<THub> : RedisHubLifetimeMan
         IOptions<HubOptions<THub>>? hubOptions) : base(logger, options, hubProtocolResolver, globalHubOptions,
         hubOptions)
     {
-        _usersField = typeof(RedisHubLifetimeManager<THub>).GetField("_users", BindingFlags.NonPublic | BindingFlags.Instance)!;
-        _subscriptionsField = _usersField.FieldType.GetField("_subscriptions", BindingFlags.NonPublic | BindingFlags.Instance)!;
+        var usersField = typeof(RedisHubLifetimeManager<THub>).GetField("_users", BindingFlags.NonPublic | BindingFlags.Instance) ?? throw new NullReferenceException("Unable to get RedisHubLifetimeManager._users field");
+        var subscriptionsField = usersField.FieldType.GetField("_subscriptions", BindingFlags.NonPublic | BindingFlags.Instance) ?? throw new NullReferenceException("Unable to get RedisHubLifetimeManager._users._subscriptions field");
+        var users = usersField.GetValue(this) ?? throw new NullReferenceException("Unable to get RedisHubLifetimeManager._users value");
+        var subscriptions = subscriptionsField.GetValue(users) ?? throw new NullReferenceException("Unable to get RedisHubLifetimeManager._users._subscriptions value");
+
+        _subscriptions = (ConcurrentDictionary<string, HubConnectionStore>)subscriptions;
     }
 
     /// <inheritdoc />
@@ -92,11 +95,7 @@ public sealed class OpenShockRedisHubLifetimeManager<THub> : RedisHubLifetimeMan
     private Task SendLocalUserAsync(string userId, SerializedHubMessage message,
         CancellationToken cancellationToken)
     {
-        var users = _usersField.GetValue(this)!;
-        var subsObj =
-            (ConcurrentDictionary<string, HubConnectionStore>)_subscriptionsField.GetValue(users)!;
-
-        if (!subsObj.TryGetValue($"{_redisPrefix}:user:{userId[6..]}", out var store)) return Task.CompletedTask;
+        if (!_subscriptions.TryGetValue($"{_redisPrefix}:user:{userId[6..]}", out var store)) return Task.CompletedTask;
 
         var tasks = new List<Task>(store.Count);
         foreach (var context in store) tasks.Add(context.WriteAsync(message, cancellationToken).AsTask());

@@ -16,7 +16,7 @@ public sealed partial class AuthenticatedAccountController
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status403Forbidden, MediaTypeNames.Application.ProblemJson)] // CannotDeactivatePrivledgedAccount
     public async Task<IActionResult> Deactivate()
     {
-        var deactivationResult = await _accountService.DeactivateAccount(CurrentUser.Id, CurrentUser.Id, deleteLater: true);
+        var deactivationResult = await _accountService.DeactivateAccountAsync(CurrentUser.Id, CurrentUser.Id, deleteLater: true);
         return deactivationResult.Match(
             success => Ok("Account deactivated"),
             cannotDeactivatePrivledged => Problem(AccountActivationError.CannotDeactivateOrDeletePrivledgedAccount),

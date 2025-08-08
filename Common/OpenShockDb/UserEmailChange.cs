@@ -6,9 +6,11 @@ public sealed class UserEmailChange
 
     public required Guid UserId { get; set; }
 
-    public string Email { get; set; } = null!;
+    public required string OldEmail { get; set; }
 
-    public string SecretHash { get; set; } = null!;
+    public required string NewEmail { get; set; }
+
+    public required string TokenHash { get; set; }
 
     public DateTime? UsedAt { get; set; }
 

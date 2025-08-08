@@ -14,7 +14,7 @@ public interface IEmailService
     public Task PasswordReset(Contact to, Uri resetLink, CancellationToken cancellationToken = default);
     
     /// <summary>
-    /// When a user uses the signup form we send this email to let them activate their email
+    /// When a user uses the signup form we send this email to let them activate their account
     /// </summary>
     /// <param name="to"></param>
     /// <param name="activationLink"></param>

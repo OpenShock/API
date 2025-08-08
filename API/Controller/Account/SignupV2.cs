@@ -3,6 +3,7 @@ using OpenShock.API.Models.Requests;
 using System.Net;
 using System.Net.Mime;
 using Asp.Versioning;
+using Microsoft.AspNetCore.RateLimiting;
 using OpenShock.Common.Errors;
 using OpenShock.Common.Problems;
 using OpenShock.Common.Services.Turnstile;
@@ -22,6 +23,7 @@ public sealed partial class AccountController
     /// <response code="200">User successfully signed up</response>
     /// <response code="400">Username or email already exists</response>
     [HttpPost("signup")]
+    [EnableRateLimiting("auth")]
     [ProducesResponseType<LegacyEmptyResponse>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status409Conflict, MediaTypeNames.Application.ProblemJson)] // EmailOrUsernameAlreadyExists
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status403Forbidden, MediaTypeNames.Application.ProblemJson)] // InvalidTurnstileResponse
@@ -31,7 +33,7 @@ public sealed partial class AccountController
         [FromServices] ICloudflareTurnstileService turnstileService,
         CancellationToken cancellationToken)
     {
-        var turnStile = await turnstileService.VerifyUserResponseToken(body.TurnstileResponse, HttpContext.GetRemoteIP(), cancellationToken);
+        var turnStile = await turnstileService.VerifyUserResponseTokenAsync(body.TurnstileResponse, HttpContext.GetRemoteIP(), cancellationToken);
         if (!turnStile.IsT0)
         {
             var cfErrors = turnStile.AsT1.Value;
@@ -41,7 +43,7 @@ public sealed partial class AccountController
             return Problem(new OpenShockProblem("InternalServerError", "Internal Server Error", HttpStatusCode.InternalServerError));
         }
 
-        var creationAction = await _accountService.Signup(body.Email, body.Username, body.Password);
+        var creationAction = await _accountService.CreateAccountWithActivationFlowAsync(body.Email, body.Username, body.Password);
         return creationAction.Match(
             _ => LegacyEmptyOk("Successfully signed up"),
             _ => Problem(SignupError.EmailAlreadyExists)

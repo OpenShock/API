@@ -3,6 +3,7 @@ using OpenShock.API.Models.Requests;
 using System.Net;
 using System.Net.Mime;
 using Asp.Versioning;
+using Microsoft.AspNetCore.RateLimiting;
 using OpenShock.API.Services.Account;
 using OpenShock.Common.Errors;
 using OpenShock.Common.Problems;
@@ -22,6 +23,7 @@ public sealed partial class AccountController
     /// <response code="200">User successfully logged in</response>
     /// <response code="401">Invalid username or password</response>
     [HttpPost("login")]
+    [EnableRateLimiting("auth")]
     [ProducesResponseType<LegacyEmptyResponse>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status401Unauthorized, MediaTypeNames.Application.ProblemJson)] // InvalidCredentials
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status403Forbidden, MediaTypeNames.Application.ProblemJson)] // InvalidDomain
@@ -37,7 +39,7 @@ public sealed partial class AccountController
 
         var remoteIP = HttpContext.GetRemoteIP();
 
-        var turnStile = await turnstileService.VerifyUserResponseToken(body.TurnstileResponse, remoteIP, cancellationToken);
+        var turnStile = await turnstileService.VerifyUserResponseTokenAsync(body.TurnstileResponse, remoteIP, cancellationToken);
         if (!turnStile.IsT0)
         {
             var cfErrors = turnStile.AsT1.Value;
@@ -47,16 +49,21 @@ public sealed partial class AccountController
             return Problem(new OpenShockProblem("InternalServerError", "Internal Server Error", HttpStatusCode.InternalServerError));
         }
             
-        var loginAction = await _accountService.Login(body.UsernameOrEmail, body.Password, new LoginContext
+        var loginAction = await _accountService.CreateUserLoginSessionAsync(body.UsernameOrEmail, body.Password, new LoginContext
         {
             Ip = remoteIP.ToString(),
             UserAgent = HttpContext.GetUserAgent(),
         }, cancellationToken);
 
-        if (loginAction.IsT1) return Problem(LoginError.InvalidCredentials);
-
-        HttpContext.SetSessionKeyCookie(loginAction.AsT0.Value, "." + cookieDomainToUse);
-
-        return LegacyEmptyOk("Successfully logged in");
+        return loginAction.Match<IActionResult>(
+            ok =>
+            {
+                HttpContext.SetSessionKeyCookie(loginAction.AsT0.Value, "." + cookieDomainToUse);
+                return Ok("Successfully logged in");
+            },
+            notActivated => Problem(AccountError.AccountNotActivated),
+            deactivated => Problem(AccountError.AccountDeactivated),
+            notFound => Problem(LoginError.InvalidCredentials)
+        );
     }
 }

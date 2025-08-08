@@ -6,19 +6,21 @@ public interface ISessionService
 {
     public Task<CreateSessionResult> CreateSessionAsync(Guid userId, string userAgent, string ipAddress);
 
-    public Task<IReadOnlyList<LoginSession>> ListSessionsByUserId(Guid userId);
+    public Task<IReadOnlyList<LoginSession>> ListSessionsByUserIdAsync(Guid userId);
 
-    public Task<LoginSession?> GetSessionByToken(string sessionToken);
+    public Task<LoginSession?> GetSessionByTokenAsync(string sessionToken);
 
-    public Task<LoginSession?> GetSessionById(Guid sessionId);
+    public Task<LoginSession?> GetSessionByIdAsync(Guid sessionId);
 
-    public Task UpdateSession(LoginSession loginSession, TimeSpan ttl);
+    public Task UpdateSessionAsync(LoginSession loginSession, TimeSpan ttl);
 
-    public Task<bool> DeleteSessionByToken(string sessionToken);
+    public Task<bool> DeleteSessionByTokenAsync(string sessionToken);
 
-    public Task<bool> DeleteSessionById(Guid sessionId);
+    public Task<bool> DeleteSessionByIdAsync(Guid sessionId);
 
-    public Task DeleteSession(LoginSession loginSession);
+    public Task<int> DeleteSessionsByUserIdAsync(Guid userId);
+
+    public Task DeleteSessionAsync(LoginSession loginSession);
 }
 
 public sealed record CreateSessionResult(Guid Id, string Token);

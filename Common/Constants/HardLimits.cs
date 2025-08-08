@@ -13,6 +13,7 @@ public static class HardLimits
 
     public const int EmailAddressMinLength = 5; // "a@b.c" (5 chars)
     public const int EmailAddressMaxLength = 320; // 64 + 1 + 255 (RFC 2821)
+    public const int EmailProviderDomainMaxLength = 255;
 
     public const int PasswordMinLength = 12;
     public const int PasswordMaxLength = 256;
@@ -50,7 +51,9 @@ public static class HardLimits
     public const int MaxHubsPerUser = 4;
     public const int MaxShockersPerHub = 11;
     public const int MaxShockerControlLogsPerUser = 2048;
-    
+
+    public const int MaxTurnstileResponseTokenLength = 2048; // https://developers.cloudflare.com/turnstile/get-started/server-side-validation/
+
     // Don't allow any firmware prior to 2024.
     // Ridiculous edgecase: environment reports year at or prior to 2024, revert to 10 year limit just to be on the safe side
     public static readonly TimeSpan FirmwareMaxUptime = DateTime.UtcNow.Year <= 2024 ?
