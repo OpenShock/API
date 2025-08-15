@@ -16,7 +16,7 @@ public sealed class RedisPubService : IRedisPubService
 
     public Task SendDeviceUpdate(Guid deviceId)
     {
-        var msg = DeviceMessage.Create(deviceId, TriggerKind.DeviceInfoUpdated);
+        var msg = DeviceMessage.Create(deviceId, DeviceTriggerType.DeviceInfoUpdated);
         var bytes = MessagePackSerializer.Serialize(msg);
         return _subscriber.PublishAsync(RedisChannels.DeviceMessage, bytes);
     }
@@ -28,9 +28,9 @@ public sealed class RedisPubService : IRedisPubService
         return _subscriber.PublishAsync(RedisChannels.DeviceMessage, bytes);
     }
 
-    public Task SendDeviceControl(Guid deviceId, Guid senderId, ControlPayload.ShockerControlInfo[] controls)
+    public Task SendDeviceControl(Guid deviceId, Guid senderId, DeviceControlPayload.ShockerControlInfo[] controls)
     {
-        var msg = DeviceMessage.Create(deviceId, new ControlPayload { Sender = senderId, Controls = controls });
+        var msg = DeviceMessage.Create(deviceId, new DeviceControlPayload { Sender = senderId, Controls = controls });
         var bytes = MessagePackSerializer.Serialize(msg);
         return _subscriber.PublishAsync(RedisChannels.DeviceMessage, bytes);
     }
@@ -44,7 +44,7 @@ public sealed class RedisPubService : IRedisPubService
 
     public Task SendDeviceEmergencyStop(Guid deviceId)
     {
-        var msg = DeviceMessage.Create(deviceId, TriggerKind.DeviceEmergencyStop);
+        var msg = DeviceMessage.Create(deviceId, DeviceTriggerType.DeviceEmergencyStop);
         var bytes = MessagePackSerializer.Serialize(msg);
         return _subscriber.PublishAsync(RedisChannels.DeviceMessage, bytes);
     }
@@ -58,7 +58,7 @@ public sealed class RedisPubService : IRedisPubService
 
     public Task SendDeviceReboot(Guid deviceId)
     {
-        var msg = DeviceMessage.Create(deviceId, TriggerKind.DeviceReboot);
+        var msg = DeviceMessage.Create(deviceId, DeviceTriggerType.DeviceReboot);
         var bytes = MessagePackSerializer.Serialize(msg);
         return _subscriber.PublishAsync(RedisChannels.DeviceMessage, bytes);
     }

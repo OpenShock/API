@@ -14,21 +14,21 @@ public sealed class DeviceMessage
 
     [Key(2)] public required IEventPayload Payload { get; init; }
 
-    public static DeviceMessage Create(Guid deviceId, TriggerKind kind) => new()
+    public static DeviceMessage Create(Guid deviceId, DeviceTriggerType type) => new()
     {
         DeviceId = deviceId,
         Type = DeviceEventType.Trigger,
-        Payload = new TriggerPayload { Kind = kind }
+        Payload = new DeviceTriggerPayload { Type = type }
     };
 
     public static DeviceMessage Create(Guid deviceId, ToggleTarget target, bool state) => new()
     {
         DeviceId = deviceId,
         Type = DeviceEventType.Toggle,
-        Payload = new TogglePayload { Target = target, State = state }
+        Payload = new DeviceTogglePayload { Target = target, State = state }
     };
 
-    public static DeviceMessage Create(Guid deviceId, ControlPayload payload) => new()
+    public static DeviceMessage Create(Guid deviceId, DeviceControlPayload payload) => new()
     {
         DeviceId = deviceId,
         Type = DeviceEventType.Control,
@@ -51,14 +51,14 @@ public enum DeviceEventType : byte
     OtaInstall = 3
 }
 
-[Union(0, typeof(TriggerPayload))]
-[Union(1, typeof(TogglePayload))]
-[Union(2, typeof(ControlPayload))]
+[Union(0, typeof(DeviceTriggerPayload))]
+[Union(1, typeof(DeviceTogglePayload))]
+[Union(2, typeof(DeviceControlPayload))]
 [Union(3, typeof(DeviceOtaInstallPayload))]
 public interface IEventPayload;
 
 [MessagePackObject]
-public sealed class ControlPayload : IEventPayload
+public sealed class DeviceControlPayload : IEventPayload
 {
     [Key(0)] public Guid Sender { get; init; }
 
@@ -91,13 +91,13 @@ public enum ToggleTarget : byte
 }
 
 [MessagePackObject]
-public sealed class TogglePayload : IEventPayload
+public sealed class DeviceTogglePayload : IEventPayload
 {
     [Key(0)] public ToggleTarget Target { get; init; }
     [Key(1)] public bool State { get; init; }
 }
 
-public enum TriggerKind : byte
+public enum DeviceTriggerType : byte
 {
     DeviceInfoUpdated = 0,
     DeviceEmergencyStop = 1,
@@ -105,9 +105,9 @@ public enum TriggerKind : byte
 }
 
 [MessagePackObject]
-public sealed class TriggerPayload : IEventPayload
+public sealed class DeviceTriggerPayload : IEventPayload
 {
-    [Key(0)] public TriggerKind Kind { get; init; }
+    [Key(0)] public DeviceTriggerType Type { get; init; }
 }
 
 public sealed class SemVersionMessagePackFormatter : IMessagePackFormatter<SemVersion?>

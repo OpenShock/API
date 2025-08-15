@@ -1,4 +1,5 @@
 ﻿using System.Text.Json;
+using MessagePack;
 using OpenShock.Common.Redis.PubSub;
 using OpenShock.Common.Services.RedisPubSub;
 using OpenShock.Common.Utils;
@@ -33,94 +34,79 @@ public sealed class RedisSubscriberService : IHostedService, IAsyncDisposable
         await _subscriber.SubscribeAsync(RedisChannels.DeviceMessage, (_, val) => OsTask.Run(() => DeviceMessage(val)));
     }
 
-    private async Task DeviceMessage(RedisValue value)
-    {
-        if (!value.HasValue) return;
-        var data = JsonSerializer.Deserialize<CaptiveMessage>(value.ToString());
-        if (data is null) return;
-
-        await _hubLifetimeManager.ControlCaptive(data.DeviceId, data.Enabled);
-    }
-
-    private async Task DeviceControl(RedisValue value)
-    {
-        if (!value.HasValue) return;
-        var data = JsonSerializer.Deserialize<ControlMessage>(value.ToString());
-        if (data is null) return;
-
-        await Task.WhenAll(data.ControlMessages.Select(x => _hubLifetimeManager.Control(x.Key, x.Value)));
-    }
-
-    private async Task DeviceControlCaptive(RedisValue value)
-    {
-        if (!value.HasValue) return;
-        var data = JsonSerializer.Deserialize<CaptiveMessage>(value.ToString());
-        if (data is null) return;
-
-        await _hubLifetimeManager.ControlCaptive(data.DeviceId, data.Enabled);
-    }
-
-    /// <summary>
-    /// Update the device connection if found
-    /// </summary>
-    /// <param name="value"></param>
-    /// <returns></returns>
-    private async Task DeviceUpdate(RedisValue value)
-    {
-        if (!value.HasValue) return;
-        var data = JsonSerializer.Deserialize<DeviceUpdatedMessage>(value.ToString());
-        if (data is null) return;
-
-        await _hubLifetimeManager.UpdateDevice(data.Id);
-    }
-
-    /// <summary>
-    /// Trigger the device's emergency stop the device if found and it supports it
-    /// </summary>
-    /// <param name="value"></param>
-    /// <returns></returns>
-    private async Task DeviceEmergencyStop(RedisValue value)
-    {
-        if (!value.HasValue) return;
-        var data = JsonSerializer.Deserialize<DeviceEmergencyStopMessage>(value.ToString());
-        if (data is null) return;
-
-        await _hubLifetimeManager.EmergencyStop(data.Id);
-    }
-
-    /// <summary>
-    /// Update the device connection if found
-    /// </summary>
-    /// <param name="value"></param>
-    /// <returns></returns>
-    private async Task DeviceOtaInstall(RedisValue value)
-    {
-        if (!value.HasValue) return;
-        var data = JsonSerializer.Deserialize<DeviceOtaInstallMessage>(value.ToString());
-        if (data is null) return;
-
-        await _hubLifetimeManager.OtaInstall(data.Id, data.Version);
-    }
-
-    /// <summary>
-    /// Reboot the device if found and it supports it
-    /// </summary>
-    /// <param name="value"></param>
-    /// <returns></returns>
-    private async Task DeviceReboot(RedisValue value)
-    {
-        if (!value.HasValue) return;
-        var data = JsonSerializer.Deserialize<DeviceRebootMessage>(value.ToString());
-        if (data is null) return;
-
-        await _hubLifetimeManager.Reboot(data.Id);
-    }
-
-
     /// <inheritdoc />
     public Task StopAsync(CancellationToken cancellationToken)
     {
         return Task.CompletedTask;
+    }
+
+    private async Task DeviceMessage(RedisValue value)
+    {
+        if (!value.HasValue) return;
+        var message = MessagePackSerializer.Deserialize<DeviceMessage>(Convert.FromBase64String(value.ToString()));
+        switch (message.Type)
+        {
+            case DeviceEventType.Trigger:
+                await DeviceMessageTrigger(message.DeviceId, message.Payload as DeviceTriggerPayload);
+                break;
+            case DeviceEventType.Toggle:
+                await DeviceMessageToggle(message.DeviceId, message.Payload as DeviceTogglePayload);
+                break;
+            case DeviceEventType.Control:
+                await DeviceMessageControl(message.DeviceId, message.Payload as DeviceControlPayload);
+                break;
+            case DeviceEventType.OtaInstall:
+                await DeviceMessageOtaInstall(message.DeviceId, message.Payload as DeviceOtaInstallPayload);
+                break;
+            default:
+                throw new ArgumentOutOfRangeException();
+        }
+    }
+
+    private async Task DeviceMessageTrigger(Guid deviceId, DeviceTriggerPayload? payload)
+    {
+        if (payload is null) return;
+        switch (payload.Type)
+        {
+            case DeviceTriggerType.DeviceInfoUpdated:
+                await _hubLifetimeManager.UpdateDevice(deviceId);
+                break;
+            case DeviceTriggerType.DeviceEmergencyStop:
+                await _hubLifetimeManager.EmergencyStop(deviceId);
+                break;
+            case DeviceTriggerType.DeviceReboot:
+                await _hubLifetimeManager.Reboot(deviceId);
+                break;
+            default:
+                throw new ArgumentOutOfRangeException();
+        }
+    }
+
+    private async Task DeviceMessageToggle(Guid deviceId, DeviceTogglePayload? payload)
+    {
+        if (payload is null) return;
+        switch (payload.Target)
+        {
+            case ToggleTarget.DeviceOnline: // Do nothing
+                break;
+            case ToggleTarget.CaptivePortal:
+                await _hubLifetimeManager.ControlCaptive(deviceId, payload.State);
+                break;
+            default:
+                throw new ArgumentOutOfRangeException();
+        }
+    }
+
+    private async Task DeviceMessageControl(Guid deviceId, DeviceControlPayload? payload)
+    {
+        if (payload is null) return;
+        await Task.WhenAll(payload.Controls.Select(x => _hubLifetimeManager.Control(deviceId, x)));
+    }
+
+    private async Task DeviceMessageOtaInstall(Guid deviceId, DeviceOtaInstallPayload? payload)
+    {
+        if (payload is null) return;
+        await _hubLifetimeManager.OtaInstall(deviceId, payload.Version);
     }
 
     /// <inheritdoc />
