@@ -23,7 +23,7 @@ public sealed class RedisPubService : IRedisPubService
 
     public Task SendDeviceOnlineStatus(Guid deviceId, bool isOnline)
     {
-        var msg = DeviceMessage.Create(deviceId, ToggleTarget.DeviceOnline, isOnline);
+        var msg = DeviceStatus.Create(deviceId, DeviceStatusType.Online);
         var bytes = MessagePackSerializer.Serialize(msg);
         return _subscriber.PublishAsync(RedisChannels.DeviceMessage, bytes);
     }
@@ -37,7 +37,7 @@ public sealed class RedisPubService : IRedisPubService
 
     public Task SendDeviceCaptivePortal(Guid deviceId, bool enabled)
     {
-        var msg = DeviceMessage.Create(deviceId, ToggleTarget.CaptivePortal, enabled);
+        var msg = DeviceMessage.Create(deviceId, DeviceToggleTarget.CaptivePortal, enabled);
         var bytes = MessagePackSerializer.Serialize(msg);
         return _subscriber.PublishAsync(RedisChannels.DeviceMessage, bytes);
     }

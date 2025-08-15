@@ -46,17 +46,17 @@ public sealed class RedisSubscriberService : IHostedService, IAsyncDisposable
         var message = MessagePackSerializer.Deserialize<DeviceMessage>(Convert.FromBase64String(value.ToString()));
         switch (message.Type)
         {
-            case DeviceEventType.Trigger:
-                await DeviceMessageTrigger(message.DeviceId, message.Payload as DeviceTriggerPayload);
+            case DeviceMessageType.Trigger:
+                await DeviceMessageTrigger(message.DeviceId, message.MessagePayload as DeviceTriggerPayload);
                 break;
-            case DeviceEventType.Toggle:
-                await DeviceMessageToggle(message.DeviceId, message.Payload as DeviceTogglePayload);
+            case DeviceMessageType.Toggle:
+                await DeviceMessageToggle(message.DeviceId, message.MessagePayload as DeviceTogglePayload);
                 break;
-            case DeviceEventType.Control:
-                await DeviceMessageControl(message.DeviceId, message.Payload as DeviceControlPayload);
+            case DeviceMessageType.Control:
+                await DeviceMessageControl(message.DeviceId, message.MessagePayload as DeviceControlPayload);
                 break;
-            case DeviceEventType.OtaInstall:
-                await DeviceMessageOtaInstall(message.DeviceId, message.Payload as DeviceOtaInstallPayload);
+            case DeviceMessageType.OtaInstall:
+                await DeviceMessageOtaInstall(message.DeviceId, message.MessagePayload as DeviceOtaInstallPayload);
                 break;
             default:
                 throw new ArgumentOutOfRangeException();
@@ -87,9 +87,7 @@ public sealed class RedisSubscriberService : IHostedService, IAsyncDisposable
         if (payload is null) return;
         switch (payload.Target)
         {
-            case ToggleTarget.DeviceOnline: // Do nothing
-                break;
-            case ToggleTarget.CaptivePortal:
+            case DeviceToggleTarget.CaptivePortal:
                 await _hubLifetimeManager.ControlCaptive(deviceId, payload.State);
                 break;
             default:
