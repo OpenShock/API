@@ -1,0 +1,123 @@
+﻿using MessagePack;
+using MessagePack.Formatters;
+using OpenShock.Common.Models;
+using Semver;
+
+namespace OpenShock.Common.Redis.PubSub;
+
+[MessagePackObject]
+public sealed class DeviceMessage
+{
+    [Key(0)] public Guid DeviceId { get; init; }
+
+    [Key(1)] public DeviceEventType Type { get; init; }
+
+    [Key(2)] public required IEventPayload Payload { get; init; }
+
+    public static DeviceMessage Create(Guid deviceId, TriggerKind kind) => new()
+    {
+        DeviceId = deviceId,
+        Type = DeviceEventType.Trigger,
+        Payload = new TriggerPayload { Kind = kind }
+    };
+
+    public static DeviceMessage Create(Guid deviceId, ToggleTarget target, bool state) => new()
+    {
+        DeviceId = deviceId,
+        Type = DeviceEventType.Toggle,
+        Payload = new TogglePayload { Target = target, State = state }
+    };
+
+    public static DeviceMessage Create(Guid deviceId, ControlPayload payload) => new()
+    {
+        DeviceId = deviceId,
+        Type = DeviceEventType.Control,
+        Payload = payload
+    };
+
+    public static DeviceMessage Create(Guid deviceId, DeviceOtaInstallPayload payload) => new()
+    {
+        DeviceId = deviceId,
+        Type = DeviceEventType.OtaInstall,
+        Payload = payload
+    };
+}
+
+public enum DeviceEventType : byte
+{
+    Trigger = 0,
+    Toggle = 1,
+    Control = 2,
+    OtaInstall = 3
+}
+
+[Union(0, typeof(TriggerPayload))]
+[Union(1, typeof(TogglePayload))]
+[Union(2, typeof(ControlPayload))]
+[Union(3, typeof(DeviceOtaInstallPayload))]
+public interface IEventPayload;
+
+[MessagePackObject]
+public sealed class ControlPayload : IEventPayload
+{
+    [Key(0)] public Guid Sender { get; init; }
+
+    [Key(1)] public required ShockerControlInfo[] Controls { get; init; }
+
+    [MessagePackObject]
+    public sealed class ShockerControlInfo
+    {
+        [Key(0)] public ushort RfId { get; init; }
+        [Key(1)] public byte Intensity { get; init; }
+        [Key(2)] public ushort Duration { get; init; }
+        [Key(3)] public ControlType Type { get; init; }
+        [Key(4)] public ShockerModelType Model { get; init; }
+        [Key(5)] public bool Exclusive { get; init; }
+    }
+}
+
+[MessagePackObject]
+public sealed class DeviceOtaInstallPayload : IEventPayload
+{
+    [Key(0)]
+    [MessagePackFormatter(typeof(SemVersionMessagePackFormatter))]
+    public required SemVersion Version { get; init; }
+}
+
+public enum ToggleTarget : byte
+{
+    DeviceOnline = 0,
+    CaptivePortal = 1,
+}
+
+[MessagePackObject]
+public sealed class TogglePayload : IEventPayload
+{
+    [Key(0)] public ToggleTarget Target { get; init; }
+    [Key(1)] public bool State { get; init; }
+}
+
+public enum TriggerKind : byte
+{
+    DeviceInfoUpdated = 0,
+    DeviceEmergencyStop = 1,
+    DeviceReboot = 2
+}
+
+[MessagePackObject]
+public sealed class TriggerPayload : IEventPayload
+{
+    [Key(0)] public TriggerKind Kind { get; init; }
+}
+
+public sealed class SemVersionMessagePackFormatter : IMessagePackFormatter<SemVersion?>
+{
+    public void Serialize(ref MessagePackWriter writer, SemVersion? value, MessagePackSerializerOptions options)
+        => writer.Write(value?.ToString());
+
+    public SemVersion? Deserialize(ref MessagePackReader reader, MessagePackSerializerOptions options)
+    {
+        var str = reader.ReadString();
+        return str is null ? null : SemVersion.Parse(str);
+    }
+}

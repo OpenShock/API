@@ -395,7 +395,7 @@ public sealed class HubLifetime : IAsyncDisposable
             }, Duration.DeviceKeepAliveTimeout);
 
 
-            await _redisPubService.SendDeviceOnlineStatus(device);
+            await _redisPubService.SendDeviceOnlineStatus(device, true);
             return new Success();
         }
 
@@ -424,7 +424,7 @@ public sealed class HubLifetime : IAsyncDisposable
 
         if (sendOnlineStatusUpdate)
         {
-            await _redisPubService.SendDeviceOnlineStatus(device);
+            await _redisPubService.SendDeviceOnlineStatus(device, true);
             return new OnlineStateUpdated();
         }
 

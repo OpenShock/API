@@ -30,21 +30,16 @@ public sealed class RedisSubscriberService : IHostedService, IAsyncDisposable
     /// <inheritdoc />
     public async Task StartAsync(CancellationToken cancellationToken)
     {
-        await _subscriber.SubscribeAsync(RedisChannels.DeviceControl,
-            (_, message) => OsTask.Run(() => DeviceControl(message)));
-        await _subscriber.SubscribeAsync(RedisChannels.DeviceCaptive,
-            (_, message) => OsTask.Run(() => DeviceControlCaptive(message)));
-        await _subscriber.SubscribeAsync(RedisChannels.DeviceUpdate,
-            (_, message) => OsTask.Run(() => DeviceUpdate(message)));
+        await _subscriber.SubscribeAsync(RedisChannels.DeviceMessage, (_, val) => OsTask.Run(() => DeviceMessage(val)));
+    }
 
-        // OTA
-        await _subscriber.SubscribeAsync(RedisChannels.DeviceOtaInstall,
-            (_, message) => OsTask.Run(() => DeviceOtaInstall(message)));
-        
-        await _subscriber.SubscribeAsync(RedisChannels.DeviceEmergencyStop,
-            (_, message) => OsTask.Run(() => DeviceEmergencyStop(message)));
-        await _subscriber.SubscribeAsync(RedisChannels.DeviceReboot,
-            (_, message) => OsTask.Run(() => DeviceReboot(message)));
+    private async Task DeviceMessage(RedisValue value)
+    {
+        if (!value.HasValue) return;
+        var data = JsonSerializer.Deserialize<CaptiveMessage>(value.ToString());
+        if (data is null) return;
+
+        await _hubLifetimeManager.ControlCaptive(data.DeviceId, data.Enabled);
     }
 
     private async Task DeviceControl(RedisValue value)
@@ -75,10 +70,10 @@ public sealed class RedisSubscriberService : IHostedService, IAsyncDisposable
         if (!value.HasValue) return;
         var data = JsonSerializer.Deserialize<DeviceUpdatedMessage>(value.ToString());
         if (data is null) return;
-        
+
         await _hubLifetimeManager.UpdateDevice(data.Id);
     }
-    
+
     /// <summary>
     /// Trigger the device's emergency stop the device if found and it supports it
     /// </summary>
@@ -89,7 +84,7 @@ public sealed class RedisSubscriberService : IHostedService, IAsyncDisposable
         if (!value.HasValue) return;
         var data = JsonSerializer.Deserialize<DeviceEmergencyStopMessage>(value.ToString());
         if (data is null) return;
-        
+
         await _hubLifetimeManager.EmergencyStop(data.Id);
     }
 
@@ -103,10 +98,10 @@ public sealed class RedisSubscriberService : IHostedService, IAsyncDisposable
         if (!value.HasValue) return;
         var data = JsonSerializer.Deserialize<DeviceOtaInstallMessage>(value.ToString());
         if (data is null) return;
-        
+
         await _hubLifetimeManager.OtaInstall(data.Id, data.Version);
     }
-    
+
     /// <summary>
     /// Reboot the device if found and it supports it
     /// </summary>
@@ -117,7 +112,7 @@ public sealed class RedisSubscriberService : IHostedService, IAsyncDisposable
         if (!value.HasValue) return;
         var data = JsonSerializer.Deserialize<DeviceRebootMessage>(value.ToString());
         if (data is null) return;
-        
+
         await _hubLifetimeManager.Reboot(data.Id);
     }
 

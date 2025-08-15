@@ -6,21 +6,29 @@ namespace OpenShock.Common.Services.RedisPubSub;
 public interface IRedisPubService
 {
     /// <summary>
-    /// Used when a device comes online or changes its connection details like, gateway, firmware version, etc.
+    /// Something about the device or its shockers updated
     /// </summary>
     /// <param name="deviceId"></param>
     /// <returns></returns>
-    public Task SendDeviceOnlineStatus(Guid deviceId);
+    Task SendDeviceUpdate(Guid deviceId);
+
+    /// <summary>
+    /// Used when a device comes online or changes its connection details like, gateway, firmware version, etc.
+    /// </summary>
+    /// <param name="deviceId"></param>
+    /// <param name="isOnline"></param>
+    /// <returns></returns>
+    public Task SendDeviceOnlineStatus(Guid deviceId, bool isOnline);
 
     /// <summary>
     /// General shocker control
     /// </summary>
-    /// <param name="sender"></param>
-    /// <param name="controlMessages"></param>
+    /// <param name="deviceId"></param>
+    /// <param name="senderId"></param>
+    /// <param name="controls"></param>
     /// <returns></returns>
-    Task SendDeviceControl(Guid sender,
-        IDictionary<Guid, IReadOnlyList<ControlMessage.ShockerControlInfo>> controlMessages);
-    
+    Task SendDeviceControl(Guid deviceId, Guid senderId, ControlPayload.ShockerControlInfo[] controls);
+
     /// <summary>
     /// Toggle captive portal
     /// </summary>
@@ -28,13 +36,6 @@ public interface IRedisPubService
     /// <param name="enabled"></param>
     /// <returns></returns>
     Task SendDeviceCaptivePortal(Guid deviceId, bool enabled);
-    
-    /// <summary>
-    /// Something about the device or its shockers updated
-    /// </summary>
-    /// <param name="deviceId"></param>
-    /// <returns></returns>
-    Task SendDeviceUpdate(Guid deviceId);
 
     /// <summary>
     /// Trigger the emergency stop on the device if it's supported
