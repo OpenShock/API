@@ -318,7 +318,7 @@ public sealed class HubLifetime : IAsyncDisposable
     /// </summary>
     /// <param name="shocks"></param>
     /// <returns></returns>
-    public ValueTask Control(IReadOnlyList<ControlMessage.ShockerControlInfo> shocks)
+    public ValueTask Control(IReadOnlyList<DeviceControlPayload.ShockerControlInfo> shocks)
     {
         var shocksTransformed = new List<ShockerCommand>(shocks.Count);
         foreach (var shock in shocks)
@@ -395,7 +395,7 @@ public sealed class HubLifetime : IAsyncDisposable
             }, Duration.DeviceKeepAliveTimeout);
 
 
-            await _redisPubService.SendDeviceOnlineStatus(device);
+            await _redisPubService.SendDeviceOnlineStatus(device, true);
             return new Success();
         }
 
@@ -424,7 +424,7 @@ public sealed class HubLifetime : IAsyncDisposable
 
         if (sendOnlineStatusUpdate)
         {
-            await _redisPubService.SendDeviceOnlineStatus(device);
+            await _redisPubService.SendDeviceOnlineStatus(device, true);
             return new OnlineStateUpdated();
         }
 

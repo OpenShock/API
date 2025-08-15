@@ -9,7 +9,6 @@ using OpenShock.Common.Redis.PubSub;
 using OpenShock.Common.Services.RedisPubSub;
 using OpenShock.Common.Utils;
 using Redis.OM.Contracts;
-using Redis.OM.Searching;
 using StackExchange.Redis;
 
 namespace OpenShock.API.Realtime;
