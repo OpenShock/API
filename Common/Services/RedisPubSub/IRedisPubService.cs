@@ -24,10 +24,9 @@ public interface IRedisPubService
     /// General shocker control
     /// </summary>
     /// <param name="deviceId"></param>
-    /// <param name="senderId"></param>
     /// <param name="controls"></param>
     /// <returns></returns>
-    Task SendDeviceControl(Guid deviceId, Guid senderId, DeviceControlPayload.ShockerControlInfo[] controls);
+    Task SendDeviceControl(Guid deviceId, DeviceControlPayload.ShockerControlInfo[] controls);
 
     /// <summary>
     /// Toggle captive portal

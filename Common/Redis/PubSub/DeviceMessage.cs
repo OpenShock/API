@@ -7,38 +7,32 @@ namespace OpenShock.Common.Redis.PubSub;
 [MessagePackObject]
 public sealed class DeviceMessage
 {
-    [Key(0)] public Guid DeviceId { get; init; }
+    [Key(0)] public DeviceMessageType Type { get; init; }
 
-    [Key(1)] public DeviceMessageType Type { get; init; }
+    [Key(1)] public required IDeviceMessagePayload Payload { get; init; }
 
-    [Key(2)] public required IDeviceMessagePayload MessagePayload { get; init; }
-
-    public static DeviceMessage Create(Guid deviceId, DeviceTriggerType type) => new()
+    public static DeviceMessage Create(DeviceTriggerType type) => new()
     {
-        DeviceId = deviceId,
         Type = DeviceMessageType.Trigger,
-        MessagePayload = new DeviceTriggerPayload { Type = type }
+        Payload = new DeviceTriggerPayload { Type = type }
     };
 
-    public static DeviceMessage Create(Guid deviceId, DeviceToggleTarget target, bool state) => new()
+    public static DeviceMessage Create(DeviceToggleTarget target, bool state) => new()
     {
-        DeviceId = deviceId,
         Type = DeviceMessageType.Toggle,
-        MessagePayload = new DeviceTogglePayload { Target = target, State = state }
+        Payload = new DeviceTogglePayload { Target = target, State = state }
     };
 
-    public static DeviceMessage Create(Guid deviceId, DeviceControlPayload payload) => new()
+    public static DeviceMessage Create(DeviceControlPayload payload) => new()
     {
-        DeviceId = deviceId,
         Type = DeviceMessageType.Control,
-        MessagePayload = payload
+        Payload = payload
     };
 
-    public static DeviceMessage Create(Guid deviceId, DeviceOtaInstallPayload payload) => new()
+    public static DeviceMessage Create(DeviceOtaInstallPayload payload) => new()
     {
-        DeviceId = deviceId,
         Type = DeviceMessageType.OtaInstall,
-        MessagePayload = payload
+        Payload = payload
     };
 }
 
@@ -84,9 +78,7 @@ public sealed class DeviceTogglePayload : IDeviceMessagePayload
 [MessagePackObject]
 public sealed class DeviceControlPayload : IDeviceMessagePayload
 {
-    [Key(0)] public Guid Sender { get; init; }
-
-    [Key(1)] public required ShockerControlInfo[] Controls { get; init; }
+    [Key(0)] public required ShockerControlInfo[] Controls { get; init; }
 
     [MessagePackObject]
     public sealed class ShockerControlInfo

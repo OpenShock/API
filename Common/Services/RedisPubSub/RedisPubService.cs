@@ -14,41 +14,41 @@ public sealed class RedisPubService : IRedisPubService
         _subscriber = connectionMultiplexer.GetSubscriber();
     }
 
-    private Task<long> Publish<T>(T msg) => _subscriber.PublishAsync(RedisChannels.DeviceMessage,
+    private Task<long> Publish<T>(Guid deviceId, T msg) => _subscriber.PublishAsync(RedisChannels.DeviceMessage(deviceId),
         Convert.ToBase64String(MessagePackSerializer.Serialize(msg)));
 
     public Task SendDeviceUpdate(Guid deviceId)
     {
-        return Publish(DeviceMessage.Create(deviceId, DeviceTriggerType.DeviceInfoUpdated));
+        return Publish(deviceId, DeviceMessage.Create(DeviceTriggerType.DeviceInfoUpdated));
     }
 
     public Task SendDeviceOnlineStatus(Guid deviceId, bool isOnline)
     {
-        return Publish(DeviceStatus.Create(deviceId, DeviceStatusType.Online));
+        return Publish(deviceId, DeviceStatus.Create(DeviceBoolStateType.Online, isOnline));
     }
 
-    public Task SendDeviceControl(Guid deviceId, Guid senderId, DeviceControlPayload.ShockerControlInfo[] controls)
+    public Task SendDeviceControl(Guid deviceId, DeviceControlPayload.ShockerControlInfo[] controls)
     {
-        return Publish(DeviceMessage.Create(deviceId, new DeviceControlPayload { Sender = senderId, Controls = controls }));
+        return Publish(deviceId, DeviceMessage.Create(new DeviceControlPayload { Controls = controls }));
     }
 
     public Task SendDeviceCaptivePortal(Guid deviceId, bool enabled)
     {
-        return Publish(DeviceMessage.Create(deviceId, DeviceToggleTarget.CaptivePortal, enabled));
+        return Publish(deviceId, DeviceMessage.Create(DeviceToggleTarget.CaptivePortal, enabled));
     }
 
     public Task SendDeviceEmergencyStop(Guid deviceId)
     {
-        return Publish(DeviceMessage.Create(deviceId, DeviceTriggerType.DeviceEmergencyStop));
+        return Publish(deviceId, DeviceMessage.Create(DeviceTriggerType.DeviceEmergencyStop));
     }
 
     public Task SendDeviceOtaInstall(Guid deviceId, SemVersion version)
     {
-        return Publish(DeviceMessage.Create(deviceId, new DeviceOtaInstallPayload { Version = version }));
+        return Publish(deviceId, DeviceMessage.Create(new DeviceOtaInstallPayload { Version = version }));
     }
 
     public Task SendDeviceReboot(Guid deviceId)
     {
-        return Publish(DeviceMessage.Create(deviceId, DeviceTriggerType.DeviceReboot));
+        return Publish(deviceId, DeviceMessage.Create(DeviceTriggerType.DeviceReboot));
     }
 }

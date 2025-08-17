@@ -83,7 +83,7 @@ public sealed class UserHub : Hub<IUserHub>
 
         var sender = await _db.Users.Where(x => x.Id == UserId).Select(x => new ControlLogSender
         {
-            Id = x.Id,
+            UserId = x.Id,
             Name = x.Name,
             Image = x.GetImageUrl(),
             ConnectionId = Context.ConnectionId,
@@ -141,11 +141,7 @@ public sealed class UserHub : Hub<IUserHub>
 
         await _redisPubService.SendDeviceReboot(deviceId);
     }
-
-
-    private Task<User> GetUser() => GetUser(UserId, _db);
-
+    
     private Guid UserId => _userId ??= Guid.Parse(Context.UserIdentifier!);
     private Guid? _userId;
-    private static Task<User> GetUser(Guid userId, OpenShockContext db) => db.Users.SingleAsync(x => x.Id == userId);
 }

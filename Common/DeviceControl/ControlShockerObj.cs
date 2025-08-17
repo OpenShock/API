@@ -4,12 +4,10 @@ namespace OpenShock.Common.DeviceControl;
 
 public sealed class ControlShockerObj
 {
-    public required Guid Id { get; set; }
-    public required string Name { get; set; }
-    public required ushort RfId { get; set; }
-    public required Guid Device { get; set; }
-    public required Guid Owner { get; set; }
-    public required ShockerModelType Model { get; set; }
-    public required bool Paused { get; set; }
-    public required SharePermsAndLimits? PermsAndLimits { get; set; }
+    public required Guid Id { get; init; }
+    public required ushort RfId { get; init; }
+    public required Guid Device { get; init; }
+    public required ShockerModelType Model { get; init; }
+    public required bool Paused { get; init; }
+    public required SharePermsAndLimits? PermsAndLimits { get; init; }
 }

@@ -47,16 +47,16 @@ public sealed class RedisSubscriberService : IHostedService, IAsyncDisposable
         switch (message.Type)
         {
             case DeviceMessageType.Trigger:
-                await DeviceMessageTrigger(message.DeviceId, message.MessagePayload as DeviceTriggerPayload);
+                await DeviceMessageTrigger(message.DeviceId, message.Payload as DeviceTriggerPayload);
                 break;
             case DeviceMessageType.Toggle:
-                await DeviceMessageToggle(message.DeviceId, message.MessagePayload as DeviceTogglePayload);
+                await DeviceMessageToggle(message.DeviceId, message.Payload as DeviceTogglePayload);
                 break;
             case DeviceMessageType.Control:
-                await DeviceMessageControl(message.DeviceId, message.MessagePayload as DeviceControlPayload);
+                await DeviceMessageControl(message.DeviceId, message.Payload as DeviceControlPayload);
                 break;
             case DeviceMessageType.OtaInstall:
-                await DeviceMessageOtaInstall(message.DeviceId, message.MessagePayload as DeviceOtaInstallPayload);
+                await DeviceMessageOtaInstall(message.DeviceId, message.Payload as DeviceOtaInstallPayload);
                 break;
             default:
                 throw new ArgumentOutOfRangeException();

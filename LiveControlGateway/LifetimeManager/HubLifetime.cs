@@ -320,27 +320,7 @@ public sealed class HubLifetime : IAsyncDisposable
     /// <returns></returns>
     public ValueTask Control(IReadOnlyList<DeviceControlPayload.ShockerControlInfo> shocks)
     {
-        var shocksTransformed = new List<ShockerCommand>(shocks.Count);
-        foreach (var shock in shocks)
-        {
-            if (!_shockerStates.TryGetValue(shock.Id, out var state)) continue;
-
-            _logger.LogTrace(
-                "Control exclusive: {Exclusive}, type: {Type}, duration: {Duration}, intensity: {Intensity}",
-                shock.Exclusive, shock.Type, shock.Duration, shock.Intensity);
-            state.ExclusiveUntil = shock.Exclusive && shock.Type != ControlType.Stop
-                ? DateTimeOffset.UtcNow.AddMilliseconds(shock.Duration)
-                : DateTimeOffset.MinValue;
-
-            shocksTransformed.Add(new ShockerCommand
-            {
-                Id = shock.RfId, Duration = shock.Duration, Intensity = shock.Intensity,
-                Type = (ShockerCommandType)shock.Type,
-                Model = (ShockerModelType)shock.Model
-            });
-        }
-
-        return HubController.Control(shocksTransformed);
+        return HubController.Control(shocks);
     }
 
     /// <summary>

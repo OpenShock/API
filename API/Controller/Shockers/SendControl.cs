@@ -35,7 +35,7 @@ public sealed partial class ShockerController
     {
         var sender = new ControlLogSender
         {
-            Id = CurrentUser.Id,
+            UserId = CurrentUser.Id,
             Name = CurrentUser.Name,
             Image = CurrentUser.GetImageUrl(),
             ConnectionId = HttpContext.Connection.Id,
