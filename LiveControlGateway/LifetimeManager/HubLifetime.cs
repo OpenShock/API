@@ -318,29 +318,9 @@ public sealed class HubLifetime : IAsyncDisposable
     /// </summary>
     /// <param name="shocks"></param>
     /// <returns></returns>
-    public ValueTask Control(IReadOnlyList<ControlMessage.ShockerControlInfo> shocks)
+    public ValueTask Control(IReadOnlyList<DeviceControlPayload.ShockerControlInfo> shocks)
     {
-        var shocksTransformed = new List<ShockerCommand>(shocks.Count);
-        foreach (var shock in shocks)
-        {
-            if (!_shockerStates.TryGetValue(shock.Id, out var state)) continue;
-
-            _logger.LogTrace(
-                "Control exclusive: {Exclusive}, type: {Type}, duration: {Duration}, intensity: {Intensity}",
-                shock.Exclusive, shock.Type, shock.Duration, shock.Intensity);
-            state.ExclusiveUntil = shock.Exclusive && shock.Type != ControlType.Stop
-                ? DateTimeOffset.UtcNow.AddMilliseconds(shock.Duration)
-                : DateTimeOffset.MinValue;
-
-            shocksTransformed.Add(new ShockerCommand
-            {
-                Id = shock.RfId, Duration = shock.Duration, Intensity = shock.Intensity,
-                Type = (ShockerCommandType)shock.Type,
-                Model = (ShockerModelType)shock.Model
-            });
-        }
-
-        return HubController.Control(shocksTransformed);
+        return HubController.Control(shocks);
     }
 
     /// <summary>
@@ -395,7 +375,7 @@ public sealed class HubLifetime : IAsyncDisposable
             }, Duration.DeviceKeepAliveTimeout);
 
 
-            await _redisPubService.SendDeviceOnlineStatus(device);
+            await _redisPubService.SendDeviceOnlineStatus(device, true);
             return new Success();
         }
 
@@ -424,7 +404,7 @@ public sealed class HubLifetime : IAsyncDisposable
 
         if (sendOnlineStatusUpdate)
         {
-            await _redisPubService.SendDeviceOnlineStatus(device);
+            await _redisPubService.SendDeviceOnlineStatus(device, true);
             return new OnlineStateUpdated();
         }
 

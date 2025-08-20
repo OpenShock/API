@@ -167,7 +167,7 @@ public abstract class HubControllerBase<TIn, TOut> : FlatbuffersWebsocketBaseCon
     }
 
     /// <inheritdoc />
-    public abstract ValueTask Control(List<ShockerCommand> controlCommands);
+    public abstract ValueTask Control(IList<ShockerCommand> controlCommands);
 
     /// <inheritdoc />
     public abstract ValueTask CaptivePortal(bool enable);

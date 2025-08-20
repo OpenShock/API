@@ -198,7 +198,7 @@ public sealed class HubV2Controller : HubControllerBase<HubToGatewayMessage, Gat
     }
 
     /// <inheritdoc />
-    public override ValueTask Control(List<ShockerCommand> controlCommands)
+    public override ValueTask Control(IList<ShockerCommand> controlCommands)
         => QueueMessage(new GatewayToHubMessage
         {
             Payload = new GatewayToHubMessagePayload(new ShockerCommandList
