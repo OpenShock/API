@@ -27,7 +27,7 @@ public sealed class RedisPubService : IRedisPubService
         return Publish(deviceId, DeviceStatus.Create(DeviceBoolStateType.Online, isOnline));
     }
 
-    public Task SendDeviceControl(Guid deviceId, DeviceControlPayload.ShockerControlInfo[] controls)
+    public Task SendDeviceControl(Guid deviceId, List<DeviceControlPayload.ShockerControlInfo> controls)
     {
         return Publish(deviceId, DeviceMessage.Create(new DeviceControlPayload { Controls = controls }));
     }

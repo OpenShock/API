@@ -78,7 +78,7 @@ public sealed class DeviceTogglePayload : IDeviceMessagePayload
 [MessagePackObject]
 public sealed class DeviceControlPayload : IDeviceMessagePayload
 {
-    [Key(0)] public required ShockerControlInfo[] Controls { get; init; }
+    [Key(0)] public required List<ShockerControlInfo> Controls { get; init; }
 
     [MessagePackObject]
     public sealed class ShockerControlInfo

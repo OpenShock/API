@@ -4,16 +4,15 @@ namespace OpenShock.Common.Extensions;
 
 public static class DictionaryExtensions
 {
-    public static TValue GetValueOrAddDefault<TKey, TValue>(this Dictionary<TKey, TValue> dictionary, TKey key,
-        TValue defaultValue) where TKey : notnull
+    public static void AppendValue<TKey, TValue>(this Dictionary<TKey, List<TValue>> dictionary, TKey key, TValue value) where TKey : notnull
     {
-        ref var value = ref CollectionsMarshal.GetValueRefOrAddDefault(dictionary, key, out var exists);
-        if (exists)
+        ref var list = ref CollectionsMarshal.GetValueRefOrAddDefault(dictionary, key, out _);
+        if (list is null)
         {
-            return value!;
+            list = [value];
+            return;
         }
-        
-        value = defaultValue;
-        return value;
+
+        list.Add(value);
     }
 }
