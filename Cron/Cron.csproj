@@ -3,7 +3,7 @@
   <Import Project="../Shared.props" />
 
   <ItemGroup>
-    <PackageReference Include="Hangfire.AspNetCore" Version="1.8.20" />
+    <PackageReference Include="Hangfire.AspNetCore" Version="1.8.21" />
     <PackageReference Include="Hangfire.PostgreSql" Version="1.20.12" />
   </ItemGroup>
 
