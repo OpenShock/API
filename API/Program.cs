@@ -4,6 +4,7 @@ using OpenShock.API.Realtime;
 using OpenShock.API.Services;
 using OpenShock.API.Services.Account;
 using OpenShock.API.Services.Email;
+using OpenShock.API.Services.UserService;
 using OpenShock.Common;
 using OpenShock.Common.Extensions;
 using OpenShock.Common.Hubs;
@@ -46,6 +47,7 @@ builder.Services.AddScoped<IDeviceService, DeviceService>();
 builder.Services.AddScoped<IOtaService, OtaService>();
 builder.Services.AddScoped<IDeviceUpdateService, DeviceUpdateService>();
 builder.Services.AddScoped<IAccountService, AccountService>();
+builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<ILCGNodeProvisioner, LCGNodeProvisioner>();
 
 builder.AddSwaggerExt<Program>();
