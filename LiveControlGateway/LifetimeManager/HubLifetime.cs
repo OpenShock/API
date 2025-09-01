@@ -58,9 +58,6 @@ public sealed class HubLifetime : IAsyncDisposable
     private readonly SemaphoreSlim _liveControlClientsLock = new(1);
 
     private ChannelMessageQueue? _deviceMsgQueue;
-    private Task? _deviceMsgConsumerTask;
-
-    private Task? _updateLoopTask;
 
     /// <summary>
     /// DI Constructor
@@ -166,10 +163,13 @@ public sealed class HubLifetime : IAsyncDisposable
             return false;
         }
 
-        _updateLoopTask = OsTask.Run(UpdateLoop);
+#pragma warning disable CS4014
+        OsTask.Run(UpdateLoop);
+
 
         _deviceMsgQueue = await _subscriber.SubscribeAsync(_deviceMsgChannel);
-        _deviceMsgConsumerTask = QueueHelper.ConsumeQueue(_deviceMsgQueue, ConsumeDeviceQueue, _logger, _cancellationSource.Token);
+        QueueHelper.ConsumeQueue(_deviceMsgQueue, ConsumeDeviceQueue, _logger, _cancellationSource.Token);
+#pragma warning restore CS4014
 
         _state = HubLifetimeState.Idle; // We are fully setup, we can go back to idle state
 
@@ -527,18 +527,12 @@ public sealed class HubLifetime : IAsyncDisposable
     {
         if (_disposed) return;
         _disposed = true;
-
-        await _subscriber.UnsubscribeAsync(_deviceMsgChannel);
+        
         await _cancellationSource.CancelAsync();
 
-        // ensure the consumer loop ends
-        if (_deviceMsgConsumerTask is not null)
+        if (_deviceMsgQueue is not null)
         {
-            try { await _deviceMsgConsumerTask; } catch { /* ignore */ }
-        }
-        if (_updateLoopTask is not null)
-        {
-            try { await _updateLoopTask; } catch { /* ignore */ }
+            await _deviceMsgQueue.UnsubscribeAsync();
         }
 
         await DisposeLiveControlClients();

@@ -13,7 +13,7 @@ public static class QueueHelper
      {
         return OsTask.Run(async () =>
         {
-            while (!ct.IsCancellationRequested)
+            while (!ct.IsCancellationRequested && !queue.Completion.IsCompleted)
             {
                 var msg = await queue.ReadAsync(ct);
                 if (!msg.Message.HasValue) continue;
