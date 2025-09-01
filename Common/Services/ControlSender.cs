@@ -116,8 +116,9 @@ public sealed class ControlSender : IControlSender
         var logs = new Dictionary<Guid, List<ControlLog>>();
         var now = DateTime.UtcNow;
 
-        foreach (var ( control, shocker ) in controls.Select(x => (control: x, shocker: allowedShockers.FirstOrDefault(s => s.ShockerId == x.ShockerId))))
+        foreach (var control in controls)
         {
+            var shocker = allowedShockers.FirstOrDefault(s => s.ShockerId == control.ShockerId);
             if (shocker is null)
                 return new ShockerNotFoundOrNoAccess(control.ShockerId);
 
