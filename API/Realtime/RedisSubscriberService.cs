@@ -50,11 +50,24 @@ public sealed class RedisSubscriberService : IHostedService, IAsyncDisposable
     /// <inheritdoc />
     public async Task StartAsync(CancellationToken cancellationToken)
     {
-        await _subscriber.SubscribeAsync(RedisChannels.KeyEventExpired, (_, message) => OsTask.Run(() => HandleKeyExpired(message)));
-        await _subscriber.SubscribeAsync(RedisChannels.DeviceStatus, ProcessDeviceStatusEvent);
+        await _subscriber.SubscribeAsync(RedisChannels.KeyEventExpired, HandleKeyExpired);
+        await _subscriber.SubscribeAsync(RedisChannels.DeviceStatus, HandleDeviceStatus);
     }
 
-    private void ProcessDeviceStatusEvent(RedisChannel _, RedisValue value)
+    private void HandleKeyExpired(RedisChannel _, RedisValue message)
+    {
+        if (!message.HasValue) return;
+        if (message.ToString().Split(':', 2) is not [string guid, string name]) return;
+
+        if (!Guid.TryParse(guid, out var id)) return;
+
+        if (typeof(DeviceOnline).FullName == name)
+        {
+            OsTask.Run(() => LogicDeviceOnlineStatus(id));
+        }
+    }
+
+    private void HandleDeviceStatus(RedisChannel _, RedisValue value)
     {
         if (!value.HasValue) return;
 
@@ -100,21 +113,6 @@ public sealed class RedisSubscriberService : IHostedService, IAsyncDisposable
             default:
                 _logger.LogError("Unknown DeviceBoolStateType: {StateType}", state.Type);
                 break;
-        }
-    }
-
-    private async Task HandleKeyExpired(RedisValue message)
-    {
-        if (!message.HasValue) return;
-        var msg = message.ToString().Split(':');
-        if (msg.Length < 2) return;
-
-
-        if (!Guid.TryParse(msg[1], out var id)) return;
-
-        if (typeof(DeviceOnline).FullName == msg[0])
-        {
-            await LogicDeviceOnlineStatus(id);
         }
     }
 
