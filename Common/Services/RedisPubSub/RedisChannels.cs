@@ -6,7 +6,7 @@ public static class RedisChannels
 {
     public static readonly RedisChannel KeyEventExpired = new("__keyevent@0__:expired", RedisChannel.PatternMode.Literal); 
    
-    public static RedisChannel DeviceMessage(Guid deviceId) => new($"device-msg:{deviceId}", RedisChannel.PatternMode.Pattern);
+    public static RedisChannel DeviceMessage(Guid deviceId) => new($"device-msg:{deviceId}", RedisChannel.PatternMode.Literal);
    
     public static readonly RedisChannel DeviceStatus = new("device-status", RedisChannel.PatternMode.Literal);
 }
