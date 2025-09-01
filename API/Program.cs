@@ -6,10 +6,12 @@ using OpenShock.API.Services.Account;
 using OpenShock.API.Services.Email;
 using OpenShock.API.Services.UserService;
 using OpenShock.Common;
+using OpenShock.Common.DeviceControl;
 using OpenShock.Common.Extensions;
 using OpenShock.Common.Hubs;
 using OpenShock.Common.JsonSerialization;
 using OpenShock.Common.Options;
+using OpenShock.Common.Services;
 using OpenShock.Common.Services.Device;
 using OpenShock.Common.Services.LCGNodeProvisioner;
 using OpenShock.Common.Services.Ota;
@@ -44,6 +46,7 @@ builder.Services.AddSignalR()
     });
 
 builder.Services.AddScoped<IDeviceService, DeviceService>();
+builder.Services.AddScoped<IControlSender, ControlSender>();
 builder.Services.AddScoped<IOtaService, OtaService>();
 builder.Services.AddScoped<IDeviceUpdateService, DeviceUpdateService>();
 builder.Services.AddScoped<IAccountService, AccountService>();

@@ -100,7 +100,7 @@ public sealed class ControlSender : IControlSender
     
     private async Task<OneOf<Success, ShockerNotFoundOrNoAccess, ShockerPaused, ShockerNoPermission>> ControlInternal(IReadOnlyList<Control> shocks, ControlLogSender sender, IHubClients<IUserHub> hubClients, ControlShockerObj[] allowedShockers)
     {
-        var messages = new Dictionary<Guid, List<DeviceControlPayload.ShockerControlInfo>>();
+        var messages = new Dictionary<Guid, List<ShockerControlCommand>>();
         var logs = new Dictionary<Guid, List<ControlLog>>();
         var curTime = DateTime.UtcNow;
         var distinctShocks = shocks.DistinctBy(x => x.Id);
@@ -120,7 +120,7 @@ public sealed class ControlSender : IControlSender
             var intensity = Math.Clamp(shock.Intensity, HardLimits.MinControlIntensity, intensityMax);
             var duration = Math.Clamp(shock.Duration, HardLimits.MinControlDuration, durationMax);
 
-            messages.AppendValue(shockerInfo.Device, new DeviceControlPayload.ShockerControlInfo
+            messages.AppendValue(shockerInfo.Device, new ShockerControlCommand
             {
                 RfId = shockerInfo.RfId,
                 Duration = duration,

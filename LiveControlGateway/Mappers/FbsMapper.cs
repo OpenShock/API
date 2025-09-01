@@ -30,7 +30,7 @@ public static class FbsMapper
         };
     }
 
-    public static ShockerCommand ToFbsShockerCommand(DeviceControlPayload.ShockerControlInfo control)
+    public static ShockerCommand ToFbsShockerCommand(ShockerControlCommand control)
     {
         return new ShockerCommand
         {

@@ -64,18 +64,18 @@ public sealed class DeviceTogglePayload : IDeviceMessagePayload
 [MessagePackObject]
 public sealed class DeviceControlPayload : IDeviceMessagePayload
 {
-    [Key(0)] public required List<ShockerControlInfo> Controls { get; init; }
+    [Key(0)] public required List<ShockerControlCommand> Controls { get; init; }
+}
 
-    [MessagePackObject]
-    public sealed class ShockerControlInfo
-    {
-        [Key(0)] public ushort RfId { get; init; }
-        [Key(1)] public byte Intensity { get; init; }
-        [Key(2)] public ushort Duration { get; init; }
-        [Key(3)] public ControlType Type { get; init; }
-        [Key(4)] public ShockerModelType Model { get; init; }
-        [Key(5)] public bool Exclusive { get; init; }
-    }
+[MessagePackObject]
+public sealed class ShockerControlCommand
+{
+    [Key(0)] public ushort RfId { get; init; }
+    [Key(1)] public byte Intensity { get; init; }
+    [Key(2)] public ushort Duration { get; init; }
+    [Key(3)] public ControlType Type { get; init; }
+    [Key(4)] public ShockerModelType Model { get; init; }
+    [Key(5)] public bool Exclusive { get; init; }
 }
 
 [MessagePackObject]

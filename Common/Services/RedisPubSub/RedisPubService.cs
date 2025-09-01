@@ -32,7 +32,7 @@ public sealed class RedisPubService : IRedisPubService
         return Publish(RedisChannels.DeviceStatus, DeviceStatus.Create(deviceId, DeviceBoolStateType.EStopped, isEstopped));
     }
 
-    public Task SendDeviceControl(Guid deviceId, List<DeviceControlPayload.ShockerControlInfo> controls)
+    public Task SendDeviceControl(Guid deviceId, List<ShockerControlCommand> controls)
     {
         return PublishMessage(deviceId, DeviceMessage.Create(new DeviceControlPayload { Controls = controls }));
     }

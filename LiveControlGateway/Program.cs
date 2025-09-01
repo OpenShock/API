@@ -1,7 +1,9 @@
 using Microsoft.Extensions.Options;
 using OpenShock.Common;
+using OpenShock.Common.DeviceControl;
 using OpenShock.Common.Extensions;
 using OpenShock.Common.JsonSerialization;
+using OpenShock.Common.Services;
 using OpenShock.Common.Services.Device;
 using OpenShock.Common.Services.Ota;
 using OpenShock.Common.Swagger;
@@ -32,6 +34,7 @@ builder.Services.AddSignalR()
     });
 
 builder.Services.AddScoped<IDeviceService, DeviceService>();
+builder.Services.AddScoped<IControlSender, ControlSender>();
 builder.Services.AddScoped<IOtaService, OtaService>();
 
 builder.AddSwaggerExt<Program>();

@@ -9,7 +9,6 @@ using OpenShock.Common.Models;
 using OpenShock.Common.Models.WebSocket;
 using OpenShock.Common.OpenShockDb;
 using OpenShock.Common.Redis;
-using OpenShock.Common.Services;
 using OpenShock.Common.Services.RedisPubSub;
 using Redis.OM;
 using Redis.OM.Contracts;
@@ -144,7 +143,7 @@ public sealed class UserHub : Hub<IUserHub>
 
         await _redisPubService.SendDeviceReboot(deviceId);
     }
-    
+
     private Guid UserId => _userId ??= Guid.Parse(Context.UserIdentifier!);
     private Guid? _userId;
 }

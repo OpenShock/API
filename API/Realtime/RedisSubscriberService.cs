@@ -1,5 +1,4 @@
-﻿using Google.Protobuf.WellKnownTypes;
-using MessagePack;
+﻿using MessagePack;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using OpenShock.Common.Hubs;
@@ -11,8 +10,6 @@ using OpenShock.Common.Services.RedisPubSub;
 using OpenShock.Common.Utils;
 using Redis.OM.Contracts;
 using StackExchange.Redis;
-using System.Text.Json;
-using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace OpenShock.API.Realtime;
 
@@ -98,7 +95,7 @@ public sealed class RedisSubscriberService : IHostedService, IAsyncDisposable
                 await LogicDeviceOnlineStatus(deviceId); // TODO: Handle device offline messages too
                 break;
             case DeviceBoolStateType.EStopped:
-                _logger.LogWarning("This is not yet implemented");
+                _logger.LogWarning("This is not yet implemented"); // TODO: Implement me!
                 break;
             default:
                 _logger.LogError("Unknown DeviceBoolStateType: {StateType}", state.Type);
