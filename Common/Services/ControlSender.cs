@@ -26,18 +26,18 @@ public sealed class ControlSender : IControlSender
         _publisher = publisher;
     }
 
-    public async Task<OneOf<Success, ShockerNotFoundOrNoAccess, ShockerPaused, ShockerNoPermission>> ControlByUser(IReadOnlyList<Control> shocks,ControlLogSender sender, IHubClients<IUserHub> hubClients)
+    public async Task<OneOf<Success, ShockerNotFoundOrNoAccess, ShockerPaused, ShockerNoPermission>> ControlByUser(IReadOnlyList<Control> controls,ControlLogSender sender, IHubClients<IUserHub> hubClients)
     {
         var queryOwn = _db.Shockers
             .AsNoTracking()
             .Where(x => x.Device.OwnerId == sender.UserId)
             .Select(x => new ControlShockerObj
             {
-                Id = x.Id,
-                Name = x.Name,
-                RfId = x.RfId,
-                Device = x.DeviceId,
-                Model = x.Model,
+                ShockerId = x.Id,
+                ShockerName = x.Name,
+                ShockerRfId = x.RfId,
+                DeviceId = x.DeviceId,
+                ShockerModel = x.Model,
                 OwnerId = x.Device.OwnerId,
                 Paused = x.IsPaused,
                 PermsAndLimits = null
@@ -48,11 +48,11 @@ public sealed class ControlSender : IControlSender
             .Where(x => x.SharedWithUserId == sender.UserId)
             .Select(x => new ControlShockerObj
             {
-                Id = x.Shocker.Id,
-                Name = x.Shocker.Name,
-                RfId = x.Shocker.RfId,
-                Device = x.Shocker.DeviceId,
-                Model = x.Shocker.Model,
+                ShockerId = x.Shocker.Id,
+                ShockerName = x.Shocker.Name,
+                ShockerRfId = x.Shocker.RfId,
+                DeviceId = x.Shocker.DeviceId,
+                ShockerModel = x.Shocker.Model,
                 OwnerId = x.Shocker.Device.OwnerId,
                 Paused = x.Shocker.IsPaused || x.IsPaused,
                 PermsAndLimits = new SharePermsAndLimits
@@ -68,20 +68,21 @@ public sealed class ControlSender : IControlSender
 
         var shockers = await queryOwn.Concat(queryShared).ToArrayAsync();
 
-        return await ControlInternal(shocks, sender, hubClients, shockers);
+        return await ControlInternal(controls, sender, hubClients, shockers);
     }
 
-    public async Task<OneOf<Success, ShockerNotFoundOrNoAccess, ShockerPaused, ShockerNoPermission>> ControlPublicShare(IReadOnlyList<Control> shocks, ControlLogSender sender, IHubClients<IUserHub> hubClients, Guid publicShareId)
+    public async Task<OneOf<Success, ShockerNotFoundOrNoAccess, ShockerPaused, ShockerNoPermission>> ControlPublicShare(IReadOnlyList<Control> controls, ControlLogSender sender, IHubClients<IUserHub> hubClients, Guid publicShareId)
     {
         var publicShareShockers = await _db.PublicShareShockerMappings
+            .AsNoTracking()
             .Where(x => x.PublicShareId == publicShareId && (x.PublicShare.ExpiresAt > DateTime.UtcNow || x.PublicShare.ExpiresAt == null))
             .Select(x => new ControlShockerObj
             {
-                Id = x.Shocker.Id,
-                Name = x.Shocker.Name,
-                RfId = x.Shocker.RfId,
-                Device = x.Shocker.DeviceId,
-                Model = x.Shocker.Model,
+                ShockerId = x.Shocker.Id,
+                ShockerName = x.Shocker.Name,
+                ShockerRfId = x.Shocker.RfId,
+                DeviceId = x.Shocker.DeviceId,
+                ShockerModel = x.Shocker.Model,
                 OwnerId = x.Shocker.Device.OwnerId,
                 Paused = x.Shocker.IsPaused || x.IsPaused,
                 PermsAndLimits = new SharePermsAndLimits
@@ -93,69 +94,77 @@ public sealed class ControlSender : IControlSender
                     Intensity = x.MaxIntensity,
                     Live = x.AllowLiveControl
                 }
-            }).ToArrayAsync();
+            })
+            .ToArrayAsync();
         
-        return await ControlInternal(shocks, sender, hubClients, publicShareShockers);
+        return await ControlInternal(controls, sender, hubClients, publicShareShockers);
     }
     
-    private async Task<OneOf<Success, ShockerNotFoundOrNoAccess, ShockerPaused, ShockerNoPermission>> ControlInternal(IReadOnlyList<Control> shocks, ControlLogSender sender, IHubClients<IUserHub> hubClients, ControlShockerObj[] allowedShockers)
+    private static void Clamp(Control control, SharePermsAndLimits? limits)
     {
+        var durationMax = limits?.Duration ?? HardLimits.MaxControlDuration;
+        var intensityMax = limits?.Intensity ?? HardLimits.MaxControlIntensity;
+
+        control.Intensity = Math.Clamp(control.Intensity, HardLimits.MinControlIntensity, intensityMax);
+        control.Duration = Math.Clamp(control.Duration, HardLimits.MinControlDuration, durationMax);
+    }
+
+    private async Task<OneOf<Success, ShockerNotFoundOrNoAccess, ShockerPaused, ShockerNoPermission>> ControlInternal(IReadOnlyList<Control> controls, ControlLogSender sender, IHubClients<IUserHub> hubClients, ControlShockerObj[] allowedShockers)
+    {
+        // Messages grouped by device
         var messages = new Dictionary<Guid, List<ShockerControlCommand>>();
         var logs = new Dictionary<Guid, List<ControlLog>>();
-        var curTime = DateTime.UtcNow;
-        var distinctShocks = shocks.DistinctBy(x => x.Id);
+        var now = DateTime.UtcNow;
 
-        foreach (var shock in distinctShocks)
+        foreach (var ( control, shocker ) in controls.Select(x => (control: x, shocker: allowedShockers.FirstOrDefault(s => s.ShockerId == x.ShockerId))))
         {
-            var shockerInfo = allowedShockers.FirstOrDefault(x => x.Id == shock.Id);
-            
-            if (shockerInfo is null) return new ShockerNotFoundOrNoAccess(shock.Id);
-            
-            if (shockerInfo.Paused) return new ShockerPaused(shock.Id);
+            if (shocker is null)
+                return new ShockerNotFoundOrNoAccess(control.ShockerId);
 
-            if (!PermissionUtils.IsAllowed(shock.Type, false, shockerInfo.PermsAndLimits)) return new ShockerNoPermission(shock.Id);
-            var durationMax = shockerInfo.PermsAndLimits?.Duration ?? HardLimits.MaxControlDuration;
-            var intensityMax = shockerInfo.PermsAndLimits?.Intensity ?? HardLimits.MaxControlIntensity;
+            if (shocker.Paused)
+                return new ShockerPaused(control.ShockerId);
 
-            var intensity = Math.Clamp(shock.Intensity, HardLimits.MinControlIntensity, intensityMax);
-            var duration = Math.Clamp(shock.Duration, HardLimits.MinControlDuration, durationMax);
+            if (!PermissionUtils.IsAllowed(control.Type, false, shocker.PermsAndLimits))
+                return new ShockerNoPermission(control.ShockerId);
 
-            messages.AppendValue(shockerInfo.Device, new ShockerControlCommand
+            Clamp(control, shocker.PermsAndLimits);
+
+            messages.AppendValue(shocker.DeviceId, new ShockerControlCommand
             {
-                RfId = shockerInfo.RfId,
-                Duration = duration,
-                Intensity = intensity,
-                Type = shock.Type,
-                Model = shockerInfo.Model,
-                Exclusive = shock.Exclusive
+                RfId = shocker.ShockerRfId,
+                Duration = control.Duration,
+                Intensity = control.Intensity,
+                Type = control.Type,
+                Model = shocker.ShockerModel,
+                Exclusive = control.Exclusive
             });
-            logs.AppendValue(shockerInfo.OwnerId, new ControlLog
+            logs.AppendValue(shocker.OwnerId, new ControlLog
             {
                 Shocker = new BasicShockerInfo
                 {
-                    Id = shockerInfo.Id,
-                    Name = shockerInfo.Name
+                    Id = shocker.ShockerId,
+                    Name = shocker.ShockerName
                 },
-                Type = shock.Type,
-                Intensity = intensity,
-                Duration = duration,
-                ExecutedAt = curTime
+                Type = control.Type,
+                Intensity = control.Intensity,
+                Duration = control.Duration,
+                ExecutedAt = now
             });
 
             _db.ShockerControlLogs.Add(new ShockerControlLog
             {
                 Id = Guid.CreateVersion7(),
-                ShockerId = shockerInfo.Id,
+                ShockerId = shocker.ShockerId,
                 ControlledByUserId = sender.UserId == Guid.Empty ? null : sender.UserId,
-                Intensity = intensity,
-                Duration = duration,
-                Type = shock.Type,
+                Intensity = control.Intensity,
+                Duration = control.Duration,
+                Type = control.Type,
                 CustomName = sender.CustomName,
-                CreatedAt = curTime
+                CreatedAt = now
             });
         }
 
-        // Save all db cahnges before continuing
+        // Save all db changes before continuing
         await _db.SaveChangesAsync();
 
         // Then send all network events
