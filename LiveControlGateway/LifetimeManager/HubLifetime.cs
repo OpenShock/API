@@ -86,7 +86,7 @@ public sealed class HubLifetime : IAsyncDisposable
         _redisPubService = redisPubService;
         _logger = logger;
 
-        _waitBetweenTicks = TimeSpan.FromMilliseconds(1000 / tps);
+        _waitBetweenTicks = TimeSpan.FromMilliseconds(1000.0 / tps);
         _commandDuration = (ushort)(_waitBetweenTicks.TotalMilliseconds * 2.5);
 
         _subscriber = connectionMultiplexer.GetSubscriber();
@@ -404,7 +404,7 @@ public sealed class HubLifetime : IAsyncDisposable
     }
 
     private static DateTimeOffset CalculateActiveUntil(byte tps) =>
-        DateTimeOffset.UtcNow.AddMilliseconds(Math.Max(1000 / (float)tps * 2.5, 250));
+        DateTimeOffset.UtcNow.AddMilliseconds(Math.Max(1000.0 / tps * 2.5, 250.0));
 
     /// <summary>
     /// Control from redis, aka a regular command
