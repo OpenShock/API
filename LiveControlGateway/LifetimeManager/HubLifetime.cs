@@ -335,7 +335,7 @@ public sealed class HubLifetime : IAsyncDisposable
     {
         var now = DateTimeOffset.UtcNow;
         var commandList = _shockerStates
-            .Where(kvp => kvp.Value.ActiveUntil < now || kvp.Value.ExclusiveUntil >= now)
+            .Where(kvp => kvp.Value.ActiveUntil > now && kvp.Value.ExclusiveUntil < now)
             .Select(kvp => new ShockerCommand
             {
                 Model = FbsMapper.ToFbsModelType(kvp.Value.Model),
