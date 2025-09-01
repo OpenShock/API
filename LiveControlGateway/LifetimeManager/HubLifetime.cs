@@ -256,7 +256,7 @@ public sealed class HubLifetime : IAsyncDisposable
             return;
         }
 
-        await Control(control.Controls.Select(FbsMapper.ToFbsShockerCommand).ToArray());
+        await Control([.. control.Controls.Select(FbsMapper.ToFbsShockerCommand)]);
     }
 
     /// <summary>
