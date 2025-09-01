@@ -95,7 +95,7 @@ public sealed class PublicShareHub : Hub<IPublicShareHub>
             CachedControlLogSender = user is null
                 ? new ControlLogSender
                 {
-                    UserId = Guid.Empty,
+                    Id = Guid.Empty,
                     Name = "Guest",
                     Image = GravatarUtils.GuestImageUrl,
                     ConnectionId = Context.ConnectionId,
@@ -104,7 +104,7 @@ public sealed class PublicShareHub : Hub<IPublicShareHub>
                 }
                 : new ControlLogSender
                 {
-                    UserId = user.Id,
+                    Id = user.Id,
                     Image = user.Image,
                     Name = user.Name,
                     ConnectionId = Context.ConnectionId,

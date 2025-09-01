@@ -30,7 +30,7 @@ public sealed class ControlSender : IControlSender
     {
         var queryOwn = _db.Shockers
             .AsNoTracking()
-            .Where(x => x.Device.OwnerId == sender.UserId)
+            .Where(x => x.Device.OwnerId == sender.Id)
             .Select(x => new ControlShockerObj
             {
                 ShockerId = x.Id,
@@ -45,7 +45,7 @@ public sealed class ControlSender : IControlSender
 
         var queryShared = _db.UserShares
             .AsNoTracking()
-            .Where(x => x.SharedWithUserId == sender.UserId)
+            .Where(x => x.SharedWithUserId == sender.Id)
             .Select(x => new ControlShockerObj
             {
                 ShockerId = x.Shocker.Id,
@@ -116,9 +116,11 @@ public sealed class ControlSender : IControlSender
         var logs = new Dictionary<Guid, List<ControlLog>>();
         var now = DateTime.UtcNow;
 
-        foreach (var control in controls)
+        foreach (var (control, shocker) in controls
+                     .Select(c => (Control: c, Shocker: allowedShockers.FirstOrDefault(s => s.ShockerId == c.ShockerId)))
+                     .GroupBy(x => (x.Control.ShockerId, x.Shocker?.ShockerRfId))
+                     .Select(x => x.Last()))
         {
-            var shocker = allowedShockers.FirstOrDefault(s => s.ShockerId == control.ShockerId);
             if (shocker is null)
                 return new ShockerNotFoundOrNoAccess(control.ShockerId);
 
@@ -156,7 +158,7 @@ public sealed class ControlSender : IControlSender
             {
                 Id = Guid.CreateVersion7(),
                 ShockerId = shocker.ShockerId,
-                ControlledByUserId = sender.UserId == Guid.Empty ? null : sender.UserId,
+                ControlledByUserId = sender.Id == Guid.Empty ? null : sender.Id,
                 Intensity = control.Intensity,
                 Duration = control.Duration,
                 Type = control.Type,

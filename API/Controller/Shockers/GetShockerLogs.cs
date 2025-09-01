@@ -49,14 +49,14 @@ public sealed partial class ShockerController
                 ControlledBy = x.ControlledByUser == null
                     ? new ControlLogSenderLight
                     {
-                        UserId = Guid.Empty,
+                        Id = Guid.Empty,
                         Name = "Guest",
                         Image = GravatarUtils.GuestImageUrl,
                         CustomName = x.CustomName
                     }
                     : new ControlLogSenderLight
                     {
-                        UserId = x.ControlledByUser.Id,
+                        Id = x.ControlledByUser.Id,
                         Name = x.ControlledByUser.Name,
                         Image = x.ControlledByUser.GetImageUrl(),
                         CustomName = x.CustomName

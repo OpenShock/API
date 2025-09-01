@@ -85,7 +85,7 @@ public sealed class UserHub : Hub<IUserHub>
 
         var sender = await _db.Users.Where(x => x.Id == UserId).Select(x => new ControlLogSender
         {
-            UserId = x.Id,
+            Id = x.Id,
             Name = x.Name,
             Image = x.GetImageUrl(),
             ConnectionId = Context.ConnectionId,
