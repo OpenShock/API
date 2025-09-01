@@ -108,7 +108,7 @@ public sealed class RedisSubscriberService : IHostedService, IAsyncDisposable
                 await LogicDeviceOnlineStatus(deviceId); // TODO: Handle device offline messages too
                 break;
             case DeviceBoolStateType.EStopped:
-                _logger.LogWarning("This is not yet implemented"); // TODO: Implement me!
+                _logger.LogInformation("EStopped state not implemented yet for DeviceId {DeviceId}", deviceId);
                 break;
             default:
                 _logger.LogError("Unknown DeviceBoolStateType: {StateType}", state.Type);
@@ -153,15 +153,23 @@ public sealed class RedisSubscriberService : IHostedService, IAsyncDisposable
     }
 
     /// <inheritdoc />
-    public Task StopAsync(CancellationToken cancellationToken)
+    public async Task StopAsync(CancellationToken cancellationToken)
     {
-        return Task.CompletedTask;
+        await _subscriber.UnsubscribeAllAsync();
     }
 
     /// <inheritdoc />
     public async ValueTask DisposeAsync()
     {
-        await _subscriber.UnsubscribeAllAsync();
+        try
+        {
+            await _subscriber.UnsubscribeAllAsync();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error during Redis unsubscribe in DisposeAsync");
+        }
+
         GC.SuppressFinalize(this);
     }
 
