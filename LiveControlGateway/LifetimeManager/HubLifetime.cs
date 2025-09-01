@@ -335,20 +335,18 @@ public sealed class HubLifetime : IAsyncDisposable
     {
         var now = DateTimeOffset.UtcNow;
         var commandList = new List<ShockerCommand>(_shockerStates.Count);
-        
-        commandList.AddRange(
-            _shockerStates
-                .Values
-                .Where(x => x.ActiveUntil > now && x.ExclusiveUntil < now)
-                .Select(x => new ShockerCommand
-                {
-                    Model = FbsMapper.ToFbsModelType(x.Model),
-                    Id = x.RfId,
-                    Type = FbsMapper.ToFbsCommandType(x.LastType),
-                    Intensity = x.LastIntensity,
-                    Duration = _commandDuration,
-                })
-        );
+
+        foreach (var x in _shockerStates.Values.Where(x => x.ActiveUntil > now && x.ExclusiveUntil < now))
+        {
+            commandList.Add(new ShockerCommand
+            {
+                Model = FbsMapper.ToFbsModelType(x.Model),
+                Id = x.RfId,
+                Type = FbsMapper.ToFbsCommandType(x.LastType),
+                Intensity = x.LastIntensity,
+                Duration = _commandDuration,
+            });
+        }
 
         if (commandList.Count == 0) return;
 
