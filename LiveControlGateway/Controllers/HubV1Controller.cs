@@ -165,19 +165,19 @@ public sealed class HubV1Controller : HubControllerBase<HubToGatewayMessage, Gat
     }
 
     /// <inheritdoc />
-    public override ValueTask Control(List<OpenShock.Serialization.Gateway.ShockerCommand> controlCommands)
+    public override ValueTask Control(IList<OpenShock.Serialization.Gateway.ShockerCommand> controlCommands)
         => QueueMessage(new GatewayToHubMessage
         {
             Payload = new GatewayToHubMessagePayload(new ShockerCommandList
             {
-                Commands = controlCommands.Select(x => new ShockerCommand()
+                Commands = [.. controlCommands.Select(x => new ShockerCommand()
                 {
                     Duration = x.Duration,
                     Type = x.Type,
                     Id = x.Model == Serialization.Types.ShockerModelType.Petrainer998DR ? (ushort)(x.Id >> 1) : x.Id, // Fix for old hubs, their ids was serialized wrongly in the RFTransmitter, the V1 endpoint is being phased out, so this wont stay here forever
                     Intensity = x.Intensity,
                     Model = x.Model
-                }).ToList()
+                })]
             })
         });
 

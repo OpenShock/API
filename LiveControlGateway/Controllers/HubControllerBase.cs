@@ -1,5 +1,4 @@
-﻿using System.Net.WebSockets;
-using FlatSharp;
+﻿using FlatSharp;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
 using Microsoft.Extensions.Options;
@@ -16,6 +15,7 @@ using OpenShock.LiveControlGateway.Options;
 using OpenShock.LiveControlGateway.Websocket;
 using OpenShock.Serialization.Gateway;
 using Semver;
+using System.Net.WebSockets;
 using Timer = System.Timers.Timer;
 
 namespace OpenShock.LiveControlGateway.Controllers;
@@ -167,7 +167,7 @@ public abstract class HubControllerBase<TIn, TOut> : FlatbuffersWebsocketBaseCon
     }
 
     /// <inheritdoc />
-    public abstract ValueTask Control(List<ShockerCommand> controlCommands);
+    public abstract ValueTask Control(IList<ShockerCommand> controlCommands);
 
     /// <inheritdoc />
     public abstract ValueTask CaptivePortal(bool enable);

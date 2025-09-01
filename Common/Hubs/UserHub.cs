@@ -23,16 +23,18 @@ public sealed class UserHub : Hub<IUserHub>
     private readonly OpenShockContext _db;
     private readonly IRedisConnectionProvider _provider;
     private readonly IRedisPubService _redisPubService;
+    private readonly IControlSender _controlSender;
     private readonly IUserReferenceService _userReferenceService;
     private IReadOnlyList<PermissionType>? _tokenPermissions = null;
 
     public UserHub(ILogger<UserHub> logger, OpenShockContext db, IRedisConnectionProvider provider,
-        IRedisPubService redisPubService, IUserReferenceService userReferenceService)
+        IRedisPubService redisPubService, IControlSender controlSender, IUserReferenceService userReferenceService)
     {
         _logger = logger;
         _db = db;
         _provider = provider;
         _redisPubService = redisPubService;
+        _controlSender = controlSender;
         _userReferenceService = userReferenceService;
     }
 
@@ -89,9 +91,9 @@ public sealed class UserHub : Hub<IUserHub>
             ConnectionId = Context.ConnectionId,
             AdditionalItems = additionalItems,
             CustomName = customName
-        }).SingleAsync();
+        }).FirstAsync();
 
-        await ControlLogic.ControlByUser(shocks, _db, sender, Clients, _redisPubService);
+        await _controlSender.ControlByUser(shocks, sender, Clients);
     }
 
     public async Task CaptivePortal(Guid deviceId, bool enabled)
@@ -142,10 +144,6 @@ public sealed class UserHub : Hub<IUserHub>
         await _redisPubService.SendDeviceReboot(deviceId);
     }
 
-
-    private Task<User> GetUser() => GetUser(UserId, _db);
-
     private Guid UserId => _userId ??= Guid.Parse(Context.UserIdentifier!);
     private Guid? _userId;
-    private static Task<User> GetUser(Guid userId, OpenShockContext db) => db.Users.SingleAsync(x => x.Id == userId);
 }

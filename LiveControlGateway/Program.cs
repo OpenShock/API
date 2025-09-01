@@ -1,14 +1,15 @@
 using Microsoft.Extensions.Options;
 using OpenShock.Common;
+using OpenShock.Common.DeviceControl;
 using OpenShock.Common.Extensions;
 using OpenShock.Common.JsonSerialization;
+using OpenShock.Common.Services;
 using OpenShock.Common.Services.Device;
 using OpenShock.Common.Services.Ota;
 using OpenShock.Common.Swagger;
 using OpenShock.LiveControlGateway;
 using OpenShock.LiveControlGateway.LifetimeManager;
 using OpenShock.LiveControlGateway.Options;
-using OpenShock.LiveControlGateway.PubSub;
 
 var builder = OpenShockApplication.CreateDefaultBuilder<Program>(args);
 
@@ -33,13 +34,13 @@ builder.Services.AddSignalR()
     });
 
 builder.Services.AddScoped<IDeviceService, DeviceService>();
+builder.Services.AddScoped<IControlSender, ControlSender>();
 builder.Services.AddScoped<IOtaService, OtaService>();
 
 builder.AddSwaggerExt<Program>();
 
 //services.AddHealthChecks().AddCheck<DatabaseHealthCheck>("database");
 
-builder.Services.AddHostedService<RedisSubscriberService>();
 builder.Services.AddHostedService<LcgKeepAlive>();
 
 builder.Services.AddSingleton<HubLifetimeManager>();

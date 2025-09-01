@@ -1,5 +1,4 @@
-﻿using System.Diagnostics;
-using Asp.Versioning;
+﻿using Asp.Versioning;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.SignalR;
@@ -16,6 +15,7 @@ using OpenShock.Serialization.Gateway;
 using OpenShock.Serialization.Types;
 using Semver;
 using Serilog;
+using System.Diagnostics;
 
 namespace OpenShock.LiveControlGateway.Controllers;
 //TODO: Implement new keep alive ping pong mechanism
@@ -198,7 +198,7 @@ public sealed class HubV2Controller : HubControllerBase<HubToGatewayMessage, Gat
     }
 
     /// <inheritdoc />
-    public override ValueTask Control(List<ShockerCommand> controlCommands)
+    public override ValueTask Control(IList<ShockerCommand> controlCommands)
         => QueueMessage(new GatewayToHubMessage
         {
             Payload = new GatewayToHubMessagePayload(new ShockerCommandList

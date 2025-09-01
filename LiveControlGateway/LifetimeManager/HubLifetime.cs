@@ -1,6 +1,4 @@
-﻿using System.Collections.Immutable;
-using System.ComponentModel.DataAnnotations;
-using System.Diagnostics;
+﻿using MessagePack;
 using Microsoft.EntityFrameworkCore;
 using OneOf;
 using OneOf.Types;
@@ -13,11 +11,14 @@ using OpenShock.Common.Redis.PubSub;
 using OpenShock.Common.Services.RedisPubSub;
 using OpenShock.Common.Utils;
 using OpenShock.LiveControlGateway.Controllers;
+using OpenShock.LiveControlGateway.Mappers;
 using OpenShock.Serialization.Gateway;
-using OpenShock.Serialization.Types;
 using Redis.OM.Contracts;
 using Semver;
-using ShockerModelType = OpenShock.Serialization.Types.ShockerModelType;
+using StackExchange.Redis;
+using System.Collections.Immutable;
+using System.ComponentModel.DataAnnotations;
+using System.Diagnostics;
 
 namespace OpenShock.LiveControlGateway.LifetimeManager;
 
@@ -41,17 +42,25 @@ public sealed class HubLifetime : IAsyncDisposable
     private readonly TimeSpan _waitBetweenTicks;
     private readonly ushort _commandDuration;
 
-    private Dictionary<Guid, ShockerState> _shockerStates = new();
+    private Dictionary<Guid, ShockerState> _shockerStates = [];
     private readonly CancellationTokenSource _cancellationSource;
 
     private readonly IDbContextFactory<OpenShockContext> _dbContextFactory;
     private readonly IRedisConnectionProvider _redisConnectionProvider;
     private readonly IRedisPubService _redisPubService;
 
+    private readonly RedisChannel _deviceMsgChannel;
+    private readonly ISubscriber _subscriber;
+
     private readonly ILogger<HubLifetime> _logger;
 
     private ImmutableArray<LiveControlController> _liveControlClients = ImmutableArray<LiveControlController>.Empty;
     private readonly SemaphoreSlim _liveControlClientsLock = new(1);
+
+    private ChannelMessageQueue? _deviceMsgQueue;
+    private Task? _deviceMsgConsumerTask;
+
+    private Task? _updateLoopTask;
 
     /// <summary>
     /// DI Constructor
@@ -59,11 +68,13 @@ public sealed class HubLifetime : IAsyncDisposable
     /// <param name="tps"></param>
     /// <param name="hubController"></param>
     /// <param name="dbContextFactory"></param>
+    /// <param name="connectionMultiplexer"></param>
     /// <param name="redisConnectionProvider"></param>
     /// <param name="redisPubService"></param>
     /// <param name="logger"></param>
     public HubLifetime([Range(1, 10)] byte tps, IHubController hubController,
         IDbContextFactory<OpenShockContext> dbContextFactory,
+        IConnectionMultiplexer connectionMultiplexer,
         IRedisConnectionProvider redisConnectionProvider,
         IRedisPubService redisPubService,
         ILogger<HubLifetime> logger)
@@ -75,8 +86,11 @@ public sealed class HubLifetime : IAsyncDisposable
         _redisPubService = redisPubService;
         _logger = logger;
 
-        _waitBetweenTicks = TimeSpan.FromMilliseconds(Math.Floor((float)1000 / tps));
+        _waitBetweenTicks = TimeSpan.FromMilliseconds(1000.0 / tps);
         _commandDuration = (ushort)(_waitBetweenTicks.TotalMilliseconds * 2.5);
+
+        _subscriber = connectionMultiplexer.GetSubscriber();
+        _deviceMsgChannel = RedisChannels.DeviceMessage(hubController.Id);
     }
 
     /// <summary>
@@ -93,7 +107,6 @@ public sealed class HubLifetime : IAsyncDisposable
                 _logger.LogWarning("Client already registered, not sure how this happened, probably a bug");
                 return null;
             }
-
             _liveControlClients = _liveControlClients.Add(controller);
         }
 
@@ -153,13 +166,95 @@ public sealed class HubLifetime : IAsyncDisposable
             return false;
         }
 
-#pragma warning disable CS4014
-        OsTask.Run(UpdateLoop);
-#pragma warning restore CS4014
+        _updateLoopTask = OsTask.Run(UpdateLoop);
+
+        _deviceMsgQueue = await _subscriber.SubscribeAsync(_deviceMsgChannel);
+        _deviceMsgConsumerTask = QueueHelper.ConsumeQueue(_deviceMsgQueue, ConsumeDeviceQueue, _logger, _cancellationSource.Token);
 
         _state = HubLifetimeState.Idle; // We are fully setup, we can go back to idle state
 
         return true;
+    }
+
+    private async Task ConsumeDeviceQueue(RedisValue value, CancellationToken cancellationToken)
+    {
+        DeviceMessage message;
+        try
+        {
+            message = MessagePackSerializer.Deserialize<DeviceMessage>((ReadOnlyMemory<byte>)value, cancellationToken: cancellationToken);
+        }
+        catch (Exception e)
+        {
+            _logger.LogError(e, "Failed to deserialize DeviceMessage");
+            return;
+        }
+
+        await DeviceMessage(message);
+    }
+
+    private async Task DeviceMessage(DeviceMessage message)
+    {
+        switch (message.Payload)
+        {
+            case DeviceTriggerPayload trigger:
+                await DeviceMessageTrigger(trigger);
+                break;
+            case DeviceTogglePayload toggle:
+                await DeviceMessageToggle(toggle);
+                break;
+            case DeviceControlPayload control:
+                await DeviceMessageControl(control);
+                break;
+            case DeviceOtaInstallPayload { Version: var version }:
+                await OtaInstall(version);
+                break;
+            default:
+                _logger.LogError("Got DeviceMessage with unknown payload type: {PayloadType}", message.Payload?.GetType().Name);
+                break;
+        }
+    }
+
+    private async Task DeviceMessageTrigger(DeviceTriggerPayload trigger)
+    {
+        switch (trigger.Type)
+        {
+            case DeviceTriggerType.DeviceInfoUpdated:
+                await UpdateDevice();
+                break;
+            case DeviceTriggerType.DeviceEmergencyStop:
+                await EmergencyStop(); // Ignored bool return
+                break;
+            case DeviceTriggerType.DeviceReboot:
+                await Reboot(); // Ignored bool return
+                break;
+            default:
+                _logger.LogError("Unknown DeviceTriggerType: {TriggerType}", trigger.Type);
+                break;
+        }
+    }
+
+    private async ValueTask DeviceMessageToggle(DeviceTogglePayload toggle)
+    {
+        switch (toggle.Target)
+        {
+            case DeviceToggleTarget.CaptivePortal:
+                await ControlCaptive(toggle.State);
+                break;
+            default:
+                _logger.LogError("Unknown DeviceToggleTarget: {Target}", toggle.Target);
+                break;
+        }
+    }
+
+    private async ValueTask DeviceMessageControl(DeviceControlPayload control)
+    {
+        if (control.Controls.Count == 0)
+        {
+            _logger.LogDebug("DeviceControlPayload had no commands, skipping.");
+            return;
+        }
+
+        await Control(control.Controls);
     }
 
     /// <summary>
@@ -238,19 +333,20 @@ public sealed class HubLifetime : IAsyncDisposable
 
     private async Task Update()
     {
+        var now = DateTimeOffset.UtcNow;
         var commandList = new List<ShockerCommand>(_shockerStates.Count);
-        foreach (var (_, state) in _shockerStates)
-        {
-            var cur = DateTimeOffset.UtcNow;
-            if (state.ActiveUntil < cur || state.ExclusiveUntil >= cur) continue;
 
+        foreach (var state in _shockerStates.Values)
+        {
+            if (state.ActiveUntil < now || state.ExclusiveUntil >= now) continue;
+            
             commandList.Add(new ShockerCommand
             {
+                Model = FbsMapper.ToFbsModelType(state.Model),
                 Id = state.RfId,
-                Model = (ShockerModelType)state.Model,
-                Type = (ShockerCommandType)state.LastType,
+                Type = FbsMapper.ToFbsCommandType(state.LastType),
+                Intensity = state.LastIntensity,
                 Duration = _commandDuration,
-                Intensity = state.LastIntensity
             });
         }
 
@@ -311,33 +407,26 @@ public sealed class HubLifetime : IAsyncDisposable
     }
 
     private static DateTimeOffset CalculateActiveUntil(byte tps) =>
-        DateTimeOffset.UtcNow.AddMilliseconds(Math.Max(1000 / (float)tps * 2.5, 250));
+        DateTimeOffset.UtcNow.AddMilliseconds(Math.Max(1000.0 / tps * 2.5, 250.0));
 
     /// <summary>
     /// Control from redis, aka a regular command
     /// </summary>
-    /// <param name="shocks"></param>
+    /// <param name="commands"></param>
     /// <returns></returns>
-    public ValueTask Control(IReadOnlyList<ControlMessage.ShockerControlInfo> shocks)
+    public ValueTask Control(IReadOnlyList<ShockerControlCommand> commands)
     {
-        var shocksTransformed = new List<ShockerCommand>(shocks.Count);
-        foreach (var shock in shocks)
+        var shocksTransformed = new List<ShockerCommand>(commands.Count);
+        
+        foreach (var command in commands)
         {
-            if (!_shockerStates.TryGetValue(shock.Id, out var state)) continue;
+            if (!_shockerStates.TryGetValue(command.ShockerId, out var state)) continue;
 
-            _logger.LogTrace(
-                "Control exclusive: {Exclusive}, type: {Type}, duration: {Duration}, intensity: {Intensity}",
-                shock.Exclusive, shock.Type, shock.Duration, shock.Intensity);
-            state.ExclusiveUntil = shock.Exclusive && shock.Type != ControlType.Stop
-                ? DateTimeOffset.UtcNow.AddMilliseconds(shock.Duration)
+            state.ExclusiveUntil = command.Exclusive && command.Type != ControlType.Stop
+                ? DateTimeOffset.UtcNow.AddMilliseconds(command.Duration)
                 : DateTimeOffset.MinValue;
 
-            shocksTransformed.Add(new ShockerCommand
-            {
-                Id = shock.RfId, Duration = shock.Duration, Intensity = shock.Intensity,
-                Type = (ShockerCommandType)shock.Type,
-                Model = (ShockerModelType)shock.Model
-            });
+            shocksTransformed.Add(FbsMapper.ToFbsShockerCommand(command));
         }
 
         return HubController.Control(shocksTransformed);
@@ -395,7 +484,7 @@ public sealed class HubLifetime : IAsyncDisposable
             }, Duration.DeviceKeepAliveTimeout);
 
 
-            await _redisPubService.SendDeviceOnlineStatus(device);
+            await _redisPubService.SendDeviceOnlineStatus(device, true);
             return new Success();
         }
 
@@ -424,7 +513,7 @@ public sealed class HubLifetime : IAsyncDisposable
 
         if (sendOnlineStatusUpdate)
         {
-            await _redisPubService.SendDeviceOnlineStatus(device);
+            await _redisPubService.SendDeviceOnlineStatus(device, true);
             return new OnlineStateUpdated();
         }
 
@@ -439,7 +528,19 @@ public sealed class HubLifetime : IAsyncDisposable
         if (_disposed) return;
         _disposed = true;
 
+        await _subscriber.UnsubscribeAsync(_deviceMsgChannel);
         await _cancellationSource.CancelAsync();
+
+        // ensure the consumer loop ends
+        if (_deviceMsgConsumerTask is not null)
+        {
+            try { await _deviceMsgConsumerTask; } catch { /* ignore */ }
+        }
+        if (_updateLoopTask is not null)
+        {
+            try { await _updateLoopTask; } catch { /* ignore */ }
+        }
+
         await DisposeLiveControlClients();
     }
 }

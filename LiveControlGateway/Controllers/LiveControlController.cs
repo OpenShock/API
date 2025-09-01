@@ -42,7 +42,7 @@ public sealed class LiveControlController : WebsocketBaseController<LiveControlR
 
     private static readonly TimeSpan PingInterval = TimeSpan.FromSeconds(5);
 
-    private static readonly SharePermsAndLimitsLive OwnerPermsAndLimitsLive = new()
+    private static readonly SharePermsAndLimits OwnerPermsAndLimitsLive = new()
     {
         Shock = true,
         Vibrate = true,
@@ -139,7 +139,7 @@ public sealed class LiveControlController : WebsocketBaseController<LiveControlR
                 Lsp = new LiveShockerPermission
                 {
                     Paused = x.IsPaused,
-                    PermsAndLimits = new SharePermsAndLimitsLive
+                    PermsAndLimits = new SharePermsAndLimits
                     {
                         Sound = x.AllowSound,
                         Vibrate = x.AllowVibrate,
@@ -480,30 +480,16 @@ public sealed class LiveControlController : WebsocketBaseController<LiveControlR
         );
     }
 
-    private OneOf<Success<SharePermsAndLimitsLive>, NotFound, LiveNotEnabled, NoPermission, ShockerPaused>
+    private OneOf<Success<SharePermsAndLimits>, NotFound, LiveNotEnabled, NoPermission, ShockerPaused>
         CheckFramePermissions(
             Guid shocker, ControlType controlType)
     {
         if (!_sharedShockers.TryGetValue(shocker, out var shockerShare)) return new NotFound();
 
         if (shockerShare.Paused) return new ShockerPaused();
-        if (!IsAllowed(controlType, shockerShare.PermsAndLimits)) return new NoPermission();
+        if (!PermissionUtils.IsAllowed(controlType, true, shockerShare.PermsAndLimits)) return new NoPermission();
 
-        return new Success<SharePermsAndLimitsLive>(shockerShare.PermsAndLimits);
-    }
-
-    private static bool IsAllowed(ControlType type, SharePermsAndLimitsLive? perms) // TODO: Duplicate logic (Common.csproj -> ControlLogic.cs -> IsAllowed)
-    {
-        if (perms is null) return true;
-        if (!perms.Live) return false;
-        return type switch
-        {
-            ControlType.Shock => perms.Shock,
-            ControlType.Vibrate => perms.Vibrate,
-            ControlType.Sound => perms.Sound,
-            ControlType.Stop => perms.Shock || perms.Vibrate || perms.Sound,
-            _ => false
-        };
+        return new Success<SharePermsAndLimits>(shockerShare.PermsAndLimits);
     }
 
 
