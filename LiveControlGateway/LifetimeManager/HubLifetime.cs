@@ -86,7 +86,7 @@ public sealed class HubLifetime : IAsyncDisposable
         _redisPubService = redisPubService;
         _logger = logger;
 
-        _waitBetweenTicks = TimeSpan.FromMilliseconds(Math.Floor(1000f / tps));
+        _waitBetweenTicks = TimeSpan.FromMilliseconds(1000 / tps);
         _commandDuration = (ushort)(_waitBetweenTicks.TotalMilliseconds * 2.5);
 
         _subscriber = connectionMultiplexer.GetSubscriber();
