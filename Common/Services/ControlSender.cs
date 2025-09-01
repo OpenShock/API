@@ -134,6 +134,7 @@ public sealed class ControlSender : IControlSender
 
             messages.AppendValue(shocker.DeviceId, new ShockerControlCommand
             {
+                ShockerId = shocker.ShockerId,
                 RfId = shocker.ShockerRfId,
                 Duration = control.Duration,
                 Intensity = control.Intensity,

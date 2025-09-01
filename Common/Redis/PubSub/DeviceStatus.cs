@@ -31,6 +31,6 @@ public enum DeviceBoolStateType : byte
 [MessagePackObject]
 public sealed class DeviceBoolStatePayload : IDeviceStatusPayload
 {
-    [Key(0)] public DeviceBoolStateType Type { get; init; }
-    [Key(1)] public bool State { get; init; }
+    [Key(0)] public required DeviceBoolStateType Type { get; init; }
+    [Key(1)] public required bool State { get; init; }
 }

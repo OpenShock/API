@@ -46,7 +46,7 @@ public enum DeviceTriggerType : byte
 [MessagePackObject]
 public sealed class DeviceTriggerPayload : IDeviceMessagePayload
 {
-    [Key(0)] public DeviceTriggerType Type { get; init; }
+    [Key(0)] public required DeviceTriggerType Type { get; init; }
 }
 
 public enum DeviceToggleTarget : byte
@@ -57,8 +57,8 @@ public enum DeviceToggleTarget : byte
 [MessagePackObject]
 public sealed class DeviceTogglePayload : IDeviceMessagePayload
 {
-    [Key(0)] public DeviceToggleTarget Target { get; init; }
-    [Key(1)] public bool State { get; init; }
+    [Key(0)] public required DeviceToggleTarget Target { get; init; }
+    [Key(1)] public required bool State { get; init; }
 }
 
 [MessagePackObject]
@@ -70,12 +70,13 @@ public sealed class DeviceControlPayload : IDeviceMessagePayload
 [MessagePackObject]
 public sealed class ShockerControlCommand
 {
-    [Key(0)] public ushort RfId { get; init; }
-    [Key(1)] public byte Intensity { get; init; }
-    [Key(2)] public ushort Duration { get; init; }
-    [Key(3)] public ControlType Type { get; init; }
-    [Key(4)] public ShockerModelType Model { get; init; }
-    [Key(5)] public bool Exclusive { get; init; }
+    [Key(0)] public required Guid ShockerId { get; init; }
+    [Key(1)] public required ushort RfId { get; init; }
+    [Key(2)] public required byte Intensity { get; init; }
+    [Key(3)] public required ushort Duration { get; init; }
+    [Key(4)] public required ControlType Type { get; init; }
+    [Key(5)] public required ShockerModelType Model { get; init; }
+    [Key(6)] public required bool Exclusive { get; init; }
 }
 
 [MessagePackObject]

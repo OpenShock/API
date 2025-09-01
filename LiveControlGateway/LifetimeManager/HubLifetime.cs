@@ -255,7 +255,7 @@ public sealed class HubLifetime : IAsyncDisposable
             return;
         }
 
-        await Control([.. control.Controls.Select(FbsMapper.ToFbsShockerCommand)]);
+        await Control(control.Controls);
     }
 
     /// <summary>
@@ -409,9 +409,25 @@ public sealed class HubLifetime : IAsyncDisposable
     /// <summary>
     /// Control from redis, aka a regular command
     /// </summary>
-    /// <param name="shocks"></param>
+    /// <param name="commands"></param>
     /// <returns></returns>
-    public ValueTask Control(IList<ShockerCommand> shocks) => HubController.Control(shocks);
+    public ValueTask Control(IReadOnlyList<ShockerControlCommand> commands)
+    {
+        var shocksTransformed = new List<ShockerCommand>(commands.Count);
+        
+        foreach (var command in commands)
+        {
+            if (!_shockerStates.TryGetValue(command.ShockerId, out var state)) continue;
+
+            state.ExclusiveUntil = command.Exclusive && command.Type != ControlType.Stop
+                ? DateTimeOffset.UtcNow.AddMilliseconds(command.Duration)
+                : DateTimeOffset.MinValue;
+
+            shocksTransformed.Add(FbsMapper.ToFbsShockerCommand(command));
+        }
+
+        return HubController.Control(shocksTransformed);
+    }
 
     /// <summary>
     /// Control from redis

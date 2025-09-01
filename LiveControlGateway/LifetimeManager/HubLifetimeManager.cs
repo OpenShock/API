@@ -219,11 +219,10 @@ public sealed class HubLifetimeManager
     /// <param name="device"></param>
     /// <param name="shocks"></param>
     /// <returns></returns>
-    public async Task<OneOf.OneOf<Success, DeviceNotFound>> Control(Guid device,
-        IReadOnlyList<ShockerControlCommand> shocks)
+    public async Task<OneOf.OneOf<Success, DeviceNotFound>> Control(Guid device, IReadOnlyList<ShockerControlCommand> shocks)
     {
         if (!_lifetimes.TryGetValue(device, out var deviceLifetime)) return new DeviceNotFound();
-        await deviceLifetime.Control(shocks.Select(FbsMapper.ToFbsShockerCommand).ToArray());
+        await deviceLifetime.Control(shocks);
         return new Success();
     }
 
