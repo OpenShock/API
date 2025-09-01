@@ -12,6 +12,7 @@ using OpenShock.Common.OpenShockDb;
 using OpenShock.Common.Redis.PubSub;
 using OpenShock.Common.Services.RedisPubSub;
 using OpenShock.Common.Utils;
+using Z.EntityFramework.Plus;
 
 namespace OpenShock.Common.Services;
 
@@ -28,45 +29,35 @@ public sealed class ControlSender : IControlSender
 
     public async Task<OneOf<Success, ShockerNotFoundOrNoAccess, ShockerPaused, ShockerNoPermission>> ControlByUser(IReadOnlyList<Control> controls,ControlLogSender sender, IHubClients<IUserHub> hubClients)
     {
-        var queryOwn = _db.Shockers
+        var shockers = await _db.Shockers
             .AsNoTracking()
-            .Where(x => x.Device.OwnerId == sender.Id)
+            .Select(shocker => new
+            {
+                shocker,
+                shocker.Device.OwnerId,
+                Share = shocker.UserShares.FirstOrDefault(us => us.SharedWithUserId == sender.Id)
+            })
+            .Where(x => x.OwnerId == sender.Id || x.Share != null)
             .Select(x => new ControlShockerObj
             {
-                ShockerId = x.Id,
-                ShockerName = x.Name,
-                ShockerRfId = x.RfId,
-                DeviceId = x.DeviceId,
-                ShockerModel = x.Model,
-                OwnerId = x.Device.OwnerId,
-                Paused = x.IsPaused,
-                PermsAndLimits = null
-            });
-
-        var queryShared = _db.UserShares
-            .AsNoTracking()
-            .Where(x => x.SharedWithUserId == sender.Id)
-            .Select(x => new ControlShockerObj
-            {
-                ShockerId = x.Shocker.Id,
-                ShockerName = x.Shocker.Name,
-                ShockerRfId = x.Shocker.RfId,
-                DeviceId = x.Shocker.DeviceId,
-                ShockerModel = x.Shocker.Model,
-                OwnerId = x.Shocker.Device.OwnerId,
-                Paused = x.Shocker.IsPaused || x.IsPaused,
-                PermsAndLimits = new SharePermsAndLimits
+                ShockerId    = x.shocker.Id,
+                ShockerName  = x.shocker.Name,
+                ShockerRfId  = x.shocker.RfId,
+                DeviceId     = x.shocker.DeviceId,
+                ShockerModel = x.shocker.Model,
+                OwnerId      = x.OwnerId,
+                Paused       = x.shocker.IsPaused || (x.Share != null && x.Share.IsPaused),
+                PermsAndLimits = x.Share == null ? null : new SharePermsAndLimits
                 {
-                    Sound = x.AllowSound,
-                    Vibrate = x.AllowVibrate,
-                    Shock = x.AllowShock,
-                    Duration = x.MaxDuration,
-                    Intensity = x.MaxIntensity,
-                    Live = x.AllowLiveControl
+                    Sound     = x.Share.AllowSound,
+                    Vibrate   = x.Share.AllowVibrate,
+                    Shock     = x.Share.AllowShock,
+                    Duration  = x.Share.MaxDuration,
+                    Intensity = x.Share.MaxIntensity,
+                    Live      = x.Share.AllowLiveControl
                 }
-            });
-
-        var shockers = await queryOwn.Concat(queryShared).ToArrayAsync();
+            })
+            .ToArrayAsync();
 
         return await ControlInternal(controls, sender, hubClients, shockers);
     }
