@@ -5,7 +5,6 @@ using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.Options;
 using OpenShock.Common.Authentication;
 using OpenShock.Common.Constants;
-using OpenShock.Common.Extensions;
 using OpenShock.Common.Hubs;
 using OpenShock.Common.Models;
 using OpenShock.Common.Services.Ota;
@@ -13,7 +12,6 @@ using OpenShock.LiveControlGateway.LifetimeManager;
 using OpenShock.LiveControlGateway.Options;
 using OpenShock.Serialization.Gateway;
 using OpenShock.Serialization.Types;
-using Semver;
 using Serilog;
 using System.Diagnostics;
 
@@ -110,11 +108,11 @@ public sealed class HubV2Controller : HubControllerBase<HubToGatewayMessage, Gat
                 await HcOwner.OtaInstallStarted(
                     CurrentHub.Id,
                     payload.OtaUpdateStarted.UpdateId,
-                    payload.OtaUpdateStarted.Version.ToSemVersion());
+                    SemVersion.FromFbs(payload.OtaUpdateStarted.Version));
                 await otaService.Started(
                     CurrentHub.Id,
                     payload.OtaUpdateStarted.UpdateId,
-                    payload.OtaUpdateStarted.Version.ToSemVersion());
+                    SemVersion.FromFbs(payload.OtaUpdateStarted.Version));
                 break;
 
             case HubToGatewayMessagePayload.ItemKind.OtaUpdateProgress:
@@ -236,7 +234,7 @@ public sealed class HubV2Controller : HubControllerBase<HubToGatewayMessage, Gat
         {
             Payload = new GatewayToHubMessagePayload(new OtaUpdateRequest
             {
-                Version = version.ToSemVer()
+                Version = version.ToFbs()
             })
         });
 

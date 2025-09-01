@@ -1,6 +1,6 @@
 ﻿using MessagePack;
+using OpenShock.Common.Models;
 using OpenShock.Common.Redis.PubSub;
-using Semver;
 using StackExchange.Redis;
 
 namespace OpenShock.Common.Services.RedisPubSub;

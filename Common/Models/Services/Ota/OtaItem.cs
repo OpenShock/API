@@ -1,6 +1,5 @@
 ﻿using System.Text.Json.Serialization;
 using OpenShock.Common.JsonSerialization;
-using Semver;
 
 namespace OpenShock.Common.Models.Services.Ota;
 

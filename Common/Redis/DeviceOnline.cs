@@ -1,7 +1,7 @@
 ﻿using System.Text.Json.Serialization;
 using OpenShock.Common.JsonSerialization;
+using OpenShock.Common.Models;
 using Redis.OM.Modeling;
-using Semver;
 
 namespace OpenShock.Common.Redis;
 

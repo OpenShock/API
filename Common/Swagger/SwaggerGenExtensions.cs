@@ -2,7 +2,6 @@
 using OpenShock.Common.Constants;
 using OpenShock.Common.DataAnnotations;
 using OpenShock.Common.Models;
-using Semver;
 using OpenShock.Common.Utils;
 using Asp.Versioning;
 using OpenShock.Common.Extensions;

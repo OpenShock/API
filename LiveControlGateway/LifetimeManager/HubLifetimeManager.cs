@@ -1,14 +1,12 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using OneOf.Types;
 using OpenShock.Common.Extensions;
+using OpenShock.Common.Models;
 using OpenShock.Common.OpenShockDb;
 using OpenShock.Common.Redis.PubSub;
 using OpenShock.Common.Services.RedisPubSub;
 using OpenShock.LiveControlGateway.Controllers;
-using OpenShock.LiveControlGateway.Mappers;
-using OpenShock.Serialization.Gateway;
 using Redis.OM.Contracts;
-using Semver;
 using StackExchange.Redis;
 
 namespace OpenShock.LiveControlGateway.LifetimeManager;

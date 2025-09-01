@@ -4,7 +4,6 @@ using Microsoft.EntityFrameworkCore;
 using OpenShock.Common.Extensions;
 using OpenShock.Common.Models;
 using OpenShock.Common.Redis;
-using Semver;
 using System.Text.Json.Serialization;
 using OpenShock.Common.JsonSerialization;
 

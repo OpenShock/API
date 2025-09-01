@@ -1,5 +1,5 @@
-﻿using OpenShock.Serialization.Gateway;
-using Semver;
+﻿using OpenShock.Common.Models;
+using OpenShock.Serialization.Gateway;
 
 namespace OpenShock.LiveControlGateway.Controllers;
 

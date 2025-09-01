@@ -1,6 +1,6 @@
 ﻿using System.Text.Json;
 using System.Text.Json.Serialization;
-using Semver;
+using OpenShock.Common.Models;
 
 namespace OpenShock.Common.JsonSerialization;
 
@@ -24,7 +24,7 @@ public sealed class SemVersionJsonConverter : JsonConverter<SemVersion>
             throw new JsonException("SemVer cannot be empty");
         }
 
-        if (!SemVersion.TryParse(str, SemVersionStyles.Strict, out SemVersion? version))
+        if (!SemVersion.TryParse(str, out SemVersion? version))
         {
             throw new JsonException("String is not a valid SemVer");
         }

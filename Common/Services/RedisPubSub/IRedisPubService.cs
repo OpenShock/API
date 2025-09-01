@@ -1,5 +1,5 @@
-﻿using OpenShock.Common.Redis.PubSub;
-using Semver;
+﻿using OpenShock.Common.Models;
+using OpenShock.Common.Redis.PubSub;
 
 namespace OpenShock.Common.Services.RedisPubSub;
 

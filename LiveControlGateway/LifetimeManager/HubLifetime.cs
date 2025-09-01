@@ -14,7 +14,6 @@ using OpenShock.LiveControlGateway.Controllers;
 using OpenShock.LiveControlGateway.Mappers;
 using OpenShock.Serialization.Gateway;
 using Redis.OM.Contracts;
-using Semver;
 using StackExchange.Redis;
 using System.Collections.Immutable;
 using System.ComponentModel.DataAnnotations;

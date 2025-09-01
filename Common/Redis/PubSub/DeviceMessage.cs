@@ -1,6 +1,5 @@
 ﻿using MessagePack;
 using OpenShock.Common.Models;
-using Semver;
 
 namespace OpenShock.Common.Redis.PubSub;
 
@@ -82,7 +81,5 @@ public sealed class ShockerControlCommand
 [MessagePackObject]
 public sealed class DeviceOtaInstallPayload : IDeviceMessagePayload
 {
-    [Key(0)]
-    [MessagePackFormatter(typeof(SemVersionMessagePackFormatter))]
-    public required SemVersion Version { get; init; }
+    [Key(0)] public required SemVersion Version { get; init; }
 }

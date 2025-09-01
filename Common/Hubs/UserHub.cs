@@ -12,7 +12,6 @@ using OpenShock.Common.Redis;
 using OpenShock.Common.Services.RedisPubSub;
 using Redis.OM;
 using Redis.OM.Contracts;
-using Semver;
 
 namespace OpenShock.Common.Hubs;
 

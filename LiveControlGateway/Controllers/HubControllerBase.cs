@@ -14,8 +14,8 @@ using OpenShock.LiveControlGateway.LifetimeManager;
 using OpenShock.LiveControlGateway.Options;
 using OpenShock.LiveControlGateway.Websocket;
 using OpenShock.Serialization.Gateway;
-using Semver;
 using System.Net.WebSockets;
+using SemVersion = OpenShock.Common.Models.SemVersion;
 using Timer = System.Timers.Timer;
 
 namespace OpenShock.LiveControlGateway.Controllers;
@@ -122,7 +122,7 @@ public abstract class HubControllerBase<TIn, TOut> : FlatbuffersWebsocketBaseCon
         _connected = DateTimeOffset.UtcNow;
 
         if (HttpContext.Request.Headers.TryGetValue("Firmware-Version", out var header) &&
-            SemVersion.TryParse(header, SemVersionStyles.Strict, out var version))
+            SemVersion.TryParse(header, out var version))
         {
             _firmwareVersion = version;
         }

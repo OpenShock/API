@@ -1,5 +1,5 @@
-﻿using OpenShock.Common.Models.Services.Ota;
-using Semver;
+﻿using OpenShock.Common.Models;
+using OpenShock.Common.Models.Services.Ota;
 
 namespace OpenShock.Common.Services.Ota;
 
