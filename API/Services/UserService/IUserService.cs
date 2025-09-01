@@ -4,5 +4,5 @@ namespace OpenShock.API.Services.UserService;
 
 public interface IUserService
 {
-    public Task<BasicUserInfo?> SearchUserDirect(string username, CancellationToken cancellationToken = default);
+    public Task<BasicUserInfo?> GetUserByName(string username, CancellationToken cancellationToken = default);
 }

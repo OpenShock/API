@@ -14,7 +14,7 @@ public sealed class UserService : IUserService
         _db = db;
     }
     
-    public async Task<BasicUserInfo?> SearchUserDirect(string username, CancellationToken cancellationToken = default)
+    public async Task<BasicUserInfo?> GetUserByName(string username, CancellationToken cancellationToken = default)
     {
         return await _db.Users.Where(x => x.Name == username).Select(x => new BasicUserInfo
         {

@@ -9,12 +9,12 @@ namespace OpenShock.API.Controller.Users;
 
 public sealed partial class UsersController
 {
+    [HttpGet("by-name/{username}")]
     [ProducesResponseType<BasicUserInfo>(StatusCodes.Status200OK)]
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status404NotFound, MediaTypeNames.Application.ProblemJson)]
-    [HttpGet("search/{username}")]
-    public async Task<IActionResult> SearchUserDirect([FromRoute] string username, [FromServices] IUserService userService, CancellationToken cancellationToken)
+    public async Task<IActionResult> GetByName([FromRoute] string username, [FromServices] IUserService userService, CancellationToken cancellationToken)
     {
-        var user = await userService.SearchUserDirect(username, cancellationToken);
+        var user = await userService.GetUserByName(username, cancellationToken);
         return user is null ? Problem(UserError.UserNotFound) : Ok(user);
     }
 }
