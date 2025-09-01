@@ -7,41 +7,27 @@ namespace OpenShock.Common.Redis.PubSub;
 [MessagePackObject]
 public sealed class DeviceMessage
 {
-    [Key(0)] public DeviceMessageType Type { get; init; }
-
-    [Key(1)] public required IDeviceMessagePayload Payload { get; init; }
+    [Key(0)] public required IDeviceMessagePayload Payload { get; init; }
 
     public static DeviceMessage Create(DeviceTriggerType type) => new()
     {
-        Type = DeviceMessageType.Trigger,
         Payload = new DeviceTriggerPayload { Type = type }
     };
 
     public static DeviceMessage Create(DeviceToggleTarget target, bool state) => new()
     {
-        Type = DeviceMessageType.Toggle,
         Payload = new DeviceTogglePayload { Target = target, State = state }
     };
 
     public static DeviceMessage Create(DeviceControlPayload payload) => new()
     {
-        Type = DeviceMessageType.Control,
         Payload = payload
     };
 
     public static DeviceMessage Create(DeviceOtaInstallPayload payload) => new()
     {
-        Type = DeviceMessageType.OtaInstall,
         Payload = payload
     };
-}
-
-public enum DeviceMessageType : byte
-{
-    Trigger = 0,
-    Toggle = 1,
-    Control = 2,
-    OtaInstall = 3
 }
 
 [Union(0, typeof(DeviceTriggerPayload))]

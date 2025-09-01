@@ -24,10 +24,7 @@ public enum DeviceStatusType : byte
     BoolStateChanged = 0,
 }
 
-[Union(0, typeof(DeviceTriggerPayload))]
-[Union(1, typeof(DeviceTogglePayload))]
-[Union(2, typeof(DeviceControlPayload))]
-[Union(3, typeof(DeviceOtaInstallPayload))]
+[Union(0, typeof(DeviceBoolStatePayload))]
 public interface IDeviceStatusPayload;
 
 public enum DeviceBoolStateType : byte

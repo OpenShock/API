@@ -5,8 +5,11 @@ using OpenShock.Common.OpenShockDb;
 using OpenShock.Common.Redis.PubSub;
 using OpenShock.Common.Services.RedisPubSub;
 using OpenShock.LiveControlGateway.Controllers;
+using OpenShock.LiveControlGateway.Mappers;
+using OpenShock.Serialization.Gateway;
 using Redis.OM.Contracts;
 using Semver;
+using StackExchange.Redis;
 
 namespace OpenShock.LiveControlGateway.LifetimeManager;
 
@@ -16,6 +19,7 @@ namespace OpenShock.LiveControlGateway.LifetimeManager;
 public sealed class HubLifetimeManager
 {
     private readonly IDbContextFactory<OpenShockContext> _dbContextFactory;
+    private readonly IConnectionMultiplexer _connectionMultiplexer;
     private readonly IRedisConnectionProvider _redisConnectionProvider;
     private readonly IRedisPubService _redisPubService;
     private readonly ILoggerFactory _loggerFactory;
@@ -28,17 +32,20 @@ public sealed class HubLifetimeManager
     /// DI constructor
     /// </summary>
     /// <param name="dbContextFactory"></param>
+    /// <param name="connectionMultiplexer"></param>
     /// <param name="redisConnectionProvider"></param>
     /// <param name="redisPubService"></param>
     /// <param name="loggerFactory"></param>
     public HubLifetimeManager(
         IDbContextFactory<OpenShockContext> dbContextFactory,
+        IConnectionMultiplexer connectionMultiplexer,
         IRedisConnectionProvider redisConnectionProvider,
         IRedisPubService redisPubService,
         ILoggerFactory loggerFactory
     )
     {
         _dbContextFactory = dbContextFactory;
+        _connectionMultiplexer = connectionMultiplexer;
         _redisConnectionProvider = redisConnectionProvider;
         _redisPubService = redisPubService;
         _loggerFactory = loggerFactory;
@@ -114,6 +121,7 @@ public sealed class HubLifetimeManager
             tps,
             hubController,
             _dbContextFactory,
+            _connectionMultiplexer,
             _redisConnectionProvider,
             _redisPubService,
             _loggerFactory.CreateLogger<HubLifetime>());
@@ -215,7 +223,14 @@ public sealed class HubLifetimeManager
         IReadOnlyList<DeviceControlPayload.ShockerControlInfo> shocks)
     {
         if (!_lifetimes.TryGetValue(device, out var deviceLifetime)) return new DeviceNotFound();
-        await deviceLifetime.Control(shocks);
+        await deviceLifetime.Control([.. shocks.Select(shock => new ShockerCommand
+            {
+                Model = FlatbuffersMappers.ToFbsModelType(shock.Model),
+                Id = shock.RfId,
+                Type = FlatbuffersMappers.ToFbsCommandType(shock.Type),
+                Intensity = shock.Intensity,
+                Duration = shock.Duration
+            })]);
         return new Success();
     }
 

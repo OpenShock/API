@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using OneOf;
 using OneOf.Types;
 using OpenShock.Common.Constants;
+using OpenShock.Common.DeviceControl;
 using OpenShock.Common.Extensions;
 using OpenShock.Common.Hubs;
 using OpenShock.Common.Models;
@@ -12,14 +13,22 @@ using OpenShock.Common.Redis.PubSub;
 using OpenShock.Common.Services.RedisPubSub;
 using OpenShock.Common.Utils;
 
-namespace OpenShock.Common.DeviceControl;
+namespace OpenShock.Common.Services;
 
-public static class ControlLogic
+public sealed class ControlSender : IControlSender
 {
-    public static async Task<OneOf<Success, ShockerNotFoundOrNoAccess, ShockerPaused, ShockerNoPermission>> ControlByUser(IReadOnlyList<Control> shocks, OpenShockContext db, ControlLogSender sender,
-        IHubClients<IUserHub> hubClients, IRedisPubService redisPubService)
+    private readonly OpenShockContext _db;
+    private readonly IRedisPubService _publisher;
+
+    public ControlSender(OpenShockContext db, IRedisPubService publisher)
     {
-        var queryOwn = db.Shockers
+        _db = db;
+        _publisher = publisher;
+    }
+
+    public async Task<OneOf<Success, ShockerNotFoundOrNoAccess, ShockerPaused, ShockerNoPermission>> ControlByUser(IReadOnlyList<Control> shocks,ControlLogSender sender, IHubClients<IUserHub> hubClients)
+    {
+        var queryOwn = _db.Shockers
             .AsNoTracking()
             .Where(x => x.Device.OwnerId == sender.UserId || x.UserShares.Any(u => u.SharedWithUserId == sender.UserId))
             .Select(x => new ControlShockerObj
@@ -34,7 +43,7 @@ public static class ControlLogic
                 PermsAndLimits = null
             });
 
-        var queryShared = db.UserShares
+        var queryShared = _db.UserShares
             .AsNoTracking()
             .Where(x => x.SharedWithUserId == sender.UserId)
             .Select(x => new ControlShockerObj
@@ -59,14 +68,13 @@ public static class ControlLogic
 
         var shockers = await queryOwn.Concat(queryShared).ToArrayAsync();
 
-        return await ControlInternal(shocks, db, sender, hubClients, shockers, redisPubService);
+        return await ControlInternal(shocks, sender, hubClients, shockers);
     }
 
-    public static async Task<OneOf<Success, ShockerNotFoundOrNoAccess, ShockerPaused, ShockerNoPermission>> ControlPublicShare(IReadOnlyList<Control> shocks, OpenShockContext db,
-        ControlLogSender sender,
-        IHubClients<IUserHub> hubClients, Guid publicShareId, IRedisPubService redisPubService)
+    public async Task<OneOf<Success, ShockerNotFoundOrNoAccess, ShockerPaused, ShockerNoPermission>> ControlPublicShare(IReadOnlyList<Control> shocks, ControlLogSender sender, IHubClients<IUserHub> hubClients, Guid publicShareId)
     {
-        var publicShareShockers = await db.PublicShareShockerMappings.Where(x => x.PublicShareId == publicShareId && (x.PublicShare.ExpiresAt > DateTime.UtcNow || x.PublicShare.ExpiresAt == null))
+        var publicShareShockers = await _db.PublicShareShockerMappings
+            .Where(x => x.PublicShareId == publicShareId && (x.PublicShare.ExpiresAt > DateTime.UtcNow || x.PublicShare.ExpiresAt == null))
             .Select(x => new ControlShockerObj
             {
                 Id = x.Shocker.Id,
@@ -87,11 +95,10 @@ public static class ControlLogic
                 }
             }).ToArrayAsync();
         
-        return await ControlInternal(shocks, db, sender, hubClients, publicShareShockers, redisPubService);
+        return await ControlInternal(shocks, sender, hubClients, publicShareShockers);
     }
     
-    private static async Task<OneOf<Success, ShockerNotFoundOrNoAccess, ShockerPaused, ShockerNoPermission>> ControlInternal(IReadOnlyList<Control> shocks, OpenShockContext db, ControlLogSender sender,
-        IHubClients<IUserHub> hubClients, ControlShockerObj[] allowedShockers, IRedisPubService redisPubService)
+    private async Task<OneOf<Success, ShockerNotFoundOrNoAccess, ShockerPaused, ShockerNoPermission>> ControlInternal(IReadOnlyList<Control> shocks, ControlLogSender sender, IHubClients<IUserHub> hubClients, ControlShockerObj[] allowedShockers)
     {
         var messages = new Dictionary<Guid, List<DeviceControlPayload.ShockerControlInfo>>();
         var logs = new Dictionary<Guid, List<ControlLog>>();
@@ -135,7 +142,7 @@ public static class ControlLogic
                 ExecutedAt = curTime
             });
 
-            db.ShockerControlLogs.Add(new ShockerControlLog
+            _db.ShockerControlLogs.Add(new ShockerControlLog
             {
                 Id = Guid.CreateVersion7(),
                 ShockerId = shockerInfo.Id,
@@ -149,20 +156,14 @@ public static class ControlLogic
         }
 
         // Save all db cahnges before continuing
-        await db.SaveChangesAsync();
+        await _db.SaveChangesAsync();
 
         // Then send all network events
         await Task.WhenAll([
-            ..messages.Select(kvp => redisPubService.SendDeviceControl(kvp.Key, kvp.Value)),
+            ..messages.Select(kvp => _publisher.SendDeviceControl(kvp.Key, kvp.Value)),
             ..logs.Select(x => hubClients.User(x.Key.ToString()).Log(sender, x.Value))
             ]);
 
         return new Success();
     }
 }
-
-public readonly record struct ShockerNotFoundOrNoAccess(Guid Value);
-
-public readonly record struct ShockerPaused(Guid Value);
-
-public readonly record struct ShockerNoPermission(Guid Value);

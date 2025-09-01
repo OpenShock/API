@@ -11,5 +11,5 @@ public class ControlLogSenderLight
 public class ControlLogSender : ControlLogSenderLight
 {
     public required string ConnectionId { get; set; }
-    public required IDictionary<string, object> AdditionalItems { get; set; }
+    public required Dictionary<string, object> AdditionalItems { get; set; }
 }

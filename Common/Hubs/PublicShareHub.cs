@@ -6,6 +6,7 @@ using OpenShock.Common.DeviceControl;
 using OpenShock.Common.Extensions;
 using OpenShock.Common.Models;
 using OpenShock.Common.OpenShockDb;
+using OpenShock.Common.Services;
 using OpenShock.Common.Services.RedisPubSub;
 using OpenShock.Common.Services.Session;
 using OpenShock.Common.Utils;
@@ -14,23 +15,22 @@ namespace OpenShock.Common.Hubs;
 
 public sealed class PublicShareHub : Hub<IPublicShareHub>
 {
-    private readonly ISessionService _sessionService;
     private readonly OpenShockContext _db;
     private readonly IHubContext<UserHub, IUserHub> _userHub;
-    private readonly ILogger<PublicShareHub> _logger;
-    private readonly IRedisPubService _redisPubService;
+    private readonly ISessionService _sessionService;
+    private readonly IControlSender _controlSender;
     private readonly IUserReferenceService _userReferenceService;
+    private readonly ILogger<PublicShareHub> _logger;
     private IReadOnlyList<PermissionType>? _tokenPermissions = null;
 
-    public PublicShareHub(OpenShockContext db, IHubContext<UserHub, IUserHub> userHub, ILogger<PublicShareHub> logger,
-        ISessionService sessionService, IRedisPubService redisPubService, IUserReferenceService userReferenceService)
+    public PublicShareHub(OpenShockContext db, IHubContext<UserHub, IUserHub> userHub, ISessionService sessionService, IControlSender controlSender, IUserReferenceService userReferenceService, ILogger<PublicShareHub> logger)
     {
         _db = db;
         _userHub = userHub;
-        _logger = logger;
-        _redisPubService = redisPubService;
-        _userReferenceService = userReferenceService;
         _sessionService = sessionService;
+        _controlSender = controlSender;
+        _userReferenceService = userReferenceService;
+        _logger = logger;
     }
 
     public override async Task OnConnectedAsync()
@@ -122,8 +122,8 @@ public sealed class PublicShareHub : Hub<IPublicShareHub>
     {
         if (!_tokenPermissions.IsAllowedAllowOnNull(PermissionType.Shockers_Use)) return Task.CompletedTask;
         
-        return ControlLogic.ControlPublicShare(shocks, _db, CustomData.CachedControlLogSender, _userHub.Clients,
-            CustomData.PublicShareId, _redisPubService);
+        return _controlSender.ControlPublicShare(shocks, CustomData.CachedControlLogSender, _userHub.Clients,
+            CustomData.PublicShareId);
     }
 
     private CustomDataHolder CustomData => (CustomDataHolder)Context.Items[PublicShareCustomData]!;

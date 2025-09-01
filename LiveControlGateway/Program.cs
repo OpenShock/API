@@ -8,7 +8,6 @@ using OpenShock.Common.Swagger;
 using OpenShock.LiveControlGateway;
 using OpenShock.LiveControlGateway.LifetimeManager;
 using OpenShock.LiveControlGateway.Options;
-using OpenShock.LiveControlGateway.PubSub;
 
 var builder = OpenShockApplication.CreateDefaultBuilder<Program>(args);
 
@@ -39,7 +38,6 @@ builder.AddSwaggerExt<Program>();
 
 //services.AddHealthChecks().AddCheck<DatabaseHealthCheck>("database");
 
-builder.Services.AddHostedService<RedisSubscriberService>();
 builder.Services.AddHostedService<LcgKeepAlive>();
 
 builder.Services.AddSingleton<HubLifetimeManager>();

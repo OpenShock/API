@@ -9,6 +9,7 @@ using OpenShock.Common.Models;
 using OpenShock.Common.Models.WebSocket;
 using OpenShock.Common.OpenShockDb;
 using OpenShock.Common.Redis;
+using OpenShock.Common.Services;
 using OpenShock.Common.Services.RedisPubSub;
 using Redis.OM;
 using Redis.OM.Contracts;
@@ -23,16 +24,18 @@ public sealed class UserHub : Hub<IUserHub>
     private readonly OpenShockContext _db;
     private readonly IRedisConnectionProvider _provider;
     private readonly IRedisPubService _redisPubService;
+    private readonly IControlSender _controlSender;
     private readonly IUserReferenceService _userReferenceService;
     private IReadOnlyList<PermissionType>? _tokenPermissions = null;
 
     public UserHub(ILogger<UserHub> logger, OpenShockContext db, IRedisConnectionProvider provider,
-        IRedisPubService redisPubService, IUserReferenceService userReferenceService)
+        IRedisPubService redisPubService, IControlSender controlSender, IUserReferenceService userReferenceService)
     {
         _logger = logger;
         _db = db;
         _provider = provider;
         _redisPubService = redisPubService;
+        _controlSender = controlSender;
         _userReferenceService = userReferenceService;
     }
 
@@ -89,9 +92,9 @@ public sealed class UserHub : Hub<IUserHub>
             ConnectionId = Context.ConnectionId,
             AdditionalItems = additionalItems,
             CustomName = customName
-        }).SingleAsync();
+        }).FirstAsync();
 
-        await ControlLogic.ControlByUser(shocks, _db, sender, Clients, _redisPubService);
+        await _controlSender.ControlByUser(shocks, sender, Clients);
     }
 
     public async Task CaptivePortal(Guid deviceId, bool enabled)

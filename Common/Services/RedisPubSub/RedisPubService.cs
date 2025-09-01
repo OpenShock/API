@@ -14,8 +14,7 @@ public sealed class RedisPubService : IRedisPubService
         _subscriber = connectionMultiplexer.GetSubscriber();
     }
 
-    private Task<long> Publish<T>(Guid deviceId, T msg) => _subscriber.PublishAsync(RedisChannels.DeviceMessage(deviceId),
-        Convert.ToBase64String(MessagePackSerializer.Serialize(msg)));
+    private Task<long> Publish<T>(Guid deviceId, T msg) => _subscriber.PublishAsync(RedisChannels.DeviceMessage(deviceId), (RedisValue)new ReadOnlyMemory<byte>(MessagePackSerializer.Serialize(msg)));
 
     public Task SendDeviceUpdate(Guid deviceId)
     {

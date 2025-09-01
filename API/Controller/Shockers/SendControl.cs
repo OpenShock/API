@@ -9,14 +9,11 @@ using OpenShock.Common.Extensions;
 using OpenShock.Common.Hubs;
 using OpenShock.Common.Models;
 using OpenShock.Common.Problems;
-using OpenShock.Common.Services.RedisPubSub;
 
 namespace OpenShock.API.Controller.Shockers;
 
 public sealed partial class ShockerController
 {
-    private static readonly IDictionary<string, object> EmptyDic = new Dictionary<string, object>();
-
     /// <summary>
     /// Send a control message to shockers
     /// </summary>
@@ -31,7 +28,7 @@ public sealed partial class ShockerController
     public async Task<IActionResult> SendControl(
         [FromBody] ControlRequest body,
         [FromServices] IHubContext<UserHub, IUserHub> userHub,
-        [FromServices] IRedisPubService redisPubService)
+        [FromServices] IControlSender controlSender)
     {
         var sender = new ControlLogSender
         {
@@ -39,11 +36,11 @@ public sealed partial class ShockerController
             Name = CurrentUser.Name,
             Image = CurrentUser.GetImageUrl(),
             ConnectionId = HttpContext.Connection.Id,
-            AdditionalItems = EmptyDic,
+            AdditionalItems = [],
             CustomName = body.CustomName
         };
 
-        var controlAction = await ControlLogic.ControlByUser(body.Shocks, _db, sender, userHub.Clients, redisPubService);
+        var controlAction = await controlSender.ControlByUser(body.Shocks, sender, userHub.Clients);
         return controlAction.Match(
             success => LegacyEmptyOk("Successfully sent control messages"),
             notFound => Problem(ShockerControlError.ShockerControlNotFound(notFound.Value)),
@@ -65,12 +62,12 @@ public sealed partial class ShockerController
     public Task<IActionResult> SendControl_DEPRECATED(
         [FromBody] IReadOnlyList<Common.Models.WebSocket.User.Control> body,
         [FromServices] IHubContext<UserHub, IUserHub> userHub,
-        [FromServices] IRedisPubService redisPubService)
+        [FromServices] IControlSender controlSender)
     {
         return SendControl(new ControlRequest
         {
             Shocks = body,
             CustomName = null
-        }, userHub, redisPubService);
+        }, userHub, controlSender);
     }
 }

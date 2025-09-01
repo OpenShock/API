@@ -5,7 +5,6 @@ using OpenShock.Common.Hubs;
 using OpenShock.Common.Models.WebSocket;
 using OpenShock.Common.OpenShockDb;
 using OpenShock.Common.Redis;
-using OpenShock.Common.Redis.PubSub;
 using OpenShock.Common.Services.RedisPubSub;
 using OpenShock.Common.Utils;
 using Redis.OM.Contracts;
@@ -45,8 +44,8 @@ public sealed class RedisSubscriberService : IHostedService, IAsyncDisposable
     /// <inheritdoc />
     public async Task StartAsync(CancellationToken cancellationToken)
     {
-        await _subscriber.SubscribeAsync(RedisChannels.KeyEventExpired, (_, message) => { OsTask.Run(() => HandleKeyExpired(message)); });
-        await _subscriber.SubscribeAsync(RedisChannels.DeviceStatus, (_, message) => { OsTask.Run(() => HandleDeviceStatus(message)); });
+        await _subscriber.SubscribeAsync(RedisChannels.KeyEventExpired, (_, message) => OsTask.Run(() => HandleKeyExpired(message)));
+        await _subscriber.SubscribeAsync(RedisChannels.DeviceStatus, (_, message) => OsTask.Run(() => HandleDeviceStatus(message)));
     }
 
     private async Task HandleDeviceStatus(RedisValue message)
