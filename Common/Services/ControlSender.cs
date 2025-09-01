@@ -30,7 +30,7 @@ public sealed class ControlSender : IControlSender
     {
         var queryOwn = _db.Shockers
             .AsNoTracking()
-            .Where(x => x.Device.OwnerId == sender.UserId || x.UserShares.Any(u => u.SharedWithUserId == sender.UserId))
+            .Where(x => x.Device.OwnerId == sender.UserId)
             .Select(x => new ControlShockerObj
             {
                 Id = x.Id,
