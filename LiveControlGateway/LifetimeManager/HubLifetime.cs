@@ -181,8 +181,7 @@ public sealed class HubLifetime : IAsyncDisposable
         DeviceMessage message;
         try
         {
-            message = MessagePackSerializer.Deserialize<DeviceMessage>((ReadOnlyMemory<byte>)value);
-            if (message is null) return;
+            message = MessagePackSerializer.Deserialize<DeviceMessage>((ReadOnlyMemory<byte>)value, cancellationToken: cancellationToken);
         }
         catch (Exception e)
         {
@@ -335,19 +334,23 @@ public sealed class HubLifetime : IAsyncDisposable
     private async Task Update()
     {
         var now = DateTimeOffset.UtcNow;
-        var commandList = _shockerStates
-            .Where(kvp => kvp.Value.ActiveUntil > now && kvp.Value.ExclusiveUntil < now)
-            .Select(kvp => new ShockerCommand
-            {
-                Model = FbsMapper.ToFbsModelType(kvp.Value.Model),
-                Id = kvp.Value.RfId,
-                Type = FbsMapper.ToFbsCommandType(kvp.Value.LastType),
-                Intensity = kvp.Value.LastIntensity,
-                Duration = _commandDuration,
-            })
-            .ToArray();
+        var commandList = new List<ShockerCommand>(_shockerStates.Count);
+        
+        commandList.AddRange(
+            _shockerStates
+                .Values
+                .Where(x => x.ActiveUntil > now && x.ExclusiveUntil < now)
+                .Select(x => new ShockerCommand
+                {
+                    Model = FbsMapper.ToFbsModelType(x.Model),
+                    Id = x.RfId,
+                    Type = FbsMapper.ToFbsCommandType(x.LastType),
+                    Intensity = x.LastIntensity,
+                    Duration = _commandDuration,
+                })
+        );
 
-        if (commandList.Length == 0) return;
+        if (commandList.Count == 0) return;
 
         await HubController.Control(commandList);
     }
