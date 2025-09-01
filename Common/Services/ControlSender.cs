@@ -111,17 +111,16 @@ public sealed class ControlSender : IControlSender
 
     private async Task<OneOf<Success, ShockerNotFoundOrNoAccess, ShockerPaused, ShockerNoPermission>> ControlInternal(IReadOnlyList<Control> controls, ControlLogSender sender, IHubClients<IUserHub> hubClients, ControlShockerObj[] allowedShockers)
     {
-        // Messages grouped by device
-        var messages = new Dictionary<Guid, List<ShockerControlCommand>>();
-        var logs = new Dictionary<Guid, List<ControlLog>>();
-        var now = DateTime.UtcNow;
+        var shockersById = allowedShockers.ToDictionary(s => s.ShockerId, s => s);
 
-        foreach (var (control, shocker) in controls
-                     .Select(c => (Control: c, Shocker: allowedShockers.FirstOrDefault(s => s.ShockerId == c.Id)))
-                     .GroupBy(x => (ShockerId: x.Control.Id, x.Shocker?.ShockerRfId))
-                     .Select(x => x.Last()))
+        var now = DateTime.UtcNow;
+        
+        var messagesByDevice = new Dictionary<Guid, List<ShockerControlCommand>>();
+        var logsByOwner = new Dictionary<Guid, List<ControlLog>>();
+
+        foreach (var control in controls.DistinctBy(x => x.Id))
         {
-            if (shocker is null)
+            if (!shockersById.TryGetValue(control.Id, out var shocker))
                 return new ShockerNotFoundOrNoAccess(control.Id);
 
             if (shocker.Paused)
@@ -132,7 +131,7 @@ public sealed class ControlSender : IControlSender
 
             Clamp(control, shocker.PermsAndLimits);
 
-            messages.AppendValue(shocker.DeviceId, new ShockerControlCommand
+            messagesByDevice.AppendValue(shocker.DeviceId, new ShockerControlCommand
             {
                 ShockerId = shocker.ShockerId,
                 RfId = shocker.ShockerRfId,
@@ -142,7 +141,7 @@ public sealed class ControlSender : IControlSender
                 Model = shocker.ShockerModel,
                 Exclusive = control.Exclusive
             });
-            logs.AppendValue(shocker.OwnerId, new ControlLog
+            logsByOwner.AppendValue(shocker.OwnerId, new ControlLog
             {
                 Shocker = new BasicShockerInfo
                 {
@@ -173,8 +172,8 @@ public sealed class ControlSender : IControlSender
 
         // Then send all network events
         await Task.WhenAll([
-            ..messages.Select(kvp => _publisher.SendDeviceControl(kvp.Key, kvp.Value)),
-            ..logs.Select(x => hubClients.User(x.Key.ToString()).Log(sender, x.Value))
+            ..messagesByDevice.Select(kvp => _publisher.SendDeviceControl(kvp.Key, kvp.Value)),
+            ..logsByOwner.Select(x => hubClients.User(x.Key.ToString()).Log(sender, x.Value))
             ]);
 
         return new Success();
