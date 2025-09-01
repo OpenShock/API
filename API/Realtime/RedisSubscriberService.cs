@@ -24,6 +24,12 @@ public sealed class RedisSubscriberService : IHostedService, IAsyncDisposable
     private readonly ISubscriber _subscriber;
     private readonly ILogger<RedisSubscriberService> _logger;
 
+    private ChannelMessageQueue? _expiredQueue;
+    private ChannelMessageQueue? _deviceStatusQueue;
+    private CancellationTokenSource? _cts;
+    private Task? _expiredConsumerTask;
+    private Task? _deviceConsumerTask;
+
     /// <summary>
     /// DI Constructor
     /// </summary>
@@ -50,31 +56,34 @@ public sealed class RedisSubscriberService : IHostedService, IAsyncDisposable
     /// <inheritdoc />
     public async Task StartAsync(CancellationToken cancellationToken)
     {
-        await _subscriber.SubscribeAsync(RedisChannels.KeyEventExpired, HandleKeyExpired);
-        await _subscriber.SubscribeAsync(RedisChannels.DeviceStatus, HandleDeviceStatus);
+        _cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        _expiredQueue = await _subscriber.SubscribeAsync(RedisChannels.KeyEventExpired);
+        _deviceStatusQueue = await _subscriber.SubscribeAsync(RedisChannels.DeviceStatus);
+
+        _expiredConsumerTask = QueueHelper.ConsumeQueue(_expiredQueue, HandleKeyExpired, _logger, _cts.Token);
+        _deviceConsumerTask = QueueHelper.ConsumeQueue(_deviceStatusQueue, HandleDeviceStatus, _logger, _cts.Token);
     }
 
-    private void HandleKeyExpired(RedisChannel _, RedisValue message)
+    private async Task HandleKeyExpired(RedisValue value, CancellationToken cancellationToken)
     {
-        if (!message.HasValue) return;
-        if (message.ToString().Split(':', 2) is not [string guid, string name]) return;
+        if (value.ToString().Split(':', 2) is not [string guid, string name]) return;
 
         if (!Guid.TryParse(guid, out var id)) return;
 
         if (typeof(DeviceOnline).FullName == name)
         {
-            OsTask.Run(() => LogicDeviceOnlineStatus(id));
+            await LogicDeviceOnlineStatus(id, cancellationToken);
         }
     }
 
-    private void HandleDeviceStatus(RedisChannel _, RedisValue value)
+    private async Task HandleDeviceStatus(RedisValue value, CancellationToken cancellationToken)
     {
         if (!value.HasValue) return;
 
         DeviceStatus message;
         try
         {
-            message = MessagePackSerializer.Deserialize<DeviceStatus>((ReadOnlyMemory<byte>)value);
+            message = MessagePackSerializer.Deserialize<DeviceStatus>((ReadOnlyMemory<byte>)value, cancellationToken: cancellationToken);
             if (message is null) return;
         }
         catch (Exception e)
@@ -83,15 +92,10 @@ public sealed class RedisSubscriberService : IHostedService, IAsyncDisposable
             return;
         }
 
-        OsTask.Run(() => HandleDeviceStatusMessage(message));
-    }
-
-    private async Task HandleDeviceStatusMessage(DeviceStatus message)
-    {
         switch (message.Payload)
         {
             case DeviceBoolStatePayload boolState:
-                await HandleDeviceBoolState(message.DeviceId, boolState);
+                await HandleDeviceBoolState(message.DeviceId, boolState, cancellationToken);
                 break;
             default:
                 _logger.LogError("Got DeviceStatus with unknown payload type: {PayloadType}", message.Payload?.GetType().Name);
@@ -100,12 +104,12 @@ public sealed class RedisSubscriberService : IHostedService, IAsyncDisposable
 
     }
 
-    private async Task HandleDeviceBoolState(Guid deviceId, DeviceBoolStatePayload state)
+    private async Task HandleDeviceBoolState(Guid deviceId, DeviceBoolStatePayload state, CancellationToken cancellationToken)
     {
         switch (state.Type)
         {
             case DeviceBoolStateType.Online:
-                await LogicDeviceOnlineStatus(deviceId); // TODO: Handle device offline messages too
+                await LogicDeviceOnlineStatus(deviceId, cancellationToken); // TODO: Handle device offline messages too
                 break;
             case DeviceBoolStateType.EStopped:
                 _logger.LogInformation("EStopped state not implemented yet for DeviceId {DeviceId}", deviceId);
@@ -116,15 +120,18 @@ public sealed class RedisSubscriberService : IHostedService, IAsyncDisposable
         }
     }
 
-    private async Task LogicDeviceOnlineStatus(Guid deviceId)
+    private async Task LogicDeviceOnlineStatus(Guid deviceId, CancellationToken cancellationToken)
     {
-        await using var db = await _dbContextFactory.CreateDbContextAsync();
+        await using var db = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
         
-        var data = await db.Devices.Where(x => x.Id == deviceId).Select(x => new
-        {
-            x.OwnerId,
-            SharedWith = x.Shockers.SelectMany(y => y.UserShares)
-        }).FirstOrDefaultAsync();
+        var data = await db.Devices
+            .Where(x => x.Id == deviceId)
+            .Select(x => new
+            {
+                x.OwnerId,
+                SharedWith = x.Shockers.SelectMany(y => y.UserShares)
+            })
+            .FirstOrDefaultAsync(cancellationToken);
         if (data is null) return;
 
 
@@ -132,7 +139,7 @@ public sealed class RedisSubscriberService : IHostedService, IAsyncDisposable
             .Where(s => s.DeviceId == deviceId)
             .SelectMany(s => s.UserShares)
             .Select(u => u.SharedWithUserId)
-            .ToArrayAsync();
+            .ToArrayAsync(cancellationToken);
         var userIds = new List<string>
         {
             "local#" + data.OwnerId
@@ -142,20 +149,46 @@ public sealed class RedisSubscriberService : IHostedService, IAsyncDisposable
         var devicesOnlineCollection = _redisConnectionProvider.RedisCollection<DeviceOnline>(false);
         var deviceOnline = await devicesOnlineCollection.FindByIdAsync(deviceId.ToString());
         
-        await _hubContext.Clients.Users(userIds).DeviceStatus([
-            new DeviceOnlineState
-            {
-                Device = deviceId,
-                Online = deviceOnline is not null,
-                FirmwareVersion = deviceOnline?.FirmwareVersion ?? null
-            }
-        ]);
+        await _hubContext.Clients
+            .Users(userIds)
+            .DeviceStatus([
+                new DeviceOnlineState
+                {
+                    Device = deviceId,
+                    Online = deviceOnline is not null,
+                    FirmwareVersion = deviceOnline?.FirmwareVersion ?? null
+                }
+            ]);
     }
 
     /// <inheritdoc />
     public async Task StopAsync(CancellationToken cancellationToken)
     {
-        await _subscriber.UnsubscribeAllAsync();
+        // Cancel consumers first, then unsubscribe
+        try
+        {
+            _cts?.Cancel();
+        }
+        catch { /* ignore */ }
+
+        // Wait for loops to finish
+        if (_expiredConsumerTask is not null)
+        {
+            try { await _expiredConsumerTask; } catch { /* ignore */ }
+        }
+        if (_deviceConsumerTask is not null)
+        {
+            try { await _deviceConsumerTask; } catch { /* ignore */ }
+        }
+
+        if (_expiredQueue is not null)
+        {
+            await _subscriber.UnsubscribeAsync(_expiredQueue.Channel);
+        }
+        if (_deviceStatusQueue is not null)
+        {
+            await _subscriber.UnsubscribeAsync(_deviceStatusQueue.Channel);
+        }
     }
 
     /// <inheritdoc />
@@ -163,7 +196,7 @@ public sealed class RedisSubscriberService : IHostedService, IAsyncDisposable
     {
         try
         {
-            await _subscriber.UnsubscribeAllAsync();
+            await StopAsync(default);
         }
         catch (Exception ex)
         {

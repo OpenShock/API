@@ -57,6 +57,11 @@ public sealed class HubLifetime : IAsyncDisposable
     private ImmutableArray<LiveControlController> _liveControlClients = ImmutableArray<LiveControlController>.Empty;
     private readonly SemaphoreSlim _liveControlClientsLock = new(1);
 
+    private ChannelMessageQueue? _deviceMsgQueue;
+    private Task? _deviceMsgConsumerTask;
+
+    private Task? _updateLoopTask;
+
     /// <summary>
     /// DI Constructor
     /// </summary>
@@ -81,7 +86,7 @@ public sealed class HubLifetime : IAsyncDisposable
         _redisPubService = redisPubService;
         _logger = logger;
 
-        _waitBetweenTicks = TimeSpan.FromMilliseconds(Math.Floor((float)1000 / tps));
+        _waitBetweenTicks = TimeSpan.FromMilliseconds(Math.Floor(1000f / tps));
         _commandDuration = (ushort)(_waitBetweenTicks.TotalMilliseconds * 2.5);
 
         _subscriber = connectionMultiplexer.GetSubscriber();
@@ -102,7 +107,6 @@ public sealed class HubLifetime : IAsyncDisposable
                 _logger.LogWarning("Client already registered, not sure how this happened, probably a bug");
                 return null;
             }
-
             _liveControlClients = _liveControlClients.Add(controller);
         }
 
@@ -162,21 +166,18 @@ public sealed class HubLifetime : IAsyncDisposable
             return false;
         }
 
-#pragma warning disable CS4014
-        OsTask.Run(UpdateLoop);
-#pragma warning restore CS4014
+        _updateLoopTask = OsTask.Run(UpdateLoop);
 
-        await _subscriber.SubscribeAsync(_deviceMsgChannel, HandleRedisMessage);
+        _deviceMsgQueue = await _subscriber.SubscribeAsync(_deviceMsgChannel);
+        _deviceMsgConsumerTask = QueueHelper.ConsumeQueue(_deviceMsgQueue, ConsumeDeviceQueue, _logger, _cancellationSource.Token);
 
         _state = HubLifetimeState.Idle; // We are fully setup, we can go back to idle state
 
         return true;
     }
 
-    private void HandleRedisMessage(RedisChannel _, RedisValue value)
+    private async Task ConsumeDeviceQueue(RedisValue value, CancellationToken cancellationToken)
     {
-        if (!value.HasValue) return;
-
         DeviceMessage message;
         try
         {
@@ -185,11 +186,11 @@ public sealed class HubLifetime : IAsyncDisposable
         }
         catch (Exception e)
         {
-            _logger.LogError(e, "Failed to deserialize redis message");
+            _logger.LogError(e, "Failed to deserialize DeviceMessage");
             return;
         }
 
-        OsTask.Run(() => DeviceMessage(message));
+        await DeviceMessage(message);
     }
 
     private async Task DeviceMessage(DeviceMessage message)
@@ -410,10 +411,7 @@ public sealed class HubLifetime : IAsyncDisposable
     /// </summary>
     /// <param name="shocks"></param>
     /// <returns></returns>
-    public ValueTask Control(IList<ShockerCommand> shocks)
-    {
-        return HubController.Control(shocks);
-    }
+    public ValueTask Control(IList<ShockerCommand> shocks) => HubController.Control(shocks);
 
     /// <summary>
     /// Control from redis
@@ -511,8 +509,19 @@ public sealed class HubLifetime : IAsyncDisposable
         if (_disposed) return;
         _disposed = true;
 
-        await _subscriber.UnsubscribeAllAsync();
+        await _subscriber.UnsubscribeAsync(_deviceMsgChannel);
         await _cancellationSource.CancelAsync();
+
+        // ensure the consumer loop ends
+        if (_deviceMsgConsumerTask is not null)
+        {
+            try { await _deviceMsgConsumerTask; } catch { /* ignore */ }
+        }
+        if (_updateLoopTask is not null)
+        {
+            try { await _updateLoopTask; } catch { /* ignore */ }
+        }
+
         await DisposeLiveControlClients();
     }
 }
