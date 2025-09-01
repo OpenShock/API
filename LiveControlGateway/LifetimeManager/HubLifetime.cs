@@ -256,16 +256,7 @@ public sealed class HubLifetime : IAsyncDisposable
             return;
         }
 
-        await Control([
-            ..control.Controls.Select(cmd => new ShockerCommand
-            {
-                Model = FlatbuffersMappers.ToFbsModelType(cmd.Model),
-                Id = cmd.RfId,
-                Type = FlatbuffersMappers.ToFbsCommandType(cmd.Type),
-                Intensity = cmd.Intensity,
-                Duration = cmd.Duration
-            })
-        ]);
+        await Control(control.Controls.Select(FbsMapper.ToFbsShockerCommand).ToArray());
     }
 
     /// <summary>
@@ -349,9 +340,9 @@ public sealed class HubLifetime : IAsyncDisposable
             .Where(kvp => kvp.Value.ActiveUntil < now || kvp.Value.ExclusiveUntil >= now)
             .Select(kvp => new ShockerCommand
             {
-                Model = FlatbuffersMappers.ToFbsModelType(kvp.Value.Model),
+                Model = FbsMapper.ToFbsModelType(kvp.Value.Model),
                 Id = kvp.Value.RfId,
-                Type = FlatbuffersMappers.ToFbsCommandType(kvp.Value.LastType),
+                Type = FbsMapper.ToFbsCommandType(kvp.Value.LastType),
                 Intensity = kvp.Value.LastIntensity,
                 Duration = _commandDuration,
             })

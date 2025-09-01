@@ -1,9 +1,11 @@
 ﻿using OpenShock.Common.Models;
+using OpenShock.Common.Redis.PubSub;
+using OpenShock.Serialization.Gateway;
 using OpenShock.Serialization.Types;
 
 namespace OpenShock.LiveControlGateway.Mappers;
 
-public static class FlatbuffersMappers
+public static class FbsMapper
 {
     public static Serialization.Types.ShockerModelType ToFbsModelType(Common.Models.ShockerModelType type)
     {
@@ -25,6 +27,18 @@ public static class FlatbuffersMappers
             ControlType.Vibrate => ShockerCommandType.Vibrate,
             ControlType.Sound => ShockerCommandType.Sound,
             _ => throw new NotImplementedException(),
+        };
+    }
+
+    public static ShockerCommand ToFbsShockerCommand(DeviceControlPayload.ShockerControlInfo control)
+    {
+        return new ShockerCommand
+        {
+            Model = ToFbsModelType(control.Model),
+            Id = control.RfId,
+            Type = ToFbsCommandType(control.Type),
+            Intensity = control.Intensity,
+            Duration = control.Duration
         };
     }
 }

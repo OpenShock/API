@@ -223,14 +223,7 @@ public sealed class HubLifetimeManager
         IReadOnlyList<DeviceControlPayload.ShockerControlInfo> shocks)
     {
         if (!_lifetimes.TryGetValue(device, out var deviceLifetime)) return new DeviceNotFound();
-        await deviceLifetime.Control([.. shocks.Select(shock => new ShockerCommand
-            {
-                Model = FlatbuffersMappers.ToFbsModelType(shock.Model),
-                Id = shock.RfId,
-                Type = FlatbuffersMappers.ToFbsCommandType(shock.Type),
-                Intensity = shock.Intensity,
-                Duration = shock.Duration
-            })]);
+        await deviceLifetime.Control(shocks.Select(FbsMapper.ToFbsShockerCommand).ToArray());
         return new Success();
     }
 
