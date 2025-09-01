@@ -250,7 +250,7 @@ public sealed class AccountService : IAccountService
     }
 
     /// <inheritdoc />
-    public async Task<OneOf<Success<string>, AccountNotActivated, AccountDeactivated, NotFound>> CreateUserLoginSessionAsync(string usernameOrEmail, string password,
+    public async Task<OneOf<CreateUserLoginSessionSuccess, AccountNotActivated, AccountDeactivated, NotFound>> CreateUserLoginSessionAsync(string usernameOrEmail, string password,
         LoginContext loginContext, CancellationToken cancellationToken = default)
     {
         var lowercaseUsernameOrEmail = usernameOrEmail.ToLowerInvariant();
@@ -276,7 +276,7 @@ public sealed class AccountService : IAccountService
 
         var createdSession = await _sessionService.CreateSessionAsync(user.Id, loginContext.UserAgent, loginContext.Ip);
 
-        return new Success<string>(createdSession.Token);
+        return new CreateUserLoginSessionSuccess(user, createdSession.Token);
     }
 
     /// <inheritdoc />

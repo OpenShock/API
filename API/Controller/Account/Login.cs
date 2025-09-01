@@ -43,7 +43,7 @@ public sealed partial class AccountController
         return loginAction.Match<IActionResult>(
             ok =>
             {
-                HttpContext.SetSessionKeyCookie(loginAction.AsT0.Value, "." + cookieDomainToUse);
+                HttpContext.SetSessionKeyCookie(ok.Token, "." + cookieDomainToUse);
                 return LegacyEmptyOk("Successfully logged in");
             },
             notActivated => Problem(AccountError.AccountNotActivated),

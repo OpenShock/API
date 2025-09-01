@@ -8,7 +8,6 @@ using OpenShock.Common.Errors;
 using OpenShock.Common.Problems;
 using OpenShock.Common.Services.Turnstile;
 using OpenShock.Common.Utils;
-using OpenShock.Common.Models;
 
 namespace OpenShock.API.Controller.Account;
 
@@ -24,7 +23,7 @@ public sealed partial class AccountController
     /// <response code="400">Username or email already exists</response>
     [HttpPost("signup")]
     [EnableRateLimiting("auth")]
-    [ProducesResponseType<LegacyEmptyResponse>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
+    [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status409Conflict, MediaTypeNames.Application.ProblemJson)] // EmailOrUsernameAlreadyExists
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status403Forbidden, MediaTypeNames.Application.ProblemJson)] // InvalidTurnstileResponse
     [MapToApiVersion("2")]
@@ -44,8 +43,8 @@ public sealed partial class AccountController
         }
 
         var creationAction = await _accountService.CreateAccountWithActivationFlowAsync(body.Email, body.Username, body.Password);
-        return creationAction.Match(
-            _ => LegacyEmptyOk("Successfully signed up"),
+        return creationAction.Match<IActionResult>(
+            _ => Ok(),
             _ => Problem(SignupError.EmailAlreadyExists)
         );
     }

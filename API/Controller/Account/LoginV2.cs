@@ -11,6 +11,7 @@ using OpenShock.Common.Services.Turnstile;
 using OpenShock.Common.Utils;
 using OpenShock.Common.Models;
 using Microsoft.Extensions.Options;
+using OpenShock.API.Models.Response;
 using OpenShock.Common.Options;
 
 namespace OpenShock.API.Controller.Account;
@@ -24,7 +25,7 @@ public sealed partial class AccountController
     /// <response code="401">Invalid username or password</response>
     [HttpPost("login")]
     [EnableRateLimiting("auth")]
-    [ProducesResponseType<LegacyEmptyResponse>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
+    [ProducesResponseType<LoginV2OkResponse>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status401Unauthorized, MediaTypeNames.Application.ProblemJson)] // InvalidCredentials
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status403Forbidden, MediaTypeNames.Application.ProblemJson)] // InvalidDomain
     [MapToApiVersion("2")]
@@ -58,8 +59,8 @@ public sealed partial class AccountController
         return loginAction.Match<IActionResult>(
             ok =>
             {
-                HttpContext.SetSessionKeyCookie(loginAction.AsT0.Value, "." + cookieDomainToUse);
-                return Ok("Successfully logged in");
+                HttpContext.SetSessionKeyCookie(ok.Token, "." + cookieDomainToUse);
+                return Ok(LoginV2OkResponse.FromUser(ok.User));
             },
             notActivated => Problem(AccountError.AccountNotActivated),
             deactivated => Problem(AccountError.AccountDeactivated),
