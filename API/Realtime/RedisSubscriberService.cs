@@ -1,14 +1,18 @@
-﻿using System.Text.Json;
+﻿using Google.Protobuf.WellKnownTypes;
+using MessagePack;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using OpenShock.Common.Hubs;
 using OpenShock.Common.Models.WebSocket;
 using OpenShock.Common.OpenShockDb;
 using OpenShock.Common.Redis;
+using OpenShock.Common.Redis.PubSub;
 using OpenShock.Common.Services.RedisPubSub;
 using OpenShock.Common.Utils;
 using Redis.OM.Contracts;
 using StackExchange.Redis;
+using System.Text.Json;
+using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace OpenShock.API.Realtime;
 
@@ -21,6 +25,7 @@ public sealed class RedisSubscriberService : IHostedService, IAsyncDisposable
     private readonly IDbContextFactory<OpenShockContext> _dbContextFactory;
     private readonly IRedisConnectionProvider _redisConnectionProvider;
     private readonly ISubscriber _subscriber;
+    private readonly ILogger<RedisSubscriberService> _logger;
 
     /// <summary>
     /// DI Constructor
@@ -29,34 +34,78 @@ public sealed class RedisSubscriberService : IHostedService, IAsyncDisposable
     /// <param name="hubContext"></param>
     /// <param name="dbContextFactory"></param>
     /// <param name="redisConnectionProvider"></param>
+    /// <param name="logger"></param>
     public RedisSubscriberService(
         IConnectionMultiplexer connectionMultiplexer,
         IHubContext<UserHub, IUserHub> hubContext,
         IDbContextFactory<OpenShockContext> dbContextFactory,
-        IRedisConnectionProvider redisConnectionProvider)
+        IRedisConnectionProvider redisConnectionProvider,
+        ILogger<RedisSubscriberService> logger
+        )
     {
         _hubContext = hubContext;
         _dbContextFactory = dbContextFactory;
         _redisConnectionProvider = redisConnectionProvider;
         _subscriber = connectionMultiplexer.GetSubscriber();
+        _logger = logger;
     }
     
     /// <inheritdoc />
     public async Task StartAsync(CancellationToken cancellationToken)
     {
         await _subscriber.SubscribeAsync(RedisChannels.KeyEventExpired, (_, message) => OsTask.Run(() => HandleKeyExpired(message)));
-        await _subscriber.SubscribeAsync(RedisChannels.DeviceStatus, (_, message) => OsTask.Run(() => HandleDeviceStatus(message)));
+        await _subscriber.SubscribeAsync(RedisChannels.DeviceStatus, ProcessDeviceStatusEvent);
     }
 
-    private async Task HandleDeviceStatus(RedisValue message)
+    private void ProcessDeviceStatusEvent(RedisChannel _, RedisValue value)
     {
-        if (!message.HasValue) return;
-        var data = JsonSerializer.Deserialize<DeviceUpdatedMessage>(message.ToString());
-        if (data is null) return;
+        if (!value.HasValue) return;
 
-        await LogicDeviceOnlineStatus(data.Id);
+        DeviceStatus message;
+        try
+        {
+            message = MessagePackSerializer.Deserialize<DeviceStatus>((ReadOnlyMemory<byte>)value);
+            if (message is null) return;
+        }
+        catch (Exception e)
+        {
+            _logger.LogError(e, "Failed to deserialize redis message");
+            return;
+        }
+
+        OsTask.Run(() => HandleDeviceStatusMessage(message));
     }
-    
+
+    private async Task HandleDeviceStatusMessage(DeviceStatus message)
+    {
+        switch (message.Payload)
+        {
+            case DeviceBoolStatePayload boolState:
+                await HandleDeviceBoolState(message.DeviceId, boolState);
+                break;
+            default:
+                _logger.LogError("Got DeviceStatus with unknown payload type: {PayloadType}", message.Payload?.GetType().Name);
+                break;
+        }
+
+    }
+
+    private async Task HandleDeviceBoolState(Guid deviceId, DeviceBoolStatePayload state)
+    {
+        switch (state.Type)
+        {
+            case DeviceBoolStateType.Online:
+                await LogicDeviceOnlineStatus(deviceId); // TODO: Handle device offline messages too
+                break;
+            case DeviceBoolStateType.EStopped:
+                _logger.LogWarning("This is not yet implemented");
+                break;
+            default:
+                _logger.LogError("Unknown DeviceBoolStateType: {StateType}", state.Type);
+                break;
+        }
+    }
+
     private async Task HandleKeyExpired(RedisValue message)
     {
         if (!message.HasValue) return;
