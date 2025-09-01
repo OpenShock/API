@@ -6,7 +6,7 @@ namespace OpenShock.Common.Models.WebSocket.User;
 // ReSharper disable once ClassNeverInstantiated.Global
 public sealed class Control
 {
-    public required Guid ShockerId { get; set; }
+    public required Guid Id { get; set; }
 
     [EnumDataType(typeof(ControlType))]
     public required ControlType Type { get; set; }

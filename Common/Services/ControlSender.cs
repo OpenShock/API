@@ -117,18 +117,18 @@ public sealed class ControlSender : IControlSender
         var now = DateTime.UtcNow;
 
         foreach (var (control, shocker) in controls
-                     .Select(c => (Control: c, Shocker: allowedShockers.FirstOrDefault(s => s.ShockerId == c.ShockerId)))
-                     .GroupBy(x => (x.Control.ShockerId, x.Shocker?.ShockerRfId))
+                     .Select(c => (Control: c, Shocker: allowedShockers.FirstOrDefault(s => s.ShockerId == c.Id)))
+                     .GroupBy(x => (ShockerId: x.Control.Id, x.Shocker?.ShockerRfId))
                      .Select(x => x.Last()))
         {
             if (shocker is null)
-                return new ShockerNotFoundOrNoAccess(control.ShockerId);
+                return new ShockerNotFoundOrNoAccess(control.Id);
 
             if (shocker.Paused)
-                return new ShockerPaused(control.ShockerId);
+                return new ShockerPaused(control.Id);
 
             if (!PermissionUtils.IsAllowed(control.Type, false, shocker.PermsAndLimits))
-                return new ShockerNoPermission(control.ShockerId);
+                return new ShockerNoPermission(control.Id);
 
             Clamp(control, shocker.PermsAndLimits);
 
