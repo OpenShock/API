@@ -8,7 +8,7 @@ namespace OpenShock.API.Controller.Account.Authenticated;
 public sealed partial class AuthenticatedAccountController
 {
     [HttpGet("connections/{provider}")]
-    public async Task<IActionResult> AddOAuthConnection([FromQuery] string provider, [FromQuery(Name = "return_to")] string? returnTo, [FromServices] IOAuthHandlerRegistry registry)
+    public async Task<IActionResult> AddOAuthConnection([FromRoute] string provider, [FromQuery(Name = "return_to")] string? returnTo, [FromServices] IOAuthHandlerRegistry registry)
     {
         if (!registry.TryGet(provider, out var handler))
             return Problem(OAuthError.ProviderNotSupported);
