@@ -20,7 +20,6 @@ using OpenShock.Common.Swagger;
 using Serilog;
 using OpenShock.API.Services.OAuth;
 using OpenShock.API.Services.OAuth.Discord;
-using DiscordOAuthOptions = OpenShock.API.Options.OAuth.DiscordOAuthOptions;
 
 var builder = OpenShockApplication.CreateDefaultBuilder<Program>(args);
 

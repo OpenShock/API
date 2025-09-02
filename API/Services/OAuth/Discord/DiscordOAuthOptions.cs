@@ -2,6 +2,10 @@
 
 public sealed class DiscordOAuthOptions
 {
-    public string ClientId { get; set; } = default!;
-    public string ClientSecret { get; set; } = default!;
+    public const string SectionName = "OpenShock:OAuth2:Discord";
+
+    public required string ClientId { get; init; }
+    public required string ClientSecret { get; init; }
+    public required PathString CallbackPath { get; init; }
+    public required PathString AccessDeniedPath { get; init; }
 }
