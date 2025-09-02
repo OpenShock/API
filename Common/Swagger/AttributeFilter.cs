@@ -65,39 +65,39 @@ public sealed class AttributeFilter : ISchemaFilter, IParameterFilter, IOperatio
             {
                 securityRequirements.AddRange(authenticationScheme switch
                 {
-                    OpenShockAuthSchemas.UserSessionCookie => [
+                    OpenShockAuthSchemes.UserSessionCookie => [
                         new OpenApiSecurityRequirement {{
                             new OpenApiSecurityScheme
                             {
                                 Reference = new OpenApiReference
                                 {
-                                    Id = OpenShockAuthSchemas.UserSessionCookie,
+                                    Id = OpenShockAuthSchemes.UserSessionCookie,
                                     Type = ReferenceType.SecurityScheme,
                                 }
                             },
                             securityInfos
                         }}
                     ],
-                    OpenShockAuthSchemas.ApiToken => [
+                    OpenShockAuthSchemes.ApiToken => [
                         new OpenApiSecurityRequirement {{
                             new OpenApiSecurityScheme
                             {
                                 Reference = new OpenApiReference
                                 {
-                                    Id = OpenShockAuthSchemas.ApiToken,
+                                    Id = OpenShockAuthSchemes.ApiToken,
                                     Type = ReferenceType.SecurityScheme,
                                 }
                             },
                             securityInfos
                         }}
                     ],
-                    OpenShockAuthSchemas.HubToken => [
+                    OpenShockAuthSchemes.HubToken => [
                         new OpenApiSecurityRequirement {{
                             new OpenApiSecurityScheme
                             {
                                 Reference = new OpenApiReference
                                 {
-                                    Id = OpenShockAuthSchemas.HubToken,
+                                    Id = OpenShockAuthSchemes.HubToken,
                                     Type = ReferenceType.SecurityScheme
                                 }
                             },

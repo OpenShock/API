@@ -10,7 +10,7 @@ namespace OpenShock.API.Controller.Admin;
 [ApiController]
 [Tags("Admin")]
 [Route("/{version:apiVersion}/admin")]
-[Authorize(AuthenticationSchemes = OpenShockAuthSchemas.UserSessionCookie, Roles = "Admin")]
+[Authorize(AuthenticationSchemes = OpenShockAuthSchemes.UserSessionCookie, Roles = "Admin")]
 public sealed partial class AdminController : AuthenticatedSessionControllerBase
 {
     private readonly OpenShockContext _db;

@@ -14,7 +14,7 @@ namespace OpenShock.API.Controller.Sessions;
 [Tags("Sessions")]
 [ApiVersion("1")]
 [Route("/{version:apiVersion}/sessions")]
-[Authorize(AuthenticationSchemes = OpenShockAuthSchemas.UserSessionCookie)]
+[Authorize(AuthenticationSchemes = OpenShockAuthSchemes.UserSessionCookie)]
 public sealed partial class SessionsController : AuthenticatedSessionControllerBase
 {
     private readonly ISessionService _sessionService;

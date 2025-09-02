@@ -10,7 +10,7 @@ namespace OpenShock.API.Controller.Tokens;
 [ApiController]
 [Tags("API Tokens")]
 [Route("/{version:apiVersion}/tokens")]
-[Authorize(AuthenticationSchemes = OpenShockAuthSchemas.ApiToken)]
+[Authorize(AuthenticationSchemes = OpenShockAuthSchemes.ApiToken)]
 public sealed partial class TokensSelfController : AuthenticatedSessionControllerBase
 {
     /// <summary>

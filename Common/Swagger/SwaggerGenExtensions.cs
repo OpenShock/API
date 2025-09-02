@@ -40,42 +40,42 @@ public static class SwaggerGenExtensions
                 options.ParameterFilter<AttributeFilter>();
                 options.OperationFilter<AttributeFilter>();
                 options.IncludeXmlComments(Path.Combine(AppContext.BaseDirectory, assemblyName + ".xml"), true);
-                options.AddSecurityDefinition(OpenShockAuthSchemas.UserSessionCookie, new OpenApiSecurityScheme
+                options.AddSecurityDefinition(OpenShockAuthSchemes.UserSessionCookie, new OpenApiSecurityScheme
                 {
                     Name = AuthConstants.UserSessionCookieName,
                     Description = "Enter user session cookie",
                     In = ParameterLocation.Cookie,
                     Type = SecuritySchemeType.ApiKey,
-                    Scheme = OpenShockAuthSchemas.UserSessionCookie,
+                    Scheme = OpenShockAuthSchemes.UserSessionCookie,
                     Reference = new OpenApiReference
                     {
-                        Id = OpenShockAuthSchemas.UserSessionCookie,
+                        Id = OpenShockAuthSchemes.UserSessionCookie,
                         Type = ReferenceType.SecurityScheme,
                     }
                 });
-                options.AddSecurityDefinition(OpenShockAuthSchemas.ApiToken, new OpenApiSecurityScheme
+                options.AddSecurityDefinition(OpenShockAuthSchemes.ApiToken, new OpenApiSecurityScheme
                 {
                     Name = AuthConstants.ApiTokenHeaderName,
                     Description = "Enter API Token",
                     In = ParameterLocation.Header,
                     Type = SecuritySchemeType.ApiKey,
-                    Scheme = OpenShockAuthSchemas.ApiToken,
+                    Scheme = OpenShockAuthSchemes.ApiToken,
                     Reference = new OpenApiReference
                     {
-                        Id = OpenShockAuthSchemas.ApiToken,
+                        Id = OpenShockAuthSchemes.ApiToken,
                         Type = ReferenceType.SecurityScheme,
                     }
                 });
-                options.AddSecurityDefinition(OpenShockAuthSchemas.HubToken, new OpenApiSecurityScheme
+                options.AddSecurityDefinition(OpenShockAuthSchemes.HubToken, new OpenApiSecurityScheme
                 {
                     Name = AuthConstants.HubTokenHeaderName,
                     Description = "Enter hub token",
                     In = ParameterLocation.Header,
                     Type = SecuritySchemeType.ApiKey,
-                    Scheme = OpenShockAuthSchemas.HubToken,
+                    Scheme = OpenShockAuthSchemes.HubToken,
                     Reference = new OpenApiReference
                     {
-                        Id = OpenShockAuthSchemas.HubToken,
+                        Id = OpenShockAuthSchemes.HubToken,
                         Type = ReferenceType.SecurityScheme,
                     }
                 });

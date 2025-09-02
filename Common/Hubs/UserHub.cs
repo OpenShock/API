@@ -15,7 +15,7 @@ using Redis.OM.Contracts;
 
 namespace OpenShock.Common.Hubs;
 
-[Authorize(AuthenticationSchemes = OpenShockAuthSchemas.UserSessionApiTokenCombo)]
+[Authorize(AuthenticationSchemes = OpenShockAuthSchemes.UserSessionApiTokenCombo)]
 public sealed class UserHub : Hub<IUserHub>
 {
     private readonly ILogger<UserHub> _logger;

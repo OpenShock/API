@@ -14,7 +14,7 @@ namespace OpenShock.API.Controller.Account.Authenticated;
 [Tags("Account")]
 [ApiVersion("1")]
 [Route("/{version:apiVersion}/account")]
-[Authorize(AuthenticationSchemes = OpenShockAuthSchemas.UserSessionCookie)]
+[Authorize(AuthenticationSchemes = OpenShockAuthSchemes.UserSessionCookie)]
 public sealed partial class AuthenticatedAccountController : AuthenticatedSessionControllerBase
 {
     private readonly IAccountService _accountService;

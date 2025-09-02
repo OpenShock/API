@@ -12,7 +12,7 @@ namespace OpenShock.API.Controller.Shares.Links;
 [ApiController]
 [Tags("Public Shocker Shares")]
 [Route("/{version:apiVersion}/shares/links")]
-[Authorize(AuthenticationSchemes = OpenShockAuthSchemas.UserSessionCookie)]
+[Authorize(AuthenticationSchemes = OpenShockAuthSchemes.UserSessionCookie)]
 public sealed partial class ShareLinksController : AuthenticatedSessionControllerBase
 {
     private readonly OpenShockContext _db;

@@ -66,7 +66,7 @@ public sealed class ApiTokenAuthentication : AuthenticationHandler<Authenticatio
 
         List<Claim> claims = new List<Claim>(3 + tokenDto.Permissions.Count)
         {
-            new(ClaimTypes.AuthenticationMethod, OpenShockAuthSchemas.ApiToken),
+            new(ClaimTypes.AuthenticationMethod, OpenShockAuthSchemes.ApiToken),
             new(ClaimTypes.NameIdentifier, tokenDto.User.Id.ToString()),
             new(OpenShockAuthClaims.ApiTokenId, tokenDto.Id.ToString())
         };

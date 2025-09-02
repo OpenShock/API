@@ -10,7 +10,7 @@ namespace OpenShock.API.Controller.Users;
 [ApiController]
 [Tags("Users")]
 [Route("/{version:apiVersion}/users")]
-[Authorize(AuthenticationSchemes = OpenShockAuthSchemas.UserSessionApiTokenCombo)]
+[Authorize(AuthenticationSchemes = OpenShockAuthSchemes.UserSessionApiTokenCombo)]
 public sealed partial class UsersController : AuthenticatedSessionControllerBase
 {
     private readonly OpenShockContext _db;

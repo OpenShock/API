@@ -15,7 +15,7 @@ namespace OpenShock.API.Controller.Tokens;
 [ApiController]
 [Tags("API Tokens")]
 [Route("/{version:apiVersion}/tokens")]
-[Authorize(AuthenticationSchemes = OpenShockAuthSchemas.UserSessionApiTokenCombo)]
+[Authorize(AuthenticationSchemes = OpenShockAuthSchemes.UserSessionApiTokenCombo)]
 public sealed class TokenDeleteController : AuthenticatedSessionControllerBase
 {
     private readonly OpenShockContext _db;
@@ -46,10 +46,10 @@ public sealed class TokenDeleteController : AuthenticatedSessionControllerBase
 
         switch (auth)
         {
-            case OpenShockAuthSchemas.UserSessionCookie:
+            case OpenShockAuthSchemes.UserSessionCookie:
                 query = query.WhereIsUserOrPrivileged(x => x.User, CurrentUser);
                 break;
-            case OpenShockAuthSchemas.ApiToken:
+            case OpenShockAuthSchemes.ApiToken:
             {
                 var requestTokenId = Guid.Parse(HttpContext.User.Claims.First(x => x.Type == OpenShockAuthClaims.ApiTokenId).Value);
                 if (requestTokenId != tokenId) return Problem(ApiTokenError.ApiTokenCanOnlyDelete);

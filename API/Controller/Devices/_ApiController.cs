@@ -15,7 +15,7 @@ namespace OpenShock.API.Controller.Devices;
 [Tags("Hub Management")]
 [ApiVersion("1"), ApiVersion("2")]
 [Route("/{version:apiVersion}/devices")]
-[Authorize(AuthenticationSchemes = OpenShockAuthSchemas.UserSessionApiTokenCombo)]
+[Authorize(AuthenticationSchemes = OpenShockAuthSchemes.UserSessionApiTokenCombo)]
 public sealed partial class DevicesController : AuthenticatedSessionControllerBase
 {
     private readonly OpenShockContext _db;
