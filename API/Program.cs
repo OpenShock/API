@@ -36,7 +36,6 @@ builder.RegisterCommonOpenShockOptions();
 builder.Services.Configure<FrontendOptions>(builder.Configuration.GetRequiredSection(FrontendOptions.SectionName));
 builder.Services.AddSingleton<IValidateOptions<FrontendOptions>, FrontendOptionsValidator>();
 builder.Services.Configure<DiscordOAuthOptions>(builder.Configuration.GetRequiredSection(DiscordOAuthOptions.SectionName));
-builder.Services.AddSingleton<IValidateOptions<DiscordOAuthOptions>, DiscordOAuthOptionsValidator>();
 
 var databaseConfig = builder.Configuration.GetDatabaseOptions();
 var redisConfig = builder.Configuration.GetRedisConfigurationOptions();
@@ -45,42 +44,7 @@ var redisConfig = builder.Configuration.GetRedisConfigurationOptions();
 
 builder.Services.AddOpenShockMemDB(redisConfig);
 builder.Services.AddOpenShockDB(databaseConfig);
-builder.Services.AddOpenShockServices(auth =>
-{
-    static ISecureDataFormat<T> GetSecureDataFormat<T>()
-    {
-        return new DistributedCacheSecureDataFormat<T>(redisConfig, TimeSpan.FromMinutes(1));
-    }
-
-    auth.AddDiscord(AuthConstants.DiscordScheme, opt =>
-    {
-        DiscordOAuthOptions discordOptions = builder.Configuration.GetRequiredSection(DiscordOAuthOptions.SectionName).Get<DiscordOAuthOptions>()!;
-
-        opt.ClientId = discordOptions.ClientId;
-        opt.ClientSecret = discordOptions.ClientSecret;
-        opt.CallbackPath = discordOptions.CallbackPath;
-        opt.AccessDeniedPath = discordOptions.AccessDeniedPath;
-        opt.Scope.Add();
-
-        opt.Prompt = "none";
-        opt.SaveTokens = true;
-        opt.StateDataFormat = GetSecureDataFormat<AuthenticationProperties>();
-        opt.CorrelationCookie.HttpOnly = true;
-        opt.CorrelationCookie.SameSite = SameSiteMode.Lax;
-        opt.CorrelationCookie.SecurePolicy = CookieSecurePolicy.Always;
-        opt.ClaimActions.MapJsonKey(ZapMeClaimTypes.UserEmailVerified, "verified");
-        opt.ClaimActions.MapCustomJson(ZapMeClaimTypes.UserAvatarUrl, json =>
-        {
-            string? userId = json.GetString("id");
-            string? avatar = json.GetString("avatar");
-            if (String.IsNullOrEmpty(userId) || String.IsNullOrEmpty(avatar))
-                return null;
-
-            return $"https://cdn.discordapp.com/avatars/{userId}/{avatar}.png";
-        });
-        opt.Validate();
-    });
-});
+builder.Services.AddOpenShockServices();
 
 builder.Services.AddSignalR()
     .AddOpenShockStackExchangeRedis(options => { options.Configuration = redisConfig; })
