@@ -1,20 +1,21 @@
-using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Cors;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
+using OpenShock.Common.Authentication;
 using OpenShock.Common.Errors;
-using OpenShock.Common.Extensions;
 
 namespace OpenShock.API.Controller.Account;
 
 public sealed partial class AccountController
 {
+    [EnableRateLimiting("auth")]
     [HttpGet("oauth/callback/{provider}")]
     [EnableCors("allow_sso_providers")]
-    public async Task<IActionResult> OAuthAuthenticate([FromRoute] string provider, [FromQuery] string code, [FromServices] IAuthenticationSchemeProvider schemesProvider)
+    public async Task<IActionResult> OAuthAuthenticate([FromRoute] string provider)
     {
-        if (!await schemesProvider.IsSupportedOAuthProviderAsync(provider))
+        if (!OpenShockAuthSchemes.OAuth2Schemes.Contains(provider))
             return Problem(OAuthError.ProviderNotSupported);
-
-        return Challenge(provider);
+        
+        // TODO: Validate OAuth response and fetch user details to create/authenticate account
     }
 }

@@ -106,7 +106,6 @@ public static class OpenShockServiceHelper
     /// Register all OpenShock services for PRODUCTION use
     /// </summary>
     /// <param name="services"></param>
-    /// <param name="configureAuth"></param>
     /// <returns></returns>
     public static IServiceCollection AddOpenShockServices(this IServiceCollection services)
     {

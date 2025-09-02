@@ -1,8 +1,7 @@
-using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
+using OpenShock.Common.Authentication;
 using OpenShock.Common.Errors;
-using OpenShock.Common.Extensions;
 
 namespace OpenShock.API.Controller.Account;
 
@@ -10,11 +9,11 @@ public sealed partial class AccountController
 {
     [EnableRateLimiting("auth")]
     [HttpGet("oauth/start", Name = "InternalSsoAuthenticate")]
-    public async Task<IActionResult> OAuthAuthenticate([FromQuery] string provider, [FromServices] IAuthenticationSchemeProvider schemesProvider)
+    public async Task<IActionResult> OAuthAuthenticate([FromQuery] string provider, [FromQuery] Uri? redirectUrl)
     {
-        if (!await schemesProvider.IsSupportedOAuthProviderAsync(provider))
+        if (!OpenShockAuthSchemes.OAuth2Schemes.Contains(provider))
             return Problem(OAuthError.ProviderNotSupported);
 
-        return Challenge(provider);
+        // TODO: Generate the provider's OAuth URL
     }
 }
