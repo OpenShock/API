@@ -31,6 +31,14 @@ Preferred way is a .env file.
 Refer to the [Npgsql Connection String](https://www.npgsql.org/doc/connection-string-parameters.html) documentation page for details about `OPENSHOCK__DB_CONN`.
 Refer to [StackExchange.Redis Configuration](https://stackexchange.github.io/StackExchange.Redis/Configuration.html) documentation page for details about `OPENSHOCK__REDIS__CONN`.
 
+### Discord OAuth
+
+| Variable | Required | Default value | Allowed / Example value |
+|----------|----------|---------------|-------------------------|
+| `OPENSHOCK__DISCORD__CLIENTID` | x | | |
+| `OPENSHOCK__DISCORD__CLIENTSECRET` | x | | |
+| `OPENSHOCK__DISCORD__REDIRECTURI` | x | | `https://my-openshock-instance.net/discord/callback` |
+
 ## Turnstile
 
 When Turnstile enable is set to `true`, the following environment variable is required:

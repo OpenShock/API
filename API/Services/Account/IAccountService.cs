@@ -51,6 +51,8 @@ public interface IAccountService
     /// <param name="cancellationToken"></param>
     /// <returns></returns>
     public Task<OneOf<CreateUserLoginSessionSuccess, AccountNotActivated, AccountDeactivated, NotFound>> CreateUserLoginSessionAsync(string usernameOrEmail, string password, LoginContext loginContext, CancellationToken cancellationToken = default);
+
+    public Task<OneOf<CreateUserLoginSessionSuccess, AccountNotActivated, AccountDeactivated, DiscordOAuthError>> CreateUserLoginSessionViaDiscordAsync(string code, LoginContext loginContext, CancellationToken cancellationToken = default);
     
     /// <summary>
     /// Check if a password reset request exists and the secret is valid
@@ -126,3 +128,4 @@ public readonly struct Unauthorized;
 public readonly struct UsernameTaken;
 
 public readonly struct RecentlyChanged;
+public readonly struct DiscordOAuthError;

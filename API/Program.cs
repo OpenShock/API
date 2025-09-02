@@ -5,6 +5,7 @@ using OpenShock.API.Services;
 using OpenShock.API.Services.Account;
 using OpenShock.API.Services.Email;
 using OpenShock.API.Services.UserService;
+using OpenShock.API.Options;
 using OpenShock.Common;
 using OpenShock.Common.DeviceControl;
 using OpenShock.Common.Extensions;
@@ -27,6 +28,7 @@ builder.RegisterCommonOpenShockOptions();
 
 builder.Services.Configure<FrontendOptions>(builder.Configuration.GetRequiredSection(FrontendOptions.SectionName));
 builder.Services.AddSingleton<IValidateOptions<FrontendOptions>, FrontendOptionsValidator>();
+builder.Services.Configure<DiscordOAuthOptions>(builder.Configuration.GetRequiredSection(DiscordOAuthOptions.SectionName));
 
 var databaseConfig = builder.Configuration.GetDatabaseOptions();
 var redisConfig = builder.Configuration.GetRedisConfigurationOptions();
@@ -52,6 +54,7 @@ builder.Services.AddScoped<IDeviceUpdateService, DeviceUpdateService>();
 builder.Services.AddScoped<IAccountService, AccountService>();
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<ILCGNodeProvisioner, LCGNodeProvisioner>();
+builder.Services.AddHttpClient("DiscordOAuth", client => client.BaseAddress = new Uri("https://discord.com/api/"));
 
 builder.AddSwaggerExt<Program>();
 

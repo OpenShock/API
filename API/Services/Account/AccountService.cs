@@ -1,10 +1,15 @@
 ﻿using System.Net.Mail;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
+using System.Net.Http;
+using System.Net.Http.Headers;
+using System.Net.Http.Json;
+using System.Text.Json.Serialization;
 using OneOf;
 using OneOf.Types;
 using OpenShock.API.Services.Email;
 using OpenShock.API.Services.Email.Mailjet.Mail;
+using OpenShock.API.Options;
 using OpenShock.Common.Constants;
 using OpenShock.Common.Models;
 using OpenShock.Common.OpenShockDb;
@@ -25,6 +30,8 @@ public sealed class AccountService : IAccountService
     private readonly ISessionService _sessionService;
     private readonly ILogger<AccountService> _logger;
     private readonly FrontendOptions _frontendConfig;
+    private readonly IHttpClientFactory _httpClientFactory;
+    private readonly DiscordOAuthOptions _discordOptions;
 
     /// <summary>
     /// DI Constructor
@@ -35,13 +42,16 @@ public sealed class AccountService : IAccountService
     /// <param name="logger"></param>
     /// <param name="options"></param>
     public AccountService(OpenShockContext db, IEmailService emailService,
-        ISessionService sessionService, ILogger<AccountService> logger, IOptions<FrontendOptions> options)
+        ISessionService sessionService, ILogger<AccountService> logger, IOptions<FrontendOptions> options,
+        IHttpClientFactory httpClientFactory, IOptions<DiscordOAuthOptions> discordOptions)
     {
         _db = db;
         _emailService = emailService;
         _logger = logger;
         _frontendConfig = options.Value;
         _sessionService = sessionService;
+        _httpClientFactory = httpClientFactory;
+        _discordOptions = discordOptions.Value;
     }
 
     private async Task<bool> IsUserNameBlacklisted(string username)
@@ -278,6 +288,66 @@ public sealed class AccountService : IAccountService
 
         return new CreateUserLoginSessionSuccess(user, createdSession.Token);
     }
+
+    public async Task<OneOf<CreateUserLoginSessionSuccess, AccountNotActivated, AccountDeactivated, DiscordOAuthError>> CreateUserLoginSessionViaDiscordAsync(string code, LoginContext loginContext, CancellationToken cancellationToken = default)
+    {
+        var client = _httpClientFactory.CreateClient("DiscordOAuth");
+
+        var tokenResponse = await client.PostAsync("oauth2/token",
+            new FormUrlEncodedContent(new Dictionary<string, string>
+            {
+                ["client_id"] = _discordOptions.ClientId,
+                ["client_secret"] = _discordOptions.ClientSecret,
+                ["grant_type"] = "authorization_code",
+                ["code"] = code,
+                ["redirect_uri"] = _discordOptions.RedirectUri
+            }), cancellationToken);
+
+        if (!tokenResponse.IsSuccessStatusCode) return new DiscordOAuthError();
+
+        var token = await tokenResponse.Content.ReadFromJsonAsync<DiscordTokenResponse>(cancellationToken);
+        if (token?.AccessToken is null) return new DiscordOAuthError();
+
+        var userRequest = new HttpRequestMessage(HttpMethod.Get, "users/@me");
+        userRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token.AccessToken);
+        var userResponse = await client.SendAsync(userRequest, cancellationToken);
+        if (!userResponse.IsSuccessStatusCode) return new DiscordOAuthError();
+
+        var discordUser = await userResponse.Content.ReadFromJsonAsync<DiscordUserResponse>(cancellationToken);
+        if (discordUser?.Email is null) return new DiscordOAuthError();
+
+        var email = discordUser.Email.ToLowerInvariant();
+        var user = await _db.Users.Include(u => u.UserDeactivation).FirstOrDefaultAsync(x => x.Email == email, cancellationToken);
+
+        if (user is null)
+        {
+            var username = discordUser.Username;
+            var attempt = 0;
+            while (await _db.Users.AnyAsync(x => x.Name == username, cancellationToken))
+            {
+                attempt++;
+                username = discordUser.Username + attempt;
+            }
+
+            var password = CryptoUtils.RandomString(AuthConstants.GeneratedTokenLength);
+            var created = await CreateAccountWithoutActivationFlowLegacyAsync(email, username, password);
+            if (created.IsT1) return new DiscordOAuthError();
+            user = created.AsT0.Value;
+        }
+        else
+        {
+            if (user.ActivatedAt is null) return new AccountNotActivated();
+            if (user.UserDeactivation is not null) return new AccountDeactivated();
+        }
+
+        var session = await _sessionService.CreateSessionAsync(user.Id, loginContext.UserAgent, loginContext.Ip);
+        return new CreateUserLoginSessionSuccess(user, session.Token);
+    }
+
+    private sealed record DiscordTokenResponse([property: JsonPropertyName("access_token")] string AccessToken);
+    private sealed record DiscordUserResponse([property: JsonPropertyName("id")] string Id,
+        [property: JsonPropertyName("username")] string Username,
+        [property: JsonPropertyName("email")] string? Email);
 
     /// <inheritdoc />
     public async Task<OneOf<Success, NotFound, SecretInvalid>> CheckPasswordResetExistsAsync(Guid passwordResetId, string secret,
