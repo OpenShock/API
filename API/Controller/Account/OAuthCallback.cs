@@ -23,8 +23,6 @@ public sealed partial class AccountController
         {
             return BadRequest(); // TODO: Change me
         }
-        
-        contract.User.
 
         // >>> Your app-specific login/linking <<<
         // e.g., sign in / create session by result.User

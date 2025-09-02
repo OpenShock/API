@@ -50,7 +50,7 @@ public interface IAccountService
     /// <param name="loginContext"></param>
     /// <param name="cancellationToken"></param>
     /// <returns></returns>
-    public Task<OneOf<CreateUserLoginSessionSuccess, AccountNotActivated, AccountDeactivated, NotFound>> CreateUserLoginSessionAsync(string usernameOrEmail, string password, LoginContext loginContext, CancellationToken cancellationToken = default);
+    public Task<OneOf<CreateUserLoginSessionSuccess, AccountDeactivated, AccountIsOAuthOnly, AccountNotActivated, NotFound>> CreateUserLoginSessionAsync(string usernameOrEmail, string password, LoginContext loginContext, CancellationToken cancellationToken = default);
     
     /// <summary>
     /// Check if a password reset request exists and the secret is valid
@@ -113,8 +113,9 @@ public interface IAccountService
 }
 
 public sealed record CreateUserLoginSessionSuccess(User User, string Token);
-public readonly record struct AccountNotActivated;
-public readonly record struct AccountDeactivated;
+public readonly struct AccountIsOAuthOnly;
+public readonly struct AccountNotActivated;
+public readonly struct AccountDeactivated;
 public readonly struct AccountWithEmailOrUsernameExists;
 public readonly struct CannotDeactivatePrivilegedAccount;
 public readonly struct AccountDeactivationAlreadyInProgress;

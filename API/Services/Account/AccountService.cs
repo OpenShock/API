@@ -250,7 +250,7 @@ public sealed class AccountService : IAccountService
     }
 
     /// <inheritdoc />
-    public async Task<OneOf<CreateUserLoginSessionSuccess, AccountNotActivated, AccountDeactivated, NotFound>> CreateUserLoginSessionAsync(string usernameOrEmail, string password,
+    public async Task<OneOf<CreateUserLoginSessionSuccess, AccountDeactivated, AccountIsOAuthOnly, AccountNotActivated, NotFound>> CreateUserLoginSessionAsync(string usernameOrEmail, string password,
         LoginContext loginContext, CancellationToken cancellationToken = default)
     {
         var lowercaseUsernameOrEmail = usernameOrEmail.ToLowerInvariant();
@@ -263,13 +263,17 @@ public sealed class AccountService : IAccountService
             await Task.Delay(100, cancellationToken);
             return new NotFound();
         }
-        if (user.ActivatedAt is null)
-        {
-            return new AccountNotActivated();
-        }
         if (user.UserDeactivation is not null)
         {
             return new AccountDeactivated();
+        }
+        if (user.PasswordHash is null)
+        {
+            return new AccountIsOAuthOnly();
+        }
+        if (user.ActivatedAt is null)
+        {
+            return new AccountNotActivated();
         }
 
         if (!await CheckPassword(password, user)) return new NotFound();
@@ -443,6 +447,11 @@ public sealed class AccountService : IAccountService
 
     private async Task<bool> CheckPassword(string password, User user)
     {
+        if (string.IsNullOrEmpty(user.PasswordHash))
+        {
+            return false;
+        }
+        
         var result = HashingUtils.VerifyPassword(password, user.PasswordHash);
 
         if (!result.Verified)
