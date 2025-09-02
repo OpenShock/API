@@ -110,6 +110,8 @@ public interface IAccountService
     /// <param name="cancellationToken"></param>
     /// <returns></returns>
     Task<bool> TryVerifyEmailAsync(string token, CancellationToken cancellationToken = default);
+    
+    Task<OAuthConnection[]> GetOAuthConnectionsAsync(Guid accountId);
 }
 
 public sealed record CreateUserLoginSessionSuccess(User User, string Token);

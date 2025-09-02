@@ -445,6 +445,11 @@ public sealed class AccountService : IAccountService
         return nChanges > 0;
     }
 
+    public Task<OAuthConnection[]> GetOAuthConnectionsAsync(Guid accountId)
+    {
+        return _db.OAuthConnections.AsNoTracking().Where(c => c.UserId == accountId).ToArrayAsync();
+    }
+
     private async Task<bool> CheckPassword(string password, User user)
     {
         if (string.IsNullOrEmpty(user.PasswordHash))
