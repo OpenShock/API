@@ -1,16 +1,11 @@
-using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Http.Connections;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Options;
-using OpenShock.API.Options;
 using OpenShock.API.Realtime;
 using OpenShock.API.Services;
 using OpenShock.API.Services.Account;
 using OpenShock.API.Services.Email;
 using OpenShock.API.Services.UserService;
-using OpenShock.API.Utils;
 using OpenShock.Common;
-using OpenShock.Common.Constants;
 using OpenShock.Common.DeviceControl;
 using OpenShock.Common.Extensions;
 using OpenShock.Common.Hubs;
@@ -23,9 +18,7 @@ using OpenShock.Common.Services.Ota;
 using OpenShock.Common.Services.Turnstile;
 using OpenShock.Common.Swagger;
 using Serilog;
-using System.Configuration;
 using OpenShock.API.Options.OAuth;
-using DiscordOAuthOptionsValidator = OpenShock.API.Options.OAuth.DiscordOAuthOptionsValidator;
 
 var builder = OpenShockApplication.CreateDefaultBuilder<Program>(args);
 
