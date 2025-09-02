@@ -445,18 +445,23 @@ public sealed class AccountService : IAccountService
         return nChanges > 0;
     }
 
-    public async Task<OAuthConnection[]> GetOAuthConnectionsAsync(Guid accountId)
+    public async Task<OAuthConnection[]> GetOAuthConnectionsAsync(Guid userId)
     {
         return await _db.OAuthConnections
             .AsNoTracking()
-            .Where(c => c.UserId == accountId)
+            .Where(c => c.UserId == userId)
             .ToArrayAsync();
     }
 
-    public async Task<bool> DeleteOAuthConnectionAsync(Guid currentUserId, string provider)
+    public async Task<bool> HasOAuthConnectionAsync(Guid userId, string provider)
+    {
+        return await _db.OAuthConnections.AnyAsync(c => c.UserId == userId && c.OAuthProvider == provider);
+    }
+
+    public async Task<bool> DeleteOAuthConnectionAsync(Guid userId, string provider)
     {
         var nDeleted = await _db.OAuthConnections
-            .Where(c => c.UserId == currentUserId && c.OAuthProvider == provider)
+            .Where(c => c.UserId == userId && c.OAuthProvider == provider)
             .ExecuteDeleteAsync();
 
         return nDeleted > 0;

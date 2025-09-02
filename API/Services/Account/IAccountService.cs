@@ -111,8 +111,9 @@ public interface IAccountService
     /// <returns></returns>
     Task<bool> TryVerifyEmailAsync(string token, CancellationToken cancellationToken = default);
     
-    Task<OAuthConnection[]> GetOAuthConnectionsAsync(Guid accountId);
-    Task<bool> DeleteOAuthConnectionAsync(Guid currentUserId, string provider);
+    Task<OAuthConnection[]> GetOAuthConnectionsAsync(Guid userId);
+    Task<bool> HasOAuthConnectionAsync(Guid userId, string provider);
+    Task<bool> DeleteOAuthConnectionAsync(Guid userId, string provider);
 }
 
 public sealed record CreateUserLoginSessionSuccess(User User, string Token);
