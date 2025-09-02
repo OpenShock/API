@@ -1,6 +1,7 @@
 ﻿using System.Net.Mail;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
+using Npgsql;
 using OneOf;
 using OneOf.Types;
 using OpenShock.API.Services.Email;
@@ -458,7 +459,28 @@ public sealed class AccountService : IAccountService
         return await _db.OAuthConnections.AnyAsync(c => c.UserId == userId && c.OAuthProvider == provider);
     }
 
-    public async Task<bool> DeleteOAuthConnectionAsync(Guid userId, string provider)
+    public async Task<bool> TryAddOAuthConnectionAsync(Guid userId, string provider, string providerAccountId, string? providerAccountName)
+    {
+        try
+        {
+            _db.OAuthConnections.Add(new OAuthConnection
+            {
+                UserId = userId,
+                OAuthProvider = provider,
+                OAuthAccountId = providerAccountId,
+                OAuthAccountName = providerAccountName
+            });
+            await _db.SaveChangesAsync();
+        }
+        catch (DbUpdateException ex) when (ex.InnerException is PostgresException { SqlState: "23505" }) // Unique constaint violation
+        {
+            return false;
+        }
+        
+        return true;
+    }
+
+    public async Task<bool> TryRemoveOAuthConnectionAsync(Guid userId, string provider)
     {
         var nDeleted = await _db.OAuthConnections
             .Where(c => c.UserId == userId && c.OAuthProvider == provider)

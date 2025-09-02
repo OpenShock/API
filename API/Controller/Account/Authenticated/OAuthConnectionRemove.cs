@@ -12,7 +12,7 @@ public sealed partial class AuthenticatedAccountController
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> DeleteOAuthConnection([FromRoute] string provider)
     {
-        var deleted = await _accountService.DeleteOAuthConnectionAsync(CurrentUser.Id, provider);
+        var deleted = await _accountService.TryRemoveOAuthConnectionAsync(CurrentUser.Id, provider);
 
         if (!deleted)
             return NotFound();

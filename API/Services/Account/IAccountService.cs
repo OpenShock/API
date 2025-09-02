@@ -113,7 +113,9 @@ public interface IAccountService
     
     Task<OAuthConnection[]> GetOAuthConnectionsAsync(Guid userId);
     Task<bool> HasOAuthConnectionAsync(Guid userId, string provider);
-    Task<bool> DeleteOAuthConnectionAsync(Guid userId, string provider);
+    Task<bool> TryAddOAuthConnectionAsync(Guid userId, string provider, string providerAccountId,
+        string? providerAccountName);
+    Task<bool> TryRemoveOAuthConnectionAsync(Guid userId, string provider);
 }
 
 public sealed record CreateUserLoginSessionSuccess(User User, string Token);
