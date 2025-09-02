@@ -446,9 +446,9 @@ public sealed class AccountService : IAccountService
         return nChanges > 0;
     }
 
-    public async Task<OAuthConnection[]> GetOAuthConnectionsAsync(Guid userId)
+    public async Task<UserOAuthConnection[]> GetOAuthConnectionsAsync(Guid userId)
     {
-        return await _db.OAuthConnections
+        return await _db.UserOAuthConnections
             .AsNoTracking()
             .Where(c => c.UserId == userId)
             .ToArrayAsync();
@@ -456,14 +456,14 @@ public sealed class AccountService : IAccountService
 
     public async Task<bool> HasOAuthConnectionAsync(Guid userId, string provider)
     {
-        return await _db.OAuthConnections.AnyAsync(c => c.UserId == userId && c.OAuthProvider == provider);
+        return await _db.UserOAuthConnections.AnyAsync(c => c.UserId == userId && c.OAuthProvider == provider);
     }
 
     public async Task<bool> TryAddOAuthConnectionAsync(Guid userId, string provider, string providerAccountId, string? providerAccountName)
     {
         try
         {
-            _db.OAuthConnections.Add(new OAuthConnection
+            _db.UserOAuthConnections.Add(new UserOAuthConnection
             {
                 UserId = userId,
                 OAuthProvider = provider,
@@ -482,7 +482,7 @@ public sealed class AccountService : IAccountService
 
     public async Task<bool> TryRemoveOAuthConnectionAsync(Guid userId, string provider)
     {
-        var nDeleted = await _db.OAuthConnections
+        var nDeleted = await _db.UserOAuthConnections
             .Where(c => c.UserId == userId && c.OAuthProvider == provider)
             .ExecuteDeleteAsync();
 

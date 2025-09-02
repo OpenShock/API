@@ -20,7 +20,7 @@ public sealed class User
     // Navigations
     public UserActivationRequest? UserActivationRequest { get; set; }
     public UserDeactivation? UserDeactivation { get; set; }
-    public ICollection<OAuthConnection> OAuthConnections { get; set; } = [];
+    public ICollection<UserOAuthConnection> OAuthConnections { get; set; } = [];
     public ICollection<ApiToken> ApiTokens { get; } = [];
     public ICollection<ApiTokenReport> ReportedApiTokens { get; } = [];
     public ICollection<Device> Devices { get; } = [];

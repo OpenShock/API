@@ -106,7 +106,7 @@ public class OpenShockContext : DbContext
 
     public DbSet<User> Users { get; set; }
     
-    public DbSet<OAuthConnection> OAuthConnections { get; set; }
+    public DbSet<UserOAuthConnection> UserOAuthConnections { get; set; }
 
     public DbSet<UserActivationRequest> UserActivationRequests { get; set; }
 
@@ -613,11 +613,11 @@ public class OpenShockContext : DbContext
                 .HasColumnName("activated_at");
         });
 
-        modelBuilder.Entity<OAuthConnection>(entity =>
+        modelBuilder.Entity<UserOAuthConnection>(entity =>
         {
-            entity.HasKey(e => e.UserId).HasName("user_oauth_connections_pkey");
+            entity.HasKey(e => new { e.OAuthProvider, e.OAuthAccountId }).HasName("user_oauth_connections_pkey");
 
-            entity.HasIndex(e => new { e.OAuthProvider, e.OAuthAccountId }).IsUnique();
+            entity.HasIndex(e => e.UserId);
 
             entity.ToTable("user_oauth_connections");
 

@@ -1,6 +1,6 @@
 ﻿namespace OpenShock.Common.OpenShockDb;
 
-public sealed class OAuthConnection
+public sealed class UserOAuthConnection
 {
     public required Guid UserId { get; set; }
 
