@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Authentication;
 using OpenShock.Common.Constants;
 using System.Linq;
+using OpenShock.Common.Authentication;
 
 namespace OpenShock.Common.Extensions;
 
@@ -11,7 +12,7 @@ public static class IAuthenticationSchemeProviderExtensions
         var allSchemes = await provider.GetAllSchemesAsync();
 
         return allSchemes
-            .Where(scheme => AuthConstants.OAuth2Schemes.Contains(scheme.Name))
+            .Where(scheme => OpenShockAuthSchemes.OAuth2Schemes.Contains(scheme.Name))
             .Select(scheme => scheme.Name)
             .ToArray();
     }
