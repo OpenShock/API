@@ -1,6 +1,4 @@
-using Microsoft.Extensions.Options;
-
-namespace OpenShock.API.Options;
+namespace OpenShock.API.Options.OAuth;
 
 public sealed class DiscordOAuthOptions
 {
@@ -10,9 +8,4 @@ public sealed class DiscordOAuthOptions
     public required string ClientSecret { get; init; }
     public required PathString CallbackPath { get; init; }
     public required PathString AccessDeniedPath { get; init; }
-}
-
-[OptionsValidator]
-public partial class DiscordOAuthOptionsValidator : IValidateOptions<DiscordOAuthOptions>
-{
 }

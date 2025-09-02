@@ -24,6 +24,8 @@ using OpenShock.Common.Services.Turnstile;
 using OpenShock.Common.Swagger;
 using Serilog;
 using System.Configuration;
+using OpenShock.API.Options.OAuth;
+using DiscordOAuthOptionsValidator = OpenShock.API.Options.OAuth.DiscordOAuthOptionsValidator;
 
 var builder = OpenShockApplication.CreateDefaultBuilder<Program>(args);
 
