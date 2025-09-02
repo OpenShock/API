@@ -2,7 +2,6 @@ using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 using OpenShock.Common.Extensions;
-using System.Net.Mime;
 
 namespace OpenShock.API.Controller.Account;
 
