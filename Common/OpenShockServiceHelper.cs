@@ -106,8 +106,9 @@ public static class OpenShockServiceHelper
     /// Register all OpenShock services for PRODUCTION use
     /// </summary>
     /// <param name="services"></param>
+    /// <param name="configureAuth"></param>
     /// <returns></returns>
-    public static IServiceCollection AddOpenShockServices(this IServiceCollection services)
+    public static IServiceCollection AddOpenShockServices(this IServiceCollection services, Action<AuthenticationBuilder>? configureAuth = null)
     {
         // <---- ASP.NET ---->
         services.AddExceptionHandler<OpenShockExceptionHandler>();
@@ -128,13 +129,18 @@ public static class OpenShockServiceHelper
         services.AddScoped<IUserReferenceService, UserReferenceService>();
 
         services.AddAuthenticationCore();
-        new AuthenticationBuilder(services)
+        var authbuilder = new AuthenticationBuilder(services)
             .AddScheme<AuthenticationSchemeOptions, UserSessionAuthentication>(
                 OpenShockAuthSchemas.UserSessionCookie, _ => { })
             .AddScheme<AuthenticationSchemeOptions, ApiTokenAuthentication>(
                 OpenShockAuthSchemas.ApiToken, _ => { })
             .AddScheme<AuthenticationSchemeOptions, HubAuthentication>(
                 OpenShockAuthSchemas.HubToken, _ => { });
+
+        if (configureAuth is not null)
+        {
+            configureAuth(authbuilder);
+        }
         
         services.AddAuthorization(options =>
         {
