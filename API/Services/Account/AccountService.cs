@@ -1,7 +1,6 @@
 ﻿using System.Net.Mail;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
-using System.Text.Json.Serialization;
 using OneOf;
 using OneOf.Types;
 using OpenShock.API.Services.Email;
@@ -279,11 +278,6 @@ public sealed class AccountService : IAccountService
 
         return new CreateUserLoginSessionSuccess(user, createdSession.Token);
     }
-
-    private sealed record DiscordTokenResponse([property: JsonPropertyName("access_token")] string AccessToken);
-    private sealed record DiscordUserResponse([property: JsonPropertyName("id")] string Id,
-        [property: JsonPropertyName("username")] string Username,
-        [property: JsonPropertyName("email")] string? Email);
 
     /// <inheritdoc />
     public async Task<OneOf<Success, NotFound, SecretInvalid>> CheckPasswordResetExistsAsync(Guid passwordResetId, string secret,
