@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using Microsoft.AspNetCore.Cors;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
@@ -18,6 +19,12 @@ public sealed partial class AccountController
 
         // Let the handler do everything (state validation, token exchange, user fetch)
         var result = await handler.HandleCallbackAsync(HttpContext, Request.Query);
+        if (!result.TryPickT0(out var contract, out var error))
+        {
+            return BadRequest(); // TODO: Change me
+        }
+        
+        contract.User.
 
         // >>> Your app-specific login/linking <<<
         // e.g., sign in / create session by result.User

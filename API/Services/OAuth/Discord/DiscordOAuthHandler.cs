@@ -40,7 +40,7 @@ public sealed class DiscordOAuthHandler : IOAuthHandler
         {
             { "response_type", "code" },
             { "client_id",  o.ClientId },
-            { "scope",      "identify" },
+            { "scope",      "identify email" },
             { "redirect_uri", callback },
             { "state",      state }
         };
@@ -90,7 +90,7 @@ public sealed class DiscordOAuthHandler : IOAuthHandler
             Provider: Key,
             ExternalId: me.GetProperty("id").GetString()!,
             Username: me.GetProperty("username").GetString(),
-            DisplayName: me.TryGetProperty("global_name", out var gn) ? gn.GetString() : null,
+            Email: me.GetProperty("email").GetString(),
             AvatarUrl: null // build if you need it
         );
 

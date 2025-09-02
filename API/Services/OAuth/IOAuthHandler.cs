@@ -6,7 +6,7 @@ public sealed record ExternalUser(
     string Provider,          // "discord", "github", etc.
     string ExternalId,        // provider user id
     string? Username,
-    string? DisplayName,
+    string? Email,            // provider email
     string? AvatarUrl);
 
 public sealed record OAuthStartContext(string? ReturnTo);
