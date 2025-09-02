@@ -77,7 +77,7 @@ builder.Services.AddOpenShockServices(auth =>
             return $"https://cdn.discordapp.com/avatars/{userId}/{avatar}.png";
         });
         opt.Validate();
-    })
+    });
 });
 
 builder.Services.AddSignalR()

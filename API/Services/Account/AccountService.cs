@@ -1,15 +1,11 @@
 ﻿using System.Net.Mail;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
-using System.Net.Http;
-using System.Net.Http.Headers;
-using System.Net.Http.Json;
 using System.Text.Json.Serialization;
 using OneOf;
 using OneOf.Types;
 using OpenShock.API.Services.Email;
 using OpenShock.API.Services.Email.Mailjet.Mail;
-using OpenShock.API.Options;
 using OpenShock.Common.Constants;
 using OpenShock.Common.Models;
 using OpenShock.Common.OpenShockDb;
@@ -47,8 +43,6 @@ public sealed class AccountService : IAccountService
         _logger = logger;
         _frontendConfig = options.Value;
         _sessionService = sessionService;
-        _httpClientFactory = httpClientFactory;
-        _discordOptions = discordOptions.Value;
     }
 
     private async Task<bool> IsUserNameBlacklisted(string username)
