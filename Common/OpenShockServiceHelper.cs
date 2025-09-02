@@ -130,11 +130,11 @@ public static class OpenShockServiceHelper
         services.AddAuthenticationCore();
         new AuthenticationBuilder(services)
             .AddScheme<AuthenticationSchemeOptions, UserSessionAuthentication>(
-                OpenShockAuthSchemas.UserSessionCookie, _ => { })
+                OpenShockAuthSchemes.UserSessionCookie, _ => { })
             .AddScheme<AuthenticationSchemeOptions, ApiTokenAuthentication>(
-                OpenShockAuthSchemas.ApiToken, _ => { })
+                OpenShockAuthSchemes.ApiToken, _ => { })
             .AddScheme<AuthenticationSchemeOptions, HubAuthentication>(
-                OpenShockAuthSchemas.HubToken, _ => { });
+                OpenShockAuthSchemes.HubToken, _ => { });
         
         services.AddAuthorization(options =>
         {

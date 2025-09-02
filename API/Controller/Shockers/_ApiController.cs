@@ -14,7 +14,7 @@ namespace OpenShock.API.Controller.Shockers;
 [Tags("Shockers")]
 [ApiVersion("1"), ApiVersion("2")]
 [Route("/{version:apiVersion}/shockers")]
-[Authorize(AuthenticationSchemes = OpenShockAuthSchemas.UserSessionApiTokenCombo)]
+[Authorize(AuthenticationSchemes = OpenShockAuthSchemes.UserSessionApiTokenCombo)]
 public sealed partial class ShockerController : AuthenticatedSessionControllerBase
 {
     private readonly OpenShockContext _db;

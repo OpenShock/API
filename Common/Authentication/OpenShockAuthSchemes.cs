@@ -1,6 +1,6 @@
 ﻿namespace OpenShock.Common.Authentication;
 
-public static class OpenShockAuthSchemas
+public static class OpenShockAuthSchemes
 {
     public const string UserSessionCookie = "UserSessionCookie";
     public const string ApiToken = "ApiToken";

@@ -21,7 +21,7 @@ namespace OpenShock.LiveControlGateway.Controllers;
 [ApiController]
 [ApiVersion("1")]
 [Route("/{version:apiVersion}/ws/device")]
-[Authorize(AuthenticationSchemes = OpenShockAuthSchemas.HubToken)]
+[Authorize(AuthenticationSchemes = OpenShockAuthSchemes.HubToken)]
 public sealed class HubV1Controller : HubControllerBase<HubToGatewayMessage, GatewayToHubMessage>
 {
     private readonly IHubContext<UserHub, IUserHub> _userHubContext;

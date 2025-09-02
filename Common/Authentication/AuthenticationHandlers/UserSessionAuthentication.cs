@@ -86,7 +86,7 @@ public sealed class UserSessionAuthentication : AuthenticationHandler<Authentica
         _userReferenceService.AuthReference = session;
 
         List<Claim> claims = [
-            new(ClaimTypes.AuthenticationMethod, OpenShockAuthSchemas.UserSessionCookie),
+            new(ClaimTypes.AuthenticationMethod, OpenShockAuthSchemes.UserSessionCookie),
             new(ClaimTypes.NameIdentifier, retrievedUser.Id.ToString()),
         ];
 
