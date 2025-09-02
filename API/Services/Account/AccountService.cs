@@ -445,9 +445,21 @@ public sealed class AccountService : IAccountService
         return nChanges > 0;
     }
 
-    public Task<OAuthConnection[]> GetOAuthConnectionsAsync(Guid accountId)
+    public async Task<OAuthConnection[]> GetOAuthConnectionsAsync(Guid accountId)
     {
-        return _db.OAuthConnections.AsNoTracking().Where(c => c.UserId == accountId).ToArrayAsync();
+        return await _db.OAuthConnections
+            .AsNoTracking()
+            .Where(c => c.UserId == accountId)
+            .ToArrayAsync();
+    }
+
+    public async Task<bool> DeleteOAuthConnectionAsync(Guid currentUserId, string provider)
+    {
+        var nDeleted = await _db.OAuthConnections
+            .Where(c => c.UserId == currentUserId && c.OAuthProvider == provider)
+            .ExecuteDeleteAsync();
+
+        return nDeleted > 0;
     }
 
     private async Task<bool> CheckPassword(string password, User user)

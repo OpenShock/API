@@ -22,4 +22,20 @@ public sealed partial class AuthenticatedAccountController
             })
             .ToArray();
     }
+
+    /// <summary>
+    /// Delete an OAuth connection by provider
+    /// </summary>
+    [HttpDelete("connections/{provider}")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> DeleteOAuthConnection([FromRoute] string provider)
+    {
+        var deleted = await _accountService.DeleteOAuthConnectionAsync(CurrentUser.Id, provider);
+
+        if (!deleted)
+            return NotFound();
+
+        return NoContent();
+    }
 }
