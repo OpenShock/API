@@ -21,7 +21,7 @@ public sealed partial class AuthenticatedAccountController
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status409Conflict, MediaTypeNames.Application.ProblemJson)] // UsernameTaken
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status400BadRequest, MediaTypeNames.Application.ProblemJson)] // UsernameInvalid
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status403Forbidden, MediaTypeNames.Application.ProblemJson)] // UsernameRecentlyChanged
-    public async Task<IActionResult> ChangeUsername(ChangeUsernameRequest data)
+    public async Task<IActionResult> ChangeUsername([FromBody] ChangeUsernameRequest data)
     {
         var result = await _accountService.ChangeUsernameAsync(CurrentUser.Id, data.Username,
             CurrentUser.Roles.Any(r => r is RoleType.Staff or RoleType.Admin or RoleType.System));
