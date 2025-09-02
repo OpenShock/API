@@ -58,13 +58,8 @@ public sealed class UserSessionAuthentication : AuthenticationHandler<Authentica
 
         if (session.Expires!.Value < DateTime.UtcNow.Subtract(Duration.LoginSessionExpansionAfter))
         {
-#pragma warning disable CS4014
-            OsTask.Run(async () =>
-#pragma warning restore CS4014
-            {
-                session.Expires = DateTime.UtcNow.Add(Duration.LoginSessionLifetime);
-                await _sessionService.UpdateSessionAsync(session, Duration.LoginSessionLifetime);
-            });
+            session.Expires = DateTime.UtcNow.Add(Duration.LoginSessionLifetime);
+            await _sessionService.UpdateSessionAsync(session, Duration.LoginSessionLifetime); // Yes, this means a bit more waiting, but that's for max one request a day, it's fineeeee
         }
 
         _batchUpdateService.UpdateSessionLastUsed(sessionToken, DateTimeOffset.UtcNow);
