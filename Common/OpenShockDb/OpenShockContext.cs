@@ -105,6 +105,8 @@ public class OpenShockContext : DbContext
     public DbSet<PublicShareShocker> PublicShareShockerMappings { get; set; }
 
     public DbSet<User> Users { get; set; }
+    
+    public DbSet<OAuthConnection> OAuthConnections { get; set; }
 
     public DbSet<UserActivationRequest> UserActivationRequests { get; set; }
 
@@ -609,6 +611,32 @@ public class OpenShockContext : DbContext
                 .HasColumnName("created_at");
             entity.Property(e => e.ActivatedAt)
                 .HasColumnName("activated_at");
+        });
+
+        modelBuilder.Entity<OAuthConnection>(entity =>
+        {
+            entity.HasKey(e => e.UserId).HasName("user_oauth_connections_pkey");
+
+            entity.HasIndex(e => new { e.OAuthProvider, e.OAuthAccountId }).IsUnique();
+
+            entity.ToTable("user_oauth_connections");
+
+            entity.Property(e => e.UserId)
+                .HasColumnName("user_id");
+            entity.Property(e => e.OAuthProvider)
+                .UseCollation("C")
+                .HasColumnName("oauth_provider");
+            entity.Property(e => e.OAuthAccountId)
+                .HasColumnName("oauth_account_id");
+            entity.Property(e => e.OAuthAccountName)
+                .HasColumnName("oauth_account_name");
+            entity.Property(e => e.CreatedAt)
+                .HasDefaultValueSql("CURRENT_TIMESTAMP")
+                .HasColumnName("created_at");
+
+            entity.HasOne(c => c.User).WithMany(u => u.OAuthConnections)
+                .HasForeignKey(d => d.UserId)
+                .HasConstraintName("fk_user_oauth_connections_user_id");
         });
 
         modelBuilder.Entity<UserActivationRequest>(entity =>
