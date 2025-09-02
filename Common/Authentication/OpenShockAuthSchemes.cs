@@ -7,7 +7,4 @@ public static class OpenShockAuthSchemes
     public const string HubToken = "HubToken";
 
     public const string UserSessionApiTokenCombo = $"{UserSessionCookie},{ApiToken}";
-
-    public const string DiscordScheme = "discord";
-    public static readonly string[] OAuth2Schemes = [DiscordScheme];
 }

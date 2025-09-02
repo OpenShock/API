@@ -1,6 +1,5 @@
-using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.RateLimiting;
+using OpenShock.API.Services.OAuth;
 using OpenShock.Common.Authentication;
 
 namespace OpenShock.API.Controller.Account;
@@ -11,8 +10,8 @@ public sealed partial class AccountController
     /// Returns a list of supported SSO providers
     /// </summary>
     [HttpGet("oauth/providers")]
-    public string[] ListOAuthProviders()
+    public string[] ListOAuthProviders([FromServices] IOAuthHandlerRegistry registry)
     {
-        return OpenShockAuthSchemes.OAuth2Schemes;
+        return registry.ListProviders();
     }
 }

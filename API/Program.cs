@@ -18,7 +18,9 @@ using OpenShock.Common.Services.Ota;
 using OpenShock.Common.Services.Turnstile;
 using OpenShock.Common.Swagger;
 using Serilog;
-using OpenShock.API.Options.OAuth;
+using OpenShock.API.Services.OAuth;
+using OpenShock.API.Services.OAuth.Discord;
+using DiscordOAuthOptions = OpenShock.API.Options.OAuth.DiscordOAuthOptions;
 
 var builder = OpenShockApplication.CreateDefaultBuilder<Program>(args);
 
@@ -28,7 +30,6 @@ builder.RegisterCommonOpenShockOptions();
 
 builder.Services.Configure<FrontendOptions>(builder.Configuration.GetRequiredSection(FrontendOptions.SectionName));
 builder.Services.AddSingleton<IValidateOptions<FrontendOptions>, FrontendOptionsValidator>();
-builder.Services.Configure<DiscordOAuthOptions>(builder.Configuration.GetRequiredSection(DiscordOAuthOptions.SectionName));
 
 var databaseConfig = builder.Configuration.GetDatabaseOptions();
 var redisConfig = builder.Configuration.GetRedisConfigurationOptions();
@@ -54,7 +55,11 @@ builder.Services.AddScoped<IDeviceUpdateService, DeviceUpdateService>();
 builder.Services.AddScoped<IAccountService, AccountService>();
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<ILCGNodeProvisioner, LCGNodeProvisioner>();
-builder.Services.AddHttpClient("DiscordOAuth", client => client.BaseAddress = new Uri("https://discord.com/api/"));
+
+builder.Services.AddSingleton<IOAuthStateStore, CookieOAuthStateStore>();
+builder.Services.Configure<DiscordOAuthOptions>(builder.Configuration.GetRequiredSection(DiscordOAuthOptions.SectionName));
+builder.Services.AddSingleton<IOAuthHandler, DiscordOAuthHandler>();
+builder.Services.AddSingleton<IOAuthHandlerRegistry, OAuthHandlerRegistry>();
 
 builder.AddSwaggerExt<Program>();
 
