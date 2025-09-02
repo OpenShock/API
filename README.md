@@ -33,11 +33,11 @@ Refer to [StackExchange.Redis Configuration](https://stackexchange.github.io/Sta
 
 ### Discord OAuth
 
-| Variable | Required | Default value | Allowed / Example value |
-|----------|----------|---------------|-------------------------|
-| `OPENSHOCK__DISCORD__CLIENTID` | x | | |
-| `OPENSHOCK__DISCORD__CLIENTSECRET` | x | | |
-| `OPENSHOCK__DISCORD__REDIRECTURI` | x | | `https://my-openshock-instance.net/discord/callback` |
+| Variable                                   | Required | Default value | Allowed / Example value                              |
+|--------------------------------------------|----------|---------------|------------------------------------------------------|
+| `OPENSHOCK__OAUTH2__DISCORD__CLIENTID`     | x        |               |                                                      |
+| `OPENSHOCK__OAUTH2__DISCORD__CLIENTSECRET` | x        |               |                                                      |
+| `OPENSHOCK__OAUTH2__DISCORD__REDIRECTURI`  | x        |               | `https://my-openshock-instance.net/discord/callback` |
 
 ## Turnstile
 

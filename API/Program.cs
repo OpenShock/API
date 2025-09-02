@@ -55,10 +55,8 @@ builder.Services.AddScoped<IAccountService, AccountService>();
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<ILCGNodeProvisioner, LCGNodeProvisioner>();
 
-builder.Services.AddSingleton<IOAuthStateStore, CookieOAuthStateStore>();
-builder.Services.Configure<DiscordOAuthOptions>(builder.Configuration.GetRequiredSection(DiscordOAuthOptions.SectionName));
-builder.Services.AddSingleton<IOAuthHandler, DiscordOAuthHandler>();
-builder.Services.AddSingleton<IOAuthHandlerRegistry, OAuthHandlerRegistry>();
+builder.Services.AddOAuth()
+    .AddHandler<DiscordOAuthHandler, DiscordOAuthOptions>("discord", builder.Configuration.GetRequiredSection(DiscordOAuthOptions.SectionName));
 
 builder.AddSwaggerExt<Program>();
 

@@ -21,7 +21,9 @@ public sealed class DiscordOAuthHandler : IOAuthHandler
 
     public DiscordOAuthHandler(IHttpClientFactory http, IOptions<DiscordOAuthOptions> opt, IOAuthStateStore state)
     {
-        _http = http; _opt = opt; _state = state;
+        _http = http;
+        _opt = opt;
+        _state = state;
     }
 
     public string Key => "discord";
@@ -29,7 +31,7 @@ public sealed class DiscordOAuthHandler : IOAuthHandler
     public OneOf<string, OAuthErrorResult> BuildAuthorizeUrl(HttpContext http, OAuthStartContext ctx)
     {
         var o = _opt.Value;
-        var callback = new Uri(new Uri(o.CallbackBase.TrimEnd('/')), CallbackPath).ToString();
+        var callback = new Uri(new Uri("https://api.openhshock.dev"), CallbackPath).ToString(); // TODO: Make the base URL dynamic somehow
 
         var state = CryptoUtils.RandomString(64);
         _state.Save(http, Key, state, ctx.ReturnTo);
@@ -58,7 +60,7 @@ public sealed class DiscordOAuthHandler : IOAuthHandler
         if (saved is null || !string.Equals(saved.Value.State, state, StringComparison.Ordinal))
             throw new InvalidOperationException("Invalid state");
 
-        var callback = new Uri(new Uri(o.CallbackBase.TrimEnd('/')), CallbackPath).ToString();
+        var callback = new Uri(new Uri("https://api.openhshock.dev"), CallbackPath).ToString(); // TODO: Make the base URL dynamic somehow
 
         var client = _http.CreateClient();
         using var tokenReq = new HttpRequestMessage(HttpMethod.Post, TokenEndpoint)
