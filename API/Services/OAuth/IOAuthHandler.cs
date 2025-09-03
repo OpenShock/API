@@ -9,7 +9,7 @@ public sealed record ExternalUser(
     string? Email,            // provider email
     string? AvatarUrl);
 
-public sealed record OAuthStartContext(string? ReturnTo);
+public sealed record OAuthStartContext(string? ReturnTo, OAuthFlow Flow);
 public sealed record OAuthCallbackResult(ExternalUser User);
 
 public sealed record OAuthErrorResult(string Code, string Description);
@@ -20,7 +20,7 @@ public interface IOAuthHandler
     string Key { get; }
 
     /// Build the provider authorize URL and set any cookies you need (state, pkce, return_to).
-    OneOf<string, OAuthErrorResult> BuildAuthorizeUrl(HttpContext http, OAuthStartContext ctx);
+    Task<OneOf<string, OAuthErrorResult>> BuildAuthorizeUrlAsync(HttpContext http, OAuthStartContext ctx);
 
     /// Handle callback: validate state, exchange code, fetch user, clear cookies, etc.
     Task<OneOf<OAuthCallbackResult, OAuthErrorResult>> HandleCallbackAsync(HttpContext http, IQueryCollection query);

@@ -8,7 +8,7 @@ public static class OAuthServiceCollectionExtensions
     public static IOAuthBuilder AddOAuth(this IServiceCollection services)
     {
         // Default state store if none registered
-        services.TryAddSingleton<IOAuthStateStore, CookieOAuthStateStore>();
+        services.TryAddSingleton<IOAuthStateStore, RedisOAuthStateStore>();
 
         // Registry built from IEnumerable<IOAuthHandler>
         services.TryAddSingleton<IOAuthHandlerRegistry, OAuthHandlerRegistry>();

@@ -17,7 +17,13 @@ public sealed partial class AuthenticatedAccountController
             return Problem(OAuthError.AlreadyExists);
         }
 
-        var result = handler.BuildAuthorizeUrl(HttpContext, new OAuthStartContext(string.IsNullOrWhiteSpace(returnTo) ? null : returnTo));
+        // Private authorize endpoint => Link flow
+        var ctx = new OAuthStartContext(
+            ReturnTo: string.IsNullOrWhiteSpace(returnTo) ? null : returnTo,
+            Flow: OAuthFlow.Link
+        );
+
+        var result = await handler.BuildAuthorizeUrlAsync(HttpContext, ctx);
         return result.Match<IActionResult>(
             Redirect,
             error => Problem(title: error.Code, detail: error.Description)

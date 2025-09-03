@@ -1,9 +1,9 @@
-﻿using OneOf;
+﻿using Microsoft.AspNetCore.Http.Extensions;
+using Microsoft.Extensions.Options;
+using OneOf;
+using OpenShock.Common.Utils;
 using System.Net.Http.Headers;
 using System.Text.Json;
-using Microsoft.AspNetCore.Http.Extensions;
-using Microsoft.Extensions.Options;
-using OpenShock.Common.Utils;
 
 namespace OpenShock.API.Services.OAuth.Discord;
 
@@ -12,88 +12,172 @@ public sealed class DiscordOAuthHandler : IOAuthHandler
     private const string AuthorizeEndpoint = "https://discord.com/oauth2/authorize";
     private const string TokenEndpoint = "https://discord.com/api/oauth2/token";
     private const string UserInfoEndpoint = "https://discord.com/api/users/@me";
-    
-    private const string CallbackPath ="/1/account/oauth/callback/discord";
-    
-    private readonly IHttpClientFactory _http;
-    private readonly IOptions<DiscordOAuthOptions> _opt;
-    private readonly IOAuthStateStore _state;
 
-    public DiscordOAuthHandler(IHttpClientFactory http, IOptions<DiscordOAuthOptions> opt, IOAuthStateStore state)
+    private const string CallbackPath = "/1/account/oauth/callback/discord";
+
+    private readonly IHttpClientFactory _http;
+    private readonly DiscordOAuthOptions _opt;
+    private readonly IOAuthStateStore _stateStore;
+
+    public DiscordOAuthHandler(
+        IHttpClientFactory http,
+        IOptions<DiscordOAuthOptions> opt,
+        IOAuthStateStore stateStore)
     {
         _http = http;
-        _opt = opt;
-        _state = state;
+        _opt = opt.Value;
+        _stateStore = stateStore;
     }
 
     public string Key => "discord";
 
-    public OneOf<string, OAuthErrorResult> BuildAuthorizeUrl(HttpContext http, OAuthStartContext ctx)
+    public async Task<OneOf<string, OAuthErrorResult>> BuildAuthorizeUrlAsync(HttpContext http, OAuthStartContext ctx)
     {
-        var o = _opt.Value;
-        var callback = new Uri(new Uri("https://api.openhshock.dev"), CallbackPath).ToString(); // TODO: Make the base URL dynamic somehow
+        if (string.IsNullOrWhiteSpace(_opt.ClientId))
+            return new OAuthErrorResult("config_error", "Discord OAuth is not configured.");
 
-        var state = CryptoUtils.RandomString(64);
-        _state.Save(http, Key, state, ctx.ReturnTo);
+        var callback = BuildCallbackUrl();
+        if (callback is null)
+            return new OAuthErrorResult("config_error", "Callback base URL is not configured.");
 
+        // Opaque nonce for state
+        var nonce = CryptoUtils.RandomString(64);
+
+        // Save full envelope in Redis with TTL
+        var env = new OAuthStateEnvelope(
+            Provider: Key,
+            State: nonce,
+            Flow: ctx.Flow,
+            ReturnTo: ctx.ReturnTo,
+            UserId: null,            // set if you add an authenticated “link” endpoint
+            CodeVerifier: null,      // add PKCE later if desired
+            CreatedAt: DateTimeOffset.UtcNow
+        );
+
+        // 10 minutes is plenty
+        await _stateStore.SaveAsync(http, env, TimeSpan.FromMinutes(10));
+
+        // Build Discord authorize URL
         var qb = new QueryBuilder
         {
             { "response_type", "code" },
-            { "client_id",  o.ClientId },
+            { "client_id",  _opt.ClientId },
             { "scope",      "identify email" },
             { "redirect_uri", callback },
-            { "state",      state }
+            { "state",      nonce }
         };
-        return new UriBuilder(AuthorizeEndpoint) { Query = qb.ToString() }.Uri.ToString();
+
+        var url = new UriBuilder(AuthorizeEndpoint) { Query = qb.ToString() }.Uri.ToString();
+        return url;
     }
 
     public async Task<OneOf<OAuthCallbackResult, OAuthErrorResult>> HandleCallbackAsync(HttpContext http, IQueryCollection query)
     {
-        var o = _opt.Value;
+        if (string.IsNullOrWhiteSpace(_opt.ClientId) || string.IsNullOrWhiteSpace(_opt.ClientSecret))
+            return new OAuthErrorResult("config_error", "Discord OAuth is not configured.");
 
-        var code  = query["code"].ToString();
+        var code = query["code"].ToString();
         var state = query["state"].ToString();
+
         if (string.IsNullOrEmpty(code) || string.IsNullOrEmpty(state))
-            throw new InvalidOperationException("Missing code/state");
+            return new OAuthErrorResult("invalid_request", "Missing 'code' or 'state'.");
 
-        var saved = _state.ReadAndClear(http, Key);
-        if (saved is null || !string.Equals(saved.Value.State, state, StringComparison.Ordinal))
-            throw new InvalidOperationException("Invalid state");
+        var env = await _stateStore.ReadAndClearAsync(http, Key, state);
+        if (env is null)
+            return new OAuthErrorResult("state_invalid", "Invalid or expired state.");
 
-        var callback = new Uri(new Uri("https://api.openhshock.dev"), CallbackPath).ToString(); // TODO: Make the base URL dynamic somehow
+        var callback = BuildCallbackUrl();
+        if (callback is null)
+            return new OAuthErrorResult("config_error", "Callback base URL is not configured.");
 
+        var ct = http.RequestAborted;
         var client = _http.CreateClient();
-        using var tokenReq = new HttpRequestMessage(HttpMethod.Post, TokenEndpoint)
+
+        // Exchange code for token
+        var accessResult = await ExchangeCodeForAccessTokenAsync(client, code, callback, ct);
+        if (accessResult.TryPickT1(out var tokenErr, out var accessToken))
+            return tokenErr;
+
+        // Fetch user info
+        var userResult = await FetchDiscordUserAsync(client, accessToken, ct);
+        if (userResult.TryPickT1(out var userErr, out var me))
+            return userErr;
+
+        var externalId = me.GetProperty("id").GetString()!;
+        var username = me.GetProperty("username").GetString();
+        string? email = me.TryGetProperty("email", out var emailEl) ? emailEl.GetString() : null;
+
+        var user = new ExternalUser(
+            Provider: Key,
+            ExternalId: externalId,
+            Username: username,
+            Email: email,
+            AvatarUrl: null
+        );
+
+        http.Items["oauth_flow"] = env.Flow;
+
+        return new OAuthCallbackResult(user);
+    }
+
+    // ------------------
+    // Helper methods
+    // ------------------
+
+    private string? BuildCallbackUrl()
+    {
+        try
         {
-            Content = new FormUrlEncodedContent(new Dictionary<string,string>
+            return new Uri(new Uri("https://api.openhshock.dev"), CallbackPath).ToString();
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    private async Task<OneOf<string, OAuthErrorResult>> ExchangeCodeForAccessTokenAsync(
+        HttpClient client,
+        string code,
+        string callback,
+        CancellationToken ct)
+    {
+        using var request = new HttpRequestMessage(HttpMethod.Post, TokenEndpoint)
+        {
+            Content = new FormUrlEncodedContent(new Dictionary<string, string>
             {
-                ["client_id"] = o.ClientId,
-                ["client_secret"] = o.ClientSecret,
+                ["client_id"] = _opt.ClientId,
+                ["client_secret"] = _opt.ClientSecret,
                 ["grant_type"] = "authorization_code",
                 ["code"] = code,
                 ["redirect_uri"] = callback
             })
         };
-        using var tokenRes = await client.SendAsync(tokenReq);
-        tokenRes.EnsureSuccessStatusCode();
+        using var response = await client.SendAsync(request, ct);
+        if (!response.IsSuccessStatusCode)
+            return new OAuthErrorResult("token_exchange_failed", $"Token exchange failed ({(int)response.StatusCode}).");
 
-        var token = JsonSerializer.Deserialize<JsonElement>(await tokenRes.Content.ReadAsStringAsync());
-        var access = token.GetProperty("access_token").GetString()!;
+        var tokenEl = await response.Content.ReadFromJsonAsync<JsonElement>(ct);
 
-        using var meReq = new HttpRequestMessage(HttpMethod.Get, UserInfoEndpoint);
-        meReq.Headers.Authorization = new AuthenticationHeaderValue("Bearer", access);
-        using var meRes = await client.SendAsync(meReq);
-        meRes.EnsureSuccessStatusCode();
+        if (!tokenEl.TryGetProperty("access_token", out var accessEl) ||
+            string.IsNullOrWhiteSpace(accessEl.GetString()))
+            return new OAuthErrorResult("token_exchange_failed", "No access token from provider.");
 
-        var me = JsonSerializer.Deserialize<JsonElement>(await meRes.Content.ReadAsStringAsync());
-        var user = new ExternalUser(
-            Provider: Key,
-            ExternalId: me.GetProperty("id").GetString()!,
-            Username: me.GetProperty("username").GetString(),
-            Email: me.GetProperty("email").GetString(),
-            AvatarUrl: null // build if you need it
-        );
+        return accessEl.GetString()!;
+    }
 
-        return new OAuthCallbackResult(user);
+    private async Task<OneOf<JsonElement, OAuthErrorResult>> FetchDiscordUserAsync(
+        HttpClient client,
+        string accessToken,
+        CancellationToken ct)
+    {
+        using var request = new HttpRequestMessage(HttpMethod.Get, UserInfoEndpoint);
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
+
+        using var response = await client.SendAsync(request, ct);
+        if (!response.IsSuccessStatusCode)
+            return new OAuthErrorResult("profile_fetch_failed", $"Failed to fetch user profile ({(int)response.StatusCode}).");
+
+        return await response.Content.ReadFromJsonAsync<JsonElement>(ct);
     }
 }
