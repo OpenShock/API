@@ -1,9 +1,9 @@
-﻿using Microsoft.AspNetCore.Authentication;
+﻿using System.Security.Claims;
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 using OpenShock.API.Extensions;
-using OpenShock.API.OAuth;
-using OpenShock.API.OAuth.FlowStore;
+using OpenShock.API.Models.Response;
 using OpenShock.Common.Authentication;
 using OpenShock.Common.Errors;
 
@@ -14,10 +14,7 @@ public sealed partial class OAuthController
     [ResponseCache(NoStore = true)]
     [EnableRateLimiting("auth")]
     [HttpGet("{provider}/data")]
-    public async Task<IActionResult> OAuthGetData(
-        [FromRoute] string provider,
-        [FromServices] IAuthenticationSchemeProvider schemeProvider,
-        [FromServices] IOAuthFlowStore store)
+    public async Task<IActionResult> OAuthGetData([FromRoute] string provider, [FromServices] IAuthenticationSchemeProvider schemeProvider)
     {
         if (!await schemeProvider.IsSupportedOAuthScheme(provider))
             return Problem(OAuthError.ProviderNotSupported);
@@ -37,31 +34,20 @@ public sealed partial class OAuthController
             return Problem(OAuthError.FlowNotFound);
         }
 
-        // Load snapshot
-        var snap = await store.GetAsync(flowIdClaim);
-        if (snap is null)
-        {
-            // Stale/missing -> clear temp scheme (cookie+store entry) to stop loops
-            await HttpContext.SignOutAsync(OpenShockAuthSchemes.OAuthFlowScheme);
-            return Problem(OAuthError.FlowNotFound);
-        }
-
         // Defensive: ensure the snapshot belongs to this provider
-        if (snap.Provider != provider)
+        if (providerClaim != provider)
         {
             // Optional: you may also delete the cookie if you consider this a poisoned flow
             await HttpContext.SignOutAsync(OpenShockAuthSchemes.OAuthFlowScheme);
             return Problem(OAuthError.ProviderMismatch);
         }
 
-        var dto = new OAuthPublic
+        return Ok(new OAuthDataResponse
         {
-            Provider = snap.Provider,
-            Email = snap.Email,
-            DisplayName = snap.DisplayName,
-            ExpiresAt = snap.IssuedUtc.Add(OAuthConstants.StateLifetime).UtcDateTime
-        };
-
-        return Ok(dto);
+            Provider = providerClaim,
+            Email = auth.Principal.FindFirst(ClaimTypes.Email)?.Value,
+            DisplayName = auth.Principal.FindFirst(ClaimTypes.Name)?.Value,
+            ExpiresAt = auth.Ticket.Properties.ExpiresUtc!.Value.UtcDateTime
+        });
     }
 }

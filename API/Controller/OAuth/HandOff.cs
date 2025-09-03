@@ -2,12 +2,10 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 using OpenShock.API.Extensions;
-using OpenShock.API.OAuth.FlowStore;
 using OpenShock.API.Services.Account;
 using OpenShock.Common.Authentication;
 using OpenShock.Common.Errors;
 using System.Security.Claims;
-using Microsoft.AspNetCore.Http.HttpResults;
 using OpenShock.API.OAuth;
 
 namespace OpenShock.API.Controller.OAuth;
