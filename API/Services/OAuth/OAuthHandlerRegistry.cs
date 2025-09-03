@@ -19,11 +19,6 @@ public sealed class OAuthHandlerRegistry : IOAuthHandlerRegistry
         return _handlers.Keys.ToArray();
     }
 
-    public bool TryGet(string key, out IOAuthHandler handler)
-    {
-        return _handlers.TryGetValue(key, out handler!);
-    }
-
     private Uri GetCallbackUri(string provider)
     {
         return new Uri($"https://api.openshock.app/1/oauth/{provider}/callback");
@@ -31,7 +26,7 @@ public sealed class OAuthHandlerRegistry : IOAuthHandlerRegistry
 
     public async Task<OneOf<Uri, OAuthErrorResult, OAuthProviderNotSupported>> StartAuthorizeAsync(HttpContext http, string provider, OAuthFlow flow, string returnTo)
     {
-        if (!TryGet(provider, out var handler))
+        if (!_handlers.TryGetValue(provider, out var handler))
             return new OAuthProviderNotSupported();
 
         // Generate state and persist in Redis (+ double-submit cookie inside store)
@@ -53,7 +48,7 @@ public sealed class OAuthHandlerRegistry : IOAuthHandlerRegistry
 
     public async Task<OneOf<OAuthCallbackResult, OAuthErrorResult, OAuthProviderNotSupported>> HandleCallbackAsync(HttpContext http, string provider, IQueryCollection query)
     {
-        if (!TryGet(provider, out var handler))
+        if (!_handlers.TryGetValue(provider, out var handler))
             return new OAuthProviderNotSupported();
 
         var result = await handler.HandleCallbackAsync(http, query, GetCallbackUri(provider));
