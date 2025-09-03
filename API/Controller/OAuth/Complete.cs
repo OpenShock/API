@@ -3,9 +3,13 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 using OpenShock.API.Extensions;
 using OpenShock.API.OAuth;
+using OpenShock.API.OAuth.FlowStore;
 using OpenShock.API.Services.Account;
 using OpenShock.Common.Authentication;
+using OpenShock.Common.Authentication.Services;
 using OpenShock.Common.Errors;
+using OpenShock.Common.OpenShockDb;
+using OpenShock.Common.Utils;
 using Scalar.AspNetCore;
 using System.Security.Claims;
 
@@ -15,7 +19,13 @@ public sealed partial class OAuthController
 {
     [EnableRateLimiting("auth")]
     [HttpGet("{provider}/complete")]
-    public async Task<IActionResult> OAuthComplete([FromRoute] string provider, [FromServices] IAuthenticationSchemeProvider schemeProvider, [FromServices] IAccountService accountService)
+    public async Task<IActionResult> OAuthComplete(
+        [FromRoute] string provider,
+        [FromServices] IAuthenticationSchemeProvider schemeProvider,
+        [FromServices] IUserReferenceService userReferenceService,
+        [FromServices] IAccountService accountService,
+        [FromServices] IOAuthFlowStore store
+        )
     {
         if (!await schemeProvider.IsSupportedOAuthScheme(provider))
             return Problem(OAuthError.ProviderNotSupported);
@@ -43,7 +53,11 @@ public sealed partial class OAuthController
                      .ToDictionary(t => t.Name!, t => t.Value!);
 
         // Who (if anyone) is currently signed into OUR site?
-        var currentUserId = HttpContext.User?.FindFirst("uid")?.Value;
+        User? currentUser = null;
+        if (userReferenceService.AuthReference is not null && userReferenceService.AuthReference.Value.IsT0)
+        {
+            currentUser = HttpContext.RequestServices.GetRequiredService<IClientAuthService<User>>().CurrentClient;
+        }
 
         // Is this external already linked to someone?
         var connection = await accountService.GetOAuthConnectionAsync(provider, externalId);
@@ -51,13 +65,12 @@ public sealed partial class OAuthController
         // CASE A: External already linked
         if (connection is not null)
         {
-            if (!string.IsNullOrEmpty(currentUserId))
+            if (currentUser is not null)
             {
                 // Already logged in locally.
-                if (connection.UserId == currentUserId)
+                if (connection.UserId == currentUser.Id)
                 {
                     // Happy path: ensure session is fresh and go home.
-                    await sessionIssuer.SignInAsync(HttpContext, connection.UserId);
                     await HttpContext.SignOutAsync(OpenShockAuthSchemes.OAuthFlowScheme);
                     return Redirect("/");
                 }
@@ -71,9 +84,24 @@ public sealed partial class OAuthController
             }
 
             // Anonymous user: sign in as the linked account and go home.
-            await sessionIssuer.SignInAsync(HttpContext, connection.UserId);
-            await HttpContext.SignOutAsync(OpenShockAuthSchemes.OAuthFlowScheme);
-            return Redirect("/");
+            var loginAction = await _accountService.CreateUserLoginSessionAsync(/* ....... */, new LoginContext
+            {
+                Ip = HttpContext.GetRemoteIP().ToString(),
+                UserAgent = HttpContext.GetUserAgent(),
+            }, cancellationToken);
+
+            return loginAction.Match<IActionResult>(
+                ok =>
+                {
+                    HttpContext.SetSessionKeyCookie(ok.Token, "." + cookieDomainToUse);
+                    await HttpContext.SignOutAsync(OpenShockAuthSchemes.OAuthFlowScheme);
+                    return Redirect("/");
+                },
+                deactivated => Problem(AccountError.AccountDeactivated),
+                oauthOnly => Problem(AccountError.AccountOAuthOnly),
+                notActivated => Problem(AccountError.AccountNotActivated),
+                notFound => Problem(LoginError.InvalidCredentials)
+            );
         }
 
         // CASE B: Not linked yet → create flow snapshot and send to frontend for link/create
@@ -89,7 +117,7 @@ public sealed partial class OAuthController
 
         // Short-lived, non-HttpOnly cookie so the frontend can call /oauth/{provider}/data
         Response.Cookies.Append(
-            OAuthFlow.TempCookie,
+            OpenShockAuthSchemes.OAuthFlowCookie,
             flowId,
             new CookieOptions
             {
