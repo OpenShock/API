@@ -1,20 +1,14 @@
-using System.Diagnostics;
-using Microsoft.AspNetCore.Cors;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.RateLimiting;
-using OpenShock.API.Services.OAuth;
 using OpenShock.Common.Errors;
 
-namespace OpenShock.API.Controller.Account;
+namespace OpenShock.API.Controller.OAuth;
 
-public sealed partial class AccountController
+public sealed partial class OAuthController
 {
-    [EnableRateLimiting("auth")]
-    [HttpGet("oauth/callback/{provider}")]
-    [EnableCors("allow_sso_providers")]
-    public async Task<IActionResult> OAuthAuthenticate([FromRoute] string provider, [FromServices] IOAuthHandlerRegistry registry)
+    [HttpGet("{provider}/callback")]
+    public async Task<IActionResult> OAuthCallback([FromRoute] string provider)
     {
-        if (!registry.TryGet(provider, out var handler))
+        if (!_registry.TryGet(provider, out var handler))
             return Problem(OAuthError.ProviderNotSupported);
 
         // Let the handler do everything (state validation, token exchange, user fetch)

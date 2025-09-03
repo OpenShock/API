@@ -4,11 +4,11 @@ public sealed class UserOAuthConnection
 {
     public required Guid UserId { get; set; }
 
-    public required string OAuthProvider { get; set; }
+    public required string ProviderKey { get; set; }
 
-    public required string OAuthAccountId { get; set; }
+    public required string ExternalId { get; set; }
 
-    public required string? OAuthAccountName { get; set; }
+    public required string? DisplayName { get; set; }
 
     public DateTime CreatedAt { get; set; }
 

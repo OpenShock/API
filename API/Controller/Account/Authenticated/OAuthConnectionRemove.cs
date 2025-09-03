@@ -10,7 +10,7 @@ public sealed partial class AuthenticatedAccountController
     [HttpDelete("connections/{provider}")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> DeleteOAuthConnection([FromRoute] string provider)
+    public async Task<IActionResult> RemoveOAuthConnection([FromRoute] string provider)
     {
         var deleted = await _accountService.TryRemoveOAuthConnectionAsync(CurrentUser.Id, provider);
 

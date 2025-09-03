@@ -3,15 +3,15 @@ using Microsoft.AspNetCore.RateLimiting;
 using OpenShock.API.Services.OAuth;
 using OpenShock.Common.Errors;
 
-namespace OpenShock.API.Controller.Account;
+namespace OpenShock.API.Controller.OAuth;
 
-public sealed partial class AccountController
+public sealed partial class OAuthController
 {
     [EnableRateLimiting("auth")]
-    [HttpGet("oauth/start")]
-    public IActionResult OAuthAuthenticate([FromQuery] string provider, [FromQuery(Name = "return_to")] string? returnTo, [FromServices] IOAuthHandlerRegistry registry)
+    [HttpPost("{provider}/authorize")]
+    public IActionResult OAuthAuthorize([FromRoute] string provider, [FromQuery(Name = "return_to")] string? returnTo)
     {
-        if (!registry.TryGet(provider, out var handler))
+        if (!_registry.TryGet(provider, out var handler))
             return Problem(OAuthError.ProviderNotSupported);
 
         var result = handler.BuildAuthorizeUrl(HttpContext, new OAuthStartContext(string.IsNullOrWhiteSpace(returnTo) ? null : returnTo));

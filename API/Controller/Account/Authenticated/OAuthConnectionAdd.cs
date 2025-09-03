@@ -1,5 +1,4 @@
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.RateLimiting;
 using OpenShock.API.Services.OAuth;
 using OpenShock.Common.Errors;
 
@@ -7,7 +6,7 @@ namespace OpenShock.API.Controller.Account.Authenticated;
 
 public sealed partial class AuthenticatedAccountController
 {
-    [HttpGet("connections/{provider}")]
+    [HttpPost("connections/{provider}/authorize")]
     public async Task<IActionResult> AddOAuthConnection([FromRoute] string provider, [FromQuery(Name = "return_to")] string? returnTo, [FromServices] IOAuthHandlerRegistry registry)
     {
         if (!registry.TryGet(provider, out var handler))

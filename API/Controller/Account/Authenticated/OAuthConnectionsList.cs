@@ -17,8 +17,10 @@ public sealed partial class AuthenticatedAccountController
         return connections
             .Select(c => new OAuthConnectionResponse
             {
-                ProviderName = c.OAuthProvider,
-                ProviderAccountName = c.OAuthAccountName
+                ProviderKey = c.ProviderKey,
+                ExternalId = c.ExternalId,
+                DisplayName = c.DisplayName,
+                LinkedAt = c.CreatedAt
             })
             .ToArray();
     }

@@ -615,7 +615,7 @@ public class OpenShockContext : DbContext
 
         modelBuilder.Entity<UserOAuthConnection>(entity =>
         {
-            entity.HasKey(e => new { e.OAuthProvider, e.OAuthAccountId }).HasName("user_oauth_connections_pkey");
+            entity.HasKey(e => new { e.ProviderKey, e.ExternalId }).HasName("user_oauth_connections_pkey");
 
             entity.HasIndex(e => e.UserId);
 
@@ -623,13 +623,13 @@ public class OpenShockContext : DbContext
 
             entity.Property(e => e.UserId)
                 .HasColumnName("user_id");
-            entity.Property(e => e.OAuthProvider)
+            entity.Property(e => e.ProviderKey)
                 .UseCollation("C")
-                .HasColumnName("oauth_provider");
-            entity.Property(e => e.OAuthAccountId)
-                .HasColumnName("oauth_account_id");
-            entity.Property(e => e.OAuthAccountName)
-                .HasColumnName("oauth_account_name");
+                .HasColumnName("provider_key");
+            entity.Property(e => e.ExternalId)
+                .HasColumnName("external_id");
+            entity.Property(e => e.DisplayName)
+                .HasColumnName("display_name");
             entity.Property(e => e.CreatedAt)
                 .HasDefaultValueSql("CURRENT_TIMESTAMP")
                 .HasColumnName("created_at");
