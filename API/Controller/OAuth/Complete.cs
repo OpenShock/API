@@ -6,10 +6,7 @@ using OpenShock.API.OAuth;
 using OpenShock.API.OAuth.FlowStore;
 using OpenShock.API.Services.Account;
 using OpenShock.Common.Authentication;
-using OpenShock.Common.Authentication.Services;
 using OpenShock.Common.Errors;
-using OpenShock.Common.OpenShockDb;
-using OpenShock.Common.Utils;
 using Scalar.AspNetCore;
 using System.Security.Claims;
 
@@ -22,121 +19,115 @@ public sealed partial class OAuthController
     public async Task<IActionResult> OAuthComplete(
         [FromRoute] string provider,
         [FromServices] IAuthenticationSchemeProvider schemeProvider,
-        [FromServices] IUserReferenceService userReferenceService,
         [FromServices] IAccountService accountService,
-        [FromServices] IOAuthFlowStore store
-        )
+        [FromServices] IOAuthFlowStore store)
     {
         if (!await schemeProvider.IsSupportedOAuthScheme(provider))
             return Problem(OAuthError.ProviderNotSupported);
 
-        // External principal placed by the OAuth handler (SaveTokens=true, SignInScheme=OAuthFlowScheme)
+        // Temp external principal (set by OAuth handler with SignInScheme=OAuthFlowScheme, SaveTokens=true)
         var auth = await HttpContext.AuthenticateAsync(OpenShockAuthSchemes.OAuthFlowScheme);
         if (!auth.Succeeded || auth.Principal is null)
             return BadRequest("OAuth sign-in not found or expired.");
 
-        var ext = auth.Principal;
         var props = auth.Properties;
+        if (props is null || !props.Items.TryGetValue("flow", out var flow) || string.IsNullOrWhiteSpace(flow))
+        {
+            await HttpContext.SignOutAsync(OpenShockAuthSchemes.OAuthFlowScheme);
+            Response.Cookies.Delete(OpenShockAuthSchemes.OAuthFlowCookie, new CookieOptions { Path = "/" });
+            return BadRequest(new { error = "missing_flow" });
+        }
+        flow = flow.ToLowerInvariant();
 
-        // Essentials from external identity
-        var externalId = ext.FindFirst(ClaimTypes.NameIdentifier)?.Value
-                      ?? ext.FindFirst("sub")?.Value
-                      ?? ext.FindFirst("id")?.Value;
-
+        var ext = auth.Principal;
+        var externalId =
+            ext.FindFirst(ClaimTypes.NameIdentifier)?.Value ??
+            ext.FindFirst("sub")?.Value ??
+            ext.FindFirst("id")?.Value;
         if (string.IsNullOrEmpty(externalId))
             return Problem("Missing external subject.", statusCode: 400);
 
         var email = ext.FindFirst(ClaimTypes.Email)?.Value;
         var userName = ext.Identity?.Name;
-
-        var tokens = (props?.GetTokens() ?? Enumerable.Empty<AuthenticationToken>())
+        var tokens = (props.GetTokens() ?? Enumerable.Empty<AuthenticationToken>())
                      .ToDictionary(t => t.Name!, t => t.Value!);
 
-        // Who (if anyone) is currently signed into OUR site?
-        User? currentUser = null;
-        if (userReferenceService.AuthReference is not null && userReferenceService.AuthReference.Value.IsT0)
-        {
-            currentUser = HttpContext.RequestServices.GetRequiredService<IClientAuthService<User>>().CurrentClient;
-        }
-
-        // Is this external already linked to someone?
         var connection = await accountService.GetOAuthConnectionAsync(provider, externalId);
 
-        // CASE A: External already linked
-        if (connection is not null)
+        switch (flow)
         {
-            if (currentUser is not null)
-            {
-                // Already logged in locally.
-                if (connection.UserId == currentUser.Id)
+            case "login":
                 {
-                    // Happy path: ensure session is fresh and go home.
+                    if (connection is not null)
+                    {
+                        // Already linked -> sign in and go home.
+                        // TODO: issue your UserSessionCookie/session here for connection.UserId
+                        await HttpContext.SignOutAsync(OpenShockAuthSchemes.OAuthFlowScheme);
+                        return Redirect("/");
+                    }
+
+                    var flowId = await SaveSnapshotAsync(store, provider, externalId, email, userName, tokens);
+                    SetFlowCookie(flowId);
                     await HttpContext.SignOutAsync(OpenShockAuthSchemes.OAuthFlowScheme);
-                    return Redirect("/");
+
+                    var frontend = Environment.GetEnvironmentVariable("FRONTEND_ORIGIN") ?? "https://app.example.com";
+                    return Redirect($"{frontend}/{provider}/create");
                 }
 
-                // Linked to a different local account → fail explicitly.
-                await HttpContext.SignOutAsync(OpenShockAuthSchemes.OAuthFlowScheme);
-                return Problem(
-                    detail: "This external account is already linked to another user.",
-                    statusCode: 409,
-                    title: "Account already linked");
-            }
-
-            // Anonymous user: sign in as the linked account and go home.
-            var loginAction = await _accountService.CreateUserLoginSessionAsync(/* ....... */, new LoginContext
-            {
-                Ip = HttpContext.GetRemoteIP().ToString(),
-                UserAgent = HttpContext.GetUserAgent(),
-            }, cancellationToken);
-
-            return loginAction.Match<IActionResult>(
-                ok =>
+            case "link":
                 {
-                    HttpContext.SetSessionKeyCookie(ok.Token, "." + cookieDomainToUse);
+                    if (connection is not null)
+                    {
+                        await HttpContext.SignOutAsync(OpenShockAuthSchemes.OAuthFlowScheme);
+                        return Problem(
+                            detail: "This external account is already linked to another user.",
+                            statusCode: 409,
+                            title: "Account already linked");
+                    }
+
+                    var flowId = await SaveSnapshotAsync(store, provider, externalId, email, userName, tokens);
+                    SetFlowCookie(flowId);
                     await HttpContext.SignOutAsync(OpenShockAuthSchemes.OAuthFlowScheme);
-                    return Redirect("/");
-                },
-                deactivated => Problem(AccountError.AccountDeactivated),
-                oauthOnly => Problem(AccountError.AccountOAuthOnly),
-                notActivated => Problem(AccountError.AccountNotActivated),
-                notFound => Problem(LoginError.InvalidCredentials)
-            );
+
+                    var frontend = Environment.GetEnvironmentVariable("FRONTEND_ORIGIN") ?? "https://app.example.com";
+                    return Redirect($"{frontend}/{provider}/link");
+                }
+
+            default:
+                await HttpContext.SignOutAsync(OpenShockAuthSchemes.OAuthFlowScheme);
+                Response.Cookies.Delete(OpenShockAuthSchemes.OAuthFlowCookie, new CookieOptions { Path = "/" });
+                return BadRequest(new { error = "unknown_flow", flow });
         }
 
-        // CASE B: Not linked yet → create flow snapshot and send to frontend for link/create
-        var snapshot = new OAuthSnapshot(
-            Provider: provider,
-            ExternalId: externalId,
-            Email: email,
-            UserName: userName,
-            Tokens: tokens,
-            IssuedUtc: DateTimeOffset.UtcNow);
+        // --- local helpers ---
+        async Task<string> SaveSnapshotAsync(
+            IOAuthFlowStore s, string prov, string extId, string? mail, string? name,
+            IDictionary<string, string> tks)
+        {
+            var snapshot = new OAuthSnapshot(
+                Provider: prov,
+                ExternalId: extId,
+                Email: mail,
+                UserName: name,
+                Tokens: tks,
+                IssuedUtc: DateTimeOffset.UtcNow);
+            return await s.SaveAsync(snapshot, OAuthFlow.Ttl);
+        }
 
-        var flowId = await store.SaveAsync(snapshot, OAuthFlow.Ttl);
-
-        // Short-lived, non-HttpOnly cookie so the frontend can call /oauth/{provider}/data
-        Response.Cookies.Append(
-            OpenShockAuthSchemes.OAuthFlowCookie,
-            flowId,
-            new CookieOptions
-            {
-                Secure = HttpContext.Request.IsHttps,
-                HttpOnly = false,            // readable by frontend JS for one fetch
-                SameSite = SameSiteMode.Lax,
-                Expires = DateTimeOffset.UtcNow.Add(OAuthFlow.Ttl),
-                Path = "/"
-            });
-
-        // Clean up the temp external principal
-        await HttpContext.SignOutAsync(OpenShockAuthSchemes.OAuthFlowScheme);
-
-        // Decide which UI route to send them to
-        var frontend = Environment.GetEnvironmentVariable("FRONTEND_ORIGIN") ?? "https://app.example.com";
-        var nextPath = (!string.IsNullOrEmpty(currentUserId))
-            ? $"/{provider}/link"
-            : $"/{provider}/create";
-
-        return Redirect(frontend + nextPath);
+        void SetFlowCookie(string id)
+        {
+            Response.Cookies.Append(
+                OpenShockAuthSchemes.OAuthFlowCookie,
+                id,
+                new CookieOptions
+                {
+                    Secure = HttpContext.Request.IsHttps,
+                    HttpOnly = false,   // frontend reads once for /oauth/{provider}/data
+                    SameSite = SameSiteMode.Lax,
+                    Expires = DateTimeOffset.UtcNow.Add(OAuthFlow.Ttl),
+                    Path = "/"
+                });
+        }
     }
+
 }

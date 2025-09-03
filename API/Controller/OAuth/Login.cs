@@ -15,6 +15,6 @@ public sealed partial class OAuthController
         if (!await schemeProvider.IsSupportedOAuthScheme(provider))
             return Problem(OAuthError.ProviderNotSupported);
 
-        return Challenge(new AuthenticationProperties { RedirectUri = $"/oauth/{provider}/complete", Parameters = { { "flow", "login" } } }, authenticationSchemes: [provider]);
+        return Challenge(new AuthenticationProperties { RedirectUri = $"/oauth/{provider}/complete", Items = { { "flow", "login" } } }, authenticationSchemes: [provider]);
     }
 }

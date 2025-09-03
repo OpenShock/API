@@ -13,6 +13,6 @@ public sealed partial class AuthenticatedAccountController
         if (!await schemeProvider.IsSupportedOAuthScheme(provider))
             return Problem(OAuthError.ProviderNotSupported);
 
-        return Challenge(new AuthenticationProperties { RedirectUri = $"/oauth/{provider}/complete", Parameters = {{ "flow", "link" }} }, authenticationSchemes: [provider]);
+        return Challenge(new AuthenticationProperties { RedirectUri = $"/oauth/{provider}/complete", Items = {{ "flow", "link" }} }, authenticationSchemes: [provider]);
     }
 }
