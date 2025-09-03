@@ -5,6 +5,9 @@ namespace OpenShock.Common.Errors;
 
 public static class OAuthError
 {
+    public static OpenShockProblem FlowNotSupported => new OpenShockProblem(
+        "OAuth.Flow.NotSupported", "This OAuth flow is not supported", HttpStatusCode.Forbidden);
+
     public static OpenShockProblem ProviderNotSupported => new OpenShockProblem(
         "OAuth.Provider.NotSupported", "This OAuth provider is not supported", HttpStatusCode.Forbidden);
 

@@ -15,8 +15,8 @@ namespace OpenShock.API.Controller.OAuth;
 public sealed partial class OAuthController
 {
     [EnableRateLimiting("auth")]
-    [HttpGet("{provider}/complete")]
-    public async Task<IActionResult> OAuthComplete(
+    [HttpGet("{provider}/handoff")]
+    public async Task<IActionResult> OAuthHandOff(
         [FromRoute] string provider,
         [FromServices] IAuthenticationSchemeProvider schemeProvider,
         [FromServices] IAccountService accountService,

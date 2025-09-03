@@ -12,7 +12,7 @@ namespace OpenShock.API.Controller.OAuth;
 
 public sealed partial class OAuthController
 {
-    [EnableRateLimiting("auth")]
+    [EnableRateLimiting("auth")] // TODO: VERY IMPORTANT: DO CACHE: NO-STORE
     [HttpGet("{provider}/data")]
     public async Task<IActionResult> OAuthGetData(
         [FromRoute] string provider,
