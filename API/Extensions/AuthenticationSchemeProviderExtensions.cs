@@ -1,5 +1,4 @@
 ﻿using Microsoft.AspNetCore.Authentication;
-using NRedisStack.Search;
 using OpenShock.Common.Authentication;
 
 namespace OpenShock.API.Extensions;

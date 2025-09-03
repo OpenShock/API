@@ -2,7 +2,7 @@
 
 public interface IOAuthFlowStore
 {
-    Task<string> SaveAsync(OAuthSnapshot snap, TimeSpan ttl, CancellationToken ct = default);
-    Task<OAuthSnapshot?> GetAsync(string flowId, CancellationToken ct = default);
-    Task DeleteAsync(string flowId, CancellationToken ct = default);
+    Task<string> SaveAsync(string provider, string externalId, string? email, string? displayName, DateTimeOffset issuedUtc);
+    Task<OAuthSnapshot?> GetAsync(string flowId);
+    Task DeleteAsync(string flowId);
 }

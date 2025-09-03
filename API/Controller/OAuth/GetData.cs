@@ -6,13 +6,13 @@ using OpenShock.API.OAuth;
 using OpenShock.API.OAuth.FlowStore;
 using OpenShock.Common.Authentication;
 using OpenShock.Common.Errors;
-using Scalar.AspNetCore;
 
 namespace OpenShock.API.Controller.OAuth;
 
 public sealed partial class OAuthController
 {
-    [EnableRateLimiting("auth")] // TODO: VERY IMPORTANT: DO CACHE: NO-STORE
+    [ResponseCache(NoStore = true)]
+    [EnableRateLimiting("auth")]
     [HttpGet("{provider}/data")]
     public async Task<IActionResult> OAuthGetData(
         [FromRoute] string provider,
@@ -22,45 +22,45 @@ public sealed partial class OAuthController
         if (!await schemeProvider.IsSupportedOAuthScheme(provider))
             return Problem(OAuthError.ProviderNotSupported);
 
-        if (!Request.Cookies.TryGetValue(OpenShockAuthSchemes.OAuthFlowCookie, out var flowId) ||
-            string.IsNullOrWhiteSpace(flowId))
-            return NotFound(new { error = "no_flow" });
+        // Temp external principal (set by OAuth handler with SignInScheme=OAuthFlowScheme, SaveTokens=true)
+        var auth = await HttpContext.AuthenticateAsync(OpenShockAuthSchemes.OAuthFlowScheme);
+        if (!auth.Succeeded || auth.Principal is null)
+            return Problem(OAuthError.FlowNotFound);
 
-        var snap = await store.GetAsync(flowId);
+        // Read identifiers from claims (no props.Items)
+        var flowIdClaim = auth.Principal.FindFirst("flow_id")?.Value;
+        var providerClaim = auth.Principal.FindFirst("provider")?.Value;
 
+        if (string.IsNullOrWhiteSpace(flowIdClaim) || string.IsNullOrWhiteSpace(providerClaim))
+        {
+            await HttpContext.SignOutAsync(OpenShockAuthSchemes.OAuthFlowScheme);
+            return Problem(OAuthError.FlowNotFound);
+        }
+
+        // Load snapshot
+        var snap = await store.GetAsync(flowIdClaim);
         if (snap is null)
         {
-            // Clean up stale cookie to avoid client polling loops
-            Response.Cookies.Delete(OpenShockAuthSchemes.OAuthFlowCookie, new CookieOptions { Path = "/" });
-            return NotFound(new { error = "expired" });
+            // Stale/missing -> clear temp scheme (cookie+store entry) to stop loops
+            await HttpContext.SignOutAsync(OpenShockAuthSchemes.OAuthFlowScheme);
+            return Problem(OAuthError.FlowNotFound);
         }
 
         // Defensive: ensure the snapshot belongs to this provider
-        if (!string.Equals(snap.Provider, provider, StringComparison.OrdinalIgnoreCase))
+        if (snap.Provider != provider)
         {
             // Optional: you may also delete the cookie if you consider this a poisoned flow
-            Response.Cookies.Delete(OpenShockAuthSchemes.OAuthFlowCookie, new CookieOptions { Path = "/" });
-            // Prefer NotFound to avoid leaking existence across providers
-            return NotFound(new { error = "provider_mismatch" });
-            // Or: return Conflict(new { error = "provider_mismatch" });
+            await HttpContext.SignOutAsync(OpenShockAuthSchemes.OAuthFlowScheme);
+            return Problem(OAuthError.ProviderMismatch);
         }
 
-        var now = DateTimeOffset.UtcNow;
-        var expiresAt = snap.IssuedUtc.Add(OAuthFlow.Ttl);
-        var expiresIn = (int)Math.Max(0, (expiresAt - now).TotalSeconds);
-
-        var dto = new OAuthPublic(
-            provider: snap.Provider,
-            externalId: snap.ExternalId,
-            email: snap.Email,
-            userName: snap.UserName,
-            flowId: flowId,
-            expiresInSeconds: expiresIn
-        );
-
-        // Don’t let proxies/browsers cache this
-        Response.Headers.CacheControl = "no-store";
-        Response.Headers.Pragma = "no-cache";
+        var dto = new OAuthPublic
+        {
+            Provider = snap.Provider,
+            Email = snap.Email,
+            DisplayName = snap.DisplayName,
+            ExpiresAt = snap.IssuedUtc.Add(OAuthConstants.StateLifetime).UtcDateTime
+        };
 
         return Ok(dto);
     }

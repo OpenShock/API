@@ -1,4 +1,5 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.AspNetCore.DataProtection.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using OpenShock.Common.Constants;
 using OpenShock.Common.Extensions;
 using OpenShock.Common.Models;
@@ -46,7 +47,7 @@ public sealed class MigrationOpenShockContext : OpenShockContext
 /// <summary>
 /// Main OpenShock DB Context
 /// </summary>
-public class OpenShockContext : DbContext
+public class OpenShockContext : DbContext, IDataProtectionKeyContext
 {
     public OpenShockContext()
     {
@@ -125,6 +126,8 @@ public class OpenShockContext : DbContext
     public DbSet<UserNameBlacklist> UserNameBlacklists { get; set; }
 
     public DbSet<EmailProviderBlacklist> EmailProviderBlacklists { get; set; }
+    
+    public DbSet<DataProtectionKey> DataProtectionKeys { get; set; }
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {

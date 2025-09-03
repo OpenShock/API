@@ -7,8 +7,8 @@ public static class OpenShockAuthSchemes
     public const string HubToken = "HubToken";
 
     public const string OAuthFlowScheme = "OAuthFlowCookie";
-    public const string OAuthFlowCookie = ".OpenShock.OAuthFlow";
-    public const string DiscordScheme = "discord";
+    public const string OAuthFlowCookieName = ".OpenShock.OAuthFlow";
+    public const string DiscordScheme = "oauth-discord";
     public static readonly string[] OAuth2Schemes = [DiscordScheme];
 
     public const string UserSessionApiTokenCombo = $"{UserSessionCookie},{ApiToken}";

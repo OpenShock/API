@@ -81,16 +81,14 @@ public sealed class UserSessionAuthentication : AuthenticationHandler<Authentica
         _userReferenceService.AuthReference = session;
 
         List<Claim> claims = [
-            new(ClaimTypes.AuthenticationMethod, OpenShockAuthSchemes.UserSessionCookie),
+            new(ClaimTypes.AuthenticationMethod, Scheme.Name),
             new(ClaimTypes.NameIdentifier, retrievedUser.Id.ToString()),
         ];
 
         claims.AddRange(retrievedUser.Roles.Select(r => new Claim(ClaimTypes.Role, r.ToString())));
 
         var ident = new ClaimsIdentity(claims, nameof(UserSessionAuthentication));
-
-        Context.User = new ClaimsPrincipal(ident);
-
+        
         var ticket = new AuthenticationTicket(new ClaimsPrincipal(ident), Scheme.Name);
 
         return AuthenticateResult.Success(ticket);

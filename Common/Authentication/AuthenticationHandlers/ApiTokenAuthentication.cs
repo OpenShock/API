@@ -66,7 +66,7 @@ public sealed class ApiTokenAuthentication : AuthenticationHandler<Authenticatio
 
         List<Claim> claims = new List<Claim>(3 + tokenDto.Permissions.Count)
         {
-            new(ClaimTypes.AuthenticationMethod, OpenShockAuthSchemes.ApiToken),
+            new(ClaimTypes.AuthenticationMethod, Scheme.Name),
             new(ClaimTypes.NameIdentifier, tokenDto.User.Id.ToString()),
             new(OpenShockAuthClaims.ApiTokenId, tokenDto.Id.ToString())
         };
@@ -77,8 +77,6 @@ public sealed class ApiTokenAuthentication : AuthenticationHandler<Authenticatio
         }
 
         var ident = new ClaimsIdentity(claims, nameof(ApiTokenAuthentication));
-
-        Context.User = new ClaimsPrincipal(ident);
 
         var ticket = new AuthenticationTicket(new ClaimsPrincipal(ident), Scheme.Name);
 

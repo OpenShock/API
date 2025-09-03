@@ -1,10 +1,10 @@
 ﻿namespace OpenShock.API.OAuth;
 
 // what we return to frontend at /oauth/discord/data
-public sealed record OAuthPublic(
-    string provider,
-    string externalId,
-    string? email,
-    string? userName,
-    string flowId,                 // opaque id the frontend will POST back to finalize
-    int expiresInSeconds);
+public sealed class OAuthPublic
+{
+    public required string Provider { get; init; }
+    public required string? Email { get; init; }
+    public required string? DisplayName { get; init; }
+    public required DateTime ExpiresAt { get; init; }
+}

@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Http.Connections;
 using Microsoft.Extensions.Options;
+using OpenShock.API.OAuth.AuthenticationHandler;
 using OpenShock.API.OAuth.FlowStore;
 using OpenShock.API.Options.OAuth;
 using OpenShock.API.Realtime;
@@ -42,10 +43,16 @@ builder.Services.AddOpenShockDB(databaseConfig);
 builder.Services.AddOpenShockServices(auth => auth
     .AddCookie(OpenShockAuthSchemes.OAuthFlowScheme, o =>
     {
-        o.Cookie.Name = OpenShockAuthSchemes.OAuthFlowCookie;
+        o.Cookie.Name = OpenShockAuthSchemes.OAuthFlowCookieName;
         o.ExpireTimeSpan = TimeSpan.FromMinutes(10);
         o.SlidingExpiration = false;
     })
+    /*
+    .AddScheme<AuthenticationSchemeOptions, OAuthFlowAuthenticationHandler>(OpenShockAuthSchemes.OAuthFlowScheme, o =>
+    {
+        
+    })
+    */
     .AddDiscord(OpenShockAuthSchemes.DiscordScheme, o =>
     {
         o.SignInScheme = OpenShockAuthSchemes.OAuthFlowScheme;

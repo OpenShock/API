@@ -1,29 +1,50 @@
-﻿using Microsoft.Extensions.Caching.Distributed;
-using System.Security.Cryptography;
-using System.Text.Json;
+﻿using OpenShock.API.Controller.OAuth;
+using OpenShock.Common.Authentication;
+using OpenShock.Common.Utils;
+using Redis.OM.Contracts;
+using Redis.OM.Searching;
 
 namespace OpenShock.API.OAuth.FlowStore;
 
-public sealed class CacheOAuthFlowStore(IDistributedCache cache) : IOAuthFlowStore
+public sealed class CacheOAuthFlowStore : IOAuthFlowStore
 {
-    private static readonly JsonSerializerOptions JsonOpts = new(JsonSerializerDefaults.Web);
-    private static string Key(string id) => $"oauth:flow:{id}";
+    private readonly IRedisCollection<OAuthSnapshot> _cache;
 
-    public async Task<string> SaveAsync(OAuthSnapshot snap, TimeSpan ttl, CancellationToken ct = default)
+    public CacheOAuthFlowStore(IRedisConnectionProvider redisConnectionProvider)
     {
-        var id = Convert.ToBase64String(RandomNumberGenerator.GetBytes(18))
-                         .TrimEnd('=').Replace('+', '-').Replace('/', '_'); // url-safe
-        var json = JsonSerializer.Serialize(snap, JsonOpts);
-        await cache.SetStringAsync(Key(id), json, new DistributedCacheEntryOptions { AbsoluteExpirationRelativeToNow = ttl }, ct);
+        _cache = redisConnectionProvider.RedisCollection<OAuthSnapshot>();
+    }
+
+    public async Task<string> SaveAsync(string provider, string externalId, string? email, string? displayName, DateTimeOffset issuedUtc)
+    {
+        var id = CryptoUtils.RandomString(32);
+        
+        var snap = new OAuthSnapshot
+        {
+            FlowId = id,
+            Provider = provider,
+            ExternalId = externalId,
+            DisplayName = displayName,
+            Email = email,
+            IssuedUtc = issuedUtc
+        };
+        
+        await _cache.InsertAsync(snap, OAuthConstants.StateLifetime);
+        
         return id;
     }
 
-    public async Task<OAuthSnapshot?> GetAsync(string flowId, CancellationToken ct = default)
+    public async Task<OAuthSnapshot?> GetAsync(string flowId)
     {
-        var json = await cache.GetStringAsync(Key(flowId), ct);
-        return json is null ? null : JsonSerializer.Deserialize<OAuthSnapshot>(json, JsonOpts);
+        return await _cache.FindByIdAsync(flowId);
     }
 
-    public Task DeleteAsync(string flowId, CancellationToken ct = default)
-        => cache.RemoveAsync(Key(flowId), ct);
+    public async Task DeleteAsync(string flowId)
+    {
+        var snapshot = await _cache.FindByIdAsync(flowId);
+        if (snapshot is not null)
+        {
+            await _cache.DeleteAsync(snapshot);
+        }
+    }
 }
