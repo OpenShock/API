@@ -454,6 +454,11 @@ public sealed class AccountService : IAccountService
             .ToArrayAsync();
     }
 
+    public async Task<UserOAuthConnection?> GetOAuthConnectionAsync(string provider, string providerAccountId)
+    {
+        return await _db.UserOAuthConnections.FirstOrDefaultAsync(c => c.ProviderKey == provider && c.ExternalId == providerAccountId);
+    }
+
     public async Task<bool> HasOAuthConnectionAsync(Guid userId, string provider)
     {
         return await _db.UserOAuthConnections.AnyAsync(c => c.UserId == userId && c.ProviderKey == provider);

@@ -112,6 +112,7 @@ public interface IAccountService
     Task<bool> TryVerifyEmailAsync(string token, CancellationToken cancellationToken = default);
     
     Task<UserOAuthConnection[]> GetOAuthConnectionsAsync(Guid userId);
+    Task<UserOAuthConnection?> GetOAuthConnectionAsync(string provider, string providerAccountId);
     Task<bool> HasOAuthConnectionAsync(Guid userId, string provider);
     Task<bool> TryAddOAuthConnectionAsync(Guid userId, string provider, string providerAccountId,
         string? providerAccountName);

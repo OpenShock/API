@@ -1,11 +1,15 @@
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Http.Connections;
 using Microsoft.Extensions.Options;
+using OpenShock.API.OAuth.FlowStore;
+using OpenShock.API.Options.OAuth;
 using OpenShock.API.Realtime;
 using OpenShock.API.Services;
 using OpenShock.API.Services.Account;
 using OpenShock.API.Services.Email;
 using OpenShock.API.Services.UserService;
 using OpenShock.Common;
+using OpenShock.Common.Authentication;
 using OpenShock.Common.DeviceControl;
 using OpenShock.Common.Extensions;
 using OpenShock.Common.Hubs;
@@ -18,8 +22,6 @@ using OpenShock.Common.Services.Ota;
 using OpenShock.Common.Services.Turnstile;
 using OpenShock.Common.Swagger;
 using Serilog;
-using OpenShock.API.Services.OAuth;
-using OpenShock.API.Services.OAuth.Discord;
 
 var builder = OpenShockApplication.CreateDefaultBuilder<Program>(args);
 
@@ -37,7 +39,33 @@ var redisConfig = builder.Configuration.GetRedisConfigurationOptions();
 
 builder.Services.AddOpenShockMemDB(redisConfig);
 builder.Services.AddOpenShockDB(databaseConfig);
-builder.Services.AddOpenShockServices();
+builder.Services.AddOpenShockServices(auth => auth
+    .AddCookie(OpenShockAuthSchemes.OAuthFlowScheme, o =>
+    {
+        o.Cookie.Name = OpenShockAuthSchemes.OAuthFlowCookie;
+        o.ExpireTimeSpan = TimeSpan.FromMinutes(10);
+        o.SlidingExpiration = false;
+    })
+    .AddDiscord(OpenShockAuthSchemes.DiscordScheme, o =>
+    {
+        o.SignInScheme = OpenShockAuthSchemes.OAuthFlowScheme;
+
+        var options = builder.Configuration.GetRequiredSection(DiscordOAuthOptions.SectionName).Get<DiscordOAuthOptions>()!;
+
+        o.ClientId = options.ClientId;
+        o.ClientSecret = options.ClientSecret;
+        o.CallbackPath = options.CallbackPath;
+        o.AccessDeniedPath = options.AccessDeniedPath;
+        foreach (var scope in options.Scopes) o.Scope.Add(scope);
+
+        o.Prompt = "none";
+        o.SaveTokens = true;
+
+        o.ClaimActions.MapJsonKey("email-verified", "verified");
+
+        o.Validate();
+    })
+);
 
 builder.Services.AddSignalR()
     .AddOpenShockStackExchangeRedis(options => { options.Configuration = redisConfig; })
@@ -47,6 +75,7 @@ builder.Services.AddSignalR()
         options.PayloadSerializerOptions.Converters.Add(new SemVersionJsonConverter());
     });
 
+builder.Services.AddScoped<IOAuthFlowStore, CacheOAuthFlowStore>();
 builder.Services.AddScoped<IDeviceService, DeviceService>();
 builder.Services.AddScoped<IControlSender, ControlSender>();
 builder.Services.AddScoped<IOtaService, OtaService>();
@@ -54,9 +83,6 @@ builder.Services.AddScoped<IDeviceUpdateService, DeviceUpdateService>();
 builder.Services.AddScoped<IAccountService, AccountService>();
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<ILCGNodeProvisioner, LCGNodeProvisioner>();
-
-builder.Services.AddOAuth()
-    .AddHandler<DiscordOAuthHandler, DiscordOAuthOptions>(builder.Configuration.GetRequiredSection(DiscordOAuthOptions.SectionName));
 
 builder.AddSwaggerExt<Program>();
 

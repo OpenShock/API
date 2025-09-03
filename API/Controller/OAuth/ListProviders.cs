@@ -1,4 +1,6 @@
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Mvc;
+using OpenShock.API.Extensions;
 
 namespace OpenShock.API.Controller.OAuth;
 
@@ -8,8 +10,8 @@ public sealed partial class OAuthController
     /// Returns a list of supported SSO provider keys
     /// </summary>
     [HttpGet("providers")]
-    public string[] ListOAuthProviders()
+    public async Task<string[]> ListOAuthProviders([FromServices] IAuthenticationSchemeProvider schemeProvider)
     {
-        return _registry.ListProviderKeys();
+        return await schemeProvider.GetAllOAuthSchemesAsync();
     }
 }
