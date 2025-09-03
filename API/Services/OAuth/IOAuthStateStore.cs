@@ -15,8 +15,7 @@ public sealed record OAuthStateEnvelope(
     string Provider,
     string State,                  // opaque nonce
     OAuthFlow Flow,                // SignIn | Link
-    string? ReturnTo,              // optional allow-listed redirect
+    string ReturnTo,
     Guid? UserId,                  // set for Link flow
-    string? CodeVerifier,          // if using PKCE
     DateTimeOffset CreatedAt
 );

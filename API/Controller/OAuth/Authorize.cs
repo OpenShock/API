@@ -10,21 +10,13 @@ public sealed partial class OAuthController
 {
     [EnableRateLimiting("auth")]
     [HttpPost("{provider}/authorize")]
-    public async Task<IActionResult> OAuthAuthorize([FromRoute] string provider, [FromQuery(Name = "return_to")] string? returnTo)
+    public async Task<IActionResult> OAuthAuthorize([FromRoute] string provider, [FromQuery(Name = "return_to")] string returnTo)
     {
-        if (!_registry.TryGet(provider, out var handler))
-            return Problem(OAuthError.ProviderNotSupported);
-
-        // Public authorize endpoint => SignIn flow
-        var ctx = new OAuthStartContext(
-            ReturnTo: string.IsNullOrWhiteSpace(returnTo) ? null : returnTo,
-            Flow: OAuthFlow.SignIn
-        );
-
-        var result = await handler.BuildAuthorizeUrlAsync(HttpContext, ctx);
+        var result = await _registry.StartAuthorizeAsync(HttpContext, provider, OAuthFlow.SignIn, returnTo);
         return result.Match<IActionResult>(
-            Redirect,
-            error => Problem(title: error.Code, detail: error.Description)
+            uri => Redirect(uri.ToString()),
+            error => Problem(title: error.Code, detail: error.Description),
+            notSupported => Problem(OAuthError.ProviderNotSupported)
         );
     }
 }

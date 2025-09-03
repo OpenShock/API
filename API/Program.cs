@@ -56,7 +56,7 @@ builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<ILCGNodeProvisioner, LCGNodeProvisioner>();
 
 builder.Services.AddOAuth()
-    .AddHandler<DiscordOAuthHandler, DiscordOAuthOptions>("discord", builder.Configuration.GetRequiredSection(DiscordOAuthOptions.SectionName));
+    .AddHandler<DiscordOAuthHandler, DiscordOAuthOptions>(builder.Configuration.GetRequiredSection(DiscordOAuthOptions.SectionName));
 
 builder.AddSwaggerExt<Program>();
 

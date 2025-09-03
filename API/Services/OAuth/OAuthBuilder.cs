@@ -5,7 +5,7 @@ internal sealed class OAuthBuilder : IOAuthBuilder
     private readonly IServiceCollection _services;
     internal OAuthBuilder(IServiceCollection services) => _services = services;
 
-    public IOAuthBuilder AddHandler<THandler, TOptions>(string key,IConfiguration configuration)
+    public IOAuthBuilder AddHandler<THandler, TOptions>(IConfiguration configuration)
         where THandler : class, IOAuthHandler
         where TOptions : class
     {

@@ -2,7 +2,7 @@
 
 public interface IOAuthBuilder
 {
-    IOAuthBuilder AddHandler<THandler, TOptions>(string key, IConfiguration configuration)
+    IOAuthBuilder AddHandler<THandler, TOptions>(IConfiguration configuration)
         where THandler : class, IOAuthHandler
         where TOptions : class;
 }

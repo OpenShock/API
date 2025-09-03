@@ -70,7 +70,6 @@ public sealed class RedisOAuthStateStore : IOAuthStateStore
         Flow = e.Flow,
         ReturnTo = e.ReturnTo,
         UserId = e.UserId,
-        CodeVerifier = e.CodeVerifier,
         CreatedAt = e.CreatedAt.UtcDateTime
     };
 
@@ -80,21 +79,19 @@ public sealed class RedisOAuthStateStore : IOAuthStateStore
         Flow: e.Flow,
         ReturnTo: e.ReturnTo,
         UserId: e.UserId,
-        CodeVerifier: e.CodeVerifier,
         CreatedAt: DateTime.SpecifyKind(e.CreatedAt, DateTimeKind.Utc));
 
     // Redis JSON document
     [Document(StorageType = StorageType.Json, Prefixes = new[] { "oauth:state" })]
     public sealed class OAuthStateEntry
     {
-        [RedisIdField] public string Id { get; set; } = default!;               // oauth:state:{provider}:{state}
-        public string Provider { get; set; } = default!;
-        public string State { get; set; } = default!;
-        public OAuthFlow Flow { get; set; }
-        public string? ReturnTo { get; set; }
-        public Guid? UserId { get; set; }
-        public string? CodeVerifier { get; set; }
-        public DateTime CreatedAt { get; set; }
+        [RedisIdField] public required string Id { get; set; }               // oauth:state:{provider}:{state}
+        public required string Provider { get; set; }
+        public required string State { get; set; }
+        public required OAuthFlow Flow { get; set; }
+        public required string ReturnTo { get; set; }
+        public required Guid? UserId { get; set; }
+        public required DateTime CreatedAt { get; set; }
 
         public static string MakeId(string provider, string state) => $"{provider}:{state}";
     }

@@ -9,19 +9,20 @@ public sealed record ExternalUser(
     string? Email,            // provider email
     string? AvatarUrl);
 
-public sealed record OAuthStartContext(string? ReturnTo, OAuthFlow Flow);
-public sealed record OAuthCallbackResult(ExternalUser User);
+public sealed record OAuthCallbackResult(ExternalUser User, string CallbackUrl);
 
 public sealed record OAuthErrorResult(string Code, string Description);
 
 public interface IOAuthHandler
 {
-    /// A short, case-insensitive key (e.g., "discord").
     string Key { get; }
+    string AuthorizeEndpoint { get; }
+    string TokenEndpoint { get; }
+    string UserInfoEndpoint { get; }
 
-    /// Build the provider authorize URL and set any cookies you need (state, pkce, return_to).
-    Task<OneOf<string, OAuthErrorResult>> BuildAuthorizeUrlAsync(HttpContext http, OAuthStartContext ctx);
+    /// Build the provider authorize URL
+    Uri BuildAuthorizeUrl(string state, Uri callbackUrl);
 
     /// Handle callback: validate state, exchange code, fetch user, clear cookies, etc.
-    Task<OneOf<OAuthCallbackResult, OAuthErrorResult>> HandleCallbackAsync(HttpContext http, IQueryCollection query);
+    Task<OneOf<OAuthCallbackResult, OAuthErrorResult>> HandleCallbackAsync(HttpContext http, IQueryCollection query, Uri callbackUrl);
 }
