@@ -2,9 +2,9 @@ using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Mvc;
 using OpenShock.API.Extensions;
 using OpenShock.Common.Constants;
-using OpenShock.Common.Errors;
 using OpenShock.Common.Problems;
 using System.Net.Mime;
+using OpenShock.API.Utils;
 
 namespace OpenShock.API.Controller.Account.Authenticated;
 
@@ -31,13 +31,6 @@ public sealed partial class AuthenticatedAccountController
         if (!await schemeProvider.IsSupportedOAuthScheme(provider))
             return Problem(OAuthError.UnsupportedProvider);
 
-        // Kick off provider challenge in "link" mode.
-        // Redirect URI is our handoff endpoint which decides next UI step.
-        var props = new AuthenticationProperties {
-            RedirectUri = $"/1/oauth/{provider}/handoff",
-            Items = { { "flow", AuthConstants.OAuthLinkFlow } }
-        };
-
-        return Challenge(props, provider);
+        return OAuthUtil.StartOAuth(provider, AuthConstants.OAuthLinkFlow);
     }
 }

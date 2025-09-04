@@ -8,6 +8,7 @@ using OpenShock.Common.Errors;
 using OpenShock.Common.Problems;
 using System.Net.Mime;
 using System.Security.Claims;
+using OpenShock.API.Constants;
 
 namespace OpenShock.API.Controller.OAuth;
 
@@ -34,25 +35,22 @@ public sealed partial class OAuthController
             return Problem(OAuthError.UnsupportedProvider);
 
         // Temp external principal (set by OAuth handler with SignInScheme=OAuthFlowScheme, SaveTokens=true)
-        var auth = await HttpContext.AuthenticateAsync(OpenShockAuthSchemes.OAuthFlowScheme);
+        var auth = await HttpContext.AuthenticateAsync(OAuthConstants.FlowScheme);
         if (!auth.Succeeded || auth.Principal is null)
             return Problem(OAuthError.FlowNotFound);
 
         // Read identifiers from claims (no props.Items)
-        var flowIdClaim = auth.Principal.FindFirst("flow_id")?.Value;
-        var providerClaim = auth.Principal.FindFirst("provider")?.Value;
+        var providerClaim = auth.Principal.Identity?.AuthenticationType;
 
-        if (string.IsNullOrWhiteSpace(flowIdClaim) || string.IsNullOrWhiteSpace(providerClaim))
+        if (string.IsNullOrWhiteSpace(providerClaim))
         {
-            await HttpContext.SignOutAsync(OpenShockAuthSchemes.OAuthFlowScheme);
+            await HttpContext.SignOutAsync(OAuthConstants.FlowScheme);
             return Problem(OAuthError.FlowNotFound);
         }
 
-        // Defensive: ensure the snapshot belongs to this provider
-        if (providerClaim != provider)
+        if (!string.Equals(providerClaim, provider, StringComparison.InvariantCultureIgnoreCase))
         {
-            // Optional: you may also delete the cookie if you consider this a poisoned flow
-            await HttpContext.SignOutAsync(OpenShockAuthSchemes.OAuthFlowScheme);
+            await HttpContext.SignOutAsync(OAuthConstants.FlowScheme);
             return Problem(OAuthError.ProviderMismatch);
         }
 

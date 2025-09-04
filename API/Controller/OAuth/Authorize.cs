@@ -1,11 +1,11 @@
-using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 using OpenShock.API.Extensions;
 using OpenShock.Common.Constants;
-using OpenShock.Common.Errors;
 using OpenShock.Common.Problems;
 using System.Net.Mime;
+using OpenShock.API.Utils;
+using OpenShock.Common.Authentication;
 
 namespace OpenShock.API.Controller.OAuth;
 
@@ -30,13 +30,12 @@ public sealed partial class OAuthController
         if (!await _schemeProvider.IsSupportedOAuthScheme(provider))
             return Problem(OAuthError.UnsupportedProvider);
 
-        // Kick off provider challenge in "login-or-create" mode.
-        var props = new AuthenticationProperties
+        if (User.Identities.Any(ident => string.Equals(ident.AuthenticationType, OpenShockAuthSchemes.UserSessionCookie,
+                StringComparison.InvariantCultureIgnoreCase)))
         {
-            RedirectUri = $"/1/oauth/{provider}/handoff",
-            Items = { { "flow", AuthConstants.OAuthLoginOrCreateFlow } }
-        };
-
-        return Challenge(props, provider);
+            return Problem(OAuthError.AnonymousOnlyEndpoint);
+        }
+        
+        return OAuthUtil.StartOAuth(provider, AuthConstants.OAuthLoginOrCreateFlow);
     }
 }

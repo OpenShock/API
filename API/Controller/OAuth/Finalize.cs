@@ -15,6 +15,7 @@ using OpenShock.Common.Problems;
 using OpenShock.Common.Utils;
 using System.Net.Mime;
 using System.Security.Claims;
+using OpenShock.API.Constants;
 
 namespace OpenShock.API.Controller.OAuth;
 
@@ -57,7 +58,7 @@ public sealed partial class OAuthController
             return Problem(OAuthError.UnsupportedFlow);
 
         // Authenticate via the short-lived OAuth flow cookie (temp scheme)
-        var auth = await HttpContext.AuthenticateAsync(OpenShockAuthSchemes.OAuthFlowScheme);
+        var auth = await HttpContext.AuthenticateAsync(OAuthConstants.FlowScheme);
         if (!auth.Succeeded || auth.Principal is null)
             return Problem(OAuthError.FlowNotFound);
 
@@ -65,20 +66,20 @@ public sealed partial class OAuthController
         var providerClaim = auth.Principal.FindFirst("provider")?.Value;
         if (!string.Equals(providerClaim, provider, StringComparison.OrdinalIgnoreCase))
         {
-            await HttpContext.SignOutAsync(OpenShockAuthSchemes.OAuthFlowScheme);
+            await HttpContext.SignOutAsync(OAuthConstants.FlowScheme);
             return Problem(OAuthError.ProviderMismatch);
         }
 
         // External identity basics from claims (added by your handler)
         var externalId = auth.Principal.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-        if (string.IsNullOrEmpty(externalId))
+        var email = body.Email ?? auth.Principal.FindFirst(ClaimTypes.Email)?.Value;
+        var displayName = body.Username ?? auth.Principal.FindFirst(ClaimTypes.Name)?.Value;
+        if (string.IsNullOrEmpty(externalId) || string.IsNullOrEmpty(email) || string.IsNullOrEmpty(displayName))
         {
-            await HttpContext.SignOutAsync(OpenShockAuthSchemes.OAuthFlowScheme);
+            await HttpContext.SignOutAsync(OAuthConstants.FlowScheme);
             return Problem(OAuthError.FlowMissingData);
         }
 
-        var email = auth.Principal.FindFirst(ClaimTypes.Email)?.Value;
-        var displayName = auth.Principal.FindFirst(ClaimTypes.Name)?.Value;
 
         // If the external is already linked, don’t allow relinking in either flow.
         var existing = await connectionService.GetByProviderExternalIdAsync(provider, externalId);
@@ -100,7 +101,7 @@ public sealed partial class OAuthController
             if (existing is not null)
             {
                 // Already linked to someone, block.
-                await HttpContext.SignOutAsync(OpenShockAuthSchemes.OAuthFlowScheme);
+                await HttpContext.SignOutAsync(OAuthConstants.FlowScheme);
                 return Problem(OAuthError.ExternalAlreadyLinked);
             }
 
@@ -110,7 +111,7 @@ public sealed partial class OAuthController
                 providerAccountId: externalId,
                 providerAccountName: displayName ?? email);
 
-            await HttpContext.SignOutAsync(OpenShockAuthSchemes.OAuthFlowScheme);
+            await HttpContext.SignOutAsync(OAuthConstants.FlowScheme);
 
             if (!ok) return Problem(OAuthError.ExternalAlreadyLinked);
 
@@ -123,14 +124,14 @@ public sealed partial class OAuthController
 
         if (action is not AuthConstants.OAuthLoginOrCreateFlow)
         {
-            await HttpContext.SignOutAsync(OpenShockAuthSchemes.OAuthFlowScheme);
+            await HttpContext.SignOutAsync(OAuthConstants.FlowScheme);
             return Problem(OAuthError.UnsupportedFlow);
         }
 
         if (existing is not null)
         {
             // External already mapped; treat as conflict (or you could return 200 if you consider this a no-op login).
-            await HttpContext.SignOutAsync(OpenShockAuthSchemes.OAuthFlowScheme);
+            await HttpContext.SignOutAsync(OAuthConstants.FlowScheme);
             return Problem(OAuthError.ConnectionAlreadyExists);
         }
 
@@ -150,11 +151,11 @@ public sealed partial class OAuthController
             : body.Password;
 
         var created = await accountService.CreateOAuthOnlyAccountAsync(
-            email: email!,
+            email: email,
             username: body.Username!,
             provider: provider,
             providerAccountId: externalId,
-            providerAccountName: displayName ?? email
+            providerAccountName: displayName
         );
 
 
@@ -163,7 +164,7 @@ public sealed partial class OAuthController
             return Problem(SignupError.UsernameOrEmailExists);
         }
 
-        await HttpContext.SignOutAsync(OpenShockAuthSchemes.OAuthFlowScheme);
+        await HttpContext.SignOutAsync(OAuthConstants.FlowScheme);
 
         var newUser = created.AsT0.Value;
 

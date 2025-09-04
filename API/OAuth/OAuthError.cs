@@ -20,6 +20,11 @@ public static class OAuthError
         "This OAuth flow type is not recognized or allowed",
         HttpStatusCode.Forbidden);
 
+    public static OpenShockProblem AnonymousOnlyEndpoint => new(
+        "OAuth.Flow.AnonymousOnlyEndpoint",
+        "You must be signed out to call this endpoint",
+        HttpStatusCode.Unauthorized);
+
     public static OpenShockProblem FlowNotFound => new(
         "OAuth.Flow.NotFound",
         "The OAuth flow was not found, has expired, or is invalid",

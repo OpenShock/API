@@ -10,10 +10,11 @@ public sealed class OAuthFinalizeRequest
 
     /// <summary>Desired username (create only). If omitted, a name will be generated from the external profile.</summary>
     public string? Username { get; init; }
+    
+    public string? Email { get; init; }
 
     /// <summary>
-    /// New account password (create only). If omitted, a strong random password will be generated.
-    /// Your current AccountService requires a password.
+    /// New account password (create only).
     /// </summary>
     public string? Password { get; init; }
 }

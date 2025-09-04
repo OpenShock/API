@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Http.Connections;
 using Microsoft.Extensions.Options;
+using OpenShock.API.Constants;
 using OpenShock.API.Options.OAuth;
 using OpenShock.API.Realtime;
 using OpenShock.API.Services;
@@ -40,15 +41,15 @@ var redisConfig = builder.Configuration.GetRedisConfigurationOptions();
 builder.Services.AddOpenShockMemDB(redisConfig);
 builder.Services.AddOpenShockDB(databaseConfig);
 builder.Services.AddOpenShockServices(auth => auth
-    .AddCookie(OpenShockAuthSchemes.OAuthFlowScheme, o =>
+    .AddCookie(OAuthConstants.FlowScheme, o =>
     {
-        o.Cookie.Name = OpenShockAuthSchemes.OAuthFlowCookieName;
+        o.Cookie.Name = OAuthConstants.FlowCookieName;
         o.ExpireTimeSpan = TimeSpan.FromMinutes(10);
         o.SlidingExpiration = false;
     })
-    .AddDiscord(OpenShockAuthSchemes.DiscordScheme, o =>
+    .AddDiscord(OAuthConstants.DiscordScheme, o =>
     {
-        o.SignInScheme = OpenShockAuthSchemes.OAuthFlowScheme;
+        o.SignInScheme = OAuthConstants.FlowScheme;
 
         var options = builder.Configuration.GetRequiredSection(DiscordOAuthOptions.SectionName).Get<DiscordOAuthOptions>()!;
 
@@ -59,9 +60,10 @@ builder.Services.AddOpenShockServices(auth => auth
         foreach (var scope in options.Scopes) o.Scope.Add(scope);
 
         o.Prompt = "none";
-        o.SaveTokens = true;
+        o.SaveTokens = false;
 
-        o.ClaimActions.MapJsonKey("email-verified", "verified");
+        o.ClaimActions.MapJsonKey(OAuthConstants.ClaimEmailVerified, "verified");
+        o.ClaimActions.MapJsonKey(OAuthConstants.ClaimDisplayName, "global_name");
 
         o.Validate();
     })

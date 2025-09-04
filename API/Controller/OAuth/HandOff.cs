@@ -12,6 +12,7 @@ using OpenShock.Common.Options;
 using OpenShock.Common.Problems;
 using System.Net.Mime;
 using System.Security.Claims;
+using OpenShock.API.Constants;
 
 namespace OpenShock.API.Controller.OAuth;
 
@@ -26,7 +27,6 @@ public sealed partial class OAuthController
     /// If an existing connection is found, signs in and redirects home; otherwise redirects the frontend to continue the flow.
     /// </remarks>
     /// <param name="provider">Provider key (e.g. <c>discord</c>).</param>
-    /// <param name="accountService"></param>
     /// <param name="connectionService"></param>
     /// <param name="frontendOptions"></param>
     /// <response code="302">Redirect to the frontend (create/link) or home on direct sign-in.</response>
@@ -37,7 +37,6 @@ public sealed partial class OAuthController
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status400BadRequest, MediaTypeNames.Application.Json)]
     public async Task<IActionResult> OAuthHandOff(
         [FromRoute] string provider,
-        [FromServices] IAccountService accountService,
         [FromServices] IOAuthConnectionService connectionService,
         [FromServices] IOptions<FrontendOptions> frontendOptions)
     {
@@ -45,14 +44,14 @@ public sealed partial class OAuthController
             return Problem(OAuthError.UnsupportedProvider);
 
         // Temp external principal (set by OAuth SignInScheme).
-        var auth = await HttpContext.AuthenticateAsync(OpenShockAuthSchemes.OAuthFlowScheme);
+        var auth = await HttpContext.AuthenticateAsync(OAuthConstants.FlowScheme);
         if (!auth.Succeeded || auth.Principal is null)
             return Problem(OAuthError.FlowNotFound);
 
         // Flow is stored in AuthenticationProperties by the authorize step.
         if (auth.Properties is null || !auth.Properties.Items.TryGetValue("flow", out var flow) || string.IsNullOrWhiteSpace(flow))
         {
-            await HttpContext.SignOutAsync(OpenShockAuthSchemes.OAuthFlowScheme);
+            await HttpContext.SignOutAsync(OAuthConstants.FlowScheme);
             return Problem(OAuthError.InternalError);
         }
         flow = flow.ToLowerInvariant();
@@ -61,7 +60,7 @@ public sealed partial class OAuthController
         var externalId = auth.Principal.FindFirst(ClaimTypes.NameIdentifier)?.Value;
         if (string.IsNullOrEmpty(externalId))
         {
-            await HttpContext.SignOutAsync(OpenShockAuthSchemes.OAuthFlowScheme);
+            await HttpContext.SignOutAsync(OAuthConstants.FlowScheme);
             return Problem(OAuthError.FlowMissingData);
         }
 
@@ -73,11 +72,13 @@ public sealed partial class OAuthController
                 {
                     if (connection is not null)
                     {
-                        // Already linked -> sign in and go home.
-                        // TODO: issue your UserSessionCookie/session here for connection.UserId
-                        await HttpContext.SignOutAsync(OpenShockAuthSchemes.OAuthFlowScheme);
+                        // Log In
+                        
+                        await HttpContext.SignOutAsync(OAuthConstants.FlowScheme);
                         return Redirect("/");
                     }
+                    
+                    // Create
                     
                     var frontendUrl = new UriBuilder(frontendOptions.Value.BaseUrl)
                     {
@@ -90,10 +91,14 @@ public sealed partial class OAuthController
                 {
                     if (connection is not null)
                     {
+                        // Connection already exists, FAILURE
+                        
                         // TODO: Check if the connection is connected to our account with same externalId (AlreadyLinked), different externalId (AlreadyExists), or to another account (LinkedToAnotherAccount)
-                        await HttpContext.SignOutAsync(OpenShockAuthSchemes.OAuthFlowScheme);
+                        await HttpContext.SignOutAsync(OAuthConstants.FlowScheme);
                         return Problem(OAuthError.ExternalAlreadyLinked);
                     }
+                    
+                    // Link connection to account
 
                     var frontendUrl = new UriBuilder(frontendOptions.Value.BaseUrl)
                     {
@@ -103,7 +108,7 @@ public sealed partial class OAuthController
                 }
 
             default:
-                await HttpContext.SignOutAsync(OpenShockAuthSchemes.OAuthFlowScheme);
+                await HttpContext.SignOutAsync(OAuthConstants.FlowScheme);
                 return Problem(OAuthError.UnsupportedFlow);
         }
     }
