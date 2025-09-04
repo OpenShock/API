@@ -5,8 +5,11 @@ namespace OpenShock.API.Controller.Account.Authenticated;
 public sealed partial class AuthenticatedAccountController
 {
     /// <summary>
-    /// Delete an OAuth connection by provider
+    /// Remove an existing OAuth connection for the current user.
     /// </summary>
+    /// <param name="provider">Provider key (e.g. <c>discord</c>).</param>
+    /// <response code="204">Connection removed.</response>
+    /// <response code="404">No connection found for this provider.</response>
     [HttpDelete("connections/{provider}")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]

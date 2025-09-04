@@ -6,8 +6,10 @@ namespace OpenShock.API.Controller.Account.Authenticated;
 public sealed partial class AuthenticatedAccountController
 {
     /// <summary>
-    /// List OAuth connections
+    /// List OAuth connections linked to the current user.
     /// </summary>
+    /// <returns>Array of connections with provider key, external id, display name and link time.</returns>
+    /// <response code="200">Returns the list of connections.</response>
     [HttpGet("connections")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     public async Task<OAuthConnectionResponse[]> ListOAuthConnections()

@@ -6,7 +6,7 @@ namespace OpenShock.Common.Errors;
 public static class OAuthError
 {
     public static OpenShockProblem ProviderNotSupported => new OpenShockProblem(
-        "OAuth.Provider.NotSupported", "This OAuth provider is not supported", HttpStatusCode.Forbidden);
+        "OAuth.Provider.NotSupported", "This OAuth provider is not supported", HttpStatusCode.BadRequest);
     public static OpenShockProblem ProviderMismatch => new OpenShockProblem(
         "OAuth.Provider.Mismatch", "????????????????", HttpStatusCode.BadRequest);
     

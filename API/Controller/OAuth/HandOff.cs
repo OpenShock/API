@@ -1,35 +1,52 @@
 ﻿using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
+using Microsoft.Extensions.Options;
 using OpenShock.API.Extensions;
 using OpenShock.API.Services.Account;
 using OpenShock.Common.Authentication;
-using OpenShock.Common.Errors;
-using System.Security.Claims;
-using Microsoft.Extensions.Options;
 using OpenShock.Common.Constants;
+using OpenShock.Common.Errors;
 using OpenShock.Common.Options;
+using OpenShock.Common.Problems;
+using System.Net.Mime;
+using System.Security.Claims;
 
 namespace OpenShock.API.Controller.OAuth;
 
 public sealed partial class OAuthController
 {
+    /// <summary>
+    /// Handoff after provider callback. Decides next step (create, link, or direct sign-in).
+    /// </summary>
+    /// <remarks>
+    /// This endpoint is reached after the OAuth middleware processed the provider callback.  
+    /// It reads the temp OAuth flow principal and its <c>flow</c> (create/link).  
+    /// If an existing connection is found, signs in and redirects home; otherwise redirects the frontend to continue the flow.
+    /// </remarks>
+    /// <param name="provider">Provider key (e.g. <c>discord</c>).</param>
+    /// <param name="accountService">Account service used to check existing connections.</param>
+    /// <param name="frontendOptions">Frontend base URL for redirects.</param>
+    /// <response code="302">Redirect to the frontend (create/link) or home on direct sign-in.</response>
+    /// <response code="400">Flow missing or not supported.</response>
     [EnableRateLimiting("auth")]
     [HttpGet("{provider}/handoff")]
+    [ProducesResponseType(StatusCodes.Status302Found)]
+    [ProducesResponseType<OpenShockProblem>(StatusCodes.Status400BadRequest, MediaTypeNames.Application.Json)]
     public async Task<IActionResult> OAuthHandOff(
         [FromRoute] string provider,
-        [FromServices] IAuthenticationSchemeProvider schemeProvider,
         [FromServices] IAccountService accountService,
         [FromServices] IOptions<FrontendOptions> frontendOptions)
     {
-        if (!await schemeProvider.IsSupportedOAuthScheme(provider))
+        if (!await _schemeProvider.IsSupportedOAuthScheme(provider))
             return Problem(OAuthError.ProviderNotSupported);
 
-        // Temp external principal (set by OAuth handler with SignInScheme=OAuthFlowScheme, SaveTokens=true)
+        // Temp external principal (set by OAuth SignInScheme).
         var auth = await HttpContext.AuthenticateAsync(OpenShockAuthSchemes.OAuthFlowScheme);
         if (!auth.Succeeded || auth.Principal is null)
             return Problem(OAuthError.FlowNotFound);
 
+        // Flow is stored in AuthenticationProperties by the authorize step.
         if (auth.Properties is null || !auth.Properties.Items.TryGetValue("flow", out var flow) || string.IsNullOrWhiteSpace(flow))
         {
             await HttpContext.SignOutAsync(OpenShockAuthSchemes.OAuthFlowScheme);
@@ -37,6 +54,7 @@ public sealed partial class OAuthController
         }
         flow = flow.ToLowerInvariant();
 
+        // External subject is required to resolve/link.
         var externalId = auth.Principal.FindFirst(ClaimTypes.NameIdentifier)?.Value;
         if (string.IsNullOrEmpty(externalId))
         {
