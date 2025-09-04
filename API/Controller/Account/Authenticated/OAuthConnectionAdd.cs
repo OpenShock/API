@@ -9,7 +9,7 @@ namespace OpenShock.API.Controller.Account.Authenticated;
 
 public sealed partial class AuthenticatedAccountController
 {
-    [HttpGet("connections/{provider}/link")]
+    [HttpPost("connections/{provider}/link")]
     public async Task<IActionResult> AddOAuthConnection([FromRoute] string provider, [FromServices] IAuthenticationSchemeProvider schemeProvider)
     {
         if (!await schemeProvider.IsSupportedOAuthScheme(provider))

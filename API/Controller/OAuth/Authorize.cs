@@ -10,7 +10,7 @@ namespace OpenShock.API.Controller.OAuth;
 public sealed partial class OAuthController
 {
     [EnableRateLimiting("auth")]
-    [HttpGet("{provider}/authorize")]
+    [HttpPost("{provider}/authorize")]
     public async Task<IActionResult> OAuthAuthorize([FromRoute] string provider, [FromServices] IAuthenticationSchemeProvider schemeProvider)
     {
         if (!await schemeProvider.IsSupportedOAuthScheme(provider))
