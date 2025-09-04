@@ -2,7 +2,7 @@ using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 using OpenShock.API.Extensions;
-using OpenShock.API.OAuth;
+using OpenShock.Common.Constants;
 using OpenShock.Common.Errors;
 
 namespace OpenShock.API.Controller.OAuth;
@@ -16,6 +16,6 @@ public sealed partial class OAuthController
         if (!await schemeProvider.IsSupportedOAuthScheme(provider))
             return Problem(OAuthError.ProviderNotSupported);
 
-        return Challenge(new AuthenticationProperties { RedirectUri = $"/1/oauth/{provider}/handoff", Items = { { "flow", OAuthConstants.LoginOrCreate } } }, authenticationSchemes: [provider]);
+        return Challenge(new AuthenticationProperties { RedirectUri = $"/1/oauth/{provider}/handoff", Items = { { "flow", AuthConstants.OAuthLoginOrCreateFlow } } }, authenticationSchemes: [provider]);
     }
 }

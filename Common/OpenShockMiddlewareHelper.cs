@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using OpenShock.Common.OpenShockDb;
 using OpenShock.Common.Options;

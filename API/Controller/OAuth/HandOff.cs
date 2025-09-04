@@ -7,7 +7,7 @@ using OpenShock.Common.Authentication;
 using OpenShock.Common.Errors;
 using System.Security.Claims;
 using Microsoft.Extensions.Options;
-using OpenShock.API.OAuth;
+using OpenShock.Common.Constants;
 using OpenShock.Common.Options;
 
 namespace OpenShock.API.Controller.OAuth;
@@ -48,7 +48,7 @@ public sealed partial class OAuthController
 
         switch (flow)
         {
-            case OAuthConstants.LoginOrCreate:
+            case AuthConstants.OAuthLoginOrCreateFlow:
                 {
                     if (connection is not null)
                     {
@@ -65,7 +65,7 @@ public sealed partial class OAuthController
                     return Redirect(frontendUrl.Uri.ToString());
                 }
 
-            case OAuthConstants.LinkFlow:
+            case AuthConstants.OAuthLinkFlow:
                 {
                     if (connection is not null)
                     {
