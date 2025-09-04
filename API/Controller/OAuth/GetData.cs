@@ -31,7 +31,7 @@ public sealed partial class OAuthController
     public async Task<IActionResult> OAuthGetData([FromRoute] string provider)
     {
         if (!await _schemeProvider.IsSupportedOAuthScheme(provider))
-            return Problem(OAuthError.ProviderNotSupported);
+            return Problem(OAuthError.UnsupportedProvider);
 
         // Temp external principal (set by OAuth handler with SignInScheme=OAuthFlowScheme, SaveTokens=true)
         var auth = await HttpContext.AuthenticateAsync(OpenShockAuthSchemes.OAuthFlowScheme);

@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.Extensions.Options;
 using OpenShock.API.Extensions;
 using OpenShock.API.Services.Account;
+using OpenShock.API.Services.OAuthConnection;
 using OpenShock.Common.Authentication;
 using OpenShock.Common.Constants;
 using OpenShock.Common.Errors;
@@ -25,8 +26,9 @@ public sealed partial class OAuthController
     /// If an existing connection is found, signs in and redirects home; otherwise redirects the frontend to continue the flow.
     /// </remarks>
     /// <param name="provider">Provider key (e.g. <c>discord</c>).</param>
-    /// <param name="accountService">Account service used to check existing connections.</param>
-    /// <param name="frontendOptions">Frontend base URL for redirects.</param>
+    /// <param name="accountService"></param>
+    /// <param name="connectionService"></param>
+    /// <param name="frontendOptions"></param>
     /// <response code="302">Redirect to the frontend (create/link) or home on direct sign-in.</response>
     /// <response code="400">Flow missing or not supported.</response>
     [EnableRateLimiting("auth")]
@@ -36,10 +38,11 @@ public sealed partial class OAuthController
     public async Task<IActionResult> OAuthHandOff(
         [FromRoute] string provider,
         [FromServices] IAccountService accountService,
+        [FromServices] IOAuthConnectionService connectionService,
         [FromServices] IOptions<FrontendOptions> frontendOptions)
     {
         if (!await _schemeProvider.IsSupportedOAuthScheme(provider))
-            return Problem(OAuthError.ProviderNotSupported);
+            return Problem(OAuthError.UnsupportedProvider);
 
         // Temp external principal (set by OAuth SignInScheme).
         var auth = await HttpContext.AuthenticateAsync(OpenShockAuthSchemes.OAuthFlowScheme);
@@ -62,7 +65,7 @@ public sealed partial class OAuthController
             return Problem(OAuthError.FlowMissingData);
         }
 
-        var connection = await accountService.GetOAuthConnectionAsync(provider, externalId);
+        var connection = await connectionService.GetByProviderExternalIdAsync(provider, externalId);
 
         switch (flow)
         {
@@ -89,7 +92,7 @@ public sealed partial class OAuthController
                     {
                         // TODO: Check if the connection is connected to our account with same externalId (AlreadyLinked), different externalId (AlreadyExists), or to another account (LinkedToAnotherAccount)
                         await HttpContext.SignOutAsync(OpenShockAuthSchemes.OAuthFlowScheme);
-                        return Problem(OAuthError.LinkedToAnotherAccount);
+                        return Problem(OAuthError.ExternalAlreadyLinked);
                     }
 
                     var frontendUrl = new UriBuilder(frontendOptions.Value.BaseUrl)
@@ -101,7 +104,7 @@ public sealed partial class OAuthController
 
             default:
                 await HttpContext.SignOutAsync(OpenShockAuthSchemes.OAuthFlowScheme);
-                return Problem(OAuthError.FlowNotSupported);
+                return Problem(OAuthError.UnsupportedFlow);
         }
     }
 }

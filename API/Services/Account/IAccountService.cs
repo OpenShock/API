@@ -29,6 +29,19 @@ public interface IAccountService
     public Task<OneOf<Success<User>, AccountWithEmailOrUsernameExists>> CreateAccountWithActivationFlowAsync(string email, string username, string password);
 
     /// <summary>
+    /// Creates an OAuth-only (passwordless) account and links the external identity in a single transaction.
+    /// The new user is activated immediately (no activation flow). Returns a conflict-style result if the
+    /// username/email is taken or the external identity is already linked.
+    /// </summary>
+    /// <param name="email">Email to set on the user.</param>
+    /// <param name="username">Desired unique username.</param>
+    /// <param name="provider">e.g. "discord"</param>
+    /// <param name="providerAccountId">external subject/id from provider</param>
+    /// <param name="providerAccountName">display name from provider</param>
+    /// <returns>Success with the created user, or AccountWithEmailOrUsernameExists when taken/blocked.</returns>
+    Task<OneOf<Success<User>, AccountWithEmailOrUsernameExists>> CreateOAuthOnlyAccountAsync(string email, string username, string provider, string providerAccountId, string? providerAccountName);
+
+    /// <summary>
     /// 
     /// </summary>
     /// <param name="token"></param>
@@ -110,13 +123,6 @@ public interface IAccountService
     /// <param name="cancellationToken"></param>
     /// <returns></returns>
     Task<bool> TryVerifyEmailAsync(string token, CancellationToken cancellationToken = default);
-    
-    Task<UserOAuthConnection[]> GetOAuthConnectionsAsync(Guid userId);
-    Task<UserOAuthConnection?> GetOAuthConnectionAsync(string provider, string providerAccountId);
-    Task<bool> HasOAuthConnectionAsync(Guid userId, string provider);
-    Task<bool> TryAddOAuthConnectionAsync(Guid userId, string provider, string providerAccountId,
-        string? providerAccountName);
-    Task<bool> TryRemoveOAuthConnectionAsync(Guid userId, string provider);
 }
 
 public sealed record CreateUserLoginSessionSuccess(User User, string Token);

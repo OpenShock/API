@@ -28,7 +28,7 @@ public sealed partial class OAuthController
     public async Task<IActionResult> OAuthAuthorize([FromRoute] string provider)
     {
         if (!await _schemeProvider.IsSupportedOAuthScheme(provider))
-            return Problem(OAuthError.ProviderNotSupported);
+            return Problem(OAuthError.UnsupportedProvider);
 
         // Kick off provider challenge in "login-or-create" mode.
         var props = new AuthenticationProperties

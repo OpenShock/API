@@ -29,7 +29,7 @@ public sealed partial class AuthenticatedAccountController
     public async Task<IActionResult> AddOAuthConnection([FromRoute] string provider, [FromServices] IAuthenticationSchemeProvider schemeProvider)
     {
         if (!await schemeProvider.IsSupportedOAuthScheme(provider))
-            return Problem(OAuthError.ProviderNotSupported);
+            return Problem(OAuthError.UnsupportedProvider);
 
         // Kick off provider challenge in "link" mode.
         // Redirect URI is our handoff endpoint which decides next UI step.

@@ -123,6 +123,70 @@ public sealed class AccountService : IAccountService
         return new Success<User>(user);
     }
 
+    public async Task<OneOf<Success<User>, AccountWithEmailOrUsernameExists>> CreateOAuthOnlyAccountAsync(
+        string email,
+        string username,
+        string provider,
+        string providerAccountId,
+        string? providerAccountName)
+    {
+        email = email.ToLowerInvariant();
+        provider = provider.ToLowerInvariant();
+
+        // Reuse your existing guards
+        if (await IsUserNameBlacklisted(username) || await IsEmailProviderBlacklisted(email))
+            return new AccountWithEmailOrUsernameExists();
+
+        // Fast uniqueness check (optimistic; race handled by unique constraints below)
+        var exists = await _db.Users.AnyAsync(u => u.Email == email || u.Name == username);
+        if (exists) return new AccountWithEmailOrUsernameExists();
+
+        await using var tx = await _db.Database.BeginTransactionAsync();
+
+        try
+        {
+            var user = new User
+            {
+                Id = Guid.CreateVersion7(),
+                Name = username,
+                Email = email,
+                PasswordHash = null,            // OAuth-only account
+                ActivatedAt = DateTime.UtcNow   // no activation flow
+            };
+
+            _db.Users.Add(user);
+            await _db.SaveChangesAsync();
+
+            // Link external identity
+            _db.UserOAuthConnections.Add(new UserOAuthConnection
+            {
+                UserId = user.Id,
+                ProviderKey = provider,
+                ExternalId = providerAccountId,
+                DisplayName = providerAccountName
+            });
+
+            await _db.SaveChangesAsync();
+
+            await tx.CommitAsync();
+
+            // Ensure ActivatedAt <= CreatedAt (optional monotonic tidy-up)
+            if (user.CreatedAt > user.ActivatedAt)
+            {
+                user.ActivatedAt = user.CreatedAt;
+                await _db.SaveChangesAsync();
+            }
+
+            return new Success<User>(user);
+        }
+        catch (DbUpdateException ex) when (ex.InnerException is PostgresException { SqlState: "23505" })
+        {
+            // Unique constraint hit: either username/email already exists, or (provider, externalId) is already linked.
+            await tx.RollbackAsync();
+            return new AccountWithEmailOrUsernameExists();
+        }
+    }
+
     public async Task<bool> TryActivateAccountAsync(string secret, CancellationToken cancellationToken = default)
     {
         var hash = HashingUtils.HashToken(secret);
@@ -444,54 +508,6 @@ public sealed class AccountService : IAccountService
             , cancellationToken);
 
         return nChanges > 0;
-    }
-
-    public async Task<UserOAuthConnection[]> GetOAuthConnectionsAsync(Guid userId)
-    {
-        return await _db.UserOAuthConnections
-            .AsNoTracking()
-            .Where(c => c.UserId == userId)
-            .ToArrayAsync();
-    }
-
-    public async Task<UserOAuthConnection?> GetOAuthConnectionAsync(string provider, string providerAccountId)
-    {
-        return await _db.UserOAuthConnections.FirstOrDefaultAsync(c => c.ProviderKey == provider && c.ExternalId == providerAccountId);
-    }
-
-    public async Task<bool> HasOAuthConnectionAsync(Guid userId, string provider)
-    {
-        return await _db.UserOAuthConnections.AnyAsync(c => c.UserId == userId && c.ProviderKey == provider);
-    }
-
-    public async Task<bool> TryAddOAuthConnectionAsync(Guid userId, string provider, string providerAccountId, string? providerAccountName)
-    {
-        try
-        {
-            _db.UserOAuthConnections.Add(new UserOAuthConnection
-            {
-                UserId = userId,
-                ProviderKey = provider,
-                ExternalId = providerAccountId,
-                DisplayName = providerAccountName
-            });
-            await _db.SaveChangesAsync();
-        }
-        catch (DbUpdateException ex) when (ex.InnerException is PostgresException { SqlState: "23505" }) // Unique constaint violation
-        {
-            return false;
-        }
-        
-        return true;
-    }
-
-    public async Task<bool> TryRemoveOAuthConnectionAsync(Guid userId, string provider)
-    {
-        var nDeleted = await _db.UserOAuthConnections
-            .Where(c => c.UserId == userId && c.ProviderKey == provider)
-            .ExecuteDeleteAsync();
-
-        return nDeleted > 0;
     }
 
     private async Task<bool> CheckPassword(string password, User user)

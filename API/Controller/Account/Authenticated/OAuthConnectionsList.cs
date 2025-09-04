@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using OpenShock.API.Models.Response;
+using OpenShock.API.Services.OAuthConnection;
 
 namespace OpenShock.API.Controller.Account.Authenticated;
 
@@ -12,9 +13,9 @@ public sealed partial class AuthenticatedAccountController
     /// <response code="200">Returns the list of connections.</response>
     [HttpGet("connections")]
     [ProducesResponseType(StatusCodes.Status200OK)]
-    public async Task<OAuthConnectionResponse[]> ListOAuthConnections()
+    public async Task<OAuthConnectionResponse[]> ListOAuthConnections([FromServices] IOAuthConnectionService connectionService)
     {
-        var connections = await _accountService.GetOAuthConnectionsAsync(CurrentUser.Id);
+        var connections = await connectionService.GetConnectionsAsync(CurrentUser.Id);
 
         return connections
             .Select(c => new OAuthConnectionResponse
