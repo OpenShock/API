@@ -1,5 +1,7 @@
-﻿using OpenShock.Common.Problems;
-using System.Net;
+﻿using System.Net;
+using OpenShock.Common.Problems;
+
+namespace OpenShock.API.OAuth;
 
 public static class OAuthError
 {
@@ -19,13 +21,18 @@ public static class OAuthError
         "OAuth.Flow.Unsupported",
         "This OAuth flow type is not recognized or allowed",
         HttpStatusCode.Forbidden);
+    
+    public static OpenShockProblem FlowMismatch => new(
+        "OAuth.Flow.Mismatch",
+        "This OAuth flow differs from the flow the oauth flow started with",
+        HttpStatusCode.Forbidden);
 
     public static OpenShockProblem AnonymousOnlyEndpoint => new(
         "OAuth.Flow.AnonymousOnlyEndpoint",
         "You must be signed out to call this endpoint",
         HttpStatusCode.Unauthorized);
 
-    public static OpenShockProblem FlowNotFound => new(
+    public static OpenShockProblem FlowStateNotFound => new(
         "OAuth.Flow.NotFound",
         "The OAuth flow was not found, has expired, or is invalid",
         HttpStatusCode.BadRequest);

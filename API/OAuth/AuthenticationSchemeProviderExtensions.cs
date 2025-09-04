@@ -1,8 +1,6 @@
 ﻿using Microsoft.AspNetCore.Authentication;
-using OpenShock.API.Constants;
-using OpenShock.Common.Authentication;
 
-namespace OpenShock.API.Extensions;
+namespace OpenShock.API.OAuth;
 
 public static class AuthenticationSchemeProviderExtensions
 {

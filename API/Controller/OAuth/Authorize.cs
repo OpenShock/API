@@ -1,10 +1,8 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
-using OpenShock.API.Extensions;
-using OpenShock.Common.Constants;
 using OpenShock.Common.Problems;
 using System.Net.Mime;
-using OpenShock.API.Utils;
+using OpenShock.API.OAuth;
 using OpenShock.Common.Authentication;
 
 namespace OpenShock.API.Controller.OAuth;
@@ -35,7 +33,7 @@ public sealed partial class OAuthController
         {
             return Problem(OAuthError.AnonymousOnlyEndpoint);
         }
-        
-        return OAuthUtil.StartOAuth(provider, AuthConstants.OAuthLoginOrCreateFlow);
+
+        return OAuthUtil.StartOAuth(provider, OAuthFlow.LoginOrCreate);
     }
 }

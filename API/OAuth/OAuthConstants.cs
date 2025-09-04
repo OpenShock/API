@@ -1,4 +1,4 @@
-﻿namespace OpenShock.API.Constants;
+﻿namespace OpenShock.API.OAuth;
 
 public static class OAuthConstants
 {
@@ -8,7 +8,7 @@ public static class OAuthConstants
     public const string DiscordScheme = "discord";
     public static readonly string[] OAuth2Schemes = [DiscordScheme];
     
-    public const string ItemKeyFlowType = "openshock.oauth.flow_type";
+    public const string ItemKeyFlowType = ".FlowType";
     
     public const string ClaimEmailVerified = "openshock.oauth.email_verified";
     public const string ClaimDisplayName = "openshock.oauth.display_name";

@@ -1,10 +1,8 @@
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Mvc;
-using OpenShock.API.Extensions;
-using OpenShock.Common.Constants;
 using OpenShock.Common.Problems;
 using System.Net.Mime;
-using OpenShock.API.Utils;
+using OpenShock.API.OAuth;
 
 namespace OpenShock.API.Controller.Account.Authenticated;
 
@@ -31,6 +29,6 @@ public sealed partial class AuthenticatedAccountController
         if (!await schemeProvider.IsSupportedOAuthScheme(provider))
             return Problem(OAuthError.UnsupportedProvider);
 
-        return OAuthUtil.StartOAuth(provider, AuthConstants.OAuthLinkFlow);
+        return OAuthUtil.StartOAuth(provider, OAuthFlow.Link);
     }
 }

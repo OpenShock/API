@@ -2,17 +2,12 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.Extensions.Options;
-using OpenShock.API.Extensions;
-using OpenShock.API.Services.Account;
 using OpenShock.API.Services.OAuthConnection;
-using OpenShock.Common.Authentication;
-using OpenShock.Common.Constants;
-using OpenShock.Common.Errors;
 using OpenShock.Common.Options;
 using OpenShock.Common.Problems;
 using System.Net.Mime;
 using System.Security.Claims;
-using OpenShock.API.Constants;
+using OpenShock.API.OAuth;
 
 namespace OpenShock.API.Controller.OAuth;
 
@@ -40,22 +35,12 @@ public sealed partial class OAuthController
         [FromServices] IOAuthConnectionService connectionService,
         [FromServices] IOptions<FrontendOptions> frontendOptions)
     {
-        if (!await _schemeProvider.IsSupportedOAuthScheme(provider))
-            return Problem(OAuthError.UnsupportedProvider);
-
-        // Temp external principal (set by OAuth SignInScheme).
-        var auth = await HttpContext.AuthenticateAsync(OAuthConstants.FlowScheme);
-        if (!auth.Succeeded || auth.Principal is null)
-            return Problem(OAuthError.FlowNotFound);
-
-        // Flow is stored in AuthenticationProperties by the authorize step.
-        if (auth.Properties is null || !auth.Properties.Items.TryGetValue("flow", out var flow) || string.IsNullOrWhiteSpace(flow))
+        var result = await ValidateOAuthFlowAsync(provider);
+        if (!result.TryPickT0(out var auth, out var response))
         {
-            await HttpContext.SignOutAsync(OAuthConstants.FlowScheme);
-            return Problem(OAuthError.InternalError);
+            return response;
         }
-        flow = flow.ToLowerInvariant();
-
+        
         // External subject is required to resolve/link.
         var externalId = auth.Principal.FindFirst(ClaimTypes.NameIdentifier)?.Value;
         if (string.IsNullOrEmpty(externalId))
@@ -66,14 +51,16 @@ public sealed partial class OAuthController
 
         var connection = await connectionService.GetByProviderExternalIdAsync(provider, externalId);
 
-        switch (flow)
+        switch (auth.Flow)
         {
-            case AuthConstants.OAuthLoginOrCreateFlow:
+            case OAuthFlow.LoginOrCreate:
                 {
+                    // TODO: Fail if currently logged in
+                    
                     if (connection is not null)
                     {
                         // Log In
-                        
+                        // TODO: Initialize authentication session
                         await HttpContext.SignOutAsync(OAuthConstants.FlowScheme);
                         return Redirect("/");
                     }
@@ -87,7 +74,7 @@ public sealed partial class OAuthController
                     return Redirect(frontendUrl.Uri.ToString());
                 }
 
-            case AuthConstants.OAuthLinkFlow:
+            case OAuthFlow.Link:
                 {
                     if (connection is not null)
                     {

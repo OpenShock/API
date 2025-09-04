@@ -1,18 +1,16 @@
 ﻿using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Mvc;
-using OpenShock.API.Constants;
-using OpenShock.Common.Authentication;
 
-namespace OpenShock.API.Utils;
+namespace OpenShock.API.OAuth;
 
 public static class OAuthUtil
 {
-    public static ChallengeResult StartOAuth(string provider, string flow)
+    public static ChallengeResult StartOAuth(string provider, OAuthFlow flow)
     {
         return new ChallengeResult(provider, new AuthenticationProperties
         {
             RedirectUri = $"/1/oauth/{provider}/handoff",
-            Items = { { OAuthConstants.ItemKeyFlowType, flow } }
+            Items = { { OAuthConstants.ItemKeyFlowType, flow.ToString() } }
         });
     }
 }

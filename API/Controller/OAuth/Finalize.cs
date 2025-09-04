@@ -1,21 +1,18 @@
 ﻿using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
-using OpenShock.API.Extensions;
 using OpenShock.API.Models.Requests;
 using OpenShock.API.Models.Response;
 using OpenShock.API.Services.Account;
 using OpenShock.API.Services.OAuthConnection;
-using OpenShock.Common.Authentication;
 using OpenShock.Common.Authentication.Services;
-using OpenShock.Common.Constants;
 using OpenShock.Common.Errors;
 using OpenShock.Common.OpenShockDb;
 using OpenShock.Common.Problems;
 using OpenShock.Common.Utils;
 using System.Net.Mime;
 using System.Security.Claims;
-using OpenShock.API.Constants;
+using OpenShock.API.OAuth;
 
 namespace OpenShock.API.Controller.OAuth;
 
@@ -50,24 +47,10 @@ public sealed partial class OAuthController
         [FromServices] IAccountService accountService,
         [FromServices] IOAuthConnectionService connectionService)
     {
-        if (!await _schemeProvider.IsSupportedOAuthScheme(provider))
-            return Problem(OAuthError.UnsupportedProvider);
-
-        var action = body.Action?.Trim().ToLowerInvariant();
-        if (action is not (AuthConstants.OAuthLoginOrCreateFlow or AuthConstants.OAuthLinkFlow))
-            return Problem(OAuthError.UnsupportedFlow);
-
-        // Authenticate via the short-lived OAuth flow cookie (temp scheme)
-        var auth = await HttpContext.AuthenticateAsync(OAuthConstants.FlowScheme);
-        if (!auth.Succeeded || auth.Principal is null)
-            return Problem(OAuthError.FlowNotFound);
-
-        // Flow must belong to the same provider we’re finalizing
-        var providerClaim = auth.Principal.FindFirst("provider")?.Value;
-        if (!string.Equals(providerClaim, provider, StringComparison.OrdinalIgnoreCase))
+        var result = await ValidateOAuthFlowAsync(provider);
+        if (!result.TryPickT0(out var auth, out var response))
         {
-            await HttpContext.SignOutAsync(OAuthConstants.FlowScheme);
-            return Problem(OAuthError.ProviderMismatch);
+            return response;
         }
 
         // External identity basics from claims (added by your handler)
@@ -80,54 +63,68 @@ public sealed partial class OAuthController
             return Problem(OAuthError.FlowMissingData);
         }
 
-
-        // If the external is already linked, don’t allow relinking in either flow.
-        var existing = await connectionService.GetByProviderExternalIdAsync(provider, externalId);
-
-        if (action == AuthConstants.OAuthLinkFlow)
+        return body.Action switch
         {
-            // Linking requires an authenticated session
-            var userRef = HttpContext.RequestServices.GetRequiredService<IUserReferenceService>();
-            if (userRef.AuthReference is null || !userRef.AuthReference.Value.IsT0)
-            {
-                // Not a logged-in session (could be API token or anonymous)
-                return Problem(OAuthError.NotAuthenticatedForLink);
-            }
+            OAuthFlow.Link => await HandleLink(provider, externalId, displayName, connectionService),
+            OAuthFlow.LoginOrCreate => await HandleLoginOrCreate(provider, externalId, email, displayName, accountService, connectionService),
+            _ => await HandleBadFlow()
+        };
 
-            var currentUser = HttpContext.RequestServices
-                .GetRequiredService<IClientAuthService<User>>()
-                .CurrentClient;
-
-            if (existing is not null)
-            {
-                // Already linked to someone, block.
-                await HttpContext.SignOutAsync(OAuthConstants.FlowScheme);
-                return Problem(OAuthError.ExternalAlreadyLinked);
-            }
-
-            var ok = await connectionService.TryAddConnectionAsync(
-                userId: currentUser.Id,
-                provider: provider,
-                providerAccountId: externalId,
-                providerAccountName: displayName ?? email);
-
-            await HttpContext.SignOutAsync(OAuthConstants.FlowScheme);
-
-            if (!ok) return Problem(OAuthError.ExternalAlreadyLinked);
-
-            return Ok(new OAuthFinalizeResponse
-            {
-                Provider = provider,
-                ExternalId = externalId
-            });
-        }
-
-        if (action is not AuthConstants.OAuthLoginOrCreateFlow)
+        async Task<IActionResult> HandleBadFlow()
         {
             await HttpContext.SignOutAsync(OAuthConstants.FlowScheme);
             return Problem(OAuthError.UnsupportedFlow);
         }
+    }
 
+    [NonAction]
+    private async Task<IActionResult> HandleLink(string provider, string externalId, string displayName, IOAuthConnectionService connectionService)
+    {
+        // If the external is already linked, don’t allow relinking in either flow.
+        var existing = await connectionService.GetByProviderExternalIdAsync(provider, externalId);
+        if (existing is not null)
+        {
+            // Already linked to someone, block.
+            await HttpContext.SignOutAsync(OAuthConstants.FlowScheme);
+            return Problem(OAuthError.ExternalAlreadyLinked);
+        }
+        
+        // Linking requires an authenticated session
+        var userRef = HttpContext.RequestServices.GetRequiredService<IUserReferenceService>();
+        if (userRef.AuthReference is null || !userRef.AuthReference.Value.IsT0)
+        {
+            // Not a logged-in session (could be API token or anonymous)
+            return Problem(OAuthError.NotAuthenticatedForLink);
+        }
+
+        var currentUser = HttpContext.RequestServices
+            .GetRequiredService<IClientAuthService<User>>()
+            .CurrentClient;
+
+
+        var ok = await connectionService.TryAddConnectionAsync(
+            userId: currentUser.Id,
+            provider: provider,
+            providerAccountId: externalId,
+            providerAccountName: displayName
+        );
+
+        await HttpContext.SignOutAsync(OAuthConstants.FlowScheme);
+
+        if (!ok) return Problem(OAuthError.ExternalAlreadyLinked);
+
+        return Ok(new OAuthFinalizeResponse
+        {
+            Provider = provider,
+            ExternalId = externalId
+        });
+    }
+    
+    [NonAction]
+    private async Task<IActionResult> HandleLoginOrCreate(string provider, string externalId, string email, string displayName, IAccountService accountService, IOAuthConnectionService connectionService)
+    {
+        // If the external is already linked, don’t allow relinking in either flow.
+        var existing = await connectionService.GetByProviderExternalIdAsync(provider, externalId);
         if (existing is not null)
         {
             // External already mapped; treat as conflict (or you could return 200 if you consider this a no-op login).
@@ -136,23 +133,12 @@ public sealed partial class OAuthController
         }
 
         // We must create a local account. Your AccountService requires a password, so:
-        var desiredUsername = body.Username?.Trim();
-        if (string.IsNullOrEmpty(desiredUsername))
-        {
-            // Generate a reasonable username from displayName/email/externalId
-            desiredUsername = GenerateUsername(displayName, email, externalId, provider);
-        }
-
-        // Ensure username is available; if not, try a few suffixes
-        desiredUsername = await EnsureAvailableUsernameAsync(desiredUsername, accountService);
-
-        var password = string.IsNullOrEmpty(body.Password)
-            ? CryptoUtils.RandomString(32) // strong random (since OAuth-only users won't use it)
-            : body.Password;
+        displayName = displayName.Trim();
+        // TODO: Check if username valid, if invalid respond with bad request, dont clear cookie tho, so that frontend can try again
 
         var created = await accountService.CreateOAuthOnlyAccountAsync(
             email: email,
-            username: body.Username!,
+            username: displayName,
             provider: provider,
             providerAccountId: externalId,
             providerAccountName: displayName
@@ -174,44 +160,5 @@ public sealed partial class OAuthController
             ExternalId = externalId,
             Username = newUser.Name
         });
-
-        // ------- local helpers --------
-
-        static string GenerateUsername(string? name, string? mail, string externalId, string providerKey)
-        {
-            if (!string.IsNullOrWhiteSpace(name))
-                return Slugify(name);
-
-            if (!string.IsNullOrWhiteSpace(mail))
-            {
-                var at = mail.IndexOf('@');
-                if (at > 0) return Slugify(mail[..at]);
-            }
-
-            return $"{providerKey}_{externalId}".ToLowerInvariant();
-        }
-
-        static string Slugify(string s)
-        {
-            var slug = new string(s.Trim()
-                .ToLowerInvariant()
-                .Select(ch => char.IsLetterOrDigit(ch) ? ch : '_')
-                .ToArray());
-            slug = System.Text.RegularExpressions.Regex.Replace(slug, "_{2,}", "_").Trim('_');
-            return string.IsNullOrEmpty(slug) ? "user" : slug;
-        }
-
-        static async Task<string> EnsureAvailableUsernameAsync(string baseName, IAccountService account)
-        {
-            var candidate = baseName;
-            for (var i = 0; i < 10; i++)
-            {
-                var check = await account.CheckUsernameAvailabilityAsync(candidate);
-                if (check.IsT0) return candidate; // Success
-                candidate = $"{baseName}_{CryptoUtils.RandomString(4).ToLowerInvariant()}";
-            }
-            // last resort: include a timestamp suffix
-            return $"{baseName}_{DateTimeOffset.UtcNow.ToUnixTimeSeconds()}";
-        }
     }
 }

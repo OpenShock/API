@@ -7,9 +7,6 @@ public static class AuthConstants
     public const string ApiTokenHeaderName = "OpenShockToken";
     public const string HubTokenHeaderName = "DeviceToken";
     
-    public const string OAuthLoginOrCreateFlow = "login-or-create";
-    public const string OAuthLinkFlow = "link";
-    
     public const int GeneratedTokenLength = 32;
     public const int ApiTokenLength = 64;
 }

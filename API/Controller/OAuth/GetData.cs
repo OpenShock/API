@@ -1,14 +1,13 @@
 ﻿using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
-using OpenShock.API.Extensions;
 using OpenShock.API.Models.Response;
 using OpenShock.Common.Authentication;
 using OpenShock.Common.Errors;
 using OpenShock.Common.Problems;
 using System.Net.Mime;
 using System.Security.Claims;
-using OpenShock.API.Constants;
+using OpenShock.API.OAuth;
 
 namespace OpenShock.API.Controller.OAuth;
 
@@ -37,7 +36,7 @@ public sealed partial class OAuthController
         // Temp external principal (set by OAuth handler with SignInScheme=OAuthFlowScheme, SaveTokens=true)
         var auth = await HttpContext.AuthenticateAsync(OAuthConstants.FlowScheme);
         if (!auth.Succeeded || auth.Principal is null)
-            return Problem(OAuthError.FlowNotFound);
+            return Problem(OAuthError.FlowStateNotFound);
 
         // Read identifiers from claims (no props.Items)
         var providerClaim = auth.Principal.Identity?.AuthenticationType;
@@ -45,7 +44,7 @@ public sealed partial class OAuthController
         if (string.IsNullOrWhiteSpace(providerClaim))
         {
             await HttpContext.SignOutAsync(OAuthConstants.FlowScheme);
-            return Problem(OAuthError.FlowNotFound);
+            return Problem(OAuthError.FlowStateNotFound);
         }
 
         if (!string.Equals(providerClaim, provider, StringComparison.InvariantCultureIgnoreCase))

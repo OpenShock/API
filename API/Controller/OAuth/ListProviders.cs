@@ -1,6 +1,6 @@
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Mvc;
-using OpenShock.API.Extensions;
+using OpenShock.API.OAuth;
 
 namespace OpenShock.API.Controller.OAuth;
 
