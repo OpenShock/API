@@ -6,7 +6,9 @@ using OpenShock.API.Services.Account;
 using OpenShock.Common.Authentication;
 using OpenShock.Common.Errors;
 using System.Security.Claims;
+using Microsoft.Extensions.Options;
 using OpenShock.API.OAuth;
+using OpenShock.Common.Options;
 
 namespace OpenShock.API.Controller.OAuth;
 
@@ -17,7 +19,8 @@ public sealed partial class OAuthController
     public async Task<IActionResult> OAuthHandOff(
         [FromRoute] string provider,
         [FromServices] IAuthenticationSchemeProvider schemeProvider,
-        [FromServices] IAccountService accountService)
+        [FromServices] IAccountService accountService,
+        [FromServices] IOptions<FrontendOptions> frontendOptions)
     {
         if (!await schemeProvider.IsSupportedOAuthScheme(provider))
             return Problem(OAuthError.ProviderNotSupported);
@@ -54,9 +57,12 @@ public sealed partial class OAuthController
                         await HttpContext.SignOutAsync(OpenShockAuthSchemes.OAuthFlowScheme);
                         return Redirect("/");
                     }
-
-                    var frontend = Environment.GetEnvironmentVariable("FRONTEND_ORIGIN") ?? "https://app.example.com";
-                    return Redirect($"{frontend}/{provider}/create");
+                    
+                    var frontendUrl = new UriBuilder(frontendOptions.Value.BaseUrl)
+                    {
+                        Path = $"oauth/{provider}/create"
+                    };
+                    return Redirect(frontendUrl.Uri.ToString());
                 }
 
             case OAuthConstants.LinkFlow:
@@ -68,8 +74,11 @@ public sealed partial class OAuthController
                         return Problem(OAuthError.LinkedToAnotherAccount);
                     }
 
-                    var frontend = Environment.GetEnvironmentVariable("FRONTEND_ORIGIN") ?? "https://app.example.com";
-                    return Redirect($"{frontend}/{provider}/link");
+                    var frontendUrl = new UriBuilder(frontendOptions.Value.BaseUrl)
+                    {
+                        Path = $"oauth/{provider}/link"
+                    };
+                    return Redirect(frontendUrl.Uri.ToString());
                 }
 
             default:
