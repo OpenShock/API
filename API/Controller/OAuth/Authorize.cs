@@ -10,12 +10,12 @@ namespace OpenShock.API.Controller.OAuth;
 public sealed partial class OAuthController
 {
     [EnableRateLimiting("auth")]
-    [HttpPost("{provider}/authorize")]
-    public async Task<IActionResult> OAuthAuthorize([FromRoute] string provider, [FromQuery(Name = "return_to")] string returnTo, [FromServices] IAuthenticationSchemeProvider schemeProvider)
+    [HttpGet("{provider}/authorize")]
+    public async Task<IActionResult> OAuthAuthorize([FromRoute] string provider, [FromServices] IAuthenticationSchemeProvider schemeProvider)
     {
         if (!await schemeProvider.IsSupportedOAuthScheme(provider))
             return Problem(OAuthError.ProviderNotSupported);
 
-        return Challenge(new AuthenticationProperties { RedirectUri = $"/oauth/{provider}/complete", Items = { { "flow", OAuthConstants.LoginOrCreate } } }, authenticationSchemes: [provider]);
+        return Challenge(new AuthenticationProperties { RedirectUri = $"/1/oauth/{provider}/handoff", Items = { { "flow", OAuthConstants.LoginOrCreate } } }, authenticationSchemes: [provider]);
     }
 }
