@@ -15,7 +15,7 @@ public sealed partial class AuthenticatedAccountController
     /// <exception cref="Exception"></exception>
     [HttpPost("email")]
     [ProducesResponseType<LegacyEmptyResponse>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
-    public Task<IActionResult> ChangeEmail(ChangeEmailRequest data)
+    public Task<IActionResult> ChangeEmail([FromBody] ChangeEmailRequest data)
     {
         throw new NotImplementedException();
     }
