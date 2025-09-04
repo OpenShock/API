@@ -18,7 +18,6 @@ namespace OpenShock.Common.Authentication.AuthenticationHandlers;
 public sealed class ApiTokenAuthentication : AuthenticationHandler<AuthenticationSchemeOptions>
 {
     private readonly IClientAuthService<User> _authService;
-    private readonly IUserReferenceService _userReferenceService;
     private readonly IBatchUpdateService _batchUpdateService;
     private readonly OpenShockContext _db;
     private readonly JsonSerializerOptions _serializerOptions;
@@ -29,13 +28,11 @@ public sealed class ApiTokenAuthentication : AuthenticationHandler<Authenticatio
         ILoggerFactory logger,
         UrlEncoder encoder,
         IClientAuthService<User> clientAuth,
-        IUserReferenceService userReferenceService,
         OpenShockContext db,
         IOptions<JsonOptions> jsonOptions, IBatchUpdateService batchUpdateService)
         : base(options, logger, encoder)
     {
         _authService = clientAuth;
-        _userReferenceService = userReferenceService;
         _db = db;
         _serializerOptions = jsonOptions.Value.SerializerOptions;
         _batchUpdateService = batchUpdateService;
@@ -62,7 +59,6 @@ public sealed class ApiTokenAuthentication : AuthenticationHandler<Authenticatio
 
         _batchUpdateService.UpdateApiTokenLastUsed(tokenDto.Id);
         _authService.CurrentClient = tokenDto.User;
-        _userReferenceService.AuthReference = tokenDto;
 
         var claims = new List<Claim>(3 + tokenDto.Permissions.Count)
         {

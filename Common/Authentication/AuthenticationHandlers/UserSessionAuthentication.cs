@@ -20,7 +20,6 @@ namespace OpenShock.Common.Authentication.AuthenticationHandlers;
 public sealed class UserSessionAuthentication : AuthenticationHandler<AuthenticationSchemeOptions>
 {
     private readonly IClientAuthService<User> _authService;
-    private readonly IUserReferenceService _userReferenceService;
     private readonly IBatchUpdateService _batchUpdateService;
     private readonly OpenShockContext _db;
     private readonly ISessionService _sessionService;
@@ -32,14 +31,12 @@ public sealed class UserSessionAuthentication : AuthenticationHandler<Authentica
         ILoggerFactory logger,
         UrlEncoder encoder,
         IClientAuthService<User> clientAuth,
-        IUserReferenceService userReferenceService,
         OpenShockContext db,
         ISessionService sessionService,
         IOptions<JsonOptions> jsonOptions, IBatchUpdateService batchUpdateService)
         : base(options, logger, encoder)
     {
         _authService = clientAuth;
-        _userReferenceService = userReferenceService;
         _db = db;
         _sessionService = sessionService;
         _serializerOptions = jsonOptions.Value.SerializerOptions;
@@ -78,7 +75,6 @@ public sealed class UserSessionAuthentication : AuthenticationHandler<Authentica
         }
 
         _authService.CurrentClient = retrievedUser;
-        _userReferenceService.AuthReference = session;
 
         var claims = new List<Claim>(2 + retrievedUser.Roles.Count)
         {

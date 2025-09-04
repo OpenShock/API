@@ -39,24 +39,22 @@ public sealed class TokenDeleteController : AuthenticatedSessionControllerBase
         MediaTypeNames.Application.ProblemJson)] // ApiTokenNotFound    
     public async Task<IActionResult> DeleteToken([FromRoute] Guid tokenId)
     {
-        var auth = HttpContext.GetAuthenticationMethod();
+        var authMethods = HttpContext.GetAuthenticationMethods();
 
         var query = _db.ApiTokens.Where(x => x.Id == tokenId);
 
-
-        switch (auth)
+        if (authMethods.Contains(OpenShockAuthSchemes.UserSessionCookie))
         {
-            case OpenShockAuthSchemes.UserSessionCookie:
-                query = query.WhereIsUserOrPrivileged(x => x.User, CurrentUser);
-                break;
-            case OpenShockAuthSchemes.ApiToken:
-            {
-                var requestTokenId = Guid.Parse(HttpContext.User.Claims.First(x => x.Type == OpenShockAuthClaims.ApiTokenId).Value);
-                if (requestTokenId != tokenId) return Problem(ApiTokenError.ApiTokenCanOnlyDelete);
-                break;
-            }
-            default:
-                throw new Exception("Unknown auth method");
+            query = query.WhereIsUserOrPrivileged(x => x.User, CurrentUser);
+        }
+        else if (authMethods.Contains(OpenShockAuthSchemes.ApiToken))
+        {
+            var requestTokenId = Guid.Parse(HttpContext.User.Claims.First(x => x.Type == OpenShockAuthClaims.ApiTokenId).Value);
+            if (requestTokenId != tokenId) return Problem(ApiTokenError.ApiTokenCanOnlyDelete);
+        }
+        else
+        {
+            throw new Exception("Unknown auth method");
         }
 
         var apiToken = await query.ExecuteDeleteAsync();

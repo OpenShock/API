@@ -1,9 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc.Filters;
-using OpenShock.Common.Authentication.Services;
 using OpenShock.Common.Errors;
 using OpenShock.Common.Models;
-using OpenShock.Common.OpenShockDb;
-using OpenShock.Common.Redis;
 
 namespace OpenShock.Common.Authentication.Attributes;
 
@@ -19,18 +16,11 @@ public sealed class TokenPermissionAttribute : Attribute, IAuthorizationFilter
 
     public void OnAuthorization(AuthorizationFilterContext context)
     {
-        var tokenService = context.HttpContext.RequestServices.GetRequiredService<IUserReferenceService>();
-        if (!tokenService.AuthReference.HasValue)
-        {
-            var error = AuthorizationError.UnknownError;
-            context.Result = error.ToObjectResult(context.HttpContext);
-            return;
-        }
+        var permissions = context.HttpContext.User.Claims.Where(x => x.Type == OpenShockAuthClaims.ApiTokenPermission).Select(x => x.Value).ToArray();
         
-        // Use explicit out types so that if the interface changes, this code breaks
-        if (tokenService.AuthReference.Value.TryPickT1(out ApiToken apiToken, out LoginSession _) && !_type.IsAllowed(apiToken.Permissions))
+        if (!permissions.Contains(_type.ToString()))
         {
-            var problem = AuthorizationError.TokenPermissionMissing(_type, apiToken.Permissions);
+            var problem = AuthorizationError.TokenPermissionMissing(_type, permissions.Select(Enum.Parse<PermissionType>).ToArray());
             context.Result = problem.ToObjectResult(context.HttpContext);
         }
     }

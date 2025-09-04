@@ -2,7 +2,6 @@
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using OpenShock.Common.Authentication;
-using OpenShock.Common.Authentication.Services;
 using OpenShock.Common.DeviceControl;
 using OpenShock.Common.Extensions;
 using OpenShock.Common.Models;
@@ -23,24 +22,20 @@ public sealed class UserHub : Hub<IUserHub>
     private readonly IRedisConnectionProvider _provider;
     private readonly IRedisPubService _redisPubService;
     private readonly IControlSender _controlSender;
-    private readonly IUserReferenceService _userReferenceService;
     private IReadOnlyList<PermissionType>? _tokenPermissions = null;
 
     public UserHub(ILogger<UserHub> logger, OpenShockContext db, IRedisConnectionProvider provider,
-        IRedisPubService redisPubService, IControlSender controlSender, IUserReferenceService userReferenceService)
+        IRedisPubService redisPubService, IControlSender controlSender)
     {
         _logger = logger;
         _db = db;
         _provider = provider;
         _redisPubService = redisPubService;
         _controlSender = controlSender;
-        _userReferenceService = userReferenceService;
     }
 
     public override async Task OnConnectedAsync()
     {
-        _tokenPermissions = _userReferenceService.AuthReference is not { IsT1: true } ? null : _userReferenceService.AuthReference.Value.AsT1.Permissions;
-
         await Clients.Caller.Welcome(Context.ConnectionId);
         var devicesOnline = _provider.RedisCollection<DeviceOnline>(false);
         var sharedDevices = await _db.Devices

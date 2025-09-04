@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using System.Security.Claims;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
 using OpenShock.Common.Authentication.Services;
 using OpenShock.Common.Models;
@@ -22,15 +23,18 @@ public class AuthenticatedSessionControllerBase : OpenShockControllerBase, IActi
     }
 
     [NonAction]
-    public bool IsAllowed(PermissionType requiredType)
+    protected bool IsAllowed(PermissionType requiredType)
     {
-        var userReferenceService = HttpContext.RequestServices.GetRequiredService<IUserReferenceService>();
+        if (User.Identities.Any(x => x is { Name: OpenShockAuthSchemes.UserSessionCookie, IsAuthenticated: true }))
+        {
+            return true;
+        }
 
-        if (userReferenceService.AuthReference is null) throw new Exception("UserReferenceService.AuthReference is null, this should not happen");
-
-        return userReferenceService.AuthReference.Value.Match(
-            loginSession => true, // We are in a session
-            apiToken => requiredType.IsAllowed(apiToken.Permissions)
-        );
+        var permissions = User.Claims
+            .Where(c => c.Type == OpenShockAuthClaims.ApiTokenPermission)
+            .Select(c => Enum.Parse<PermissionType>(c.Value))
+            .ToArray();
+        
+        return requiredType.IsAllowed(permissions);
     }
 }

@@ -90,15 +90,9 @@ public static class AuthUtils
         return false;
     }
 
-    public static string GetAuthenticationMethod(this HttpContext context)
+    public static string[] GetAuthenticationMethods(this HttpContext context)
     {
-        var authMethodClaim = context.User.Claims.FirstOrDefault(x => x.Type == ClaimTypes.AuthenticationMethod);
-        if (authMethodClaim is null)
-        {
-            throw new Exception("No authentication method claim found, this should not happen and is a bug!");
-        }
-
-        return authMethodClaim.Value;
+        return context.User.Claims.Where(x => x.Type == ClaimTypes.AuthenticationMethod).Select(x => x.Value).ToArray();
     }
     
 }
