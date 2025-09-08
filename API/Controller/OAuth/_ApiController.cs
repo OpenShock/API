@@ -1,4 +1,5 @@
-﻿using Asp.Versioning;
+﻿using System.Security.Claims;
+using Asp.Versioning;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Mvc;
 using OneOf;
@@ -65,10 +66,19 @@ public sealed partial class OAuthController : OpenShockControllerBase
             await HttpContext.SignOutAsync(OAuthConstants.FlowScheme);
             return Problem(OAuthError.FlowMismatch);
         }
+        
+        // External subject is required to resolve/link.
+        var externalId = auth.Principal.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        if (string.IsNullOrEmpty(externalId))
+        {
+            await HttpContext.SignOutAsync(OAuthConstants.FlowScheme);
+            return Problem(OAuthError.FlowMissingData);
+        }
 
         return new ValidatedFlowContext(
             Provider: expectedProvider,
             Flow: flow,
+            ExternalAccountId: externalId,
             Principal: auth.Principal,
             Properties: auth.Properties
         );

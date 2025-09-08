@@ -56,15 +56,14 @@ public interface IAccountService
     public Task<OneOf<Success, CannotDeletePrivilegedAccount, Unauthorized, NotFound>> DeleteAccountAsync(Guid executingUserId, Guid userId);
 
     /// <summary>
-    /// Login a user into his user session
+    /// Get a user by credentials
     /// </summary>
     /// <param name="usernameOrEmail"></param>
     /// <param name="password"></param>
-    /// <param name="loginContext"></param>
     /// <param name="cancellationToken"></param>
     /// <returns></returns>
-    public Task<OneOf<CreateUserLoginSessionSuccess, AccountDeactivated, AccountIsOAuthOnly, AccountNotActivated, NotFound>> CreateUserLoginSessionAsync(string usernameOrEmail, string password, LoginContext loginContext, CancellationToken cancellationToken = default);
-    
+    public Task<OneOf<User, NotFound, AccountDeactivated, AccountNotActivated, AccountIsOAuthOnly>> GetAccountByCredentialsAsync(string usernameOrEmail, string password, CancellationToken cancellationToken = default);
+
     /// <summary>
     /// Check if a password reset request exists and the secret is valid
     /// </summary>

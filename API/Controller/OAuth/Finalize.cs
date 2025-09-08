@@ -90,20 +90,15 @@ public sealed partial class OAuthController
         }
         
         // Linking requires an authenticated session
-        var userRef = HttpContext.RequestServices.GetRequiredService<IUserReferenceService>();
-        if (userRef.AuthReference is null || !userRef.AuthReference.Value.IsT0)
+        if (!TryGetAuthenticatedOpenShockUserId(out var currentUserId))
         {
             // Not a logged-in session (could be API token or anonymous)
             return Problem(OAuthError.NotAuthenticatedForLink);
         }
 
-        var currentUser = HttpContext.RequestServices
-            .GetRequiredService<IClientAuthService<User>>()
-            .CurrentClient;
-
 
         var ok = await connectionService.TryAddConnectionAsync(
-            userId: currentUser.Id,
+            userId: currentUserId,
             provider: provider,
             providerAccountId: externalId,
             providerAccountName: displayName

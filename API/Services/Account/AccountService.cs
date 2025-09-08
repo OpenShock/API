@@ -314,12 +314,12 @@ public sealed class AccountService : IAccountService
         return new Success();
     }
 
-    /// <inheritdoc />
-    public async Task<OneOf<CreateUserLoginSessionSuccess, AccountDeactivated, AccountIsOAuthOnly, AccountNotActivated, NotFound>> CreateUserLoginSessionAsync(string usernameOrEmail, string password,
-        LoginContext loginContext, CancellationToken cancellationToken = default)
+    /// <inheritdoc/>
+    public async Task<OneOf<User, NotFound, AccountDeactivated, AccountNotActivated, AccountIsOAuthOnly>> GetAccountByCredentialsAsync(string usernameOrEmail, string password,  CancellationToken cancellationToken)
     {
         var lowercaseUsernameOrEmail = usernameOrEmail.ToLowerInvariant();
         var user = await _db.Users
+            .AsNoTracking()
             .Include(u => u.UserDeactivation)
             .FirstOrDefaultAsync(x => x.Email == lowercaseUsernameOrEmail || x.Name == lowercaseUsernameOrEmail, cancellationToken);
         if (user is null)
@@ -328,6 +328,12 @@ public sealed class AccountService : IAccountService
             await Task.Delay(100, cancellationToken);
             return new NotFound();
         }
+
+        if (!await CheckPassword(password, user))
+        {
+            return new NotFound();
+        }
+        
         if (user.UserDeactivation is not null)
         {
             return new AccountDeactivated();
@@ -341,11 +347,7 @@ public sealed class AccountService : IAccountService
             return new AccountNotActivated();
         }
 
-        if (!await CheckPassword(password, user)) return new NotFound();
-
-        var createdSession = await _sessionService.CreateSessionAsync(user.Id, loginContext.UserAgent, loginContext.Ip);
-
-        return new CreateUserLoginSessionSuccess(user, createdSession.Token);
+        return user;
     }
 
     /// <inheritdoc />
