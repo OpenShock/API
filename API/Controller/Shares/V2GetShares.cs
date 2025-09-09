@@ -8,7 +8,7 @@ using Z.EntityFramework.Plus;
 
 namespace OpenShock.API.Controller.Shares;
 
-file sealed class V2UserSharesListItemDto
+internal sealed class V2UserSharesListItemDto
 {
 
     public required Guid Id { get; set; }

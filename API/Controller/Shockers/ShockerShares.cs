@@ -140,7 +140,7 @@ public sealed partial class ShockerController
     }
 
     /// <summary>
-    /// Remove a share code for a shocker
+    /// Remove a share for a shocker
     /// </summary>
     /// <param name="shockerId"></param>
     /// <param name="sharedWithUserId"></param>
@@ -152,7 +152,7 @@ public sealed partial class ShockerController
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status404NotFound, MediaTypeNames.Application.ProblemJson)] // ShockerNotFound    
     [MapToApiVersion("1")]
-    public async Task<IActionResult> ShockerShareCodeRemove(
+    public async Task<IActionResult> ShockerShareRemove(
         [FromRoute] Guid shockerId,
         [FromRoute] Guid sharedWithUserId,
         [FromServices] IDeviceUpdateService deviceUpdateService)

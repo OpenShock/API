@@ -110,13 +110,13 @@ public sealed partial class SharesController
     /// <param name="deviceUpdateService"></param>
     /// <returns></returns>
     [HttpPost("invites/incoming/{id:guid}")]
-    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType<V2UserSharesListItem>(StatusCodes.Status200OK)]
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status404NotFound, MediaTypeNames.Application.ProblemJson)] // ShareRequestNotFound
     [ApiVersion("2")]
     public async Task<IActionResult> RedeemInvite(Guid id, [FromServices] IDeviceUpdateService deviceUpdateService)
     {
         var shareRequest = await _db.UserShareInvites
-            .Include(x => x.ShockerMappings)
+            .Include(x => x.ShockerMappings).Include(x => x.Owner)
             .FirstOrDefaultAsync(x => x.Id == id && (x.RecipientUserId == null || x.RecipientUserId == CurrentUser.Id));
         
         if (shareRequest is null) return Problem(ShareError.ShareRequestNotFound);
@@ -164,8 +164,37 @@ public sealed partial class SharesController
         {
             await deviceUpdateService.UpdateDevice(shareRequest.OwnerId, affectedHub, DeviceUpdateType.ShockerUpdated, CurrentUser.Id);    
         }
+
+
+        var returnObject = new V2UserSharesListItemDto()
+        {
+            Id = shareRequest.OwnerId,
+            Email = shareRequest.Owner.Email,
+            Name = shareRequest.Owner.Name,
+            Shares = shareRequest.ShockerMappings.Select(y => new UserShareInfo
+            {
+                Id = y.Shocker.Id,
+                Name = y.Shocker.Name,
+                CreatedOn = DateTime.UtcNow,
+                Permissions = new ShockerPermissions
+                {
+                    Sound = y.AllowSound,
+                    Vibrate = y.AllowVibrate,
+                    Shock = y.AllowShock,
+                    Live = y.AllowLiveControl
+                },
+                Limits = new ShockerLimits
+                {
+                    Duration = y.MaxDuration,
+                    Intensity = y.MaxIntensity
+                },
+                Paused = y.IsPaused
+            })
+        };
+
         
-        return Ok();
+        
+        return Ok(returnObject.ToV2UserSharesListItem());
     }
 }
 

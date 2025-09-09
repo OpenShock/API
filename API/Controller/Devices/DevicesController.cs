@@ -12,6 +12,7 @@ using OpenShock.Common.Problems;
 using OpenShock.Common.Redis;
 using OpenShock.Common.Utils;
 using System.Net.Mime;
+using Redis.OM;
 
 namespace OpenShock.API.Controller.Devices;
 
@@ -201,9 +202,7 @@ public sealed partial class DevicesController
 
         var deviceExists = await _db.Devices.AnyAsync(x => x.Id == deviceId && x.OwnerId == CurrentUser.Id);
         if (!deviceExists) return Problem(HubError.HubNotFound);
-        // replace with unlink?
-        var existing = await devicePairs.FindByIdAsync(deviceId.ToString());
-        if (existing is not null) await devicePairs.DeleteAsync(existing);
+        await _redis.Connection.UnlinkAsync($"{typeof(DevicePair).FullName}:{deviceId}");
 
         string pairCode = CryptoUtils.RandomNumericString(6);
 
