@@ -116,7 +116,7 @@ public sealed partial class SharesController
     public async Task<IActionResult> RedeemInvite(Guid id, [FromServices] IDeviceUpdateService deviceUpdateService)
     {
         var shareRequest = await _db.UserShareInvites
-            .Include(x => x.ShockerMappings).Include(x => x.Owner)
+            .Include(x => x.ShockerMappings).ThenInclude(x => x.Shocker).Include(x => x.Owner)
             .FirstOrDefaultAsync(x => x.Id == id && (x.RecipientUserId == null || x.RecipientUserId == CurrentUser.Id));
         
         if (shareRequest is null) return Problem(ShareError.ShareRequestNotFound);
@@ -164,8 +164,7 @@ public sealed partial class SharesController
         {
             await deviceUpdateService.UpdateDevice(shareRequest.OwnerId, affectedHub, DeviceUpdateType.ShockerUpdated, CurrentUser.Id);    
         }
-
-
+        
         var returnObject = new V2UserSharesListItemDto()
         {
             Id = shareRequest.OwnerId,
