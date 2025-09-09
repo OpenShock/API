@@ -2,9 +2,12 @@
 using System.Net.Mime;
 using System.Security.Claims;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Options;
 using OpenShock.Common.Authentication;
 using OpenShock.Common.Models;
+using OpenShock.Common.Options;
 using OpenShock.Common.Problems;
+using OpenShock.Common.Utils;
 
 namespace OpenShock.Common;
 
@@ -30,6 +33,25 @@ public class OpenShockControllerBase : ControllerBase
     protected OkObjectResult LegacyEmptyOk(string message = "")
     {
         return Ok(new LegacyEmptyResponse(message));
+    }
+
+    [NonAction]
+    protected string? GetCurrentCookieDomain()
+    {
+        var options = HttpContext.RequestServices.GetRequiredService<IOptions<FrontendOptions>>().Value;
+
+        return options.CookieDomain.Split(',').FirstOrDefault(domain => Request.Headers.Host.ToString().EndsWith(domain, StringComparison.OrdinalIgnoreCase));
+    }
+
+    [NonAction]
+    protected void RemoveSessionKeyCookie()
+    {
+        var options = HttpContext.RequestServices.GetRequiredService<IOptions<FrontendOptions>>().Value;
+        
+        foreach (var domain in options.CookieDomain.Split(','))
+        {
+            HttpContext.RemoveSessionKeyCookie("." + domain);
+        }
     }
     
     [NonAction]

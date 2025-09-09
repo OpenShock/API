@@ -6,7 +6,6 @@ using OpenShock.API.Services.OAuthConnection;
 using OpenShock.Common.Options;
 using OpenShock.Common.Problems;
 using System.Net.Mime;
-using System.Security.Claims;
 using Microsoft.AspNetCore.Http.Extensions;
 using OpenShock.API.OAuth;
 using OpenShock.Common.Errors;
@@ -63,8 +62,8 @@ public sealed partial class OAuthController
                     
                     if (connection is not null)
                     {
-                        var cookieDomainToUse = frontendOptions.Value.CookieDomain.Split(',').FirstOrDefault(domain => Request.Headers.Host.ToString().EndsWith(domain, StringComparison.OrdinalIgnoreCase));
-                        if (cookieDomainToUse is null) return Problem(LoginError.InvalidDomain);
+                        var cookieDomain = GetCurrentCookieDomain();
+                        if (cookieDomain is null) return Problem(LoginError.InvalidDomain);
                         
                         var session = await sessionService.CreateSessionAsync(
                             connection.UserId,
@@ -73,7 +72,7 @@ public sealed partial class OAuthController
                             );
                         
                         await HttpContext.SignOutAsync(OAuthConstants.FlowScheme);
-                        HttpContext.SetSessionKeyCookie(session.Token, "." + cookieDomainToUse);
+                        HttpContext.SetSessionKeyCookie(session.Token, "." + cookieDomain);
                         
                         return Redirect("/"); // TODO: Make this go to frontend
                     }

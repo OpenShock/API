@@ -30,11 +30,10 @@ public sealed partial class AccountController
     public async Task<IActionResult> Login(
         [FromBody] Login body,
         [FromServices] ISessionService sessionService,
-        [FromServices] IOptions<FrontendOptions> options,
         CancellationToken cancellationToken)
     {
-        var cookieDomainToUse = options.Value.CookieDomain.Split(',').FirstOrDefault(domain => Request.Headers.Host.ToString().EndsWith(domain, StringComparison.OrdinalIgnoreCase));
-        if (cookieDomainToUse is null) return Problem(LoginError.InvalidDomain);
+        var cookieDomain = GetCurrentCookieDomain();
+        if (cookieDomain is null) return Problem(LoginError.InvalidDomain);
 
         var getAccountResult = await _accountService.GetAccountByCredentialsAsync(body.Email, body.Password, cancellationToken);
         if (!getAccountResult.TryPickT0(out var account, out var errors))
@@ -48,7 +47,7 @@ public sealed partial class AccountController
         }
 
         var session = await sessionService.CreateSessionAsync(account.Id, HttpContext.GetUserAgent(), HttpContext.GetRemoteIP().ToString());
-        HttpContext.SetSessionKeyCookie(session.Token, "." + cookieDomainToUse);
+        HttpContext.SetSessionKeyCookie(session.Token, "." + cookieDomain);
         return LegacyEmptyOk("Successfully logged in");
     }
 }

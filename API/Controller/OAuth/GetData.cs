@@ -2,8 +2,6 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 using OpenShock.API.Models.Response;
-using OpenShock.Common.Authentication;
-using OpenShock.Common.Errors;
 using OpenShock.Common.Problems;
 using System.Net.Mime;
 using System.Security.Claims;

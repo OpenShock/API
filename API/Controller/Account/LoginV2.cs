@@ -3,6 +3,7 @@ using OpenShock.API.Models.Requests;
 using System.Net;
 using System.Net.Mime;
 using Asp.Versioning;
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.RateLimiting;
 using OpenShock.API.Services.Account;
 using OpenShock.Common.Errors;
@@ -37,8 +38,8 @@ public sealed partial class AccountController
         [FromServices] IOptions<FrontendOptions> options,
         CancellationToken cancellationToken)
     {
-        var cookieDomainToUse = options.Value.CookieDomain.Split(',').FirstOrDefault(domain => Request.Headers.Host.ToString().EndsWith(domain, StringComparison.OrdinalIgnoreCase));
-        if (cookieDomainToUse is null) return Problem(LoginError.InvalidDomain);
+        var cookieDomain = GetCurrentCookieDomain();
+        if (cookieDomain is null) return Problem(LoginError.InvalidDomain);
 
         var remoteIp = HttpContext.GetRemoteIP();
 
@@ -63,7 +64,7 @@ public sealed partial class AccountController
         }
         
         var session = await sessionService.CreateSessionAsync(account.Id, HttpContext.GetUserAgent(), remoteIp.ToString());
-        HttpContext.SetSessionKeyCookie(session.Token, "." + cookieDomainToUse);
+        HttpContext.SetSessionKeyCookie(session.Token, "." + cookieDomain);
         return Ok(LoginV2OkResponse.FromUser(account));
     }
 }
