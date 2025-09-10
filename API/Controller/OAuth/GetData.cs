@@ -28,35 +28,18 @@ public sealed partial class OAuthController
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status400BadRequest, MediaTypeNames.Application.Json)]
     public async Task<IActionResult> OAuthGetData([FromRoute] string provider)
     {
-        if (!await _schemeProvider.IsSupportedOAuthScheme(provider))
-            return Problem(OAuthError.UnsupportedProvider);
-
-        // Temp external principal (set by OAuth handler with SignInScheme=OAuthFlowScheme, SaveTokens=true)
-        var auth = await HttpContext.AuthenticateAsync(OAuthConstants.FlowScheme);
-        if (!auth.Succeeded || auth.Principal is null)
-            return Problem(OAuthError.FlowStateNotFound);
-
-        // Read identifiers from claims (no props.Items)
-        var providerClaim = auth.Principal.Identity?.AuthenticationType;
-
-        if (string.IsNullOrWhiteSpace(providerClaim))
+        var result = await ValidateOAuthFlowAsync(provider);
+        if (!result.TryPickT0(out var auth, out var response))
         {
-            await HttpContext.SignOutAsync(OAuthConstants.FlowScheme);
-            return Problem(OAuthError.FlowStateNotFound);
-        }
-
-        if (!string.Equals(providerClaim, provider, StringComparison.InvariantCultureIgnoreCase))
-        {
-            await HttpContext.SignOutAsync(OAuthConstants.FlowScheme);
-            return Problem(OAuthError.ProviderMismatch);
+            return response;
         }
 
         return Ok(new OAuthDataResponse
         {
-            Provider = providerClaim,
+            Provider = auth.Provider,
             Email = auth.Principal.FindFirst(ClaimTypes.Email)?.Value,
             DisplayName = auth.Principal.FindFirst(ClaimTypes.Name)?.Value,
-            ExpiresAt = auth.Ticket.Properties.ExpiresUtc!.Value.UtcDateTime
+            ExpiresAt = auth.Properties.ExpiresUtc!.Value.UtcDateTime
         });
     }
 }

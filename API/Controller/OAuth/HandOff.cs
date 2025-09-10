@@ -57,13 +57,13 @@ public sealed partial class OAuthController
                     if (IsOpenShockUserAuthenticated())
                     {
                         await HttpContext.SignOutAsync(OAuthConstants.FlowScheme);
-                        return GetBadUrl("mustBeAuthenticated");
+                        return GetBadUrl("mustBeAnonymous");
                     }
                     
                     if (connection is not null)
                     {
                         var cookieDomain = GetCurrentCookieDomain();
-                        if (cookieDomain is null) return Problem(LoginError.InvalidDomain);
+                        if (cookieDomain is null) return GetBadUrl("internalError");
                         
                         var session = await sessionService.CreateSessionAsync(
                             connection.UserId,
@@ -91,7 +91,7 @@ public sealed partial class OAuthController
                     if (!IsOpenShockUserAuthenticated())
                     {
                         await HttpContext.SignOutAsync(OAuthConstants.FlowScheme);
-                        return GetBadUrl("cannotBeAuthenticated");
+                        return GetBadUrl("mustBeAuthenticated");
                     }
                     
                     if (connection is not null)
@@ -100,7 +100,7 @@ public sealed partial class OAuthController
                         
                         // TODO: Check if the connection is connected to our account with same externalId (AlreadyLinked), different externalId (AlreadyExists), or to another account (LinkedToAnotherAccount)
                         await HttpContext.SignOutAsync(OAuthConstants.FlowScheme);
-                        return Problem(OAuthError.ExternalAlreadyLinked);
+                        return GetBadUrl("alreadyLinked");
                     }
                     
                     // Link connection to account
@@ -114,14 +114,14 @@ public sealed partial class OAuthController
 
             default:
                 await HttpContext.SignOutAsync(OAuthConstants.FlowScheme);
-                return Problem(OAuthError.UnsupportedFlow);
+                return GetBadUrl("internalError");
         }
 
         RedirectResult GetBadUrl(string errorType)
         {
             var frontendUrl = new UriBuilder(frontendOptions.Value.BaseUrl)
             {
-                Path = "some/bad/url",
+                Path = "oauth/error",
                 Query = new QueryBuilder
                 {
                     { "error", errorType }

@@ -28,8 +28,7 @@ public sealed partial class OAuthController
         if (!await _schemeProvider.IsSupportedOAuthScheme(provider))
             return Problem(OAuthError.UnsupportedProvider);
 
-        if (User.Identities.Any(ident => string.Equals(ident.AuthenticationType, OpenShockAuthSchemes.UserSessionCookie,
-                StringComparison.InvariantCultureIgnoreCase)))
+        if (IsOpenShockUserAuthenticated())
         {
             return Problem(OAuthError.AnonymousOnlyEndpoint);
         }

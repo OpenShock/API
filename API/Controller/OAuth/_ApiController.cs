@@ -45,8 +45,13 @@ public sealed partial class OAuthController : OpenShockControllerBase
             return Problem(OAuthError.FlowStateNotFound);
 
         // 3) scheme/provider check — prefer the ticket's scheme over a magic Item
-        var actualScheme = auth.Properties.Items[".AuthScheme"];
-        if (actualScheme is null || !string.Equals(actualScheme, expectedProvider, StringComparison.OrdinalIgnoreCase))
+        if (!auth.Properties.Items.TryGetValue(".AuthScheme", out var actualScheme) || string.IsNullOrEmpty(actualScheme))
+        {
+            await HttpContext.SignOutAsync(OAuthConstants.FlowScheme);
+            return Problem(OAuthError.FlowStateNotFound);
+        }
+        
+        if (actualScheme != expectedProvider)
         {
             await HttpContext.SignOutAsync(OAuthConstants.FlowScheme);
             return Problem(OAuthError.ProviderMismatch);
