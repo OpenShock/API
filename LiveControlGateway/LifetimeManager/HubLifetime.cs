@@ -495,7 +495,7 @@ public sealed class HubLifetime : IAsyncDisposable
 
         var sendOnlineStatusUpdate = false;
 
-        if (!online.FirmwareVersion.Equals(data.FirmwareVersion) ||
+        if (online.FirmwareVersion != data.FirmwareVersion ||
             online.Gateway != data.Gateway ||
             online.ConnectedAt != data.ConnectedAt ||
             online.UserAgent != data.UserAgent)
