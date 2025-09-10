@@ -110,13 +110,13 @@ public sealed partial class SharesController
     /// <param name="deviceUpdateService"></param>
     /// <returns></returns>
     [HttpPost("invites/incoming/{id:guid}")]
-    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType<V2UserSharesListItem>(StatusCodes.Status200OK)]
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status404NotFound, MediaTypeNames.Application.ProblemJson)] // ShareRequestNotFound
     [ApiVersion("2")]
     public async Task<IActionResult> RedeemInvite(Guid id, [FromServices] IDeviceUpdateService deviceUpdateService)
     {
         var shareRequest = await _db.UserShareInvites
-            .Include(x => x.ShockerMappings)
+            .Include(x => x.ShockerMappings).ThenInclude(x => x.Shocker).Include(x => x.Owner)
             .FirstOrDefaultAsync(x => x.Id == id && (x.RecipientUserId == null || x.RecipientUserId == CurrentUser.Id));
         
         if (shareRequest is null) return Problem(ShareError.ShareRequestNotFound);
@@ -135,6 +135,8 @@ public sealed partial class SharesController
                 existingShare.MaxIntensity = shareInvitationShocker.MaxIntensity;
                 existingShare.MaxDuration = shareInvitationShocker.MaxDuration;
                 existingShare.IsPaused = shareInvitationShocker.IsPaused;
+                _db.UserShares.Update(existingShare);
+
             }
             else
             {
@@ -151,12 +153,13 @@ public sealed partial class SharesController
                     IsPaused = shareInvitationShocker.IsPaused
                 };
                 
-                alreadySharedShockers.Add(newShare);
+                _db.UserShares.Add(newShare);
             }
         }
         
         _db.UserShareInvites.Remove(shareRequest);
-
+        var a = _db.ChangeTracker.ToDebugString();
+        
         if (await _db.SaveChangesAsync() < 1) throw new Exception("Error while linking share code to your account");
 
         var affectedHubs = shareRequest.ShockerMappings.Select(x => x.ShockerId).Distinct();
@@ -165,7 +168,35 @@ public sealed partial class SharesController
             await deviceUpdateService.UpdateDevice(shareRequest.OwnerId, affectedHub, DeviceUpdateType.ShockerUpdated, CurrentUser.Id);    
         }
         
-        return Ok();
+        var returnObject = new V2UserSharesListItemDto()
+        {
+            Id = shareRequest.OwnerId,
+            Email = shareRequest.Owner.Email,
+            Name = shareRequest.Owner.Name,
+            Shares = shareRequest.ShockerMappings.Select(y => new UserShareInfo
+            {
+                Id = y.Shocker.Id,
+                Name = y.Shocker.Name,
+                CreatedOn = DateTime.UtcNow,
+                Permissions = new ShockerPermissions
+                {
+                    Sound = y.AllowSound,
+                    Vibrate = y.AllowVibrate,
+                    Shock = y.AllowShock,
+                    Live = y.AllowLiveControl
+                },
+                Limits = new ShockerLimits
+                {
+                    Duration = y.MaxDuration,
+                    Intensity = y.MaxIntensity
+                },
+                Paused = y.IsPaused
+            })
+        };
+
+        
+        
+        return Ok(returnObject.ToV2UserSharesListItem());
     }
 }
 
