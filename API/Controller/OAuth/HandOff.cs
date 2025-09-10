@@ -72,7 +72,7 @@ public sealed partial class OAuthController
                             );
                         
                         await HttpContext.SignOutAsync(OAuthConstants.FlowScheme);
-                        HttpContext.SetSessionKeyCookie(session.Token, "." + cookieDomain);
+                        SetSessionCookie(session.Token, "." + cookieDomain);
                         
                         return Redirect("/"); // TODO: Make this go to frontend
                     }

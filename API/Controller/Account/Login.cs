@@ -47,7 +47,7 @@ public sealed partial class AccountController
         }
 
         var session = await sessionService.CreateSessionAsync(account.Id, HttpContext.GetUserAgent(), HttpContext.GetRemoteIP().ToString());
-        HttpContext.SetSessionKeyCookie(session.Token, "." + cookieDomain);
+        SetSessionCookie(session.Token, cookieDomain);
         return LegacyEmptyOk("Successfully logged in");
     }
 }

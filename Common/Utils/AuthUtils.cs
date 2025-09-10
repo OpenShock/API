@@ -16,28 +16,6 @@ public static class AuthUtils
         "Device-Token"
     ];
 
-    private static CookieOptions GetCookieOptions(string domain, TimeSpan lifetime)
-    {
-        return new CookieOptions
-        {
-            Expires = new DateTimeOffset(DateTime.UtcNow.Add(lifetime)),
-            Secure = true,
-            HttpOnly = true,
-            SameSite = SameSiteMode.Strict,
-            Domain = domain
-        };
-    }
-
-    public static void SetSessionKeyCookie(this HttpContext context, string sessionKey, string domain)
-    {
-        context.Response.Cookies.Append(AuthConstants.UserSessionCookieName, sessionKey, GetCookieOptions(domain, Duration.LoginSessionLifetime));
-    }
-
-    public static void RemoveSessionKeyCookie(this HttpContext context, string domain)
-    {
-        context.Response.Cookies.Append(AuthConstants.UserSessionCookieName, string.Empty, GetCookieOptions(domain, TimeSpan.FromDays(-1)));
-    }
-
     public static bool TryGetUserSessionToken(this HttpContext context, [NotNullWhen(true)] out string? sessionToken)
     {
         if (context.Request.Cookies.TryGetValue(AuthConstants.UserSessionCookieName, out sessionToken) && !string.IsNullOrEmpty(sessionToken))

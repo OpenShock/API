@@ -4,6 +4,7 @@ using System.Security.Claims;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
 using OpenShock.Common.Authentication;
+using OpenShock.Common.Constants;
 using OpenShock.Common.Models;
 using OpenShock.Common.Options;
 using OpenShock.Common.Problems;
@@ -36,21 +37,47 @@ public class OpenShockControllerBase : ControllerBase
     }
 
     [NonAction]
+    private string GetCookieDomains()
+    {
+        return HttpContext.RequestServices.GetRequiredService<IOptions<FrontendOptions>>().Value.CookieDomain;
+    }
+
+    [NonAction]
     protected string? GetCurrentCookieDomain()
     {
-        var options = HttpContext.RequestServices.GetRequiredService<IOptions<FrontendOptions>>().Value;
+        return DomainValidator.GetBestMatchingCookieDomain(HttpContext.Request.Host.Host, GetCookieDomains());
+    }
 
-        return options.CookieDomain.Split(',').FirstOrDefault(domain => Request.Headers.Host.ToString().EndsWith(domain, StringComparison.OrdinalIgnoreCase));
+    private static CookieOptions GetCookieOptions(string domain, TimeSpan lifetime)
+    {
+        return new CookieOptions
+        {
+            Expires = DateTimeOffset.UtcNow.Add(lifetime),
+            Secure = true,
+            HttpOnly = true,
+            SameSite = SameSiteMode.Strict,
+            Domain = domain
+        };
+    }
+
+    [NonAction]
+    protected void SetSessionCookie(string sessionKey, string domain)
+    {
+        HttpContext.Response.Cookies.Append(AuthConstants.UserSessionCookieName, sessionKey, GetCookieOptions(domain, Duration.LoginSessionLifetime));
     }
 
     [NonAction]
     protected void RemoveSessionKeyCookie()
     {
-        var options = HttpContext.RequestServices.GetRequiredService<IOptions<FrontendOptions>>().Value;
-        
-        foreach (var domain in options.CookieDomain.Split(','))
+        var domains = GetCookieDomains().AsSpan();
+        foreach (var range in domains.Split(','))
         {
-            HttpContext.RemoveSessionKeyCookie("." + domain);
+            var domain = domains[range];
+            if (!DomainValidator.IsValidDomain(domain)) continue;
+
+            var domainStr = "." + domain.ToString();
+            
+            HttpContext.Response.Cookies.Append(AuthConstants.UserSessionCookieName, string.Empty, GetCookieOptions(domainStr, TimeSpan.FromDays(-1)));
         }
     }
     
