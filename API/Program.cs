@@ -9,7 +9,6 @@ using OpenShock.Common;
 using OpenShock.Common.DeviceControl;
 using OpenShock.Common.Extensions;
 using OpenShock.Common.Hubs;
-using OpenShock.Common.JsonSerialization;
 using OpenShock.Common.Options;
 using OpenShock.Common.Services;
 using OpenShock.Common.Services.Device;
@@ -33,17 +32,11 @@ var redisConfig = builder.Configuration.GetRedisConfigurationOptions();
 
 #endregion
 
-builder.Services.AddOpenShockMemDB(redisConfig);
-builder.Services.AddOpenShockDB(databaseConfig);
-builder.Services.AddOpenShockServices();
-
-builder.Services.AddSignalR()
-    .AddOpenShockStackExchangeRedis(options => { options.Configuration = redisConfig; })
-    .AddJsonProtocol(options =>
-    {
-        options.PayloadSerializerOptions.PropertyNameCaseInsensitive = true;
-        options.PayloadSerializerOptions.Converters.Add(new SemVersionJsonConverter());
-    });
+builder.Services
+    .AddOpenShockMemDB(redisConfig)
+    .AddOpenShockDB(databaseConfig)
+    .AddOpenShockServices()
+    .AddOpenShockSignalR(redisConfig);
 
 builder.Services.AddScoped<IDeviceService, DeviceService>();
 builder.Services.AddScoped<IControlSender, ControlSender>();

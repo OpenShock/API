@@ -27,6 +27,7 @@ using StackExchange.Redis;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Threading.RateLimiting;
+using OpenShock.Common.Extensions;
 using OpenShock.Common.Utils;
 
 namespace OpenShock.Common;
@@ -318,5 +319,16 @@ public static class OpenShockServiceHelper
         return services;
     }
 
-    public readonly record struct ServicesResult(ConfigurationOptions RedisConfig);
+    public static IServiceCollection AddOpenShockSignalR(this IServiceCollection services, ConfigurationOptions redisConfig)
+    {
+        services.AddSignalR()
+            .AddOpenShockStackExchangeRedis(options => { options.Configuration = redisConfig; })
+            .AddJsonProtocol(options =>
+            {
+                options.PayloadSerializerOptions.PropertyNameCaseInsensitive = true;
+                options.PayloadSerializerOptions.Converters.Add(new SemVersionJsonConverter());
+            });
+        
+        return services;
+    }
 }
