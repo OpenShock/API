@@ -135,6 +135,8 @@ public sealed partial class SharesController
                 existingShare.MaxIntensity = shareInvitationShocker.MaxIntensity;
                 existingShare.MaxDuration = shareInvitationShocker.MaxDuration;
                 existingShare.IsPaused = shareInvitationShocker.IsPaused;
+                _db.UserShares.Update(existingShare);
+
             }
             else
             {
@@ -151,12 +153,13 @@ public sealed partial class SharesController
                     IsPaused = shareInvitationShocker.IsPaused
                 };
                 
-                alreadySharedShockers.Add(newShare);
+                _db.UserShares.Add(newShare);
             }
         }
         
         _db.UserShareInvites.Remove(shareRequest);
-
+        var a = _db.ChangeTracker.ToDebugString();
+        
         if (await _db.SaveChangesAsync() < 1) throw new Exception("Error while linking share code to your account");
 
         var affectedHubs = shareRequest.ShockerMappings.Select(x => x.ShockerId).Distinct();
