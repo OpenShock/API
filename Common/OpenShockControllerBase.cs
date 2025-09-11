@@ -45,7 +45,7 @@ public class OpenShockControllerBase : ControllerBase
     [NonAction]
     protected string? GetCurrentCookieDomain()
     {
-        return DomainValidator.GetBestMatchingCookieDomain(HttpContext.Request.Host.Host, GetCookieDomains());
+        return DomainUtils.GetBestMatchingCookieDomain(HttpContext.Request.Host.Host, GetCookieDomains());
     }
 
     private static CookieOptions GetCookieOptions(string domain, TimeSpan lifetime)
@@ -73,7 +73,7 @@ public class OpenShockControllerBase : ControllerBase
         foreach (var range in domains.Split(','))
         {
             var domain = domains[range];
-            if (!DomainValidator.IsValidDomain(domain)) continue;
+            if (!DomainUtils.IsValidDomain(domain)) continue;
 
             var domainStr = "." + domain.ToString();
             
