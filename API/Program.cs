@@ -14,7 +14,6 @@ using OpenShock.Common.Authentication;
 using OpenShock.Common.DeviceControl;
 using OpenShock.Common.Extensions;
 using OpenShock.Common.Hubs;
-using OpenShock.Common.JsonSerialization;
 using OpenShock.Common.Options;
 using OpenShock.Common.Services;
 using OpenShock.Common.Services.Device;
@@ -38,44 +37,38 @@ var redisConfig = builder.Configuration.GetRedisConfigurationOptions();
 
 #endregion
 
-builder.Services.AddOpenShockMemDB(redisConfig);
-builder.Services.AddOpenShockDB(databaseConfig);
-builder.Services.AddOpenShockServices(auth => auth
-    .AddCookie(OAuthConstants.FlowScheme, o =>
-    {
-        o.Cookie.Name = OAuthConstants.FlowCookieName;
-        o.ExpireTimeSpan = TimeSpan.FromMinutes(10);
-        o.SlidingExpiration = false;
-    })
-    .AddDiscord(OAuthConstants.DiscordScheme, o =>
-    {
-        o.SignInScheme = OAuthConstants.FlowScheme;
+builder.Services
+    .AddOpenShockMemDB(redisConfig)
+    .AddOpenShockDB(databaseConfig)
+    .AddOpenShockServices(auth => auth
+        .AddCookie(OAuthConstants.FlowScheme, o =>
+        {
+            o.Cookie.Name = OAuthConstants.FlowCookieName;
+            o.ExpireTimeSpan = TimeSpan.FromMinutes(10);
+            o.SlidingExpiration = false;
+        })
+        .AddDiscord(OAuthConstants.DiscordScheme, o =>
+        {
+            o.SignInScheme = OAuthConstants.FlowScheme;
 
-        var options = builder.Configuration.GetRequiredSection(DiscordOAuthOptions.SectionName).Get<DiscordOAuthOptions>()!;
+            var options = builder.Configuration.GetRequiredSection(DiscordOAuthOptions.SectionName).Get<DiscordOAuthOptions>()!;
 
-        o.ClientId = options.ClientId;
-        o.ClientSecret = options.ClientSecret;
-        o.CallbackPath = options.CallbackPath;
-        o.AccessDeniedPath = options.AccessDeniedPath;
-        foreach (var scope in options.Scopes) o.Scope.Add(scope);
+            o.ClientId = options.ClientId;
+            o.ClientSecret = options.ClientSecret;
+            o.CallbackPath = options.CallbackPath;
+            o.AccessDeniedPath = options.AccessDeniedPath;
+            foreach (var scope in options.Scopes) o.Scope.Add(scope);
 
-        o.Prompt = "none";
-        o.SaveTokens = false;
+            o.Prompt = "none";
+            o.SaveTokens = false;
 
-        o.ClaimActions.MapJsonKey(OAuthConstants.ClaimEmailVerified, "verified");
-        o.ClaimActions.MapJsonKey(OAuthConstants.ClaimDisplayName, "global_name");
+            o.ClaimActions.MapJsonKey(OAuthConstants.ClaimEmailVerified, "verified");
+            o.ClaimActions.MapJsonKey(OAuthConstants.ClaimDisplayName, "global_name");
 
-        o.Validate();
-    })
-);
-
-builder.Services.AddSignalR()
-    .AddOpenShockStackExchangeRedis(options => { options.Configuration = redisConfig; })
-    .AddJsonProtocol(options =>
-    {
-        options.PayloadSerializerOptions.PropertyNameCaseInsensitive = true;
-        options.PayloadSerializerOptions.Converters.Add(new SemVersionJsonConverter());
-    });
+            o.Validate();
+        })
+    )
+    .AddOpenShockSignalR(redisConfig);
 
 builder.Services.AddScoped<IDeviceService, DeviceService>();
 builder.Services.AddScoped<IControlSender, ControlSender>();
