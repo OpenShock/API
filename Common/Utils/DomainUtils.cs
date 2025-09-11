@@ -1,5 +1,4 @@
 ﻿using System.Buffers;
-using System.Globalization;
 using System.Runtime.CompilerServices;
 
 namespace OpenShock.Common.Utils;
@@ -10,21 +9,14 @@ public static class DomainUtils
         SearchValues.Create("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-");
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static bool IsValidDomain(string? s)
-        => s is not null && IsValidDomain(s.AsSpan());
-
-    public static bool IsValidDomain(ReadOnlySpan<char> s)
+    public static bool IsValidDomain(ReadOnlySpan<char> str)
     {
-        if (s.Length is 0 or > 253) return false;
-        if (!ContainsDot(s)) return false;
-        if (s[0] == '.' || s[^1] == '.') return false;
+        if (str.Length is 0 or > 253) return false;
+        if (!ContainsDot(str)) return false;
 
-        for (int i = 1; i < s.Length; i++)
-            if (s[i] == '.' && s[i - 1] == '.') return false;
-
-        foreach (var range in s.Split('.'))
+        foreach (var range in str.Split('.'))
         {
-            if (!IsValidLabel(s[range])) return false;
+            if (!IsValidLabel(str[range])) return false;
         }
 
         return true;
@@ -38,7 +30,7 @@ public static class DomainUtils
     public static bool HostMatchesCookieDomain(ReadOnlySpan<char> host, ReadOnlySpan<char> cookieDomain)
     {
         // Optional: if you expect Unicode, punycode both here (see helper below)
-        cookieDomain = NormalizeCookieDomain(cookieDomain);
+        cookieDomain = RemoveLeadingDot(cookieDomain);
         if (cookieDomain.Length == 0) return false;
 
         if (!IsValidDomain(host) || !IsValidDomain(cookieDomain))
@@ -78,7 +70,7 @@ public static class DomainUtils
             var cd = cookieDomainList[range].Trim(); // trim ASCII whitespace
             if (cd.Length == 0) continue;
 
-            cd = NormalizeCookieDomain(cd); // strip a single leading '.'
+            cd = RemoveLeadingDot(cd); // strip a single leading '.'
 
             if (!IsValidDomain(cd)) continue;
             // if (IsPublicSuffix(cd)) continue;
@@ -98,17 +90,13 @@ public static class DomainUtils
     // --- helpers ---
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static ReadOnlySpan<char> NormalizeCookieDomain(ReadOnlySpan<char> cd)
+    private static ReadOnlySpan<char> RemoveLeadingDot(ReadOnlySpan<char> cd)
     {
         // RFC 6265: a leading dot is ignored (".example.com" == "example.com")
         if (cd.Length > 0 && cd[0] == '.')
             cd = cd[1..];
         return cd;
     }
-
-    // If you need IDN support, use this to punycode strings before validation
-    public static string ToAsciiIdn(string s) =>
-        new IdnMapping { UseStd3AsciiRules = true }.GetAscii(s);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static bool IsValidLabel(ReadOnlySpan<char> label)
