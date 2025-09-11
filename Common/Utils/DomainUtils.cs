@@ -4,7 +4,7 @@ using System.Runtime.CompilerServices;
 
 namespace OpenShock.Common.Utils;
 
-public static class DomainValidator
+public static class DomainUtils
 {
     private static readonly SearchValues<char> ValidLabelChars =
         SearchValues.Create("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-");
