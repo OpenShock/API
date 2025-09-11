@@ -197,6 +197,7 @@ public abstract class WebsocketBaseController<T> : OpenShockControllerBase, IAsy
             catch (Exception e)
             {
                 Logger.LogError(e, "Error while sending message to client - {Msg}", JsonSerializer.Serialize(msg));
+                await ForceClose(WebSocketCloseStatus.InternalServerError, "Internal server error, error sending message to websocket client");
                 throw;
             }
         }
