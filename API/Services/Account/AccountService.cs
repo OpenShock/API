@@ -128,7 +128,8 @@ public sealed class AccountService : IAccountService
         string username,
         string provider,
         string providerAccountId,
-        string? providerAccountName)
+        string? providerAccountName,
+        bool isEmailTrusted)
     {
         email = email.ToLowerInvariant();
         provider = provider.ToLowerInvariant();

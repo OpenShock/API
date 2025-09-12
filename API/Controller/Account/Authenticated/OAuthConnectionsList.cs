@@ -13,9 +13,9 @@ public sealed partial class AuthenticatedAccountController
     /// <response code="200">Returns the list of connections.</response>
     [HttpGet("connections")]
     [ProducesResponseType(StatusCodes.Status200OK)]
-    public async Task<OAuthConnectionResponse[]> ListOAuthConnections([FromServices] IOAuthConnectionService connectionService)
+    public async Task<OAuthConnectionResponse[]> ListOAuthConnections([FromServices] IOAuthConnectionService connectionService, CancellationToken cancellationToken)
     {
-        var connections = await connectionService.GetConnectionsAsync(CurrentUser.Id);
+        var connections = await connectionService.GetConnectionsAsync(CurrentUser.Id, cancellationToken);
 
         return connections
             .Select(c => new OAuthConnectionResponse

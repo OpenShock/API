@@ -12,7 +12,7 @@ public static class DomainUtils
     public static bool IsValidDomain(ReadOnlySpan<char> str)
     {
         if (str.Length is 0 or > 253) return false;
-        if (!ContainsDot(str)) return false;
+        if (str.IndexOf('.') == -1) return str is "localhost";
 
         foreach (var range in str.Split('.'))
         {
@@ -21,24 +21,9 @@ public static class DomainUtils
 
         return true;
     }
-
-    /// <summary>
-    /// Returns true if <paramref name="host"/> ends with <paramref name="cookieDomain"/> on a label boundary.
-    /// Accepts cookie domains with an optional leading '.' (ignored).
-    /// Both must be valid domains (after normalizing the cookie domain).
-    /// </summary>
-    public static bool HostMatchesCookieDomain(ReadOnlySpan<char> host, ReadOnlySpan<char> cookieDomain)
+    
+    public static bool HostMatchesCookieDomainCore(ReadOnlySpan<char> host, ReadOnlySpan<char> cookieDomain)
     {
-        // Optional: if you expect Unicode, punycode both here (see helper below)
-        cookieDomain = RemoveLeadingDot(cookieDomain);
-        if (cookieDomain.Length == 0) return false;
-
-        if (!IsValidDomain(host) || !IsValidDomain(cookieDomain))
-            return false;
-
-        // Optional hook: reject public suffixes (requires PSL)
-        // if (IsPublicSuffix(cookieDomain)) return false;
-
         var hostLabels = new ReverseLabelEnumerator(host);
         var cookieLabels = new ReverseLabelEnumerator(cookieDomain);
 
@@ -51,6 +36,20 @@ public static class DomainUtils
 
         // Boundary check
         return !hostLabels.HasRemaining || host[hostLabels.Position + 1] == '.';
+    }
+
+    /// <summary>
+    /// Returns true if <paramref name="host"/> ends with <paramref name="cookieDomain"/> on a label boundary.
+    /// Accepts cookie domains with an optional leading '.' (ignored).
+    /// Both must be valid domains (after normalizing the cookie domain).
+    /// </summary>
+    public static bool HostMatchesCookieDomain(ReadOnlySpan<char> host, ReadOnlySpan<char> cookieDomain)
+    {
+        cookieDomain = RemoveLeadingDot(cookieDomain);
+        
+        if (!IsValidDomain(host) || !IsValidDomain(cookieDomain)) return false;
+        
+        return HostMatchesCookieDomainCore(host, cookieDomain);
     }
 
     /// <summary>
@@ -120,15 +119,6 @@ public static class DomainUtils
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static char ToLowerAscii(char c)
         => c is >= 'A' and <= 'Z' ? (char)(c + 32) : c;
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static bool ContainsDot(ReadOnlySpan<char> s)
-    {
-        foreach (var t in s)
-            if (t == '.')
-                return true;
-        return false;
-    }
 }
 
 // Your ReverseLabelEnumerator stays as-is

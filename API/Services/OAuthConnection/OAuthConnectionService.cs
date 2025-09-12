@@ -1,9 +1,8 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Npgsql;
-using OpenShock.API.Services.OAuthConnection;
 using OpenShock.Common.OpenShockDb;
 
-namespace OpenShock.API.Services.Account;
+namespace OpenShock.API.Services.OAuthConnection;
 
 public sealed class OAuthConnectionService : IOAuthConnectionService
 {
@@ -16,28 +15,34 @@ public sealed class OAuthConnectionService : IOAuthConnectionService
         _logger = logger;
     }
 
-    public async Task<UserOAuthConnection[]> GetConnectionsAsync(Guid userId)
+    public async Task<UserOAuthConnection[]> GetConnectionsAsync(Guid userId, CancellationToken cancellationToken)
     {
         return await _db.UserOAuthConnections
             .AsNoTracking()
             .Where(c => c.UserId == userId)
-            .ToArrayAsync();
+            .ToArrayAsync(cancellationToken);
     }
 
-    public async Task<UserOAuthConnection?> GetByProviderExternalIdAsync(string provider, string providerAccountId)
+    public async Task<UserOAuthConnection?> GetByProviderExternalIdAsync(string provider, string providerAccountId, CancellationToken cancellationToken)
     {
         var p = provider.ToLowerInvariant();
         return await _db.UserOAuthConnections
-            .FirstOrDefaultAsync(c => c.ProviderKey == p && c.ExternalId == providerAccountId);
+            .FirstOrDefaultAsync(c => c.ProviderKey == p && c.ExternalId == providerAccountId, cancellationToken);
     }
 
-    public async Task<bool> HasConnectionAsync(Guid userId, string provider)
+    public async Task<bool> ConnectionExistsAsync(string provider, string providerAccountId, CancellationToken cancellationToken)
     {
         var p = provider.ToLowerInvariant();
-        return await _db.UserOAuthConnections.AnyAsync(c => c.UserId == userId && c.ProviderKey == p);
+        return await _db.UserOAuthConnections.AnyAsync(c => c.ProviderKey == p && c.ExternalId == providerAccountId, cancellationToken);
     }
 
-    public async Task<bool> TryAddConnectionAsync(Guid userId, string provider, string providerAccountId, string? providerAccountName)
+    public async Task<bool> HasConnectionAsync(Guid userId, string provider, CancellationToken cancellationToken)
+    {
+        var p = provider.ToLowerInvariant();
+        return await _db.UserOAuthConnections.AnyAsync(c => c.UserId == userId && c.ProviderKey == p, cancellationToken);
+    }
+
+    public async Task<bool> TryAddConnectionAsync(Guid userId, string provider, string providerAccountId, string? providerAccountName, CancellationToken cancellationToken)
     {
         try
         {
@@ -48,7 +53,7 @@ public sealed class OAuthConnectionService : IOAuthConnectionService
                 ExternalId = providerAccountId,
                 DisplayName = providerAccountName
             });
-            await _db.SaveChangesAsync();
+            await _db.SaveChangesAsync(cancellationToken);
             return true;
         }
         catch (DbUpdateException ex) when (ex.InnerException is PostgresException { SqlState: "23505" })
@@ -59,12 +64,12 @@ public sealed class OAuthConnectionService : IOAuthConnectionService
         }
     }
 
-    public async Task<bool> TryRemoveConnectionAsync(Guid userId, string provider)
+    public async Task<bool> TryRemoveConnectionAsync(Guid userId, string provider, CancellationToken cancellationToken)
     {
         var p = provider.ToLowerInvariant();
         var nDeleted = await _db.UserOAuthConnections
             .Where(c => c.UserId == userId && c.ProviderKey == p)
-            .ExecuteDeleteAsync();
+            .ExecuteDeleteAsync(cancellationToken);
 
         return nDeleted > 0;
     }

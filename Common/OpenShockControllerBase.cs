@@ -1,13 +1,11 @@
-﻿using System.Diagnostics.CodeAnalysis;
-using System.Net.Mime;
-using System.Security.Claims;
+﻿using System.Net.Mime;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
-using OpenShock.Common.Authentication;
 using OpenShock.Common.Constants;
 using OpenShock.Common.Models;
 using OpenShock.Common.Options;
 using OpenShock.Common.Problems;
+using OpenShock.Common.Services.Session;
 using OpenShock.Common.Utils;
 
 namespace OpenShock.Common;
@@ -37,7 +35,7 @@ public class OpenShockControllerBase : ControllerBase
     }
 
     [NonAction]
-    private string GetCookieDomains()
+    protected string GetCookieDomains()
     {
         return HttpContext.RequestServices.GetRequiredService<IOptions<FrontendOptions>>().Value.CookieDomain;
     }
@@ -61,9 +59,13 @@ public class OpenShockControllerBase : ControllerBase
     }
 
     [NonAction]
-    protected void SetSessionCookie(string sessionKey, string domain)
+    protected async Task CreateSession(Guid accountId, string domain)
     {
-        HttpContext.Response.Cookies.Append(AuthConstants.UserSessionCookieName, sessionKey, GetCookieOptions(domain, Duration.LoginSessionLifetime));
+        var sessionService = HttpContext.RequestServices.GetRequiredService<ISessionService>();
+        
+        var session = await sessionService.CreateSessionAsync(accountId, HttpContext.GetUserAgent(), HttpContext.GetRemoteIP().ToString());
+        
+        HttpContext.Response.Cookies.Append(AuthConstants.UserSessionCookieName, session.Token, GetCookieOptions(domain, Duration.LoginSessionLifetime));
     }
 
     [NonAction]
@@ -79,73 +81,5 @@ public class OpenShockControllerBase : ControllerBase
             
             HttpContext.Response.Cookies.Append(AuthConstants.UserSessionCookieName, string.Empty, GetCookieOptions(domainStr, TimeSpan.FromDays(-1)));
         }
-    }
-    
-    [NonAction]
-    protected bool TryGetOpenShockUserIdentity([NotNullWhen(true)] out ClaimsIdentity? identity)
-    {
-        foreach (var ident in User.Identities)
-        {
-            if (!ident.IsAuthenticated) continue;
-            
-            foreach (var claim in ident.Claims)
-            {
-                if (claim is
-                    {
-                        Type: ClaimTypes.AuthenticationMethod,
-                        Value: OpenShockAuthSchemes.UserSessionCookie
-                    })
-                {
-                    identity = ident;
-                    return true;
-                }
-            }
-        }
-
-        identity = null;
-        return false;
-    }
-
-    [NonAction]
-    protected bool IsOpenShockUserAuthenticated()
-    {
-        foreach (var ident in User.Identities)
-        {
-            if (!ident.IsAuthenticated) continue;
-            
-            foreach (var claim in ident.Claims)
-            {
-                if (claim is
-                    {
-                        Type: ClaimTypes.AuthenticationMethod,
-                        Value: OpenShockAuthSchemes.UserSessionCookie
-                    })
-                {
-                    return true;
-                }
-            }
-        }
-
-        return false;
-    }
-
-    [NonAction]
-    protected bool TryGetAuthenticatedOpenShockUserId(out Guid userId)
-    {
-        if (!TryGetOpenShockUserIdentity(out var identity))
-        {
-            userId = Guid.Empty;
-            return false;
-        }
-        
-        var idStr = identity.Claims.SingleOrDefault(x => x.Type == ClaimTypes.NameIdentifier)?.Value;
-        if (string.IsNullOrEmpty(idStr))
-        {
-            userId = Guid.Empty;
-            return false;
-        }
-
-        return Guid.TryParse(idStr, out userId);
-
     }
 }

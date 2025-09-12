@@ -3,7 +3,7 @@ using Microsoft.AspNetCore.RateLimiting;
 using OpenShock.Common.Problems;
 using System.Net.Mime;
 using OpenShock.API.OAuth;
-using OpenShock.Common.Authentication;
+using OpenShock.Common.Utils;
 
 namespace OpenShock.API.Controller.OAuth;
 
@@ -28,7 +28,7 @@ public sealed partial class OAuthController
         if (!await _schemeProvider.IsSupportedOAuthScheme(provider))
             return Problem(OAuthError.UnsupportedProvider);
 
-        if (IsOpenShockUserAuthenticated())
+        if (User.HasOpenShockUserIdentity())
         {
             return Problem(OAuthError.AnonymousOnlyEndpoint);
         }

@@ -6,9 +6,7 @@ using OpenShock.API.Services.OAuthConnection;
 using OpenShock.Common.Options;
 using OpenShock.Common.Problems;
 using System.Net.Mime;
-using Microsoft.AspNetCore.Http.Extensions;
 using OpenShock.API.OAuth;
-using OpenShock.Common.Errors;
 using OpenShock.Common.Services.Session;
 using OpenShock.Common.Utils;
 
@@ -20,17 +18,10 @@ public sealed partial class OAuthController
     /// Handoff after provider callback. Decides next step (create, link, or direct sign-in).
     /// </summary>
     /// <remarks>
-    /// This endpoint is reached after the OAuth middleware processed the provider callback.  
-    /// It reads the temp OAuth flow principal and its <c>flow</c> (create/link).  
-    /// If an existing connection is found, signs in and redirects home; otherwise redirects the frontend to continue the flow.
+    /// Reads the temp OAuth flow principal (flow cookie set by middleware).
+    /// If a matching connection exists -> signs in and redirects home.
+    /// Otherwise -> redirects frontend to continue the chosen flow.
     /// </remarks>
-    /// <param name="provider">Provider key (e.g. <c>discord</c>).</param>
-    /// <param name="connectionService"></param>
-    /// <param name="sessionService"></param>
-    /// <param name="frontendOptions"></param>
-    /// <param name="cancellationToken"></param>
-    /// <response code="302">Redirect to the frontend (create/link) or home on direct sign-in.</response>
-    /// <response code="400">Flow missing or not supported.</response>
     [EnableRateLimiting("auth")]
     [HttpGet("{provider}/handoff")]
     [ProducesResponseType(StatusCodes.Status302Found)]
@@ -38,96 +29,109 @@ public sealed partial class OAuthController
     public async Task<IActionResult> OAuthHandOff(
         [FromRoute] string provider,
         [FromServices] IOAuthConnectionService connectionService,
-        [FromServices] ISessionService sessionService, 
         [FromServices] IOptions<FrontendOptions> frontendOptions,
         CancellationToken cancellationToken)
     {
-        var result = await ValidateOAuthFlowAsync(provider);
-        if (!result.TryPickT0(out var auth, out var response))
+        var result = await ValidateOAuthFlowAsync();
+        if (!result.TryPickT0(out var auth, out var error))
         {
-            return response;
+            return error switch
+            {
+                OAuthValidationError.FlowStateMissing => RedirectFrontendError("OAuthFlowNotStarted"),
+                _ => RedirectFrontendError("InternalError")
+            };
         }
 
-        var connection = await connectionService.GetByProviderExternalIdAsync(provider, auth.ExternalAccountId);
+        // 1) Defense-in-depth: ensure the flow’s provider matches the route
+        if (!string.Equals(auth.Provider, provider, StringComparison.OrdinalIgnoreCase))
+        {
+            await HttpContext.SignOutAsync(OAuthConstants.FlowScheme);
+            return RedirectFrontendError("providerMismatch");
+        }
+
+        var connection = await connectionService
+            .GetByProviderExternalIdAsync(provider, auth.ExternalAccountId, cancellationToken);
 
         switch (auth.Flow)
         {
             case OAuthFlow.LoginOrCreate:
+            {
+                if (User.HasOpenShockUserIdentity())
                 {
-                    if (IsOpenShockUserAuthenticated())
-                    {
-                        await HttpContext.SignOutAsync(OAuthConstants.FlowScheme);
-                        return GetBadUrl("mustBeAnonymous");
-                    }
-                    
-                    if (connection is not null)
-                    {
-                        var cookieDomain = GetCurrentCookieDomain();
-                        if (cookieDomain is null) return GetBadUrl("internalError");
-                        
-                        var session = await sessionService.CreateSessionAsync(
-                            connection.UserId,
-                            HttpContext.GetUserAgent(),
-                            HttpContext.GetRemoteIP().ToString()
-                            );
-                        
-                        await HttpContext.SignOutAsync(OAuthConstants.FlowScheme);
-                        SetSessionCookie(session.Token, "." + cookieDomain);
-                        
-                        return Redirect("/"); // TODO: Make this go to frontend
-                    }
-                    
-                    // Create
-                    
-                    var frontendUrl = new UriBuilder(frontendOptions.Value.BaseUrl)
-                    {
-                        Path = $"oauth/{provider}/create"
-                    };
-                    return Redirect(frontendUrl.Uri.ToString());
+                    await HttpContext.SignOutAsync(OAuthConstants.FlowScheme);
+                    return RedirectFrontendError("mustBeAnonymous");
                 }
+
+                if (connection is null)
+                {
+                    // No connection -> continue to CREATE flow on frontend
+                    return RedirectFrontendPath($"oauth/{provider}/create");
+                }
+
+                // Direct sign-in
+                var domain = GetCurrentCookieDomain();
+                if (string.IsNullOrEmpty(domain))
+                {
+                    await HttpContext.SignOutAsync(OAuthConstants.FlowScheme);
+                    return RedirectFrontendError("internalError");
+                }
+
+                await CreateSession(connection.UserId, "." + domain);
+
+                // Flow cookie no longer needed
+                await HttpContext.SignOutAsync(OAuthConstants.FlowScheme);
+
+                // TODO: optionally send to a specific frontend route
+                return RedirectFrontendPath("");
+            }
 
             case OAuthFlow.Link:
+            {
+                if (!User.TryGetAuthenticatedOpenShockUserId(out var userId))
                 {
-                    if (!IsOpenShockUserAuthenticated())
-                    {
-                        await HttpContext.SignOutAsync(OAuthConstants.FlowScheme);
-                        return GetBadUrl("mustBeAuthenticated");
-                    }
-                    
-                    if (connection is not null)
-                    {
-                        // Connection already exists, FAILURE
-                        
-                        // TODO: Check if the connection is connected to our account with same externalId (AlreadyLinked), different externalId (AlreadyExists), or to another account (LinkedToAnotherAccount)
-                        await HttpContext.SignOutAsync(OAuthConstants.FlowScheme);
-                        return GetBadUrl("alreadyLinked");
-                    }
-                    
-                    // Link connection to account
-
-                    var frontendUrl = new UriBuilder(frontendOptions.Value.BaseUrl)
-                    {
-                        Path = $"oauth/{provider}/link"
-                    };
-                    return Redirect(frontendUrl.Uri.ToString());
+                    await HttpContext.SignOutAsync(OAuthConstants.FlowScheme);
+                    return RedirectFrontendError("mustBeAuthenticated");
                 }
+
+                if (connection is not null)
+                {
+                    await HttpContext.SignOutAsync(OAuthConstants.FlowScheme);
+
+                    return RedirectFrontendError(connection.UserId == userId ? "alreadyLinked" : "linkedToAnotherAccount");
+                } 
+                
+                bool ok =await connectionService.TryAddConnectionAsync(userId, provider, auth.ExternalAccountId, auth.ExternalAccountName, cancellationToken);
+                if (!ok)
+                {
+                    
+                }
+
+                // No connection -> continue to LINK flow on frontend.
+                // IMPORTANT: keep the flow cookie so frontend can finalize with it.
+                return RedirectFrontendPath($"oauth/{provider}/link");
+            }
 
             default:
                 await HttpContext.SignOutAsync(OAuthConstants.FlowScheme);
-                return GetBadUrl("internalError");
+                return RedirectFrontendError("internalError");
         }
 
-        RedirectResult GetBadUrl(string errorType)
+        // --- helpers ---
+
+        RedirectResult RedirectFrontendPath(string relativeOrQuery)
         {
-            var frontendUrl = new UriBuilder(frontendOptions.Value.BaseUrl)
+            // If caller passes only query (e.g. "oauth/error?error=x"), it still works;
+            // if they pass empty string, it redirects to base.
+            var target = relativeOrQuery switch
             {
-                Path = "oauth/error",
-                Query = new QueryBuilder
-                {
-                    { "error", errorType }
-                }.ToString()
+                "" => frontendOptions.Value.BaseUrl,
+                _ when relativeOrQuery.StartsWith('?') => new Uri(frontendOptions.Value.BaseUrl, "/" + relativeOrQuery), // force query on root
+                _ => new Uri(frontendOptions.Value.BaseUrl, relativeOrQuery.StartsWith('/') ? relativeOrQuery : "/" + relativeOrQuery)
             };
-            return Redirect(frontendUrl.Uri.ToString());
+            return Redirect(target.ToString());
         }
+
+        RedirectResult RedirectFrontendError(string errorType)
+            => RedirectFrontendPath($"oauth/error?error={Uri.EscapeDataString(errorType)}");
     }
 }

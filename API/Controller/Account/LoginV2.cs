@@ -34,7 +34,6 @@ public sealed partial class AccountController
     public async Task<IActionResult> LoginV2(
         [FromBody] LoginV2 body,
         [FromServices] ICloudflareTurnstileService turnstileService,
-        [FromServices] ISessionService sessionService,
         CancellationToken cancellationToken)
     {
         var cookieDomain = GetCurrentCookieDomain();
@@ -62,8 +61,8 @@ public sealed partial class AccountController
             );
         }
         
-        var session = await sessionService.CreateSessionAsync(account.Id, HttpContext.GetUserAgent(), remoteIp.ToString());
-        SetSessionCookie(session.Token, "." + cookieDomain);
+        await CreateSession(account.Id, "." + cookieDomain);
+        
         return Ok(LoginV2OkResponse.FromUser(account));
     }
 }

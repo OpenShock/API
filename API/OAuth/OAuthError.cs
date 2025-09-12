@@ -32,7 +32,7 @@ public static class OAuthError
         "You must be signed out to call this endpoint",
         HttpStatusCode.Unauthorized);
 
-    public static OpenShockProblem FlowStateNotFound => new(
+    public static OpenShockProblem FlowNotFound => new(
         "OAuth.Flow.NotFound",
         "The OAuth flow was not found, has expired, or is invalid",
         HttpStatusCode.BadRequest);

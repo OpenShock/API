@@ -29,7 +29,6 @@ public sealed partial class AccountController
     [MapToApiVersion("1")]
     public async Task<IActionResult> Login(
         [FromBody] Login body,
-        [FromServices] ISessionService sessionService,
         CancellationToken cancellationToken)
     {
         var cookieDomain = GetCurrentCookieDomain();
@@ -46,8 +45,7 @@ public sealed partial class AccountController
             );
         }
 
-        var session = await sessionService.CreateSessionAsync(account.Id, HttpContext.GetUserAgent(), HttpContext.GetRemoteIP().ToString());
-        SetSessionCookie(session.Token, cookieDomain);
+        await CreateSession(account.Id, "." + cookieDomain);
         return LegacyEmptyOk("Successfully logged in");
     }
 }

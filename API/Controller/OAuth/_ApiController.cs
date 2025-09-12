@@ -29,61 +29,60 @@ public sealed partial class OAuthController : OpenShockControllerBase
         _logger = logger;
     }
 
+    private enum OAuthValidationError
+    {
+        FlowStateMissing,
+        FlowDataMissingOrInvalid,
+    }
+
     /// <summary>
-    /// Validates: provider exists, temp cookie auth present, scheme matches, flow parsable.
+    /// Validates: provider exists, temp cookie auth present, scNOheme matches, flow parsable.
     /// On success returns ValidatedFlowContext; on failure returns IActionResult with proper problem details.
     /// </summary>
-    private async Task<OneOf<ValidatedFlowContext, IActionResult>> ValidateOAuthFlowAsync(string expectedProvider, OAuthFlow? expectedFlow = null)
+    private async Task<OneOf<ValidatedFlowContext, OAuthValidationError>> ValidateOAuthFlowAsync()
     {
-        // 1) provider supported?
-        if (!await _schemeProvider.IsSupportedOAuthScheme(expectedProvider))
-            return Problem(OAuthError.UnsupportedProvider);
-
-        // 2) authenticate temp cookie
+        // 1) authenticate temp cookie
         var auth = await HttpContext.AuthenticateAsync(OAuthConstants.FlowScheme);
         if (!auth.Succeeded || auth.Principal is null || auth.Ticket is null)
-            return Problem(OAuthError.FlowStateNotFound);
-
-        // 3) scheme/provider check — prefer the ticket's scheme over a magic Item
-        if (!auth.Properties.Items.TryGetValue(".AuthScheme", out var actualScheme) || string.IsNullOrEmpty(actualScheme))
         {
             await HttpContext.SignOutAsync(OAuthConstants.FlowScheme);
-            return Problem(OAuthError.FlowStateNotFound);
-        }
-        
-        if (actualScheme != expectedProvider)
-        {
-            await HttpContext.SignOutAsync(OAuthConstants.FlowScheme);
-            return Problem(OAuthError.ProviderMismatch);
+            return OAuthValidationError.FlowStateMissing;
         }
 
-        // 4) parse flow from properties
+        // 2) scheme/provider check - prefer the ticket's scheme over a magic Item
+        if (!auth.Properties.Items.TryGetValue(".AuthScheme", out var actualScheme) || string.IsNullOrWhiteSpace(actualScheme))
+        {
+            _logger.LogError("Invalid OAuth scheme");
+            await HttpContext.SignOutAsync(OAuthConstants.FlowScheme);
+            return OAuthValidationError.FlowDataMissingOrInvalid;
+        }
+
+        // 3) parse flow from properties
         if (auth.Properties is null ||
             !auth.Properties.Items.TryGetValue(OAuthConstants.ItemKeyFlowType, out var flowStr) ||
             !Enum.TryParse<OAuthFlow>(flowStr, true, out var flow))
         {
+            _logger.LogError("Invalid OAuth scheme");
             await HttpContext.SignOutAsync(OAuthConstants.FlowScheme);
-            return Problem(OAuthError.UnsupportedFlow);
-        }
-
-        if (expectedFlow is not null && flow != expectedFlow)
-        {
-            await HttpContext.SignOutAsync(OAuthConstants.FlowScheme);
-            return Problem(OAuthError.FlowMismatch);
+            return OAuthValidationError.FlowDataMissingOrInvalid;
         }
         
-        // External subject is required to resolve/link.
+        // 4) fetch id of external user
         var externalId = auth.Principal.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-        if (string.IsNullOrEmpty(externalId))
+        if (string.IsNullOrWhiteSpace(externalId))
         {
+            _logger.LogError("Invalid OAuth scheme");
             await HttpContext.SignOutAsync(OAuthConstants.FlowScheme);
-            return Problem(OAuthError.FlowMissingData);
+            return OAuthValidationError.FlowDataMissingOrInvalid;
         }
+        
+        
 
         return new ValidatedFlowContext(
-            Provider: expectedProvider,
+            Provider: actualScheme,
             Flow: flow,
             ExternalAccountId: externalId,
+            ExternalAccountName: auth.Principal.FindFirst(ClaimTypes.Name)?.Value,
             Principal: auth.Principal,
             Properties: auth.Properties
         );

@@ -38,8 +38,9 @@ public interface IAccountService
     /// <param name="provider">e.g. "discord"</param>
     /// <param name="providerAccountId">external subject/id from provider</param>
     /// <param name="providerAccountName">display name from provider</param>
+    /// <param name="isEmailTrusted"></param>
     /// <returns>Success with the created user, or AccountWithEmailOrUsernameExists when taken/blocked.</returns>
-    Task<OneOf<Success<User>, AccountWithEmailOrUsernameExists>> CreateOAuthOnlyAccountAsync(string email, string username, string provider, string providerAccountId, string? providerAccountName);
+    Task<OneOf<Success<User>, AccountWithEmailOrUsernameExists>> CreateOAuthOnlyAccountAsync(string email, string username, string provider, string providerAccountId, string? providerAccountName, bool isEmailTrusted);
 
     /// <summary>
     /// 

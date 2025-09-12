@@ -1,7 +1,7 @@
 ﻿namespace OpenShock.API.Models.Response;
 
 // what we return to frontend at /oauth/discord/data
-public sealed class OAuthDataResponse
+public sealed class OAuthSignupDataResponse
 {
     public required string Provider { get; init; }
     public required string? Email { get; init; }
