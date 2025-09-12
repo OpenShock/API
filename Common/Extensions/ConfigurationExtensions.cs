@@ -43,7 +43,6 @@ public static class ConfigurationExtensions
         {
             if (string.IsNullOrEmpty(section.Host)) throw new InvalidOperationException("Redis Host field is required if no connectionstring is specified (OpenShock:Redis:Host).");
             if (string.IsNullOrEmpty(section.User)) throw new InvalidOperationException("Redis User field is required if no connectionstring is specified (OpenShock:Redis:User).");
-            if (string.IsNullOrEmpty(section.Password)) throw new InvalidOperationException("Redis Password field is required if no connectionstring is specified (OpenShock:Redis:Password).");
 
             // Parse port with sane default + validation
             ushort port = 6379;
@@ -56,7 +55,7 @@ public static class ConfigurationExtensions
             options = new ConfigurationOptions
             {
                 User = section.User,
-                Password = section.Password,
+                Password = section.Password ?? string.Empty,
                 Ssl = false,
                 EndPoints = { { section.Host, port } },
             };
