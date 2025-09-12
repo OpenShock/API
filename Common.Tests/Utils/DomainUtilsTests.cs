@@ -207,7 +207,7 @@ public class DomainUtilsTests
     public async Task GetBestMatchingCookieDomain_PicksMostSpecific()
     {
         // Arrange
-        var list = "example.com,foo.example.com,bar.com";
+        string[] list = ["example.com","foo.example.com","bar.com"];
 
         // Act
         var best = DomainUtils.GetBestMatchingCookieDomain("shop.foo.example.com", list);
@@ -220,7 +220,7 @@ public class DomainUtilsTests
     public async Task GetBestMatchingCookieDomain_ExactMatchBeatsShorterSuffix()
     {
         // Arrange
-        var list = "example.com,shop.foo.example.com";
+        string[] list = ["example.com","shop.foo.example.com"];
 
         // Act
         var best = DomainUtils.GetBestMatchingCookieDomain("shop.foo.example.com", list);
@@ -233,7 +233,7 @@ public class DomainUtilsTests
     public async Task GetBestMatchingCookieDomain_EmptySegmentsIgnored()
     {
         // Arrange
-        var list = ",,example.com,,foo.example.com,,";
+        string[] list = ["","","example.com","","foo.example.com",""];
 
         // Act
         var best = DomainUtils.GetBestMatchingCookieDomain("shop.foo.example.com", list);
@@ -246,7 +246,7 @@ public class DomainUtilsTests
     public async Task GetBestMatchingCookieDomain_InvalidDomainsIgnored()
     {
         // Arrange: includes invalid ".example.com" and "exa_mple.com"
-        var list = ".example.com,exa_mple.com,example.com";
+        string[] list = [".example.com","exa_mple.com","example.com"];
 
         // Act
         var best = DomainUtils.GetBestMatchingCookieDomain("shop.example.com", list);
@@ -259,7 +259,7 @@ public class DomainUtilsTests
     public async Task GetBestMatchingCookieDomain_NoMatch_ReturnsNull()
     {
         // Arrange
-        var list = "foo.com,bar.net";
+        string[] list = ["foo.com","bar.net"];
 
         // Act
         var best = DomainUtils.GetBestMatchingCookieDomain("example.com", list);
@@ -272,7 +272,7 @@ public class DomainUtilsTests
     public async Task GetBestMatchingCookieDomain_HostInvalid_ReturnsNull()
     {
         // Arrange
-        var list = "example.com,foo.example.com";
+        string[] list = ["example.com","foo.example.com"];
 
         // Act
         var best = DomainUtils.GetBestMatchingCookieDomain("example", list);
@@ -285,7 +285,7 @@ public class DomainUtilsTests
     public async Task GetBestMatchingCookieDomain_WhitespaceNotTrimmedInCurrentImplementation_SkipsEntry()
     {
         // Arrange: first entry has spaces (invalid for current impl), second is valid and more specific.
-        var list = " example.com ,foo.example.com";
+        string[] list = [" example.com ","foo.example.com"];
 
         // Use a host that matches *both* example.com and foo.example.com
         var best = DomainUtils.GetBestMatchingCookieDomain("shop.foo.example.com", list);
