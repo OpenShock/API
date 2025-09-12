@@ -38,7 +38,7 @@ public static class OpenShockServiceHelper
     {
         // <---- Redis ---->
         services.AddSingleton<IConnectionMultiplexer>(ConnectionMultiplexer.Connect(options));
-        services.AddSingleton<IRedisConnectionProvider, RedisConnectionProvider>();
+        services.AddSingleton<IRedisConnectionProvider, RedisConnectionProvider>(serviceProvider => new RedisConnectionProvider(serviceProvider.GetRequiredService<IConnectionMultiplexer>()));
         services.AddSingleton<IRedisPubService, RedisPubService>();
 
         return services;
