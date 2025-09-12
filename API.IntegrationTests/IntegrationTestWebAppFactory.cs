@@ -46,8 +46,6 @@ public class IntegrationTestWebAppFactory : WebApplicationFactory<Program>, IAsy
             { "OPENSHOCK__REDIS__PASSWORD", "" },
             { "OPENSHOCK__REDIS__PORT", "6379" },
             
-            { "OPENSHOCK__METRICS__ALLOWEDNETWORKS__0", "127.0.0.0/8" },
-            
             { "OPENSHOCK__FRONTEND__BASEURL", "https://openshock.app" },
             { "OPENSHOCK__FRONTEND__SHORTURL", "https://openshock.app" },
             { "OPENSHOCK__FRONTEND__COOKIEDOMAIN", "openshock.app" },
