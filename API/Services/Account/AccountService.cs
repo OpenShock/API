@@ -144,6 +144,9 @@ public sealed class AccountService : IAccountService
 
         await using var tx = await _db.Database.BeginTransactionAsync();
 
+        string? activationToken = null;
+        Guid userId;
+
         try
         {
             var user = new User
@@ -151,12 +154,26 @@ public sealed class AccountService : IAccountService
                 Id = Guid.CreateVersion7(),
                 Name = username,
                 Email = email,
-                PasswordHash = null,            // OAuth-only account
-                ActivatedAt = DateTime.UtcNow   // no activation flow
+                PasswordHash = null,
+                ActivatedAt = isEmailTrusted ? DateTime.UtcNow : null
             };
 
             _db.Users.Add(user);
             await _db.SaveChangesAsync();
+
+            // If email isn't trusted, create an activation request (email verification)
+            if (!isEmailTrusted)
+            {
+                activationToken = CryptoUtils.RandomString(AuthConstants.GeneratedTokenLength);
+
+                user.UserActivationRequest = new UserActivationRequest
+                {
+                    UserId = user.Id,
+                    TokenHash = HashingUtils.HashToken(activationToken)
+                };
+
+                await _db.SaveChangesAsync();
+            }
 
             // Link external identity
             _db.UserOAuthConnections.Add(new UserOAuthConnection
@@ -167,26 +184,36 @@ public sealed class AccountService : IAccountService
                 DisplayName = providerAccountName
             });
 
+            // Tidy-up if clock skew makes CreatedAt > ActivatedAt (trusted case only)
+            if (user.ActivatedAt is not null && user.CreatedAt > user.ActivatedAt)
+            {
+                user.ActivatedAt = user.CreatedAt;
+            }
+
             await _db.SaveChangesAsync();
+
+            userId = user.Id;
 
             await tx.CommitAsync();
 
-            // Ensure ActivatedAt <= CreatedAt (optional monotonic tidy-up)
-            if (user.CreatedAt > user.ActivatedAt)
+            // Send verification email only after successful commit
+            if (!isEmailTrusted && activationToken is not null)
             {
-                user.ActivatedAt = user.CreatedAt;
-                await _db.SaveChangesAsync();
+                await _emailService.VerifyEmail(
+                    new Contact(email, username),
+                    new Uri(_frontendConfig.BaseUrl, $"/#/account/activate/{userId}/{activationToken}")
+                );
             }
 
             return new Success<User>(user);
         }
         catch (DbUpdateException ex) when (ex.InnerException is PostgresException { SqlState: "23505" })
         {
-            // Unique constraint hit: either username/email already exists, or (provider, externalId) is already linked.
             await tx.RollbackAsync();
             return new AccountWithEmailOrUsernameExists();
         }
     }
+
 
     public async Task<bool> TryActivateAccountAsync(string secret, CancellationToken cancellationToken = default)
     {
