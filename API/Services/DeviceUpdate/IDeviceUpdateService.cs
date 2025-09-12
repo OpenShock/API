@@ -1,6 +1,6 @@
 ﻿using OpenShock.Common.Models;
 
-namespace OpenShock.API.Services;
+namespace OpenShock.API.Services.DeviceUpdate;
 
 public interface IDeviceUpdateService
 {

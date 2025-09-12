@@ -8,6 +8,7 @@ using OpenShock.Common.Extensions;
 using OpenShock.Common.Models;
 using OpenShock.Common.OpenShockDb;
 using System.Net.Mime;
+using OpenShock.API.Services.DeviceUpdate;
 using OpenShock.Common.Authentication.Attributes;
 using OpenShock.Common.Errors;
 using OpenShock.Common.Problems;

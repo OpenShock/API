@@ -12,6 +12,7 @@ using OpenShock.Common.Problems;
 using OpenShock.Common.Redis;
 using OpenShock.Common.Utils;
 using System.Net.Mime;
+using OpenShock.API.Services.DeviceUpdate;
 using Redis.OM;
 
 namespace OpenShock.API.Controller.Devices;
