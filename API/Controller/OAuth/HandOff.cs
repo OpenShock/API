@@ -29,7 +29,7 @@ public sealed partial class OAuthController
     public async Task<IActionResult> OAuthHandOff(
         [FromRoute] string provider,
         [FromServices] IOAuthConnectionService connectionService,
-        [FromServices] IOptions<FrontendOptions> frontendOptions,
+        [FromServices] FrontendOptions frontendOptions,
         CancellationToken cancellationToken)
     {
         var result = await ValidateOAuthFlowAsync();
@@ -124,9 +124,9 @@ public sealed partial class OAuthController
             // if they pass empty string, it redirects to base.
             var target = relativeOrQuery switch
             {
-                "" => frontendOptions.Value.BaseUrl,
-                _ when relativeOrQuery.StartsWith('?') => new Uri(frontendOptions.Value.BaseUrl, "/" + relativeOrQuery), // force query on root
-                _ => new Uri(frontendOptions.Value.BaseUrl, relativeOrQuery.StartsWith('/') ? relativeOrQuery : "/" + relativeOrQuery)
+                "" => frontendOptions.BaseUrl,
+                _ when relativeOrQuery.StartsWith('?') => new Uri(frontendOptions.BaseUrl, "/" + relativeOrQuery), // force query on root
+                _ => new Uri(frontendOptions.BaseUrl, relativeOrQuery.StartsWith('/') ? relativeOrQuery : "/" + relativeOrQuery)
             };
             return Redirect(target.ToString());
         }

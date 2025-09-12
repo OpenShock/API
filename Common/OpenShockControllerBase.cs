@@ -35,15 +35,10 @@ public class OpenShockControllerBase : ControllerBase
     }
 
     [NonAction]
-    protected IReadOnlyCollection<string> GetCookieDomains()
-    {
-        return HttpContext.RequestServices.GetRequiredService<IOptions<FrontendOptions>>().Value.CookieDomains;
-    }
-
-    [NonAction]
     protected string? GetCurrentCookieDomain()
     {
-        return DomainUtils.GetBestMatchingCookieDomain(HttpContext.Request.Host.Host, GetCookieDomains());
+        var cookieDomains = HttpContext.RequestServices.GetRequiredService<FrontendOptions>().CookieDomains;
+        return DomainUtils.GetBestMatchingCookieDomain(HttpContext.Request.Host.Host, cookieDomains);
     }
 
     private static CookieOptions GetCookieOptions(string domain, TimeSpan lifetime)
@@ -71,10 +66,9 @@ public class OpenShockControllerBase : ControllerBase
     [NonAction]
     protected void RemoveSessionKeyCookie()
     {
-        foreach (var domain in GetCookieDomains())
+        var cookieDomains = HttpContext.RequestServices.GetRequiredService<FrontendOptions>().CookieDomains;
+        foreach (var domain in cookieDomains)
         {
-            if (!DomainUtils.IsValidDomain(domain)) continue;
-            
             HttpContext.Response.Cookies.Append(AuthConstants.UserSessionCookieName, string.Empty, GetCookieOptions(domain, TimeSpan.FromDays(-1)));
         }
     }
