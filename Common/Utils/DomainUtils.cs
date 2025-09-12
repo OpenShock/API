@@ -71,7 +71,7 @@ public static class DomainUtils
     /// </summary>
     public static string? GetBestMatchingCookieDomain(string host, IReadOnlyCollection<string> cookieDomainList)
     {
-        ReadOnlySpan<char> hostSpan = host.AsSpan();
+        var hostSpan = host.AsSpan();
         if (!IsValidDomain(hostSpan)) return null;
 
         string? best = null;
