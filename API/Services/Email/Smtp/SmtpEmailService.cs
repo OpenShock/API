@@ -29,13 +29,13 @@ public sealed class SmtpEmailService : IEmailService
     /// <param name="logger"></param>
     public SmtpEmailService(
             SmtpServiceTemplates templates,
-            IOptions<SmtpOptions> options,
+            SmtpOptions options,
             MailOptions.MailSenderContact sender,
             ILogger<SmtpEmailService> logger
         )
     {
         _templates = templates;
-        _options = options.Value;
+        _options = options;
         _sender = sender.ToMailAddress();
         _logger = logger;
 
