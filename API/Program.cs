@@ -1,7 +1,5 @@
 using Microsoft.AspNetCore.Http.Connections;
-using Microsoft.Extensions.Options;
 using OpenShock.API.Realtime;
-using OpenShock.API.Services;
 using OpenShock.API.Services.Account;
 using OpenShock.API.Services.DeviceUpdate;
 using OpenShock.API.Services.Email;
@@ -11,7 +9,6 @@ using OpenShock.Common;
 using OpenShock.Common.DeviceControl;
 using OpenShock.Common.Extensions;
 using OpenShock.Common.Hubs;
-using OpenShock.Common.Options;
 using OpenShock.Common.Services;
 using OpenShock.Common.Services.Device;
 using OpenShock.Common.Services.LCGNodeProvisioner;

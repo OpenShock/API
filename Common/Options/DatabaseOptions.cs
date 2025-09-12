@@ -3,6 +3,6 @@
 public sealed class DatabaseOptions
 {
     public required string Conn { get; init; }
-    public required bool SkipMigration { get; init; }
-    public required bool Debug { get; init; }
+    public bool SkipMigration { get; init; } = false;
+    public bool Debug { get; init; } = false;
 }
