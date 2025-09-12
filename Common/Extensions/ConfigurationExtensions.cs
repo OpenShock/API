@@ -35,14 +35,15 @@ public static class ConfigurationExtensions
 
         ConfigurationOptions options;
 
-        if (!string.IsNullOrWhiteSpace(section.Conn))
+        if (!string.IsNullOrEmpty(section.Conn))
         {
             options = ConfigurationOptions.Parse(section.Conn);
         }
         else
         {
-            if (string.IsNullOrWhiteSpace(section.Host))
-                throw new ArgumentException("Redis Host is required (OpenShock:Redis:Host).");
+            if (string.IsNullOrEmpty(section.Host)) throw new InvalidOperationException("Redis Host field is required if no connectionstring is specified (OpenShock:Redis:Host).");
+            if (string.IsNullOrEmpty(section.User)) throw new InvalidOperationException("Redis User field is required if no connectionstring is specified (OpenShock:Redis:User).");
+            if (string.IsNullOrEmpty(section.Password)) throw new InvalidOperationException("Redis Password field is required if no connectionstring is specified (OpenShock:Redis:Password).");
 
             // Parse port with sane default + validation
             ushort port = 6379;
@@ -54,11 +55,11 @@ public static class ConfigurationExtensions
 
             options = new ConfigurationOptions
             {
-                User = section.User ?? string.Empty,
-                Password = section.Password ?? string.Empty,
+                User = section.User,
+                Password = section.Password,
                 Ssl = false,
+                EndPoints = { { section.Host, port } },
             };
-            options.EndPoints.Add(section.Host!, port);
         }
 
         // Sensible defaults (adjust to taste)
@@ -70,9 +71,11 @@ public static class ConfigurationExtensions
 
     public static MetricsOptions RegisterMetricsOptions(this WebApplicationBuilder builder)
     {
-        var options = builder.Configuration.GetSection("OpenShock:Metrics").Get<MetricsOptions>() ?? new MetricsOptions
+        var options = builder.Configuration.GetSection("OpenShock:Metrics").Get<MetricsOptions>();
+
+        options = new MetricsOptions
         {
-            AllowedNetworks = TrustedProxiesFetcher.PrivateNetworks
+            AllowedNetworks = options?.AllowedNetworks.Count is > 0 ? options.AllowedNetworks : TrustedProxiesFetcher.PrivateNetworks
         };
 
         builder.Services.AddSingleton(options);
