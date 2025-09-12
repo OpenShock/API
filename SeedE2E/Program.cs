@@ -16,19 +16,15 @@ if (builder.Environment.IsDevelopment())
     Console.WriteLine(builder.Configuration.GetDebugView());
 }
 
-builder.RegisterCommonOpenShockOptions();
+var databaseOptions = builder.RegisterDatabaseOptions();
+builder.RegisterFrontendOptions();
 
-builder.Services.Configure<FrontendOptions>(builder.Configuration.GetRequiredSection(FrontendOptions.SectionName));
-builder.Services.AddSingleton<IValidateOptions<FrontendOptions>, FrontendOptionsValidator>();
-
-var databaseConfig = builder.Configuration.GetDatabaseOptions();
-
-builder.Services.AddOpenShockDB(databaseConfig);
+builder.Services.AddOpenShockDB(databaseOptions);
 builder.Services.AddOpenShockServices();
 
 var app = builder.Build();
 
-await app.ApplyPendingOpenShockMigrations(databaseConfig);
+await app.ApplyPendingOpenShockMigrations(databaseOptions);
 
 // --- SEED ALL THE DATABASE TABLES ---
 using (var scope = app.Services.CreateScope())
@@ -36,8 +32,8 @@ using (var scope = app.Services.CreateScope())
     using var loggerFactory = scope.ServiceProvider.GetRequiredService<ILoggerFactory>();
     var logger = loggerFactory.CreateLogger("OpenShock.SeedE2E");
 
-    using var db = scope.ServiceProvider.GetRequiredService<OpenShockContext>();
-    using var transaction = await db.Database.BeginTransactionAsync();
+    await using var db = scope.ServiceProvider.GetRequiredService<OpenShockContext>();
+    await using var transaction = await db.Database.BeginTransactionAsync();
 
     // Core entities
     await UserSeeder.SeedAsync(db, logger);

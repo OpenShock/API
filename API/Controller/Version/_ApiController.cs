@@ -38,22 +38,19 @@ public sealed partial class VersionController : OpenShockControllerBase
     /// <response code="200">The version was successfully retrieved.</response>
     [HttpGet]
     public LegacyDataResponse<BackendInfoResponse> GetBackendInfo(
-        [FromServices] IOptions<FrontendOptions> frontendOptions,
-        [FromServices] IOptions<TurnstileOptions> turnstileOptions
+        [FromServices] FrontendOptions frontendOptions,
+        [FromServices] TurnstileOptions turnstileOptions
         )
     {
-        var frontendConfig = frontendOptions.Value;
-        var turnstileConfig = turnstileOptions.Value;
-
         return new(
             new BackendInfoResponse
             {
                 Version = OpenShockBackendVersion,
                 Commit = GitHashAttribute.FullHash,
                 CurrentTime = DateTimeOffset.UtcNow,
-                FrontendUrl = frontendConfig.BaseUrl,
-                ShortLinkUrl = frontendConfig.ShortUrl,
-                TurnstileSiteKey = turnstileConfig.SiteKey,
+                FrontendUrl = frontendOptions.BaseUrl,
+                ShortLinkUrl = frontendOptions.ShortUrl,
+                TurnstileSiteKey = turnstileOptions.SiteKey,
                 IsUserAuthenticated = HttpContext.TryGetUserSessionToken(out _)
             },
             "OpenShock"
