@@ -26,13 +26,13 @@ public sealed partial class AccountController
         var cookieDomainToUse = options.CookieDomains.FirstOrDefault(domain => Request.Headers.Host.ToString().EndsWith(domain, StringComparison.OrdinalIgnoreCase));
         if (cookieDomainToUse is not null)
         {
-            HttpContext.RemoveSessionKeyCookie("." + cookieDomainToUse);
+            HttpContext.RemoveSessionKeyCookie(cookieDomainToUse);
         }
         else // Fallback to all domains
         {
             foreach (var domain in options.CookieDomains)
             {
-                HttpContext.RemoveSessionKeyCookie("." + domain);
+                HttpContext.RemoveSessionKeyCookie(domain);
             }
         }
 
