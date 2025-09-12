@@ -35,17 +35,14 @@ public static class ConfigurationExtensions
 
         ConfigurationOptions options;
 
-        if (!string.IsNullOrWhiteSpace(section.Conn))
+        if (!string.IsNullOrEmpty(section.Conn))
         {
             options = ConfigurationOptions.Parse(section.Conn);
         }
         else
         {
-            if (string.IsNullOrWhiteSpace(section.Host))
-                throw new ArgumentException("Redis Host is required (OpenShock:Redis:Host).");
-
-            if (string.IsNullOrWhiteSpace(section.Password))
-                throw new ArgumentException("Redis Password is required (OpenShock:Redis:Password).");
+            if (string.IsNullOrEmpty(section.Host)) throw new InvalidOperationException("Redis Host field is required if no connectionstring is specified (OpenShock:Redis:Host).");
+            if (string.IsNullOrEmpty(section.User)) throw new InvalidOperationException("Redis User field is required if no connectionstring is specified (OpenShock:Redis:User).");
 
             // Parse port with sane default + validation
             ushort port = 6379;
@@ -58,10 +55,10 @@ public static class ConfigurationExtensions
             options = new ConfigurationOptions
             {
                 User = section.User,
-                Password = section.Password,
+                Password = section.Password ?? string.Empty,
                 Ssl = false,
+                EndPoints = { { section.Host, port } },
             };
-            options.EndPoints.Add(section.Host!, port);
         }
 
         // Sensible defaults (adjust to taste)
@@ -73,9 +70,11 @@ public static class ConfigurationExtensions
 
     public static MetricsOptions RegisterMetricsOptions(this WebApplicationBuilder builder)
     {
-        var options = builder.Configuration.GetSection("OpenShock:Metrics").Get<MetricsOptions>() ?? new MetricsOptions
+        var options = builder.Configuration.GetSection("OpenShock:Metrics").Get<MetricsOptions>();
+
+        options = new MetricsOptions
         {
-            AllowedNetworks = TrustedProxiesFetcher.PrivateNetworks
+            AllowedNetworks = options?.AllowedNetworks.Count is > 0 ? options.AllowedNetworks : TrustedProxiesFetcher.PrivateNetworks
         };
 
         builder.Services.AddSingleton(options);
@@ -90,7 +89,7 @@ public static class ConfigurationExtensions
         {
             BaseUrl = section.GetValue<Uri>("BaseUrl") ?? throw new InvalidOperationException("Frontend BaseUrl is required (OpenShock:Frontend:BaseUrl)."),
             ShortUrl = section.GetValue<Uri>("ShortUrl") ?? throw new InvalidOperationException("Frontend ShortUrl is required (OpenShock:Frontend:ShortUrl)."),
-            CookieDomains = SplitCsv(section["CookieDomain"] ?? throw new InvalidOperationException("Frontend CookieDomain is required (OpenShock:Frontend:CookieDomain).")),
+            CookieDomains = ParseDomainList(section["CookieDomain"] ?? throw new InvalidOperationException("Frontend CookieDomain is required (OpenShock:Frontend:CookieDomain).")),
         };
         
         if (options.CookieDomains.Count == 0) throw new InvalidOperationException("At least one cookie domain must be configured (OpenShock:Frontend:CookieDomain).");
@@ -98,9 +97,35 @@ public static class ConfigurationExtensions
         builder.Services.AddSingleton(options);
         return options;
 
-        static string[] SplitCsv(string csv)
+        static string[] ParseDomainList(string csv)
         {
-            return csv.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+            var entries = csv.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+
+            for (var i = 0; i < entries.Length; i++)
+            {
+                var domain = entries[i];
+
+                // leave localhost alone
+                if (string.Equals(domain, "localhost", StringComparison.OrdinalIgnoreCase))
+                {
+                    entries[i] = "localhost";
+                    continue;
+                }
+
+                // leave IP addresses alone
+                if (System.Net.IPAddress.TryParse(domain, out _)) continue;
+                
+                if (!DomainUtils.IsValidDomain(domain))
+                    throw new Exception($"Invalid domain: {domain}");
+
+                // normalize FQDN: ensure it starts with a dot
+                if (!domain.StartsWith('.'))
+                    domain = "." + domain.ToLowerInvariant();
+
+                entries[i] = domain;
+            }
+
+            return entries;
         }
     }
 }

@@ -45,7 +45,7 @@ public sealed partial class AccountController
             );
         }
 
-        await CreateSession(account.Id, "." + cookieDomain);
+        await CreateSession(account.Id, cookieDomain);
         return LegacyEmptyOk("Successfully logged in");
     }
 }
