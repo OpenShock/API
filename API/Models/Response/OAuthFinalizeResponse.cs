@@ -2,9 +2,6 @@
 
 public sealed class OAuthFinalizeResponse
 {
-    /// <summary>"ok" on success; otherwise not returned (problem details emitted).</summary>
-    public string Status { get; init; } = "ok";
-
     /// <summary>The provider key that was processed.</summary>
     public required string Provider { get; init; }
 
@@ -12,5 +9,5 @@ public sealed class OAuthFinalizeResponse
     public required string ExternalId { get; init; }
 
     /// <summary>When action=create, the username of the newly created account.</summary>
-    public string? Username { get; init; }
+    public required string? Username { get; init; }
 }
