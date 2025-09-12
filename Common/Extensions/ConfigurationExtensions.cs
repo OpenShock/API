@@ -1,44 +1,33 @@
 ﻿using OpenShock.Common.Options;
+using OpenShock.Common.Utils;
 using StackExchange.Redis;
 
 namespace OpenShock.Common.Extensions;
 
 public static class ConfigurationExtensions
 {
-    // Reusable helper: bind or throw with a clear message
-    private static T GetRequired<T>(this ConfigurationManager configuration, string path, string? example = null) where T : class
-    {
-        var section = configuration.GetSection(path);
-        var value = section.Get<T>();
-        if (value is null)
-        {
-            var hint = string.IsNullOrWhiteSpace(example) ? "" : $" Example: {example}";
-            throw new InvalidOperationException(
-                $"Missing or invalid configuration at '{path}'.{hint}"
-            );
-        }
-        return value;
-    }
-
     public static DatabaseOptions RegisterDatabaseOptions(this WebApplicationBuilder builder)
     {
-        // If DatabaseOptions has required fields, you can validate them after binding.
-        var options = builder.Configuration.GetRequired<DatabaseOptions>(
-            "OpenShock:DB",
-            """{ "ConnectionString": "..." }"""
-        );
+        var options = builder.Configuration.GetRequiredSection("OpenShock:DB").Get<DatabaseOptions>();
+        if (options is null) throw new Exception();
 
         builder.Services.AddSingleton(options);
         return options;
     }
 
-    private sealed record RedisSection(string? Conn, string? User, string? Password, string? Host, string? Port);
+    private sealed class RedisSection
+    {
+        public string? Conn { get; init; }
+        public string? User { get; init; }
+        public string? Password { get; init; }
+        public string? Host { get; init; }
+        public string? Port { get; init; }
+    }
+
     public static ConfigurationOptions RegisterRedisOptions(this WebApplicationBuilder builder)
     {
-        var section = builder.Configuration.GetRequired<RedisSection>(
-            "OpenShock:Redis",
-            """{ "Conn": "redis://user:pass@host:6379" } or { "Host": "host", "Password": "...", "Port": "6379" }"""
-        );
+        var section = builder.Configuration.GetRequiredSection("OpenShock:Redis").Get<RedisSection>();
+        if (section is null) throw new Exception();
 
         ConfigurationOptions options;
 
@@ -80,9 +69,10 @@ public static class ConfigurationExtensions
 
     public static MetricsOptions RegisterMetricsOptions(this WebApplicationBuilder builder)
     {
-        var options = builder.Configuration.GetRequired<MetricsOptions>(
-            "OpenShock:Metrics"
-        );
+        var options = builder.Configuration.GetSection("OpenShock:Metrics").Get<MetricsOptions>() ?? new MetricsOptions
+        {
+            AllowedNetworks = TrustedProxiesFetcher.PrivateNetworks
+        };
 
         builder.Services.AddSingleton(options);
         return options;
@@ -90,11 +80,21 @@ public static class ConfigurationExtensions
 
     public static FrontendOptions RegisterFrontendOptions(this WebApplicationBuilder builder)
     {
-        var options = builder.Configuration.GetRequired<FrontendOptions>(
-            "OpenShock:Frontend"
-        );
+        var section = builder.Configuration.GetRequiredSection("OpenShock:Frontend");
+        
+        var options = new FrontendOptions
+        {
+            BaseUrl = section.GetValue<Uri>("BaseUrl") ?? throw new Exception("Frontend Url is required."),
+            ShortUrl = section.GetValue<Uri>("ShortUrl")  ?? throw new Exception("Frontend Url is required."),
+            CookieDomains = SplitCsv(section["CookieDomain"]  ?? throw new Exception("Frontend Domain is required.")),
+        };
 
         builder.Services.AddSingleton(options);
         return options;
+
+        static string[] SplitCsv(string csv)
+        {
+            return csv.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        }
     }
 }

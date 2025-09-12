@@ -31,7 +31,7 @@ public sealed partial class AccountController
         [FromServices] FrontendOptions options,
         CancellationToken cancellationToken)
     {
-        var cookieDomainToUse = options.CookieDomain.Split(',').FirstOrDefault(domain => Request.Headers.Host.ToString().EndsWith(domain, StringComparison.OrdinalIgnoreCase));
+        var cookieDomainToUse = options.CookieDomains.FirstOrDefault(domain => Request.Headers.Host.ToString().EndsWith(domain, StringComparison.OrdinalIgnoreCase));
         if (cookieDomainToUse is null) return Problem(LoginError.InvalidDomain);
 
         var loginAction = await _accountService.CreateUserLoginSessionAsync(body.Email, body.Password, new LoginContext

@@ -21,14 +21,10 @@ using Serilog;
 
 var builder = OpenShockApplication.CreateDefaultBuilder<Program>(args);
 
-#region Config
-
 var redisOptions = builder.RegisterRedisOptions();
 var databaseOptions = builder.RegisterDatabaseOptions();
 builder.RegisterMetricsOptions();
 builder.RegisterFrontendOptions();
-
-#endregion
 
 builder.Services
     .AddOpenShockMemDB(redisOptions)
