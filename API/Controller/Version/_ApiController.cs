@@ -5,6 +5,7 @@ using OpenShock.Common.Models;
 using OpenShock.Common.Options;
 using OpenShock.Common.Utils;
 using System.Reflection;
+using OpenShock.API.Options;
 
 namespace OpenShock.API.Controller.Version;
 
@@ -27,7 +28,7 @@ public sealed partial class VersionController : OpenShockControllerBase
     [HttpGet]
     public LegacyDataResponse<ApiVersionResponse> GetBackendVersion(
         [FromServices] IOptions<FrontendOptions> frontendOptions,
-        [FromServices] IOptions<CloudflareTurnstileOptions> turnstileOptions
+        [FromServices] IOptions<TurnstileOptions> turnstileOptions
         )
     {
         var frontendConfig = frontendOptions.Value;

@@ -2,20 +2,21 @@
 using Microsoft.Extensions.Options;
 using OneOf;
 using OneOf.Types;
+using OpenShock.API.Options;
 using OpenShock.Common.Options;
 
-namespace OpenShock.Common.Services.Turnstile;
+namespace OpenShock.API.Services.Turnstile;
 
 public sealed class CloudflareTurnstileService : ICloudflareTurnstileService
 {
     private const string SiteVerifyEndpoint = "siteverify";
 
     private readonly HttpClient _httpClient;
-    private readonly CloudflareTurnstileOptions _options;
+    private readonly TurnstileOptions _options;
     private readonly IHostEnvironment _environment;
     private readonly ILogger<CloudflareTurnstileService> _logger;
 
-    public CloudflareTurnstileService(HttpClient httpClient, IOptions<CloudflareTurnstileOptions> options, IHostEnvironment environment, ILogger<CloudflareTurnstileService> logger)
+    public CloudflareTurnstileService(HttpClient httpClient, IOptions<TurnstileOptions> options, IHostEnvironment environment, ILogger<CloudflareTurnstileService> logger)
     {
         _httpClient = httpClient;
         _options = options.Value;
@@ -23,33 +24,33 @@ public sealed class CloudflareTurnstileService : ICloudflareTurnstileService
         _logger = logger;
     }
 
-    private static Error<CloduflareTurnstileError[]> CreateError(params ReadOnlySpan<CloduflareTurnstileError> errors)
+    private static Error<CloudflareTurnstileError[]> CreateError(params ReadOnlySpan<CloudflareTurnstileError> errors)
     {
-        return new Error<CloduflareTurnstileError[]>(errors.ToArray());
+        return new Error<CloudflareTurnstileError[]>(errors.ToArray());
     }
 
-    private static CloduflareTurnstileError MapCfError(string error)
+    private static CloudflareTurnstileError MapCfError(string error)
     {
         return error switch
         {
-            "missing-input-secret" => CloduflareTurnstileError.MissingSecret,
-            "invalid-input-secret" => CloduflareTurnstileError.InvalidSecret,
-            "missing-input-response" => CloduflareTurnstileError.MissingResponse,
-            "invalid-input-response" => CloduflareTurnstileError.InvalidResponse,
-            "bad-request" => CloduflareTurnstileError.BadRequest,
-            "timeout-or-duplicate" => CloduflareTurnstileError.TimeoutOrDuplicate,
-            "internal-error" => CloduflareTurnstileError.InternalServerError,
+            "missing-input-secret" => CloudflareTurnstileError.MissingSecret,
+            "invalid-input-secret" => CloudflareTurnstileError.InvalidSecret,
+            "missing-input-response" => CloudflareTurnstileError.MissingResponse,
+            "invalid-input-response" => CloudflareTurnstileError.InvalidResponse,
+            "bad-request" => CloudflareTurnstileError.BadRequest,
+            "timeout-or-duplicate" => CloudflareTurnstileError.TimeoutOrDuplicate,
+            "internal-error" => CloudflareTurnstileError.InternalServerError,
             _ => throw new ArgumentOutOfRangeException(nameof(error), error, null)
         };
     }
 
     /// <inheritdoc />
-    public async Task<OneOf<Success, Error<CloduflareTurnstileError[]>>> VerifyUserResponseTokenAsync(
+    public async Task<OneOf<Success, Error<CloudflareTurnstileError[]>>> VerifyUserResponseTokenAsync(
         string responseToken, IPAddress? remoteIpAddress, CancellationToken cancellationToken = default)
     {
         if (!_options.Enabled) return new Success();
         
-        if (string.IsNullOrEmpty(responseToken)) return CreateError(CloduflareTurnstileError.MissingResponse);
+        if (string.IsNullOrEmpty(responseToken)) return CreateError(CloudflareTurnstileError.MissingResponse);
 
         if (_environment.IsDevelopment() && responseToken == "dev-bypass")
         {
@@ -71,7 +72,7 @@ public sealed class CloudflareTurnstileService : ICloudflareTurnstileService
         {
             _logger.LogError("Turnstile error: {StatusCode} {ReasonPhrase}", httpResponse.StatusCode, httpResponse.ReasonPhrase);
             
-            return CreateError(httpResponse.StatusCode == HttpStatusCode.BadRequest ? CloduflareTurnstileError.BadRequest : CloduflareTurnstileError.InternalServerError);
+            return CreateError(httpResponse.StatusCode == HttpStatusCode.BadRequest ? CloudflareTurnstileError.BadRequest : CloudflareTurnstileError.InternalServerError);
         }
 
         var response =  await httpResponse.Content.ReadFromJsonAsync<CloudflareTurnstileVerifyResponseDto>(cancellationToken);
@@ -80,13 +81,11 @@ public sealed class CloudflareTurnstileService : ICloudflareTurnstileService
         
         var errors = response.ErrorCodes.Select(MapCfError).ToArray();
 
-        if (errors.All(err => err != CloduflareTurnstileError.InvalidResponse))
+        if (errors.All(err => err != CloudflareTurnstileError.InvalidResponse))
         {
             _logger.LogError("Turnstile error: {StatusCode} {ReasonPhrase}", httpResponse.StatusCode, string.Join(" ", errors.Select(err => err.ToString())));
         }
 
         return CreateError(errors);
     }
-}
-
-public readonly struct MissingInput;
+};

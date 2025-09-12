@@ -4,6 +4,7 @@ using OpenShock.API.Realtime;
 using OpenShock.API.Services;
 using OpenShock.API.Services.Account;
 using OpenShock.API.Services.Email;
+using OpenShock.API.Services.Turnstile;
 using OpenShock.API.Services.UserService;
 using OpenShock.Common;
 using OpenShock.Common.DeviceControl;
@@ -14,7 +15,6 @@ using OpenShock.Common.Services;
 using OpenShock.Common.Services.Device;
 using OpenShock.Common.Services.LCGNodeProvisioner;
 using OpenShock.Common.Services.Ota;
-using OpenShock.Common.Services.Turnstile;
 using OpenShock.Common.Swagger;
 using Serilog;
 

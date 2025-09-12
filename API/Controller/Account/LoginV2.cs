@@ -7,11 +7,12 @@ using Microsoft.AspNetCore.RateLimiting;
 using OpenShock.API.Services.Account;
 using OpenShock.Common.Errors;
 using OpenShock.Common.Problems;
-using OpenShock.Common.Services.Turnstile;
 using OpenShock.Common.Utils;
 using OpenShock.Common.Models;
 using Microsoft.Extensions.Options;
+using OpenShock.API.Errors;
 using OpenShock.API.Models.Response;
+using OpenShock.API.Services.Turnstile;
 using OpenShock.Common.Options;
 
 namespace OpenShock.API.Controller.Account;
@@ -44,7 +45,7 @@ public sealed partial class AccountController
         if (!turnStile.IsT0)
         {
             var cfErrors = turnStile.AsT1.Value;
-            if (cfErrors.All(err => err == CloduflareTurnstileError.InvalidResponse))
+            if (cfErrors.All(err => err == CloudflareTurnstileError.InvalidResponse))
                 return Problem(TurnstileError.InvalidTurnstile);
 
             return Problem(new OpenShockProblem("InternalServerError", "Internal Server Error", HttpStatusCode.InternalServerError));

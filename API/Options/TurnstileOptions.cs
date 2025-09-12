@@ -1,8 +1,8 @@
 ﻿using Microsoft.Extensions.Options;
 
-namespace OpenShock.Common.Options;
+namespace OpenShock.API.Options;
 
-public sealed class CloudflareTurnstileOptions
+public sealed class TurnstileOptions
 {
     public const string Turnstile = "OpenShock:Turnstile";
 
@@ -11,9 +11,9 @@ public sealed class CloudflareTurnstileOptions
     public required string SecretKey { get; set; }
 }
 
-public sealed class CloudflareTurnstileOptionsValidator : IValidateOptions<CloudflareTurnstileOptions>
+public sealed class TurnstileOptionsValidator : IValidateOptions<TurnstileOptions>
 {
-    public ValidateOptionsResult Validate(string? name, CloudflareTurnstileOptions options)
+    public ValidateOptionsResult Validate(string? name, TurnstileOptions options)
     {
         ValidateOptionsResultBuilder builder = new ValidateOptionsResultBuilder();
 
