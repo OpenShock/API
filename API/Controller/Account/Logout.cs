@@ -12,9 +12,7 @@ public sealed partial class AccountController
     [HttpPost("logout")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [MapToApiVersion("1")]
-    public async Task<IActionResult> Logout(
-        [FromServices] ISessionService sessionService,
-        [FromServices] FrontendOptions options)
+    public async Task<IActionResult> Logout([FromServices] ISessionService sessionService)
     {
         // Remove session if valid
         if (HttpContext.TryGetUserSessionToken(out var sessionToken))
@@ -23,18 +21,7 @@ public sealed partial class AccountController
         }
 
         // Make sure cookie is removed, no matter if authenticated or not
-        var cookieDomainToUse = options.CookieDomains.FirstOrDefault(domain => Request.Headers.Host.ToString().EndsWith(domain, StringComparison.OrdinalIgnoreCase));
-        if (cookieDomainToUse is not null)
-        {
-            HttpContext.RemoveSessionKeyCookie(cookieDomainToUse);
-        }
-        else // Fallback to all domains
-        {
-            foreach (var domain in options.CookieDomains)
-            {
-                HttpContext.RemoveSessionKeyCookie(domain);
-            }
-        }
+        RemoveSessionKeyCookie();
 
         // its always a success, logout endpoints should be idempotent
         return Ok();

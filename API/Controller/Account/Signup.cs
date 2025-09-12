@@ -27,7 +27,7 @@ public sealed partial class AccountController
         var creationAction = await _accountService.CreateAccountWithoutActivationFlowLegacyAsync(body.Email, body.Username, body.Password);
         return creationAction.Match<IActionResult>(
             ok => LegacyEmptyOk("Successfully signed up"),
-            alreadyExists => Problem(SignupError.EmailAlreadyExists)
+            alreadyExists => Problem(SignupError.UsernameOrEmailExists)
             );
     }
 }

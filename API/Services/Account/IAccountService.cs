@@ -29,6 +29,20 @@ public interface IAccountService
     public Task<OneOf<Success<User>, AccountWithEmailOrUsernameExists>> CreateAccountWithActivationFlowAsync(string email, string username, string password);
 
     /// <summary>
+    /// Creates an OAuth-only (passwordless) account and links the external identity in a single transaction.
+    /// The new user is activated immediately (no activation flow). Returns a conflict-style result if the
+    /// username/email is taken or the external identity is already linked.
+    /// </summary>
+    /// <param name="email">Email to set on the user.</param>
+    /// <param name="username">Desired unique username.</param>
+    /// <param name="provider">e.g. "discord"</param>
+    /// <param name="providerAccountId">external subject/id from provider</param>
+    /// <param name="providerAccountName">display name from provider</param>
+    /// <param name="isEmailTrusted"></param>
+    /// <returns>Success with the created user, or AccountWithEmailOrUsernameExists when taken/blocked.</returns>
+    Task<OneOf<Success<User>, AccountWithEmailOrUsernameExists>> CreateOAuthOnlyAccountAsync(string email, string username, string provider, string providerAccountId, string? providerAccountName, bool isEmailTrusted);
+
+    /// <summary>
     /// 
     /// </summary>
     /// <param name="token"></param>
@@ -43,15 +57,14 @@ public interface IAccountService
     public Task<OneOf<Success, CannotDeletePrivilegedAccount, Unauthorized, NotFound>> DeleteAccountAsync(Guid executingUserId, Guid userId);
 
     /// <summary>
-    /// Login a user into his user session
+    /// Get a user by credentials
     /// </summary>
     /// <param name="usernameOrEmail"></param>
     /// <param name="password"></param>
-    /// <param name="loginContext"></param>
     /// <param name="cancellationToken"></param>
     /// <returns></returns>
-    public Task<OneOf<CreateUserLoginSessionSuccess, AccountNotActivated, AccountDeactivated, NotFound>> CreateUserLoginSessionAsync(string usernameOrEmail, string password, LoginContext loginContext, CancellationToken cancellationToken = default);
-    
+    public Task<OneOf<User, NotFound, AccountDeactivated, AccountNotActivated, AccountIsOAuthOnly>> GetAccountByCredentialsAsync(string usernameOrEmail, string password, CancellationToken cancellationToken = default);
+
     /// <summary>
     /// Check if a password reset request exists and the secret is valid
     /// </summary>
@@ -113,8 +126,9 @@ public interface IAccountService
 }
 
 public sealed record CreateUserLoginSessionSuccess(User User, string Token);
-public readonly record struct AccountNotActivated;
-public readonly record struct AccountDeactivated;
+public readonly struct AccountIsOAuthOnly;
+public readonly struct AccountNotActivated;
+public readonly struct AccountDeactivated;
 public readonly struct AccountWithEmailOrUsernameExists;
 public readonly struct CannotDeactivatePrivilegedAccount;
 public readonly struct AccountDeactivationAlreadyInProgress;

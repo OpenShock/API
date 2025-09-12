@@ -3,6 +3,7 @@
   <Import Project="../Shared.props" />
 
   <ItemGroup>
+    <PackageReference Include="AspNet.Security.OAuth.Discord" Version="9.4.0" />
     <PackageReference Include="Fluid.Core" Version="2.25.0" />
     <PackageReference Include="MailKit" Version="4.13.0" />
   </ItemGroup>

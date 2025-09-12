@@ -1,4 +1,5 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.AspNetCore.DataProtection.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using OpenShock.Common.Constants;
 using OpenShock.Common.Extensions;
 using OpenShock.Common.Models;
@@ -46,7 +47,7 @@ public sealed class MigrationOpenShockContext : OpenShockContext
 /// <summary>
 /// Main OpenShock DB Context
 /// </summary>
-public class OpenShockContext : DbContext
+public class OpenShockContext : DbContext, IDataProtectionKeyContext
 {
     public OpenShockContext()
     {
@@ -105,6 +106,8 @@ public class OpenShockContext : DbContext
     public DbSet<PublicShareShocker> PublicShareShockerMappings { get; set; }
 
     public DbSet<User> Users { get; set; }
+    
+    public DbSet<UserOAuthConnection> UserOAuthConnections { get; set; }
 
     public DbSet<UserActivationRequest> UserActivationRequests { get; set; }
 
@@ -123,6 +126,8 @@ public class OpenShockContext : DbContext
     public DbSet<UserNameBlacklist> UserNameBlacklists { get; set; }
 
     public DbSet<EmailProviderBlacklist> EmailProviderBlacklists { get; set; }
+    
+    public DbSet<DataProtectionKey> DataProtectionKeys { get; set; }
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {
@@ -609,6 +614,32 @@ public class OpenShockContext : DbContext
                 .HasColumnName("created_at");
             entity.Property(e => e.ActivatedAt)
                 .HasColumnName("activated_at");
+        });
+
+        modelBuilder.Entity<UserOAuthConnection>(entity =>
+        {
+            entity.HasKey(e => new { e.ProviderKey, e.ExternalId }).HasName("user_oauth_connections_pkey");
+
+            entity.HasIndex(e => e.UserId);
+
+            entity.ToTable("user_oauth_connections");
+
+            entity.Property(e => e.UserId)
+                .HasColumnName("user_id");
+            entity.Property(e => e.ProviderKey)
+                .UseCollation("C")
+                .HasColumnName("provider_key");
+            entity.Property(e => e.ExternalId)
+                .HasColumnName("external_id");
+            entity.Property(e => e.DisplayName)
+                .HasColumnName("display_name");
+            entity.Property(e => e.CreatedAt)
+                .HasDefaultValueSql("CURRENT_TIMESTAMP")
+                .HasColumnName("created_at");
+
+            entity.HasOne(c => c.User).WithMany(u => u.OAuthConnections)
+                .HasForeignKey(d => d.UserId)
+                .HasConstraintName("fk_user_oauth_connections_user_id");
         });
 
         modelBuilder.Entity<UserActivationRequest>(entity =>
