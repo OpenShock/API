@@ -74,10 +74,8 @@ public class OpenShockControllerBase : ControllerBase
         foreach (var domain in GetCookieDomains())
         {
             if (!DomainUtils.IsValidDomain(domain)) continue;
-
-            var domainStr = "." + domain;
             
-            HttpContext.Response.Cookies.Append(AuthConstants.UserSessionCookieName, string.Empty, GetCookieOptions(domainStr, TimeSpan.FromDays(-1)));
+            HttpContext.Response.Cookies.Append(AuthConstants.UserSessionCookieName, string.Empty, GetCookieOptions(domain, TimeSpan.FromDays(-1)));
         }
     }
 }
