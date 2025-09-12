@@ -1,5 +1,6 @@
 ﻿using System.Buffers;
 using System.Runtime.CompilerServices;
+using System.Text;
 
 namespace OpenShock.Common.Utils;
 
@@ -9,10 +10,18 @@ public static class DomainUtils
         SearchValues.Create("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-");
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static bool IsValidLabel(ReadOnlySpan<char> label)
+    {
+        if ((uint)label.Length is 0 or > 63) return false;
+        if (label[0] == '-' || label[^1] == '-') return false;
+        return !label.ContainsAnyExcept(ValidLabelChars);
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool IsValidDomain(ReadOnlySpan<char> str)
     {
         if (str.Length is 0 or > 253) return false;
-        if (!ContainsDot(str)) return false;
+        if (str.IndexOf('.') == -1) return str is "localhost";
 
         foreach (var range in str.Split('.'))
         {
@@ -20,6 +29,26 @@ public static class DomainUtils
         }
 
         return true;
+    }
+    
+    /// <summary>
+    /// Doesnt accept leading '.'
+    /// </summary>
+    /// <param name="host"></param>
+    /// <param name="cookieDomain"></param>
+    /// <returns></returns>
+    private static bool HostMatchesCookieDomainCore(ReadOnlySpan<char> host, ReadOnlySpan<char> cookieDomain)
+    {
+        var hostLabels = new ReverseLabelEnumerator(host);
+        var cookieLabels = new ReverseLabelEnumerator(cookieDomain);
+
+        while (cookieLabels.MoveNext())
+        {
+            if (!hostLabels.MoveNext()) return false;
+            if (!Ascii.EqualsIgnoreCase(hostLabels.Current, cookieLabels.Current)) return false;
+        }
+
+        return true; // Even if host has more labels, the cookiedomain will match it
     }
 
     /// <summary>
@@ -29,53 +58,35 @@ public static class DomainUtils
     /// </summary>
     public static bool HostMatchesCookieDomain(ReadOnlySpan<char> host, ReadOnlySpan<char> cookieDomain)
     {
-        // Optional: if you expect Unicode, punycode both here (see helper below)
         cookieDomain = RemoveLeadingDot(cookieDomain);
-        if (cookieDomain.Length == 0) return false;
-
-        if (!IsValidDomain(host) || !IsValidDomain(cookieDomain))
-            return false;
-
-        // Optional hook: reject public suffixes (requires PSL)
-        // if (IsPublicSuffix(cookieDomain)) return false;
-
-        var hostLabels = new ReverseLabelEnumerator(host);
-        var cookieLabels = new ReverseLabelEnumerator(cookieDomain);
-
-        while (cookieLabels.MoveNext())
-        {
-            if (!hostLabels.MoveNext()) return false;
-            if (!LabelsEqualIgnoreCase(hostLabels.Current, cookieLabels.Current))
-                return false;
-        }
-
-        // Boundary check
-        return !hostLabels.HasRemaining || host[hostLabels.Position + 1] == '.';
+        
+        if (!IsValidDomain(host) || !IsValidDomain(cookieDomain)) return false;
+        
+        return HostMatchesCookieDomainCore(host, cookieDomain);
     }
 
     /// <summary>
     /// Picks the most specific matching cookie domain (most labels) from a comma-separated list.
     /// Accepts items with an optional leading '.' and optional ASCII whitespace around them.
     /// </summary>
-    public static string? GetBestMatchingCookieDomain(string host, ReadOnlySpan<char> cookieDomainList)
+    public static string? GetBestMatchingCookieDomain(string host, IReadOnlyCollection<string> cookieDomainList)
     {
-        ReadOnlySpan<char> hostSpan = host.AsSpan();
+        var hostSpan = host.AsSpan();
         if (!IsValidDomain(hostSpan)) return null;
 
         string? best = null;
         int bestLabels = -1;
 
-        foreach (var range in cookieDomainList.Split(','))
+        foreach (var range in cookieDomainList)
         {
-            var cd = cookieDomainList[range].Trim(); // trim ASCII whitespace
+            var cd = range.AsSpan().Trim(); // trim ASCII whitespace
             if (cd.Length == 0) continue;
 
-            cd = RemoveLeadingDot(cd); // strip a single leading '.'
+            cd = RemoveLeadingDot(cd);
 
             if (!IsValidDomain(cd)) continue;
-            // if (IsPublicSuffix(cd)) continue;
 
-            if (!HostMatchesCookieDomain(hostSpan, cd)) continue;
+            if (!HostMatchesCookieDomainCore(hostSpan, cd)) continue;
 
             int labels = cd.Count('.') + 1;
             if (labels <= bestLabels) continue;
@@ -97,67 +108,33 @@ public static class DomainUtils
             cd = cd[1..];
         return cd;
     }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static bool IsValidLabel(ReadOnlySpan<char> label)
-    {
-        if ((uint)label.Length is 0 or > 63) return false;
-        if (label[0] == '-' || label[^1] == '-') return false;
-        return !label.ContainsAnyExcept(ValidLabelChars);
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static bool LabelsEqualIgnoreCase(ReadOnlySpan<char> a, ReadOnlySpan<char> b)
-    {
-        if (a.Length != b.Length) return false;
-        for (int i = 0; i < a.Length; i++)
-        {
-            if (ToLowerAscii(a[i]) != ToLowerAscii(b[i])) return false;
-        }
-        return true;
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static char ToLowerAscii(char c)
-        => c is >= 'A' and <= 'Z' ? (char)(c + 32) : c;
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static bool ContainsDot(ReadOnlySpan<char> s)
-    {
-        foreach (var t in s)
-            if (t == '.')
-                return true;
-        return false;
-    }
 }
 
 // Your ReverseLabelEnumerator stays as-is
 file ref struct ReverseLabelEnumerator
 {
     private readonly ReadOnlySpan<char> _span;
+    private int _position;
 
     public ReverseLabelEnumerator(ReadOnlySpan<char> span)
     {
         _span = span;
-        Position = span.Length - 1;
+        _position = span.Length - 1;
         Current = default;
     }
 
     public ReadOnlySpan<char> Current { get; private set; }
-    public int Position { get; private set; }
-
-    public bool HasRemaining => Position >= 0;
 
     public bool MoveNext()
     {
-        if (Position < 0) return false;
+        if (_position < 0) return false;
 
-        int end = Position;
-        while (Position >= 0 && _span[Position] != '.') Position--;
+        int end = _position;
+        while (_position >= 0 && _span[_position] != '.') _position--;
 
-        if (end == Position) return false; // empty label
-        Current = _span.Slice(Position + 1, end - Position);
-        Position--; // move to char before the dot
+        if (end == _position) return false; // empty label
+        Current = _span.Slice(_position + 1, end - _position);
+        _position--; // move to char before the dot
         return true;
     }
 }
