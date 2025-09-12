@@ -11,6 +11,8 @@ public static class ConfigurationExtensions
         var options = builder.Configuration.GetRequiredSection("OpenShock:DB").Get<DatabaseOptions>();
         if (options is null) 
             throw new InvalidOperationException("Missing or invalid configuration for OpenShock:DB.");
+        
+        if (string.IsNullOrEmpty(options.Conn)) throw new InvalidOperationException("Missing or invalid connection string (OpenShock:DB:Conn).");
 
         builder.Services.AddSingleton(options);
         return options;
@@ -55,9 +57,9 @@ public static class ConfigurationExtensions
 
             options = new ConfigurationOptions
             {
-                User = section.User,              // optional; only if ACLs enabled
+                User = section.User,
                 Password = section.Password,
-                Ssl = false,                      // flip via connection string if needed
+                Ssl = false,
             };
             options.EndPoints.Add(section.Host!, port);
         }
@@ -90,6 +92,8 @@ public static class ConfigurationExtensions
             ShortUrl = section.GetValue<Uri>("ShortUrl") ?? throw new InvalidOperationException("Frontend ShortUrl is required (OpenShock:Frontend:ShortUrl)."),
             CookieDomains = SplitCsv(section["CookieDomain"] ?? throw new InvalidOperationException("Frontend CookieDomain is required (OpenShock:Frontend:CookieDomain).")),
         };
+        
+        if (options.CookieDomains.Count == 0) throw new InvalidOperationException("At least one cookie domain must be configured (OpenShock:Frontend:CookieDomain).");
 
         builder.Services.AddSingleton(options);
         return options;
