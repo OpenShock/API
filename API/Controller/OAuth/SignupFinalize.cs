@@ -66,15 +66,18 @@ public sealed partial class OAuthController
         // External identity basics from claims (added by your handler)
         var externalId = auth.Principal.FindFirst(ClaimTypes.NameIdentifier)?.Value;
         var externalAccountName = auth.Principal.FindFirst(ClaimTypes.Name)?.Value;
-        var email = body.Email ?? auth.Principal.FindFirst(ClaimTypes.Email)?.Value;
-        var displayName = string.IsNullOrEmpty(body.Username) ? externalAccountName : body.Username;
-        var isEmailTrusted = auth.Principal.FindFirst(OAuthConstants.ClaimEmailVerified)?.Value.Equals("true", StringComparison.InvariantCultureIgnoreCase) ?? false;
+        var externalAccountEmail = auth.Principal.FindFirst(ClaimTypes.Email)?.Value;
+        var displayName = body.Username ?? externalAccountName;
+        var email = body.Email ?? externalAccountEmail;
 
         if (string.IsNullOrEmpty(externalId) || string.IsNullOrEmpty(email) || string.IsNullOrEmpty(displayName))
         {
             await HttpContext.SignOutAsync(OAuthConstants.FlowScheme);
             return Problem(OAuthError.FlowMissingData);
         }
+        
+        bool externalTrustsEmail = IsTruthy(auth.Principal.FindFirst(OAuthConstants.ClaimEmailVerified)?.Value);
+        var isEmailTrusted = CanEmailBeTrusted(email, auth.Provider, externalAccountEmail, externalTrustsEmail); 
 
         // Do not allow creation if this external is already linked anywhere.
         var existing = await connectionService.GetByProviderExternalIdAsync(provider, externalId, cancellationToken);
@@ -120,5 +123,25 @@ public sealed partial class OAuthController
             ExternalId = externalId,
             Username = newUser.Value.Name
         });
+
+        static bool CanEmailBeTrusted(string email, string provider, string? externalEmail, bool externalEmailTrust)
+        {
+            if (!externalEmailTrust || externalEmail == null || email != externalEmail) return false;
+            
+            if (provider is not ("discord" or "google")) return false;
+            
+            return true;
+        }
+
+        static bool IsTruthy(string? value)
+        {
+            if (string.IsNullOrWhiteSpace(value)) return false;
+            return value.Trim().ToLowerInvariant() switch
+            {
+                "0" or "no" or "false" => false,
+                "1" or "yes" or "true" => true,
+                _ => false
+            };
+        }
     }
 }

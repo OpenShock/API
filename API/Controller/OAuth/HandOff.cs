@@ -65,7 +65,7 @@ public sealed partial class OAuthController
                 if (connection is null)
                 {
                     // No connection -> continue to CREATE flow on frontend
-                    return RedirectFrontendPath($"oauth/{provider}/create");
+                    return RedirectFrontendPath($"/oauth/{Uri.EscapeDataString(provider)}/create");
                 }
 
                 // Direct sign-in
@@ -76,13 +76,13 @@ public sealed partial class OAuthController
                     return RedirectFrontendError("internalError");
                 }
 
-                await CreateSession(connection.UserId, "." + domain);
+                await CreateSession(connection.UserId, domain);
 
                 // Flow cookie no longer needed
                 await HttpContext.SignOutAsync(OAuthConstants.FlowScheme);
 
                 // TODO: optionally send to a specific frontend route
-                return RedirectFrontendPath("");
+                return RedirectFrontendPath("/home");
             }
 
             case OAuthFlow.Link:
@@ -96,19 +96,31 @@ public sealed partial class OAuthController
                 if (connection is not null)
                 {
                     await HttpContext.SignOutAsync(OAuthConstants.FlowScheme);
-
-                    return RedirectFrontendError(connection.UserId == userId ? "alreadyLinked" : "linkedToAnotherAccount");
+                    return RedirectFrontendConnections(connection.UserId == userId ? "alreadyLinked" : "linkedToAnotherAccount");
                 } 
                 
-                bool ok =await connectionService.TryAddConnectionAsync(userId, provider, auth.ExternalAccountId, auth.ExternalAccountName, cancellationToken);
+                var ok = await connectionService.TryAddConnectionAsync(userId, provider, auth.ExternalAccountId, auth.ExternalAccountName, cancellationToken);
                 if (!ok)
                 {
-                    
+                    await HttpContext.SignOutAsync(OAuthConstants.FlowScheme);
+                    return RedirectFrontendConnections("linkFailed");
                 }
 
-                // No connection -> continue to LINK flow on frontend.
-                // IMPORTANT: keep the flow cookie so frontend can finalize with it.
-                return RedirectFrontendPath($"oauth/{provider}/link");
+                // Direct sign-in
+                var domain = GetCurrentCookieDomain();
+                if (string.IsNullOrEmpty(domain))
+                {
+                    await HttpContext.SignOutAsync(OAuthConstants.FlowScheme);
+                    return RedirectFrontendConnections("internalError");
+                }
+
+                await CreateSession(userId, domain);
+
+                // Flow cookie no longer needed
+                await HttpContext.SignOutAsync(OAuthConstants.FlowScheme);
+
+                // TODO: optionally send to a specific frontend route
+                return RedirectFrontendConnections("linked");
             }
 
             default:
@@ -118,20 +130,15 @@ public sealed partial class OAuthController
 
         // --- helpers ---
 
-        RedirectResult RedirectFrontendPath(string relativeOrQuery)
+        RedirectResult RedirectFrontendPath(string path)
         {
-            // If caller passes only query (e.g. "oauth/error?error=x"), it still works;
-            // if they pass empty string, it redirects to base.
-            var target = relativeOrQuery switch
-            {
-                "" => frontendOptions.BaseUrl,
-                _ when relativeOrQuery.StartsWith('?') => new Uri(frontendOptions.BaseUrl, "/" + relativeOrQuery), // force query on root
-                _ => new Uri(frontendOptions.BaseUrl, relativeOrQuery.StartsWith('/') ? relativeOrQuery : "/" + relativeOrQuery)
-            };
-            return Redirect(target.ToString());
+            return Redirect(new Uri(frontendOptions.BaseUrl, path).ToString());
         }
 
         RedirectResult RedirectFrontendError(string errorType)
-            => RedirectFrontendPath($"oauth/error?error={Uri.EscapeDataString(errorType)}");
+            => RedirectFrontendPath($"/oauth/error?error={Uri.EscapeDataString(errorType)}");
+        
+        RedirectResult RedirectFrontendConnections(string statusType)
+            => RedirectFrontendPath($"/settings/connections?status={Uri.EscapeDataString(statusType)}");
     }
 }
