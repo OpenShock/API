@@ -34,53 +34,11 @@ namespace OpenShock.Common;
 
 public static class OpenShockServiceHelper
 {
-    public static DatabaseOptions GetDatabaseOptions(this ConfigurationManager configuration)
-    {
-        var section = configuration.GetRequiredSection(DatabaseOptions.SectionName);
-        if (!section.Exists()) throw new Exception("TODO");
-
-        return section.Get<DatabaseOptions>() ?? throw new Exception("TODO");
-    }
-
-    public static ConfigurationOptions GetRedisConfigurationOptions(this ConfigurationManager configuration)
-    {
-        var section = configuration.GetRequiredSection(RedisOptions.SectionName);
-        if (!section.Exists()) throw new Exception("TODO");
-
-        var options = section.Get<RedisOptions>() ?? throw new Exception("TODO");
-
-
-        ConfigurationOptions configurationOptions;
-
-        if (string.IsNullOrWhiteSpace(options.Conn))
-        {
-            configurationOptions = new ConfigurationOptions
-            {
-                AbortOnConnectFail = true,
-                Password = options.Password,
-                User = options.User,
-                Ssl = false,
-                EndPoints = new EndPointCollection
-                {
-                    { options.Host, options.Port }
-                }
-            };
-        }
-        else
-        {
-            configurationOptions = ConfigurationOptions.Parse(options.Conn);
-        }
-
-        configurationOptions.AbortOnConnectFail = true;
-
-        return configurationOptions;
-    }
-
     public static IServiceCollection AddOpenShockMemDB(this IServiceCollection services, ConfigurationOptions options)
     {
         // <---- Redis ---->
         services.AddSingleton<IConnectionMultiplexer>(ConnectionMultiplexer.Connect(options));
-        services.AddSingleton<IRedisConnectionProvider, RedisConnectionProvider>();
+        services.AddSingleton<IRedisConnectionProvider, RedisConnectionProvider>(serviceProvider => new RedisConnectionProvider(serviceProvider.GetRequiredService<IConnectionMultiplexer>()));
         services.AddSingleton<IRedisPubService, RedisPubService>();
 
         return services;

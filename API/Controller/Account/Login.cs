@@ -28,10 +28,10 @@ public sealed partial class AccountController
     [MapToApiVersion("1")]
     public async Task<IActionResult> Login(
         [FromBody] Login body,
-        [FromServices] IOptions<FrontendOptions> options,
+        [FromServices] FrontendOptions options,
         CancellationToken cancellationToken)
     {
-        var cookieDomainToUse = options.Value.CookieDomain.Split(',').FirstOrDefault(domain => Request.Headers.Host.ToString().EndsWith(domain, StringComparison.OrdinalIgnoreCase));
+        var cookieDomainToUse = options.CookieDomains.FirstOrDefault(domain => Request.Headers.Host.ToString().EndsWith(domain, StringComparison.OrdinalIgnoreCase));
         if (cookieDomainToUse is null) return Problem(LoginError.InvalidDomain);
 
         var loginAction = await _accountService.CreateUserLoginSessionAsync(body.Email, body.Password, new LoginContext

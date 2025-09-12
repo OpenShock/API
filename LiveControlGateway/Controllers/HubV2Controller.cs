@@ -43,7 +43,7 @@ public sealed class HubV2Controller : HubControllerBase<HubToGatewayMessage, Gat
         HubLifetimeManager hubLifetimeManager,
         IHubContext<UserHub, IUserHub> userHubContext,
         IServiceProvider serviceProvider,
-        IOptions<LcgOptions> options,
+        LcgOptions options,
         ILogger<HubV2Controller> logger
         )
         : base(HubToGatewayMessage.Serializer, GatewayToHubMessage.Serializer, hubLifetimeManager, serviceProvider, options, logger)

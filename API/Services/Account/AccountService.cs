@@ -35,12 +35,12 @@ public sealed class AccountService : IAccountService
     /// <param name="logger"></param>
     /// <param name="options"></param>
     public AccountService(OpenShockContext db, IEmailService emailService,
-        ISessionService sessionService, ILogger<AccountService> logger, IOptions<FrontendOptions> options)
+        ISessionService sessionService, ILogger<AccountService> logger, FrontendOptions options)
     {
         _db = db;
         _emailService = emailService;
         _logger = logger;
-        _frontendConfig = options.Value;
+        _frontendConfig = options;
         _sessionService = sessionService;
     }
 

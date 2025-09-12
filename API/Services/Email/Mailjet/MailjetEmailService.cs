@@ -11,8 +11,8 @@ public sealed class MailjetEmailService : IEmailService, IDisposable
 {
     private readonly HttpClient _httpClient;
     private readonly MailJetOptions _options;
-    private readonly ILogger<MailjetEmailService> _logger;
     private readonly MailOptions.MailSenderContact _sender;
+    private readonly ILogger<MailjetEmailService> _logger;
 
     /// <summary>
     /// DI Constructor
@@ -23,14 +23,14 @@ public sealed class MailjetEmailService : IEmailService, IDisposable
     /// <param name="logger"></param>
     public MailjetEmailService(
             HttpClient httpClient,
-            IOptions<MailJetOptions> options,
-            IOptions<MailOptions.MailSenderContact> sender,
+            MailJetOptions options,
+            MailOptions.MailSenderContact sender,
             ILogger<MailjetEmailService> logger
         )
     {
         _httpClient = httpClient;
-        _sender = sender.Value;
-        _options = options.Value;
+        _options = options;
+        _sender = sender;
         _logger = logger;
     }
 

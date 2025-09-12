@@ -33,10 +33,10 @@ public sealed partial class AccountController
     public async Task<IActionResult> LoginV2(
         [FromBody] LoginV2 body,
         [FromServices] ICloudflareTurnstileService turnstileService,
-        [FromServices] IOptions<FrontendOptions> options,
+        [FromServices] FrontendOptions options,
         CancellationToken cancellationToken)
     {
-        var cookieDomainToUse = options.Value.CookieDomain.Split(',').FirstOrDefault(domain => Request.Headers.Host.ToString().EndsWith(domain, StringComparison.OrdinalIgnoreCase));
+        var cookieDomainToUse = options.CookieDomains.FirstOrDefault(domain => Request.Headers.Host.ToString().EndsWith(domain, StringComparison.OrdinalIgnoreCase));
         if (cookieDomainToUse is null) return Problem(LoginError.InvalidDomain);
 
         var remoteIP = HttpContext.GetRemoteIP();

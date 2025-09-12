@@ -1,7 +1,5 @@
 using Microsoft.AspNetCore.Http.Connections;
-using Microsoft.Extensions.Options;
 using OpenShock.API.Realtime;
-using OpenShock.API.Services;
 using OpenShock.API.Services.Account;
 using OpenShock.API.Services.DeviceUpdate;
 using OpenShock.API.Services.Email;
@@ -11,7 +9,6 @@ using OpenShock.Common;
 using OpenShock.Common.DeviceControl;
 using OpenShock.Common.Extensions;
 using OpenShock.Common.Hubs;
-using OpenShock.Common.Options;
 using OpenShock.Common.Services;
 using OpenShock.Common.Services.Device;
 using OpenShock.Common.Services.LCGNodeProvisioner;
@@ -21,23 +18,16 @@ using Serilog;
 
 var builder = OpenShockApplication.CreateDefaultBuilder<Program>(args);
 
-#region Config
-
-builder.RegisterCommonOpenShockOptions();
-
-builder.Services.Configure<FrontendOptions>(builder.Configuration.GetRequiredSection(FrontendOptions.SectionName));
-builder.Services.AddSingleton<IValidateOptions<FrontendOptions>, FrontendOptionsValidator>();
-
-var databaseConfig = builder.Configuration.GetDatabaseOptions();
-var redisConfig = builder.Configuration.GetRedisConfigurationOptions();
-
-#endregion
+var redisOptions = builder.RegisterRedisOptions();
+var databaseOptions = builder.RegisterDatabaseOptions();
+builder.RegisterMetricsOptions();
+builder.RegisterFrontendOptions();
 
 builder.Services
-    .AddOpenShockMemDB(redisConfig)
-    .AddOpenShockDB(databaseConfig)
+    .AddOpenShockMemDB(redisOptions)
+    .AddOpenShockDB(databaseOptions)
     .AddOpenShockServices()
-    .AddOpenShockSignalR(redisConfig);
+    .AddOpenShockSignalR(redisOptions);
 
 builder.Services.AddScoped<IDeviceService, DeviceService>();
 builder.Services.AddScoped<IControlSender, ControlSender>();
@@ -60,9 +50,9 @@ var app = builder.Build();
 
 await app.UseCommonOpenShockMiddleware();
 
-if (!databaseConfig.SkipMigration)
+if (!databaseOptions.SkipMigration)
 {
-    await app.ApplyPendingOpenShockMigrations(databaseConfig);
+    await app.ApplyPendingOpenShockMigrations(databaseOptions);
 }
 else
 {
