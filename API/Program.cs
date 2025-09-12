@@ -22,21 +22,18 @@ var builder = OpenShockApplication.CreateDefaultBuilder<Program>(args);
 
 #region Config
 
-builder.RegisterCommonOpenShockOptions();
-
-builder.Services.Configure<FrontendOptions>(builder.Configuration.GetRequiredSection(FrontendOptions.SectionName));
-builder.Services.AddSingleton<IValidateOptions<FrontendOptions>, FrontendOptionsValidator>();
-
-var databaseConfig = builder.Configuration.GetDatabaseOptions();
-var redisConfig = builder.Configuration.GetRedisConfigurationOptions();
+var redisOptions = builder.RegisterRedisOptions();
+var databaseOptions = builder.RegisterDatabaseOptions();
+builder.RegisterMetricsOptions();
+builder.RegisterFrontendOptions();
 
 #endregion
 
 builder.Services
-    .AddOpenShockMemDB(redisConfig)
-    .AddOpenShockDB(databaseConfig)
+    .AddOpenShockMemDB(redisOptions)
+    .AddOpenShockDB(databaseOptions)
     .AddOpenShockServices()
-    .AddOpenShockSignalR(redisConfig);
+    .AddOpenShockSignalR(redisOptions);
 
 builder.Services.AddScoped<IDeviceService, DeviceService>();
 builder.Services.AddScoped<IControlSender, ControlSender>();
@@ -59,9 +56,9 @@ var app = builder.Build();
 
 await app.UseCommonOpenShockMiddleware();
 
-if (!databaseConfig.SkipMigration)
+if (!databaseOptions.SkipMigration)
 {
-    await app.ApplyPendingOpenShockMigrations(databaseConfig);
+    await app.ApplyPendingOpenShockMigrations(databaseOptions);
 }
 else
 {

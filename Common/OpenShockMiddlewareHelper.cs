@@ -25,7 +25,7 @@ public static class OpenShockMiddlewareHelper
     
     public static async Task<IApplicationBuilder> UseCommonOpenShockMiddleware(this WebApplication app)
     {
-        var metricsOptions = app.Services.GetRequiredService<IOptions<MetricsOptions>>().Value;
+        var metricsOptions = app.Services.GetRequiredService<MetricsOptions>();
         var metricsAllowedIpNetworks = metricsOptions.AllowedNetworks.Select(x => IPNetwork.Parse(x)).ToArray();
 
         foreach (var proxy in await TrustedProxiesFetcher.GetTrustedNetworksAsync())

@@ -14,10 +14,8 @@ public sealed partial class AccountController
     [MapToApiVersion("1")]
     public async Task<IActionResult> Logout(
         [FromServices] ISessionService sessionService,
-        [FromServices] IOptions<FrontendOptions> options)
+        [FromServices] FrontendOptions options)
     {
-        var config = options.Value;
-
         // Remove session if valid
         if (HttpContext.TryGetUserSessionToken(out var sessionToken))
         {
@@ -25,14 +23,14 @@ public sealed partial class AccountController
         }
 
         // Make sure cookie is removed, no matter if authenticated or not
-        var cookieDomainToUse = config.CookieDomain.Split(',').FirstOrDefault(domain => Request.Headers.Host.ToString().EndsWith(domain, StringComparison.OrdinalIgnoreCase));
+        var cookieDomainToUse = options.CookieDomain.Split(',').FirstOrDefault(domain => Request.Headers.Host.ToString().EndsWith(domain, StringComparison.OrdinalIgnoreCase));
         if (cookieDomainToUse is not null)
         {
             HttpContext.RemoveSessionKeyCookie("." + cookieDomainToUse);
         }
         else // Fallback to all domains
         {
-            foreach (var domain in config.CookieDomain.Split(','))
+            foreach (var domain in options.CookieDomain.Split(','))
             {
                 HttpContext.RemoveSessionKeyCookie("." + domain);
             }

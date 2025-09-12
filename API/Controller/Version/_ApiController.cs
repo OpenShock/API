@@ -26,29 +26,29 @@ public sealed partial class VersionController : OpenShockControllerBase
     /// </summary>
     /// <response code="200">The version was successfully retrieved.</response>
     [HttpGet]
-    public LegacyDataResponse<ApiVersionResponse> GetBackendVersion(
-        [FromServices] IOptions<FrontendOptions> frontendOptions,
+    public LegacyDataResponse<BackendInfoResponse> GetBackendInfo(
+        [FromServices] FrontendOptions frontendOptions,
         [FromServices] IOptions<TurnstileOptions> turnstileOptions
         )
     {
-        var frontendConfig = frontendOptions.Value;
         var turnstileConfig = turnstileOptions.Value;
 
-        return new(
-            new ApiVersionResponse
+        return new LegacyDataResponse<BackendInfoResponse>(
+            new BackendInfoResponse
             {
                 Version = OpenShockBackendVersion,
                 Commit = GitHashAttribute.FullHash,
                 CurrentTime = DateTimeOffset.UtcNow,
-                FrontendUrl = frontendConfig.BaseUrl,
-                ShortLinkUrl = frontendConfig.ShortUrl,
-                TurnstileSiteKey = turnstileConfig.SiteKey
+                FrontendUrl = frontendOptions.BaseUrl,
+                ShortLinkUrl = frontendOptions.ShortUrl,
+                TurnstileSiteKey = turnstileConfig.SiteKey,
+                IsUserAuthenticated = HttpContext.TryGetUserSessionToken(out _)
             },
             "OpenShock"
         );
     }
 
-    public sealed class ApiVersionResponse
+    public sealed class BackendInfoResponse
     {
         public required string Version { get; init; }
         public required string Commit { get; init; }
@@ -56,5 +56,6 @@ public sealed partial class VersionController : OpenShockControllerBase
         public required Uri FrontendUrl { get; init; }
         public required Uri ShortLinkUrl { get; init; }
         public required string? TurnstileSiteKey { get; init; }
+        public required bool IsUserAuthenticated { get; init; }
     }
 }

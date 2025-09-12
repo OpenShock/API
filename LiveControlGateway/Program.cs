@@ -12,19 +12,18 @@ using OpenShock.LiveControlGateway.Options;
 
 var builder = OpenShockApplication.CreateDefaultBuilder<Program>(args);
 
-builder.RegisterCommonOpenShockOptions();
+var redisOptions = builder.RegisterRedisOptions();
+var databaseOptions = builder.RegisterDatabaseOptions();
+builder.RegisterMetricsOptions();
 
 builder.Services.Configure<LcgOptions>(builder.Configuration.GetRequiredSection(LcgOptions.SectionName));
 builder.Services.AddSingleton<IValidateOptions<LcgOptions>, LcgOptionsValidator>();
 
-var databaseConfig = builder.Configuration.GetDatabaseOptions();
-var redisConfig = builder.Configuration.GetRedisConfigurationOptions();
-
 builder.Services
-    .AddOpenShockMemDB(redisConfig)
-    .AddOpenShockDB(databaseConfig)
+    .AddOpenShockMemDB(redisOptions)
+    .AddOpenShockDB(databaseOptions)
     .AddOpenShockServices()
-    .AddOpenShockSignalR(redisConfig);
+    .AddOpenShockSignalR(redisOptions);
 
 builder.Services.AddScoped<IDeviceService, DeviceService>();
 builder.Services.AddScoped<IControlSender, ControlSender>();
