@@ -30,34 +30,38 @@ builder.RegisterFrontendOptions();
 builder.Services
     .AddOpenShockMemDB(redisOptions)
     .AddOpenShockDB(databaseOptions)
-    .AddOpenShockServices(auth => auth
-        .AddCookie(OAuthConstants.FlowScheme, o =>
-        {
+    .AddOpenShockServices(auth =>
+    {
+        auth.AddCookie(OAuthConstants.FlowScheme, o => {
             o.Cookie.Name = OAuthConstants.FlowCookieName;
             o.ExpireTimeSpan = TimeSpan.FromMinutes(10);
             o.SlidingExpiration = false;
-        })
-        .AddDiscord(OAuthConstants.DiscordScheme, o =>
+        });
+            
+        var options = builder.Configuration.GetSection(DiscordOAuthOptions.SectionName).Get<DiscordOAuthOptions>();
+        if (options is not null)
         {
-            o.SignInScheme = OAuthConstants.FlowScheme;
+            auth.AddDiscord(OAuthConstants.DiscordScheme, o => {
+                o.SignInScheme = OAuthConstants.FlowScheme;
 
-            var options = builder.Configuration.GetRequiredSection(DiscordOAuthOptions.SectionName).Get<DiscordOAuthOptions>()!;
+            
 
-            o.ClientId = options.ClientId;
-            o.ClientSecret = options.ClientSecret;
-            o.CallbackPath = options.CallbackPath;
-            o.AccessDeniedPath = options.AccessDeniedPath;
-            foreach (var scope in options.Scopes) o.Scope.Add(scope);
+                o.ClientId = options.ClientId;
+                o.ClientSecret = options.ClientSecret;
+                o.CallbackPath = options.CallbackPath;
+                o.AccessDeniedPath = options.AccessDeniedPath;
+                foreach (var scope in options.Scopes) o.Scope.Add(scope);
 
-            o.Prompt = "none";
-            o.SaveTokens = false;
+                o.Prompt = "none";
+                o.SaveTokens = false;
 
-            o.ClaimActions.MapJsonKey(OAuthConstants.ClaimEmailVerified, "verified");
-            o.ClaimActions.MapJsonKey(OAuthConstants.ClaimDisplayName, "global_name");
+                o.ClaimActions.MapJsonKey(OAuthConstants.ClaimEmailVerified, "verified");
+                o.ClaimActions.MapJsonKey(OAuthConstants.ClaimDisplayName, "global_name");
 
-            o.Validate();
-        })
-    )
+                o.Validate();
+            });
+        }
+    })
     .AddOpenShockSignalR(redisOptions);
 
 builder.Services.AddScoped<IDeviceService, DeviceService>();
