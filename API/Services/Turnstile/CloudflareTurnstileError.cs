@@ -1,6 +1,6 @@
-﻿namespace OpenShock.Common.Services.Turnstile;
+﻿namespace OpenShock.API.Services.Turnstile;
 
-public enum CloduflareTurnstileError
+public enum CloudflareTurnstileError
 {
     MissingSecret,
     InvalidSecret,

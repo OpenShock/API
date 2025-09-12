@@ -1,7 +1,7 @@
 ﻿using System.Net;
 using OpenShock.Common.Problems;
 
-namespace OpenShock.Common.Errors;
+namespace OpenShock.API.Errors;
 
 public static class TurnstileError
 {

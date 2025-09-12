@@ -6,10 +6,11 @@ using OpenShock.API.Models.Requests;
 using OpenShock.Common.Authentication;
 using OpenShock.Common.Errors;
 using OpenShock.Common.Problems;
-using OpenShock.Common.Services.Turnstile;
 using OpenShock.Common.Utils;
 using System.Net;
 using Microsoft.AspNetCore.RateLimiting;
+using OpenShock.API.Errors;
+using OpenShock.API.Services.Turnstile;
 using OpenShock.Common.Services.Webhook;
 
 namespace OpenShock.API.Controller.Tokens;
@@ -39,7 +40,7 @@ public sealed partial class TokensController
         if (!turnStile.IsT0)
         {
             var cfErrors = turnStile.AsT1.Value!;
-            if (cfErrors.All(err => err == CloduflareTurnstileError.InvalidResponse))
+            if (cfErrors.All(err => err == CloudflareTurnstileError.InvalidResponse))
                 return Problem(TurnstileError.InvalidTurnstile);
 
             return Problem(new OpenShockProblem("InternalServerError", "Internal Server Error", HttpStatusCode.InternalServerError));

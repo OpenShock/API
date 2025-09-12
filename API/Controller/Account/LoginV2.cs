@@ -8,11 +8,12 @@ using Microsoft.AspNetCore.RateLimiting;
 using OpenShock.API.Services.Account;
 using OpenShock.Common.Errors;
 using OpenShock.Common.Problems;
-using OpenShock.Common.Services.Turnstile;
 using OpenShock.Common.Utils;
 using OpenShock.Common.Models;
 using Microsoft.Extensions.Options;
+using OpenShock.API.Errors;
 using OpenShock.API.Models.Response;
+using OpenShock.API.Services.Turnstile;
 using OpenShock.Common.Options;
 using OpenShock.Common.Services.Session;
 
@@ -44,7 +45,7 @@ public sealed partial class AccountController
         var turnStile = await turnstileService.VerifyUserResponseTokenAsync(body.TurnstileResponse, remoteIp, cancellationToken);
         if (!turnStile.TryPickT0(out _, out var cfErrors))
         {
-            if (cfErrors.Value.All(err => err == CloduflareTurnstileError.InvalidResponse))
+            if (cfErrors.Value.All(err => err == CloudflareTurnstileError.InvalidResponse))
                 return Problem(TurnstileError.InvalidTurnstile);
 
             return Problem(new OpenShockProblem("InternalServerError", "Internal Server Error", HttpStatusCode.InternalServerError));

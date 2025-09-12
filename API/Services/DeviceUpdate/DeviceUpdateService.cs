@@ -4,7 +4,7 @@ using OpenShock.Common.Models;
 using OpenShock.Common.Services.Device;
 using OpenShock.Common.Services.RedisPubSub;
 
-namespace OpenShock.API.Services;
+namespace OpenShock.API.Services.DeviceUpdate;
 
 public sealed class DeviceUpdateService : IDeviceUpdateService
 {

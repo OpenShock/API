@@ -1,7 +1,7 @@
 ﻿using System.Net;
 using OneOf.Types;
 
-namespace OpenShock.Common.Services.Turnstile;
+namespace OpenShock.API.Services.Turnstile;
 
 public interface ICloudflareTurnstileService
 {
@@ -12,6 +12,6 @@ public interface ICloudflareTurnstileService
     /// <param name="remoteIpAddress"></param>
     /// <param name="cancellationToken"></param>
     /// <returns>Success, No response token was supplied, internal error in cloudflare turnstile, business logic error on turnstile validation</returns>
-    public Task<OneOf.OneOf<Success, Error<CloduflareTurnstileError[]>>> VerifyUserResponseTokenAsync(
+    public Task<OneOf.OneOf<Success, Error<CloudflareTurnstileError[]>>> VerifyUserResponseTokenAsync(
         string responseToken, IPAddress? remoteIpAddress, CancellationToken cancellationToken = default);
 }

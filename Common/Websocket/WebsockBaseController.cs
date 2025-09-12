@@ -57,9 +57,9 @@ public abstract class WebsocketBaseController<T> : OpenShockControllerBase, IAsy
     [NonAction]
     public ValueTask QueueMessage(T data)
     {
-        if (WebSocket is null or { State: WebSocketState.Closed or WebSocketState.CloseSent })
+        if (WebSocket is null or { State: WebSocketState.Closed or WebSocketState.CloseSent or WebSocketState.Aborted })
         {
-            Logger.LogDebug("WebSocket is null or closed, not sending message");
+            Logger.LogDebug("WebSocket is null, abort or closed, not sending message");
             return ValueTask.CompletedTask;
         }
         
@@ -197,6 +197,7 @@ public abstract class WebsocketBaseController<T> : OpenShockControllerBase, IAsy
             catch (Exception e)
             {
                 Logger.LogError(e, "Error while sending message to client - {Msg}", JsonSerializer.Serialize(msg));
+                await ForceClose(WebSocketCloseStatus.InternalServerError, "Internal server error, error sending message to websocket client");
                 throw;
             }
         }
