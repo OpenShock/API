@@ -90,13 +90,13 @@ public abstract class HubControllerBase<TIn, TOut> : FlatbuffersWebsocketBaseCon
         ISerializer<TOut> outgoingSerializer,
         HubLifetimeManager hubLifetimeManager,
         IServiceProvider serviceProvider,
-        IOptions<LcgOptions> options,
+        LcgOptions options,
         ILogger<FlatbuffersWebsocketBaseController<TIn, TOut>> logger
         ) : base(logger, incomingSerializer, outgoingSerializer)
     {
         _hubLifetimeManager = hubLifetimeManager;
         ServiceProvider = serviceProvider;
-        _options = options.Value;
+        _options = options;
         _keepAliveTimeoutTimer.Elapsed += async (_, _) =>
         {
             try

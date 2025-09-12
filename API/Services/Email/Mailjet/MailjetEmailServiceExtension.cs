@@ -11,8 +11,11 @@ public static class MailjetEmailServiceExtension
     {
         var section = builder.Configuration.GetRequiredSection(MailJetOptions.SectionName);
 
+        
+        // TODO Simplify this
         builder.Services.Configure<MailJetOptions>(section);
         builder.Services.AddSingleton<IValidateOptions<MailJetOptions>, MailJetOptionsValidator>();
+        builder.Services.AddSingleton<MailJetOptions>(sp => sp.GetRequiredService<IOptions<MailJetOptions>>().Value);
 
         var options = section.Get<MailJetOptions>() ?? throw new NullReferenceException("MailJetOptions is null!");
         var basicAuthValue = Convert.ToBase64String(Encoding.UTF8.GetBytes($"{options.Key}:{options.Secret}"));

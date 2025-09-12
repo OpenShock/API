@@ -10,8 +10,10 @@ public static class CloudflareTurnstileServiceExtensions
     {
         var section = builder.Configuration.GetRequiredSection(TurnstileOptions.Turnstile);
 
+        // TODO Simplify this
         builder.Services.Configure<TurnstileOptions>(section);
         builder.Services.AddSingleton<IValidateOptions<TurnstileOptions>, TurnstileOptionsValidator>();
+        builder.Services.AddSingleton<TurnstileOptions>(sp => sp.GetRequiredService<IOptions<TurnstileOptions>>().Value);
 
         builder.Services.AddHttpClient<ICloudflareTurnstileService, CloudflareTurnstileService>(client =>
         {

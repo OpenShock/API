@@ -39,11 +39,9 @@ public sealed partial class VersionController : OpenShockControllerBase
     [HttpGet]
     public LegacyDataResponse<BackendInfoResponse> GetBackendInfo(
         [FromServices] FrontendOptions frontendOptions,
-        [FromServices] IOptions<TurnstileOptions> turnstileOptions
+        [FromServices] TurnstileOptions turnstileOptions
         )
     {
-        var turnstileConfig = turnstileOptions.Value;
-
         return new(
             new BackendInfoResponse
             {
@@ -52,7 +50,7 @@ public sealed partial class VersionController : OpenShockControllerBase
                 CurrentTime = DateTimeOffset.UtcNow,
                 FrontendUrl = frontendOptions.BaseUrl,
                 ShortLinkUrl = frontendOptions.ShortUrl,
-                TurnstileSiteKey = turnstileConfig.SiteKey,
+                TurnstileSiteKey = turnstileOptions.SiteKey,
                 IsUserAuthenticated = HttpContext.TryGetUserSessionToken(out _)
             },
             "OpenShock"

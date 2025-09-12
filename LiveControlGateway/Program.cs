@@ -16,8 +16,10 @@ var redisOptions = builder.RegisterRedisOptions();
 var databaseOptions = builder.RegisterDatabaseOptions();
 builder.RegisterMetricsOptions();
 
+// TODO Simplify this
 builder.Services.Configure<LcgOptions>(builder.Configuration.GetRequiredSection(LcgOptions.SectionName));
 builder.Services.AddSingleton<IValidateOptions<LcgOptions>, LcgOptionsValidator>();
+builder.Services.AddSingleton<LcgOptions>(sp => sp.GetRequiredService<IOptions<LcgOptions>>().Value);
 
 builder.Services
     .AddOpenShockMemDB(redisOptions)
