@@ -72,13 +72,11 @@ public sealed partial class OAuthController
         }
 
         // External identity basics from claims (added by your handler)
-        var externalId = auth.Principal.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-        var externalAccountName = auth.Principal.FindFirst(ClaimTypes.Name)?.Value;
         var externalAccountEmail = auth.Principal.FindFirst(ClaimTypes.Email)?.Value;
-        var displayName = body.Username ?? externalAccountName;
+        var username = body.Username ?? auth.ExternalAccountDisplayName ?? auth.ExternalAccountName;
         var email = body.Email ?? externalAccountEmail;
 
-        if (string.IsNullOrWhiteSpace(externalId) || string.IsNullOrWhiteSpace(email) || string.IsNullOrWhiteSpace(displayName))
+        if (string.IsNullOrWhiteSpace(auth.ExternalAccountId) || string.IsNullOrWhiteSpace(email) || string.IsNullOrWhiteSpace(username))
         {
             return Problem(OAuthError.FlowMissingData);
         }
@@ -87,7 +85,7 @@ public sealed partial class OAuthController
         var isEmailTrusted = IsTruthy(isVerifiedString) && string.Equals(externalAccountEmail, email, StringComparison.InvariantCultureIgnoreCase);
 
         // Do not allow creation if this external is already linked anywhere.
-        var existing = await connectionService.GetByProviderExternalIdAsync(provider, externalId, cancellationToken);
+        var existing = await connectionService.GetByProviderExternalIdAsync(provider, auth.ExternalAccountId, cancellationToken);
         if (existing is not null)
         {
             await HttpContext.SignOutAsync(OAuthConstants.FlowScheme);
@@ -96,10 +94,10 @@ public sealed partial class OAuthController
 
         var created = await _accountService.CreateOAuthOnlyAccountAsync(
             email,
-            displayName,
+            username,
             provider,
-            externalId,
-            externalAccountName,
+            auth.ExternalAccountId,
+            auth.ExternalAccountDisplayName ?? auth.ExternalAccountName,
             isEmailTrusted
         );
 

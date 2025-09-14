@@ -36,7 +36,7 @@ public sealed partial class OAuthController : OpenShockControllerBase
     }
 
     /// <summary>
-    /// Validates: provider exists, temp cookie auth present, scNOheme matches, flow parsable.
+    /// Validates: provider exists, temp cookie auth present, scheme matches, flow parsable.
     /// On success returns ValidatedFlowContext; on failure returns IActionResult with proper problem details.
     /// </summary>
     private async Task<OneOf<ValidatedFlowContext, OAuthValidationError>> ValidateOAuthFlowAsync()
@@ -76,13 +76,12 @@ public sealed partial class OAuthController : OpenShockControllerBase
             return OAuthValidationError.FlowDataMissingOrInvalid;
         }
         
-        
-
         return new ValidatedFlowContext(
             Provider: actualScheme,
             Flow: flow,
             ExternalAccountId: externalId,
-            ExternalAccountName: auth.Principal.FindFirst(ClaimTypes.Name)?.Value,
+            ExternalAccountName: auth.Principal.FindFirst(OAuthConstants.ClaimUserName)?.Value,
+            ExternalAccountDisplayName: auth.Principal.FindFirst(OAuthConstants.ClaimDisplayName)?.Value,
             Principal: auth.Principal,
             Properties: auth.Properties
         );
