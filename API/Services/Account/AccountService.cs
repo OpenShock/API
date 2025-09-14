@@ -259,10 +259,15 @@ public sealed class AccountService : IAccountService
             .FirstOrDefaultAsync(x => x.Email == lowercaseUsernameOrEmail || x.Name == lowercaseUsernameOrEmail, cancellationToken);
         if (user is null)
         {
-            // TODO: Set appropriate time to match password hashing time, preventing timing attacks
-            await Task.Delay(100, cancellationToken);
+            await HashingUtils.VerifyPasswordFake();
             return new NotFound();
         }
+
+        if (!await CheckPassword(password, user))
+        {
+            return new NotFound();
+        }
+        
         if (user.ActivatedAt is null)
         {
             return new AccountNotActivated();
@@ -272,7 +277,6 @@ public sealed class AccountService : IAccountService
             return new AccountDeactivated();
         }
 
-        if (!await CheckPassword(password, user)) return new NotFound();
 
         var createdSession = await _sessionService.CreateSessionAsync(user.Id, loginContext.UserAgent, loginContext.Ip);
 

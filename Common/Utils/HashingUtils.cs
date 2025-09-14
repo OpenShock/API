@@ -1,4 +1,5 @@
 ﻿using System.Buffers;
+using System.Diagnostics;
 using System.Security.Cryptography;
 using System.Text;
 using BCrypt.Net;
@@ -11,6 +12,8 @@ public static class HashingUtils
     private const string BCryptPrefix = "bcrypt";
     private const string Pbkdf2Prefix = "pbkdf2";
     private const HashType BCryptHashType = HashType.SHA512;
+
+    private static readonly LatencyEmulator VerifyTiming = new(200, 100);
     
     public readonly record struct VerifyHashResult(bool Verified, bool NeedsRehash);
     private static readonly VerifyHashResult VerifyHashFailureResult = new(false, false);
@@ -73,6 +76,7 @@ public static class HashingUtils
     {
         return $"{BCryptPrefix}:{BCrypt.Net.BCrypt.EnhancedHashPassword(password, BCryptHashType)}";
     }
+    
     public static VerifyHashResult VerifyPassword(string password, string combinedHash)
     {
         int index = combinedHash.IndexOf(':');
@@ -82,9 +86,14 @@ public static class HashingUtils
 
         if (algorithm == PasswordHashingAlgorithm.BCrypt)
         {
+            var start = Stopwatch.GetTimestamp();
+            var verified =  BCrypt.Net.BCrypt.EnhancedVerify(password, combinedHash[(index + 1)..], BCryptHashType);
+            var stop = Stopwatch.GetTimestamp();
+            VerifyTiming.Record(stop - start);
+            
             return new VerifyHashResult
             {
-                Verified = BCrypt.Net.BCrypt.EnhancedVerify(password, combinedHash[(index + 1)..], BCryptHashType),
+                Verified = verified,
                 NeedsRehash = false
             };
         }
@@ -101,6 +110,11 @@ public static class HashingUtils
         }
         
         return VerifyHashFailureResult;
+    }
+
+    public static Task VerifyPasswordFake()
+    {
+        return Task.Delay(VerifyTiming.GetFake());
     }
 
     public static string HashToken(string token)
