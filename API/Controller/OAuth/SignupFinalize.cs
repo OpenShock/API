@@ -110,8 +110,11 @@ public sealed partial class OAuthController
             return Problem(SignupError.UsernameOrEmailExists);
         }
 
-        // Authenticate the client (create session and set session cookie)
-        await CreateSession(newUser.Value.Id, domain);
+        // Authenticate the client if its activated (create session and set session cookie)
+        if (newUser.Value.ActivatedAt is not null)
+        {
+            await CreateSession(newUser.Value.Id, domain);
+        }
 
         // Clear the temporary OAuth flow cookie.
         await HttpContext.SignOutAsync(OAuthConstants.FlowScheme);
