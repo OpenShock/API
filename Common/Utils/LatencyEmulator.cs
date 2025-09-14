@@ -16,14 +16,16 @@ public sealed class LatencyEmulator
     /// Sliding window of timing samples (stored as ticks).
     /// Seeds the window with one sample = max(defaultMs, 0).
     /// </summary>
-    public LatencyEmulator(int capacity, double defaultMs)
+    public LatencyEmulator(int capacity, long defaultMs)
     {
         if (capacity <= 1)
             throw new ArgumentOutOfRangeException(nameof(capacity), "Capacity must be > 1.");
+        
+        ArgumentOutOfRangeException.ThrowIfNegative(defaultMs);
 
         _buf = new long[capacity];
 
-        long ticks = TimeSpan.FromMilliseconds(Math.Max(defaultMs, 0)).Ticks;
+        long ticks = defaultMs * TimeSpan.TicksPerMillisecond;
         _buf[0] = ticks;
         _count = 1;
         _head  = 1;
@@ -37,6 +39,8 @@ public sealed class LatencyEmulator
     /// </summary>
     public void Record(long elapsedTicks)
     {
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(elapsedTicks);
+
         lock (_gate)
         {
             if (_count < _buf.Length)
@@ -70,35 +74,38 @@ public sealed class LatencyEmulator
     {
         lock (_gate)
         {
-            var (mean, std) = MeanStdUnsafe_O1();
+            var (mean, std) = MeanStdUnsafe();
             double noise = std > 0 ? NextGaussian(0, std) : 0;
             double value = Math.Max(mean + noise, 0); // clamp at 0
-            // Optional: cap at, say, 10× mean to avoid wild outliers
-            // value = Math.Min(value, 10 * Math.Max(mean, 1));
-
-            return TimeSpan.FromTicks((long)value);
+            return TimeSpan.FromTicks((long)Math.Round(value));
         }
     }
 
     /// <summary>
-    /// Returns (meanTicks, stdDevTicks)
+    /// Returns (meanMs, stdDevMs)
     /// </summary>
     public (double mean, double std) GetStats()
     {
-        lock (_gate) return MeanStdUnsafe_O1();
+        double mean, std;
+        
+        lock (_gate)
+        {
+            (mean, std) = MeanStdUnsafe();
+        }
+        
+        return (mean / TimeSpan.TicksPerMillisecond, std / TimeSpan.TicksPerMillisecond);
     }
 
     // --- helpers ---
 
     // Uses maintained sums for O(1) stats
-    private (double mean, double std) MeanStdUnsafe_O1()
+    private (double mean, double std) MeanStdUnsafe()
     {
         switch (_count)
         {
             case 0:
                 return (0, 0);
             case 1:
-                // The single element is at index 0 for this implementation.
                 double v = _buf[0];
                 return (v, 0);
         }

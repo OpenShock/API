@@ -13,7 +13,7 @@ public static class HashingUtils
     private const string Pbkdf2Prefix = "pbkdf2";
     private const HashType BCryptHashType = HashType.SHA512;
 
-    private static readonly LatencyEmulator VerifyTiming = new(200, 100.0);
+    private static readonly LatencyEmulator VerifyTiming = new(200, 100);
     
     public readonly record struct VerifyHashResult(bool Verified, bool NeedsRehash);
     private static readonly VerifyHashResult VerifyHashFailureResult = new(false, false);
