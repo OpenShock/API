@@ -145,17 +145,19 @@ public sealed class AccountService : IAccountService
         await using var tx = await _db.Database.BeginTransactionAsync();
 
         string? activationToken = null;
-        Guid userId;
 
         try
         {
+            var creationTime = DateTime.UtcNow;
+            
             var user = new User
             {
                 Id = Guid.CreateVersion7(),
                 Name = username,
                 Email = email,
                 PasswordHash = null,
-                ActivatedAt = isEmailTrusted ? DateTime.UtcNow : null
+                CreatedAt = creationTime,
+                ActivatedAt = isEmailTrusted ? creationTime : null
             };
 
             _db.Users.Add(user);
@@ -169,7 +171,8 @@ public sealed class AccountService : IAccountService
                 user.UserActivationRequest = new UserActivationRequest
                 {
                     UserId = user.Id,
-                    TokenHash = HashingUtils.HashToken(activationToken)
+                    TokenHash = HashingUtils.HashToken(activationToken),
+                    CreatedAt = creationTime
                 };
 
                 await _db.SaveChangesAsync();
@@ -181,18 +184,11 @@ public sealed class AccountService : IAccountService
                 UserId = user.Id,
                 ProviderKey = provider,
                 ExternalId = providerAccountId,
-                DisplayName = providerAccountName
+                DisplayName = providerAccountName,
+                CreatedAt = creationTime,
             });
 
-            // Tidy-up if clock skew makes CreatedAt > ActivatedAt (trusted case only)
-            if (user.ActivatedAt is not null && user.CreatedAt > user.ActivatedAt)
-            {
-                user.ActivatedAt = user.CreatedAt;
-            }
-
             await _db.SaveChangesAsync();
-
-            userId = user.Id;
 
             await tx.CommitAsync();
 
@@ -201,7 +197,7 @@ public sealed class AccountService : IAccountService
             {
                 await _emailService.VerifyEmail(
                     new Contact(email, username),
-                    new Uri(_frontendConfig.BaseUrl, $"/#/account/activate/{userId}/{activationToken}")
+                    new Uri(_frontendConfig.BaseUrl, $"/#/account/activate/{user.Id}/{activationToken}")
                 );
             }
 

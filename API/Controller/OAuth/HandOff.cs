@@ -1,13 +1,11 @@
 ﻿using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
-using Microsoft.Extensions.Options;
 using OpenShock.API.Services.OAuthConnection;
 using OpenShock.Common.Options;
 using OpenShock.Common.Problems;
 using System.Net.Mime;
 using OpenShock.API.OAuth;
-using OpenShock.Common.Services.Session;
 using OpenShock.Common.Utils;
 
 namespace OpenShock.API.Controller.OAuth;
@@ -81,7 +79,6 @@ public sealed partial class OAuthController
                 // Flow cookie no longer needed
                 await HttpContext.SignOutAsync(OAuthConstants.FlowScheme);
 
-                // TODO: optionally send to a specific frontend route
                 return RedirectFrontendPath("/home");
             }
 
@@ -119,7 +116,6 @@ public sealed partial class OAuthController
                 // Flow cookie no longer needed
                 await HttpContext.SignOutAsync(OAuthConstants.FlowScheme);
 
-                // TODO: optionally send to a specific frontend route
                 return RedirectFrontendConnections("linked");
             }
 

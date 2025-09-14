@@ -45,16 +45,21 @@ public sealed partial class OAuthController
             };
         }
 
-        if (auth.Provider != provider || auth.Flow != OAuthFlow.LoginOrCreate)
+        if (auth.Provider != provider)
         {
-            return Problem(OAuthError.AnonymousOnlyEndpoint);
+            return Problem(OAuthError.ProviderMismatch);
+        }
+
+        if (auth.Flow != OAuthFlow.LoginOrCreate)
+        {
+            return Problem(OAuthError.FlowMismatch);
         }
 
         return Ok(new OAuthSignupDataResponse
         {
             Provider = auth.Provider,
             Email = auth.Principal.FindFirst(ClaimTypes.Email)?.Value,
-            DisplayName = auth.Principal.FindFirst(ClaimTypes.Name)?.Value,
+            DisplayName = auth.Principal.FindFirst(OAuthConstants.ClaimDisplayName)?.Value ?? auth.Principal.FindFirst(OAuthConstants.ClaimUserName)?.Value,
             ExpiresAt = auth.Properties.ExpiresUtc!.Value.UtcDateTime
         });
     }

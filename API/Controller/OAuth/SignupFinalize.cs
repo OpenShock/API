@@ -32,7 +32,7 @@ public sealed partial class OAuthController
     /// <response code="409">External already linked or username/email already exists.</response>
     [EnableRateLimiting("auth")]
     [HttpPost("{provider}/signup-finalize")]
-    [ProducesResponseType(typeof(OAuthFinalizeResponse), StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
+    [ProducesResponseType(typeof(LoginV2OkResponse), StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
     [ProducesResponseType(typeof(OpenShockProblem), StatusCodes.Status400BadRequest, MediaTypeNames.Application.Json)]
     [ProducesResponseType(typeof(OpenShockProblem), StatusCodes.Status409Conflict, MediaTypeNames.Application.Json)]
     public async Task<IActionResult> OAuthSignupFinalize(
@@ -41,6 +41,14 @@ public sealed partial class OAuthController
         [FromServices] IOAuthConnectionService connectionService,
         CancellationToken cancellationToken)
     {
+        // If domain is not supported for cookies, cancel the flow
+        var domain = GetCurrentCookieDomain();
+        if (string.IsNullOrEmpty(domain))
+        {
+            await HttpContext.SignOutAsync(OAuthConstants.FlowScheme);
+            return Problem(OAuthError.InternalError);
+        }
+        
         var result = await ValidateOAuthFlowAsync();
         if (!result.TryPickT0(out var auth, out var error))
         {
@@ -70,14 +78,13 @@ public sealed partial class OAuthController
         var displayName = body.Username ?? externalAccountName;
         var email = body.Email ?? externalAccountEmail;
 
-        if (string.IsNullOrEmpty(externalId) || string.IsNullOrEmpty(email) || string.IsNullOrEmpty(displayName))
+        if (string.IsNullOrWhiteSpace(externalId) || string.IsNullOrWhiteSpace(email) || string.IsNullOrWhiteSpace(displayName))
         {
-            await HttpContext.SignOutAsync(OAuthConstants.FlowScheme);
             return Problem(OAuthError.FlowMissingData);
         }
-        
-        bool externalTrustsEmail = IsTruthy(auth.Principal.FindFirst(OAuthConstants.ClaimEmailVerified)?.Value);
-        var isEmailTrusted = CanEmailBeTrusted(email, auth.Provider, externalAccountEmail, externalTrustsEmail); 
+
+        var isVerifiedString = auth.Principal.FindFirst(OAuthConstants.ClaimEmailVerified)?.Value;
+        var isEmailTrusted = IsTruthy(isVerifiedString) && string.Equals(externalAccountEmail, email, StringComparison.InvariantCultureIgnoreCase);
 
         // Do not allow creation if this external is already linked anywhere.
         var existing = await connectionService.GetByProviderExternalIdAsync(provider, externalId, cancellationToken);
@@ -96,42 +103,20 @@ public sealed partial class OAuthController
             isEmailTrusted
         );
 
-        if (!created.TryPickT0(out var newUser, out var _))
+        if (!created.TryPickT0(out var newUser, out _))
         {
             // Username or email already exists — conflict.
             // Do NOT clear the flow cookie so the frontend can retry with a different username.
             return Problem(SignupError.UsernameOrEmailExists);
         }
 
-        // --- Authenticate the client (create session + set session cookie) ---
-        var domain = GetCurrentCookieDomain();
-        if (string.IsNullOrEmpty(domain))
-        {
-            await HttpContext.SignOutAsync(OAuthConstants.FlowScheme);
-            return Problem(OAuthError.InternalError);
-        }
-
+        // Authenticate the client (create session and set session cookie)
         await CreateSession(newUser.Value.Id, domain);
-        // --------------------------------------------------------------------
 
         // Clear the temporary OAuth flow cookie.
         await HttpContext.SignOutAsync(OAuthConstants.FlowScheme);
 
-        return Ok(new OAuthFinalizeResponse
-        {
-            Provider = provider,
-            ExternalId = externalId,
-            Username = newUser.Value.Name
-        });
-
-        static bool CanEmailBeTrusted(string email, string provider, string? externalEmail, bool externalEmailTrust)
-        {
-            if (!externalEmailTrust || externalEmail == null || email != externalEmail) return false;
-            
-            if (provider is not ("discord" or "google")) return false;
-            
-            return true;
-        }
+        return Ok(LoginV2OkResponse.FromUser(newUser.Value));
 
         static bool IsTruthy(string? value)
         {

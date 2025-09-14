@@ -11,5 +11,6 @@ public static class OAuthConstants
     public const string ItemKeyFlowType = ".FlowType";
     
     public const string ClaimEmailVerified = "openshock.oauth.email_verified";
+    public const string ClaimUserName = "openshock.oauth.user_name";
     public const string ClaimDisplayName = "openshock.oauth.display_name";
 }

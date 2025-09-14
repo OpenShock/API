@@ -9,6 +9,7 @@ public sealed class LoginV2OkResponse
     public required Guid AccountId { get; init; }
     public required string AccountName { get; init; }
     public required string AccountEmail { get; init; }
+    public required bool IsVerified { get; init; }
     public required Uri ProfileImage { get; init; }
     public required List<RoleType> AccountRoles { get; init; }
 
@@ -17,6 +18,7 @@ public sealed class LoginV2OkResponse
         AccountId = argUser.Id,
         AccountName = argUser.Name,
         AccountEmail = argUser.Email,
+        IsVerified = argUser.ActivatedAt is not null,
         ProfileImage = argUser.GetImageUrl(),
         AccountRoles = argUser.Roles
     };
