@@ -39,7 +39,7 @@ public sealed class LatencyEmulator
     /// </summary>
     public void Record(long elapsedTicks)
     {
-        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(elapsedTicks);
+        ArgumentOutOfRangeException.ThrowIfNegative(elapsedTicks);
 
         lock (_gate)
         {

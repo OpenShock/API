@@ -57,13 +57,6 @@ public class LatencyEmulatorTests
         Assert.Throws<ArgumentOutOfRangeException>(() => emu.Record(-1));
     }
 
-    [Test]
-    public void Record_Zero_Throws()
-    {
-        var emu = new LatencyEmulator(capacity: 4, defaultMs: 0);
-        Assert.Throws<ArgumentOutOfRangeException>(() => emu.Record(0));
-    }
-
     // --- Record: growth phase (no eviction) ---
 
     [Test]
@@ -147,14 +140,14 @@ public class LatencyEmulatorTests
     {
         var emu = new LatencyEmulator(capacity: 16, defaultMs: 0);
 
-        // Create a spread so std>0
+        // Create a spread so std > 0
         foreach (var ms in new[] { 1, 2, 3, 5, 8, 13, 21, 34 }) emu.Record(Ms(ms));
 
         var (mean, std) = emu.GetStats();
         await Assert.That(std).IsGreaterThan(0);
 
         // Gather many samples; all must be non-negative,
-        // and at least one should differ from rounded mean.
+        // and at least one should differ from a rounded mean.
         var fakes = new List<long>();
         for (int i = 0; i < 200; i++) fakes.Add(emu.GetFake().Ticks);
 
@@ -193,7 +186,7 @@ public class LatencyEmulatorTests
                 var rnd = new Random(i * 7919 + 17);
                 for (int k = 0; k < 5000; k++)
                 {
-                    // Generate strictly positive tick values (~ up to 10ms)
+                    // Generate strictly positive tick values (~ up to 10 ms)
                     // Ensure >= 1 tick to satisfy ThrowIfNegativeOrZero.
                     long ticks = Math.Max(1, TimeSpan.FromMilliseconds(rnd.NextDouble() * 10).Ticks);
                     emu.Record(ticks);
