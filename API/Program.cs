@@ -48,16 +48,15 @@ builder.Services
 
                 o.ClientId = options.ClientId;
                 o.ClientSecret = options.ClientSecret;
-                o.CallbackPath = options.CallbackPath;
-                o.AccessDeniedPath = options.AccessDeniedPath;
-                foreach (var scope in options.Scopes) o.Scope.Add(scope);
+                o.CallbackPath = "/oauth/discord/callback";
+                o.CallbackPath = "/oauth/discord/rejected"; // TODO: Make this do something
+                o.Scope.Add("email");
 
                 o.Prompt = "none";
                 o.SaveTokens = false;
 
                 o.ClaimActions.MapJsonKey(OAuthConstants.ClaimEmailVerified, "verified");
-                o.ClaimActions.MapJsonKey(OAuthConstants.ClaimDisplayName, "username");
-                o.ClaimActions.MapJsonKey(OAuthConstants.ClaimUserName, "global_name");
+                o.ClaimActions.MapJsonKey(OAuthConstants.ClaimGlobalName, "global_name");
 
                 o.Validate();
             });

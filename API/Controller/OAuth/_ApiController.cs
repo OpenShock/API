@@ -75,13 +75,16 @@ public sealed partial class OAuthController : OpenShockControllerBase
             await HttpContext.SignOutAsync(OAuthConstants.FlowScheme);
             return OAuthValidationError.FlowDataMissingOrInvalid;
         }
+
+        string? displayName = auth.Principal.FindFirst(ClaimTypes.Name)?.Value;
+        string? globalName = auth.Principal.FindFirst(OAuthConstants.ClaimGlobalName)?.Value;
         
         return new ValidatedFlowContext(
             Provider: actualScheme,
             Flow: flow,
             ExternalAccountId: externalId,
-            ExternalAccountName: auth.Principal.FindFirst(OAuthConstants.ClaimUserName)?.Value,
-            ExternalAccountDisplayName: auth.Principal.FindFirst(OAuthConstants.ClaimDisplayName)?.Value,
+            ExternalAccountName: globalName ?? displayName,
+            ExternalAccountDisplayName: displayName ?? globalName,
             Principal: auth.Principal,
             Properties: auth.Properties
         );
