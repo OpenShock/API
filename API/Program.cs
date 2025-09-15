@@ -56,7 +56,7 @@ builder.Services
                 o.SaveTokens = false;
 
                 o.ClaimActions.MapJsonKey(OAuthConstants.ClaimEmailVerified, "verified");
-                o.ClaimActions.MapJsonKey(OAuthConstants.ClaimGlobalName, "global_name");
+                o.ClaimActions.MapJsonKey(OAuthConstants.ClaimDisplayName, "global_name");
 
                 o.Validate();
             });

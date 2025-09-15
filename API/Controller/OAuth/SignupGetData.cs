@@ -59,7 +59,7 @@ public sealed partial class OAuthController
         {
             Provider = auth.Provider,
             Email = auth.Principal.FindFirst(ClaimTypes.Email)?.Value,
-            DisplayName = auth.Principal.FindFirst(ClaimTypes.Name)?.Value ?? auth.Principal.FindFirst(OAuthConstants.ClaimGlobalName)?.Value,
+            DisplayName = auth.ExternalAccountDisplayName ?? auth.ExternalAccountName,
             ExpiresAt = auth.Properties.ExpiresUtc!.Value.UtcDateTime
         });
     }
