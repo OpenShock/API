@@ -49,7 +49,7 @@ builder.Services
                 o.ClientId = options.ClientId;
                 o.ClientSecret = options.ClientSecret;
                 o.CallbackPath = "/oauth/discord/callback";
-                o.CallbackPath = "/oauth/discord/rejected"; // TODO: Make this do something
+                o.AccessDeniedPath = "/oauth/discord/rejected"; // TODO: Make this do something
                 o.Scope.Add("email");
 
                 o.Prompt = "none";
