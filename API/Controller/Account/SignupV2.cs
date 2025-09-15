@@ -46,7 +46,7 @@ public sealed partial class AccountController
         var creationAction = await _accountService.CreateAccountWithActivationFlowAsync(body.Email, body.Username, body.Password);
         return creationAction.Match<IActionResult>(
             _ => Ok(),
-            _ => Problem(SignupError.EmailAlreadyExists)
+            _ => Problem(SignupError.UsernameOrEmailExists)
         );
     }
 }

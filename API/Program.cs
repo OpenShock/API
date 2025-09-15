@@ -1,8 +1,12 @@
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Http.Connections;
+using OpenShock.API.OAuth;
+using OpenShock.API.Options.OAuth;
 using OpenShock.API.Realtime;
 using OpenShock.API.Services.Account;
 using OpenShock.API.Services.DeviceUpdate;
 using OpenShock.API.Services.Email;
+using OpenShock.API.Services.OAuthConnection;
 using OpenShock.API.Services.Turnstile;
 using OpenShock.API.Services.UserService;
 using OpenShock.Common;
@@ -26,7 +30,38 @@ builder.RegisterFrontendOptions();
 builder.Services
     .AddOpenShockMemDB(redisOptions)
     .AddOpenShockDB(databaseOptions)
-    .AddOpenShockServices()
+    .AddOpenShockServices(auth =>
+    {
+        auth.AddCookie(OAuthConstants.FlowScheme, o => {
+            o.Cookie.Name = OAuthConstants.FlowCookieName;
+            o.ExpireTimeSpan = TimeSpan.FromMinutes(10);
+            o.SlidingExpiration = false;
+        });
+            
+        var options = builder.Configuration.GetSection(DiscordOAuthOptions.SectionName).Get<DiscordOAuthOptions>();
+        if (options is not null)
+        {
+            auth.AddDiscord(OAuthConstants.DiscordScheme, o => {
+                o.SignInScheme = OAuthConstants.FlowScheme;
+
+            
+
+                o.ClientId = options.ClientId;
+                o.ClientSecret = options.ClientSecret;
+                o.CallbackPath = "/oauth/discord/callback";
+                o.CallbackPath = "/oauth/discord/rejected"; // TODO: Make this do something
+                o.Scope.Add("email");
+
+                o.Prompt = "none";
+                o.SaveTokens = false;
+
+                o.ClaimActions.MapJsonKey(OAuthConstants.ClaimEmailVerified, "verified");
+                o.ClaimActions.MapJsonKey(OAuthConstants.ClaimGlobalName, "global_name");
+
+                o.Validate();
+            });
+        }
+    })
     .AddOpenShockSignalR(redisOptions);
 
 builder.Services.AddScoped<IDeviceService, DeviceService>();
@@ -34,6 +69,7 @@ builder.Services.AddScoped<IControlSender, ControlSender>();
 builder.Services.AddScoped<IOtaService, OtaService>();
 builder.Services.AddScoped<IDeviceUpdateService, DeviceUpdateService>();
 builder.Services.AddScoped<IAccountService, AccountService>();
+builder.Services.AddScoped<IOAuthConnectionService, OAuthConnectionService>();
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<ILCGNodeProvisioner, LCGNodeProvisioner>();
 

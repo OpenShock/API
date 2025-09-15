@@ -1,6 +1,7 @@
 ﻿using OpenShock.Common.Constants;
 using System.Diagnostics.CodeAnalysis;
 using System.Security.Claims;
+using OpenShock.Common.Authentication;
 
 namespace OpenShock.Common.Utils;
 
@@ -15,28 +16,6 @@ public static class AuthUtils
         AuthConstants.HubTokenHeaderName,
         "Device-Token"
     ];
-
-    private static CookieOptions GetCookieOptions(string domain, TimeSpan lifetime)
-    {
-        return new CookieOptions
-        {
-            Expires = new DateTimeOffset(DateTime.UtcNow.Add(lifetime)),
-            Secure = true,
-            HttpOnly = true,
-            SameSite = SameSiteMode.Strict,
-            Domain = domain
-        };
-    }
-
-    public static void SetSessionKeyCookie(this HttpContext context, string sessionKey, string domain)
-    {
-        context.Response.Cookies.Append(AuthConstants.UserSessionCookieName, sessionKey, GetCookieOptions(domain, Duration.LoginSessionLifetime));
-    }
-
-    public static void RemoveSessionKeyCookie(this HttpContext context, string domain)
-    {
-        context.Response.Cookies.Append(AuthConstants.UserSessionCookieName, string.Empty, GetCookieOptions(domain, TimeSpan.FromDays(-1)));
-    }
 
     public static bool TryGetUserSessionToken(this HttpContext context, [NotNullWhen(true)] out string? sessionToken)
     {
@@ -101,4 +80,67 @@ public static class AuthUtils
         return authMethodClaim.Value;
     }
     
+    public static bool HasOpenShockUserIdentity(this ClaimsPrincipal user)
+    {
+        foreach (var ident in user.Identities)
+        {
+            if (!ident.IsAuthenticated) continue;
+            
+            foreach (var claim in ident.Claims)
+            {
+                if (claim is
+                    {
+                        Type: ClaimTypes.AuthenticationMethod,
+                        Value: OpenShockAuthSchemes.UserSessionCookie
+                    })
+                {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+    
+    public static bool TryGetOpenShockUserIdentity(this ClaimsPrincipal user, [NotNullWhen(true)] out ClaimsIdentity? identity)
+    {
+        foreach (var ident in user.Identities)
+        {
+            if (!ident.IsAuthenticated) continue;
+            
+            foreach (var claim in ident.Claims)
+            {
+                if (claim is
+                    {
+                        Type: ClaimTypes.AuthenticationMethod,
+                        Value: OpenShockAuthSchemes.UserSessionCookie
+                    })
+                {
+                    identity = ident;
+                    return true;
+                }
+            }
+        }
+
+        identity = null;
+        return false;
+    }
+
+    public static bool TryGetAuthenticatedOpenShockUserId(this ClaimsPrincipal user, out Guid userId)
+    {
+        if (!user.TryGetOpenShockUserIdentity(out var identity))
+        {
+            userId = Guid.Empty;
+            return false;
+        }
+        
+        var idStr = identity.Claims.SingleOrDefault(x => x.Type == ClaimTypes.NameIdentifier)?.Value;
+        if (string.IsNullOrEmpty(idStr))
+        {
+            userId = Guid.Empty;
+            return false;
+        }
+
+        return Guid.TryParse(idStr, out userId);
+    }
 }

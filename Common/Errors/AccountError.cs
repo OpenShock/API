@@ -27,4 +27,6 @@ public static class AccountError
 
     public static OpenShockProblem AccountNotActivated => new OpenShockProblem("Account.AccountNotActivated", "Your account has not been activated", HttpStatusCode.Unauthorized);
     public static OpenShockProblem AccountDeactivated => new OpenShockProblem("Account.Deactivated", "Your account has been deactivated", HttpStatusCode.Unauthorized);
+
+    public static OpenShockProblem AccountOAuthOnly => new OpenShockProblem("Account.OAuthOnly", "This account is only accessible via OAuth", HttpStatusCode.Unauthorized);
 }

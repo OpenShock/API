@@ -2,6 +2,7 @@
 using System.Security.Claims;
 using Asp.Versioning;
 using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -65,8 +66,9 @@ public static class OpenShockServiceHelper
     /// Register all OpenShock services for PRODUCTION use
     /// </summary>
     /// <param name="services"></param>
+    /// <param name="configureAuth"></param>
     /// <returns></returns>
-    public static IServiceCollection AddOpenShockServices(this IServiceCollection services)
+    public static IServiceCollection AddOpenShockServices(this IServiceCollection services, Action<AuthenticationBuilder>? configureAuth = null)
     {
         // <---- ASP.NET ---->
         services.AddExceptionHandler<OpenShockExceptionHandler>();
@@ -86,15 +88,18 @@ public static class OpenShockServiceHelper
         services.AddScoped<IClientAuthService<Device>, ClientAuthService<Device>>();
         services.AddScoped<IUserReferenceService, UserReferenceService>();
 
+        services.AddDataProtection().PersistKeysToDbContext<OpenShockContext>();
         services.AddAuthenticationCore();
-        new AuthenticationBuilder(services)
+        var authBuilder = new AuthenticationBuilder(services)
             .AddScheme<AuthenticationSchemeOptions, UserSessionAuthentication>(
                 OpenShockAuthSchemes.UserSessionCookie, _ => { })
             .AddScheme<AuthenticationSchemeOptions, ApiTokenAuthentication>(
                 OpenShockAuthSchemes.ApiToken, _ => { })
             .AddScheme<AuthenticationSchemeOptions, HubAuthentication>(
                 OpenShockAuthSchemes.HubToken, _ => { });
-        
+
+        configureAuth?.Invoke(authBuilder);
+
         services.AddAuthorization(options =>
         {
             options.AddPolicy(OpenShockAuthPolicies.RankAdmin, policy => policy.RequireRole("Admin", "System"));
