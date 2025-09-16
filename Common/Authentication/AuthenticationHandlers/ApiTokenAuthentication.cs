@@ -76,7 +76,7 @@ public sealed class ApiTokenAuthentication : AuthenticationHandler<Authenticatio
             claims.Add(new Claim(OpenShockAuthClaims.ApiTokenPermission, perm.ToString()));
         }
 
-        var ident = new ClaimsIdentity(claims, nameof(ApiTokenAuthentication));
+        var ident = new ClaimsIdentity(claims, OpenShockAuthSchemes.ApiToken);
         var principal = new ClaimsPrincipal(ident);
         var ticket = new AuthenticationTicket(principal, Scheme.Name);
 

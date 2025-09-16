@@ -84,18 +84,9 @@ public static class AuthUtils
     {
         foreach (var ident in user.Identities)
         {
-            if (!ident.IsAuthenticated) continue;
-            
-            foreach (var claim in ident.Claims)
+            if (ident is { IsAuthenticated: true, AuthenticationType: OpenShockAuthSchemes.UserSessionCookie })
             {
-                if (claim is
-                    {
-                        Type: ClaimTypes.AuthenticationMethod,
-                        Value: OpenShockAuthSchemes.UserSessionCookie
-                    })
-                {
-                    return true;
-                }
+                return true;
             }
         }
 
@@ -106,19 +97,10 @@ public static class AuthUtils
     {
         foreach (var ident in user.Identities)
         {
-            if (!ident.IsAuthenticated) continue;
-            
-            foreach (var claim in ident.Claims)
+            if (ident is { IsAuthenticated: true, AuthenticationType: OpenShockAuthSchemes.UserSessionCookie })
             {
-                if (claim is
-                    {
-                        Type: ClaimTypes.AuthenticationMethod,
-                        Value: OpenShockAuthSchemes.UserSessionCookie
-                    })
-                {
-                    identity = ident;
-                    return true;
-                }
+                identity = ident;
+                return true;
             }
         }
 

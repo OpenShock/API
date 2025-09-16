@@ -6,8 +6,10 @@ using OpenShock.Common.Options;
 using OpenShock.Common.Utils;
 using System.Reflection;
 using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authorization;
 using OpenShock.API.OAuth;
 using OpenShock.API.Options;
+using OpenShock.Common.Authentication;
 
 namespace OpenShock.API.Controller.Version;
 
@@ -45,6 +47,8 @@ public sealed partial class VersionController : OpenShockControllerBase
         [FromServices] TurnstileOptions turnstileOptions
         )
     {
+        var authenticate = await HttpContext.AuthenticateAsync(OpenShockAuthSchemes.UserSessionCookie);
+        
         var providers = await schemeProvider.GetAllOAuthSchemesAsync();
         
         return LegacyDataOk(
@@ -57,7 +61,7 @@ public sealed partial class VersionController : OpenShockControllerBase
                 ShortLinkUrl = frontendOptions.ShortUrl,
                 TurnstileSiteKey = turnstileOptions.SiteKey,
                 OAuthProviders = providers,
-                IsUserAuthenticated = User.HasOpenShockUserIdentity()
+                IsUserAuthenticated = authenticate.Succeeded
             },
             "OpenShock"
         );

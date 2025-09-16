@@ -3,8 +3,6 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 using OpenShock.API.Services.OAuthConnection;
 using OpenShock.Common.Options;
-using OpenShock.Common.Problems;
-using System.Net.Mime;
 using OpenShock.API.OAuth;
 using OpenShock.Common.Utils;
 using System.Diagnostics;

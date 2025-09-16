@@ -91,7 +91,7 @@ public sealed class UserSessionAuthentication : AuthenticationHandler<Authentica
             claims.Add(new Claim(ClaimTypes.Role, roletype.ToString()));
         }
 
-        var ident = new ClaimsIdentity(claims, nameof(UserSessionAuthentication));
+        var ident = new ClaimsIdentity(claims, OpenShockAuthSchemes.UserSessionCookie);
         var principal = new ClaimsPrincipal(ident);
         var ticket = new AuthenticationTicket(principal, Scheme.Name);
 

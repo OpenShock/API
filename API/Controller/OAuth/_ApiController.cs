@@ -2,11 +2,13 @@
 using System.Security.Claims;
 using Asp.Versioning;
 using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using OneOf;
 using OpenShock.API.OAuth;
 using OpenShock.API.Services.Account;
 using OpenShock.Common;
+using OpenShock.Common.Authentication;
 
 namespace OpenShock.API.Controller.OAuth;
 
@@ -17,6 +19,7 @@ namespace OpenShock.API.Controller.OAuth;
 [Tags("OAuth")]
 [ApiVersion("1")]
 [Route("/{version:apiVersion}/oauth")]
+[Authorize(AuthenticationSchemes = OpenShockAuthSchemes.UserSessionCookie), AllowAnonymous] // Tries to authenticate a user session, but doesnt block anonymous
 public sealed partial class OAuthController : OpenShockControllerBase
 {
     private readonly IAccountService _accountService;
