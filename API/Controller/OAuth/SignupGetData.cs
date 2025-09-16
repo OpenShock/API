@@ -32,7 +32,7 @@ public sealed partial class OAuthController
     {
         if (User.HasOpenShockUserIdentity())
         {
-            return Problem(OAuthError.AnonymousOnlyEndpoint);
+            return Problem(OAuthError.FlowRequiresAnonymous);
         }
         
         var result = await ValidateOAuthFlowAsync();

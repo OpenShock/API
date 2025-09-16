@@ -27,10 +27,15 @@ public static class OAuthError
         "This OAuth flow differs from the flow the oauth flow started with",
         HttpStatusCode.Forbidden);
 
-    public static OpenShockProblem AnonymousOnlyEndpoint => new(
-        "OAuth.Flow.AnonymousOnlyEndpoint",
+    public static OpenShockProblem FlowRequiresAnonymous => new(
+        "OAuth.Flow.AnonymousOnly",
         "You must be signed out to call this endpoint",
-        HttpStatusCode.Unauthorized);
+        HttpStatusCode.BadRequest);
+
+    public static OpenShockProblem FlowRequiresAuthenticatedUser => new(
+        "OAuth.Link.AuthenticatedUserOnly",
+        "You must be signed in to link an external account",
+        HttpStatusCode.BadRequest);
 
     public static OpenShockProblem FlowNotFound => new(
         "OAuth.Flow.NotFound",
@@ -52,11 +57,6 @@ public static class OAuthError
         "OAuth.Connection.AlreadyLinked",
         "This external account is already linked to another user",
         HttpStatusCode.Conflict);
-
-    public static OpenShockProblem NotAuthenticatedForLink => new(
-        "OAuth.Link.NotAuthenticated",
-        "You must be signed in to link an external account",
-        HttpStatusCode.Unauthorized);
 
     // Misc / generic
     public static OpenShockProblem InternalError => new(

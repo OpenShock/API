@@ -61,7 +61,7 @@ public sealed partial class OAuthController
         
         if (User.HasOpenShockUserIdentity())
         {
-            return Problem(OAuthError.AnonymousOnlyEndpoint);
+            return Problem(OAuthError.FlowRequiresAnonymous);
         }
 
         // 1) Defense-in-depth: ensure the flow’s provider matches the route
