@@ -58,8 +58,7 @@ public sealed partial class OAuthController : OpenShockControllerBase
         }
 
         // 3) parse flow from properties
-        if (auth.Properties is null ||
-            !auth.Properties.Items.TryGetValue(OAuthConstants.ItemKeyFlowType, out var flowStr) ||
+        if (!auth.Properties.Items.TryGetValue(OAuthConstants.ItemKeyFlowType, out var flowStr) ||
             !Enum.TryParse<OAuthFlow>(flowStr, true, out var flow))
         {
             _logger.LogError("Invalid OAuth scheme");
