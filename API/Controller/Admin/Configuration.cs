@@ -42,6 +42,7 @@ public sealed partial class AdminController
     /// <response code="409">Already exists</response>
     /// <response code="401">Unauthorized</response>
     [HttpPost("config")]
+    [Consumes(MediaTypeNames.Application.Json)]
     [ProducesResponseType(StatusCodes.Status200OK)] // Ok
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status409Conflict, MediaTypeNames.Application.ProblemJson)] // AlreadyExists
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status400BadRequest, MediaTypeNames.Application.ProblemJson)] // InvalidNameFormat, InvalidValueFormat
@@ -70,6 +71,7 @@ public sealed partial class AdminController
     /// <response code="400">Invalid name or value format or type mismatch</response>
     /// <response code="404">Not found</response>
     [HttpPut("config")]
+    [Consumes(MediaTypeNames.Application.Json)]
     [ProducesResponseType(StatusCodes.Status200OK)] // Ok
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status409Conflict, MediaTypeNames.Application.ProblemJson)] // AlreadyExists
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status404NotFound, MediaTypeNames.Application.ProblemJson)] // Not found

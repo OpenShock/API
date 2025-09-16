@@ -23,6 +23,7 @@ public sealed partial class AccountController
     /// <response code="200">Password reset email sent if the email is associated to an registered account</response>
     [HttpPost("reset-password")]
     [EnableRateLimiting("auth")]
+    [Consumes(MediaTypeNames.Application.Json)]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status403Forbidden, MediaTypeNames.Application.Json)]
     [MapToApiVersion("2")]

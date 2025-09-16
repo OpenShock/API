@@ -16,7 +16,7 @@ public sealed partial class AdminController
     /// <response code="401">Unauthorized</response>
     [HttpDelete("users/{userId}")]
     [ProducesResponseType(StatusCodes.Status200OK)]
-    public async Task<IActionResult> DeleteUser([FromRoute] Guid userId, IAccountService accountService)
+    public async Task<IActionResult> DeleteUser([FromRoute] Guid userId, [FromServices] IAccountService accountService)
     {
         var result = await accountService.DeleteAccountAsync(CurrentUser.Id, userId);
         return result.Match(

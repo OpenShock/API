@@ -25,11 +25,11 @@ public sealed partial class ShockerController
     /// <response code="404">Shocker does not exist</response>
     [HttpGet("{shockerId}/logs")]
     [EnableRateLimiting("shocker-logs")]
-    [ProducesResponseType<LegacyDataResponse<IAsyncEnumerable<LogEntry>>>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
+    [ProducesResponseType<LegacyDataResponse<LogEntry[]>>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status404NotFound, MediaTypeNames.Application.ProblemJson)] // ShockerNotFound
     [MapToApiVersion("1")]
-    public async Task<IActionResult> GetShockerLogs([FromRoute] Guid shockerId, [FromQuery] uint offset = 0,
-        [FromQuery] [Range(1, 500)] uint limit = 100)
+    public async Task<IActionResult> GetShockerLogs([FromRoute] Guid shockerId, [FromQuery(Name="offset")] uint offset = 0,
+        [FromQuery, Range(1, 500)] uint limit = 100)
     {
         var exists = await _db.Shockers.AnyAsync(x => x.Device.OwnerId == CurrentUser.Id && x.Id == shockerId);
         if (!exists) return Problem(ShockerError.ShockerNotFound);

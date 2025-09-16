@@ -8,7 +8,7 @@ namespace OpenShock.Common.Authentication.ControllerBase;
 
 public class AuthenticatedSessionControllerBase : OpenShockControllerBase, IActionFilter
 {
-    public User CurrentUser = null!;
+    protected User CurrentUser = null!;
 
     [NonAction]
     public void OnActionExecuting(ActionExecutingContext context)
@@ -22,7 +22,7 @@ public class AuthenticatedSessionControllerBase : OpenShockControllerBase, IActi
     }
 
     [NonAction]
-    public bool IsAllowed(PermissionType requiredType)
+    protected bool IsAllowed(PermissionType requiredType)
     {
         var userReferenceService = HttpContext.RequestServices.GetRequiredService<IUserReferenceService>();
 

@@ -27,14 +27,9 @@ public sealed partial class OAuthController
     /// <param name="body">Request body containing optional <c>Email</c> and <c>Username</c> overrides.</param>
     /// <param name="connectionService"></param>
     /// <param name="cancellationToken"></param>
-    /// <response code="200">Account created, external identity linked, and client authenticated.</response>
-    /// <response code="400">Flow not found, missing data, or invalid username.</response>
-    /// <response code="409">External already linked or username/email already exists.</response>
     [EnableRateLimiting("auth")]
     [HttpPost("{provider}/signup-finalize")]
-    [ProducesResponseType(typeof(LoginV2OkResponse), StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
-    [ProducesResponseType(typeof(OpenShockProblem), StatusCodes.Status400BadRequest, MediaTypeNames.Application.Json)]
-    [ProducesResponseType(typeof(OpenShockProblem), StatusCodes.Status409Conflict, MediaTypeNames.Application.Json)]
+    [ApiExplorerSettings(IgnoreApi = true)]
     public async Task<IActionResult> OAuthSignupFinalize(
         [FromRoute] string provider,
         [FromBody] OAuthFinalizeRequest body,

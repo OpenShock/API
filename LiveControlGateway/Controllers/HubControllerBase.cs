@@ -167,21 +167,27 @@ public abstract class HubControllerBase<TIn, TOut> : FlatbuffersWebsocketBaseCon
     }
 
     /// <inheritdoc />
+    [NonAction]
     public abstract ValueTask Control(IList<ShockerCommand> controlCommands);
 
     /// <inheritdoc />
+    [NonAction]
     public abstract ValueTask CaptivePortal(bool enable);
 
     /// <inheritdoc />
+    [NonAction]
     public abstract ValueTask<bool> EmergencyStop();
 
     /// <inheritdoc />
+    [NonAction]
     public abstract ValueTask OtaInstall(SemVersion version);
 
     /// <inheritdoc />
+    [NonAction]
     public abstract ValueTask<bool> Reboot();
 
     /// <inheritdoc />
+    [NonAction]
     public async Task DisconnectOld()
     {
         if (WebSocket is null)

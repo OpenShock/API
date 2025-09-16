@@ -76,28 +76,28 @@ public sealed partial class SharesController
             .AsAsyncEnumerable();
     }
     
-    [HttpDelete("invites/outgoing/{id:guid}")]
+    [HttpDelete("invites/outgoing/{inviteId}")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status404NotFound, MediaTypeNames.Application.ProblemJson)] // ShareRequestNotFound
     [ApiVersion("2")]
-    public async Task<IActionResult> DeleteOutgoingInvite(Guid id)
+    public async Task<IActionResult> DeleteOutgoingInvite([FromRoute] Guid inviteId)
     {
         var deletedShareRequest = await _db.UserShareInvites
-            .Where(x => x.Id == id && x.OwnerId == CurrentUser.Id).ExecuteDeleteAsync();
+            .Where(x => x.Id == inviteId && x.OwnerId == CurrentUser.Id).ExecuteDeleteAsync();
         
         if (deletedShareRequest <= 0) return Problem(ShareError.ShareRequestNotFound);
         
         return Ok();
     }
     
-    [HttpDelete("invites/incoming/{id:guid}")]
+    [HttpDelete("invites/incoming/{inviteId}")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status404NotFound, MediaTypeNames.Application.ProblemJson)] // ShareRequestNotFound
     [ApiVersion("2")]
-    public async Task<IActionResult> DenyIncomingInvite(Guid id)
+    public async Task<IActionResult> DenyIncomingInvite([FromRoute] Guid inviteId)
     {
         var deletedShareRequest = await _db.UserShareInvites
-            .Where(x => x.Id == id && x.RecipientUserId == CurrentUser.Id).ExecuteDeleteAsync();
+            .Where(x => x.Id == inviteId && x.RecipientUserId == CurrentUser.Id).ExecuteDeleteAsync();
         
         if (deletedShareRequest <= 0) return Problem(ShareError.ShareRequestNotFound);
         
@@ -107,18 +107,18 @@ public sealed partial class SharesController
     /// <summary>
     /// Accept a share request and share the shockers with the current user.
     /// </summary>
-    /// <param name="id"></param>
+    /// <param name="inviteId"></param>
     /// <param name="deviceUpdateService"></param>
     /// <returns></returns>
-    [HttpPost("invites/incoming/{id:guid}")]
+    [HttpPost("invites/incoming/{inviteId}")]
     [ProducesResponseType<V2UserSharesListItem>(StatusCodes.Status200OK)]
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status404NotFound, MediaTypeNames.Application.ProblemJson)] // ShareRequestNotFound
     [ApiVersion("2")]
-    public async Task<IActionResult> RedeemInvite(Guid id, [FromServices] IDeviceUpdateService deviceUpdateService)
+    public async Task<IActionResult> RedeemInvite([FromRoute] Guid inviteId, [FromServices] IDeviceUpdateService deviceUpdateService)
     {
         var shareRequest = await _db.UserShareInvites
             .Include(x => x.ShockerMappings).ThenInclude(x => x.Shocker).Include(x => x.Owner)
-            .FirstOrDefaultAsync(x => x.Id == id && (x.RecipientUserId == null || x.RecipientUserId == CurrentUser.Id));
+            .FirstOrDefaultAsync(x => x.Id == inviteId && (x.RecipientUserId == null || x.RecipientUserId == CurrentUser.Id));
         
         if (shareRequest is null) return Problem(ShareError.ShareRequestNotFound);
         

@@ -56,8 +56,7 @@ public sealed partial class OAuthController
     /// </remarks>
     [EnableRateLimiting("auth")]
     [HttpGet("{provider}/handoff")]
-    [ProducesResponseType(StatusCodes.Status302Found)]
-    [ProducesResponseType<OpenShockProblem>(StatusCodes.Status400BadRequest, MediaTypeNames.Application.Json)]
+    [ApiExplorerSettings(IgnoreApi = true)]
     public async Task<IActionResult> OAuthHandOff(
         [FromRoute] string provider,
         [FromServices] IOAuthConnectionService connectionService,

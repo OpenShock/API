@@ -163,6 +163,7 @@ public sealed class HubV1Controller : HubControllerBase<HubToGatewayMessage, Gat
     }
 
     /// <inheritdoc />
+    [NonAction]
     public override ValueTask Control(IList<OpenShock.Serialization.Gateway.ShockerCommand> controlCommands)
         => QueueMessage(new GatewayToHubMessage
         {

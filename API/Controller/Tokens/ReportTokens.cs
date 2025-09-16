@@ -8,6 +8,7 @@ using OpenShock.Common.Errors;
 using OpenShock.Common.Problems;
 using OpenShock.Common.Utils;
 using System.Net;
+using System.Net.Mime;
 using Microsoft.AspNetCore.RateLimiting;
 using OpenShock.API.Errors;
 using OpenShock.API.Services.Turnstile;
@@ -27,6 +28,7 @@ public sealed partial class TokensController
     /// <response code="200">The tokens were deleted if found</response>
     [HttpPost("report")]
     [EnableRateLimiting("token-reporting")]
+    [Consumes(MediaTypeNames.Application.Json)]
     [ProducesResponseType(StatusCodes.Status200OK)]
     public async Task<IActionResult> ReportTokens(
         [FromBody] ReportTokensRequest body,

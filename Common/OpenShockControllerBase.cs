@@ -10,7 +10,6 @@ using OpenShock.Common.Utils;
 
 namespace OpenShock.Common;
 
-[Consumes(MediaTypeNames.Application.Json)]
 public class OpenShockControllerBase : ControllerBase
 {
     [NonAction]

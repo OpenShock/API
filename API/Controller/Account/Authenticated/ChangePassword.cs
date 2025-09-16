@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using System.Net.Mime;
+using Microsoft.AspNetCore.Mvc;
 using OpenShock.API.Models.Requests;
 using OpenShock.Common.Errors;
 using OpenShock.Common.Utils;
@@ -10,19 +11,20 @@ public sealed partial class AuthenticatedAccountController
     /// <summary>
     /// Change the password of the current user
     /// </summary>
-    /// <param name="data"></param>
+    /// <param name="body"></param>
     /// <returns></returns>
     /// <exception cref="Exception"></exception>
     [HttpPost("password")]
+    [Consumes(MediaTypeNames.Application.Json)]
     [ProducesResponseType(StatusCodes.Status200OK)]
-    public async Task<IActionResult> ChangePassword([FromBody] ChangePasswordRequest data)
+    public async Task<IActionResult> ChangePassword([FromBody] ChangePasswordRequest body)
     {
-        if (!string.IsNullOrEmpty(CurrentUser.PasswordHash) && !HashingUtils.VerifyPassword(data.OldPassword, CurrentUser.PasswordHash).Verified)
+        if (!string.IsNullOrEmpty(CurrentUser.PasswordHash) && !HashingUtils.VerifyPassword(body.OldPassword, CurrentUser.PasswordHash).Verified)
         {
             return Problem(AccountError.PasswordChangeInvalidPassword);
         }
         
-        var result = await _accountService.ChangePasswordAsync(CurrentUser.Id, data.NewPassword);
+        var result = await _accountService.ChangePasswordAsync(CurrentUser.Id, body.NewPassword);
 
         return result.Match<IActionResult>(
             success => Ok(),

@@ -21,13 +21,10 @@ public sealed partial class OAuthController
     /// who initiated the flow.
     /// </remarks>
     /// <param name="provider">The provider key (e.g. <c>discord</c>).</param>
-    /// <response code="200">Handoff information returned successfully.</response>
-    /// <response code="400">No active flow found, or the provider did not match.</response>
     [ResponseCache(NoStore = true)]
     [EnableRateLimiting("auth")]
     [HttpGet("{provider}/signup-data")]
-    [ProducesResponseType<OAuthSignupDataResponse>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
-    [ProducesResponseType<OpenShockProblem>(StatusCodes.Status400BadRequest, MediaTypeNames.Application.Json)]
+    [ApiExplorerSettings(IgnoreApi = true)]
     public async Task<IActionResult> OAuthSignupGetData([FromRoute] string provider)
     {
         if (User.HasOpenShockUserIdentity())

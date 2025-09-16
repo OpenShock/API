@@ -8,7 +8,7 @@ namespace OpenShock.API.Controller.Admin;
 public sealed partial class AdminController
 {
     [HttpGet("blacklist/emailProviders")]
-    public async IAsyncEnumerable<EmailProviderBlacklistDto> ListEmailProviderBlacklist([FromQuery] string? match)
+    public async IAsyncEnumerable<EmailProviderBlacklistDto> ListEmailProviderBlacklist([FromQuery(Name="match")] string? match)
     {
         if (string.IsNullOrWhiteSpace(match))
         {

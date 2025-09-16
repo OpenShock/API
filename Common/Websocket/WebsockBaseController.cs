@@ -107,8 +107,8 @@ public abstract class WebsocketBaseController<T> : OpenShockControllerBase, IAsy
     /// <summary>
     /// Initial get request to the websocket route - rewrite to websocket connection
     /// </summary>
-    [ApiExplorerSettings(IgnoreApi = true)]
     [HttpGet]
+    [ApiExplorerSettings(IgnoreApi = true)]
     public async Task Get([FromServices] IHostApplicationLifetime lifetime, CancellationToken cancellationToken)
     {
 #pragma warning disable IDISP003

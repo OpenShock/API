@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using System.Net.Mime;
+using Microsoft.AspNetCore.Mvc;
 using OpenShock.Common.Models;
 using Asp.Versioning;
 using Microsoft.AspNetCore.RateLimiting;
@@ -14,6 +15,7 @@ public sealed partial class AccountController
     /// <response code="200">Password reset email sent if the email is associated to an registered account</response>
     [HttpPost("reset")]
     [EnableRateLimiting("auth")]
+    [Consumes(MediaTypeNames.Application.Json)]
     [MapToApiVersion("1")]
     public async Task<LegacyEmptyResponse> PasswordResetInitiate([FromBody] ResetRequest body)
     {
