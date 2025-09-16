@@ -4,7 +4,6 @@ using Microsoft.AspNetCore.RateLimiting;
 using OpenShock.API.Services.OAuthConnection;
 using OpenShock.Common.Options;
 using OpenShock.API.OAuth;
-using OpenShock.Common.Authentication;
 using OpenShock.Common.Utils;
 
 namespace OpenShock.API.Controller.OAuth;
@@ -47,14 +46,12 @@ public sealed partial class OAuthController
 
         var connection = await connectionService
             .GetByProviderExternalIdAsync(provider, auth.ExternalAccountId, cancellationToken);
-        
-        var authenticate = await HttpContext.AuthenticateAsync(OpenShockAuthSchemes.UserSessionCookie);
 
         switch (auth.Flow)
         {
             case OAuthFlow.LoginOrCreate:
             {
-                if (authenticate.Succeeded)
+                if (User.HasOpenShockUserIdentity())
                 {
                     await HttpContext.SignOutAsync(OAuthConstants.FlowScheme);
                     return RedirectFrontendError("mustBeAnonymous");
@@ -84,7 +81,7 @@ public sealed partial class OAuthController
 
             case OAuthFlow.Link:
             {
-                if (!authenticate.Succeeded || authenticate.Principal is null || !authenticate.Principal.TryGetAuthenticatedOpenShockUserId(out var userId))
+                if (!User.TryGetAuthenticatedOpenShockUserId(out var userId))
                 {
                     await HttpContext.SignOutAsync(OAuthConstants.FlowScheme);
                     return RedirectFrontendError("mustBeAuthenticated");

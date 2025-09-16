@@ -47,8 +47,6 @@ public sealed partial class VersionController : OpenShockControllerBase
         [FromServices] TurnstileOptions turnstileOptions
         )
     {
-        var authenticate = await HttpContext.AuthenticateAsync(OpenShockAuthSchemes.UserSessionCookie);
-        
         var providers = await schemeProvider.GetAllOAuthSchemesAsync();
         
         return LegacyDataOk(
@@ -61,7 +59,7 @@ public sealed partial class VersionController : OpenShockControllerBase
                 ShortLinkUrl = frontendOptions.ShortUrl,
                 TurnstileSiteKey = turnstileOptions.SiteKey,
                 OAuthProviders = providers,
-                IsUserAuthenticated = authenticate.Succeeded
+                IsUserAuthenticated = User.HasOpenShockUserIdentity()
             },
             "OpenShock"
         );

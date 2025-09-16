@@ -1,8 +1,6 @@
-using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 using OpenShock.API.OAuth;
-using OpenShock.Common.Authentication;
 using OpenShock.Common.Utils;
 
 namespace OpenShock.API.Controller.OAuth;
@@ -26,16 +24,14 @@ public sealed partial class OAuthController
     {
         if (!await _schemeProvider.IsSupportedOAuthScheme(provider))
             return Problem(OAuthError.UnsupportedProvider);
-        
-        var authenticate = await HttpContext.AuthenticateAsync(OpenShockAuthSchemes.UserSessionCookie);
 
         switch (flow)
         {
             case OAuthFlow.LoginOrCreate:
-                if (authenticate.Succeeded) return Problem(OAuthError.FlowRequiresAnonymous);
+                if (User.HasOpenShockUserIdentity()) return Problem(OAuthError.FlowRequiresAnonymous);
                 break;
             case OAuthFlow.Link:
-                if (!authenticate.Succeeded) return Problem(OAuthError.FlowRequiresAuthenticatedUser);
+                if (!User.HasOpenShockUserIdentity()) return Problem(OAuthError.FlowRequiresAuthenticatedUser);
                 break;
             default:
                 return Problem(OAuthError.UnsupportedFlow);

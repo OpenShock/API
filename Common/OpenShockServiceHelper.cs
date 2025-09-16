@@ -63,6 +63,31 @@ public static class OpenShockServiceHelper
     }
 
     /// <summary>
+    /// Made to closely resemble the built-in <see cref="AuthenticationServiceCollectionExtensions.AddAuthentication(IServiceCollection, Action{AuthenticationOptions})"/> implementation.
+    /// </summary>
+    /// <param name="services"></param>
+    /// <param name="configureOptions"></param>
+    /// <returns></returns>
+    private static AuthenticationBuilder AddOpenShockAuthentication(this IServiceCollection services, Action<AuthenticationOptions> configureOptions)
+    {
+        ArgumentNullException.ThrowIfNull(services);
+        ArgumentNullException.ThrowIfNull(configureOptions);
+
+        services.AddAuthenticationCore();
+        services.AddDataProtection().PersistKeysToDbContext<OpenShockContext>();
+        // services.AddWebEncoders(); // Exists in original AddAuthentication method
+        services.TryAddSingleton(TimeProvider.System);
+        // services.TryAddSingleton<ISystemClock, SystemClock>(); // Exists in original AddAuthentication method
+        // services.TryAddSingleton<IAuthenticationConfigurationProvider, DefaultAuthenticationConfigurationProvider>(); // Exists in original AddAuthentication method
+        
+        var builder = new AuthenticationBuilder(services);
+        
+        services.Configure(configureOptions);
+
+        return builder;
+    }
+
+    /// <summary>
     /// Register all OpenShock services for PRODUCTION use
     /// </summary>
     /// <param name="services"></param>
@@ -88,15 +113,15 @@ public static class OpenShockServiceHelper
         services.AddScoped<IClientAuthService<Device>, ClientAuthService<Device>>();
         services.AddScoped<IUserReferenceService, UserReferenceService>();
 
-        services.AddDataProtection().PersistKeysToDbContext<OpenShockContext>();
-        services.AddAuthenticationCore();
-        var authBuilder = new AuthenticationBuilder(services)
-            .AddScheme<AuthenticationSchemeOptions, UserSessionAuthentication>(
-                OpenShockAuthSchemes.UserSessionCookie, _ => { })
-            .AddScheme<AuthenticationSchemeOptions, ApiTokenAuthentication>(
-                OpenShockAuthSchemes.ApiToken, _ => { })
-            .AddScheme<AuthenticationSchemeOptions, HubAuthentication>(
-                OpenShockAuthSchemes.HubToken, _ => { });
+        var authBuilder = services
+            .AddOpenShockAuthentication(opt =>
+            {
+                opt.DefaultScheme = OpenShockAuthSchemes.UserSessionCookie;
+                opt.DefaultAuthenticateScheme = OpenShockAuthSchemes.UserSessionCookie;
+            })
+            .AddScheme<AuthenticationSchemeOptions, UserSessionAuthentication>(OpenShockAuthSchemes.UserSessionCookie, _ => { })
+            .AddScheme<AuthenticationSchemeOptions, ApiTokenAuthentication>(OpenShockAuthSchemes.ApiToken, _ => { })
+            .AddScheme<AuthenticationSchemeOptions, HubAuthentication>(OpenShockAuthSchemes.HubToken, _ => { });
 
         configureAuth?.Invoke(authBuilder);
 
@@ -143,7 +168,6 @@ public static class OpenShockServiceHelper
         services.AddHttpContextAccessor();
         services.AddWebEncoders();
         services.AddProblemDetails();
-        services.TryAddSingleton<TimeProvider>(provider => TimeProvider.System);
         
         services.AddCors(options =>
         {
