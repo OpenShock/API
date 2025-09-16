@@ -4,6 +4,7 @@ using OpenShock.Common.Models;
 using Asp.Versioning;
 using Microsoft.AspNetCore.RateLimiting;
 using OpenShock.Common.DataAnnotations;
+using OpenShock.Common.Problems;
 
 namespace OpenShock.API.Controller.Account;
 
@@ -17,10 +18,11 @@ public sealed partial class AccountController
     [EnableRateLimiting("auth")]
     [Consumes(MediaTypeNames.Application.Json)]
     [MapToApiVersion("1")]
-    public async Task<LegacyEmptyResponse> PasswordResetInitiate([FromBody] ResetRequest body)
+    [ProducesResponseType<LegacyEmptyResponse>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
+    public async Task<IActionResult> PasswordResetInitiate([FromBody] ResetRequest body)
     {
         await _accountService.CreatePasswordResetFlowAsync(body.Email);
-        return new LegacyEmptyResponse("Password reset has been sent via email if the email is associated to an registered account");
+        return LegacyEmptyOk("Password reset has been sent via email if the email is associated to an registered account");
     }
 
     public sealed class ResetRequest
