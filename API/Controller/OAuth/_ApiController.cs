@@ -18,7 +18,6 @@ namespace OpenShock.API.Controller.OAuth;
 [Tags("OAuth")]
 [ApiVersion("1")]
 [Route("/{version:apiVersion}/oauth")]
-[Authorize(AuthenticationSchemes = OpenShockAuthSchemes.UserSessionCookie), AllowAnonymous] // Tries to authenticate a user session, but doesnt block anonymous
 public sealed partial class OAuthController : OpenShockControllerBase
 {
     private readonly IAccountService _accountService;

@@ -9,6 +9,7 @@ using OpenShock.Common.Problems;
 using System.Net.Mime;
 using System.Security.Claims;
 using OpenShock.API.OAuth;
+using OpenShock.Common.Authentication;
 using OpenShock.Common.Services.Session;
 using OpenShock.Common.Utils;
 
@@ -54,7 +55,8 @@ public sealed partial class OAuthController
             };
         }
         
-        if (User.HasOpenShockUserIdentity())
+        var authenticate = await HttpContext.AuthenticateAsync(OpenShockAuthSchemes.UserSessionCookie);
+        if (authenticate.Succeeded)
         {
             return Problem(OAuthError.FlowRequiresAnonymous);
         }

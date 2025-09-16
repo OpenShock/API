@@ -4,7 +4,9 @@ using OpenShock.API.Models.Response;
 using OpenShock.Common.Problems;
 using System.Net.Mime;
 using System.Security.Claims;
+using Microsoft.AspNetCore.Authentication;
 using OpenShock.API.OAuth;
+using OpenShock.Common.Authentication;
 using OpenShock.Common.Utils;
 
 namespace OpenShock.API.Controller.OAuth;
@@ -27,7 +29,8 @@ public sealed partial class OAuthController
     [ApiExplorerSettings(IgnoreApi = true)]
     public async Task<IActionResult> OAuthSignupGetData([FromRoute] string provider)
     {
-        if (User.HasOpenShockUserIdentity())
+        var authenticate = await HttpContext.AuthenticateAsync(OpenShockAuthSchemes.UserSessionCookie);
+        if (authenticate.Succeeded)
         {
             return Problem(OAuthError.FlowRequiresAnonymous);
         }
