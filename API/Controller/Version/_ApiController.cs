@@ -1,11 +1,12 @@
-﻿using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Options;
+﻿using System.Net.Mime;
+using Microsoft.AspNetCore.Mvc;
 using OpenShock.Common;
 using OpenShock.Common.Models;
 using OpenShock.Common.Options;
 using OpenShock.Common.Utils;
 using System.Reflection;
-using System.Text;
+using Microsoft.AspNetCore.Authentication;
+using OpenShock.API.OAuth;
 using OpenShock.API.Options;
 
 namespace OpenShock.API.Controller.Version;
@@ -37,12 +38,16 @@ public sealed partial class VersionController : OpenShockControllerBase
     /// </summary>
     /// <response code="200">The version was successfully retrieved.</response>
     [HttpGet]
-    public LegacyDataResponse<BackendInfoResponse> GetBackendInfo(
+    [ProducesResponseType<LegacyDataResponse<BackendInfoResponse>>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
+    public async Task<IActionResult> GetBackendInfo(
+        [FromServices] IAuthenticationSchemeProvider schemeProvider,
         [FromServices] FrontendOptions frontendOptions,
         [FromServices] TurnstileOptions turnstileOptions
         )
     {
-        return new(
+        var providers = await schemeProvider.GetAllOAuthSchemesAsync();
+        
+        return LegacyDataOk(
             new BackendInfoResponse
             {
                 Version = OpenShockBackendVersion,
@@ -51,7 +56,8 @@ public sealed partial class VersionController : OpenShockControllerBase
                 FrontendUrl = frontendOptions.BaseUrl,
                 ShortLinkUrl = frontendOptions.ShortUrl,
                 TurnstileSiteKey = turnstileOptions.SiteKey,
-                IsUserAuthenticated = HttpContext.TryGetUserSessionToken(out _)
+                OAuthProviders = providers,
+                IsUserAuthenticated = User.HasOpenShockUserIdentity()
             },
             "OpenShock"
         );
@@ -65,6 +71,7 @@ public sealed partial class VersionController : OpenShockControllerBase
         public required Uri FrontendUrl { get; init; }
         public required Uri ShortLinkUrl { get; init; }
         public required string? TurnstileSiteKey { get; init; }
+        public required string[] OAuthProviders { get; init; }
         public required bool IsUserAuthenticated { get; init; }
     }
 }

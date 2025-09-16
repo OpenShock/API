@@ -16,9 +16,9 @@ public class OpenShockControllerBase : ControllerBase
     protected ObjectResult Problem(OpenShockProblem problem) => problem.ToObjectResult(HttpContext);
     
     [NonAction]
-    protected OkObjectResult LegacyDataOk<T>(T data)
+    protected OkObjectResult LegacyDataOk<T>(T data, string message = "")
     {
-        return Ok(new LegacyDataResponse<T>(data));
+        return Ok(new LegacyDataResponse<T>(data, message));
     }
 
     [NonAction]
