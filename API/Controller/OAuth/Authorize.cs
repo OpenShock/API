@@ -20,6 +20,7 @@ public sealed partial class OAuthController
     /// <response code="302">Redirect to the provider authorization page.</response>
     /// <response code="400">Unsupported or misconfigured provider.</response>
     [EnableRateLimiting("auth")]
+    [Consumes("*/*")] // override the base constraint
     [HttpPost("{provider}/authorize")]
     [ProducesResponseType(StatusCodes.Status302Found)]
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status400BadRequest, MediaTypeNames.Application.Json)]
