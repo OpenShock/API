@@ -6,6 +6,8 @@
     <PackageReference Include="AspNet.Security.OAuth.Discord" Version="9.4.0" />
     <PackageReference Include="Fluid.Core" Version="2.25.0" />
     <PackageReference Include="MailKit" Version="4.13.0" />
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.Google" Version="9.0.9" />
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.Twitter" Version="9.0.9" />
   </ItemGroup>
 
   <Target Name="SetSourceRevisionId" BeforeTargets="InitializeSourceControlInformation">

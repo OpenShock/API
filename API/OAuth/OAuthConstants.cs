@@ -6,7 +6,9 @@ public static class OAuthConstants
     public const string FlowCookieName = ".OpenShock.OAuthFlow";
     
     public const string DiscordScheme = "discord";
-    public static readonly string[] OAuth2Schemes = [DiscordScheme];
+    public const string GoogleScheme  = "google";
+    public const string TwitterScheme = "twitter";
+    public static readonly string[] OAuth2Schemes = [DiscordScheme, GoogleScheme, TwitterScheme];
     
     public const string ItemKeyFlowType = ".FlowType";
     

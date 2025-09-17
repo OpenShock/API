@@ -1,6 +1,6 @@
 using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authentication.OAuth;
 using Microsoft.AspNetCore.Http.Connections;
-using OpenShock.API.OAuth;
 using OpenShock.API.Options.OAuth;
 using OpenShock.API.Realtime;
 using OpenShock.API.Services.Account;
@@ -19,6 +19,7 @@ using OpenShock.Common.Services.LCGNodeProvisioner;
 using OpenShock.Common.Services.Ota;
 using OpenShock.Common.Swagger;
 using Serilog;
+using OAuthConstants = OpenShock.API.OAuth.OAuthConstants;
 
 var builder = OpenShockApplication.CreateDefaultBuilder<Program>(args);
 
@@ -38,28 +39,59 @@ builder.Services
             o.SlidingExpiration = false;
         });
             
-        var options = builder.Configuration.GetSection(DiscordOAuthOptions.SectionName).Get<DiscordOAuthOptions>();
-        if (options is not null)
+        var discordOptions = builder.Configuration.GetSection(DiscordOAuthOptions.SectionName).Get<DiscordOAuthOptions>();
+        if (discordOptions is not null)
         {
-            auth.AddDiscord(OAuthConstants.DiscordScheme, o => {
-                o.SignInScheme = OAuthConstants.FlowScheme;
+            auth.AddDiscord(OAuthConstants.DiscordScheme, options => {
+                DefaultOptions(options, "discord");
+                options.ClientId = discordOptions.ClientId;
+                options.ClientSecret = discordOptions.ClientSecret;
+                
+                options.Scope.Add("email");
+                
+                options.Prompt = "none";
 
-            
+                options.ClaimActions.MapJsonKey(OAuthConstants.ClaimEmailVerified, "verified");
+                options.ClaimActions.MapJsonKey(OAuthConstants.ClaimDisplayName, "global_name");
 
-                o.ClientId = options.ClientId;
-                o.ClientSecret = options.ClientSecret;
-                o.CallbackPath = "/oauth/discord/callback";
-                o.AccessDeniedPath = "/oauth/discord/rejected"; // TODO: Make this do something
-                o.Scope.Add("email");
-
-                o.Prompt = "none";
-                o.SaveTokens = false;
-
-                o.ClaimActions.MapJsonKey(OAuthConstants.ClaimEmailVerified, "verified");
-                o.ClaimActions.MapJsonKey(OAuthConstants.ClaimDisplayName, "global_name");
-
-                o.Validate();
+                options.Validate();
             });
+        }
+        
+        var googleOptions = builder.Configuration.GetSection(GoogleOAuthOptions.SectionName).Get<GoogleOAuthOptions>();
+        if (googleOptions is not null)
+        {
+            auth.AddGoogle(OAuthConstants.GoogleScheme, options => {
+                DefaultOptions(options, "google");
+                options.ClientId = googleOptions.ClientId;
+                options.ClientSecret = googleOptions.ClientSecret;
+                
+                options.Validate();
+            });
+        }
+        
+        var twitterOptions = builder.Configuration.GetSection(TwitterOAuthOptions.SectionName).Get<TwitterOAuthOptions>();
+        if (twitterOptions is not null)
+        {
+            auth.AddTwitter(OAuthConstants.TwitterScheme, options => {
+                DefaultOptions(options, "twitter");
+                options.ConsumerKey = twitterOptions.ConsumerKey;
+                options.ConsumerSecret = twitterOptions.ConsumerSecret;
+
+                options.Validate();
+            });
+        }
+
+        return;
+
+        static void DefaultOptions(RemoteAuthenticationOptions options, string provider)
+        {
+            options.SignInScheme = OAuthConstants.FlowScheme;
+            
+            options.CallbackPath = $"/oauth/{provider}/callback";
+            options.AccessDeniedPath = $"/oauth/{provider}/rejected"; // TODO: Make this do something
+                
+            options.SaveTokens = false;
         }
     })
     .AddOpenShockSignalR(redisOptions);
