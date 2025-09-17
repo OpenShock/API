@@ -146,7 +146,7 @@ public static class OpenShockServiceHelper
             x.JsonSerializerOptions.PropertyNameCaseInsensitive = true;
             x.JsonSerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
             x.JsonSerializerOptions.Converters.Add(new PermissionTypeConverter());
-            x.JsonSerializerOptions.Converters.Add(new CustomJsonStringEnumConverter());
+            x.JsonSerializerOptions.Converters.Add(new FlagCompatibleJsonStringEnumConverter());
         });
         
         var apiVersioningBuilder = services.AddApiVersioning(options =>

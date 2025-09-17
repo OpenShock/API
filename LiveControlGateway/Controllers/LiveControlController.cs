@@ -343,7 +343,7 @@ public sealed class LiveControlController : WebsocketBaseController<LiveControlR
         ClientLiveFrame[]? frames;
         try
         {
-            frames = requestData.NewSlDeserialize<ClientLiveFrame[]>();
+            frames = CaseInsensitiveJsonSerializer.Deserialize<ClientLiveFrame[]>(requestData);
 
             if (frames is not { Length: > 0 })
             {
@@ -387,7 +387,7 @@ public sealed class LiveControlController : WebsocketBaseController<LiveControlR
         ClientLiveFrame? frame;
         try
         {
-            frame = requestData.NewSlDeserialize<ClientLiveFrame>();
+            frame = CaseInsensitiveJsonSerializer.Deserialize<ClientLiveFrame>(requestData);
 
             if (frame is null)
             {

@@ -38,7 +38,7 @@ public static class JsonWebSocketUtils
 
             try
             {
-                return SlSerializer.Deserialize<T>(message.GetBuffer().AsSpan(0, bytes));
+                return CaseInsensitiveJsonSerializer.FlagCompatibleDeserialize<T>(message.GetBuffer().AsSpan(0, bytes));
             }
             catch (Exception e)
             {
