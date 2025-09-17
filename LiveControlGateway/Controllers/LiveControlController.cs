@@ -257,9 +257,11 @@ public sealed class LiveControlController : WebsocketBaseController<LiveControlR
     /// <inheritdoc />
     protected override async Task<bool> HandleReceive(CancellationToken cancellationToken)
     {
-        var message =
-            await JsonWebSocketUtils.ReceiveFullMessageAsyncNonAlloc<BaseRequest<LiveRequestType>>(WebSocket!,
-                LinkedToken);
+        var message = await JsonWebSocketUtils.ReceiveFullMessageAsyncNonAlloc<BaseRequest<LiveRequestType>>(
+            WebSocket!, 
+            JsonSettings.LiveControlSettings2, 
+            LinkedToken
+            );
 
         var continueLoop = await message.Match(async request =>
             {
@@ -343,7 +345,7 @@ public sealed class LiveControlController : WebsocketBaseController<LiveControlR
         ClientLiveFrame[]? frames;
         try
         {
-            frames = requestData?.Deserialize<ClientLiveFrame[]>(JsonSettings.CaseInsensitive);
+            frames = requestData?.Deserialize<ClientLiveFrame[]>(JsonSettings.LiveControlSettings);
 
             if (frames is not { Length: > 0 })
             {
@@ -387,7 +389,7 @@ public sealed class LiveControlController : WebsocketBaseController<LiveControlR
         ClientLiveFrame? frame;
         try
         {
-            frame = requestData?.Deserialize<ClientLiveFrame>(JsonSettings.CaseInsensitive);
+            frame = requestData?.Deserialize<ClientLiveFrame>(JsonSettings.LiveControlSettings);
 
             if (frame is null)
             {

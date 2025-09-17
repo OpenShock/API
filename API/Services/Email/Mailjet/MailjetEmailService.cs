@@ -79,7 +79,7 @@ public sealed class MailjetEmailService : IEmailService, IDisposable
         var json = JsonSerializer.Serialize(new MailsWrap
         {
             Messages = mails
-        }, JsonSettings.CamelCase);
+        }, JsonSettings.MailJetSettings);
 
         var response = await _httpClient.PostAsync("send",
             new StringContent(json, Encoding.UTF8, MediaTypeNames.Application.Json), cancellationToken);

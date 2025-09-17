@@ -25,8 +25,6 @@ using OpenTelemetry.Metrics;
 using Redis.OM;
 using Redis.OM.Contracts;
 using StackExchange.Redis;
-using System.Text.Json;
-using System.Text.Json.Serialization;
 using System.Threading.RateLimiting;
 using OpenShock.Common.Extensions;
 using OpenShock.Common.Utils;
@@ -133,21 +131,8 @@ public static class OpenShockServiceHelper
         
         services.AddSingleton<IAuthorizationMiddlewareResultHandler, OpenShockAuthorizationMiddlewareResultHandler>();
         
-        services.ConfigureHttpJsonOptions(options =>
-        {
-            options.SerializerOptions.PropertyNameCaseInsensitive = true;
-            options.SerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
-            options.SerializerOptions.Converters.Add(new PermissionTypeConverter());
-            options.SerializerOptions.Converters.Add(new JsonStringEnumConverter());
-        });
-        
-        services.AddControllers().AddJsonOptions(x =>
-        {
-            x.JsonSerializerOptions.PropertyNameCaseInsensitive = true;
-            x.JsonSerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
-            x.JsonSerializerOptions.Converters.Add(new PermissionTypeConverter());
-            x.JsonSerializerOptions.Converters.Add(new FlagCompatibleJsonStringEnumConverter());
-        });
+        services.ConfigureHttpJsonOptions(JsonSettings.HttpOptions);
+        services.AddControllers().AddJsonOptions(JsonSettings.MvcOptions);
         
         var apiVersioningBuilder = services.AddApiVersioning(options =>
         {
