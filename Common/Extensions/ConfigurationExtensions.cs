@@ -4,6 +4,15 @@ using StackExchange.Redis;
 
 namespace OpenShock.Common.Extensions;
 
+file sealed class RedisSection
+{
+    public string? Conn { get; init; }
+    public string? User { get; init; }
+    public string? Password { get; init; }
+    public string? Host { get; init; }
+    public string? Port { get; init; }
+}
+
 public static class ConfigurationExtensions
 {
     public static DatabaseOptions RegisterDatabaseOptions(this WebApplicationBuilder builder)
@@ -16,15 +25,6 @@ public static class ConfigurationExtensions
 
         builder.Services.AddSingleton(options);
         return options;
-    }
-
-    private sealed class RedisSection
-    {
-        public string? Conn { get; init; }
-        public string? User { get; init; }
-        public string? Password { get; init; }
-        public string? Host { get; init; }
-        public string? Port { get; init; }
     }
 
     public static ConfigurationOptions RegisterRedisOptions(this WebApplicationBuilder builder)
