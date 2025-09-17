@@ -2,7 +2,7 @@
 
 namespace OpenShock.Common.JsonSerialization;
 
-public static class JsonOptions
+public static class JsonSettings
 {
     public static readonly JsonSerializerOptions FlagCompatibleCaseInsensitive = new()
     {
