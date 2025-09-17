@@ -3,14 +3,11 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 using OpenShock.API.Models.Requests;
 using OpenShock.API.Models.Response;
+using OpenShock.API.OAuth;
 using OpenShock.API.Services.OAuthConnection;
 using OpenShock.Common.Errors;
-using OpenShock.Common.Problems;
-using System.Net.Mime;
+using OpenShock.Common.Extensions;
 using System.Security.Claims;
-using OpenShock.API.OAuth;
-using OpenShock.Common.Services.Session;
-using OpenShock.Common.Utils;
 
 namespace OpenShock.API.Controller.OAuth;
 

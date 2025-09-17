@@ -5,13 +5,14 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using OpenShock.Common.Authentication.Services;
 using OpenShock.Common.Errors;
+using OpenShock.Common.Extensions;
 using OpenShock.Common.OpenShockDb;
+using OpenShock.Common.Problems;
 using OpenShock.Common.Services.BatchUpdate;
 using OpenShock.Common.Utils;
 using System.Security.Claims;
 using System.Text.Encodings.Web;
 using System.Text.Json;
-using OpenShock.Common.Problems;
 
 namespace OpenShock.Common.Authentication.AuthenticationHandlers;
 

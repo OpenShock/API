@@ -1,15 +1,14 @@
 ﻿using System.Net.Mime;
 using Microsoft.AspNetCore.Mvc;
+using OpenShock.API.OAuth;
+using OpenShock.API.Options;
 using OpenShock.Common;
+using OpenShock.Common.Extensions;
 using OpenShock.Common.Models;
 using OpenShock.Common.Options;
 using OpenShock.Common.Utils;
 using System.Reflection;
 using Microsoft.AspNetCore.Authentication;
-using Microsoft.AspNetCore.Authorization;
-using OpenShock.API.OAuth;
-using OpenShock.API.Options;
-using OpenShock.Common.Authentication;
 
 namespace OpenShock.API.Controller.Version;
 

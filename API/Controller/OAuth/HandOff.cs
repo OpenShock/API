@@ -4,7 +4,7 @@ using Microsoft.AspNetCore.RateLimiting;
 using OpenShock.API.Services.OAuthConnection;
 using OpenShock.Common.Options;
 using OpenShock.API.OAuth;
-using OpenShock.Common.Utils;
+using OpenShock.Common.Extensions;
 
 namespace OpenShock.API.Controller.OAuth;
 
