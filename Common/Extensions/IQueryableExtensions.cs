@@ -35,11 +35,4 @@ public static class IQueryableExtensions
 
         return query.Where(DBExpressionBuilder.GetFilterExpression<T>(filterQuery));
     }
-
-    public static IOrderedQueryable<T> ApplyOrderBy<T>(IQueryable<T> query, string orderbyQuery) where T : class
-    {
-        ArgumentException.ThrowIfNullOrWhiteSpace(orderbyQuery, nameof(orderbyQuery));
-
-        return OrderByQueryBuilder.ApplyOrderBy(query, orderbyQuery);
-    }
 }
