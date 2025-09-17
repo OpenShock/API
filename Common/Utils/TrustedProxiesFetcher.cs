@@ -81,9 +81,9 @@ public static class TrustedProxiesFetcher
         {
             var assembly = typeof(TrustedProxiesFetcher).Assembly;
             var resourceName = assembly.GetName().Name + ".cloudflare-ips.txt";
-            using var stream = assembly.GetManifestResourceStream(resourceName) ?? throw new NullReferenceException("Could not open embedded cloudflare-ips.txt file");
+            await using var stream = assembly.GetManifestResourceStream(resourceName) ?? throw new NullReferenceException("Could not open embedded cloudflare-ips.txt file");
             using var reader = new StreamReader(stream);
-            cfProxies = ParseNetworks(reader.ReadToEnd());
+            cfProxies = ParseNetworks(await reader.ReadToEndAsync());
         }
 
         return [.. PrivateNetworksParsed, .. cfProxies];
