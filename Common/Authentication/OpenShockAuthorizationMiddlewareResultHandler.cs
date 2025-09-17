@@ -11,13 +11,12 @@ namespace OpenShock.Common.Authentication;
 public class OpenShockAuthorizationMiddlewareResultHandler : IAuthorizationMiddlewareResultHandler
 {
     private readonly JsonSerializerOptions _serializerOptions;
-
-    private readonly AuthorizationMiddlewareResultHandler
-        _defaultHandler = new AuthorizationMiddlewareResultHandler();
+    private readonly AuthorizationMiddlewareResultHandler _defaultHandler;
 
     public OpenShockAuthorizationMiddlewareResultHandler(IOptions<JsonOptions> jsonOptions)
     {
         _serializerOptions = jsonOptions.Value.SerializerOptions;
+        _defaultHandler = new AuthorizationMiddlewareResultHandler();
     }
     
     public Task HandleAsync(RequestDelegate next, HttpContext context, AuthorizationPolicy policy,
