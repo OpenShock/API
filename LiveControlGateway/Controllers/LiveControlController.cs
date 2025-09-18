@@ -12,7 +12,6 @@ using OpenShock.Common.Authentication.Attributes;
 using OpenShock.Common.Authentication.Services;
 using OpenShock.Common.Constants;
 using OpenShock.Common.Errors;
-using OpenShock.Common.JsonSerialization;
 using OpenShock.Common.Models;
 using OpenShock.Common.Models.WebSocket;
 using OpenShock.Common.Models.WebSocket.LCG;
@@ -38,6 +37,7 @@ public sealed class LiveControlController : WebsocketBaseController<LiveControlR
     IActionFilter
 {
     private readonly HubLifetimeManager _hubLifetimeManager;
+    private readonly IDbContextFactory<OpenShockContext> _dbContextFactory;
     private readonly ILogger<LiveControlController> _logger;
 
     private static readonly TimeSpan PingInterval = TimeSpan.FromSeconds(5);
@@ -80,10 +80,12 @@ public sealed class LiveControlController : WebsocketBaseController<LiveControlR
     /// DI Constructor
     /// </summary>
     /// <param name="logger"></param>
+    /// <param name="dbContextFactory"></param>
     /// <param name="hubLifetimeManager"></param>
-    public LiveControlController(HubLifetimeManager hubLifetimeManager, ILogger<LiveControlController> logger) : base(logger)
+    public LiveControlController(HubLifetimeManager hubLifetimeManager, IDbContextFactory<OpenShockContext> dbContextFactory, ILogger<LiveControlController> logger) : base(logger)
     {
         _hubLifetimeManager = hubLifetimeManager;
+        _dbContextFactory = dbContextFactory;
         _logger = logger;
         
         _pingTimer.Elapsed += (_, _) => OsTask.Run(SendPing);
@@ -161,8 +163,7 @@ public sealed class LiveControlController : WebsocketBaseController<LiveControlR
 
         HubId = id;
 
-        var factory = HttpContext.RequestServices.GetRequiredService<IDbContextFactory<OpenShockContext>>();
-        await using (var db = await factory.CreateDbContextAsync())
+        await using (var db = await _dbContextFactory.CreateDbContextAsync())
         {
             var hubExistsAndYouHaveAccess = await db.Devices.AnyAsync(x =>
                 x.Id == HubId && (x.OwnerId == _currentUser.Id || x.Shockers.Any(y =>
