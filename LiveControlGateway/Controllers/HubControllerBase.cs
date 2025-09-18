@@ -68,7 +68,7 @@ public abstract class HubControllerBase<TIn, TOut> : FlatbuffersWebsocketBaseCon
     [NonAction]
     public void OnActionExecuting(ActionExecutingContext context)
     {
-        var identity = User.GetOpenShockUserIdentity();
+        var identity = User.GetOpenShockHubIdentity();
         CurrentHubId = identity.GetClaimValueAsGuid(OpenShockAuthClaims.HubId);
         CurrentHubOwnerId = identity.GetClaimValueAsGuid(ClaimTypes.NameIdentifier);
     }
