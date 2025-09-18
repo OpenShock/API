@@ -161,20 +161,22 @@ public sealed class LiveControlController : WebsocketBaseController<LiveControlR
 
         HubId = id;
 
-        var db = HttpContext.RequestServices.GetRequiredService<OpenShockContext>();
-
-        var hubExistsAndYouHaveAccess = await db.Devices.AnyAsync(x =>
-            x.Id == HubId && (x.OwnerId == _currentUser.Id || x.Shockers.Any(y =>
-                y.UserShares.Any(z => z.SharedWithUserId == _currentUser.Id && z.AllowLiveControl))));
-
-        if (!hubExistsAndYouHaveAccess)
+        var factory = HttpContext.RequestServices.GetRequiredService<IDbContextFactory<OpenShockContext>>();
+        await using (var db = await factory.CreateDbContextAsync())
         {
-            return new OneOf.Types.Error<OpenShockProblem>(WebsocketError.WebsocketLiveControlHubNotFound);
+            var hubExistsAndYouHaveAccess = await db.Devices.AnyAsync(x =>
+                x.Id == HubId && (x.OwnerId == _currentUser.Id || x.Shockers.Any(y =>
+                    y.UserShares.Any(z => z.SharedWithUserId == _currentUser.Id && z.AllowLiveControl))));
+
+            if (!hubExistsAndYouHaveAccess)
+            {
+                return new OneOf.Types.Error<OpenShockProblem>(WebsocketError.WebsocketLiveControlHubNotFound);
+            }
+
+            _device = await db.Devices.FirstOrDefaultAsync(x => x.Id == HubId);
+
+            await UpdatePermissions(db);
         }
-
-        _device = await db.Devices.FirstOrDefaultAsync(x => x.Id == HubId);
-
-        await UpdatePermissions(db);
 
         if (HttpContext.Request.Query.TryGetValue("tps", out var requestedTps))
         {
