@@ -21,7 +21,7 @@ public sealed partial class DeviceController
     [ProducesResponseType<LegacyDataResponse<DeviceSelfResponse>>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
     public async Task<IActionResult> GetSelf()
     {
-        var identity = User.GetOpenShockUserIdentity();
+        var identity = User.GetOpenShockHubIdentity();
         var currentHubId = identity.GetClaimValueAsGuid(OpenShockAuthClaims.HubId);
         var currentHubName = identity.GetClaimValue(OpenShockAuthClaims.HubName);
         
