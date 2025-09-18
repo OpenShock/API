@@ -7,6 +7,7 @@ using OpenShock.Common.OpenShockDb;
 using System.Buffers;
 using System.Globalization;
 using System.Text.Json;
+using OpenShock.Common.JsonSerialization;
 
 namespace OpenShock.Common.Services.Configuration;
 
@@ -289,7 +290,7 @@ public sealed class ConfigurationService : IConfigurationService
 
         try
         {
-            var obj = JsonSerializer.Deserialize<T>(pair.Value);
+            var obj = JsonSerializer.Deserialize<T>(pair.Value, JsonOptions.Default);
             return obj is not null ? obj : new InvalidValueFormat();
         }
         catch (JsonException ex)

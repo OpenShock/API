@@ -13,7 +13,7 @@ public static class JsonWebSocketUtils
     
     public static readonly RecyclableMemoryStreamManager RecyclableMemory = new();
 
-    public static async Task<OneOf.OneOf<T?, DeserializeFailed, WebsocketClosure>> ReceiveFullMessageAsyncNonAlloc<T>(WebSocket socket, JsonSerializerOptions? options = null, CancellationToken cancellationToken = default)
+    public static async Task<OneOf.OneOf<T?, DeserializeFailed, WebsocketClosure>> ReceiveFullMessageAsyncNonAlloc<T>(WebSocket socket, CancellationToken cancellationToken = default)
     {
         var buffer = ArrayPool<byte>.Shared.Rent(4096);
         try
@@ -38,7 +38,7 @@ public static class JsonWebSocketUtils
             try
             {
                 var data = message.GetSpan(bytes)[..bytes];
-                return JsonSerializer.Deserialize<T>(data, options);
+                return JsonSerializer.Deserialize<T>(data, JsonOptions.Default);
             }
             catch (Exception e)
             {

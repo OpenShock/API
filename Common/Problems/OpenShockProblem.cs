@@ -2,6 +2,7 @@
 using System.Net.Mime;
 using Microsoft.AspNetCore.Mvc;
 using OpenShock.Common.JsonSerialization;
+using JsonOptions = OpenShock.Common.JsonSerialization.JsonOptions;
 
 namespace OpenShock.Common.Problems;
 
@@ -46,7 +47,7 @@ public class OpenShockProblem : ProblemDetails
         context.Response.StatusCode = Status ?? StatusCodes.Status400BadRequest;
         RequestId = context.TraceIdentifier;
         
-        return context.Response.WriteAsJsonAsync(this, JsonSettings.ProblemDetailsSettings, MediaTypeNames.Application.ProblemJson, cancellationToken);
+        return context.Response.WriteAsJsonAsync(this, JsonOptions.Default, MediaTypeNames.Application.ProblemJson, cancellationToken);
     }
     
     public Task WriteAsJsonAsync(HttpContext context) => WriteAsJsonAsync(context, context.RequestAborted);

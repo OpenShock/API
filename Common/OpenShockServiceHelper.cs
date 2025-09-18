@@ -28,6 +28,7 @@ using StackExchange.Redis;
 using System.Threading.RateLimiting;
 using OpenShock.Common.Extensions;
 using OpenShock.Common.Utils;
+using JsonOptions = OpenShock.Common.JsonSerialization.JsonOptions;
 
 namespace OpenShock.Common;
 
@@ -131,8 +132,8 @@ public static class OpenShockServiceHelper
         
         services.AddSingleton<IAuthorizationMiddlewareResultHandler, OpenShockAuthorizationMiddlewareResultHandler>();
         
-        services.ConfigureHttpJsonOptions(JsonSettings.HttpOptions);
-        services.AddControllers().AddJsonOptions(JsonSettings.MvcOptions);
+        services.ConfigureHttpJsonOptions(opt => JsonOptions.ConfigureDefault(opt.SerializerOptions));
+        services.AddControllers().AddJsonOptions(opt => JsonOptions.ConfigureDefault(opt.JsonSerializerOptions));
         
         var apiVersioningBuilder = services.AddApiVersioning(options =>
         {

@@ -22,6 +22,7 @@ using OpenShock.Common.Utils;
 using OpenShock.Common.Websocket;
 using OpenShock.LiveControlGateway.LifetimeManager;
 using OpenShock.LiveControlGateway.Models;
+using JsonOptions = OpenShock.Common.JsonSerialization.JsonOptions;
 using Timer = System.Timers.Timer;
 
 namespace OpenShock.LiveControlGateway.Controllers;
@@ -258,8 +259,7 @@ public sealed class LiveControlController : WebsocketBaseController<LiveControlR
     protected override async Task<bool> HandleReceive(CancellationToken cancellationToken)
     {
         var message = await JsonWebSocketUtils.ReceiveFullMessageAsyncNonAlloc<BaseRequest<LiveRequestType>>(
-            WebSocket!, 
-            JsonSettings.LiveControlSettings2, 
+            WebSocket!,
             LinkedToken
             );
 
@@ -309,7 +309,7 @@ public sealed class LiveControlController : WebsocketBaseController<LiveControlR
     {
         Logger.LogTrace("Intake pong");
 
-        // Received pong without sending ping, this could be abusing the pong endpoin>t.
+        // Received pong without sending ping, this could be abusing the pong endpoint.
         if (_pingTimestamp == 0)
         {
             // TODO: Kick or warn client.
@@ -345,7 +345,7 @@ public sealed class LiveControlController : WebsocketBaseController<LiveControlR
         ClientLiveFrame[]? frames;
         try
         {
-            frames = requestData?.Deserialize<ClientLiveFrame[]>(JsonSettings.LiveControlSettings);
+            frames = requestData?.Deserialize<ClientLiveFrame[]>(JsonOptions.Default);
 
             if (frames is not { Length: > 0 })
             {
@@ -389,7 +389,7 @@ public sealed class LiveControlController : WebsocketBaseController<LiveControlR
         ClientLiveFrame? frame;
         try
         {
-            frame = requestData?.Deserialize<ClientLiveFrame>(JsonSettings.LiveControlSettings);
+            frame = requestData?.Deserialize<ClientLiveFrame>(JsonOptions.Default);
 
             if (frame is null)
             {
