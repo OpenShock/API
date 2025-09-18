@@ -13,7 +13,7 @@ public class AuthenticatedSessionControllerBase : OpenShockControllerBase, IActi
     [NonAction]
     public void OnActionExecuting(ActionExecutingContext context)
     {
-        CurrentUser = ControllerContext.HttpContext.RequestServices.GetRequiredService<IClientAuthService<User>>().CurrentClient;
+        CurrentUser = HttpContext.Items["User"] as User ?? throw new Exception("User not found");
     }
 
     [NonAction]

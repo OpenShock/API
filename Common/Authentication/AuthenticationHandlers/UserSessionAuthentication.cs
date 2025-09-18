@@ -16,7 +16,6 @@ namespace OpenShock.Common.Authentication.AuthenticationHandlers;
 
 public sealed class UserSessionAuthentication : AuthenticationHandler<AuthenticationSchemeOptions>
 {
-    private readonly IClientAuthService<User> _authService;
     private readonly IUserReferenceService _userReferenceService;
     private readonly IBatchUpdateService _batchUpdateService;
     private readonly OpenShockContext _db;
@@ -27,7 +26,6 @@ public sealed class UserSessionAuthentication : AuthenticationHandler<Authentica
         IOptionsMonitor<AuthenticationSchemeOptions> options,
         ILoggerFactory logger,
         UrlEncoder encoder,
-        IClientAuthService<User> clientAuth,
         IUserReferenceService userReferenceService,
         OpenShockContext db,
         ISessionService sessionService,
@@ -35,7 +33,6 @@ public sealed class UserSessionAuthentication : AuthenticationHandler<Authentica
         )
         : base(options, logger, encoder)
     {
-        _authService = clientAuth;
         _userReferenceService = userReferenceService;
         _db = db;
         _sessionService = sessionService;
@@ -60,29 +57,29 @@ public sealed class UserSessionAuthentication : AuthenticationHandler<Authentica
 
         _batchUpdateService.UpdateSessionLastUsed(sessionToken, DateTimeOffset.UtcNow);
 
-        var retrievedUser = await _db.Users.Include(u => u.UserDeactivation).FirstOrDefaultAsync(user => user.Id == session.UserId);
-        if (retrievedUser == null) return Fail(AuthResultError.SessionInvalid);
-        if (retrievedUser.ActivatedAt is null)
+        var user = await _db.Users.Include(u => u.UserDeactivation).FirstOrDefaultAsync(user => user.Id == session.UserId);
+        if (user == null) return Fail(AuthResultError.SessionInvalid);
+        if (user.ActivatedAt is null)
         {
             await _sessionService.DeleteSessionAsync(session);
             return Fail(AuthResultError.AccountNotActivated);
         }
-        if (retrievedUser.UserDeactivation is not null)
+        if (user.UserDeactivation is not null)
         {
             await _sessionService.DeleteSessionAsync(session);
             return Fail(AuthResultError.AccountDeactivated);
         }
 
-        _authService.CurrentClient = retrievedUser;
+        Context.Items["User"] = user;
         _userReferenceService.AuthReference = session;
 
-        var claims = new List<Claim>(2 + retrievedUser.Roles.Count)
+        var claims = new List<Claim>(2 + user.Roles.Count)
         {
             new(ClaimTypes.AuthenticationMethod, OpenShockAuthSchemes.UserSessionCookie),
-            new(ClaimTypes.NameIdentifier, retrievedUser.Id.ToString()),
+            new(ClaimTypes.NameIdentifier, user.Id.ToString()),
         };
 
-        foreach (var roletype in retrievedUser.Roles)
+        foreach (var roletype in user.Roles)
         {
             claims.Add(new Claim(ClaimTypes.Role, roletype.ToString()));
         }

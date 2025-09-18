@@ -218,8 +218,7 @@ public sealed class LiveControlController : WebsocketBaseController<LiveControlR
     [NonAction]
     public void OnActionExecuting(ActionExecutingContext context)
     {
-        _currentUser = ControllerContext.HttpContext.RequestServices.GetRequiredService<IClientAuthService<User>>()
-            .CurrentClient;
+        _currentUser = HttpContext.Items["User"] as User ?? throw new Exception("User not found");
     }
 
     /// <summary>

@@ -108,7 +108,6 @@ public static class OpenShockServiceHelper
             };
         });
 
-        services.AddScoped<IClientAuthService<User>, ClientAuthService<User>>();
         services.AddScoped<IUserReferenceService, UserReferenceService>();
 
         var authBuilder = services
