@@ -24,16 +24,9 @@ public sealed class OpenShockExceptionHandler : IExceptionHandler
         {
             await PrintRequestInfo(context);
         }
-        
-        var responseObject = ExceptionError.Exception;
-        responseObject.AddContext(context);
 
-        return await _problemDetailsService.TryWriteAsync(new ProblemDetailsContext
-        {
-            HttpContext = context,
-            Exception = exception,
-            ProblemDetails = responseObject
-        });
+        await ExceptionError.Exception.WriteAsJsonAsync(context, cancellationToken);
+        return context.Response.HasStarted;
     }
     
     private async Task PrintRequestInfo(HttpContext context)

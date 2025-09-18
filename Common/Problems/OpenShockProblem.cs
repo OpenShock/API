@@ -1,5 +1,7 @@
 ﻿using System.Net;
+using System.Net.Mime;
 using Microsoft.AspNetCore.Mvc;
+using OpenShock.Common.JsonSerialization;
 
 namespace OpenShock.Common.Problems;
 
@@ -27,19 +29,25 @@ public class OpenShockProblem : ProblemDetails
     [Obsolete("This is the exact same as requestId, refer to using requestId in the future")]
     public string? TraceId => RequestId;
     
-    public string? RequestId { get; set; } 
+    public string? RequestId { get; private set; }
     
-    public ObjectResult ToObjectResult(HttpContext httpContext)
+    public ObjectResult ToObjectResult(HttpContext context)
     {
-        AddContext(httpContext);
+        RequestId = context.TraceIdentifier;
+        
         return new ObjectResult(this)
         {
             StatusCode = Status
         };
     }
     
-    public void AddContext(HttpContext httpContext)
+    public Task WriteAsJsonAsync(HttpContext context, CancellationToken cancellationToken)
     {
-        RequestId = httpContext.TraceIdentifier;
+        context.Response.StatusCode = Status ?? StatusCodes.Status400BadRequest;
+        RequestId = context.TraceIdentifier;
+        
+        return context.Response.WriteAsJsonAsync(this, JsonSettings.ProblemDetailsSettings, MediaTypeNames.Application.ProblemJson, cancellationToken);
     }
+    
+    public Task WriteAsJsonAsync(HttpContext context) => WriteAsJsonAsync(context, context.RequestAborted);
 }

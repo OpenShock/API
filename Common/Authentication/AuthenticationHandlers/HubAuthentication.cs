@@ -1,9 +1,6 @@
-﻿using System.Net.Mime;
-using System.Security.Claims;
+﻿using System.Security.Claims;
 using System.Text.Encodings.Web;
-using System.Text.Json;
 using Microsoft.AspNetCore.Authentication;
-using Microsoft.AspNetCore.Http.Json;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using OpenShock.Common.Authentication.Services;
@@ -22,7 +19,6 @@ public sealed class HubAuthentication : AuthenticationHandler<AuthenticationSche
     private readonly IClientAuthService<Device> _authService;
     private readonly OpenShockContext _db;
     
-    private readonly JsonSerializerOptions _serializerOptions;
     private OpenShockProblem? _authResultError = null;
 
 
@@ -31,13 +27,12 @@ public sealed class HubAuthentication : AuthenticationHandler<AuthenticationSche
         ILoggerFactory logger,
         UrlEncoder encoder,
         IClientAuthService<Device> clientAuth,
-        OpenShockContext db,
-        IOptions<JsonOptions> jsonOptions)
+        OpenShockContext db
+        )
         : base(options, logger, encoder)
     {
         _authService = clientAuth;
         _db = db;
-        _serializerOptions = jsonOptions.Value.SerializerOptions;
     }
 
     protected override async Task<AuthenticateResult> HandleAuthenticateAsync()
@@ -83,8 +78,6 @@ public sealed class HubAuthentication : AuthenticationHandler<AuthenticationSche
     {
         if (Context.Response.HasStarted) return Task.CompletedTask;
         _authResultError ??= AuthResultError.UnknownError;
-        Response.StatusCode = _authResultError.Status!.Value;
-        _authResultError.AddContext(Context);
-        return Context.Response.WriteAsJsonAsync(_authResultError, _serializerOptions, contentType: MediaTypeNames.Application.ProblemJson);
+        return _authResultError.WriteAsJsonAsync(Context);
     }
 }

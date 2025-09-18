@@ -1,6 +1,4 @@
-﻿using System.Net.Mime;
-using Microsoft.AspNetCore.Authentication;
-using Microsoft.AspNetCore.Http.Json;
+﻿using Microsoft.AspNetCore.Authentication;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using OpenShock.Common.Authentication.Services;
@@ -13,7 +11,6 @@ using OpenShock.Common.Services.BatchUpdate;
 using OpenShock.Common.Services.Session;
 using System.Security.Claims;
 using System.Text.Encodings.Web;
-using System.Text.Json;
 
 namespace OpenShock.Common.Authentication.AuthenticationHandlers;
 
@@ -24,7 +21,6 @@ public sealed class UserSessionAuthentication : AuthenticationHandler<Authentica
     private readonly IBatchUpdateService _batchUpdateService;
     private readonly OpenShockContext _db;
     private readonly ISessionService _sessionService;
-    private readonly JsonSerializerOptions _serializerOptions;
     private OpenShockProblem? _authResultError = null;
 
     public UserSessionAuthentication(
@@ -35,14 +31,14 @@ public sealed class UserSessionAuthentication : AuthenticationHandler<Authentica
         IUserReferenceService userReferenceService,
         OpenShockContext db,
         ISessionService sessionService,
-        IOptions<JsonOptions> jsonOptions, IBatchUpdateService batchUpdateService)
+        IBatchUpdateService batchUpdateService
+        )
         : base(options, logger, encoder)
     {
         _authService = clientAuth;
         _userReferenceService = userReferenceService;
         _db = db;
         _sessionService = sessionService;
-        _serializerOptions = jsonOptions.Value.SerializerOptions;
         _batchUpdateService = batchUpdateService;
     }
 
@@ -109,8 +105,6 @@ public sealed class UserSessionAuthentication : AuthenticationHandler<Authentica
     {
         if (Context.Response.HasStarted) return Task.CompletedTask;
         _authResultError ??= AuthResultError.UnknownError;
-        Response.StatusCode = _authResultError.Status!.Value;
-        _authResultError.AddContext(Context);
-        return Context.Response.WriteAsJsonAsync(_authResultError, _serializerOptions, contentType: MediaTypeNames.Application.ProblemJson);
+        return _authResultError.WriteAsJsonAsync(Context);
     }
 }

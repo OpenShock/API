@@ -38,4 +38,11 @@ public static class JsonSettings
         PropertyNameCaseInsensitive = true,
         Converters = { new FlagCompatibleJsonStringEnumConverter() }
     };
+
+    public static readonly JsonSerializerOptions ProblemDetailsSettings = new() // TODO: Identical to MvcOptions
+    {
+        PropertyNameCaseInsensitive = true,
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+        Converters = { new PermissionTypeConverter(), new FlagCompatibleJsonStringEnumConverter() }
+    };
 }
