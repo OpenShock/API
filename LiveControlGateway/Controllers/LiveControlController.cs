@@ -37,9 +37,8 @@ namespace OpenShock.LiveControlGateway.Controllers;
 public sealed class LiveControlController : WebsocketBaseController<LiveControlResponse<LiveResponseType>>,
     IActionFilter
 {
-    private readonly OpenShockContext _db;
-    private readonly ILogger<LiveControlController> _logger;
     private readonly HubLifetimeManager _hubLifetimeManager;
+    private readonly ILogger<LiveControlController> _logger;
 
     private static readonly TimeSpan PingInterval = TimeSpan.FromSeconds(5);
 
@@ -80,17 +79,13 @@ public sealed class LiveControlController : WebsocketBaseController<LiveControlR
     /// <summary>
     /// DI Constructor
     /// </summary>
-    /// <param name="db"></param>
     /// <param name="logger"></param>
     /// <param name="hubLifetimeManager"></param>
-    public LiveControlController(
-        OpenShockContext db,
-        ILogger<LiveControlController> logger,
-        HubLifetimeManager hubLifetimeManager) : base(logger)
+    public LiveControlController(HubLifetimeManager hubLifetimeManager, ILogger<LiveControlController> logger) : base(logger)
     {
-        _db = db;
-        _logger = logger;
         _hubLifetimeManager = hubLifetimeManager;
+        _logger = logger;
+        
         _pingTimer.Elapsed += (_, _) => OsTask.Run(SendPing);
     }
 
@@ -166,7 +161,9 @@ public sealed class LiveControlController : WebsocketBaseController<LiveControlR
 
         HubId = id;
 
-        var hubExistsAndYouHaveAccess = await _db.Devices.AnyAsync(x =>
+        var db = HttpContext.RequestServices.GetRequiredService<OpenShockContext>();
+
+        var hubExistsAndYouHaveAccess = await db.Devices.AnyAsync(x =>
             x.Id == HubId && (x.OwnerId == _currentUser.Id || x.Shockers.Any(y =>
                 y.UserShares.Any(z => z.SharedWithUserId == _currentUser.Id && z.AllowLiveControl))));
 
@@ -175,9 +172,9 @@ public sealed class LiveControlController : WebsocketBaseController<LiveControlR
             return new OneOf.Types.Error<OpenShockProblem>(WebsocketError.WebsocketLiveControlHubNotFound);
         }
 
-        _device = await _db.Devices.FirstOrDefaultAsync(x => x.Id == HubId);
+        _device = await db.Devices.FirstOrDefaultAsync(x => x.Id == HubId);
 
-        await UpdatePermissions(_db);
+        await UpdatePermissions(db);
 
         if (HttpContext.Request.Query.TryGetValue("tps", out var requestedTps))
         {
