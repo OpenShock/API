@@ -1,7 +1,4 @@
 <Project Sdk="Microsoft.NET.Sdk">
-  <Import Project="../Framework.props" />
-  <Import Project="../Shared.props" />
-
   <ItemGroup>
     <PackageReference Include="Testcontainers.PostgreSql" Version="4.7.0" />
     <PackageReference Include="Testcontainers.Redis" Version="4.7.0" />
