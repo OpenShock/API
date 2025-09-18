@@ -16,7 +16,6 @@ namespace OpenShock.Common.Authentication.AuthenticationHandlers;
 /// </summary>
 public sealed class HubAuthentication : AuthenticationHandler<AuthenticationSchemeOptions>
 {
-    private readonly IClientAuthService<Device> _authService;
     private readonly OpenShockContext _db;
     
     private OpenShockProblem? _authResultError = null;
@@ -26,38 +25,44 @@ public sealed class HubAuthentication : AuthenticationHandler<AuthenticationSche
         IOptionsMonitor<AuthenticationSchemeOptions> options,
         ILoggerFactory logger,
         UrlEncoder encoder,
-        IClientAuthService<Device> clientAuth,
         OpenShockContext db
         )
         : base(options, logger, encoder)
     {
-        _authService = clientAuth;
         _db = db;
     }
 
     protected override async Task<AuthenticateResult> HandleAuthenticateAsync()
     {
-        if (!Context.TryGetDeviceTokenFromHeader(out var sessionKey))
+        if (!Context.TryGetHubTokenFromHeader(out var hubToken))
         {
             return Fail(AuthResultError.HeaderMissingOrInvalid);
         }
 
-        var device = await _db.Devices.Include(d => d.Owner.UserDeactivation).FirstOrDefaultAsync(x => x.Token == sessionKey);
-        if (device is null)
+        var hub = await _db.Devices
+            .Where(x => x.Token == hubToken)
+            .Select(x => new
+            {
+                x.Id,
+                x.Name,
+                x.OwnerId,
+                IsDeactivated = x.Owner.UserDeactivation != null
+            })
+            .FirstOrDefaultAsync();
+        if (hub is null)
         {
             return Fail(AuthResultError.TokenInvalid);
         }
-        if (device.Owner.UserDeactivation is not null)
+        if (hub.IsDeactivated)
         {
             return Fail(AuthResultError.AccountDeactivated);
         }
 
-        _authService.CurrentClient = device;
-
         Claim[] claims = [
             new(ClaimTypes.AuthenticationMethod, OpenShockAuthSchemes.HubToken),
-            new(ClaimTypes.NameIdentifier, device.OwnerId.ToString()),
-            new(OpenShockAuthClaims.HubId, _authService.CurrentClient.Id.ToString()),
+            new(ClaimTypes.NameIdentifier, hub.OwnerId.ToString()),
+            new(OpenShockAuthClaims.HubId, hub.Id.ToString()),
+            new(OpenShockAuthClaims.HubName, hub.Name),
         ];
         
         var ident = new ClaimsIdentity(claims, OpenShockAuthSchemes.HubToken);

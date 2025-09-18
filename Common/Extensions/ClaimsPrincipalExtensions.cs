@@ -6,55 +6,12 @@ namespace OpenShock.Common.Extensions;
 
 public static class ClaimsPrincipalExtensions
 {
-    public static bool HasOpenShockUserIdentity(this ClaimsPrincipal principal)
-    {
-        ArgumentNullException.ThrowIfNull(principal);
-        
-        foreach (var ident in principal.Identities)
-        {
-            if (ident is { IsAuthenticated: true, AuthenticationType: OpenShockAuthSchemes.UserSessionCookie })
-            {
-                return true;
-            }
-        }
-
-        return false;
-    }
+    private static readonly Func<ClaimsIdentity, bool> UserClaimPredicate = x => x is
+        { IsAuthenticated: true, AuthenticationType: OpenShockAuthSchemes.UserSessionCookie };
     
-    public static bool TryGetOpenShockUserIdentity(this ClaimsPrincipal principal, [NotNullWhen(true)] out ClaimsIdentity? identity)
-    {
-        ArgumentNullException.ThrowIfNull(principal);
-        
-        foreach (var ident in principal.Identities)
-        {
-            if (ident is { IsAuthenticated: true, AuthenticationType: OpenShockAuthSchemes.UserSessionCookie })
-            {
-                identity = ident;
-                return true;
-            }
-        }
-
-        identity = null;
-        return false;
-    }
-
-    public static bool TryGetAuthenticatedOpenShockUserId(this ClaimsPrincipal principal, out Guid userId)
-    {
-        ArgumentNullException.ThrowIfNull(principal);
-        
-        if (!principal.TryGetOpenShockUserIdentity(out var identity))
-        {
-            userId = Guid.Empty;
-            return false;
-        }
-        
-        var idStr = identity.Claims.SingleOrDefault(x => x.Type == ClaimTypes.NameIdentifier)?.Value;
-        if (string.IsNullOrEmpty(idStr))
-        {
-            userId = Guid.Empty;
-            return false;
-        }
-
-        return Guid.TryParse(idStr, out userId);
-    }
+    public static bool HasOpenShockUserIdentity(this ClaimsPrincipal principal) => principal.Identities.Any(UserClaimPredicate);
+    public static ClaimsIdentity GetOpenShockUserIdentity(this ClaimsPrincipal principal) => principal.Identities.Single(UserClaimPredicate);
+    public static ClaimsIdentity? TryGetOpenShockUserIdentity(this ClaimsPrincipal principal) => principal.Identities.SingleOrDefault(UserClaimPredicate);
+    public static string GetClaimValue(this ClaimsIdentity identity, string claimType) => identity.Claims.Single(x => x.Type == claimType).Value;
+    public static Guid GetClaimValueAsGuid(this ClaimsIdentity identity, string claimType) => Guid.Parse(GetClaimValue(identity, claimType));
 }

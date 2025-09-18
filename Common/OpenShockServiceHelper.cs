@@ -109,7 +109,6 @@ public static class OpenShockServiceHelper
         });
 
         services.AddScoped<IClientAuthService<User>, ClientAuthService<User>>();
-        services.AddScoped<IClientAuthService<Device>, ClientAuthService<Device>>();
         services.AddScoped<IUserReferenceService, UserReferenceService>();
 
         var authBuilder = services

@@ -4,6 +4,8 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using OpenShock.API.Controller.Users;
 using OpenShock.API.Models.Response;
+using OpenShock.Common.Authentication;
+using OpenShock.Common.Extensions;
 using OpenShock.Common.Models;
 
 namespace OpenShock.API.Controller.Device;
@@ -19,7 +21,11 @@ public sealed partial class DeviceController
     [ProducesResponseType<LegacyDataResponse<DeviceSelfResponse>>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
     public async Task<IActionResult> GetSelf()
     {
-        var shockers = await _db.Shockers.Where(x => x.DeviceId == CurrentDevice.Id).Select(x => new MinimalShocker
+        var identity = User.GetOpenShockUserIdentity();
+        var currentHubId = identity.GetClaimValueAsGuid(OpenShockAuthClaims.HubId);
+        var currentHubName = identity.GetClaimValue(OpenShockAuthClaims.HubName);
+        
+        var shockers = await _db.Shockers.Where(x => x.DeviceId == currentHubId).Select(x => new MinimalShocker
         {
             Id = x.Id,
             RfId = x.RfId,
@@ -28,8 +34,8 @@ public sealed partial class DeviceController
 
         return LegacyDataOk(new DeviceSelfResponse
             {
-                Id = CurrentDevice.Id,
-                Name = CurrentDevice.Name,
+                Id = currentHubId,
+                Name = currentHubName,
                 Shockers = shockers
             }
         );

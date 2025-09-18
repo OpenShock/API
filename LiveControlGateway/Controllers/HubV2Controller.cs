@@ -2,7 +2,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.SignalR;
-using Microsoft.Extensions.Options;
 using OpenShock.Common.Authentication;
 using OpenShock.Common.Constants;
 using OpenShock.Common.Hubs;
@@ -67,13 +66,13 @@ public sealed class HubV2Controller : HubControllerBase<HubToGatewayMessage, Gat
         }
         catch (Exception e)
         {
-            Logger.LogError(e, "Error while sending ping message to hub [{HubId}]", CurrentHub.Id);
+            Logger.LogError(e, "Error while sending ping message to hub [{HubId}]", CurrentHubId);
         }
     }
     
     private OtaUpdateStatus? _lastStatus;
     
-    private IUserHub HcOwner => _userHubContext.Clients.User(CurrentHub.OwnerId.ToString());
+    private IUserHub HcOwner => _userHubContext.Clients.User(CurrentHubOwnerId.ToString());
     
     /// <inheritdoc />
     protected override async Task<bool> Handle(HubToGatewayMessage data)
@@ -83,7 +82,7 @@ public sealed class HubV2Controller : HubControllerBase<HubToGatewayMessage, Gat
         await using var scope = ServiceProvider.CreateAsyncScope();
         var otaService = scope.ServiceProvider.GetRequiredService<IOtaService>();
 
-        Logger.LogTrace("Received payload [{Kind}] from hub [{HubId}]", payload.Kind, CurrentHub.Id);
+        Logger.LogTrace("Received payload [{Kind}] from hub [{HubId}]", payload.Kind, CurrentHubId);
         switch (payload.Kind)
         {
             case HubToGatewayMessagePayload.ItemKind.Pong:
@@ -106,18 +105,18 @@ public sealed class HubV2Controller : HubControllerBase<HubToGatewayMessage, Gat
             case HubToGatewayMessagePayload.ItemKind.OtaUpdateStarted:
                 _lastStatus = OtaUpdateStatus.Started;
                 await HcOwner.OtaInstallStarted(
-                    CurrentHub.Id,
+                    CurrentHubId,
                     payload.OtaUpdateStarted.UpdateId,
                     SemVersion.FromFbs(payload.OtaUpdateStarted.Version));
                 await otaService.Started(
-                    CurrentHub.Id,
+                    CurrentHubId,
                     payload.OtaUpdateStarted.UpdateId,
                     SemVersion.FromFbs(payload.OtaUpdateStarted.Version));
                 break;
 
             case HubToGatewayMessagePayload.ItemKind.OtaUpdateProgress:
                 await HcOwner.OtaInstallProgress(
-                    CurrentHub.Id,
+                    CurrentHubId,
                     payload.OtaUpdateProgress.UpdateId,
                     payload.OtaUpdateProgress.Task,
                     payload.OtaUpdateProgress.Progress);
@@ -125,19 +124,19 @@ public sealed class HubV2Controller : HubControllerBase<HubToGatewayMessage, Gat
                 if (_lastStatus == OtaUpdateStatus.Started)
                 {
                     _lastStatus = OtaUpdateStatus.Running;
-                    await otaService.Progress(CurrentHub.Id, payload.OtaUpdateProgress.UpdateId);
+                    await otaService.Progress(CurrentHubId, payload.OtaUpdateProgress.UpdateId);
                 }
 
                 break;
 
             case HubToGatewayMessagePayload.ItemKind.OtaUpdateFailed:
                 await HcOwner.OtaInstallFailed(
-                    CurrentHub.Id,
+                    CurrentHubId,
                     payload.OtaUpdateFailed.UpdateId,
                     payload.OtaUpdateFailed.Fatal,
                     payload.OtaUpdateFailed.Message!);
 
-                await otaService.Error(CurrentHub.Id, payload.OtaUpdateFailed.UpdateId,
+                await otaService.Error(CurrentHubId, payload.OtaUpdateFailed.UpdateId,
                     payload.OtaUpdateFailed.Fatal, payload.OtaUpdateFailed.Message!);
 
                 _lastStatus = OtaUpdateStatus.Error;
@@ -147,9 +146,9 @@ public sealed class HubV2Controller : HubControllerBase<HubToGatewayMessage, Gat
                 if (payload.BootStatus.BootType == FirmwareBootType.NewFirmware)
                 {
                     await HcOwner.OtaInstallSucceeded(
-                        CurrentHub.Id, payload.BootStatus.OtaUpdateId);
+                        CurrentHubId, payload.BootStatus.OtaUpdateId);
 
-                    await otaService.Success(CurrentHub.Id, payload.BootStatus.OtaUpdateId);
+                    await otaService.Success(CurrentHubId, payload.BootStatus.OtaUpdateId);
                     _lastStatus = OtaUpdateStatus.Finished;
                     break;
                 }
@@ -157,9 +156,9 @@ public sealed class HubV2Controller : HubControllerBase<HubToGatewayMessage, Gat
                 if (payload.BootStatus.BootType == FirmwareBootType.Rollback)
                 {
                     await HcOwner.OtaRollback(
-                        CurrentHub.Id, payload.BootStatus.OtaUpdateId);
+                        CurrentHubId, payload.BootStatus.OtaUpdateId);
 
-                    await otaService.Error(CurrentHub.Id, payload.BootStatus.OtaUpdateId, false,
+                    await otaService.Error(CurrentHubId, payload.BootStatus.OtaUpdateId, false,
                         "Hub booted with firmware rollback");
                     _lastStatus = OtaUpdateStatus.Error;
                     break;
@@ -169,7 +168,7 @@ public sealed class HubV2Controller : HubControllerBase<HubToGatewayMessage, Gat
                 {
                     if (payload.BootStatus.OtaUpdateId == 0) break;
 
-                    var unfinished = await otaService.UpdateUnfinished(CurrentHub.Id,
+                    var unfinished = await otaService.UpdateUnfinished(CurrentHubId,
                         payload.BootStatus.OtaUpdateId);
 
                     if (!unfinished) break;
@@ -177,9 +176,9 @@ public sealed class HubV2Controller : HubControllerBase<HubToGatewayMessage, Gat
                     Log.Warning("OTA update unfinished, rolling back");
 
                     await HcOwner.OtaRollback(
-                        CurrentHub.Id, payload.BootStatus.OtaUpdateId);
+                        CurrentHubId, payload.BootStatus.OtaUpdateId);
 
-                    await otaService.Error(CurrentHub.Id, payload.BootStatus.OtaUpdateId, false,
+                    await otaService.Error(CurrentHubId, payload.BootStatus.OtaUpdateId, false,
                         "Hub booted with normal boot, update seems unfinished");
                     _lastStatus = OtaUpdateStatus.Error;
                 }

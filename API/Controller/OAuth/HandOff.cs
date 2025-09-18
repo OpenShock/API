@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Authentication;
+﻿using System.Security.Claims;
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 using OpenShock.API.Services.OAuthConnection;
@@ -81,11 +82,14 @@ public sealed partial class OAuthController
 
             case OAuthFlow.Link:
             {
-                if (!User.TryGetAuthenticatedOpenShockUserId(out var userId))
+                var identity = User.TryGetOpenShockUserIdentity();
+                if (identity is null)
                 {
                     await HttpContext.SignOutAsync(OAuthConstants.FlowScheme);
                     return RedirectFrontendError("mustBeAuthenticated");
                 }
+
+                var userId = identity.GetClaimValueAsGuid(ClaimTypes.NameIdentifier);
 
                 if (connection is not null)
                 {

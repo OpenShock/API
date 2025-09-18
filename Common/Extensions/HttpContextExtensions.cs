@@ -55,7 +55,7 @@ public static class HttpContextExtensions
         return false;
     }
 
-    public static bool TryGetDeviceTokenFromHeader(this HttpContext context, [NotNullWhen(true)] out string? token)
+    public static bool TryGetHubTokenFromHeader(this HttpContext context, [NotNullWhen(true)] out string? token)
     {
         ArgumentNullException.ThrowIfNull(context);
         
