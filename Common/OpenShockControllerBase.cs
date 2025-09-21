@@ -1,6 +1,4 @@
-﻿using System.Net.Mime;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Options;
+﻿using Microsoft.AspNetCore.Mvc;
 using OpenShock.Common.Constants;
 using OpenShock.Common.Models;
 using OpenShock.Common.Options;
@@ -40,18 +38,6 @@ public class OpenShockControllerBase : ControllerBase
         return DomainUtils.GetBestMatchingCookieDomain(HttpContext.Request.Host.Host, cookieDomains);
     }
 
-    private static CookieOptions GetCookieOptions(string domain, TimeSpan lifetime)
-    {
-        return new CookieOptions
-        {
-            Expires = DateTimeOffset.UtcNow.Add(lifetime),
-            Secure = true,
-            HttpOnly = true,
-            SameSite = SameSiteMode.Strict,
-            Domain = domain
-        };
-    }
-
     [NonAction]
     protected async Task CreateSession(Guid accountId, string domain)
     {
@@ -59,7 +45,14 @@ public class OpenShockControllerBase : ControllerBase
         
         var session = await sessionService.CreateSessionAsync(accountId, HttpContext.GetUserAgent(), HttpContext.GetRemoteIP().ToString());
         
-        HttpContext.Response.Cookies.Append(AuthConstants.UserSessionCookieName, session.Token, GetCookieOptions(domain, Duration.LoginSessionLifetime));
+        HttpContext.Response.Cookies.Append(AuthConstants.UserSessionCookieName, session.Token, new CookieOptions
+        {
+            Expires = DateTimeOffset.UtcNow.Add(Duration.LoginSessionLifetime),
+            Secure = true,
+            HttpOnly = true,
+            SameSite = SameSiteMode.Lax,
+            Domain = domain
+        });
     }
 
     [NonAction]
@@ -68,7 +61,7 @@ public class OpenShockControllerBase : ControllerBase
         var cookieDomains = HttpContext.RequestServices.GetRequiredService<FrontendOptions>().CookieDomains;
         foreach (var domain in cookieDomains)
         {
-            HttpContext.Response.Cookies.Append(AuthConstants.UserSessionCookieName, string.Empty, GetCookieOptions(domain, TimeSpan.FromDays(-1)));
+            HttpContext.Response.Cookies.Delete(AuthConstants.UserSessionCookieName, new CookieOptions { Domain = domain });
         }
     }
 }
