@@ -12,7 +12,7 @@ public sealed class AdminUsersView
 
     public required string Email { get; set; }
 
-    public required PasswordHashingAlgorithm PasswordHashType { get; set; }
+    public required PasswordHashingAlgorithm? PasswordHashType { get; set; }
 
     public required List<RoleType> Roles { get; set; }
 
