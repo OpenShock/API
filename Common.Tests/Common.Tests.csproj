@@ -1,15 +1,17 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <ItemGroup>
+    <ProjectReference Include="..\Common\Common.csproj" />
+  </ItemGroup>
+
+  <!-- NuGet packages -->
+  <ItemGroup>
     <PackageReference Include="Testcontainers.PostgreSql" />
     <PackageReference Include="Testcontainers.Redis" />
     <PackageReference Include="Bogus" />
     <PackageReference Include="TUnit" />
   </ItemGroup>
 
-  <ItemGroup>
-    <ProjectReference Include="..\Common\Common.csproj" />
-  </ItemGroup>
-
+  <!-- Files to copy -->
   <ItemGroup>
     <None Update="Validation\DataSets\BlackList.txt">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>

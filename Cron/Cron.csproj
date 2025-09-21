@@ -1,16 +1,27 @@
 <Project Sdk="Microsoft.NET.Sdk.Web">
   <ItemGroup>
+    <ProjectReference Include="..\Common\Common.csproj" />
+  </ItemGroup>
+
+  <!-- NuGet packages -->
+  <ItemGroup>
     <PackageReference Include="Hangfire.AspNetCore" />
     <PackageReference Include="Hangfire.PostgreSql" />
   </ItemGroup>
 
-  <ItemGroup>
-    <ProjectReference Include="..\Common\Common.csproj" />
-  </ItemGroup>
-
+  <!-- Files to copy -->
   <ItemGroup>
     <None Update="devcert.pfx">
       <CopyToPublishDirectory>Always</CopyToPublishDirectory>
     </None>
   </ItemGroup>
+
+  <!-- Git stuff -->
+  <Target Name="SetHash" AfterTargets="InitializeSourceControlInformation">
+    <ItemGroup>
+      <AssemblyAttribute Include="OpenShock.Common.Utils.GitHashAttribute">
+        <_Parameter1>$(SourceRevisionId)</_Parameter1>
+      </AssemblyAttribute>
+    </ItemGroup>
+  </Target>
 </Project>

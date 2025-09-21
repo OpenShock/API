@@ -1,17 +1,18 @@
 <Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <ProjectReference Include="..\API\API.csproj" />
+  </ItemGroup>
+
+  <!-- Props -->
   <PropertyGroup>
     <IsPackable>false</IsPackable>
   </PropertyGroup>
 
+  <!-- NuGet packages -->
   <ItemGroup>
     <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" />
     <PackageReference Include="Testcontainers.PostgreSql" />
     <PackageReference Include="Testcontainers.Redis" />
     <PackageReference Include="TUnit" />
   </ItemGroup>
-
-  <ItemGroup>
-    <ProjectReference Include="..\API\API.csproj" />
-  </ItemGroup>
-
 </Project>
