@@ -1,3 +1,4 @@
+using System.ComponentModel.DataAnnotations;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 using OpenShock.API.OAuth;
@@ -20,7 +21,7 @@ public sealed partial class OAuthController
     [EnableRateLimiting("auth")]
     [HttpPost("{provider}/authorize")]
     [ApiExplorerSettings(IgnoreApi = true)]
-    public async Task<IActionResult> OAuthAuthorize([FromRoute] string provider, [FromQuery(Name="flow")] OAuthFlow flow)
+    public async Task<IActionResult> OAuthAuthorize([FromRoute] string provider, [FromQuery(Name="flow"), Required] OAuthFlow flow)
     {
         if (!await _schemeProvider.IsSupportedOAuthScheme(provider))
             return Problem(OAuthError.UnsupportedProvider);
