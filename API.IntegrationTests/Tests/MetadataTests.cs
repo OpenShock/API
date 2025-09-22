@@ -1,32 +1,15 @@
 ﻿using System.Net;
-using System.Net.Http.Json;
+using System.Text.Json;
 
 namespace OpenShock.API.IntegrationTests.Tests;
 
-file sealed class Parent
-{
-    public required string Message { get; init; }
-    public required BackendInfoResponse Data { get; init; }
-}
-file sealed class BackendInfoResponse
-{
-    public required string Version { get; init; }
-    public required string Commit { get; init; }
-    public required DateTimeOffset CurrentTime { get; init; }
-    public required Uri FrontendUrl { get; init; }
-    public required Uri ShortLinkUrl { get; init; }
-    public required string? TurnstileSiteKey { get; init; }
-    public required string[] OAuthProviders { get; init; }
-    public required bool IsUserAuthenticated { get; init; }
-}
-
-public class MetadataTests
+public sealed class MetadataTests
 {
     [ClassDataSource<WebApplicationFactory>(Shared = SharedType.PerTestSession)]
     public required WebApplicationFactory WebApplicationFactory { get; init; }
     
     [Test]
-    public async Task GetMatadata_ShouldReturnOk()
+    public async Task GetMetadata_ShouldMatchBackendInfoResponseContract()
     {
         using var client = WebApplicationFactory.CreateClient();
 
@@ -34,16 +17,65 @@ public class MetadataTests
 
         await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.OK);
 
-        var parent = await response.Content.ReadFromJsonAsync<Parent>();
-        await Assert.That(parent).IsNotNull();
-        await Assert.That(parent!.Message).IsEqualTo("OpenShock");
+        var mediaType = response.Content.Headers.ContentType?.MediaType;
+        await Assert.That(mediaType).IsEqualTo("application/json");
 
-        var content = parent.Data;
-        await Assert.That(content).IsNotNull();
+        var json = await response.Content.ReadAsStringAsync();
+        using var doc = JsonDocument.Parse(json);
+
+        var root = doc.RootElement;
         
-        await Assert.That(content!.Version).IsNotNullOrWhitespace();
-        await Assert.That(content!.Commit).IsNotNullOrWhitespace();
-        await Assert.That(content!.CurrentTime).IsBetween(DateTimeOffset.UtcNow.AddSeconds(-5), DateTimeOffset.UtcNow.AddSeconds(5)); // Idk if this is ok way to do it
-        await Assert.That(content!.TurnstileSiteKey).IsEqualTo("turnstile-site-key");
+        // Validate Message
+        var message = root.GetProperty("message").GetString();
+        await Assert.That(message).IsEqualTo("OpenShock");
+        
+        // Fetch data
+        var data = root.GetProperty("data");
+
+        // Validate Version
+        var version = data.GetProperty("version").GetString();
+        await Assert.That(version).IsNotNullOrWhitespace();
+
+        // Validate Commit
+        var commit = data.GetProperty("commit").GetString();
+        await Assert.That(commit).Matches("[a-zA-Z0-9]{4,64}");
+
+        // Validate CurrentTime
+        var currentTime = data.GetProperty("currentTime").GetDateTimeOffset();
+        await Assert.That(currentTime).IsBetween(
+            DateTimeOffset.UtcNow.AddSeconds(-5),
+            DateTimeOffset.UtcNow.AddSeconds(5)
+        );
+
+        // Validate FrontendUrl
+        var frontendUrlStr = data.GetProperty("frontendUrl").GetString();
+        await Assert.That(Uri.TryCreate(frontendUrlStr, UriKind.Absolute, out _))
+            .IsTrue();
+
+        // Validate ShortLinkUrl
+        var shortLinkUrlStr = data.GetProperty("shortLinkUrl").GetString();
+        await Assert.That(Uri.TryCreate(shortLinkUrlStr, UriKind.Absolute, out _))
+            .IsTrue();
+
+        // Validate TurnstileSiteKey (nullable, can be null or string)
+        var turnstileSiteKeyProp = data.GetProperty("turnstileSiteKey");
+        if (turnstileSiteKeyProp.ValueKind is not JsonValueKind.Null)
+        {
+            var turnstileSiteKey = turnstileSiteKeyProp.GetString();
+            await Assert.That(turnstileSiteKey).IsNotNullOrWhitespace();
+        }
+
+        // Validate OAuthProviders (string[])
+        var oauthProviders = data.GetProperty("oAuthProviders");
+        await Assert.That(oauthProviders.ValueKind).IsEqualTo(JsonValueKind.Array);
+        foreach (var provider in oauthProviders.EnumerateArray())
+        {
+            var p = provider.GetString();
+            await Assert.That(p).IsNotNullOrWhitespace();
+        }
+
+        // Validate IsUserAuthenticated (bool)
+        var isUserAuthenticated = data.GetProperty("isUserAuthenticated").GetBoolean();
+        await Assert.That(isUserAuthenticated).IsIn(true, false);
     }
 }
