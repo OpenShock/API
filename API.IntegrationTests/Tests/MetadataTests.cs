@@ -38,7 +38,7 @@ public sealed class MetadataTests
 
         // Validate Commit
         var commit = data.GetProperty("commit").GetString();
-        await Assert.That(commit).Matches("[a-zA-Z0-9]{4,64}");
+        await Assert.That(commit).Matches("[a-fA-F0-9]{4,64}");
 
         // Validate CurrentTime
         var currentTime = data.GetProperty("currentTime").GetDateTimeOffset();
