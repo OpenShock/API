@@ -15,7 +15,7 @@ public sealed partial class AccountController
     [HttpPost("activate")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status403Forbidden, MediaTypeNames.Application.Json)]
-    [MapToApiVersion("2")]
+    [MapToApiVersion("1")]
     public async Task<IActionResult> Activate([FromQuery(Name = "token")] string token, CancellationToken cancellationToken)
     {
         bool ok = await _accountService.TryActivateAccountAsync(token, cancellationToken);
