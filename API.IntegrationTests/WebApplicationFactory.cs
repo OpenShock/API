@@ -1,50 +1,51 @@
 ﻿using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.TestHost;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Http;
+using OpenShock.API.IntegrationTests.Docker;
 using OpenShock.API.IntegrationTests.HttpMessageHandlers;
-using Testcontainers.PostgreSql;
-using Testcontainers.Redis;
 using TUnit.Core.Interfaces;
 
 namespace OpenShock.API.IntegrationTests;
 
-public class IntegrationTestWebAppFactory : WebApplicationFactory<Program>, IAsyncInitializer
+public class WebApplicationFactory : WebApplicationFactory<Program>, IAsyncInitializer
 {
-    private readonly PostgreSqlContainer _dbContainer = new PostgreSqlBuilder()
-        .WithImage("postgres:latest")
-        .WithDatabase("openshock")
-        .WithUsername("openshock")
-        .WithPassword("superSecurePassword")
-        .Build();
+    [ClassDataSource<InMemoryDatabase>(Shared = SharedType.PerTestSession)]
+    public required InMemoryDatabase PostgreSql { get; init; }
+    
+    [ClassDataSource<InMemoryRedis>(Shared = SharedType.PerTestSession)]
+    public required InMemoryRedis Redis { get; init; }
 
-    private readonly RedisContainer _redisContainer = new RedisBuilder()
-        .WithImage("redis/redis-stack-server:latest")
-        .Build();
-
-
-    public async Task InitializeAsync()
+    public Task InitializeAsync()
     {
-        await _dbContainer.StartAsync();
-        await _redisContainer.StartAsync();
+        _ = Server;
+        return Task.CompletedTask;
     }
 
-    protected override IWebHostBuilder? CreateWebHostBuilder()
+    protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
+        // TODO: Find a way to do the following instead of the current implementation
+        /*
+        builder.ConfigureAppConfiguration((_, configBuilder) =>
+        {
+            configBuilder.Sources.Clear();
+            configBuilder.AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                ...
+            });
+        });
+        */
         var environmentVariables = new Dictionary<string, string>
         {
             { "ASPNETCORE_UNDER_INTEGRATION_TEST", "1" },
             
-            { "OPENSHOCK__DB__CONN", _dbContainer.GetConnectionString() },
+            { "OPENSHOCK__DB__CONN", PostgreSql.Container.GetConnectionString() },
             { "OPENSHOCK__DB__SKIPMIGRATION", "false" },
             { "OPENSHOCK__DB__DEBUG", "false" },
             
-            { "OPENSHOCK__REDIS__CONN", _redisContainer.GetConnectionString() },
-            { "OPENSHOCK__REDIS__HOST", "" },
-            { "OPENSHOCK__REDIS__USER", "" },
-            { "OPENSHOCK__REDIS__PASSWORD", "" },
-            { "OPENSHOCK__REDIS__PORT", "6379" },
+            { "OPENSHOCK__REDIS__CONN", Redis.Container.GetConnectionString() },
             
             { "OPENSHOCK__FRONTEND__BASEURL", "https://openshock.app" },
             { "OPENSHOCK__FRONTEND__SHORTURL", "https://openshock.app" },
@@ -73,22 +74,9 @@ public class IntegrationTestWebAppFactory : WebApplicationFactory<Program>, IAsy
             Environment.SetEnvironmentVariable(envVar.Key, envVar.Value);
         }
     
-        return base.CreateWebHostBuilder();
-    }
-
-    protected override void ConfigureWebHost(IWebHostBuilder builder)
-    {
-        
         builder.ConfigureTestServices(services =>
         {
             services.AddTransient<HttpMessageHandlerBuilder, InterceptedHttpMessageHandlerBuilder>();
         });
-    }
-
-    public override async ValueTask DisposeAsync()
-    {
-        await _dbContainer.DisposeAsync();
-        await _redisContainer.DisposeAsync();
-        await base.DisposeAsync();
     }
 }

@@ -5,14 +5,17 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using OpenShock.Common.OpenShockDb;
 
-namespace OpenShock.API.IntegrationTests;
+namespace OpenShock.API.IntegrationTests.Tests;
 
-public class AccountTests : BaseIntegrationTest
+public class AccountTests
 {
+    [ClassDataSource<WebApplicationFactory>(Shared = SharedType.PerTestSession)]
+    public required WebApplicationFactory WebApplicationFactory { get; init; }
+    
     [Test]
     public async Task CreateAccount_ShouldAdd_NewUserToDatabase()
     {
-        using var client = WebAppFactory.CreateClient();
+        using var client = WebApplicationFactory.CreateClient();
 
         var requestBody = JsonSerializer.Serialize(new
         {
@@ -29,7 +32,7 @@ public class AccountTests : BaseIntegrationTest
 
         await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.OK);
 
-        await using var scope = WebAppFactory.Services.CreateAsyncScope();
+        await using var scope = WebApplicationFactory.Services.CreateAsyncScope();
         var db = scope.ServiceProvider.GetRequiredService<OpenShockContext>();
 
         var user = await db.Users.FirstOrDefaultAsync(u => u.Email == "bob@example.com");
