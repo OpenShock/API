@@ -28,8 +28,6 @@ public class AccountTests
 
         var response = await client.PostAsync("/2/account/signup", new StringContent(requestBody, Encoding.UTF8, "application/json"));
 
-        var content = await response.Content.ReadAsStringAsync();
-
         await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.OK);
 
         await using var scope = WebApplicationFactory.Services.CreateAsyncScope();
@@ -38,5 +36,33 @@ public class AccountTests
         var user = await db.Users.FirstOrDefaultAsync(u => u.Email == "bob@example.com");
 
         await Assert.That(user is not null).IsTrue();
+    }
+
+    [Test, DependsOn(nameof(CreateAccount_ShouldAdd_NewUserToDatabase))]
+    public async Task CheckUsername()
+    {
+        using var client = WebApplicationFactory.CreateClient();
+        
+        var requestBody = JsonSerializer.Serialize(new { username = "Bob" });
+        
+        var response = await client.PostAsync("/1/account/username/check", new StringContent(requestBody, Encoding.UTF8, "application/json"));
+        
+        await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.OK);
+
+        var mediaType = response.Content.Headers.ContentType?.MediaType;
+        await Assert.That(mediaType).IsEqualTo("application/json");
+
+        var json = await response.Content.ReadAsStringAsync();
+        using var doc = JsonDocument.Parse(json);
+
+        var root = doc.RootElement;
+        
+        // Validate Availability
+        var availability = root.GetProperty("availability").GetString();
+        await Assert.That(availability).IsEqualTo("Taken");
+        
+        // Validate Error
+        var error = root.GetProperty("error").GetString();
+        await Assert.That(error).IsNull();
     }
 }
