@@ -40,7 +40,7 @@
     <PackageVersion Include="Swashbuckle.AspNetCore.SwaggerGen" Version="9.0.4" />
     <PackageVersion Include="Testcontainers.PostgreSql" Version="4.7.0" />
     <PackageVersion Include="Testcontainers.Redis" Version="4.7.0" />
-    <PackageVersion Include="TUnit" Version="0.61.2" />
+    <PackageVersion Include="TUnit" Version="0.61.13" />
     <PackageVersion Include="Z.EntityFramework.Plus.EFCore" Version="9.104.0" />
   </ItemGroup>
 </Project>
