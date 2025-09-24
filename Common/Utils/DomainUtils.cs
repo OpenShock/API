@@ -69,10 +69,9 @@ public static class DomainUtils
     /// Picks the most specific matching cookie domain (most labels) from a comma-separated list.
     /// Accepts items with an optional leading '.' and optional ASCII whitespace around them.
     /// </summary>
-    public static string? GetBestMatchingCookieDomain(string host, IReadOnlyCollection<string> cookieDomainList)
+    public static string? GetBestMatchingCookieDomain(ReadOnlySpan<char> host, IReadOnlyCollection<string> cookieDomainList)
     {
-        var hostSpan = host.AsSpan();
-        if (!IsValidDomain(hostSpan)) return null;
+        if (!IsValidDomain(host)) return null;
 
         string? best = null;
         int bestLabels = -1;
@@ -86,7 +85,7 @@ public static class DomainUtils
 
             if (!IsValidDomain(cd)) continue;
 
-            if (!HostMatchesCookieDomainCore(hostSpan, cd)) continue;
+            if (!HostMatchesCookieDomainCore(host, cd)) continue;
 
             int labels = cd.Count('.') + 1;
             if (labels <= bestLabels) continue;
