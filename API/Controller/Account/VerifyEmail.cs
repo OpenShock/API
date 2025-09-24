@@ -14,7 +14,7 @@ public sealed partial class AccountController
     /// <response code="200"></response>
     [HttpPost("verify-email")]
     [ProducesResponseType(StatusCodes.Status200OK)]
-    [ProducesResponseType<OpenShockProblem>(StatusCodes.Status403Forbidden, MediaTypeNames.Application.Json)]
+    [ProducesResponseType<OpenShockProblem>(StatusCodes.Status403Forbidden, MediaTypeNames.Application.ProblemJson)]
     [MapToApiVersion("1")]
     public async Task<IActionResult> EmailVerify([FromQuery(Name = "token")] string token, CancellationToken cancellationToken)
     {

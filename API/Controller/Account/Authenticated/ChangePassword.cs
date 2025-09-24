@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Mvc;
 using OpenShock.API.Models.Requests;
 using OpenShock.Common.Errors;
+using OpenShock.Common.Problems;
 using OpenShock.Common.Utils;
 
 namespace OpenShock.API.Controller.Account.Authenticated;
@@ -17,6 +18,8 @@ public sealed partial class AuthenticatedAccountController
     [HttpPost("password")]
     [Consumes(MediaTypeNames.Application.Json)]
     [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType<OpenShockProblem>(StatusCodes.Status401Unauthorized, MediaTypeNames.Application.ProblemJson)]
+    [ProducesResponseType<OpenShockProblem>(StatusCodes.Status403Forbidden, MediaTypeNames.Application.ProblemJson)]
     public async Task<IActionResult> ChangePassword([FromBody] ChangePasswordRequest body)
     {
         if (!string.IsNullOrEmpty(CurrentUser.PasswordHash) && !HashingUtils.VerifyPassword(body.CurrentPassword, CurrentUser.PasswordHash).Verified)
