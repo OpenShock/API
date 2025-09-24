@@ -22,12 +22,12 @@
   </ItemGroup>
     
   <PropertyGroup>
-    <TargetFramework>net9.0</TargetFramework>
+    <TargetFramework>net10.0</TargetFramework>
   </PropertyGroup>
 
   <PropertyGroup>
     <ImplicitUsings>enable</ImplicitUsings>
-    <LangVersion>Latest</LangVersion>
+    <LangVersion>Preview</LangVersion>
     <Nullable>enable</Nullable>
     <AssemblyName>$(Product)</AssemblyName>
     <RootNamespace>$(Product.Replace(" ", "_"))</RootNamespace>

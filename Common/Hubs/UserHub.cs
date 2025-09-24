@@ -47,7 +47,7 @@ public sealed class UserHub : Hub<IUserHub>
             .Where(x => x.Shockers.Any(y => y.UserShares.Any(z => z.SharedWithUserId == UserId)))
             .Select(x => x.Id.ToString()).ToArrayAsync();
 
-        var own = devicesOnline.Where(x => x.Owner == UserId).ToArrayAsync();
+        var own = devicesOnline.Where(x => x.Owner == UserId).ToListAsync();
         var shared = devicesOnline.FindByIdsAsync(sharedDevices);
         await Task.WhenAll(own, shared);
 

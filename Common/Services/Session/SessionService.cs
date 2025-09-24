@@ -45,7 +45,8 @@ public sealed class SessionService : ISessionService
 
     public async Task<IReadOnlyList<LoginSession>> ListSessionsByUserIdAsync(Guid userId)
     {
-        return await _loginSessions.Where(x => x.UserId == userId).ToArrayAsync();
+        var list = await _loginSessions.Where(x => x.UserId == userId).ToListAsync();
+        return list.AsReadOnly();
     }
 
     public async Task<LoginSession?> GetSessionByTokenAsync(string sessionToken)
@@ -95,11 +96,11 @@ public sealed class SessionService : ISessionService
 
     public async Task<int> DeleteSessionsByUserIdAsync(Guid userId)
     {
-        var sessions = await _loginSessions.Where(x => x.UserId == userId).ToArrayAsync();
+        var sessions = await _loginSessions.Where(x => x.UserId == userId).ToListAsync();
 
         await _loginSessions.DeleteAsync(sessions);
 
-        return sessions.Length;
+        return sessions.Count;
     }
 
     public async Task DeleteSessionAsync(LoginSession loginSession)
