@@ -2,11 +2,11 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using OpenShock.API.Models.Response;
-using OpenShock.Common.Extensions;
+using OpenShock.API.Utils;
 using OpenShock.Common.Utils;
 using Z.EntityFramework.Plus;
 
-namespace OpenShock.API.Controller.Shares;
+namespace OpenShock.API.Controller.Shares.UserShares;
 
 internal sealed class V2UserSharesListItemDto
 {
@@ -25,10 +25,10 @@ internal sealed class V2UserSharesListItemDto
     };
 }
 
-public sealed partial class SharesController
+public sealed partial class UserSharesController
 {
     [HttpGet]
-    [ApiVersion("2")]
+    [MapToApiVersion("2")]
     public async Task<V2UserShares> GetSharesByUsers(CancellationToken cancellationToken)
     {
         var outgoingSharesFuture = _db.UserShares
@@ -57,7 +57,7 @@ public sealed partial class SharesController
                             Intensity = y.MaxIntensity,
                             Duration = y.MaxDuration
                         },
-                        Paused = y.IsPaused
+                        Paused = UserShareUtils.GetPausedReason(y.IsPaused, y.Shocker.IsPaused)
                     })
                     .ToArray()
             })
@@ -89,7 +89,7 @@ public sealed partial class SharesController
                             Duration = y.MaxDuration,
                             Intensity = y.MaxIntensity
                         },
-                        Paused = y.IsPaused
+                        Paused = UserShareUtils.GetPausedReason(y.IsPaused, y.Shocker.IsPaused)
                     })
                     .ToArray()
             })

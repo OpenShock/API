@@ -4,15 +4,15 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using OpenShock.API.Models.Requests;
 using OpenShock.API.Models.Response;
-using OpenShock.API.Services;
 using OpenShock.API.Services.DeviceUpdate;
+using OpenShock.API.Utils;
 using OpenShock.Common.Errors;
 using OpenShock.Common.Extensions;
 using OpenShock.Common.Models;
 using OpenShock.Common.OpenShockDb;
 using OpenShock.Common.Problems;
 
-namespace OpenShock.API.Controller.Shares;
+namespace OpenShock.API.Controller.Shares.UserShares;
 
 file static class QueryHelper
 {
@@ -54,10 +54,10 @@ file static class QueryHelper
         };
 }
 
-public sealed partial class SharesController
+public sealed partial class UserSharesController
 {
     [HttpGet("invites/outgoing")]
-    [ApiVersion("2")]
+    [MapToApiVersion("2")]
     public IAsyncEnumerable<ShareInviteBaseDetails> GetOutgoingInvitesList()
     {
         return _db.UserShareInvites
@@ -67,7 +67,7 @@ public sealed partial class SharesController
     }
     
     [HttpGet("invites/incoming")]
-    [ApiVersion("2")]
+    [MapToApiVersion("2")]
     public IAsyncEnumerable<ShareInviteBaseDetails> GetIncomingInvitesList()
     {
         return _db.UserShareInvites
@@ -79,7 +79,7 @@ public sealed partial class SharesController
     [HttpDelete("invites/outgoing/{inviteId}")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status404NotFound, MediaTypeNames.Application.ProblemJson)] // ShareRequestNotFound
-    [ApiVersion("2")]
+    [MapToApiVersion("2")]
     public async Task<IActionResult> DeleteOutgoingInvite([FromRoute] Guid inviteId)
     {
         var deletedShareRequest = await _db.UserShareInvites
@@ -93,7 +93,7 @@ public sealed partial class SharesController
     [HttpDelete("invites/incoming/{inviteId}")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status404NotFound, MediaTypeNames.Application.ProblemJson)] // ShareRequestNotFound
-    [ApiVersion("2")]
+    [MapToApiVersion("2")]
     public async Task<IActionResult> DenyIncomingInvite([FromRoute] Guid inviteId)
     {
         var deletedShareRequest = await _db.UserShareInvites
@@ -113,7 +113,7 @@ public sealed partial class SharesController
     [HttpPost("invites/incoming/{inviteId}")]
     [ProducesResponseType<V2UserSharesListItem>(StatusCodes.Status200OK)]
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status404NotFound, MediaTypeNames.Application.ProblemJson)] // ShareRequestNotFound
-    [ApiVersion("2")]
+    [MapToApiVersion("2")]
     public async Task<IActionResult> RedeemInvite([FromRoute] Guid inviteId, [FromServices] IDeviceUpdateService deviceUpdateService)
     {
         var shareRequest = await _db.UserShareInvites
@@ -191,7 +191,7 @@ public sealed partial class SharesController
                     Duration = y.MaxDuration,
                     Intensity = y.MaxIntensity
                 },
-                Paused = y.IsPaused
+                Paused = UserShareUtils.GetPausedReason(y.IsPaused, y.Shocker.IsPaused)
             })
         };
 
