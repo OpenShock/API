@@ -1,5 +1,7 @@
 ﻿using System.Buffers;
+using System.Diagnostics;
 using System.Net.WebSockets;
+using System.Text;
 using System.Text.Json;
 using Microsoft.IO;
 using OpenShock.Common.JsonSerialization;
@@ -37,8 +39,8 @@ public static class JsonWebSocketUtils
 
             try
             {
-                var data = message.GetSpan(bytes)[..bytes];
-                return JsonSerializer.Deserialize<T>(data, JsonOptions.Default);
+                message.Seek(0, SeekOrigin.Begin);
+                return await JsonSerializer.DeserializeAsync<T>(message, JsonOptions.Default, cancellationToken);
             }
             catch (Exception e)
             {
