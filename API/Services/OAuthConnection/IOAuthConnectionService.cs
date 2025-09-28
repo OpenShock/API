@@ -7,7 +7,7 @@ namespace OpenShock.API.Services.OAuthConnection;
 /// </summary>
 public interface IOAuthConnectionService
 {
-    Task<UserOAuthConnection[]> GetConnectionsAsync(Guid userId, CancellationToken cancellationToken = default);
+    IQueryable<UserOAuthConnection> GetConnectionsAsNonTrackingQuery(Guid userId, CancellationToken cancellationToken = default);
     Task<UserOAuthConnection?> GetByProviderExternalIdAsync(string provider, string providerAccountId, CancellationToken cancellationToken = default);
     Task<bool> ConnectionExistsAsync(string provider, string providerAccountId, CancellationToken cancellationToken = default);
     Task<bool> HasConnectionAsync(Guid userId, string provider, CancellationToken cancellationToken = default);
