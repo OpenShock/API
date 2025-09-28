@@ -1,5 +1,6 @@
 ﻿using System.Net.WebSockets;
 using FlatSharp;
+using OpenShock.Common.Services;
 using OpenShock.Common.Websocket;
 
 namespace OpenShock.LiveControlGateway.Websocket;
@@ -21,6 +22,8 @@ public abstract class FlatbuffersWebsocketBaseController<TIn, TOut> : WebsocketB
     /// The flat buffer serializer for the type we are serializing
     /// </summary>
     private readonly ISerializer<TOut> _outgoingSerializer;
+    
+    private readonly IWebSocketMeter _websocketMeter;
 
     /// <summary>
     /// DI
@@ -28,11 +31,13 @@ public abstract class FlatbuffersWebsocketBaseController<TIn, TOut> : WebsocketB
     /// <param name="logger"></param>
     /// <param name="incomingSerializer"></param>
     /// <param name="outgoingSerializer"></param>
+    /// <param name="websocketMeter"></param>
     protected FlatbuffersWebsocketBaseController(ILogger<FlatbuffersWebsocketBaseController<TIn, TOut>> logger,
-        ISerializer<TIn> incomingSerializer, ISerializer<TOut> outgoingSerializer) : base(logger)
+        ISerializer<TIn> incomingSerializer, ISerializer<TOut> outgoingSerializer, IWebSocketMeter websocketMeter) : base(logger)
     {
         _incomingSerializer = incomingSerializer;
         _outgoingSerializer = outgoingSerializer;
+        _websocketMeter = websocketMeter;
     }
 
     /// <inheritdoc />
@@ -52,7 +57,7 @@ public abstract class FlatbuffersWebsocketBaseController<TIn, TOut> : WebsocketB
     {
         var message =
             await FlatbufferWebSocketUtils.ReceiveFullMessageAsyncNonAlloc(WebSocket!,
-                _incomingSerializer, cancellationToken);
+                _incomingSerializer, _websocketMeter, cancellationToken);
         
         var continueLoop = await message.Match(
             Handle,

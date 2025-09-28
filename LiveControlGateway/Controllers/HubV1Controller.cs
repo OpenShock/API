@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.SignalR;
 using OpenShock.Common.Authentication;
 using OpenShock.Common.Hubs;
 using OpenShock.Common.Models;
+using OpenShock.Common.Services;
 using OpenShock.Common.Services.Ota;
 using OpenShock.LiveControlGateway.LifetimeManager;
 using OpenShock.LiveControlGateway.Options;
@@ -31,16 +32,18 @@ public sealed class HubV1Controller : HubControllerBase<HubToGatewayMessage, Gat
     /// <param name="hubLifetimeManager"></param>
     /// <param name="userHubContext"></param>
     /// <param name="serviceProvider"></param>
+    /// <param name="websocketMeter"></param>
     /// <param name="options"></param>
     /// <param name="logger"></param>
     public HubV1Controller(
             HubLifetimeManager hubLifetimeManager,
             IHubContext<UserHub, IUserHub> userHubContext,
             IServiceProvider serviceProvider,
+            IWebSocketMeter websocketMeter,
             LcgOptions options,
             ILogger<HubV1Controller> logger
         )
-        : base(HubToGatewayMessage.Serializer, GatewayToHubMessage.Serializer, hubLifetimeManager, serviceProvider, options, logger)
+        : base(HubToGatewayMessage.Serializer, GatewayToHubMessage.Serializer, hubLifetimeManager, serviceProvider, websocketMeter, options, logger)
     {
         _userHubContext = userHubContext;
     }

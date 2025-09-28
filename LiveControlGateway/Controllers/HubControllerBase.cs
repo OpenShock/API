@@ -15,6 +15,7 @@ using System.Net.WebSockets;
 using System.Security.Claims;
 using OpenShock.Common.Authentication;
 using OpenShock.Common.Extensions;
+using OpenShock.Common.Services;
 using SemVersion = OpenShock.Common.Models.SemVersion;
 using Timer = System.Timers.Timer;
 
@@ -89,6 +90,7 @@ public abstract class HubControllerBase<TIn, TOut> : FlatbuffersWebsocketBaseCon
     /// <param name="outgoingSerializer"></param>
     /// <param name="hubLifetimeManager"></param>
     /// <param name="serviceProvider"></param>
+    /// <param name="websocketMeter"></param>
     /// <param name="options"></param>
     /// <param name="logger"></param>
     protected HubControllerBase(
@@ -96,9 +98,10 @@ public abstract class HubControllerBase<TIn, TOut> : FlatbuffersWebsocketBaseCon
         ISerializer<TOut> outgoingSerializer,
         HubLifetimeManager hubLifetimeManager,
         IServiceProvider serviceProvider,
+        IWebSocketMeter websocketMeter,
         LcgOptions options,
         ILogger<FlatbuffersWebsocketBaseController<TIn, TOut>> logger
-        ) : base(logger, incomingSerializer, outgoingSerializer)
+        ) : base(logger, incomingSerializer, outgoingSerializer, websocketMeter)
     {
         _hubLifetimeManager = hubLifetimeManager;
         ServiceProvider = serviceProvider;

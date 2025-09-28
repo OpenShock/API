@@ -13,6 +13,7 @@ using OpenShock.Serialization.Gateway;
 using OpenShock.Serialization.Types;
 using Serilog;
 using System.Diagnostics;
+using OpenShock.Common.Services;
 
 namespace OpenShock.LiveControlGateway.Controllers;
 //TODO: Implement new keep alive ping pong mechanism
@@ -36,16 +37,18 @@ public sealed class HubV2Controller : HubControllerBase<HubToGatewayMessage, Gat
     /// <param name="hubLifetimeManager"></param>
     /// <param name="userHubContext"></param>
     /// <param name="serviceProvider"></param>
+    /// <param name="websocketMeter"></param>
     /// <param name="options"></param>
     /// <param name="logger"></param>
     public HubV2Controller(
         HubLifetimeManager hubLifetimeManager,
         IHubContext<UserHub, IUserHub> userHubContext,
         IServiceProvider serviceProvider,
+        IWebSocketMeter websocketMeter,
         LcgOptions options,
         ILogger<HubV2Controller> logger
         )
-        : base(HubToGatewayMessage.Serializer, GatewayToHubMessage.Serializer, hubLifetimeManager, serviceProvider, options, logger)
+        : base(HubToGatewayMessage.Serializer, GatewayToHubMessage.Serializer, hubLifetimeManager, serviceProvider, websocketMeter, options, logger)
     {
         _userHubContext = userHubContext;
         _pingTimer = new Timer(PingTimerElapsed, null, Duration.DevicePingInitialDelay, Duration.DevicePingPeriod);

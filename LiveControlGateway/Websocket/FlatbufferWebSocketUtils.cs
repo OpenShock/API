@@ -2,6 +2,7 @@
 using System.Net.WebSockets;
 using FlatSharp;
 using OneOf;
+using OpenShock.Common.Services;
 using OpenShock.Common.Utils;
 
 namespace OpenShock.LiveControlGateway.Websocket;
@@ -18,12 +19,13 @@ public static class FlatbufferWebSocketUtils
     /// </summary>
     /// <param name="socket"></param>
     /// <param name="serializer"></param>
+    /// <param name="meter"></param>
     /// <param name="cancellationToken"></param>
     /// <typeparam name="T"></typeparam>
     /// <returns></returns>
     /// <exception cref="MessageTooLongException"></exception>
     public static async Task<OneOf<T, DeserializeFailed, WebsocketClosure>> ReceiveFullMessageAsyncNonAlloc<T>(
-        WebSocket socket, ISerializer<T> serializer, CancellationToken cancellationToken)
+        WebSocket socket, ISerializer<T> serializer, IWebSocketMeter meter, CancellationToken cancellationToken)
         where T : class, IFlatBufferSerializable
     {
         var buffer = ArrayPool<byte>.Shared.Rent(4096);
@@ -45,6 +47,8 @@ public static class FlatbufferWebSocketUtils
 
                 message.Write(buffer, 0, result.Count);
             } while (!result.EndOfMessage);
+            
+            meter.RegisterMessageSize(bytes);
 
             try
             {

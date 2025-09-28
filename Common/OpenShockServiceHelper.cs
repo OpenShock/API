@@ -27,6 +27,7 @@ using Redis.OM.Contracts;
 using StackExchange.Redis;
 using System.Threading.RateLimiting;
 using OpenShock.Common.Extensions;
+using OpenShock.Common.Services;
 using OpenShock.Common.Utils;
 using JsonOptions = OpenShock.Common.JsonSerialization.JsonOptions;
 
@@ -177,11 +178,13 @@ public static class OpenShockServiceHelper
         
         // OpenTelemetry
 
+        services.AddSingleton<IWebSocketMeter, WebSocketMeter>();
         services.AddOpenTelemetry()
             .WithMetrics(metrics => metrics
                 .AddRuntimeInstrumentation()
                 .AddAspNetCoreInstrumentation()
                 .AddHttpClientInstrumentation()
+                .AddMeter("OpenShock.WebSocket")
                 .AddPrometheusExporter());
         
         // <---- OpenShock Services ---->
