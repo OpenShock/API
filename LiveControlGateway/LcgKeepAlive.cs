@@ -26,11 +26,11 @@ public sealed class LcgKeepAlive : IHostedService
     /// <param name="env"></param>
     /// <param name="options"></param>
     /// <param name="logger"></param>
-    public LcgKeepAlive(IRedisConnectionProvider redisConnectionProvider, IWebHostEnvironment env, IOptions<LcgOptions> options, ILogger<LcgKeepAlive> logger)
+    public LcgKeepAlive(IRedisConnectionProvider redisConnectionProvider, IWebHostEnvironment env, LcgOptions options, ILogger<LcgKeepAlive> logger)
     {
         _redisConnectionProvider = redisConnectionProvider;
         _env = env;
-        _options = options.Value;
+        _options = options;
         _logger = logger;
     }
 

@@ -6,7 +6,7 @@ namespace OpenShock.API.Models.Requests;
 public sealed class ChangePasswordRequest
 {
     [Required(AllowEmptyStrings = false)]
-    public required string OldPassword { get; set; }
+    public required string CurrentPassword { get; set; }
     
     [Password(true)]
     public required string NewPassword { get; set; }

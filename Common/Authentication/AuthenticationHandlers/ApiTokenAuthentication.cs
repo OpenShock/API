@@ -1,40 +1,34 @@
-﻿using System.Net.Mime;
-using Microsoft.AspNetCore.Authentication;
-using Microsoft.AspNetCore.Http.Json;
+﻿using Microsoft.AspNetCore.Authentication;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using OpenShock.Common.Authentication.Services;
 using OpenShock.Common.Errors;
+using OpenShock.Common.Extensions;
 using OpenShock.Common.OpenShockDb;
+using OpenShock.Common.Problems;
 using OpenShock.Common.Services.BatchUpdate;
 using OpenShock.Common.Utils;
 using System.Security.Claims;
 using System.Text.Encodings.Web;
-using System.Text.Json;
-using OpenShock.Common.Problems;
 
 namespace OpenShock.Common.Authentication.AuthenticationHandlers;
 
 public sealed class ApiTokenAuthentication : AuthenticationHandler<AuthenticationSchemeOptions>
 {
-    private readonly IClientAuthService<User> _authService;
     private readonly IBatchUpdateService _batchUpdateService;
     private readonly OpenShockContext _db;
-    private readonly JsonSerializerOptions _serializerOptions;
     private OpenShockProblem? _authResultError = null;
 
     public ApiTokenAuthentication(
         IOptionsMonitor<AuthenticationSchemeOptions> options,
         ILoggerFactory logger,
         UrlEncoder encoder,
-        IClientAuthService<User> clientAuth,
         OpenShockContext db,
-        IOptions<JsonOptions> jsonOptions, IBatchUpdateService batchUpdateService)
+        IBatchUpdateService batchUpdateService
+        )
         : base(options, logger, encoder)
     {
-        _authService = clientAuth;
         _db = db;
-        _serializerOptions = jsonOptions.Value.SerializerOptions;
         _batchUpdateService = batchUpdateService;
     }
 
@@ -58,7 +52,7 @@ public sealed class ApiTokenAuthentication : AuthenticationHandler<Authenticatio
         }
 
         _batchUpdateService.UpdateApiTokenLastUsed(tokenDto.Id);
-        _authService.CurrentClient = tokenDto.User;
+        Context.Items["User"] = tokenDto.User;
 
         var claims = new List<Claim>(3 + tokenDto.Permissions.Count)
         {
@@ -72,7 +66,7 @@ public sealed class ApiTokenAuthentication : AuthenticationHandler<Authenticatio
             claims.Add(new Claim(OpenShockAuthClaims.ApiTokenPermission, perm.ToString()));
         }
 
-        var ident = new ClaimsIdentity(claims, nameof(ApiTokenAuthentication));
+        var ident = new ClaimsIdentity(claims, OpenShockAuthSchemes.ApiToken);
         var principal = new ClaimsPrincipal(ident);
         var ticket = new AuthenticationTicket(principal, Scheme.Name);
 
@@ -90,8 +84,6 @@ public sealed class ApiTokenAuthentication : AuthenticationHandler<Authenticatio
     {
         if (Context.Response.HasStarted) return Task.CompletedTask;
         _authResultError ??= AuthResultError.UnknownError;
-        Response.StatusCode = _authResultError.Status!.Value;
-        _authResultError.AddContext(Context);
-        return Context.Response.WriteAsJsonAsync(_authResultError, _serializerOptions, contentType: MediaTypeNames.Application.ProblemJson);
+        return _authResultError.WriteAsJsonAsync(Context);
     }
 }

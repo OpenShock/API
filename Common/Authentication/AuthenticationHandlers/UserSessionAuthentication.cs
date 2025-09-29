@@ -1,45 +1,38 @@
-﻿using System.Net.Mime;
-using Microsoft.AspNetCore.Authentication;
-using Microsoft.AspNetCore.Http.Json;
+﻿using Microsoft.AspNetCore.Authentication;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using OpenShock.Common.Authentication.Services;
 using OpenShock.Common.Constants;
 using OpenShock.Common.Errors;
+using OpenShock.Common.Extensions;
 using OpenShock.Common.OpenShockDb;
 using OpenShock.Common.Problems;
 using OpenShock.Common.Services.BatchUpdate;
 using OpenShock.Common.Services.Session;
-using OpenShock.Common.Utils;
 using System.Security.Claims;
 using System.Text.Encodings.Web;
-using System.Text.Json;
 
 namespace OpenShock.Common.Authentication.AuthenticationHandlers;
 
 public sealed class UserSessionAuthentication : AuthenticationHandler<AuthenticationSchemeOptions>
 {
-    private readonly IClientAuthService<User> _authService;
     private readonly IBatchUpdateService _batchUpdateService;
     private readonly OpenShockContext _db;
     private readonly ISessionService _sessionService;
-    private readonly JsonSerializerOptions _serializerOptions;
     private OpenShockProblem? _authResultError = null;
 
     public UserSessionAuthentication(
         IOptionsMonitor<AuthenticationSchemeOptions> options,
         ILoggerFactory logger,
         UrlEncoder encoder,
-        IClientAuthService<User> clientAuth,
         OpenShockContext db,
         ISessionService sessionService,
-        IOptions<JsonOptions> jsonOptions, IBatchUpdateService batchUpdateService)
+        IBatchUpdateService batchUpdateService
+        )
         : base(options, logger, encoder)
     {
-        _authService = clientAuth;
         _db = db;
         _sessionService = sessionService;
-        _serializerOptions = jsonOptions.Value.SerializerOptions;
         _batchUpdateService = batchUpdateService;
     }
 
@@ -61,33 +54,33 @@ public sealed class UserSessionAuthentication : AuthenticationHandler<Authentica
 
         _batchUpdateService.UpdateSessionLastUsed(sessionToken, DateTimeOffset.UtcNow);
 
-        var retrievedUser = await _db.Users.Include(u => u.UserDeactivation).FirstOrDefaultAsync(user => user.Id == session.UserId);
-        if (retrievedUser == null) return Fail(AuthResultError.SessionInvalid);
-        if (retrievedUser.ActivatedAt is null)
+        var user = await _db.Users.Include(u => u.UserDeactivation).FirstOrDefaultAsync(user => user.Id == session.UserId);
+        if (user is null) return Fail(AuthResultError.SessionInvalid);
+        if (user.ActivatedAt is null)
         {
             await _sessionService.DeleteSessionAsync(session);
             return Fail(AuthResultError.AccountNotActivated);
         }
-        if (retrievedUser.UserDeactivation is not null)
+        if (user.UserDeactivation is not null)
         {
             await _sessionService.DeleteSessionAsync(session);
             return Fail(AuthResultError.AccountDeactivated);
         }
+        
+        Context.Items["User"] = user;
 
-        _authService.CurrentClient = retrievedUser;
-
-        var claims = new List<Claim>(2 + retrievedUser.Roles.Count)
+        var claims = new List<Claim>(2 + user.Roles.Count)
         {
             new(ClaimTypes.AuthenticationMethod, OpenShockAuthSchemes.UserSessionCookie),
-            new(ClaimTypes.NameIdentifier, retrievedUser.Id.ToString()),
+            new(ClaimTypes.NameIdentifier, user.Id.ToString()),
         };
 
-        foreach (var roletype in retrievedUser.Roles)
+        foreach (var roletype in user.Roles)
         {
             claims.Add(new Claim(ClaimTypes.Role, roletype.ToString()));
         }
 
-        var ident = new ClaimsIdentity(claims, nameof(UserSessionAuthentication));
+        var ident = new ClaimsIdentity(claims, OpenShockAuthSchemes.UserSessionCookie);
         var principal = new ClaimsPrincipal(ident);
         var ticket = new AuthenticationTicket(principal, Scheme.Name);
 
@@ -105,8 +98,6 @@ public sealed class UserSessionAuthentication : AuthenticationHandler<Authentica
     {
         if (Context.Response.HasStarted) return Task.CompletedTask;
         _authResultError ??= AuthResultError.UnknownError;
-        Response.StatusCode = _authResultError.Status!.Value;
-        _authResultError.AddContext(Context);
-        return Context.Response.WriteAsJsonAsync(_authResultError, _serializerOptions, contentType: MediaTypeNames.Application.ProblemJson);
+        return _authResultError.WriteAsJsonAsync(Context);
     }
 }

@@ -10,7 +10,7 @@ public sealed class User
 
     public required string Email { get; set; }
 
-    public required string PasswordHash { get; set; }
+    public string? PasswordHash { get; set; }
 
     public List<RoleType> Roles { get; set; } = [];
 
@@ -20,6 +20,7 @@ public sealed class User
     // Navigations
     public UserActivationRequest? UserActivationRequest { get; set; }
     public UserDeactivation? UserDeactivation { get; set; }
+    public ICollection<UserOAuthConnection> OAuthConnections { get; set; } = [];
     public ICollection<ApiToken> ApiTokens { get; } = [];
     public ICollection<ApiTokenReport> ReportedApiTokens { get; } = [];
     public ICollection<Device> Devices { get; } = [];

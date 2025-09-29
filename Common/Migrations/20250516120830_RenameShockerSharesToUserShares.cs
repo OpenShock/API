@@ -7,9 +7,50 @@ namespace OpenShock.Common.Migrations
     /// <inheritdoc />
     public partial class RenameShockerSharesToUserShares : Migration
     {
+        public const string Query_Create_AdminUsersView =
+            """
+            CREATE VIEW admin_users_view AS
+                SELECT
+                    u.id,
+                    u.name,
+                    u.email,
+                    SPLIT_PART(u.password_hash, ':', 1) AS password_hash_type,
+                    u.created_at,
+                    u.email_activated,
+                    u.roles,
+                    (SELECT COUNT(*) FROM api_tokens token WHERE token.user_id = u.id) AS api_token_count,
+                    (SELECT COUNT(*) FROM user_password_resets reset WHERE reset.user_id = u.id) AS password_reset_count,
+                    (
+                        SELECT COUNT(*) FROM devices device
+                        INNER JOIN shockers shocker ON shocker.device_id = device.id
+                        INNER JOIN user_shares share ON share.shocker_id = shocker.id
+                        WHERE device.owner_id = u.id
+                    ) AS shocker_user_share_count,
+                    (SELECT COUNT(*) FROM public_shares share WHERE share.owner_id = u.id) AS shocker_public_share_count,
+                    (SELECT COUNT(*) FROM user_email_changes entry WHERE entry.user_id = u.id) AS email_change_request_count,
+                    (SELECT COUNT(*) FROM user_name_changes entry WHERE entry.user_id = u.id) AS name_change_request_count,
+                    (SELECT COUNT(*) FROM user_activations entry WHERE entry.user_id = u.id) AS user_activation_count,
+                    (SELECT COUNT(*) FROM devices device WHERE device.owner_id = u.id) AS device_count,
+                    (
+                        SELECT COUNT(*) FROM devices device
+                        INNER JOIN shockers shocker ON shocker.device_id = device.id
+                        WHERE device.owner_id = u.id
+                    ) AS shocker_count,
+                    (
+                        SELECT COUNT(*) FROM devices device
+                        INNER JOIN shockers shocker ON shocker.device_id = device.id
+                        INNER JOIN shocker_control_logs log ON log.shocker_id = shocker.id
+                        WHERE device.owner_id = u.id
+                ) AS shocker_control_log_count
+                FROM
+                    users u;
+            """;
+        
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
+            migrationBuilder.Sql(AddAdminUsersView.Query_Drop_AdminUsersView);
+            
             migrationBuilder.DropForeignKey(
                 name: "fk_share_request_shockers_share_request_id",
                 table: "share_request_shockers");
@@ -152,51 +193,14 @@ namespace OpenShock.Common.Migrations
                 onDelete: ReferentialAction.Cascade);
 
             // Recreate the admin_users_view with modified names
-            migrationBuilder.Sql(
-                """
-                DROP VIEW admin_users_view;
-                CREATE VIEW admin_users_view AS
-                SELECT
-                    u.id,
-                    u.name,
-                    u.email,
-                    SPLIT_PART(u.password_hash, ':', 1) AS password_hash_type,
-                    u.created_at,
-                    u.email_activated,
-                    u.roles,
-                    (SELECT COUNT(*) FROM api_tokens token WHERE token.user_id = u.id) AS api_token_count,
-                    (SELECT COUNT(*) FROM user_password_resets reset WHERE reset.user_id = u.id) AS password_reset_count,
-                    (
-                        SELECT COUNT(*) FROM devices device
-                        INNER JOIN shockers shocker ON shocker.device_id = device.id
-                        INNER JOIN user_shares share ON share.shocker_id = shocker.id
-                        WHERE device.owner_id = u.id
-                    ) AS shocker_user_share_count,
-                    (SELECT COUNT(*) FROM public_shares share WHERE share.owner_id = u.id) AS shocker_public_share_count,
-                    (SELECT COUNT(*) FROM user_email_changes entry WHERE entry.user_id = u.id) AS email_change_request_count,
-                    (SELECT COUNT(*) FROM user_name_changes entry WHERE entry.user_id = u.id) AS name_change_request_count,
-                    (SELECT COUNT(*) FROM user_activations entry WHERE entry.user_id = u.id) AS user_activation_count,
-                    (SELECT COUNT(*) FROM devices device WHERE device.owner_id = u.id) AS device_count,
-                    (
-                        SELECT COUNT(*) FROM devices device
-                        INNER JOIN shockers shocker ON shocker.device_id = device.id
-                        WHERE device.owner_id = u.id
-                    ) AS shocker_count,
-                    (
-                        SELECT COUNT(*) FROM devices device
-                        INNER JOIN shockers shocker ON shocker.device_id = device.id
-                        INNER JOIN shocker_control_logs log ON log.shocker_id = shocker.id
-                        WHERE device.owner_id = u.id
-                ) AS shocker_control_log_count
-                FROM
-                    users u;
-                """
-            );
+            migrationBuilder.Sql(Query_Create_AdminUsersView);
         }
 
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
+            migrationBuilder.Sql(AddAdminUsersView.Query_Drop_AdminUsersView);
+            
             migrationBuilder.DropForeignKey(
                 name: "fk_user_share_invite_shockers_invite_id",
                 table: "user_share_invite_shockers");
@@ -338,31 +342,7 @@ namespace OpenShock.Common.Migrations
                 onDelete: ReferentialAction.Cascade);
 
             // Revert view back to old
-            migrationBuilder.Sql(
-                """
-                CREATE OR REPLACE VIEW admin_users_view AS
-                    SELECT
-                        u.id,
-                        u.name,
-                        u.email,
-                        SPLIT_PART(u.password_hash, ':', 1) AS password_hash_type,
-                        u.created_at,
-                        u.email_activated,
-                        u.roles,
-                        (SELECT COUNT(*) FROM api_tokens           ato WHERE ato.user_id     = u.id) AS api_token_count,
-                        (SELECT COUNT(*) FROM password_resets      pre WHERE pre.user_id     = u.id) AS password_reset_count,
-                        (SELECT COUNT(*) FROM shocker_shares       ssh WHERE ssh.shared_with = u.id) AS shocker_share_count,
-                        (SELECT COUNT(*) FROM shocker_shares_links ssl WHERE ssl.owner_id    = u.id) AS shocker_share_link_count,
-                        (SELECT COUNT(*) FROM users_email_changes  uec WHERE uec.user_id     = u.id) AS email_change_request_count,
-                        (SELECT COUNT(*) FROM users_name_changes   unc WHERE unc.user_id     = u.id) AS name_change_request_count,
-                        (SELECT COUNT(*) FROM users_activation     uac WHERE uac.user_id     = u.id) AS user_activation_count,
-                        (SELECT COUNT(*) FROM devices              dev WHERE dev.owner       = u.id) AS device_count,
-                        (SELECT COUNT(*) FROM devices              dev JOIN shockers sck ON dev.id = sck.device WHERE dev.owner = u.id) AS shocker_count,
-                        (SELECT COUNT(*) FROM devices              dev JOIN shockers sck ON dev.id = sck.device JOIN shocker_control_logs scl ON scl.shocker_id = sck.id WHERE dev.owner = u.id) AS shocker_control_log_count
-                    FROM
-                        users u;
-                """
-            );
+            migrationBuilder.Sql(RanksToRoles.Query_Create_AdminUsersView);
         }
     }
 }

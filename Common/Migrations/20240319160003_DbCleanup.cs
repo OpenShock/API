@@ -14,8 +14,8 @@ namespace OpenShock.Common.Migrations
             // ### CUSTOM SQL BEGIN ###
 
             // Update the password hashes prefix BEFORE dropping the column
-            migrationBuilder.Sql("UPDATE users SET password = CONCAT('pbkdf2:', substring(password from 5)) WHERE password LIKE 'USER$%'");
-            migrationBuilder.Sql("UPDATE users SET password = CONCAT('bcrypt:', password) WHERE password NOT LIKE 'pbkdf2:%'");
+            migrationBuilder.Sql("UPDATE users SET password = CONCAT('pbkdf2:', substring(password from 5)) WHERE password LIKE 'USER$%';");
+            migrationBuilder.Sql("UPDATE users SET password = CONCAT('bcrypt:', password) WHERE password NOT LIKE 'pbkdf2:%';");
 
             // #### CUSTOM SQL END ####
 
@@ -77,12 +77,12 @@ namespace OpenShock.Common.Migrations
             // ### CUSTOM SQL BEGIN ###
 
             // Populate the password_encryption column BEFORE updating the password hashes prefix
-            migrationBuilder.Sql("UPDATE users SET password_encryption = 'pbkdf2' WHERE password LIKE 'pbkdf2:%'");
-            migrationBuilder.Sql("UPDATE users SET password_encryption = 'bcrypt_enhanced' WHERE password LIKE 'bcrypt:%'");
+            migrationBuilder.Sql("UPDATE users SET password_encryption = 'pbkdf2' WHERE password LIKE 'pbkdf2:%';");
+            migrationBuilder.Sql("UPDATE users SET password_encryption = 'bcrypt_enhanced' WHERE password LIKE 'bcrypt:%';");
 
             // Update the password hashes prefix AFTER updating the password_encryption column
-            migrationBuilder.Sql("UPDATE users SET password = SUBSTRING(password FROM 8) WHERE password LIKE 'pbkdf2:%'");
-            migrationBuilder.Sql("UPDATE users SET password = SUBSTRING(password FROM 8) WHERE password LIKE 'bcrypt:%'");
+            migrationBuilder.Sql("UPDATE users SET password = SUBSTRING(password FROM 8) WHERE password LIKE 'pbkdf2:%';");
+            migrationBuilder.Sql("UPDATE users SET password = SUBSTRING(password FROM 8) WHERE password LIKE 'bcrypt:%';");
 
             // #### CUSTOM SQL END ####
         }

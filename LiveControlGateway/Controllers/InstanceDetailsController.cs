@@ -28,7 +28,7 @@ public sealed class InstanceDetailsController : OpenShockControllerBase
     [HttpGet]
     [ProducesResponseType<InstanceDetailsResponse>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
     [MapToApiVersion("1")]
-    public InstanceDetailsResponse GetNodeInfo([FromServices] IOptions<LcgOptions> options)
+    public InstanceDetailsResponse GetNodeInfo([FromServices] LcgOptions options)
     {
         return new InstanceDetailsResponse
         {
@@ -36,8 +36,8 @@ public sealed class InstanceDetailsController : OpenShockControllerBase
             Version = AssemblyVersion,
             Commit = GitHashAttribute.FullHash,
             CurrentTime = DateTimeOffset.UtcNow,
-            Fqdn = options.Value.Fqdn,
-            CountryCode = options.Value.CountryCode
+            Fqdn = options.Fqdn,
+            CountryCode = options.CountryCode
         };
     }
 

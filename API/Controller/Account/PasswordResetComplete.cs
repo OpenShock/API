@@ -20,6 +20,7 @@ public sealed partial class AccountController
     /// <response code="404">Password reset process not found</response>
     [HttpPost("recover/{passwordResetId}/{secret}")]
     [EnableRateLimiting("auth")]
+    [Consumes(MediaTypeNames.Application.Json)]
     [ProducesResponseType<LegacyEmptyResponse>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status404NotFound, MediaTypeNames.Application.ProblemJson)] // PasswordResetNotFound
     [MapToApiVersion("1")]

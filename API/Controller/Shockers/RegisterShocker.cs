@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using OpenShock.API.Models.Requests;
 using OpenShock.API.Services;
+using OpenShock.API.Services.DeviceUpdate;
 using OpenShock.Common.Authentication.Attributes;
 using OpenShock.Common.Constants;
 using OpenShock.Common.Errors;
@@ -24,6 +25,7 @@ public sealed partial class ShockerController
     [HttpPost]
     [ProducesResponseType<LegacyDataResponse<Guid>>(StatusCodes.Status201Created, MediaTypeNames.Application.Json)]
     [TokenPermission(PermissionType.Shockers_Edit)]
+    [Consumes(MediaTypeNames.Application.Json)]
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status404NotFound, MediaTypeNames.Application.ProblemJson)] // DeviceNotFound
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status400BadRequest, MediaTypeNames.Application.ProblemJson)] // TooManyShockers
     [MapToApiVersion("1")]

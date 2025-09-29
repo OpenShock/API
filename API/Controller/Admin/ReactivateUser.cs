@@ -16,7 +16,7 @@ public sealed partial class AdminController
     /// <response code="401">Unauthorized</response>
     [HttpPut("users/{userId}/reactivate")]
     [ProducesResponseType(StatusCodes.Status200OK)]
-    public async Task<IActionResult> ReactivateUser([FromRoute] Guid userId, IAccountService accountService)
+    public async Task<IActionResult> ReactivateUser([FromRoute] Guid userId, [FromServices] IAccountService accountService)
     {
         var reactivationResult = await accountService.ReactivateAccountAsync(CurrentUser.Id, userId);
         return reactivationResult.Match(

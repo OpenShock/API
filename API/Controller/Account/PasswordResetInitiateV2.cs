@@ -4,12 +4,13 @@ using Microsoft.AspNetCore.Mvc;
 using OpenShock.Common.Models;
 using Asp.Versioning;
 using Microsoft.AspNetCore.RateLimiting;
+using OpenShock.API.Errors;
 using OpenShock.API.Models.Requests;
 using OpenShock.API.Services.Account;
+using OpenShock.API.Services.Turnstile;
 using OpenShock.Common.DataAnnotations;
 using OpenShock.Common.Errors;
 using OpenShock.Common.Problems;
-using OpenShock.Common.Services.Turnstile;
 using OpenShock.Common.Utils;
 
 namespace OpenShock.API.Controller.Account;
@@ -22,8 +23,9 @@ public sealed partial class AccountController
     /// <response code="200">Password reset email sent if the email is associated to an registered account</response>
     [HttpPost("reset-password")]
     [EnableRateLimiting("auth")]
+    [Consumes(MediaTypeNames.Application.Json)]
     [ProducesResponseType(StatusCodes.Status200OK)]
-    [ProducesResponseType<OpenShockProblem>(StatusCodes.Status403Forbidden, MediaTypeNames.Application.Json)]
+    [ProducesResponseType<OpenShockProblem>(StatusCodes.Status403Forbidden, MediaTypeNames.Application.ProblemJson)]
     [MapToApiVersion("2")]
     public async Task<IActionResult> PasswordResetInitiateV2([FromBody] PasswordResetRequestV2 body, [FromServices] ICloudflareTurnstileService turnstileService, CancellationToken cancellationToken)
     {
@@ -31,7 +33,7 @@ public sealed partial class AccountController
         if (!turnStile.IsT0)
         {
             var cfErrors = turnStile.AsT1.Value!;
-            if (cfErrors.All(err => err == CloduflareTurnstileError.InvalidResponse))
+            if (cfErrors.All(err => err == CloudflareTurnstileError.InvalidResponse))
                 return Problem(TurnstileError.InvalidTurnstile);
 
             return Problem(new OpenShockProblem("InternalServerError", "Internal Server Error", HttpStatusCode.InternalServerError));

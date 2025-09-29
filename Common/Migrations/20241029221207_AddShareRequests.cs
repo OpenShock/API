@@ -12,7 +12,7 @@ namespace OpenShock.Common.Migrations
         protected override void Up(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.Sql(
-                "ALTER TABLE password_resets ALTER COLUMN used_on TYPE timestamp with time zone USING (CASE WHEN used_on IS NOT NULL THEN CURRENT_TIMESTAMP ELSE NULL END)");
+                "ALTER TABLE password_resets ALTER COLUMN used_on TYPE timestamp with time zone USING (CASE WHEN used_on IS NOT NULL THEN CURRENT_TIMESTAMP ELSE NULL END);");
 
             migrationBuilder.CreateTable(
                 name: "share_requests",
@@ -97,7 +97,7 @@ namespace OpenShock.Common.Migrations
                 name: "share_requests");
 
             migrationBuilder.Sql(
-                "ALTER TABLE password_resets ALTER COLUMN used_on TYPE time with time zone USING used_on::time with time zone");
+                "ALTER TABLE password_resets ALTER COLUMN used_on TYPE time with time zone USING used_on::time with time zone;");
 
         }
     }

@@ -19,6 +19,7 @@ public sealed partial class AccountController
     /// <response code="409">Username or email already exists</response>
     [HttpPost("signup")]
     [EnableRateLimiting("auth")]
+    [Consumes(MediaTypeNames.Application.Json)]
     [ProducesResponseType<LegacyEmptyResponse>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status409Conflict, MediaTypeNames.Application.ProblemJson)] // EmailOrUsernameAlreadyExists
     [MapToApiVersion("1")]
@@ -27,7 +28,7 @@ public sealed partial class AccountController
         var creationAction = await _accountService.CreateAccountWithoutActivationFlowLegacyAsync(body.Email, body.Username, body.Password);
         return creationAction.Match<IActionResult>(
             ok => LegacyEmptyOk("Successfully signed up"),
-            alreadyExists => Problem(SignupError.EmailAlreadyExists)
+            alreadyExists => Problem(SignupError.UsernameOrEmailExists)
             );
     }
 }

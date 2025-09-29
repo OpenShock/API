@@ -12,7 +12,6 @@ using OpenShock.Common.Authentication.Attributes;
 using OpenShock.Common.Authentication.Services;
 using OpenShock.Common.Constants;
 using OpenShock.Common.Errors;
-using OpenShock.Common.JsonSerialization;
 using OpenShock.Common.Models;
 using OpenShock.Common.Models.WebSocket;
 using OpenShock.Common.Models.WebSocket.LCG;
@@ -22,6 +21,7 @@ using OpenShock.Common.Utils;
 using OpenShock.Common.Websocket;
 using OpenShock.LiveControlGateway.LifetimeManager;
 using OpenShock.LiveControlGateway.Models;
+using JsonOptions = OpenShock.Common.JsonSerialization.JsonOptions;
 using Timer = System.Timers.Timer;
 
 namespace OpenShock.LiveControlGateway.Controllers;
@@ -36,9 +36,9 @@ namespace OpenShock.LiveControlGateway.Controllers;
 public sealed class LiveControlController : WebsocketBaseController<LiveControlResponse<LiveResponseType>>,
     IActionFilter
 {
-    private readonly OpenShockContext _db;
-    private readonly ILogger<LiveControlController> _logger;
     private readonly HubLifetimeManager _hubLifetimeManager;
+    private readonly IDbContextFactory<OpenShockContext> _dbContextFactory;
+    private readonly ILogger<LiveControlController> _logger;
 
     private static readonly TimeSpan PingInterval = TimeSpan.FromSeconds(5);
 
@@ -79,17 +79,15 @@ public sealed class LiveControlController : WebsocketBaseController<LiveControlR
     /// <summary>
     /// DI Constructor
     /// </summary>
-    /// <param name="db"></param>
     /// <param name="logger"></param>
+    /// <param name="dbContextFactory"></param>
     /// <param name="hubLifetimeManager"></param>
-    public LiveControlController(
-        OpenShockContext db,
-        ILogger<LiveControlController> logger,
-        HubLifetimeManager hubLifetimeManager) : base(logger)
+    public LiveControlController(HubLifetimeManager hubLifetimeManager, IDbContextFactory<OpenShockContext> dbContextFactory, ILogger<LiveControlController> logger) : base(logger)
     {
-        _db = db;
-        _logger = logger;
         _hubLifetimeManager = hubLifetimeManager;
+        _dbContextFactory = dbContextFactory;
+        _logger = logger;
+        
         _pingTimer.Elapsed += (_, _) => OsTask.Run(SendPing);
     }
 
@@ -165,18 +163,21 @@ public sealed class LiveControlController : WebsocketBaseController<LiveControlR
 
         HubId = id;
 
-        var hubExistsAndYouHaveAccess = await _db.Devices.AnyAsync(x =>
-            x.Id == HubId && (x.OwnerId == _currentUser.Id || x.Shockers.Any(y =>
-                y.UserShares.Any(z => z.SharedWithUserId == _currentUser.Id && z.AllowLiveControl))));
-
-        if (!hubExistsAndYouHaveAccess)
+        await using (var db = await _dbContextFactory.CreateDbContextAsync())
         {
-            return new OneOf.Types.Error<OpenShockProblem>(WebsocketError.WebsocketLiveControlHubNotFound);
+            var hubExistsAndYouHaveAccess = await db.Devices.AnyAsync(x =>
+                x.Id == HubId && (x.OwnerId == _currentUser.Id || x.Shockers.Any(y =>
+                    y.UserShares.Any(z => z.SharedWithUserId == _currentUser.Id && z.AllowLiveControl))));
+
+            if (!hubExistsAndYouHaveAccess)
+            {
+                return new OneOf.Types.Error<OpenShockProblem>(WebsocketError.WebsocketLiveControlHubNotFound);
+            }
+
+            _device = await db.Devices.FirstOrDefaultAsync(x => x.Id == HubId);
+
+            await UpdatePermissions(db);
         }
-
-        _device = await _db.Devices.FirstOrDefaultAsync(x => x.Id == HubId);
-
-        await UpdatePermissions(_db);
 
         if (HttpContext.Request.Query.TryGetValue("tps", out var requestedTps))
         {
@@ -217,8 +218,7 @@ public sealed class LiveControlController : WebsocketBaseController<LiveControlR
     [NonAction]
     public void OnActionExecuting(ActionExecutingContext context)
     {
-        _currentUser = ControllerContext.HttpContext.RequestServices.GetRequiredService<IClientAuthService<User>>()
-            .CurrentClient;
+        _currentUser = HttpContext.Items["User"] as User ?? throw new Exception("User not found");
     }
 
     /// <summary>
@@ -257,9 +257,10 @@ public sealed class LiveControlController : WebsocketBaseController<LiveControlR
     /// <inheritdoc />
     protected override async Task<bool> HandleReceive(CancellationToken cancellationToken)
     {
-        var message =
-            await JsonWebSocketUtils.ReceiveFullMessageAsyncNonAlloc<BaseRequest<LiveRequestType>>(WebSocket!,
-                LinkedToken);
+        var message = await JsonWebSocketUtils.ReceiveFullMessageAsyncNonAlloc<BaseRequest<LiveRequestType>>(
+            WebSocket!,
+            LinkedToken
+            );
 
         var continueLoop = await message.Match(async request =>
             {
@@ -307,7 +308,7 @@ public sealed class LiveControlController : WebsocketBaseController<LiveControlR
     {
         Logger.LogTrace("Intake pong");
 
-        // Received pong without sending ping, this could be abusing the pong endpoin>t.
+        // Received pong without sending ping, this could be abusing the pong endpoint.
         if (_pingTimestamp == 0)
         {
             // TODO: Kick or warn client.
@@ -343,7 +344,7 @@ public sealed class LiveControlController : WebsocketBaseController<LiveControlR
         ClientLiveFrame[]? frames;
         try
         {
-            frames = requestData.NewSlDeserialize<ClientLiveFrame[]>();
+            frames = requestData?.Deserialize<ClientLiveFrame[]>(JsonOptions.Default);
 
             if (frames is not { Length: > 0 })
             {
@@ -387,7 +388,7 @@ public sealed class LiveControlController : WebsocketBaseController<LiveControlR
         ClientLiveFrame? frame;
         try
         {
-            frame = requestData.NewSlDeserialize<ClientLiveFrame>();
+            frame = requestData?.Deserialize<ClientLiveFrame>(JsonOptions.Default);
 
             if (frame is null)
             {
@@ -417,44 +418,20 @@ public sealed class LiveControlController : WebsocketBaseController<LiveControlR
     private async Task ProcessFrameInternal(ClientLiveFrame frame)
     {
         var permCheck = CheckFramePermissions(frame.Shocker, frame.Type);
-        if (permCheck.IsT1)
+        if (!permCheck.TryPickT0(out var perms, out var error))
         {
             await QueueMessage(new LiveControlResponse<LiveResponseType>
             {
-                ResponseType = LiveResponseType.ShockerNotFound
+                ResponseType = error.Match(
+                    notFound => LiveResponseType.ShockerNotFound,
+                    liveNotEnabled => LiveResponseType.ShockerMissingLivePermission,
+                    noPermission => LiveResponseType.ShockerMissingPermission,
+                    shockerPaused => LiveResponseType.ShockerPaused
+                )
             });
+            
             return;
         }
-
-        if (permCheck.IsT2)
-        {
-            await QueueMessage(new LiveControlResponse<LiveResponseType>
-            {
-                ResponseType = LiveResponseType.ShockerMissingLivePermission
-            });
-            return;
-        }
-
-        if (permCheck.IsT3)
-        {
-            await QueueMessage(new LiveControlResponse<LiveResponseType>
-            {
-                ResponseType = LiveResponseType.ShockerMissingPermission
-            });
-            return;
-        }
-
-        if (permCheck.IsT4)
-        {
-            await QueueMessage(new LiveControlResponse<LiveResponseType>()
-            {
-                ResponseType = LiveResponseType.ShockerPaused
-            });
-            return;
-        }
-
-
-        var perms = permCheck.AsT0.Value;
 
         // Clamp to limits
         var intensity = Math.Clamp(frame.Intensity, HardLimits.MinControlIntensity,
@@ -480,16 +457,14 @@ public sealed class LiveControlController : WebsocketBaseController<LiveControlR
         );
     }
 
-    private OneOf<Success<SharePermsAndLimits>, NotFound, LiveNotEnabled, NoPermission, ShockerPaused>
-        CheckFramePermissions(
-            Guid shocker, ControlType controlType)
+    private OneOf<SharePermsAndLimits, NotFound, LiveNotEnabled, NoPermission, ShockerPaused> CheckFramePermissions(Guid shocker, ControlType controlType)
     {
         if (!_sharedShockers.TryGetValue(shocker, out var shockerShare)) return new NotFound();
 
         if (shockerShare.Paused) return new ShockerPaused();
         if (!PermissionUtils.IsAllowed(controlType, true, shockerShare.PermsAndLimits)) return new NoPermission();
 
-        return new Success<SharePermsAndLimits>(shockerShare.PermsAndLimits);
+        return shockerShare.PermsAndLimits;
     }
 
 

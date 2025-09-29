@@ -1,18 +1,17 @@
 <Project Sdk="Microsoft.NET.Sdk">
-  <Import Project="../Framework.props" />
-  <Import Project="../Shared.props" />
-
-  <ItemGroup>
-    <PackageReference Include="Testcontainers.PostgreSql" Version="4.7.0" />
-    <PackageReference Include="Testcontainers.Redis" Version="4.7.0" />
-    <PackageReference Include="Bogus" Version="35.6.3" />
-    <PackageReference Include="TUnit" Version="0.57.24" />
-  </ItemGroup>
-
   <ItemGroup>
     <ProjectReference Include="..\Common\Common.csproj" />
   </ItemGroup>
 
+  <!-- NuGet packages -->
+  <ItemGroup>
+    <PackageReference Include="Testcontainers.PostgreSql" />
+    <PackageReference Include="Testcontainers.Redis" />
+    <PackageReference Include="Bogus" />
+    <PackageReference Include="TUnit" />
+  </ItemGroup>
+
+  <!-- Files to copy -->
   <ItemGroup>
     <None Update="Validation\DataSets\BlackList.txt">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>

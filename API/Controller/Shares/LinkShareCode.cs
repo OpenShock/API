@@ -2,7 +2,7 @@
 using Asp.Versioning;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using OpenShock.API.Services;
+using OpenShock.API.Services.DeviceUpdate;
 using OpenShock.Common.Errors;
 using OpenShock.Common.Models;
 using OpenShock.Common.OpenShockDb;
@@ -31,13 +31,13 @@ public sealed partial class SharesController
         [FromServices] IDeviceUpdateService deviceUpdateService
     )
     {
-        var shareCode = await _db.ShockerShareCodes.Where(x => x.Id == shareCodeId && x.Shocker.Device.Owner.UserDeactivation == null).Select(x => new
+        var shareCode = await Queryable.Where<ShockerShareCode>(_db.ShockerShareCodes, x => x.Id == shareCodeId && x.Shocker.Device.Owner.UserDeactivation == null).Select(x => new
         {
             Share = x, x.Shocker.Device.OwnerId, x.Shocker.DeviceId
         }).FirstOrDefaultAsync();
         if (shareCode is null) return Problem(ShareCodeError.ShareCodeNotFound);
         if (shareCode.OwnerId == CurrentUser.Id) return Problem(ShareCodeError.CantLinkOwnShareCode);
-        if (await _db.UserShares.AnyAsync(x => x.ShockerId == shareCode.Share.ShockerId && x.SharedWithUserId == CurrentUser.Id))
+        if (await EntityFrameworkQueryableExtensions.AnyAsync<UserShare>(_db.UserShares, x => x.ShockerId == shareCode.Share.ShockerId && x.SharedWithUserId == CurrentUser.Id))
             return Problem(ShareCodeError.ShockerAlreadyLinked);
         
         _db.UserShares.Add(new UserShare

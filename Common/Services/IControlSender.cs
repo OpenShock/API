@@ -5,7 +5,7 @@ using OpenShock.Common.Hubs;
 using OpenShock.Common.Models;
 using OpenShock.Common.Models.WebSocket.User;
 
-namespace OpenShock.Common.DeviceControl;
+namespace OpenShock.Common.Services;
 
 public interface IControlSender
 {

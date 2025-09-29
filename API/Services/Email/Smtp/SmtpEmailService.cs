@@ -13,8 +13,8 @@ namespace OpenShock.API.Services.Email.Smtp;
 public sealed class SmtpEmailService : IEmailService
 {
     private readonly SmtpServiceTemplates _templates;
-    private readonly MailboxAddress _sender;
     private readonly SmtpOptions _options;
+    private readonly MailboxAddress _sender;
     private readonly ILogger<SmtpEmailService> _logger;
 
     private readonly TemplateOptions _templateOptions;
@@ -24,19 +24,19 @@ public sealed class SmtpEmailService : IEmailService
     /// DI Constructor
     /// </summary>
     /// <param name="templates"></param>
-    /// <param name="sender"></param>
     /// <param name="options"></param>
+    /// <param name="sender"></param>
     /// <param name="logger"></param>
     public SmtpEmailService(
             SmtpServiceTemplates templates,
-            IOptions<MailOptions.MailSenderContact> sender,
-            IOptions<SmtpOptions> options,
+            SmtpOptions options,
+            MailOptions.MailSenderContact sender,
             ILogger<SmtpEmailService> logger
         )
     {
         _templates = templates;
-        _sender = sender.Value.ToMailAddress();
-        _options = options.Value;
+        _options = options;
+        _sender = sender.ToMailAddress();
         _logger = logger;
 
         // This class is will be registered as a singleton, static members are not needed

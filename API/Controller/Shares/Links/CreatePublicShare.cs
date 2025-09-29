@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using System.Net.Mime;
+using Microsoft.AspNetCore.Mvc;
 using OpenShock.API.Models.Requests;
 using OpenShock.Common.Models;
 using OpenShock.Common.OpenShockDb;
@@ -12,7 +13,9 @@ public sealed partial class ShareLinksController
     /// </summary>
     /// <response code="200">The created public share</response>
     [HttpPost(Name = "CreatePublicShare")]
-    public async Task<LegacyDataResponse<Guid>> CreatePublicShare([FromBody] PublicShareCreate body)
+    [Consumes(MediaTypeNames.Application.Json)]
+    [ProducesResponseType<LegacyDataResponse<Guid>>(StatusCodes.Status200OK,  MediaTypeNames.Application.Json)]
+    public async Task<IActionResult> CreatePublicShare([FromBody] PublicShareCreate body)
     {
         var entity = new PublicShare
         {
@@ -24,6 +27,6 @@ public sealed partial class ShareLinksController
         _db.PublicShares.Add(entity);
         await _db.SaveChangesAsync();
 
-        return new(entity.Id);
+        return LegacyDataOk(entity.Id);
     }
 }

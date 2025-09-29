@@ -1,45 +1,51 @@
 <Project Sdk="Microsoft.NET.Sdk.Web">
-  <Import Project="../Framework.props" />
-  <Import Project="../Shared.props" />
-
+  <!-- Props -->
   <PropertyGroup>
     <OutputType>Library</OutputType>
   </PropertyGroup>
 
+  <!-- NuGet packages -->
   <ItemGroup>
-    <PackageReference Include="BCrypt.Net-Next" Version="4.0.3" />
-    <PackageReference Include="IDisposableAnalyzers" Version="4.0.8">
+    <PackageReference Include="BCrypt.Net-Next" />
+    <PackageReference Include="IDisposableAnalyzers">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
-    <PackageReference Include="MessagePack" Version="3.1.4" />
-    <PackageReference Include="Microsoft.EntityFrameworkCore" Version="9.0.8" />
-    <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" Version="9.0.8" />
-    <PackageReference Include="Microsoft.Extensions.Caching.Hybrid" Version="9.8.0" />
-    <PackageReference Include="Microsoft.IO.RecyclableMemoryStream" Version="3.0.1" />
-    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="9.0.4" />
-    <PackageReference Include="NRedisStack" Version="1.1.0" />
-    <PackageReference Include="OpenShock.Serialization.Flatbuffers" Version="2.0.0-preview.5" />
-    <PackageReference Include="OpenTelemetry.Exporter.Prometheus.AspNetCore" Version="1.12.0-beta.1" />
-    <PackageReference Include="OpenTelemetry.Extensions.Hosting" Version="1.12.0" />
-    <PackageReference Include="OpenTelemetry.Instrumentation.AspNetCore" Version="1.12.0" />
-    <PackageReference Include="OpenTelemetry.Instrumentation.Http" Version="1.12.0" />
-    <PackageReference Include="OpenTelemetry.Instrumentation.Runtime" Version="1.12.0" />
-    <PackageReference Include="Redis.OM" Version="1.0.1" />
-    <PackageReference Include="Scalar.AspNetCore" Version="2.7.2" />
-    <PackageReference Include="Serilog.Sinks.Grafana.Loki" Version="8.3.1" />
-    <PackageReference Include="Asp.Versioning.Mvc.ApiExplorer" Version="8.1.0" />
-    <PackageReference Include="Microsoft.AspNetCore.SignalR.StackExchangeRedis" Version="9.0.8" />
-    <PackageReference Include="OneOf" Version="3.0.271" />
-    <PackageReference Include="Serilog.AspNetCore" Version="9.0.0" />
-    <PackageReference Include="Serilog.Sinks.OpenTelemetry" Version="4.2.0" />
-    <PackageReference Include="Swashbuckle.AspNetCore.SwaggerGen" Version="9.0.4" />
-    <PackageReference Include="Z.EntityFramework.Plus.EFCore" Version="9.103.9.3" />
+    <PackageReference Include="MessagePack" />
+    <PackageReference Include="Microsoft.AspNetCore.DataProtection.EntityFrameworkCore" />
+    <PackageReference Include="Microsoft.Extensions.Caching.Hybrid" />
+    <PackageReference Include="Microsoft.IO.RecyclableMemoryStream" />
+    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" />
+    <PackageReference Include="NRedisStack" />
+    <PackageReference Include="OpenShock.Serialization.Flatbuffers" />
+    <PackageReference Include="OpenTelemetry.Exporter.Prometheus.AspNetCore" />
+    <PackageReference Include="OpenTelemetry.Extensions.Hosting" />
+    <PackageReference Include="OpenTelemetry.Instrumentation.AspNetCore" />
+    <PackageReference Include="OpenTelemetry.Instrumentation.Http" />
+    <PackageReference Include="OpenTelemetry.Instrumentation.Runtime" />
+    <PackageReference Include="Redis.OM" />
+    <PackageReference Include="Scalar.AspNetCore" />
+    <PackageReference Include="Serilog.Sinks.Grafana.Loki" />
+    <PackageReference Include="Asp.Versioning.Mvc.ApiExplorer" />
+    <PackageReference Include="Microsoft.AspNetCore.SignalR.StackExchangeRedis" />
+    <PackageReference Include="OneOf" />
+    <PackageReference Include="Serilog.AspNetCore" />
+    <PackageReference Include="Serilog.Sinks.OpenTelemetry" />
+    <PackageReference Include="Swashbuckle.AspNetCore.SwaggerGen" />
+    <PackageReference Include="Z.EntityFramework.Plus.EFCore" />
   </ItemGroup>
 
+  <!-- Files to copy -->
   <ItemGroup>
     <EmbeddedResource Include="cloudflare-ips.txt">
       <CopyToOutputDirectory>Never</CopyToOutputDirectory>
     </EmbeddedResource>
   </ItemGroup>
+
+  <!-- Capture git commit only if we're in a git repo; pipe output back to MSBuild -->
+  <Target Name="SetSourceRevisionId" BeforeTargets="InitializeSourceControlInformation">
+    <Exec Command="git rev-parse HEAD" IgnoreExitCode="False">
+      <Output PropertyName="SourceRevisionId" TaskParameter="ConsoleOutput" />
+    </Exec>
+  </Target>
 </Project>

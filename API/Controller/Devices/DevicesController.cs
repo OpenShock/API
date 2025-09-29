@@ -12,6 +12,8 @@ using OpenShock.Common.Problems;
 using OpenShock.Common.Redis;
 using OpenShock.Common.Utils;
 using System.Net.Mime;
+using OpenShock.API.Services.DeviceUpdate;
+using Redis.OM;
 
 namespace OpenShock.API.Controller.Devices;
 
@@ -23,7 +25,8 @@ public sealed partial class DevicesController
     /// <response code="200">All devices for the current user</response>
     [HttpGet]
     [MapToApiVersion("1")]
-    public LegacyDataResponse<IAsyncEnumerable<Models.Response.ResponseDevice>> ListDevices()
+    [ProducesResponseType<LegacyDataResponse<Models.Response.ResponseDevice[]>>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
+    public IActionResult ListDevices()
     {
         var devices = _db.Devices
             .Where(x => x.OwnerId == CurrentUser.Id)
@@ -35,7 +38,7 @@ public sealed partial class DevicesController
             })
             .AsAsyncEnumerable();
 
-        return new(devices);
+        return LegacyDataOk(devices);
     }
 
     /// <summary>
@@ -75,6 +78,7 @@ public sealed partial class DevicesController
     /// <response code="404">Device does not exist</response>
     [HttpPatch("{deviceId}")]
     [TokenPermission(PermissionType.Devices_Edit)]
+    [Consumes(MediaTypeNames.Application.Json)]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status404NotFound, MediaTypeNames.Application.ProblemJson)] // DeviceNotFound
     [MapToApiVersion("1")]
@@ -159,9 +163,10 @@ public sealed partial class DevicesController
     /// <response code="201">Successfully created device</response>
     [HttpPost]
     [TokenPermission(PermissionType.Devices_Edit)]
+    [Consumes(MediaTypeNames.Application.Json)]
     [ProducesResponseType<Guid>(StatusCodes.Status201Created, MediaTypeNames.Text.Plain)]
     [MapToApiVersion("2")]
-    public async Task<IActionResult> CreateDeviceV2([FromBody] HubCreateRequest data, [FromServices] IDeviceUpdateService updateService)
+    public async Task<IActionResult> CreateDeviceV2([FromBody] HubCreateRequest body, [FromServices] IDeviceUpdateService updateService)
     {
         int nDevices = await _db.Devices.CountAsync(d => d.OwnerId == CurrentUser.Id);
         if (nDevices >= HardLimits.MaxHubsPerUser)
@@ -173,7 +178,7 @@ public sealed partial class DevicesController
         {
             Id = Guid.CreateVersion7(),
             OwnerId = CurrentUser.Id,
-            Name = data.Name,
+            Name = body.Name,
             Token = CryptoUtils.RandomString(256)
         };
         _db.Devices.Add(device);
@@ -201,9 +206,7 @@ public sealed partial class DevicesController
 
         var deviceExists = await _db.Devices.AnyAsync(x => x.Id == deviceId && x.OwnerId == CurrentUser.Id);
         if (!deviceExists) return Problem(HubError.HubNotFound);
-        // replace with unlink?
-        var existing = await devicePairs.FindByIdAsync(deviceId.ToString());
-        if (existing is not null) await devicePairs.DeleteAsync(existing);
+        await _redis.Connection.UnlinkAsync($"{typeof(DevicePair).FullName}:{deviceId}");
 
         string pairCode = CryptoUtils.RandomNumericString(6);
 

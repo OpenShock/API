@@ -1,4 +1,5 @@
-﻿using Asp.Versioning;
+﻿using System.Net.Mime;
+using Asp.Versioning;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using OpenShock.API.Models.Response;
@@ -14,7 +15,8 @@ public sealed partial class ShockerController
     /// <response code="200">The shockers were successfully retrieved.</response>
     [HttpGet("own")]
     [MapToApiVersion("1")]
-    public LegacyDataResponse<IAsyncEnumerable<ResponseDeviceWithShockers>> ListShockers()
+    [ProducesResponseType<LegacyDataResponse<ResponseDeviceWithShockers[]>>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
+    public IActionResult ListShockers()
     {
         var shockers = _db.Devices
             .Where(x => x.OwnerId == CurrentUser.Id)
@@ -38,6 +40,6 @@ public sealed partial class ShockerController
             })
             .AsAsyncEnumerable();
 
-        return new(shockers);
+        return LegacyDataOk(shockers);
     }
 }

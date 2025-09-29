@@ -81,7 +81,7 @@ public class SemVersionTests
     [Test]
     public async Task Parse_Span_Valid_ReturnsInstance()
     {
-        ReadOnlySpan<char> s = "3.4.5+meta".AsSpan();
+        ReadOnlySpan<char> s = "3.4.5+meta";
         var v = SemVersion.Parse(s);
         await Assert.That(v.Major).IsEqualTo((ushort)3);
         await Assert.That(v.Minor).IsEqualTo((ushort)4);
@@ -221,8 +221,8 @@ public class SemVersionTests
         var a = new SemVersion(1, 2, 3, "alpha", "b1");
         var b = new SemVersion(1, 2, 3, "alpha", "b1");
 
-        await Assert.That(a.Equals(b)).IsTrue();
-        await Assert.That(a.Equals((object)b)).IsTrue();
+        await Assert.That(a).IsEqualTo(b);
+        await Assert.That(a).IsEqualTo<object>(b);
         await Assert.That(a.GetHashCode()).IsEqualTo(b.GetHashCode());
     }
 
@@ -232,7 +232,7 @@ public class SemVersionTests
         var a = new SemVersion(1, 2, 3, "alpha", "b1");
         var b = new SemVersion(1, 2, 3, "alpha", "b2");
 
-        await Assert.That(a.Equals(b)).IsFalse();
+        await Assert.That(a).IsNotEqualTo(b);
     }
 
     [Test]
@@ -241,15 +241,15 @@ public class SemVersionTests
         var a = new SemVersion(1, 2, 3, "alpha");
         var b = new SemVersion(1, 2, 3, "beta");
 
-        await Assert.That(a.Equals(b)).IsFalse();
+        await Assert.That(a).IsNotEqualTo(b);
     }
 
     [Test]
     public async Task Equals_Null_False()
     {
         var a = new SemVersion(0, 0, 0);
-        await Assert.That(a.Equals(null)).IsFalse();
-        await Assert.That(a!.Equals((object?)null)).IsFalse();
+        await Assert.That(a).IsNotEqualTo(null);
+        await Assert.That(a).IsNotEqualTo<object?>(null);
     }
 
     // ---------------------------
@@ -277,7 +277,7 @@ public class SemVersionTests
     [Test]
     public async Task TryParse_Span_Input_Succeeds()
     {
-        ReadOnlySpan<char> s = "7.8.9-beta+ci".AsSpan();
+        ReadOnlySpan<char> s = "7.8.9-beta+ci";
         var ok = SemVersion.TryParse(s, out var v);
 
         await Assert.That(ok).IsTrue();
@@ -286,5 +286,53 @@ public class SemVersionTests
         await Assert.That(v.Patch).IsEqualTo((ushort)9);
         await Assert.That(v.Prerelease).IsEqualTo("beta");
         await Assert.That(v.Build).IsEqualTo("ci");
+    }
+    
+    // ---------------------------
+    // Equality operators (== / !=)
+    // ---------------------------
+
+    [Test]
+    public async Task OperatorEquality_Structural_IncludingBuild()
+    {
+        var a = new SemVersion(1, 2, 3, "alpha", "b1");
+        var b = new SemVersion(1, 2, 3, "alpha", "b1");
+
+        await Assert.That(a == b).IsTrue();
+        await Assert.That(a != b).IsFalse();
+    }
+
+    [Test]
+    public async Task OperatorEquality_DiffersInBuild_AndPrerelease_False()
+    {
+        var a = new SemVersion(1, 2, 3, "alpha", "b1");
+        var b = new SemVersion(1, 2, 3, "alpha", "b2");
+        var c = new SemVersion(1, 2, 3, "beta",  "b1");
+        var d = new SemVersion(2, 0, 0, null,    null);
+
+        await Assert.That(a == b).IsFalse(); // build differs
+        await Assert.That(a != b).IsTrue();
+
+        await Assert.That(a == c).IsFalse(); // prerelease differs
+        await Assert.That(a != c).IsTrue();
+
+        await Assert.That(a == d).IsFalse(); // core differs
+        await Assert.That(a != d).IsTrue();
+    }
+
+    [Test]
+    public async Task OperatorEquality_NullHandling()
+    {
+        SemVersion? n1 = null;
+        SemVersion? n2 = null;
+        var v = new SemVersion(0, 0, 0);
+
+        await Assert.That(n1 == n2).IsTrue();   // both null
+        await Assert.That(n1 != n2).IsFalse();
+
+        await Assert.That(n1 == v).IsFalse();   // null vs value
+        await Assert.That(v == n1).IsFalse();
+        await Assert.That(n1 != v).IsTrue();
+        await Assert.That(v != n1).IsTrue();
     }
 }

@@ -2,7 +2,6 @@ using Microsoft.Extensions.Options;
 using OpenShock.Common;
 using OpenShock.Common.DeviceControl;
 using OpenShock.Common.Extensions;
-using OpenShock.Common.JsonSerialization;
 using OpenShock.Common.Services;
 using OpenShock.Common.Services.Device;
 using OpenShock.Common.Services.Ota;
@@ -13,25 +12,20 @@ using OpenShock.LiveControlGateway.Options;
 
 var builder = OpenShockApplication.CreateDefaultBuilder<Program>(args);
 
-builder.RegisterCommonOpenShockOptions();
+var redisOptions = builder.RegisterRedisOptions();
+var databaseOptions = builder.RegisterDatabaseOptions();
+builder.RegisterMetricsOptions();
 
+// TODO Simplify this
 builder.Services.Configure<LcgOptions>(builder.Configuration.GetRequiredSection(LcgOptions.SectionName));
 builder.Services.AddSingleton<IValidateOptions<LcgOptions>, LcgOptionsValidator>();
+builder.Services.AddSingleton<LcgOptions>(sp => sp.GetRequiredService<IOptions<LcgOptions>>().Value);
 
-var databaseConfig = builder.Configuration.GetDatabaseOptions();
-var redisConfig = builder.Configuration.GetRedisConfigurationOptions();
-
-builder.Services.AddOpenShockMemDB(redisConfig);
-builder.Services.AddOpenShockDB(databaseConfig);
-builder.Services.AddOpenShockServices();
-
-builder.Services.AddSignalR()
-    .AddOpenShockStackExchangeRedis(options => { options.Configuration = redisConfig; })
-    .AddJsonProtocol(options =>
-    {
-        options.PayloadSerializerOptions.PropertyNameCaseInsensitive = true;
-        options.PayloadSerializerOptions.Converters.Add(new SemVersionJsonConverter());
-    });
+builder.Services
+    .AddOpenShockMemDB(redisOptions)
+    .AddOpenShockDB(databaseOptions)
+    .AddOpenShockServices()
+    .AddOpenShockSignalR(redisOptions);
 
 builder.Services.AddScoped<IDeviceService, DeviceService>();
 builder.Services.AddScoped<IControlSender, ControlSender>();

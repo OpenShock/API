@@ -2,6 +2,7 @@
 using System.Security.Claims;
 using Asp.Versioning;
 using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -24,62 +25,20 @@ using OpenTelemetry.Metrics;
 using Redis.OM;
 using Redis.OM.Contracts;
 using StackExchange.Redis;
-using System.Text.Json;
-using System.Text.Json.Serialization;
 using System.Threading.RateLimiting;
+using OpenShock.Common.Extensions;
 using OpenShock.Common.Utils;
+using JsonOptions = OpenShock.Common.JsonSerialization.JsonOptions;
 
 namespace OpenShock.Common;
 
 public static class OpenShockServiceHelper
 {
-    public static DatabaseOptions GetDatabaseOptions(this ConfigurationManager configuration)
-    {
-        var section = configuration.GetRequiredSection(DatabaseOptions.SectionName);
-        if (!section.Exists()) throw new Exception("TODO");
-
-        return section.Get<DatabaseOptions>() ?? throw new Exception("TODO");
-    }
-
-    public static ConfigurationOptions GetRedisConfigurationOptions(this ConfigurationManager configuration)
-    {
-        var section = configuration.GetRequiredSection(RedisOptions.SectionName);
-        if (!section.Exists()) throw new Exception("TODO");
-
-        var options = section.Get<RedisOptions>() ?? throw new Exception("TODO");
-
-
-        ConfigurationOptions configurationOptions;
-
-        if (string.IsNullOrWhiteSpace(options.Conn))
-        {
-            configurationOptions = new ConfigurationOptions
-            {
-                AbortOnConnectFail = true,
-                Password = options.Password,
-                User = options.User,
-                Ssl = false,
-                EndPoints = new EndPointCollection
-                {
-                    { options.Host, options.Port }
-                }
-            };
-        }
-        else
-        {
-            configurationOptions = ConfigurationOptions.Parse(options.Conn);
-        }
-
-        configurationOptions.AbortOnConnectFail = true;
-
-        return configurationOptions;
-    }
-
     public static IServiceCollection AddOpenShockMemDB(this IServiceCollection services, ConfigurationOptions options)
     {
         // <---- Redis ---->
         services.AddSingleton<IConnectionMultiplexer>(ConnectionMultiplexer.Connect(options));
-        services.AddSingleton<IRedisConnectionProvider, RedisConnectionProvider>();
+        services.AddSingleton<IRedisConnectionProvider, RedisConnectionProvider>(serviceProvider => new RedisConnectionProvider(serviceProvider.GetRequiredService<IConnectionMultiplexer>()));
         services.AddSingleton<IRedisPubService, RedisPubService>();
 
         return services;
@@ -103,11 +62,37 @@ public static class OpenShockServiceHelper
     }
 
     /// <summary>
+    /// Made to closely resemble the built-in <see cref="AuthenticationServiceCollectionExtensions.AddAuthentication(IServiceCollection, Action{AuthenticationOptions})"/> implementation.
+    /// </summary>
+    /// <param name="services"></param>
+    /// <param name="configureOptions"></param>
+    /// <returns></returns>
+    private static AuthenticationBuilder AddOpenShockAuthentication(this IServiceCollection services, Action<AuthenticationOptions> configureOptions)
+    {
+        ArgumentNullException.ThrowIfNull(services);
+        ArgumentNullException.ThrowIfNull(configureOptions);
+
+        services.AddAuthenticationCore();
+        services.AddDataProtection().PersistKeysToDbContext<OpenShockContext>();
+        // services.AddWebEncoders(); // Exists in original AddAuthentication method
+        services.TryAddSingleton(TimeProvider.System);
+        // services.TryAddSingleton<ISystemClock, SystemClock>(); // Exists in original AddAuthentication method
+        // services.TryAddSingleton<IAuthenticationConfigurationProvider, DefaultAuthenticationConfigurationProvider>(); // Exists in original AddAuthentication method
+        
+        var builder = new AuthenticationBuilder(services);
+        
+        services.Configure(configureOptions);
+
+        return builder;
+    }
+
+    /// <summary>
     /// Register all OpenShock services for PRODUCTION use
     /// </summary>
     /// <param name="services"></param>
+    /// <param name="configureAuth"></param>
     /// <returns></returns>
-    public static IServiceCollection AddOpenShockServices(this IServiceCollection services)
+    public static IServiceCollection AddOpenShockServices(this IServiceCollection services, Action<AuthenticationBuilder>? configureAuth = null)
     {
         // <---- ASP.NET ---->
         services.AddExceptionHandler<OpenShockExceptionHandler>();
@@ -123,19 +108,20 @@ public static class OpenShockServiceHelper
             };
         });
 
-        services.AddScoped<IClientAuthService<User>, ClientAuthService<User>>();
-        services.AddScoped<IClientAuthService<Device>, ClientAuthService<Device>>();
         services.AddScoped<IUserReferenceService, UserReferenceService>();
 
-        services.AddAuthenticationCore();
-        new AuthenticationBuilder(services)
-            .AddScheme<AuthenticationSchemeOptions, UserSessionAuthentication>(
-                OpenShockAuthSchemes.UserSessionCookie, _ => { })
-            .AddScheme<AuthenticationSchemeOptions, ApiTokenAuthentication>(
-                OpenShockAuthSchemes.ApiToken, _ => { })
-            .AddScheme<AuthenticationSchemeOptions, HubAuthentication>(
-                OpenShockAuthSchemes.HubToken, _ => { });
-        
+        var authBuilder = services
+            .AddOpenShockAuthentication(opt =>
+            {
+                opt.DefaultScheme = OpenShockAuthSchemes.UserSessionCookie;
+                opt.DefaultAuthenticateScheme = OpenShockAuthSchemes.UserSessionCookie;
+            })
+            .AddScheme<AuthenticationSchemeOptions, UserSessionAuthentication>(OpenShockAuthSchemes.UserSessionCookie, _ => { })
+            .AddScheme<AuthenticationSchemeOptions, ApiTokenAuthentication>(OpenShockAuthSchemes.ApiToken, _ => { })
+            .AddScheme<AuthenticationSchemeOptions, HubAuthentication>(OpenShockAuthSchemes.HubToken, _ => { });
+
+        configureAuth?.Invoke(authBuilder);
+
         services.AddAuthorization(options =>
         {
             options.AddPolicy(OpenShockAuthPolicies.RankAdmin, policy => policy.RequireRole("Admin", "System"));
@@ -144,21 +130,8 @@ public static class OpenShockServiceHelper
         
         services.AddSingleton<IAuthorizationMiddlewareResultHandler, OpenShockAuthorizationMiddlewareResultHandler>();
         
-        services.ConfigureHttpJsonOptions(options =>
-        {
-            options.SerializerOptions.PropertyNameCaseInsensitive = true;
-            options.SerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
-            options.SerializerOptions.Converters.Add(new PermissionTypeConverter());
-            options.SerializerOptions.Converters.Add(new JsonStringEnumConverter());
-        });
-        
-        services.AddControllers().AddJsonOptions(x =>
-        {
-            x.JsonSerializerOptions.PropertyNameCaseInsensitive = true;
-            x.JsonSerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
-            x.JsonSerializerOptions.Converters.Add(new PermissionTypeConverter());
-            x.JsonSerializerOptions.Converters.Add(new CustomJsonStringEnumConverter());
-        });
+        services.ConfigureHttpJsonOptions(opt => JsonOptions.ConfigureDefault(opt.SerializerOptions));
+        services.AddControllers().AddJsonOptions(opt => JsonOptions.ConfigureDefault(opt.JsonSerializerOptions));
         
         var apiVersioningBuilder = services.AddApiVersioning(options =>
         {
@@ -179,7 +152,6 @@ public static class OpenShockServiceHelper
         services.AddHttpContextAccessor();
         services.AddWebEncoders();
         services.AddProblemDetails();
-        services.TryAddSingleton<TimeProvider>(provider => TimeProvider.System);
         
         services.AddCors(options =>
         {
@@ -318,5 +290,16 @@ public static class OpenShockServiceHelper
         return services;
     }
 
-    public readonly record struct ServicesResult(ConfigurationOptions RedisConfig);
+    public static IServiceCollection AddOpenShockSignalR(this IServiceCollection services, ConfigurationOptions redisConfig)
+    {
+        services.AddSignalR()
+            .AddOpenShockStackExchangeRedis(options => { options.Configuration = redisConfig; })
+            .AddJsonProtocol(options =>
+            {
+                options.PayloadSerializerOptions.PropertyNameCaseInsensitive = true;
+                options.PayloadSerializerOptions.Converters.Add(new SemVersionJsonConverter());
+            });
+        
+        return services;
+    }
 }

@@ -26,8 +26,50 @@ env:
 
 jobs:
 
-  build:
+  tests:
+    name: Tests (${{ matrix.name }})
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: common-unit
+            dockerfile: docker/Base.Dockerfile
+            image: test-common
+            target: test-common
+          - name: api-integration
+            dockerfile: docker/API.Dockerfile
+            image: api-integration-tests
+            target: integration-test-api
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Run ${{ matrix.name }} tests
+        uses: ./.github/actions/test-app
+        with:
+          dockerfile: ${{ matrix.dockerfile }}
+          image: ${{ matrix.image }}
+          target: ${{ matrix.target }}
+
+  build:
+    name: Build (${{ matrix.image }})
+    needs: tests
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - dockerfile: docker/API.Dockerfile
+            image: api
+          - dockerfile: docker/LiveControlGateway.Dockerfile
+            image: live-control-gateway
+          - dockerfile: docker/Cron.Dockerfile
+            image: cron
 
     steps:
       - name: Checkout
@@ -43,44 +85,12 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Run Common Unit Tests
-        uses: ./.github/actions/test-app
-        with:
-          dockerfile: docker/Base.Dockerfile
-          image: test-common
-          target: test-common
-
-      - name: Run API Integration Tests
-        uses: ./.github/actions/test-app
-        with:
-          dockerfile: docker/API.Dockerfile
-          image: api-integration-tests
-          target: integration-test-api
-
-      - name: Build API
+      - name: Build ${{ matrix.image }}
         uses: ./.github/actions/build-app
         with:
-          dockerfile: docker/API.Dockerfile
+          dockerfile: ${{ matrix.dockerfile }}
           push: ${{ github.ref_protected && github.event_name != 'pull_request' }}
-          image: api
-          platforms: ${{ inputs.platforms || 'linux/amd64' }}
-          latest: ${{ inputs.latest || false }}
-          
-      - name: Build LiveControlGateway
-        uses: ./.github/actions/build-app
-        with:
-          dockerfile: docker/LiveControlGateway.Dockerfile
-          push: ${{ github.ref_protected && github.event_name != 'pull_request' }}
-          image: live-control-gateway
-          platforms: ${{ inputs.platforms || 'linux/amd64' }}
-          latest: ${{ inputs.latest || false }}
-          
-      - name: Build Cron
-        uses: ./.github/actions/build-app
-        with:
-          dockerfile: docker/Cron.Dockerfile
-          push: ${{ github.ref_protected && github.event_name != 'pull_request' }}
-          image: cron
+          image: ${{ matrix.image }}
           platforms: ${{ inputs.platforms || 'linux/amd64' }}
           latest: ${{ inputs.latest || false }}
         

@@ -1,6 +1,7 @@
 ﻿using System.Net.Mail;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
+using Npgsql;
 using OneOf;
 using OneOf.Types;
 using OpenShock.API.Services.Email;
@@ -35,12 +36,12 @@ public sealed class AccountService : IAccountService
     /// <param name="logger"></param>
     /// <param name="options"></param>
     public AccountService(OpenShockContext db, IEmailService emailService,
-        ISessionService sessionService, ILogger<AccountService> logger, IOptions<FrontendOptions> options)
+        ISessionService sessionService, ILogger<AccountService> logger, FrontendOptions options)
     {
         _db = db;
         _emailService = emailService;
         _logger = logger;
-        _frontendConfig = options.Value;
+        _frontendConfig = options;
         _sessionService = sessionService;
     }
 
@@ -121,6 +122,94 @@ public sealed class AccountService : IAccountService
             new Uri(_frontendConfig.BaseUrl, $"/#/account/activate/{user.Id}/{token}"));
         return new Success<User>(user);
     }
+
+    public async Task<OneOf<Success<User>, AccountWithEmailOrUsernameExists>> CreateOAuthOnlyAccountAsync(
+        string email,
+        string username,
+        string provider,
+        string providerAccountId,
+        string? providerAccountName,
+        bool isEmailTrusted)
+    {
+        email = email.ToLowerInvariant();
+        provider = provider.ToLowerInvariant();
+
+        // Reuse your existing guards
+        if (await IsUserNameBlacklisted(username) || await IsEmailProviderBlacklisted(email))
+            return new AccountWithEmailOrUsernameExists();
+
+        // Fast uniqueness check (optimistic; race handled by unique constraints below)
+        var exists = await _db.Users.AnyAsync(u => u.Email == email || u.Name == username);
+        if (exists) return new AccountWithEmailOrUsernameExists();
+
+        await using var tx = await _db.Database.BeginTransactionAsync();
+
+        string? activationToken = null;
+
+        try
+        {
+            var creationTime = DateTime.UtcNow;
+            
+            var user = new User
+            {
+                Id = Guid.CreateVersion7(),
+                Name = username,
+                Email = email,
+                PasswordHash = null,
+                CreatedAt = creationTime,
+                ActivatedAt = isEmailTrusted ? creationTime : null
+            };
+
+            _db.Users.Add(user);
+            await _db.SaveChangesAsync();
+
+            // If email isn't trusted, create an activation request (email verification)
+            if (!isEmailTrusted)
+            {
+                activationToken = CryptoUtils.RandomString(AuthConstants.GeneratedTokenLength);
+
+                user.UserActivationRequest = new UserActivationRequest
+                {
+                    UserId = user.Id,
+                    TokenHash = HashingUtils.HashToken(activationToken),
+                    CreatedAt = creationTime
+                };
+
+                await _db.SaveChangesAsync();
+            }
+
+            // Link external identity
+            _db.UserOAuthConnections.Add(new UserOAuthConnection
+            {
+                UserId = user.Id,
+                ProviderKey = provider,
+                ExternalId = providerAccountId,
+                DisplayName = providerAccountName,
+                CreatedAt = creationTime,
+            });
+
+            await _db.SaveChangesAsync();
+
+            await tx.CommitAsync();
+
+            // Send verification email only after successful commit
+            if (!isEmailTrusted && activationToken is not null)
+            {
+                await _emailService.VerifyEmail(
+                    new Contact(email, username),
+                    new Uri(_frontendConfig.BaseUrl, $"/#/account/activate/{user.Id}/{activationToken}")
+                );
+            }
+
+            return new Success<User>(user);
+        }
+        catch (DbUpdateException ex) when (ex.InnerException is PostgresException { SqlState: "23505" })
+        {
+            await tx.RollbackAsync();
+            return new AccountWithEmailOrUsernameExists();
+        }
+    }
+
 
     public async Task<bool> TryActivateAccountAsync(string secret, CancellationToken cancellationToken = default)
     {
@@ -249,34 +338,42 @@ public sealed class AccountService : IAccountService
         return new Success();
     }
 
-    /// <inheritdoc />
-    public async Task<OneOf<CreateUserLoginSessionSuccess, AccountNotActivated, AccountDeactivated, NotFound>> CreateUserLoginSessionAsync(string usernameOrEmail, string password,
-        LoginContext loginContext, CancellationToken cancellationToken = default)
+    /// <inheritdoc/>
+    public async Task<OneOf<User, NotFound, AccountDeactivated, AccountNotActivated, AccountIsOAuthOnly>> GetAccountByCredentialsAsync(string usernameOrEmail, string password,  CancellationToken cancellationToken)
     {
         var lowercaseUsernameOrEmail = usernameOrEmail.ToLowerInvariant();
         var user = await _db.Users
+            .AsNoTracking()
             .Include(u => u.UserDeactivation)
             .FirstOrDefaultAsync(x => x.Email == lowercaseUsernameOrEmail || x.Name == lowercaseUsernameOrEmail, cancellationToken);
         if (user is null)
         {
-            // TODO: Set appropriate time to match password hashing time, preventing timing attacks
-            await Task.Delay(100, cancellationToken);
+            await HashingUtils.VerifyPasswordFake();
             return new NotFound();
         }
-        if (user.ActivatedAt is null)
+        
+        if (user.PasswordHash is null)
         {
-            return new AccountNotActivated();
+            await HashingUtils.VerifyPasswordFake();
+            return new AccountIsOAuthOnly();
         }
+
+        if (!await CheckPassword(password, user))
+        {
+            return new NotFound();
+        }
+        
         if (user.UserDeactivation is not null)
         {
             return new AccountDeactivated();
         }
 
-        if (!await CheckPassword(password, user)) return new NotFound();
+        if (user.ActivatedAt is null)
+        {
+            return new AccountNotActivated();
+        }
 
-        var createdSession = await _sessionService.CreateSessionAsync(user.Id, loginContext.UserAgent, loginContext.Ip);
-
-        return new CreateUserLoginSessionSuccess(user, createdSession.Token);
+        return user;
     }
 
     /// <inheritdoc />
@@ -443,6 +540,11 @@ public sealed class AccountService : IAccountService
 
     private async Task<bool> CheckPassword(string password, User user)
     {
+        if (string.IsNullOrEmpty(user.PasswordHash))
+        {
+            return false;
+        }
+        
         var result = HashingUtils.VerifyPassword(password, user.PasswordHash);
 
         if (!result.Verified)

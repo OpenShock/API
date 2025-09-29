@@ -10,6 +10,7 @@ using OpenShock.Common.Problems;
 using OpenShock.Common.Utils;
 using System.Net.Mime;
 using Microsoft.AspNetCore.RateLimiting;
+using OpenShock.Common.Services.Session;
 
 namespace OpenShock.API.Controller.Account;
 
@@ -22,33 +23,30 @@ public sealed partial class AccountController
     /// <response code="401">Invalid username or password</response>
     [HttpPost("login")]
     [EnableRateLimiting("auth")]
+    [Consumes(MediaTypeNames.Application.Json)]
     [ProducesResponseType<LegacyEmptyResponse>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status401Unauthorized, MediaTypeNames.Application.ProblemJson)] // InvalidCredentials
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status403Forbidden, MediaTypeNames.Application.ProblemJson)] // InvalidDomain
     [MapToApiVersion("1")]
     public async Task<IActionResult> Login(
         [FromBody] Login body,
-        [FromServices] IOptions<FrontendOptions> options,
         CancellationToken cancellationToken)
     {
-        var cookieDomainToUse = options.Value.CookieDomain.Split(',').FirstOrDefault(domain => Request.Headers.Host.ToString().EndsWith(domain, StringComparison.OrdinalIgnoreCase));
-        if (cookieDomainToUse is null) return Problem(LoginError.InvalidDomain);
+        var cookieDomain = GetCurrentCookieDomain();
+        if (cookieDomain is null) return Problem(LoginError.InvalidDomain);
 
-        var loginAction = await _accountService.CreateUserLoginSessionAsync(body.Email, body.Password, new LoginContext
+        var getAccountResult = await _accountService.GetAccountByCredentialsAsync(body.Email, body.Password, cancellationToken);
+        if (!getAccountResult.TryPickT0(out var account, out var errors))
         {
-            Ip = HttpContext.GetRemoteIP().ToString(),
-            UserAgent = HttpContext.GetUserAgent(),
-        }, cancellationToken);
+            return errors.Match(
+                notFound => Problem(LoginError.InvalidCredentials),
+                deactivated => Problem(AccountError.AccountDeactivated),
+                notActivated => Problem(AccountError.AccountNotActivated),
+                oauthOnly => Problem(AccountError.AccountOAuthOnly)
+            );
+        }
 
-        return loginAction.Match<IActionResult>(
-            ok =>
-            {
-                HttpContext.SetSessionKeyCookie(ok.Token, "." + cookieDomainToUse);
-                return LegacyEmptyOk("Successfully logged in");
-            },
-            notActivated => Problem(AccountError.AccountNotActivated),
-            deactivated => Problem(AccountError.AccountDeactivated),
-            notFound => Problem(LoginError.InvalidCredentials)
-        );
+        await CreateSession(account.Id, cookieDomain);
+        return LegacyEmptyOk("Successfully logged in");
     }
 }

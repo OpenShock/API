@@ -21,7 +21,7 @@ namespace OpenShock.Common.Migrations
 #pragma warning disable 612, 618
             modelBuilder
                 .HasAnnotation("Npgsql:CollationDefinition:public.ndcoll", "und-u-ks-level2,und-u-ks-level2,icu,False")
-                .HasAnnotation("ProductVersion", "9.0.7")
+                .HasAnnotation("ProductVersion", "9.0.8")
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "configuration_value_type", new[] { "string", "bool", "int", "float", "json" });
@@ -33,6 +33,25 @@ namespace OpenShock.Common.Migrations
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "role_type", new[] { "support", "staff", "admin", "system" });
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "shocker_model_type", new[] { "caiXianlin", "petTrainer", "petrainer998DR" });
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
+
+            modelBuilder.Entity("Microsoft.AspNetCore.DataProtection.EntityFrameworkCore.DataProtectionKey", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("FriendlyName")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Xml")
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("DataProtectionKeys");
+                });
 
             modelBuilder.Entity("OpenShock.Common.OpenShockDb.AdminUsersView", b =>
                 {
@@ -680,7 +699,6 @@ namespace OpenShock.Common.Migrations
                         .UseCollation("ndcoll");
 
                     b.Property<string>("PasswordHash")
-                        .IsRequired()
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)")
                         .HasColumnName("password_hash")
@@ -889,6 +907,39 @@ namespace OpenShock.Common.Migrations
                     b.HasIndex("UserId");
 
                     b.ToTable("user_name_changes", (string)null);
+                });
+
+            modelBuilder.Entity("OpenShock.Common.OpenShockDb.UserOAuthConnection", b =>
+                {
+                    b.Property<string>("ProviderKey")
+                        .HasColumnType("text")
+                        .HasColumnName("provider_key")
+                        .UseCollation("C");
+
+                    b.Property<string>("ExternalId")
+                        .HasColumnType("text")
+                        .HasColumnName("external_id");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                    b.Property<string>("DisplayName")
+                        .HasColumnType("text")
+                        .HasColumnName("display_name");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("user_id");
+
+                    b.HasKey("ProviderKey", "ExternalId")
+                        .HasName("user_oauth_connections_pkey");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("user_oauth_connections", (string)null);
                 });
 
             modelBuilder.Entity("OpenShock.Common.OpenShockDb.UserPasswordReset", b =>
@@ -1258,6 +1309,18 @@ namespace OpenShock.Common.Migrations
                     b.Navigation("User");
                 });
 
+            modelBuilder.Entity("OpenShock.Common.OpenShockDb.UserOAuthConnection", b =>
+                {
+                    b.HasOne("OpenShock.Common.OpenShockDb.User", "User")
+                        .WithMany("OAuthConnections")
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_user_oauth_connections_user_id");
+
+                    b.Navigation("User");
+                });
+
             modelBuilder.Entity("OpenShock.Common.OpenShockDb.UserPasswordReset", b =>
                 {
                     b.HasOne("OpenShock.Common.OpenShockDb.User", "User")
@@ -1370,6 +1433,8 @@ namespace OpenShock.Common.Migrations
                     b.Navigation("IncomingUserShares");
 
                     b.Navigation("NameChanges");
+
+                    b.Navigation("OAuthConnections");
 
                     b.Navigation("OutgoingUserShareInvites");
 

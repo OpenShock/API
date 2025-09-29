@@ -3,16 +3,19 @@ using OpenShock.API.Models.Requests;
 using System.Net;
 using System.Net.Mime;
 using Asp.Versioning;
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.RateLimiting;
 using OpenShock.API.Services.Account;
 using OpenShock.Common.Errors;
 using OpenShock.Common.Problems;
-using OpenShock.Common.Services.Turnstile;
 using OpenShock.Common.Utils;
 using OpenShock.Common.Models;
 using Microsoft.Extensions.Options;
+using OpenShock.API.Errors;
 using OpenShock.API.Models.Response;
+using OpenShock.API.Services.Turnstile;
 using OpenShock.Common.Options;
+using OpenShock.Common.Services.Session;
 
 namespace OpenShock.API.Controller.Account;
 
@@ -25,6 +28,7 @@ public sealed partial class AccountController
     /// <response code="401">Invalid username or password</response>
     [HttpPost("login")]
     [EnableRateLimiting("auth")]
+    [Consumes(MediaTypeNames.Application.Json)]
     [ProducesResponseType<LoginV2OkResponse>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status401Unauthorized, MediaTypeNames.Application.ProblemJson)] // InvalidCredentials
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status403Forbidden, MediaTypeNames.Application.ProblemJson)] // InvalidDomain
@@ -32,39 +36,35 @@ public sealed partial class AccountController
     public async Task<IActionResult> LoginV2(
         [FromBody] LoginV2 body,
         [FromServices] ICloudflareTurnstileService turnstileService,
-        [FromServices] IOptions<FrontendOptions> options,
         CancellationToken cancellationToken)
     {
-        var cookieDomainToUse = options.Value.CookieDomain.Split(',').FirstOrDefault(domain => Request.Headers.Host.ToString().EndsWith(domain, StringComparison.OrdinalIgnoreCase));
-        if (cookieDomainToUse is null) return Problem(LoginError.InvalidDomain);
+        var cookieDomain = GetCurrentCookieDomain();
+        if (cookieDomain is null) return Problem(LoginError.InvalidDomain);
 
-        var remoteIP = HttpContext.GetRemoteIP();
+        var remoteIp = HttpContext.GetRemoteIP();
 
-        var turnStile = await turnstileService.VerifyUserResponseTokenAsync(body.TurnstileResponse, remoteIP, cancellationToken);
-        if (!turnStile.IsT0)
+        var turnStile = await turnstileService.VerifyUserResponseTokenAsync(body.TurnstileResponse, remoteIp, cancellationToken);
+        if (!turnStile.TryPickT0(out _, out var cfErrors))
         {
-            var cfErrors = turnStile.AsT1.Value;
-            if (cfErrors.All(err => err == CloduflareTurnstileError.InvalidResponse))
+            if (cfErrors.Value.All(err => err == CloudflareTurnstileError.InvalidResponse))
                 return Problem(TurnstileError.InvalidTurnstile);
 
             return Problem(new OpenShockProblem("InternalServerError", "Internal Server Error", HttpStatusCode.InternalServerError));
         }
-            
-        var loginAction = await _accountService.CreateUserLoginSessionAsync(body.UsernameOrEmail, body.Password, new LoginContext
+        
+        var getAccountResult = await _accountService.GetAccountByCredentialsAsync(body.UsernameOrEmail, body.Password, cancellationToken);
+        if (!getAccountResult.TryPickT0(out var account, out var errors))
         {
-            Ip = remoteIP.ToString(),
-            UserAgent = HttpContext.GetUserAgent(),
-        }, cancellationToken);
-
-        return loginAction.Match<IActionResult>(
-            ok =>
-            {
-                HttpContext.SetSessionKeyCookie(ok.Token, "." + cookieDomainToUse);
-                return Ok(LoginV2OkResponse.FromUser(ok.User));
-            },
-            notActivated => Problem(AccountError.AccountNotActivated),
-            deactivated => Problem(AccountError.AccountDeactivated),
-            notFound => Problem(LoginError.InvalidCredentials)
-        );
+            return errors.Match(
+                notFound => Problem(LoginError.InvalidCredentials),
+                deactivated => Problem(AccountError.AccountDeactivated),
+                notActivated => Problem(AccountError.AccountNotActivated),
+                oauthOnly => Problem(AccountError.AccountOAuthOnly)
+            );
+        }
+        
+        await CreateSession(account.Id, cookieDomain);
+        
+        return Ok(LoginV2OkResponse.FromUser(account));
     }
 }

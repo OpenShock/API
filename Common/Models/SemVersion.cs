@@ -282,6 +282,10 @@ public sealed class SemVersion : IEquatable<SemVersion>
 
     /// <inheritdoc />
     public override int GetHashCode() => HashCode.Combine(Major, Minor, Patch, Prerelease, Build);
+    
+    public static bool operator ==(SemVersion? left, SemVersion? right) => ReferenceEquals(left, right) || (left is not null && left.Equals(right));
+
+    public static bool operator !=(SemVersion? left, SemVersion? right) => !(left == right);
 
     #endregion
 }

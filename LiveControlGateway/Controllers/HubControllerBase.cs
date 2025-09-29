@@ -1,13 +1,10 @@
 ﻿using FlatSharp;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
-using Microsoft.Extensions.Options;
 using OneOf;
 using OneOf.Types;
-using OpenShock.Common.Authentication.Services;
 using OpenShock.Common.Constants;
 using OpenShock.Common.Errors;
-using OpenShock.Common.OpenShockDb;
 using OpenShock.Common.Problems;
 using OpenShock.Common.Utils;
 using OpenShock.LiveControlGateway.LifetimeManager;
@@ -15,6 +12,9 @@ using OpenShock.LiveControlGateway.Options;
 using OpenShock.LiveControlGateway.Websocket;
 using OpenShock.Serialization.Gateway;
 using System.Net.WebSockets;
+using System.Security.Claims;
+using OpenShock.Common.Authentication;
+using OpenShock.Common.Extensions;
 using SemVersion = OpenShock.Common.Models.SemVersion;
 using Timer = System.Timers.Timer;
 
@@ -30,7 +30,8 @@ public abstract class HubControllerBase<TIn, TOut> : FlatbuffersWebsocketBaseCon
     /// <summary>
     /// The current hub
     /// </summary>
-    protected Device CurrentHub = null!;
+    protected Guid CurrentHubId = Guid.Empty;
+    protected Guid CurrentHubOwnerId = Guid.Empty;
     
     /// <summary>
     /// Service provider
@@ -43,7 +44,12 @@ public abstract class HubControllerBase<TIn, TOut> : FlatbuffersWebsocketBaseCon
     /// Hub lifetime
     /// </summary>
     /// <exception cref="InvalidOperationException"></exception>
-    protected HubLifetime HubLifetime => _hubLifetime ?? throw new InvalidOperationException("Hub lifetime is null but was tried to access");
+    protected HubLifetime HubLifetime
+    {
+        get => _hubLifetime ?? throw new InvalidOperationException("Hub lifetime is null but was tried to access");
+        private set => _hubLifetime = value;
+    }
+
     private readonly LcgOptions _options;
 
     private readonly HubLifetimeManager _hubLifetimeManager;
@@ -53,7 +59,7 @@ public abstract class HubControllerBase<TIn, TOut> : FlatbuffersWebsocketBaseCon
     private string? _userAgent;
 
     /// <inheritdoc cref="IHubController.Id" />
-    public override Guid Id => CurrentHub.Id;
+    public override Guid Id => CurrentHubId;
     
     /// <summary>
     /// Authentication context
@@ -62,9 +68,9 @@ public abstract class HubControllerBase<TIn, TOut> : FlatbuffersWebsocketBaseCon
     [NonAction]
     public void OnActionExecuting(ActionExecutingContext context)
     {
-        CurrentHub = ControllerContext.HttpContext.RequestServices
-            .GetRequiredService<IClientAuthService<Device>>()
-            .CurrentClient;
+        var identity = User.GetOpenShockHubIdentity();
+        CurrentHubId = identity.GetClaimValueAsGuid(OpenShockAuthClaims.HubId);
+        CurrentHubOwnerId = identity.GetClaimValueAsGuid(ClaimTypes.NameIdentifier);
     }
 
     /// <summary>
@@ -90,13 +96,13 @@ public abstract class HubControllerBase<TIn, TOut> : FlatbuffersWebsocketBaseCon
         ISerializer<TOut> outgoingSerializer,
         HubLifetimeManager hubLifetimeManager,
         IServiceProvider serviceProvider,
-        IOptions<LcgOptions> options,
+        LcgOptions options,
         ILogger<FlatbuffersWebsocketBaseController<TIn, TOut>> logger
         ) : base(logger, incomingSerializer, outgoingSerializer)
     {
         _hubLifetimeManager = hubLifetimeManager;
         ServiceProvider = serviceProvider;
-        _options = options.Value;
+        _options = options;
         _keepAliveTimeoutTimer.Elapsed += async (_, _) =>
         {
             try
@@ -147,7 +153,7 @@ public abstract class HubControllerBase<TIn, TOut> : FlatbuffersWebsocketBaseCon
             return new Error<OpenShockProblem>(ExceptionError.Exception);
         }
         
-        _hubLifetime = hubLifetimeResult.AsT0;
+        HubLifetime = hubLifetimeResult.AsT0;
         
         return new Success();
     }
@@ -167,21 +173,27 @@ public abstract class HubControllerBase<TIn, TOut> : FlatbuffersWebsocketBaseCon
     }
 
     /// <inheritdoc />
+    [NonAction]
     public abstract ValueTask Control(IList<ShockerCommand> controlCommands);
 
     /// <inheritdoc />
+    [NonAction]
     public abstract ValueTask CaptivePortal(bool enable);
 
     /// <inheritdoc />
+    [NonAction]
     public abstract ValueTask<bool> EmergencyStop();
 
     /// <inheritdoc />
+    [NonAction]
     public abstract ValueTask OtaInstall(SemVersion version);
 
     /// <inheritdoc />
+    [NonAction]
     public abstract ValueTask<bool> Reboot();
 
     /// <inheritdoc />
+    [NonAction]
     public async Task DisconnectOld()
     {
         if (WebSocket is null)
@@ -206,18 +218,18 @@ public abstract class HubControllerBase<TIn, TOut> : FlatbuffersWebsocketBaseCon
         var bootedAt = GetBootedAtFromUptimeMs(uptimeMs);
         if (!bootedAt.HasValue)
         {
-            Logger.LogDebug("Client attempted to abuse reported boot time, uptime indicated that hub [{HubId}] booted prior to 2024", CurrentHub.Id);
+            Logger.LogDebug("Client attempted to abuse reported boot time, uptime indicated that hub [{HubId}] booted prior to 2024", CurrentHubId);
             return false;
         }
         
-        Logger.LogDebug("Received keep alive from hub [{HubId}]", CurrentHub.Id);
+        Logger.LogDebug("Received keep alive from hub [{HubId}]", CurrentHubId);
 
         // Reset the keep alive timeout
         _keepAliveTimeoutTimer.Interval = Duration.DeviceKeepAliveTimeout.TotalMilliseconds;
 
-        await HubLifetime.Online(CurrentHub.Id, new SelfOnlineData()
+        await HubLifetime.Online(CurrentHubId, new SelfOnlineData()
         {
-            Owner = CurrentHub.OwnerId,
+            Owner = CurrentHubOwnerId,
             Gateway = _options.Fqdn,
             FirmwareVersion = _firmwareVersion!,
             ConnectedAt = _connected,

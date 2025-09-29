@@ -1,0 +1,25 @@
+﻿using Microsoft.AspNetCore.Authentication;
+
+namespace OpenShock.API.OAuth;
+
+public static class AuthenticationSchemeProviderExtensions
+{
+    public static async Task<string[]> GetAllOAuthSchemesAsync(this IAuthenticationSchemeProvider provider)
+    {
+        var schemes = await provider.GetAllSchemesAsync();
+
+        return schemes
+            .Select(scheme => scheme.Name)
+            .Where(scheme => OAuthConstants.OAuth2Schemes.Contains(scheme))
+            .ToArray();
+    }
+    public static async Task<bool> IsSupportedOAuthScheme(this IAuthenticationSchemeProvider provider, string scheme)
+    {
+        if (!OAuthConstants.OAuth2Schemes.Contains(scheme))
+            return false;
+
+        var schemes = await provider.GetAllSchemesAsync();
+
+        return schemes.Any(s => s.Name == scheme);
+    }
+}

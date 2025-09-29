@@ -9,12 +9,12 @@ namespace OpenShock.Common.Authentication.ControllerBase;
 
 public class AuthenticatedSessionControllerBase : OpenShockControllerBase, IActionFilter
 {
-    public User CurrentUser = null!;
+    protected User CurrentUser = null!;
 
     [NonAction]
     public void OnActionExecuting(ActionExecutingContext context)
     {
-        CurrentUser = ControllerContext.HttpContext.RequestServices.GetRequiredService<IClientAuthService<User>>().CurrentClient;
+        CurrentUser = HttpContext.Items["User"] as User ?? throw new Exception("User not found");
     }
 
     [NonAction]

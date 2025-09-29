@@ -16,7 +16,7 @@ namespace OpenShock.Common.Migrations
                 SET
                     rf_id = ((rf_id)::bit(32) << 1)::integer
                 WHERE
-                    model = 'petrainer998DR'
+                    model = 'petrainer998DR';
                 """,
                 true
             );
@@ -31,7 +31,7 @@ namespace OpenShock.Common.Migrations
                 SET
                     rf_id = ((rf_id)::bit(32) >> 1)::integer
                 WHERE
-                    model = 'petrainer998DR'
+                    model = 'petrainer998DR';
                 """,
                 true
             );

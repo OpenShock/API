@@ -7,7 +7,7 @@ namespace OpenShock.API.Controller.Admin;
 public sealed partial class AdminController
 {
     [HttpGet("blacklist/usernames")]
-    public async IAsyncEnumerable<UserNameBlacklistDto> ListUsernameBlacklist([FromQuery] string? match)
+    public async IAsyncEnumerable<UserNameBlacklistDto> ListUsernameBlacklist([FromQuery(Name="match")] string? match)
     {
         match = string.IsNullOrWhiteSpace(match) ? null : match.Trim().ToLowerInvariant();
 

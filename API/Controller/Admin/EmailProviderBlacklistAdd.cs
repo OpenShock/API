@@ -1,4 +1,5 @@
 using System.Diagnostics.CodeAnalysis;
+using System.Net.Mime;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using OpenShock.API.Controller.Admin.DTOs;
@@ -9,12 +10,13 @@ namespace OpenShock.API.Controller.Admin;
 public sealed partial class AdminController
 {
     [HttpPost("blacklist/emailProviders")]
+    [Consumes(MediaTypeNames.Application.Json)]
     [ProducesResponseType(StatusCodes.Status200OK)]
-    public async Task<IActionResult> AddEmailProviderBlacklist([FromBody] AddEmailProviderBlacklistDto dto, CancellationToken ct)
+    public async Task<IActionResult> AddEmailProviderBlacklist([FromBody] AddEmailProviderBlacklistDto body, CancellationToken ct)
     {
         var existingDomains = await _db.EmailProviderBlacklists.Select(x => x.Domain.ToLowerInvariant()).ToHashSetAsync(ct);
 
-        foreach (var domain in dto.Domains)
+        foreach (var domain in body.Domains)
         {
             if (string.IsNullOrWhiteSpace(domain)) continue;
             

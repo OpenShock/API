@@ -18,7 +18,7 @@ namespace OpenShock.Common.Migrations
                  """);
             
             // We need to drop the view to modify the target table
-            migrationBuilder.Sql(AddAdminUsersView.AdminUsersViewDropQuery);
+            migrationBuilder.Sql(AddAdminUsersView.Query_Drop_AdminUsersView);
             
             migrationBuilder.AlterColumn<string>(
                 name: "old_name",
@@ -161,14 +161,14 @@ namespace OpenShock.Common.Migrations
                 oldType: "character varying");
             
             // Re-Create the view
-            migrationBuilder.Sql(AddAdminUsersView.AdminUsersViewCreateQuery);
+            migrationBuilder.Sql(AddAdminUsersView.Query_Create_AdminUsersView);
         }
 
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
             // We need to drop the view to modify the target table
-            migrationBuilder.Sql(AddAdminUsersView.AdminUsersViewDropQuery);
+            migrationBuilder.Sql(AddAdminUsersView.Query_Drop_AdminUsersView);
             
             migrationBuilder.AlterColumn<string>(
                 name: "old_name",
@@ -311,7 +311,7 @@ namespace OpenShock.Common.Migrations
                 oldMaxLength: 40);
             
             // Re-Create the view
-            migrationBuilder.Sql(AddAdminUsersView.AdminUsersViewCreateQuery);
+            migrationBuilder.Sql(AddAdminUsersView.Query_Create_AdminUsersView);
         }
     }
 }
