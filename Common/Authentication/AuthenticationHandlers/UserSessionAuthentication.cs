@@ -66,7 +66,7 @@ public sealed class UserSessionAuthentication : AuthenticationHandler<Authentica
             await _sessionService.DeleteSessionAsync(session);
             return Fail(AuthResultError.AccountDeactivated);
         }
-        
+
         Context.Items["User"] = user;
 
         var claims = new List<Claim>(2 + user.Roles.Count)
