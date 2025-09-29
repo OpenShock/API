@@ -418,44 +418,20 @@ public sealed class LiveControlController : WebsocketBaseController<LiveControlR
     private async Task ProcessFrameInternal(ClientLiveFrame frame)
     {
         var permCheck = CheckFramePermissions(frame.Shocker, frame.Type);
-        if (permCheck.IsT1)
+        if (!permCheck.TryPickT0(out var perms, out var error))
         {
             await QueueMessage(new LiveControlResponse<LiveResponseType>
             {
-                ResponseType = LiveResponseType.ShockerNotFound
+                ResponseType = error.Match(
+                    notFound => LiveResponseType.ShockerNotFound,
+                    liveNotEnabled => LiveResponseType.ShockerMissingLivePermission,
+                    noPermission => LiveResponseType.ShockerMissingPermission,
+                    shockerPaused => LiveResponseType.ShockerPaused
+                )
             });
+            
             return;
         }
-
-        if (permCheck.IsT2)
-        {
-            await QueueMessage(new LiveControlResponse<LiveResponseType>
-            {
-                ResponseType = LiveResponseType.ShockerMissingLivePermission
-            });
-            return;
-        }
-
-        if (permCheck.IsT3)
-        {
-            await QueueMessage(new LiveControlResponse<LiveResponseType>
-            {
-                ResponseType = LiveResponseType.ShockerMissingPermission
-            });
-            return;
-        }
-
-        if (permCheck.IsT4)
-        {
-            await QueueMessage(new LiveControlResponse<LiveResponseType>()
-            {
-                ResponseType = LiveResponseType.ShockerPaused
-            });
-            return;
-        }
-
-
-        var perms = permCheck.AsT0.Value;
 
         // Clamp to limits
         var intensity = Math.Clamp(frame.Intensity, HardLimits.MinControlIntensity,
@@ -481,16 +457,14 @@ public sealed class LiveControlController : WebsocketBaseController<LiveControlR
         );
     }
 
-    private OneOf<Success<SharePermsAndLimits>, NotFound, LiveNotEnabled, NoPermission, ShockerPaused>
-        CheckFramePermissions(
-            Guid shocker, ControlType controlType)
+    private OneOf<SharePermsAndLimits, NotFound, LiveNotEnabled, NoPermission, ShockerPaused> CheckFramePermissions(Guid shocker, ControlType controlType)
     {
         if (!_sharedShockers.TryGetValue(shocker, out var shockerShare)) return new NotFound();
 
         if (shockerShare.Paused) return new ShockerPaused();
         if (!PermissionUtils.IsAllowed(controlType, true, shockerShare.PermsAndLimits)) return new NoPermission();
 
-        return new Success<SharePermsAndLimits>(shockerShare.PermsAndLimits);
+        return shockerShare.PermsAndLimits;
     }
 
 
