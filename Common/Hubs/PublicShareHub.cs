@@ -1,8 +1,6 @@
 ﻿using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
-using OpenShock.Common.Authentication.Services;
 using OpenShock.Common.Constants;
-using OpenShock.Common.DeviceControl;
 using OpenShock.Common.Extensions;
 using OpenShock.Common.Models;
 using OpenShock.Common.OpenShockDb;
@@ -18,17 +16,15 @@ public sealed class PublicShareHub : Hub<IPublicShareHub>
     private readonly IHubContext<UserHub, IUserHub> _userHub;
     private readonly ISessionService _sessionService;
     private readonly IControlSender _controlSender;
-    private readonly IUserReferenceService _userReferenceService;
     private readonly ILogger<PublicShareHub> _logger;
     private IReadOnlyList<PermissionType>? _tokenPermissions = null;
 
-    public PublicShareHub(OpenShockContext db, IHubContext<UserHub, IUserHub> userHub, ISessionService sessionService, IControlSender controlSender, IUserReferenceService userReferenceService, ILogger<PublicShareHub> logger)
+    public PublicShareHub(OpenShockContext db, IHubContext<UserHub, IUserHub> userHub, ISessionService sessionService, IControlSender controlSender, ILogger<PublicShareHub> logger)
     {
         _db = db;
         _userHub = userHub;
         _sessionService = sessionService;
         _controlSender = controlSender;
-        _userReferenceService = userReferenceService;
         _logger = logger;
     }
 
@@ -119,7 +115,7 @@ public sealed class PublicShareHub : Hub<IPublicShareHub>
 
     public Task Control(IReadOnlyList<Models.WebSocket.User.Control> shocks)
     {
-        if (!_tokenPermissions.IsAllowedAllowOnNull(PermissionType.Shockers_Use)) return Task.CompletedTask;
+        if (!_tokenPermissions.IsAllowedAllowOrNull(PermissionType.Shockers_Use)) return Task.CompletedTask;
         
         return _controlSender.ControlPublicShare(shocks, CustomData.CachedControlLogSender, _userHub.Clients,
             CustomData.PublicShareId);
@@ -146,7 +142,7 @@ public sealed class PublicShareHub : Hub<IPublicShareHub>
         public required Guid PublicShareId { get; init; }
         public required BasicUserInfo? User { get; set; }
         public required string? CustomName { get; init; }
-        public required ControlLogSender CachedControlLogSender { get; set; }
+        public required ControlLogSender CachedControlLogSender { get; init; }
     }
     
     public enum AuthType

@@ -1,7 +1,5 @@
-﻿using System.Security.Claims;
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
-using OpenShock.Common.Authentication.Services;
 using OpenShock.Common.Models;
 using OpenShock.Common.OpenShockDb;
 
@@ -14,7 +12,7 @@ public class AuthenticatedSessionControllerBase : OpenShockControllerBase, IActi
     [NonAction]
     public void OnActionExecuting(ActionExecutingContext context)
     {
-        CurrentUser = HttpContext.Items["User"] as User ?? throw new Exception("User not found");
+        CurrentUser = GetRequiredItem<User>();
     }
 
     [NonAction]

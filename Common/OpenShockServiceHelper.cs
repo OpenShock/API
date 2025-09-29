@@ -10,7 +10,6 @@ using Microsoft.Extensions.Caching.Hybrid;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using OpenShock.Common.Authentication;
 using OpenShock.Common.Authentication.AuthenticationHandlers;
-using OpenShock.Common.Authentication.Services;
 using OpenShock.Common.ExceptionHandle;
 using OpenShock.Common.JsonSerialization;
 using OpenShock.Common.OpenShockDb;
@@ -107,8 +106,6 @@ public static class OpenShockServiceHelper
                 LocalCacheExpiration = TimeSpan.FromMinutes(5)
             };
         });
-
-        services.AddScoped<IUserReferenceService, UserReferenceService>();
 
         var authBuilder = services
             .AddOpenShockAuthentication(opt =>

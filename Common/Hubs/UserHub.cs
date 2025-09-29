@@ -72,7 +72,7 @@ public sealed class UserHub : Hub<IUserHub>
 
     public async Task ControlV2(IReadOnlyList<Models.WebSocket.User.Control> shocks, string? customName)
     {
-        if (!_tokenPermissions.IsAllowedAllowOnNull(PermissionType.Shockers_Use)) return;
+        if (!_tokenPermissions.IsAllowedAllowOrNull(PermissionType.Shockers_Use)) return;
 
         var additionalItems = new Dictionary<string, object>();
         var apiTokenId = Context.User?.FindFirst(OpenShockAuthClaims.ApiTokenId);

@@ -3,7 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using OpenShock.API.Models.Response;
 using OpenShock.Common.Authentication;
 using OpenShock.Common.Authentication.ControllerBase;
-using OpenShock.Common.Authentication.Services;
+using OpenShock.Common.OpenShockDb;
 
 namespace OpenShock.API.Controller.Tokens;
 
@@ -16,18 +16,12 @@ public sealed partial class TokensSelfController : AuthenticatedSessionControlle
     /// <summary>
     /// Gets information about the current token used to access this endpoint
     /// </summary>
-    /// <param name="userReferenceService"></param>
     /// <returns></returns>
     /// <exception cref="Exception"></exception>
     [HttpGet("self")]
-    public TokenResponse GetSelfToken([FromServices] IUserReferenceService userReferenceService)
+    public TokenResponse GetSelfToken()
     {
-        var x = userReferenceService.AuthReference;
-        
-        if (x is null) throw new Exception("This should not be reachable due to AuthenticatedSession requirement");
-        if (!x.Value.IsT1) throw new Exception("This should not be reachable due to the [TokenOnly] attribute");
-        
-        var token = x.Value.AsT1;
+        var token = GetRequiredItem<ApiToken>();
         
         return new TokenResponse
         {

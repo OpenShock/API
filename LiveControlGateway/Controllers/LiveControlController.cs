@@ -9,7 +9,6 @@ using OneOf;
 using OneOf.Types;
 using OpenShock.Common.Authentication;
 using OpenShock.Common.Authentication.Attributes;
-using OpenShock.Common.Authentication.Services;
 using OpenShock.Common.Constants;
 using OpenShock.Common.Errors;
 using OpenShock.Common.Models;
@@ -218,7 +217,7 @@ public sealed class LiveControlController : WebsocketBaseController<LiveControlR
     [NonAction]
     public void OnActionExecuting(ActionExecutingContext context)
     {
-        _currentUser = HttpContext.Items["User"] as User ?? throw new Exception("User not found");
+        _currentUser = GetRequiredItem<User>();
     }
 
     /// <summary>

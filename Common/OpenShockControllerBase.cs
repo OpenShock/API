@@ -11,6 +11,29 @@ namespace OpenShock.Common;
 public class OpenShockControllerBase : ControllerBase
 {
     [NonAction]
+    protected T GetRequiredItem<T>() where T : class
+    {
+        var key = typeof(T).Name;
+        
+        if (!HttpContext.Items.TryGetValue(key, out var value))
+        {
+            throw new InvalidOperationException($"HttpContext.Items does not contain a required item of type {key}");
+        }
+
+        if (value is null)
+        {
+            throw new InvalidOperationException($"HttpContext.Items contain required item but it is null (expected: {typeof(T).FullName}).");
+        }
+
+        if (value is not T typed)
+        {
+            throw new InvalidOperationException($"HttpContext.Items[\"{key}\"] is of type {value.GetType().FullName}, but an instance of {typeof(T).FullName} was expected.");
+        }
+        
+        return typed;
+    }
+    
+    [NonAction]
     protected ObjectResult Problem(OpenShockProblem problem) => problem.ToObjectResult(HttpContext);
     
     [NonAction]
