@@ -1,4 +1,5 @@
-﻿using FlatSharp;
+﻿using System.Diagnostics.CodeAnalysis;
+using FlatSharp;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
 using OneOf;
@@ -37,17 +38,16 @@ public abstract class HubControllerBase<TIn, TOut> : FlatbuffersWebsocketBaseCon
     /// Service provider
     /// </summary>
     protected readonly IServiceProvider ServiceProvider;
-    
-    private HubLifetime? _hubLifetime;
-    
+
     /// <summary>
     /// Hub lifetime
     /// </summary>
     /// <exception cref="InvalidOperationException"></exception>
+    [field: AllowNull, MaybeNull]
     protected HubLifetime HubLifetime
     {
-        get => _hubLifetime ?? throw new InvalidOperationException("Hub lifetime is null but was tried to access");
-        private set => _hubLifetime = value;
+        get => field ?? throw new InvalidOperationException("Hub lifetime is null but was tried to access");
+        private set;
     }
 
     private readonly LcgOptions _options;
