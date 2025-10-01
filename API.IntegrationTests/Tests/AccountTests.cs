@@ -35,7 +35,7 @@ public class AccountTests
 
         var user = await db.Users.FirstOrDefaultAsync(u => u.Email == "bob@example.com");
 
-        await Assert.That(user is not null).IsTrue();
+        await Assert.That(user).IsNotNull();
     }
 
     [Test, DependsOn(nameof(CreateAccount_ShouldAdd_NewUserToDatabase))]

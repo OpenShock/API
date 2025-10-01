@@ -208,7 +208,7 @@ public sealed class HubLifetime : IAsyncDisposable
                 await OtaInstall(version);
                 break;
             default:
-                _logger.LogError("Got DeviceMessage with unknown payload type: {PayloadType}", message.Payload?.GetType().Name);
+                _logger.LogError("Got DeviceMessage with unknown payload type: {PayloadType}", message.Payload.GetType().Name);
                 break;
         }
     }

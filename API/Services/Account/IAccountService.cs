@@ -125,7 +125,6 @@ public interface IAccountService
     Task<bool> TryVerifyEmailAsync(string token, CancellationToken cancellationToken = default);
 }
 
-public sealed record CreateUserLoginSessionSuccess(User User, string Token);
 public readonly struct AccountIsOAuthOnly;
 public readonly struct AccountNotActivated;
 public readonly struct AccountDeactivated;

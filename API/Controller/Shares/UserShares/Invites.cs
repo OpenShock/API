@@ -159,7 +159,6 @@ public sealed partial class UserSharesController
         }
         
         _db.UserShareInvites.Remove(shareRequest);
-        var a = _db.ChangeTracker.ToDebugString();
         
         if (await _db.SaveChangesAsync() < 1) throw new Exception("Error while linking share code to your account");
 

@@ -31,13 +31,13 @@ public sealed partial class SharesController
         [FromServices] IDeviceUpdateService deviceUpdateService
     )
     {
-        var shareCode = await Queryable.Where<ShockerShareCode>(_db.ShockerShareCodes, x => x.Id == shareCodeId && x.Shocker.Device.Owner.UserDeactivation == null).Select(x => new
+        var shareCode = await _db.ShockerShareCodes.Where(x => x.Id == shareCodeId && x.Shocker.Device.Owner.UserDeactivation == null).Select(x => new
         {
             Share = x, x.Shocker.Device.OwnerId, x.Shocker.DeviceId
         }).FirstOrDefaultAsync();
         if (shareCode is null) return Problem(ShareCodeError.ShareCodeNotFound);
         if (shareCode.OwnerId == CurrentUser.Id) return Problem(ShareCodeError.CantLinkOwnShareCode);
-        if (await EntityFrameworkQueryableExtensions.AnyAsync<UserShare>(_db.UserShares, x => x.ShockerId == shareCode.Share.ShockerId && x.SharedWithUserId == CurrentUser.Id))
+        if (await _db.UserShares.AnyAsync(x => x.ShockerId == shareCode.Share.ShockerId && x.SharedWithUserId == CurrentUser.Id))
             return Problem(ShareCodeError.ShockerAlreadyLinked);
         
         _db.UserShares.Add(new UserShare

@@ -145,7 +145,7 @@ public class ExpressionBuilderTests
         var result = TestArray.AsQueryable().Where(expression).ToArray();
 
         // Assert
-        await Assert.That(result).ContainsOnly(x => x.IsActive == true);
+        await Assert.That(result).ContainsOnly(x => x.IsActive);
     }
 
     [Test]
