@@ -155,9 +155,18 @@ public sealed class HubLifetimeManager
                 return;
             }
         }
-        
-        await hubLifetime.DisposeAsync();
-        
+
+        // We need to catch this, we always want to get rid of the hub lifetime even if this failes!
+        // Otherwise we end up with a hub not being able to connect again.
+        try
+        {
+            await hubLifetime.DisposeAsync();
+        }
+        catch (Exception e)
+        {
+            _logger.LogError(e, "Exception thrown while disposing hub lifetime [{HubId}]", hubController.Id);
+        }
+
         using (await _lifetimesLock.LockAsyncScoped())
         {
             if (!_lifetimes.Remove(hubController.Id))

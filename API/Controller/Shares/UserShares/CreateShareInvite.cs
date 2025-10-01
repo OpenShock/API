@@ -8,16 +8,16 @@ using OpenShock.Common.OpenShockDb;
 using OpenShock.Common.Problems;
 using Z.EntityFramework.Plus;
 
-namespace OpenShock.API.Controller.Shares;
+namespace OpenShock.API.Controller.Shares.UserShares;
 
-public sealed partial class SharesController
+public sealed partial class UserSharesController
 {
     [HttpPost("invites")]
     [Consumes(MediaTypeNames.Application.Json)]
     [ProducesResponseType<Guid>(StatusCodes.Status200OK, MediaTypeNames.Text.Plain)]
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status404NotFound, MediaTypeNames.Application.ProblemJson)] // UserNotFound, ShareCreateShockerNotFound
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status400BadRequest, MediaTypeNames.Application.ProblemJson)] // ShareCreateCannotShareWithSelf
-    [ApiVersion("2")]
+    [MapToApiVersion("2")]
     public async Task<IActionResult> CreateShareInvite([FromBody] CreateShareRequest body)
     {
         if (body.User == CurrentUser.Id)

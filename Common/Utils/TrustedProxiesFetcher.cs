@@ -77,7 +77,7 @@ public static class TrustedProxiesFetcher
             cfProxies = await FetchCloudflareIPs();
         }
 
-        if (cfProxies == null)
+        if (cfProxies is null)
         {
             var assembly = typeof(TrustedProxiesFetcher).Assembly;
             var resourceName = assembly.GetName().Name + ".cloudflare-ips.txt";

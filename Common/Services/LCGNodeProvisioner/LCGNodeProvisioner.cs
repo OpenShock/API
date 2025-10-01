@@ -38,7 +38,7 @@ public sealed class LCGNodeProvisioner : ILCGNodeProvisioner
         if (countryCode.IsUnknown())
         {
             _logger.LogInformation("Country code is unknown, getting optimal node without geo location information");
-            return await GetOptimalNodeAsync(_environmentName);
+            return await GetOptimalNodeAsync();
         }
 
         var nodes = await _lcgNodes

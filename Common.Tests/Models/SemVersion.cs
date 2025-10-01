@@ -81,7 +81,7 @@ public class SemVersionTests
     [Test]
     public async Task Parse_Span_Valid_ReturnsInstance()
     {
-        ReadOnlySpan<char> s = "3.4.5+meta".AsSpan();
+        ReadOnlySpan<char> s = "3.4.5+meta";
         var v = SemVersion.Parse(s);
         await Assert.That(v.Major).IsEqualTo((ushort)3);
         await Assert.That(v.Minor).IsEqualTo((ushort)4);
@@ -277,7 +277,7 @@ public class SemVersionTests
     [Test]
     public async Task TryParse_Span_Input_Succeeds()
     {
-        ReadOnlySpan<char> s = "7.8.9-beta+ci".AsSpan();
+        ReadOnlySpan<char> s = "7.8.9-beta+ci";
         var ok = SemVersion.TryParse(s, out var v);
 
         await Assert.That(ok).IsTrue();

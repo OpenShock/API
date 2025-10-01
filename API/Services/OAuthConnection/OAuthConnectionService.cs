@@ -15,12 +15,11 @@ public sealed class OAuthConnectionService : IOAuthConnectionService
         _logger = logger;
     }
 
-    public async Task<UserOAuthConnection[]> GetConnectionsAsync(Guid userId, CancellationToken cancellationToken)
+    public IQueryable<UserOAuthConnection> GetConnectionsAsNonTrackingQuery(Guid userId, CancellationToken cancellationToken)
     {
-        return await _db.UserOAuthConnections
+        return _db.UserOAuthConnections
             .AsNoTracking()
-            .Where(c => c.UserId == userId)
-            .ToArrayAsync(cancellationToken);
+            .Where(c => c.UserId == userId);
     }
 
     public async Task<UserOAuthConnection?> GetByProviderExternalIdAsync(string provider, string providerAccountId, CancellationToken cancellationToken)

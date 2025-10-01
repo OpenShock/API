@@ -58,7 +58,7 @@ public sealed class UserSessionAuthentication : AuthenticationHandler<Authentica
         _batchUpdateService.UpdateSessionLastUsed(sessionToken, DateTimeOffset.UtcNow);
 
         var user = await _db.Users.Include(u => u.UserDeactivation).FirstOrDefaultAsync(user => user.Id == session.UserId);
-        if (user == null) return Fail(AuthResultError.SessionInvalid);
+        if (user is null) return Fail(AuthResultError.SessionInvalid);
         if (user.ActivatedAt is null)
         {
             await _sessionService.DeleteSessionAsync(session);
