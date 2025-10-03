@@ -16,8 +16,8 @@ public sealed class Alpha2CountryCodeAttribute : ValidationAttribute
 
         if (!Alpha2CountryCode.TryParse(asString, out var countryCode))
             return new ValidationResult($"Failed to create {nameof(Alpha2CountryCode)}");
-
-        if (!CountryInfo.CodeDictionary.ContainsKey(countryCode))
+        
+        if (!countryCode.IsUnknown() && !CountryInfo.CodeDictionary.ContainsKey(countryCode))
             return new ValidationResult("Country does not exist in mapping");
 
         return ValidationResult.Success;
