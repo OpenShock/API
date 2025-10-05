@@ -2,7 +2,6 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using OpenShock.API.Models.Requests;
-using OpenShock.API.Services;
 using OpenShock.Common.Authentication.Attributes;
 using OpenShock.Common.Constants;
 using OpenShock.Common.Errors;
@@ -12,6 +11,7 @@ using OpenShock.Common.Problems;
 using OpenShock.Common.Redis;
 using OpenShock.Common.Utils;
 using System.Net.Mime;
+using System.Security.Cryptography;
 using OpenShock.API.Services.DeviceUpdate;
 using Redis.OM;
 
@@ -208,7 +208,7 @@ public sealed partial class DevicesController
         if (!deviceExists) return Problem(HubError.HubNotFound);
         await _redis.Connection.UnlinkAsync($"{typeof(DevicePair).FullName}:{deviceId}");
 
-        string pairCode = CryptoUtils.RandomNumericString(6);
+        string pairCode = RandomNumberGenerator.GetInt32(100000, 1000000).ToString();
 
         var devicePairDto = new DevicePair
         {
