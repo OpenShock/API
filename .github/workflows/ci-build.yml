@@ -23,6 +23,7 @@ name: ci-build
 
 env:
   REGISTRY: ghcr.io
+  DOTNET_VERSION: 9.0.x
 
 jobs:
 
@@ -34,27 +35,22 @@ jobs:
       matrix:
         include:
           - name: common-unit
-            dockerfile: docker/Base.Dockerfile
-            image: test-common
-            target: test-common
+            project: Common.Tests/Common.Tests.csproj
           - name: api-integration
-            dockerfile: docker/API.Dockerfile
-            image: api-integration-tests
-            target: integration-test-api
+            project: API.IntegrationTests/API.IntegrationTests.csproj
 
     steps:
       - name: Checkout
         uses: actions/checkout@v5
 
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+      - uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: '${{ env.DOTNET_VERSION }}'
 
       - name: Run ${{ matrix.name }} tests
-        uses: ./.github/actions/test-app
-        with:
-          dockerfile: ${{ matrix.dockerfile }}
-          image: ${{ matrix.image }}
-          target: ${{ matrix.target }}
+        run: |
+          set -euo pipefail
+          dotnet test -c Release ${{ matrix.project }}
 
   build:
     name: Build (${{ matrix.image }})
@@ -116,7 +112,7 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Build ${{ matrix.image }}
+      - name: Promote Manifest ${{ matrix.image }}
         uses: ./.github/actions/promote-image
         with:
           image: ${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ matrix.image }}
