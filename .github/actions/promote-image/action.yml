@@ -43,4 +43,4 @@ runs:
         done
         
         # Create/overwrite manifest tags pointing at the original digest
-        docker buildx imagetools create "${ARGS[@]}" "${{ inputs.image }}:${{ inputs.run-tag }}"
+        docker buildx imagetools create "${ARGS[@]}" "${{ toLower(inputs.image) }}:${{ inputs.run-tag }}"
