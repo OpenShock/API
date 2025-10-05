@@ -35,6 +35,12 @@ runs:
     - name: Promote by retagging digest (no rebuild)
       shell: bash
       run: |
+        set -euo pipefail
+
+        # lower-case the repo right here
+        IMG='${{ inputs.image }}'           # e.g. ghcr.io/OpenShock/api
+        IMG_LC="${IMG,,}"                   # bash lowercase; POSIX alt below
+        
         # metadata-action outputs newline-separated tags
         mapfile -t TAGS <<< "${{ steps.remeta.outputs.tags }}"
         ARGS=()
@@ -43,4 +49,4 @@ runs:
         done
         
         # Create/overwrite manifest tags pointing at the original digest
-        docker buildx imagetools create "${ARGS[@]}" "${{ toLower(inputs.image) }}:${{ inputs.run-tag }}"
+        docker buildx imagetools create "${ARGS[@]}" "${IMG_LC}:${{ inputs.run-tag }}"
