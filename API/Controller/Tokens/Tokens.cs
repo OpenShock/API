@@ -73,7 +73,7 @@ public sealed partial class TokensController
     [Produces(MediaTypeNames.Application.Json)]
     public async Task<TokenCreatedResponse> CreateToken([FromBody] CreateTokenRequest body)
     {
-        var token = CryptoUtils.RandomString(AuthConstants.ApiTokenLength);
+        var token = CryptoUtils.RandomAlphaNumericString(AuthConstants.ApiTokenLength);
 
         var tokenDto = new ApiToken
         {
