@@ -13,10 +13,6 @@ inputs:
   platforms:
     required: true
     description: Image platforms
-  latest:
-    required: false
-    description: Tag image as latest
-    default: false
 
 runs:
   using: composite
@@ -30,13 +26,7 @@ runs:
         flavor: |
           latest=false
         tags: |
-          type=raw,value={{branch}},enable=${{ github.ref_type == 'branch' && github.event_name != 'pull_request' }}
-          type=raw,value=latest,enable=${{ inputs.latest }}
-          type=ref,event=branch
-          type=ref,event=pr
-          type=semver,pattern={{major}},enable=${{ !startsWith(github.ref, 'refs/tags/v0.') }}
-          type=semver,pattern={{major}}.{{minor}}
-          type=semver,pattern={{major}}.{{minor}}.{{patch}}
+          type=raw,value=rn-${{ github.run_number }}-a${{ github.run_attempt }}
 
     - name: Build and push
       uses: docker/build-push-action@v6
