@@ -1,6 +1,5 @@
 ﻿using System.Net.Mail;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Options;
 using Npgsql;
 using OneOf;
 using OneOf.Types;
@@ -118,8 +117,8 @@ public sealed class AccountService : IAccountService
 
         await _db.SaveChangesAsync();
 
-        await _emailService.VerifyEmail(new Contact(email, username),
-            new Uri(_frontendConfig.BaseUrl, $"/#/account/activate/{user.Id}/{token}"));
+        await _emailService.ActivateAccount(new Contact(email, username),
+            new Uri($"https://next.openshock.app/activate?token={token}"));
         return new Success<User>(user);
     }
 
@@ -192,12 +191,12 @@ public sealed class AccountService : IAccountService
 
             await tx.CommitAsync();
 
-            // Send verification email only after successful commit
+            // Send verification email only after a successful commit
             if (!isEmailTrusted && activationToken is not null)
             {
-                await _emailService.VerifyEmail(
+                await _emailService.ActivateAccount(
                     new Contact(email, username),
-                    new Uri(_frontendConfig.BaseUrl, $"/#/account/activate/{user.Id}/{activationToken}")
+                    new Uri($"https://next.openshock.app/activate?token={activationToken}")
                 );
             }
 
