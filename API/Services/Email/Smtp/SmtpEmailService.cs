@@ -44,6 +44,18 @@ public sealed class SmtpEmailService : IEmailService
         _templateOptions.MemberAccessStrategy.Register<Contact>();
     }
 
+    public Task ActivateAccount(Contact to, Uri activationLink, CancellationToken cancellationToken = default)
+    {
+        var data = new
+        {
+            To = to,
+            ActivationLink = activationLink
+        };
+
+        SendMailAndForget(to, _templates.AccountActivation, data, cancellationToken);
+        return Task.CompletedTask;
+    }
+
     /// <inheritdoc />
     public Task PasswordReset(Contact to, Uri resetLink, CancellationToken cancellationToken = default)
     {
@@ -58,12 +70,12 @@ public sealed class SmtpEmailService : IEmailService
     }
 
     /// <inheritdoc />
-    public Task VerifyEmail(Contact to, Uri activationLink, CancellationToken cancellationToken = default)
+    public Task VerifyEmail(Contact to, Uri verificationLink, CancellationToken cancellationToken = default)
     {
         var data = new
         {
             To = to,
-            ActivationLink = activationLink
+            ActivationLink = verificationLink
         };
 
         SendMailAndForget(to, _templates.EmailVerification, data, cancellationToken);

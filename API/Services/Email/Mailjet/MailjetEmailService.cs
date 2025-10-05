@@ -36,6 +36,21 @@ public sealed class MailjetEmailService : IEmailService, IDisposable
 
     #region Interface methods
 
+    public async Task ActivateAccount(Contact to, Uri activationLink, CancellationToken cancellationToken = default)
+    {
+        await SendMail(new TemplateMail
+        {
+            From = _sender,
+            Subject = "Activate your account",
+            To = [to],
+            TemplateId = _options.Template.ActivateAccount,
+            Variables = new Dictionary<string, string>
+            {
+                {"link", activationLink.ToString() },
+            }
+        }, cancellationToken);
+    }
+
     /// <inheritdoc />
     public async Task PasswordReset(Contact to, Uri resetLink, CancellationToken cancellationToken = default)
     {
@@ -53,7 +68,7 @@ public sealed class MailjetEmailService : IEmailService, IDisposable
     }
 
     /// <inheritdoc />
-    public async Task VerifyEmail(Contact to, Uri activationLink, CancellationToken cancellationToken = default)
+    public async Task VerifyEmail(Contact to, Uri verificationLink, CancellationToken cancellationToken = default)
     {
         await SendMail(new TemplateMail
         {
@@ -63,7 +78,7 @@ public sealed class MailjetEmailService : IEmailService, IDisposable
             TemplateId = _options.Template.VerifyEmail,
             Variables = new Dictionary<string, string>
             {
-                {"link", activationLink.ToString() },
+                {"link", verificationLink.ToString() },
             }
         }, cancellationToken);
     }
