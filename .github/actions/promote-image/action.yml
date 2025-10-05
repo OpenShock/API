@@ -2,6 +2,9 @@
   image:
     required: true
     description: Image name
+  run-tag:
+    required: true
+    description: Tag for this run
   latest:
     required: false
     description: Tag image as latest
@@ -40,4 +43,4 @@ runs:
         done
         
         # Create/overwrite manifest tags pointing at the original digest
-        docker buildx imagetools create "${ARGS[@]}" "${{ inputs.image }}"
+        docker buildx imagetools create "${ARGS[@]}" "${{ inputs.image }}:${{ inputs.run-tag }}"

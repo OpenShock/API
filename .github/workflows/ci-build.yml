@@ -122,5 +122,6 @@ jobs:
       - name: Build ${{ matrix.image }}
         uses: ./.github/actions/promote-image
         with:
-          image: ${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ matrix.image }}:rn-${{ github.run_number }}-a${{ github.run_attempt }}
+          image: ${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ matrix.image }}
+          run-tag: rn-${{ github.run_number }}-a${{ github.run_attempt }}
           latest: ${{ inputs.latest || false }}
