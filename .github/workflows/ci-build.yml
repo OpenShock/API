@@ -29,8 +29,6 @@ name: ci-build
 env:
   REGISTRY: ghcr.io
   DOTNET_VERSION: 9.0.x
-  
-  PUSH: ${{ inputs.push || (github.ref_protected && github.event_name != 'pull_request') }}
 
 jobs:
 
@@ -91,7 +89,7 @@ jobs:
         uses: ./.github/actions/build-app
         with:
           dockerfile: ${{ matrix.dockerfile }}
-          push: ${{ env.PUSH }}
+          push: ${{ inputs.push || (github.ref_protected && github.event_name != 'pull_request') }}
           image: ${{ matrix.image }}
           platforms: ${{ inputs.platforms || 'linux/amd64' }}
           
@@ -99,7 +97,7 @@ jobs:
     name: Promote Image (${{ matrix.image }})
     needs: [build, tests]
     runs-on: ubuntu-latest
-    if: ${{ env.PUSH }}
+    if: ${{ inputs.push || (github.ref_protected && github.event_name != 'pull_request') }}
     strategy:
       fail-fast: false
       matrix:
