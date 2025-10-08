@@ -118,7 +118,7 @@ public sealed class AccountService : IAccountService
         await _db.SaveChangesAsync();
 
         await _emailService.ActivateAccount(new Contact(email, username),
-            new Uri($"https://next.openshock.app/activate?token={token}"));
+            new Uri(_frontendConfig.BaseUrl, $"/activate?token={token}"));
         return new Success<User>(user);
     }
 
@@ -196,7 +196,7 @@ public sealed class AccountService : IAccountService
             {
                 await _emailService.ActivateAccount(
                     new Contact(email, username),
-                    new Uri($"https://next.openshock.app/activate?token={activationToken}")
+                    new Uri(_frontendConfig.BaseUrl, $"/activate?token={activationToken}")
                 );
             }
 
