@@ -13,6 +13,9 @@ inputs:
   platforms:
     required: true
     description: Image platforms
+  tag-prefix:
+    required: true
+    description: Tag prefix (e.g. 'rn' for 'rn-123-a1')
 
 runs:
   using: composite
@@ -26,7 +29,7 @@ runs:
         flavor: |
           latest=false
         tags: |
-          type=raw,value=rn-${{ github.run_number }}-a${{ github.run_attempt }}
+          type=raw,value=${{ inputs.tag-prefix }}-${{ github.run_number }}-a${{ github.run_attempt }}
 
     - name: Build and push
       uses: docker/build-push-action@v6

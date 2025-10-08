@@ -22,6 +22,11 @@ on:
         required: false
         type: boolean
         default: false
+      tag-prefix:
+        description: 'Tag prefix to use'
+        required: false
+        type: string
+        default: 'rn'
   workflow_dispatch:
 
 name: ci-build
@@ -92,6 +97,7 @@ jobs:
           push: ${{ inputs.push || (github.ref_protected && github.event_name != 'pull_request') }}
           image: ${{ matrix.image }}
           platforms: ${{ inputs.platforms || 'linux/amd64' }}
+          tag-prefix: ${{ inputs.tag-prefix }}
           
   promote-image:
     name: Promote Image (${{ matrix.image }})
@@ -121,7 +127,7 @@ jobs:
         uses: ./.github/actions/promote-image
         with:
           image: ${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ matrix.image }}
-          run-tag: rn-${{ github.run_number }}-a${{ github.run_attempt }}
+          run-tag: ${{ inputs.tag-prefix }}-${{ github.run_number }}-a${{ github.run_attempt }}
           latest: ${{ inputs.latest || false }}
           
   deploy-prod-workflow:
@@ -138,7 +144,7 @@ jobs:
           event-type: update-backend-prod
           client-payload: |
             {
-              "tag": "rn-${{ github.run_number }}-a${{ github.run_attempt }}"
+              "tag": "${{ inputs.tag-prefix }}-${{ github.run_number }}-a${{ github.run_attempt }}"
             }
             
   deploy-staging:
@@ -156,7 +162,7 @@ jobs:
           event-type: update-backend-staging
           client-payload: |
             {
-              "tag": "rn-${{ github.run_number }}-a${{ github.run_attempt }}"
+              "tag": "${{ inputs.tag-prefix }}-${{ github.run_number }}-a${{ github.run_attempt }}"
             }
 
   deploy-dev:
