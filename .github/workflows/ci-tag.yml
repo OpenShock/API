@@ -34,3 +34,4 @@ jobs:
     with:
       platforms: linux/amd64,linux/arm64
       latest: ${{ needs.get-latest-tag.outputs.latest-tag == github.ref_name }}
+      push: true

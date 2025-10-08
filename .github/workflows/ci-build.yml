@@ -17,6 +17,11 @@ on:
         required: false
         type: boolean
         default: false
+      push:
+        description: 'Push image to registry (makes it push if it usually wouldnt)'
+        required: false
+        type: boolean
+        default: false
   workflow_dispatch:
 
 name: ci-build
@@ -24,6 +29,8 @@ name: ci-build
 env:
   REGISTRY: ghcr.io
   DOTNET_VERSION: 9.0.x
+  
+  PUSH: ${{ inputs.push || (github.ref_protected && github.event_name != 'pull_request') }}
 
 jobs:
 
@@ -84,7 +91,7 @@ jobs:
         uses: ./.github/actions/build-app
         with:
           dockerfile: ${{ matrix.dockerfile }}
-          push: ${{ github.ref_protected && github.event_name != 'pull_request' }}
+          push: ${{ env.PUSH }}
           image: ${{ matrix.image }}
           platforms: ${{ inputs.platforms || 'linux/amd64' }}
           
@@ -92,7 +99,7 @@ jobs:
     name: Promote Image (${{ matrix.image }})
     needs: [build, tests]
     runs-on: ubuntu-latest
-    if: ${{ github.ref_protected && github.event_name != 'pull_request' }}
+    if: ${{ env.PUSH }}
     strategy:
       fail-fast: false
       matrix:
