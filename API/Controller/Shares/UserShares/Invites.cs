@@ -35,9 +35,10 @@ file static class QueryHelper
                     Name = x.RecipientUser.Name,
                     Image = x.RecipientUser.GetImageUrl()
                 },
-            Shockers = x.ShockerMappings.Select(y => new ShockerPermLimitPairWithId
+            Shockers = x.ShockerMappings.Select(y => new ShockerPermLimitPairWithIdAndName
             {
                 Id = y.ShockerId,
+                Name = y.Shocker.Name,
                 Limits = new ShockerLimits
                 {
                     Intensity = y.MaxIntensity,
@@ -220,5 +221,5 @@ public sealed class ShareInviteBaseItem : ShareRequestBase
 
 public sealed class ShareInviteBaseDetails : ShareRequestBase
 {
-    public required IEnumerable<ShockerPermLimitPairWithId> Shockers { get; set; }
+    public required IEnumerable<ShockerPermLimitPairWithIdAndName> Shockers { get; set; }
 }
