@@ -1,9 +1,7 @@
-﻿using Microsoft.Extensions.Options;
-using OpenShock.Common.Redis;
+﻿using OpenShock.Common.Redis;
 using OpenShock.Common.Utils;
 using OpenShock.LiveControlGateway.Options;
 using Redis.OM.Contracts;
-using Redis.OM.Searching;
 
 namespace OpenShock.LiveControlGateway;
 

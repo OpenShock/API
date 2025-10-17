@@ -20,6 +20,9 @@ public sealed class MailJetOptions
     public sealed class MailjetTemplateOptions
     {
         [Required]
+        public ulong ActivateAccount { get; set; }
+        
+        [Required]
         public required ulong PasswordReset { get; init; }
 
         [Required]

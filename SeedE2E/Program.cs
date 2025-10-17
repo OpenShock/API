@@ -2,11 +2,9 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
 using OpenShock.Common;
 using OpenShock.Common.Extensions;
 using OpenShock.Common.OpenShockDb;
-using OpenShock.Common.Options;
 using OpenShock.SeedE2E.Seeders;
 
 var builder = OpenShockApplication.CreateDefaultBuilder<Program>(args);

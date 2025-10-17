@@ -1,5 +1,4 @@
 ﻿using OpenShock.Common.Query;
-using TUnit.Assertions.AssertConditions.Throws;
 using Bogus;
 
 namespace OpenShock.Common.Tests.Query;
@@ -145,7 +144,7 @@ public class ExpressionBuilderTests
         var result = TestArray.AsQueryable().Where(expression).ToArray();
 
         // Assert
-        await Assert.That(result).ContainsOnly(x => x.IsActive == true);
+        await Assert.That(result).ContainsOnly(x => x.IsActive);
     }
 
     [Test]

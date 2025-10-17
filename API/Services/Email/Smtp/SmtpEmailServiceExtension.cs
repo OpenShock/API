@@ -16,6 +16,7 @@ public static class SmtpEmailServiceExtension
 
         builder.Services.AddSingleton(new SmtpServiceTemplates
         {
+            AccountActivation = SmtpTemplate.ParseFromFileThrow("SmtpTemplates/AccountActivation.liquid").Result,
             PasswordReset = SmtpTemplate.ParseFromFileThrow("SmtpTemplates/PasswordReset.liquid").Result,
             EmailVerification = SmtpTemplate.ParseFromFileThrow("SmtpTemplates/EmailVerification.liquid").Result
         });

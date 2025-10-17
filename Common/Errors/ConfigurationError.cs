@@ -1,5 +1,4 @@
 ﻿using System.Net;
-using OpenShock.Common.OpenShockDb;
 using OpenShock.Common.Problems;
 
 namespace OpenShock.Common.Errors;

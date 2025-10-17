@@ -16,13 +16,19 @@ public class NoneEmailService : IEmailService
         _logger = logger;
     }
     
+    public Task ActivateAccount(Contact to, Uri activationLink, CancellationToken cancellationToken = default)
+    {
+        _logger.LogError("Account activation email not sent, this is a noop implementation of the email service");
+        return Task.CompletedTask;
+    }
+
     public Task PasswordReset(Contact to, Uri resetLink, CancellationToken cancellationToken = default)
     {
         _logger.LogError("Password reset email not sent, this is a noop implementation of the email service");
         return Task.CompletedTask;
     }
 
-    public Task VerifyEmail(Contact to, Uri activationLink, CancellationToken cancellationToken = default)
+    public Task VerifyEmail(Contact to, Uri verificationLink, CancellationToken cancellationToken = default)
     {
         _logger.LogError("Email verification email not sent, this is a noop implementation of the email service");
         return Task.CompletedTask;

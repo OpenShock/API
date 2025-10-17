@@ -1,9 +1,7 @@
 ﻿using System.Net;
-using Microsoft.Extensions.Options;
 using OneOf;
 using OneOf.Types;
 using OpenShock.API.Options;
-using OpenShock.Common.Options;
 
 namespace OpenShock.API.Services.Turnstile;
 

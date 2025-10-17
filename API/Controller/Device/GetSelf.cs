@@ -2,7 +2,6 @@
 using Asp.Versioning;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using OpenShock.API.Controller.Users;
 using OpenShock.API.Models.Response;
 using OpenShock.Common.Authentication;
 using OpenShock.Common.Extensions;

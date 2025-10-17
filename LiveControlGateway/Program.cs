@@ -1,6 +1,5 @@
 using Microsoft.Extensions.Options;
 using OpenShock.Common;
-using OpenShock.Common.DeviceControl;
 using OpenShock.Common.Extensions;
 using OpenShock.Common.Services;
 using OpenShock.Common.Services.Device;
