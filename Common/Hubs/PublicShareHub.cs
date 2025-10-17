@@ -2,7 +2,6 @@
 using Microsoft.EntityFrameworkCore;
 using OpenShock.Common.Authentication.Services;
 using OpenShock.Common.Constants;
-using OpenShock.Common.DeviceControl;
 using OpenShock.Common.Extensions;
 using OpenShock.Common.Models;
 using OpenShock.Common.OpenShockDb;

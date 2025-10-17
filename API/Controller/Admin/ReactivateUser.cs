@@ -1,9 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 using OpenShock.API.Services.Account;
 using OpenShock.Common.Errors;
-using OpenShock.Common.Models;
-using Z.EntityFramework.Plus;
 
 namespace OpenShock.API.Controller.Admin;
 

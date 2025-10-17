@@ -2,7 +2,6 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using OpenShock.Common.Redis;
-using Redis.OM;
 using System.Net.Mime;
 using Asp.Versioning;
 using Microsoft.AspNetCore.RateLimiting;

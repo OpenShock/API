@@ -1,5 +1,4 @@
 ﻿using System.Diagnostics.CodeAnalysis;
-using System.Security.Claims;
 using OpenShock.Common.Constants;
 
 namespace OpenShock.Common.Extensions;

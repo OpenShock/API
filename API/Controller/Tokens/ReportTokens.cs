@@ -1,10 +1,7 @@
 ﻿using System.Drawing;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using OpenShock.API.Models.Requests;
-using OpenShock.Common.Authentication;
-using OpenShock.Common.Errors;
 using OpenShock.Common.Problems;
 using OpenShock.Common.Utils;
 using System.Net;
@@ -41,7 +38,7 @@ public sealed partial class TokensController
         var turnStile = await turnstileService.VerifyUserResponseTokenAsync(body.TurnstileResponse, remoteIP, cancellationToken);
         if (!turnStile.IsT0)
         {
-            var cfErrors = turnStile.AsT1.Value!;
+            var cfErrors = turnStile.AsT1.Value;
             if (cfErrors.All(err => err == CloudflareTurnstileError.InvalidResponse))
                 return Problem(TurnstileError.InvalidTurnstile);
 

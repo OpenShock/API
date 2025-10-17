@@ -1,6 +1,5 @@
 ﻿using Asp.Versioning;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Options;
 using OpenShock.Common;
 using OpenShock.Common.Utils;
 using OpenShock.LiveControlGateway.Options;
