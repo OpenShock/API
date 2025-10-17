@@ -818,6 +818,13 @@ public class OpenShockContext : DbContext, IDataProtectionKeyContext
             entity.Property(e => e.CreatedAt)
                 .HasDefaultValueSql("CURRENT_TIMESTAMP")
                 .HasColumnName("created_at");
+
+            entity.HasData(
+                new UserNameBlacklist { Id = Guid.CreateVersion7(), Value = "OpenShock", MatchType = MatchTypeEnum.Exact, CreatedAt = DateTime.UtcNow },
+                new UserNameBlacklist { Id = Guid.CreateVersion7(), Value = "Administrator", MatchType = MatchTypeEnum.Exact, CreatedAt = DateTime.UtcNow },
+                new UserNameBlacklist { Id = Guid.CreateVersion7(), Value = "Admin", MatchType = MatchTypeEnum.Exact, CreatedAt = DateTime.UtcNow },
+                new UserNameBlacklist { Id = Guid.CreateVersion7(), Value = "Support", MatchType = MatchTypeEnum.Exact, CreatedAt = DateTime.UtcNow }
+            );
         });
 
         modelBuilder.Entity<EmailProviderBlacklist>(entity =>
