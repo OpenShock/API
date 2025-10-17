@@ -24,8 +24,8 @@ public sealed partial class SharesController
     [MapToApiVersion("1")]
     public async Task<IActionResult> DeleteShareCode([FromRoute] Guid shareCodeId)
     {
-        var affected = await Queryable
-            .Where<ShockerShareCode>(_db.ShockerShareCodes, x => x.Id == shareCodeId)
+        var affected = await _db.ShockerShareCodes
+            .Where(x => x.Id == shareCodeId)
             .WhereIsUserOrPrivileged(x => x.Shocker.Device.Owner, CurrentUser)
             .ExecuteDeleteAsync();
         if (affected <= 0)

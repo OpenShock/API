@@ -22,11 +22,9 @@ public static class JsonWebSocketUtils
         {
             ValueWebSocketReceiveResult result;
             await using var message = RecyclableMemory.GetStream();
-            var bytes = 0;
             do
             {
                 result = await socket.ReceiveAsync(new Memory<byte>(buffer), cancellationToken);
-                bytes += result.Count;
                 if (result.MessageType == WebSocketMessageType.Close)
                 {
                     return new WebsocketClosure();

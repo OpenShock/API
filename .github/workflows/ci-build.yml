@@ -17,12 +17,23 @@ on:
         required: false
         type: boolean
         default: false
+      push:
+        description: 'Push image to registry (makes it push if it usually wouldnt)'
+        required: false
+        type: boolean
+        default: false
+      tag-prefix:
+        description: 'Tag prefix to use'
+        required: false
+        type: string
+        default: 'rn'
   workflow_dispatch:
 
 name: ci-build
 
 env:
   REGISTRY: ghcr.io
+  DOTNET_VERSION: 9.0.x
 
 jobs:
 
@@ -34,31 +45,25 @@ jobs:
       matrix:
         include:
           - name: common-unit
-            dockerfile: docker/Base.Dockerfile
-            image: test-common
-            target: test-common
+            project: Common.Tests/Common.Tests.csproj
           - name: api-integration
-            dockerfile: docker/API.Dockerfile
-            image: api-integration-tests
-            target: integration-test-api
+            project: API.IntegrationTests/API.IntegrationTests.csproj
 
     steps:
       - name: Checkout
         uses: actions/checkout@v5
 
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+      - uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: '${{ env.DOTNET_VERSION }}'
 
       - name: Run ${{ matrix.name }} tests
-        uses: ./.github/actions/test-app
-        with:
-          dockerfile: ${{ matrix.dockerfile }}
-          image: ${{ matrix.image }}
-          target: ${{ matrix.target }}
+        run: |
+          set -euo pipefail
+          dotnet test -c Release ${{ matrix.project }}
 
   build:
     name: Build (${{ matrix.image }})
-    needs: tests
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -74,7 +79,7 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v5
-
+        
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
@@ -89,15 +94,80 @@ jobs:
         uses: ./.github/actions/build-app
         with:
           dockerfile: ${{ matrix.dockerfile }}
-          push: ${{ github.ref_protected && github.event_name != 'pull_request' }}
+          push: ${{ inputs.push || (github.ref_protected && github.event_name != 'pull_request') }}
           image: ${{ matrix.image }}
           platforms: ${{ inputs.platforms || 'linux/amd64' }}
-          latest: ${{ inputs.latest || false }}
-        
+          tag-prefix: ${{ inputs.tag-prefix  || 'rn' }}
           
+  promote-image:
+    name: Promote Image (${{ matrix.image }})
+    needs: [build, tests]
+    runs-on: ubuntu-latest
+    if: ${{ inputs.push || (github.ref_protected && github.event_name != 'pull_request') }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - image: api
+          - image: live-control-gateway
+          - image: cron
+    
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Log in to Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Promote Manifest ${{ matrix.image }}
+        uses: ./.github/actions/promote-image
+        with:
+          image: ${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ matrix.image }}
+          run-tag: ${{ inputs.tag-prefix  || 'rn' }}-${{ github.run_number }}-a${{ github.run_attempt }}
+          latest: ${{ inputs.latest || false }}
+          
+  deploy-prod-workflow:
+    runs-on: ubuntu-latest
+    needs: promote-image
+    if: ${{ github.ref_type == 'branch' && github.event_name != 'pull_request' && github.ref_name == 'master' }}
+    environment: production
+    steps:
+      - name: Send repository dispatch
+        uses: peter-evans/repository-dispatch@v4
+        with:
+          token: ${{ secrets.GITOPS_PAT }}
+          repository: openshock/kubernetes-cluster-gitops
+          event-type: update-backend-prod
+          client-payload: |
+            {
+              "tag": "${{ inputs.tag-prefix  || 'rn' }}-${{ github.run_number }}-a${{ github.run_attempt }}"
+            }
+            
+  deploy-staging:
+    runs-on: ubuntu-latest
+    needs: promote-image
+    if: ${{ github.ref_type == 'branch' && github.event_name != 'pull_request' && github.ref_name == 'develop' }}
+    environment: staging
+
+    steps:
+      - name: Send repository dispatch
+        uses: peter-evans/repository-dispatch@v4
+        with:
+          token: ${{ secrets.GITOPS_PAT }}
+          repository: openshock/kubernetes-cluster-gitops
+          event-type: update-backend-staging
+          client-payload: |
+            {
+              "tag": "${{ inputs.tag-prefix  || 'rn' }}-${{ github.run_number }}-a${{ github.run_attempt }}"
+            }
+
   deploy-dev:
     runs-on: ubuntu-latest
-    needs: build
+    needs: promote-image
     if: ${{ github.ref_type == 'branch' && github.event_name != 'pull_request' && github.ref_name == 'develop' }}
     environment: development
 
@@ -111,22 +181,3 @@ jobs:
         with:
           url: ${{ vars.WATCHTOWER_URL }}
           token: ${{ secrets.WATCHTOWER_TOKEN }}
-          
-          
-  deploy-production:
-    runs-on: ubuntu-latest
-    needs: build
-    if: ${{ github.ref_type == 'branch' && github.event_name != 'pull_request' && github.ref_name == 'master' }}
-    environment: production
-
-    steps:
-      - uses: actions/checkout@v5
-        with:
-          sparse-checkout: |
-            .github
-
-      - uses: ./.github/actions/kubernetes-rollout-restart
-        with:
-          apiurl: ${{ secrets.KUBERNETES_APIURL }}
-          token: ${{ secrets.KUBERNETES_TOKEN }}
-          deployments: ${{ vars.DEPLOYMENT_NAMES }}
