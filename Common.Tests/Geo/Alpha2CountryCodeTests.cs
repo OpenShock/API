@@ -1,5 +1,4 @@
 ﻿using OpenShock.Common.Geo;
-using TUnit.Assertions.AssertConditions.Throws;
 
 namespace OpenShock.Common.Tests.Geo;
 
