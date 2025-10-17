@@ -9,7 +9,6 @@ using OneOf;
 using OneOf.Types;
 using OpenShock.Common.Authentication;
 using OpenShock.Common.Authentication.Attributes;
-using OpenShock.Common.Authentication.Services;
 using OpenShock.Common.Constants;
 using OpenShock.Common.Errors;
 using OpenShock.Common.Models;

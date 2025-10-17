@@ -1,7 +1,5 @@
 ﻿using System.Buffers;
-using System.Diagnostics;
 using System.Net.WebSockets;
-using System.Text;
 using System.Text.Json;
 using Microsoft.IO;
 using OpenShock.Common.JsonSerialization;

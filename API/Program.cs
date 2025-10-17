@@ -1,5 +1,4 @@
 using Microsoft.AspNetCore.Authentication;
-using Microsoft.AspNetCore.Authentication.OAuth;
 using Microsoft.AspNetCore.Http.Connections;
 using OpenShock.API.Options.OAuth;
 using OpenShock.API.Realtime;
@@ -10,7 +9,6 @@ using OpenShock.API.Services.OAuthConnection;
 using OpenShock.API.Services.Turnstile;
 using OpenShock.API.Services.UserService;
 using OpenShock.Common;
-using OpenShock.Common.DeviceControl;
 using OpenShock.Common.Extensions;
 using OpenShock.Common.Hubs;
 using OpenShock.Common.Services;

@@ -2,7 +2,6 @@
 using Microsoft.EntityFrameworkCore;
 using OpenShock.API.Controller.Admin.DTOs;
 using OpenShock.Common.Errors;
-using OpenShock.Common.Models;
 using OpenShock.Common.Problems;
 using OpenShock.Common.Services.Configuration;
 using System.Net.Mime;

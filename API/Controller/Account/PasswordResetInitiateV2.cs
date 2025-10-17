@@ -1,15 +1,11 @@
 ﻿using System.Net;
 using System.Net.Mime;
 using Microsoft.AspNetCore.Mvc;
-using OpenShock.Common.Models;
 using Asp.Versioning;
 using Microsoft.AspNetCore.RateLimiting;
 using OpenShock.API.Errors;
 using OpenShock.API.Models.Requests;
-using OpenShock.API.Services.Account;
 using OpenShock.API.Services.Turnstile;
-using OpenShock.Common.DataAnnotations;
-using OpenShock.Common.Errors;
 using OpenShock.Common.Problems;
 using OpenShock.Common.Utils;
 

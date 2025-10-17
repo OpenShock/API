@@ -1,7 +1,6 @@
 ﻿using System.Text.Encodings.Web;
 using Fluid;
 using MailKit.Net.Smtp;
-using Microsoft.Extensions.Options;
 using MimeKit;
 using MimeKit.Text;
 using OpenShock.API.Options;

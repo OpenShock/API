@@ -1,8 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
-using OpenShock.Common.Models;
-using OpenShock.Common.OpenShockDb;
+﻿using OpenShock.Common.OpenShockDb;
 using System.ComponentModel.DataAnnotations;
-using System.Net.Mime;
 
 namespace OpenShock.API.Controller.Admin.DTOs;
 
