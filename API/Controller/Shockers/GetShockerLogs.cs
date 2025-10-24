@@ -81,21 +81,34 @@ public sealed partial class ShockerController
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status404NotFound, MediaTypeNames.Application.ProblemJson)] // ShockerNotFound
     [MapToApiVersion("2")]
     public async Task<IActionResult> GetShockerLogsV2(
-        [FromQuery] Guid[] shockerIds,
+        [FromQuery] Guid[]? shockerIds,
         [FromQuery(Name = "before")] DateTime before,
         [FromQuery, Range(1, 500)] uint limit = 100)
     {
-        if (shockerIds.Length == 0)
-            return Ok(Array.Empty<ShockerLogEntry>());
+        // Determine the set of shockers to include
+        List<Guid> ownedIds;
 
-        // Validate ownership of all requested shockers
-        var ownedIds = await _db.Shockers
-            .Where(s => s.Device.OwnerId == CurrentUser.Id && shockerIds.Contains(s.Id))
-            .Select(s => s.Id)
-            .ToListAsync();
+        if (shockerIds is { Length: > 0 })
+        {
+            ownedIds = await _db.Shockers
+                .Where(s => s.Device.OwnerId == CurrentUser.Id && shockerIds.Contains(s.Id))
+                .Select(s => s.Id)
+                .ToListAsync();
 
-        if (ownedIds.Count != shockerIds.Length)
-            return Problem(ShockerError.ShockerNotFound);
+            if (ownedIds.Count != shockerIds.Length)
+                return Problem(ShockerError.ShockerNotFound);
+        }
+        else
+        {
+            // Select all user's shockers if none provided
+            ownedIds = await _db.Shockers
+                .Where(s => s.Device.OwnerId == CurrentUser.Id)
+                .Select(s => s.Id)
+                .ToListAsync();
+
+            if (ownedIds.Count == 0)
+                return Ok(Array.Empty<ShockerLogEntry>());
+        }
 
         // Normalize "before" to UTC; default to now if not provided
         DateTime beforeUtc = before == default
