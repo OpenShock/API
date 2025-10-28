@@ -6,10 +6,9 @@ namespace OpenShock.API.Controller.Sessions;
 public sealed partial class SessionsController
 {
     [HttpGet]
-    public async Task<IEnumerable<LoginSessionResponse>> ListSessions()
+    public IAsyncEnumerable<LoginSessionResponse> ListSessions()
     {
-        var sessions = await _sessionService.ListSessionsByUserIdAsync(CurrentUser.Id);
-
-        return sessions.Select(LoginSessionResponse.MapFrom);
+        return _sessionService.ListSessionsByUserIdAsync(CurrentUser.Id)
+            .Select(LoginSessionResponse.MapFrom);
     }
 }

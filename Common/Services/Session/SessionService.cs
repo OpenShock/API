@@ -43,10 +43,9 @@ public sealed class SessionService : ISessionService
         return new CreateSessionResult(id, token);
     }
 
-    public async Task<IReadOnlyList<LoginSession>> ListSessionsByUserIdAsync(Guid userId)
+    public IAsyncEnumerable<LoginSession> ListSessionsByUserIdAsync(Guid userId)
     {
-        var list = await _loginSessions.Where(x => x.UserId == userId).ToListAsync();
-        return list.AsReadOnly();
+        return _loginSessions.Where(x => x.UserId == userId);
     }
 
     public async Task<LoginSession?> GetSessionByTokenAsync(string sessionToken)
