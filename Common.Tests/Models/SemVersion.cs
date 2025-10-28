@@ -1,6 +1,5 @@
 ﻿using System.Text;
 using OpenShock.Common.Models;
-using OpenShock.Serialization.Types;
 
 namespace OpenShock.Common.Tests.Models;
 
