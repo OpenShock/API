@@ -1,4 +1,6 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using System.Net.Mime;
+using System.Runtime.CompilerServices;
+using Microsoft.AspNetCore.Mvc;
 using OpenShock.API.Models.Response;
 
 namespace OpenShock.API.Controller.Sessions;
@@ -6,10 +8,12 @@ namespace OpenShock.API.Controller.Sessions;
 public sealed partial class SessionsController
 {
     [HttpGet]
-    public async Task<IEnumerable<LoginSessionResponse>> ListSessions()
+    [ProducesResponseType<LoginSessionResponse[]>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
+    public async IAsyncEnumerable<LoginSessionResponse> ListSessions([EnumeratorCancellation] CancellationToken cancellationToken)
     {
-        var sessions = await _sessionService.ListSessionsByUserIdAsync(CurrentUser.Id);
-
-        return sessions.Select(LoginSessionResponse.MapFrom);
+        await foreach (var session in _sessionService.ListSessionsByUserIdAsync(CurrentUser.Id).WithCancellation(cancellationToken))
+        {
+            yield return LoginSessionResponse.MapFrom(session);
+        }
     }
 }
