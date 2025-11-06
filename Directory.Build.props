@@ -27,7 +27,7 @@
 
   <PropertyGroup>
     <ImplicitUsings>enable</ImplicitUsings>
-    <LangVersion>Preview</LangVersion>
+    <LangVersion>Latest</LangVersion>
     <Nullable>enable</Nullable>
     <AssemblyName>$(Product)</AssemblyName>
     <RootNamespace>$(Product.Replace(" ", "_"))</RootNamespace>
