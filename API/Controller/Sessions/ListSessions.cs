@@ -9,9 +9,10 @@ public sealed partial class SessionsController
 {
     [HttpGet]
     [ProducesResponseType<LoginSessionResponse[]>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
-    public IAsyncEnumerable<LoginSessionResponse> ListSessions()
+    public IAsyncEnumerable<LoginSessionResponse> ListSessions([EnumeratorCancellation] CancellationToken cancellationToken)
     {
         return _sessionService.ListSessionsByUserIdAsync(CurrentUser.Id)
+            .WithCancellation(cancellationToken)
             .Select(LoginSessionResponse.MapFrom);
     }
 }
