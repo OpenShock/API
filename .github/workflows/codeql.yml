@@ -9,7 +9,7 @@ on:
     - cron: '0 6 * * 1'
 
 env:
-  DOTNET_VERSION: 9.x.x
+  DOTNET_VERSION: 10.x.x
 
 jobs:
   analyze:
