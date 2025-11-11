@@ -21,7 +21,7 @@ builder.Services.AddHangfire(hangfire =>
         c.UseNpgsqlConnection(databaseOptions.Conn)));
 builder.Services.AddHangfireServer();
 
-builder.Services.AddOpenApiExt<Program>();
+builder.AddOpenApiExt<Program>();
 
 var app = builder.Build();
 

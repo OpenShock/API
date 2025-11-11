@@ -30,7 +30,7 @@ builder.Services.AddScoped<IDeviceService, DeviceService>();
 builder.Services.AddScoped<IControlSender, ControlSender>();
 builder.Services.AddScoped<IOtaService, OtaService>();
 
-builder.Services.AddOpenApiExt<Program>();
+builder.AddOpenApiExt<Program>();
 
 //services.AddHealthChecks().AddCheck<DatabaseHealthCheck>("database");
 

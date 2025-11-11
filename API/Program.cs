@@ -103,7 +103,7 @@ builder.Services.AddScoped<IOAuthConnectionService, OAuthConnectionService>();
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<ILCGNodeProvisioner, LCGNodeProvisioner>();
 
-builder.Services.AddOpenApiExt<Program>();
+builder.AddOpenApiExt<Program>();
 
 builder.AddCloudflareTurnstileService();
 builder.AddEmailService();
