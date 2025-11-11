@@ -1,5 +1,5 @@
 ﻿using Microsoft.AspNetCore.Authorization;
-using Microsoft.OpenApi.Models;
+using Microsoft.OpenApi;
 using OpenShock.Common.Authentication;
 using OpenShock.Common.DataAnnotations.Interfaces;
 using Swashbuckle.AspNetCore.SwaggerGen;
@@ -8,7 +8,7 @@ namespace OpenShock.Common.Swagger;
 
 public sealed class AttributeFilter : ISchemaFilter, IParameterFilter, IOperationFilter
 {
-    public void Apply(OpenApiParameter parameter, ParameterFilterContext context)
+    public void Apply(IOpenApiParameter parameter, ParameterFilterContext context)
     {
         // Apply OpenShock Parameter Attributes
         foreach (var attribute in context.ParameterInfo?.GetCustomAttributes(true).OfType<IParameterAttribute>() ?? [])
@@ -23,7 +23,7 @@ public sealed class AttributeFilter : ISchemaFilter, IParameterFilter, IOperatio
         }
     }
 
-    public void Apply(OpenApiSchema schema, SchemaFilterContext context)
+    public void Apply(IOpenApiSchema schema, SchemaFilterContext context)
     {
         // Apply OpenShock Parameter Attributes
         foreach (var attribute in context.MemberInfo?.GetCustomAttributes(true).OfType<IParameterAttribute>() ?? [])

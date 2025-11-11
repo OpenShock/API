@@ -1,6 +1,5 @@
 ﻿using System.ComponentModel.DataAnnotations;
-using Microsoft.OpenApi.Any;
-using Microsoft.OpenApi.Models;
+using Microsoft.OpenApi;
 using OpenShock.Common.DataAnnotations.Interfaces;
 using OpenShock.Common.Validation;
 
@@ -12,7 +11,7 @@ namespace OpenShock.Common.DataAnnotations;
 /// <remarks>
 /// Inherits from <see cref="ValidationAttribute"/>.
 /// </remarks>
-[AttributeUsage(AttributeTargets.Property | AttributeTargets.Field | AttributeTargets.Parameter, AllowMultiple = false)]
+[AttributeUsage(AttributeTargets.Property | AttributeTargets.Field | AttributeTargets.Parameter)]
 public sealed class UsernameAttribute : ValidationAttribute, IParameterAttribute
 {
     /// <summary>
@@ -56,7 +55,7 @@ public sealed class UsernameAttribute : ValidationAttribute, IParameterAttribute
     {
         //if (ShouldValidate) schema.Pattern = ???;
         
-        schema.Example = new OpenApiString(ExampleValue);
+        schema.Example = ExampleValue;
     }
 
     /// <inheritdoc/>

@@ -1,4 +1,4 @@
-﻿using Microsoft.OpenApi.Models;
+﻿using Microsoft.OpenApi;
 using OpenShock.Common.Constants;
 using OpenShock.Common.DataAnnotations;
 using OpenShock.Common.Models;

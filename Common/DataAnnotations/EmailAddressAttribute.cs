@@ -1,7 +1,6 @@
 ﻿using System.ComponentModel.DataAnnotations;
 using System.Net.Mail;
-using Microsoft.OpenApi.Any;
-using Microsoft.OpenApi.Models;
+using Microsoft.OpenApi;
 using OpenShock.Common.Constants;
 using OpenShock.Common.DataAnnotations.Interfaces;
 
@@ -13,7 +12,7 @@ namespace OpenShock.Common.DataAnnotations;
 /// <remarks>
 /// Inherits from <see cref="ValidationAttribute"/>.
 /// </remarks>
-[AttributeUsage(AttributeTargets.Property | AttributeTargets.Field | AttributeTargets.Parameter, AllowMultiple = false)]
+[AttributeUsage(AttributeTargets.Property | AttributeTargets.Field | AttributeTargets.Parameter)]
 public sealed class EmailAddressAttribute : ValidationAttribute, IParameterAttribute
 {
     /// <summary>
@@ -61,7 +60,7 @@ public sealed class EmailAddressAttribute : ValidationAttribute, IParameterAttri
     {
         //if (ShouldValidate) schema.Pattern = ???;
         
-        schema.Example = new OpenApiString(ExampleValue);
+        schema.Example = ExampleValue;
     }
 
     /// <inheritdoc/>
