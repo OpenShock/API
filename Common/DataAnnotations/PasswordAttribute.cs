@@ -1,7 +1,5 @@
 ﻿using System.ComponentModel.DataAnnotations;
-using Microsoft.OpenApi;
 using OpenShock.Common.Constants;
-using OpenShock.Common.DataAnnotations.Interfaces;
 
 namespace OpenShock.Common.DataAnnotations;
 
@@ -12,7 +10,7 @@ namespace OpenShock.Common.DataAnnotations;
 /// Inherits from <see cref="ValidationAttribute"/>.
 /// </remarks>
 [AttributeUsage(AttributeTargets.Property | AttributeTargets.Field | AttributeTargets.Parameter)]
-public sealed class PasswordAttribute : ValidationAttribute, IParameterAttribute
+public sealed class PasswordAttribute : ValidationAttribute
 {
     /// <summary>
     /// Example value used to generate OpenApi documentation.
@@ -53,15 +51,4 @@ public sealed class PasswordAttribute : ValidationAttribute, IParameterAttribute
         
         return ValidationResult.Success;
     }
-
-    /// <inheritdoc/>
-    public void Apply(OpenApiSchema schema)
-    {
-        //if (ShouldValidate) schema.Pattern = ???;
-        
-        schema.Example = ExampleValue;
-    }
-
-    /// <inheritdoc/>
-    public void Apply(OpenApiParameter parameter) => Apply(parameter.Schema);
 }

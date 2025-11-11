@@ -1,10 +1,10 @@
 using Microsoft.Extensions.Options;
 using OpenShock.Common;
 using OpenShock.Common.Extensions;
+using OpenShock.Common.OpenAPI;
 using OpenShock.Common.Services;
 using OpenShock.Common.Services.Device;
 using OpenShock.Common.Services.Ota;
-using OpenShock.Common.Swagger;
 using OpenShock.LiveControlGateway;
 using OpenShock.LiveControlGateway.LifetimeManager;
 using OpenShock.LiveControlGateway.Options;
@@ -30,7 +30,7 @@ builder.Services.AddScoped<IDeviceService, DeviceService>();
 builder.Services.AddScoped<IControlSender, ControlSender>();
 builder.Services.AddScoped<IOtaService, OtaService>();
 
-builder.AddSwaggerExt<Program>();
+builder.Services.AddOpenApiExt<Program>();
 
 //services.AddHealthChecks().AddCheck<DatabaseHealthCheck>("database");
 

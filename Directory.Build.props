@@ -35,6 +35,7 @@
     <FileVersion>$(Version)</FileVersion>
     <UserSecretsId>a2109c1e-fb11-44d7-8127-346ef60cb9a5</UserSecretsId>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <InterceptorsNamespaces>$(InterceptorsNamespaces);Microsoft.AspNetCore.OpenApi.Generated</InterceptorsNamespaces>
   </PropertyGroup>
   
   <PropertyGroup>
