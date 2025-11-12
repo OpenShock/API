@@ -16,6 +16,7 @@ public sealed partial class AccountController
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status400BadRequest, MediaTypeNames.Application.ProblemJson)]
     [MapToApiVersion("1")]
+    [EndpointGroupName("v1")]
     public async Task<IActionResult> Activate([FromQuery(Name = "token")] string token, CancellationToken cancellationToken)
     {
         bool ok = await _accountService.TryActivateAccountAsync(token, cancellationToken);

@@ -18,8 +18,9 @@ public sealed partial class PublicController
     /// <param name="publicShareId"></param>
     /// <response code="200">The public share information was successfully retrieved.</response>
     /// <response code="404">The public share does not exist.</response>
-    [HttpGet("shares/links/{publicShareId}")]
     [Tags("Public Shocker Shares")]
+    [HttpGet("shares/links/{publicShareId}")]
+    [EndpointGroupName("v1")]
     [ProducesResponseType<LegacyDataResponse<PublicShareResponse>>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status404NotFound, MediaTypeNames.Application.ProblemJson)] // PublicShareNotFound
     public async Task<IActionResult> GetPublicShare([FromRoute] Guid publicShareId)

@@ -21,7 +21,6 @@ public sealed partial class OAuthController
     /// </remarks>
     [EnableRateLimiting("auth")]
     [HttpGet("{provider}/handoff")]
-    [ApiExplorerSettings(IgnoreApi = true)]
     public async Task<IActionResult> OAuthHandOff(
         [FromRoute] string provider,
         [FromServices] IOAuthConnectionService connectionService,

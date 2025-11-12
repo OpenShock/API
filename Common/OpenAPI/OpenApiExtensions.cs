@@ -16,7 +16,7 @@ public static class OpenApiExtensions
         {
             options.AddPolicy("OpenAPI", policy => policy.Expire(TimeSpan.FromMinutes(10)));
         });
-        builder.Services.AddOpenApi("v1", options =>
+        builder.Services.AddOpenApi(options =>
         {
             options.OpenApiVersion = OpenApiSpecVersion.OpenApi3_1;
             options.AddDocumentTransformer(DocumentDefaults.GetDocumentTransformer(version: "1"));
@@ -26,9 +26,16 @@ public static class OpenApiExtensions
             options.OpenApiVersion = OpenApiSpecVersion.OpenApi3_1;
             options.AddDocumentTransformer(DocumentDefaults.GetDocumentTransformer(version: "2"));
         });
-        builder.Services.AddOpenApi("internal", options =>
+        builder.Services.AddOpenApi("oauth", options =>
         {
             options.OpenApiVersion = OpenApiSpecVersion.OpenApi3_1;
+            options.ShouldInclude = apiDescription => apiDescription.GroupName is "oauth";
+            options.AddDocumentTransformer(DocumentDefaults.GetDocumentTransformer(version: "1"));
+        });
+        builder.Services.AddOpenApi("admin", options =>
+        {
+            options.OpenApiVersion = OpenApiSpecVersion.OpenApi3_1;
+            options.ShouldInclude = apiDescription => apiDescription.GroupName is "admin";
             options.AddDocumentTransformer(DocumentDefaults.GetDocumentTransformer(version: "1"));
         });
         

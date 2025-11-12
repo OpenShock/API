@@ -23,6 +23,7 @@ public sealed partial class AccountController
     [ProducesResponseType<LegacyEmptyResponse>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status409Conflict, MediaTypeNames.Application.ProblemJson)] // EmailOrUsernameAlreadyExists
     [MapToApiVersion("1")]
+    [EndpointGroupName("v1")]
     public async Task<IActionResult> SignUp([FromBody] SignUp body)
     {
         var creationAction = await _accountService.CreateAccountWithoutActivationFlowLegacyAsync(body.Email, body.Username, body.Password);

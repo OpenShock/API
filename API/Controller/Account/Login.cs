@@ -23,6 +23,7 @@ public sealed partial class AccountController
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status401Unauthorized, MediaTypeNames.Application.ProblemJson)] // InvalidCredentials
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status403Forbidden, MediaTypeNames.Application.ProblemJson)] // InvalidDomain
     [MapToApiVersion("1")]
+    [EndpointGroupName("v1")]
     public async Task<IActionResult> Login(
         [FromBody] Login body,
         CancellationToken cancellationToken)

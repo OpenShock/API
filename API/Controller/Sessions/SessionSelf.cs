@@ -13,6 +13,7 @@ public sealed partial class SessionsController
     /// <returns></returns>
     /// <exception cref="Exception"></exception>
     [HttpGet("self")]
+    [EndpointGroupName("v1")]
     public LoginSessionResponse GetSelfSession([FromServices] IUserReferenceService userReferenceService)
     {
         var x = userReferenceService.AuthReference;

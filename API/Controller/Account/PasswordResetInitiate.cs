@@ -17,6 +17,7 @@ public sealed partial class AccountController
     [EnableRateLimiting("auth")]
     [Consumes(MediaTypeNames.Application.Json)]
     [MapToApiVersion("1")]
+    [EndpointGroupName("v1")]
     [ProducesResponseType<LegacyEmptyResponse>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
     public async Task<IActionResult> PasswordResetInitiate([FromBody] ResetRequest body)
     {

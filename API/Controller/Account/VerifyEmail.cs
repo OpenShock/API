@@ -15,6 +15,7 @@ public sealed partial class AccountController
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status403Forbidden, MediaTypeNames.Application.ProblemJson)]
     [MapToApiVersion("1")]
+    [EndpointGroupName("v1")]
     public async Task<IActionResult> EmailVerify([FromQuery(Name = "token")] string token, CancellationToken cancellationToken)
     {
         bool ok = await _accountService.TryVerifyEmailAsync(token, cancellationToken);

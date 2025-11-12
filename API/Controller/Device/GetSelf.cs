@@ -17,6 +17,7 @@ public sealed partial class DeviceController
     /// <response code="200">The device information was successfully retrieved.</response>
     [HttpGet("self")]
     [MapToApiVersion("1")]
+    [EndpointGroupName("v1")]
     [ProducesResponseType<LegacyDataResponse<DeviceSelfResponse>>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
     public async Task<IActionResult> GetSelf()
     {

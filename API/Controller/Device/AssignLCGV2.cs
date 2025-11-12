@@ -18,6 +18,7 @@ public sealed partial class DeviceController
     /// <response code="503">Unable to find suitable LCG node</response>
     [HttpGet("assignLCG")]
     [MapToApiVersion("2")]
+    [EndpointGroupName("v2")]
     [ProducesResponseType<LcgNodeResponseV2>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status400BadRequest, MediaTypeNames.Application.ProblemJson)] // BadSchemaVersion
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status503ServiceUnavailable, MediaTypeNames.Application.ProblemJson)] // NoLcgNodesAvailable

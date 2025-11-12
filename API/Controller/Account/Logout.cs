@@ -10,6 +10,7 @@ public sealed partial class AccountController
     [HttpPost("logout")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [MapToApiVersion("1")]
+    [EndpointGroupName("v1")]
     public async Task<IActionResult> Logout([FromServices] ISessionService sessionService)
     {
         // Remove session if valid

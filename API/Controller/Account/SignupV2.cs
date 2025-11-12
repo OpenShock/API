@@ -29,6 +29,7 @@ public sealed partial class AccountController
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status409Conflict, MediaTypeNames.Application.ProblemJson)] // EmailOrUsernameAlreadyExists
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status403Forbidden, MediaTypeNames.Application.ProblemJson)] // InvalidTurnstileResponse
     [MapToApiVersion("2")]
+    [EndpointGroupName("v2")]
     public async Task<IActionResult> SignUpV2(
         [FromBody] SignUpV2 body,
         [FromServices] ICloudflareTurnstileService turnstileService,

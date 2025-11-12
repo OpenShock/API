@@ -10,6 +10,7 @@ namespace OpenShock.API.Controller.Sessions;
 public sealed partial class SessionsController
 {
     [HttpDelete("{sessionId}")]
+    [EndpointGroupName("v1")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status404NotFound, MediaTypeNames.Application.ProblemJson)] // SessionNotFound
     public async Task<IActionResult> DeleteSession([FromRoute] Guid sessionId)

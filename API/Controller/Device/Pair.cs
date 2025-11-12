@@ -21,6 +21,7 @@ public sealed partial class DeviceController
     /// <response code="404">No such pair code exists</response>
     [AllowAnonymous]
     [MapToApiVersion("1")]
+    [EndpointGroupName("v1")]
     [HttpGet("pair/{pairCode}", Name = "Pair")]
     [HttpGet("~/{version:apiVersion}/pair/{pairCode}", Name = "Pair_DEPRECATED")] // Backwards compatibility
     [EnableRateLimiting("auth")]
