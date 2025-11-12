@@ -15,7 +15,6 @@ public sealed partial class AccountController
     /// <param name="cancellationToken"></param>
     /// <returns></returns>
     [HttpPost("username/check")] // High-volume endpoint, we don't want to rate limit this
-    [EndpointGroupName("v1")]
     [Consumes(MediaTypeNames.Application.Json)]
     public async Task<UsernameCheckResponse> CheckUsername([FromBody] ChangeUsernameRequest body, CancellationToken cancellationToken)
     {

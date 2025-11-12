@@ -25,7 +25,6 @@ public sealed partial class DevicesController
     /// <response code="200">All devices for the current user</response>
     [HttpGet]
     [MapToApiVersion("1")]
-    [EndpointGroupName("v1")]
     [ProducesResponseType<LegacyDataResponse<Models.Response.ResponseDevice[]>>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
     public IActionResult ListDevices()
     {

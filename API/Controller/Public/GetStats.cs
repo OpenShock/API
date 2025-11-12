@@ -15,7 +15,6 @@ public sealed partial class PublicController
     /// <response code="200">The statistics were successfully retrieved.</response>
     [Tags("Meta")]
     [HttpGet("stats")]
-    [EndpointGroupName("v1")]
     [ProducesResponseType<LegacyDataResponse<StatsResponse>>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
     public async Task<IActionResult> GetOnlineDevicesStatistics([FromServices] IConnectionMultiplexer redisConnectionMultiplexer)
     {

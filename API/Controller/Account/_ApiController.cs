@@ -10,7 +10,8 @@ namespace OpenShock.API.Controller.Account;
 /// </summary>
 [ApiController]
 [Tags("Account")]
-[Route("/{version:apiVersion}/account"), ApiVersion("1"), ApiVersion("2")]
+[ApiVersion("1"), ApiVersion("2")]
+[Route("/{version:apiVersion}/account")]
 public sealed partial class AccountController : OpenShockControllerBase
 {
     private readonly IAccountService _accountService;
