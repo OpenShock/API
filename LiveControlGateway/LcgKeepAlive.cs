@@ -90,9 +90,9 @@ public sealed class LcgKeepAlive : IHostedService
         }
         catch (Exception ex)
         {
-            
-            _logger.LogError(ex, "Error sending keep alive");
-            if(++_errorsInRow >= 10)
+            ++_errorsInRow;
+            _logger.LogError(ex, "Error sending gateway keep alive {Attempt}", _errorsInRow);
+            if(_errorsInRow >= 10)
             {
                 _logger.LogCritical("Too many errors in a row sending keep alive, terminating process");
                 Environment.Exit(1001);
