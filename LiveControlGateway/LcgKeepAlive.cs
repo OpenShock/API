@@ -10,31 +10,43 @@ namespace OpenShock.LiveControlGateway;
 /// </summary>
 public sealed class LcgKeepAlive : IHostedService
 {
-    private readonly IRedisConnectionProvider _redisConnectionProvider;
+    private readonly IServiceProvider _serviceProvider;
     private readonly IWebHostEnvironment _env;
     private readonly LcgOptions _options;
     private readonly ILogger<LcgKeepAlive> _logger;
+    private readonly System.Timers.Timer _timer;
     
-    private const uint KeepAliveInterval = 35; // 35 seconds
+    private uint _errorsInRow;
+    
+    // ReSharper disable once InconsistentNaming
+    private static readonly TimeSpan KeepAliveKeyTTL = TimeSpan.FromSeconds(35); // 35 seconds
+    private static readonly TimeSpan KeepAliveInterval = TimeSpan.FromSeconds(15); // 15 seconds
 
     /// <summary>
     /// DI Constructor
     /// </summary>
-    /// <param name="redisConnectionProvider"></param>
+    /// <param name="serviceProvider"></param>
     /// <param name="env"></param>
     /// <param name="options"></param>
     /// <param name="logger"></param>
-    public LcgKeepAlive(IRedisConnectionProvider redisConnectionProvider, IWebHostEnvironment env, LcgOptions options, ILogger<LcgKeepAlive> logger)
+    public LcgKeepAlive(IServiceProvider serviceProvider, IWebHostEnvironment env, LcgOptions options, ILogger<LcgKeepAlive> logger)
     {
-        _redisConnectionProvider = redisConnectionProvider;
+        _serviceProvider = serviceProvider;
         _env = env;
         _options = options;
         _logger = logger;
+        
+        _timer = new System.Timers.Timer(KeepAliveInterval)
+        {
+            AutoReset = true
+        };
+        _timer.Elapsed += OnTimerElapsed;
     }
 
     private async Task SelfOnline()
     {
-        var lcgNodes = _redisConnectionProvider.RedisCollection<LcgNode>(false);
+        var redisConnectionProvider = _serviceProvider.GetRequiredService<IRedisConnectionProvider>();
+        var lcgNodes = redisConnectionProvider.RedisCollection<LcgNode>(false);
         
         var online = await lcgNodes.FindByIdAsync(_options.Fqdn);
         if (online is null)
@@ -45,13 +57,13 @@ public sealed class LcgKeepAlive : IHostedService
                 Country = _options.CountryCode,
                 Load = 0,
                 Environment = _env.EnvironmentName
-            }, TimeSpan.FromSeconds(35));
+            }, KeepAliveKeyTTL);
             return;
         }
 
         if (online.Country != _options.CountryCode)
         {
-            var changeTracker = _redisConnectionProvider.RedisCollection<LcgNode>();
+            var changeTracker = redisConnectionProvider.RedisCollection<LcgNode>();
             var tracked = await changeTracker.FindByIdAsync(_options.Fqdn);
             if (tracked is not null)
             {
@@ -64,39 +76,41 @@ public sealed class LcgKeepAlive : IHostedService
                     "Could not save changed firmware version to redis, device was not found in change tracker, this shouldn't be possible but it somehow was?");
         }
 
-        await _redisConnectionProvider.Connection.ExecuteAsync("EXPIRE",
-            $"{typeof(LcgNode).FullName}:{_options.Fqdn}", KeepAliveInterval);
+        await redisConnectionProvider.Connection.ExecuteAsync("EXPIRE",
+            $"{typeof(LcgNode).FullName}:{_options.Fqdn}", KeepAliveKeyTTL);
     }
 
-    private async Task Loop()
+    private async void OnTimerElapsed(object? sender, System.Timers.ElapsedEventArgs e)
     {
-        while (true)
+        try
         {
-            try
+            _logger.LogDebug("Sending keep alive...");
+            await SelfOnline();
+            _errorsInRow = 0;
+        }
+        catch (Exception ex)
+        {
+            
+            _logger.LogError(ex, "Error sending keep alive");
+            if(++_errorsInRow >= 10)
             {
-                _logger.LogDebug("Sending keep alive...");
-                await SelfOnline();
-                await Task.Delay(15_000);
-            }
-            catch (Exception e)
-            {
-                _logger.LogError(e, "Error in loop");
+                _logger.LogCritical("Too many errors in a row sending keep alive, terminating process");
+                Environment.Exit(1001);
             }
         }
-        // ReSharper disable once FunctionNeverReturns
     }
 
     /// <inheritdoc />
     public Task StartAsync(CancellationToken cancellationToken)
     {
-        OsTask.Run(Loop);
-
+        _timer.Start();
         return Task.CompletedTask;
     }
 
     /// <inheritdoc />
     public Task StopAsync(CancellationToken cancellationToken)
     {
+        _timer.Stop();
         return Task.CompletedTask;
     }
 }
