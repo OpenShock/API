@@ -54,7 +54,7 @@ public sealed class HubLifetimeManager
         _logger = _loggerFactory.CreateLogger<HubLifetimeManager>();
         
         
-        meter.CreateObservableUpDownCounter("connected_hubs", () =>
+        meter.CreateObservableUpDownCounter("openshock_hub_connections", () =>
         {
             return new[]
             {
