@@ -1,4 +1,5 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using System.Diagnostics.Metrics;
+using Microsoft.EntityFrameworkCore;
 using OneOf.Types;
 using OpenShock.Common.Extensions;
 using OpenShock.Common.Models;
@@ -34,12 +35,14 @@ public sealed class HubLifetimeManager
     /// <param name="redisConnectionProvider"></param>
     /// <param name="redisPubService"></param>
     /// <param name="loggerFactory"></param>
+    /// <param name="meter"></param>
     public HubLifetimeManager(
         IDbContextFactory<OpenShockContext> dbContextFactory,
         IConnectionMultiplexer connectionMultiplexer,
         IRedisConnectionProvider redisConnectionProvider,
         IRedisPubService redisPubService,
-        ILoggerFactory loggerFactory
+        ILoggerFactory loggerFactory,
+        [FromKeyedServices("OpenShock.Gateway.Meter")] Meter meter
     )
     {
         _dbContextFactory = dbContextFactory;
@@ -49,6 +52,15 @@ public sealed class HubLifetimeManager
         _loggerFactory = loggerFactory;
 
         _logger = _loggerFactory.CreateLogger<HubLifetimeManager>();
+        
+        
+        meter.CreateObservableUpDownCounter("connected_hubs", () =>
+        {
+            return new[]
+            {
+                new Measurement<int>(_lifetimes.Count)
+            };
+        }, "connections", "Current number of connected hubs");
     }
 
     /// <summary>

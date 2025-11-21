@@ -1,3 +1,4 @@
+using System.Diagnostics.Metrics;
 using Microsoft.Extensions.Options;
 using OpenShock.Common;
 using OpenShock.Common.Extensions;
@@ -23,12 +24,16 @@ builder.Services.AddSingleton<LcgOptions>(sp => sp.GetRequiredService<IOptions<L
 builder.Services
     .AddOpenShockMemDB(redisOptions)
     .AddOpenShockDB(databaseOptions)
-    .AddOpenShockServices()
+    .AddOpenShockServices(configureMetrics: metricsBuilder =>
+    {
+        metricsBuilder.AddMeter("OpenShock.Gateway");
+    })
     .AddOpenShockSignalR(redisOptions);
 
 builder.Services.AddScoped<IDeviceService, DeviceService>();
 builder.Services.AddScoped<IControlSender, ControlSender>();
 builder.Services.AddScoped<IOtaService, OtaService>();
+builder.Services.AddKeyedSingleton("OpenShock.Gateway.Meter", new Meter("OpenShock.Gateway", "1.0.0"));
 
 builder.AddSwaggerExt<Program>();
 
