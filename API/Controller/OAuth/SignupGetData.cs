@@ -22,7 +22,6 @@ public sealed partial class OAuthController
     [ResponseCache(NoStore = true)]
     [EnableRateLimiting("auth")]
     [HttpGet("{provider}/signup-data")]
-    [ApiExplorerSettings(IgnoreApi = true)]
     public async Task<IActionResult> OAuthSignupGetData([FromRoute] string provider)
     {
         if (User.HasOpenShockUserIdentity())

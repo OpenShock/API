@@ -8,6 +8,7 @@ using Redis.OM;
 using Redis.OM.Contracts;
 using Scalar.AspNetCore;
 using Serilog;
+using IPNetwork = System.Net.IPNetwork;
 
 namespace OpenShock.Common;
 
@@ -24,11 +25,11 @@ public static class OpenShockMiddlewareHelper
     public static async Task<IApplicationBuilder> UseCommonOpenShockMiddleware(this WebApplication app)
     {
         var metricsOptions = app.Services.GetRequiredService<MetricsOptions>();
-        var metricsAllowedIpNetworks = metricsOptions.AllowedNetworks.Select(x => IPNetwork.Parse(x)).ToArray();
+        var metricsAllowedIpNetworks = metricsOptions.AllowedNetworks.Select(IPNetwork.Parse).ToArray();
 
         foreach (var proxy in await TrustedProxiesFetcher.GetTrustedNetworksAsync())
         {
-            ForwardedSettings.KnownNetworks.Add(proxy);
+            ForwardedSettings.KnownIPNetworks.Add(proxy);
         }
 
         app.UseForwardedHeaders(ForwardedSettings);
@@ -78,7 +79,8 @@ public static class OpenShockMiddlewareHelper
             return remoteIp is not null && metricsAllowedIpNetworks.Any(x => x.Contains(remoteIp));
         });
         
-        app.UseSwagger();
+        app.MapOpenApi()
+            .CacheOutput("OpenAPI");
 
         app.MapScalarApiReference("/scalar/viewer", options => 
                 options

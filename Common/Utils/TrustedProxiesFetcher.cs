@@ -1,4 +1,4 @@
-﻿using IPNetwork = Microsoft.AspNetCore.HttpOverrides.IPNetwork;
+﻿using System.Net;
 
 namespace OpenShock.Common.Utils;
 
@@ -23,7 +23,7 @@ public static class TrustedProxiesFetcher
         "fe80::/10",
     ];
 
-    private static readonly IPNetwork[] PrivateNetworksParsed = [.. PrivateNetworks.Select(x => IPNetwork.Parse(x))];
+    private static readonly IPNetwork[] PrivateNetworksParsed = [.. PrivateNetworks.Select(IPNetwork.Parse)];
 
     private static readonly char[] NewLineSeperators = ['\r', '\n', '\t'];
     

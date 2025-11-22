@@ -43,7 +43,7 @@ public sealed class LCGNodeProvisioner : ILCGNodeProvisioner
 
         var nodes = await _lcgNodes
             .Where(x => x.Environment == _environmentName)
-            .ToArrayAsync();
+            .ToListAsync();
 
         var node = nodes
             .OrderBy(x => DistanceLookup.TryGetDistanceBetween(x.Country, countryCode, out float distance) ? distance : Distance.DistanceToAndromedaGalaxyInKm) // Just a large number :3

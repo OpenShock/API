@@ -1,9 +1,6 @@
 ﻿using System.ComponentModel.DataAnnotations;
 using System.Net.Mail;
-using Microsoft.OpenApi.Any;
-using Microsoft.OpenApi.Models;
 using OpenShock.Common.Constants;
-using OpenShock.Common.DataAnnotations.Interfaces;
 
 namespace OpenShock.Common.DataAnnotations;
 
@@ -13,8 +10,8 @@ namespace OpenShock.Common.DataAnnotations;
 /// <remarks>
 /// Inherits from <see cref="ValidationAttribute"/>.
 /// </remarks>
-[AttributeUsage(AttributeTargets.Property | AttributeTargets.Field | AttributeTargets.Parameter, AllowMultiple = false)]
-public sealed class EmailAddressAttribute : ValidationAttribute, IParameterAttribute
+[AttributeUsage(AttributeTargets.Property | AttributeTargets.Field | AttributeTargets.Parameter)]
+public sealed class EmailAddressAttribute : ValidationAttribute
 {
     /// <summary>
     /// Example value used to generate OpenApi documentation.
@@ -55,15 +52,4 @@ public sealed class EmailAddressAttribute : ValidationAttribute, IParameterAttri
         
         return ValidationResult.Success;
     }
-
-    /// <inheritdoc/>
-    public void Apply(OpenApiSchema schema)
-    {
-        //if (ShouldValidate) schema.Pattern = ???;
-        
-        schema.Example = new OpenApiString(ExampleValue);
-    }
-
-    /// <inheritdoc/>
-    public void Apply(OpenApiParameter parameter) => Apply(parameter.Schema);
 }

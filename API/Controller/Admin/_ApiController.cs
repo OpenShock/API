@@ -9,6 +9,7 @@ namespace OpenShock.API.Controller.Admin;
 
 [ApiController]
 [Tags("Admin")]
+[EndpointGroupName("admin")]
 [Route("/{version:apiVersion}/admin")]
 [Authorize(AuthenticationSchemes = OpenShockAuthSchemes.UserSessionCookie, Roles = "Admin")]
 public sealed partial class AdminController : AuthenticatedSessionControllerBase

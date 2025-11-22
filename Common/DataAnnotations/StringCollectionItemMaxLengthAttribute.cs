@@ -2,7 +2,7 @@
 
 namespace OpenShock.Common.DataAnnotations;
 
-[AttributeUsage(AttributeTargets.Property | AttributeTargets.Field, AllowMultiple = false, Inherited = true)]
+[AttributeUsage(AttributeTargets.Property | AttributeTargets.Field)]
 public sealed class StringCollectionItemMaxLengthAttribute : ValidationAttribute
 {
     public StringCollectionItemMaxLengthAttribute(int maxLength)
