@@ -60,7 +60,7 @@ jobs:
       - name: Run ${{ matrix.name }} tests
         run: |
           set -euo pipefail
-          dotnet test -c Release ${{ matrix.project }}
+          dotnet test -c Release --project ${{ matrix.project }}
 
   build:
     name: Build (${{ matrix.image }})
