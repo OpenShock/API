@@ -56,13 +56,38 @@ public sealed class RedisSubscriberService : IHostedService, IAsyncDisposable
 
     private void HandleKeyExpired(RedisChannel _, RedisValue message)
     {
-        if (!message.HasValue) return;
-        if (message.ToString().Split(':', 2) is not [{ } guid, { } name]) return;
-
-        if (!Guid.TryParse(guid, out var id)) return;
-
-        if (typeof(DeviceOnline).FullName == name)
+        if (!message.HasValue || message.IsNullOrEmpty)
         {
+            _logger.LogDebug("Received expired key with emtpy value?? for hub offline status");
+            return;
+        }
+        
+        // ToString here just casts the underlying object to a string
+        //if (message.ToString().Split(':', 2) is not [{ } guid, { } name]) return;
+        
+        var messageString = message.ToString();
+        var messageSpan = messageString.AsSpan();
+        
+        Span<Range> split = stackalloc Range[2];
+        messageSpan.Split(split, ':');
+
+        if (split.Length != 2)
+        {
+            if(_logger.IsEnabled(LogLevel.Debug)) _logger.LogDebug("Received expired key with invalid format for hub offline status: {MessageValue}", messageString);
+            return;
+        }
+        
+        var typeNameSpan = messageSpan[split[0]];
+        var guidSpan = messageSpan[split[1]];
+        
+        if (typeNameSpan.SequenceEqual(typeof(DeviceOnline).FullName))
+        {
+            if (!Guid.TryParse(guidSpan, out var id))
+            {
+                _logger.LogError("Received expired key with invalid GUID for hub offline status: {MessageValue}", messageString);
+                return;
+            }
+            
             OsTask.Run(() => LogicDeviceOnlineStatus(id));
         }
     }
