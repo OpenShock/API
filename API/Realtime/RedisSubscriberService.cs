@@ -56,24 +56,32 @@ public sealed class RedisSubscriberService : IHostedService, IAsyncDisposable
 
     private void HandleKeyExpired(RedisChannel _, RedisValue message)
     {
-        if (!message.HasValue || message.IsNullOrEmpty)
+        if (!message.HasValue)
         {
-            _logger.LogDebug("Received expired key with emtpy value?? for hub offline status");
+            _logger.LogWarning("Received expired key with empty value for hub offline status");
             return;
         }
         
-        // ToString here just casts the underlying object to a string
-        var messageString = message.ToString();
+        var messageString = (string?)message;
+        if (messageString is null)
+        {
+            _logger.LogWarning("Received expired key that could not be converted to string for hub offline status. Raw value type: {ValueType}", message.GetType().FullName);
+            return;
+        }
+        
         var messageSpan = messageString.AsSpan();
         
-        // We always expect TypeName:GUID right now, and this wont throw if there is more split results than expected
-        // We also dont need to check for its length after, since we pre-stackalloc
-        Span<Range> split = stackalloc Range[2];
-        messageSpan.Split(split, ':');
+        // We always expect TypeName:GUID right now, if GUID is not present, something is really wrong
+        var colonPos = messageSpan.IndexOf(':');
+        if (colonPos < 0)
+        {
+            _logger.LogError("Received expired key with unexpected format (missing colon) for hub offline status. Value: {MessageValue}", messageString);
+            return;
+        }
         
         // Data structure is TypeName:GUID
-        var typeNameSpan = messageSpan[split[0]];
-        var guidSpan = messageSpan[split[1]];
+        var typeNameSpan = messageSpan[..colonPos];
+        var guidSpan = messageSpan[(colonPos + 1)..];
         
         // Check what type of expired key this is
         if (typeNameSpan.SequenceEqual(typeof(DeviceOnline).FullName))
