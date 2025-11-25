@@ -63,23 +63,19 @@ public sealed class RedisSubscriberService : IHostedService, IAsyncDisposable
         }
         
         // ToString here just casts the underlying object to a string
-        //if (message.ToString().Split(':', 2) is not [{ } guid, { } name]) return;
-        
         var messageString = message.ToString();
         var messageSpan = messageString.AsSpan();
         
+        // We always expect TypeName:GUID right now, and this wont throw if there is more split results than expected
+        // We also dont need to check for its length after, since we pre-stackalloc
         Span<Range> split = stackalloc Range[2];
         messageSpan.Split(split, ':');
-
-        if (split.Length != 2)
-        {
-            if(_logger.IsEnabled(LogLevel.Debug)) _logger.LogDebug("Received expired key with invalid format for hub offline status: {MessageValue}", messageString);
-            return;
-        }
         
+        // Data structure is TypeName:GUID
         var typeNameSpan = messageSpan[split[0]];
         var guidSpan = messageSpan[split[1]];
         
+        // Check what type of expired key this is
         if (typeNameSpan.SequenceEqual(typeof(DeviceOnline).FullName))
         {
             if (!Guid.TryParse(guidSpan, out var id))
