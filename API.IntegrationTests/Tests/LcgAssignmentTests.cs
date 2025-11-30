@@ -27,9 +27,6 @@ public sealed class LcgAssignmentTests
         // Dependency Resolution
         await using var context = WebApplicationFactory.Services.CreateAsyncScope();
         var db = context.ServiceProvider.GetRequiredService<OpenShockContext>();
-        var redisConnectionProvider = context.ServiceProvider.GetRequiredService<IRedisConnectionProvider>();
-        var webHostEnvironment = context.ServiceProvider.GetRequiredService<IWebHostEnvironment>();
-        var lcgNodesCollection = redisConnectionProvider.RedisCollection<LcgNode>(saveState: true);
 
         // Set up variables
         _userId = Guid.CreateVersion7();
@@ -53,20 +50,6 @@ public sealed class LcgAssignmentTests
             CreatedAt = DateTime.UtcNow
         });
         await db.SaveChangesAsync();
-        
-        (string country, string fqdn)[] availableGateways = [
-            ("US","us1.example.com"),
-            ("DE", "de1.example.com"),
-            ("AS", "as1.example.com")
-        ];
-        
-        await lcgNodesCollection.InsertAsync(availableGateways.Select(x => new LcgNode
-        {
-            Country = x.country,
-            Fqdn = x.fqdn,
-            Load = 0,
-            Environment = webHostEnvironment.EnvironmentName
-        }));
     }
 
     [After(Test)]
@@ -87,17 +70,31 @@ public sealed class LcgAssignmentTests
     }
 
     [Test]
-    [Arguments("US", "us1.example.com")]
-    [Arguments("DE", "de1.example.com")]
-    [Arguments("CA", "us1.example.com")]
-    [Arguments("CA", "us1.example.com")]
-    [Arguments("AT", "de1.example.com")]
-    [Arguments("FR", "de1.example.com")]
-    public async Task GetLcgAssignment(string requesterCountry, string expectedHost)
+    [NotInParallel]
+    [Arguments("US", "us1.example.com", new[] { "US|us1.example.com", "DE|de1.example.com", "AS|as1.example.com" })]
+    [Arguments("DE", "de1.example.com", new[] { "US|us1.example.com", "DE|de1.example.com", "AS|as1.example.com" })]
+    [Arguments("CA", "us1.example.com", new[] { "US|us1.example.com", "DE|de1.example.com", "AS|as1.example.com" })]
+    [Arguments("CA", "us1.example.com", new[] { "US|us1.example.com", "DE|de1.example.com", "AS|as1.example.com" })]
+    [Arguments("AT", "de1.example.com", new[] { "US|us1.example.com", "DE|de1.example.com", "AS|as1.example.com" })]
+    [Arguments("FR", "de1.example.com", new[] { "US|us1.example.com", "DE|de1.example.com", "AS|as1.example.com" })]
+    public async Task GetLcgAssignment(string requesterCountry, string expectedHost, string[] availableGateways)
     {
-        using var client = WebApplicationFactory.CreateClient();
-
+        // Dependency Resolution
         await using var context = WebApplicationFactory.Services.CreateAsyncScope();
+        var redisConnectionProvider = context.ServiceProvider.GetRequiredService<IRedisConnectionProvider>();
+        var lcgNodesCollection = redisConnectionProvider.RedisCollection<LcgNode>(saveState: true);
+        var webHostEnvironment = context.ServiceProvider.GetRequiredService<IWebHostEnvironment>();
+        
+        // Create mock data
+        await lcgNodesCollection.InsertAsync(availableGateways.Select(x => x.Split('|', 2)).Select(x => new LcgNode
+        {
+            Country = x[0],
+            Fqdn = x[1],
+            Load = 0,
+            Environment = webHostEnvironment.EnvironmentName
+        }));
+        
+        using var client = WebApplicationFactory.CreateClient();
 
         var httpRequest = new HttpRequestMessage(HttpMethod.Get, "/2/device/assignLCG?version=1");
         httpRequest.Headers.Add("Device-Token", _hubToken);
