@@ -17,7 +17,6 @@ public sealed class InMemoryRedis : IAsyncInitializer, IAsyncDisposable
                 .WithNetwork(DockerNetwork.Instance)
                 .WithName($"tunit-redis-{Guid.CreateVersion7()}")
                 .WithImage("redis/redis-stack-server:latest")
-                .WithPortBinding(6379, 6379)
                 .Build();
 
             return _container;
