@@ -22,7 +22,7 @@ public sealed partial class AdminController
     {
         var devicesOnline = _redis.RedisCollection<DeviceOnline>(false);
 
-        var allOnlineDevices = await devicesOnline.ToArrayAsync();
+        var allOnlineDevices = await devicesOnline.ToListAsync();
         var dbLookup = await _db.Devices
             .Where(x => allOnlineDevices.Select(y => y.Id).Contains(x.Id))
             .Select(x => new

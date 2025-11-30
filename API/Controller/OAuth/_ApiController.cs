@@ -13,9 +13,8 @@ namespace OpenShock.API.Controller.OAuth;
 /// OAuth management endpoints (provider listing, authorize, data handoff).
 /// </summary>
 [ApiController]
-[Tags("OAuth")]
-[ApiVersion("1")]
-[Route("/{version:apiVersion}/oauth")]
+[EndpointGroupName("oauth")]
+[Route("/{version:apiVersion}/oauth"), ApiVersion("1")]
 public sealed partial class OAuthController : OpenShockControllerBase
 {
     private readonly IAccountService _accountService;

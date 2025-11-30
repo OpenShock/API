@@ -2,10 +2,10 @@ using System.Diagnostics.Metrics;
 using Microsoft.Extensions.Options;
 using OpenShock.Common;
 using OpenShock.Common.Extensions;
+using OpenShock.Common.OpenAPI;
 using OpenShock.Common.Services;
 using OpenShock.Common.Services.Device;
 using OpenShock.Common.Services.Ota;
-using OpenShock.Common.Swagger;
 using OpenShock.LiveControlGateway;
 using OpenShock.LiveControlGateway.LifetimeManager;
 using OpenShock.LiveControlGateway.Options;
@@ -34,7 +34,7 @@ builder.Services.AddScoped<IControlSender, ControlSender>();
 builder.Services.AddScoped<IOtaService, OtaService>();
 builder.Services.AddKeyedSingleton("OpenShock.Gateway.Meter", new Meter("OpenShock.Gateway", "1.0.0", [new KeyValuePair<string, object?>("gateway_fqdn", lcgOptions.Fqdn)]));
 
-builder.AddSwaggerExt<Program>();
+builder.AddOpenApiExt<Program>();
 
 //services.AddHealthChecks().AddCheck<DatabaseHealthCheck>("database");
 

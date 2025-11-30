@@ -10,7 +10,7 @@ COPY --link API/. API/
 RUN dotnet publish --no-restore -c Release API/API.csproj -o /app
 
 # final is the final runtime stage for running the app
-FROM mcr.microsoft.com/dotnet/aspnet:9.0-alpine AS final-api
+FROM mcr.microsoft.com/dotnet/aspnet:10.0-alpine AS final-api
 WORKDIR /app
 
 COPY docker/entrypoint.sh /entrypoint.sh
