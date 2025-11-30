@@ -15,6 +15,9 @@
     <PackageReference Include="Testcontainers.Redis" />
     <PackageReference Include="TUnit" />
   </ItemGroup>
+  <ItemGroup>
+    <Folder Include="Seeders\" />
+  </ItemGroup>
 
   <!-- Git stuff -->
   <Target Name="SetHash" AfterTargets="InitializeSourceControlInformation">
