@@ -5,6 +5,8 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Http;
 using OpenShock.API.IntegrationTests.Docker;
 using OpenShock.API.IntegrationTests.HttpMessageHandlers;
+using Serilog;
+using Serilog.Events;
 using TUnit.Core.Interfaces;
 
 namespace OpenShock.API.IntegrationTests;
@@ -67,12 +69,20 @@ public class WebApplicationFactory : WebApplicationFactory<Program>, IAsyncIniti
             { "OPENSHOCK__LCG__FQDN", "de1-gateway.my-openshock-instance.net" },
             { "OPENSHOCK__LCG__COUNTRYCODE", "DE" }
         };
-    
+
         foreach (var envVar in environmentVariables)
         {
             Environment.SetEnvironmentVariable(envVar.Key, envVar.Value);
         }
-    
+
+        builder.ConfigureServices(services =>
+        {
+            services.AddSerilog(configuration =>
+            {
+                configuration.WriteTo.Console(LogEventLevel.Warning);
+            });
+        });
+        
         builder.ConfigureTestServices(services =>
         {
             services.AddTransient<HttpMessageHandlerBuilder, InterceptedHttpMessageHandlerBuilder>();

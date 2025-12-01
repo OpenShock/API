@@ -52,19 +52,22 @@ public sealed class LcgKeepAlive : IHostedService
             return;
         }
 
-        if (online.Country != _options.CountryCode)
+        // TODO: Load reporting
+        if (online.Country != _options.CountryCode || online.Environment != _env.EnvironmentName)
         {
             var changeTracker = _redisConnectionProvider.RedisCollection<LcgNode>();
             var tracked = await changeTracker.FindByIdAsync(_options.Fqdn);
             if (tracked is not null)
             {
                 tracked.Country = _options.CountryCode;
+                tracked.Environment = _env.EnvironmentName;
+                
                 await changeTracker.SaveAsync();
-                _logger.LogInformation("Updated firmware version of online device");
+                _logger.LogInformation("Updated keep alive key in redis {@NewKey}", tracked);
             }
             else
                 _logger.LogWarning(
-                    "Could not save changed firmware version to redis, device was not found in change tracker, this shouldn't be possible but it somehow was?");
+                    "Could not save changed firmware version to redis, device was not found in change tracker, this can only happen when our key expired between reads");
         }
 
         await _redisConnectionProvider.Connection.ExecuteAsync("EXPIRE",
