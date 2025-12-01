@@ -46,7 +46,7 @@ public sealed class LCGNodeProvisioner : ILCGNodeProvisioner
             .Where(x => x.Environment == _environmentName)
             .ToListAsync();
         
-        if(nodes.Length < 1)
+        if(nodes.Count < 1)
         {
             _logger.LogWarning("No LCG nodes available after filtering by environment [{Environment}]!", _environmentName);
             return null;
