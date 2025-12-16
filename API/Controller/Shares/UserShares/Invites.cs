@@ -122,7 +122,13 @@ public sealed partial class UserSharesController
             .FirstOrDefaultAsync(x => x.Id == inviteId && (x.RecipientUserId == null || x.RecipientUserId == CurrentUser.Id));
         
         if (shareRequest is null) return Problem(ShareError.ShareRequestNotFound);
-        
+
+        var isShareOwner = shareRequest.OwnerId == CurrentUser.Id;
+        if (isShareOwner)
+        {
+            return Problem(ShareError.ShareRequestCreateCannotShareWithSelf);
+        }
+
         var alreadySharedShockers = await _db.UserShares.Where(x => x.Shocker.Device.Owner.Id == shareRequest.OwnerId && x.SharedWithUserId == CurrentUser.Id).ToListAsync();
         
         foreach (var shareInvitationShocker in shareRequest.ShockerMappings)
