@@ -77,13 +77,13 @@ public sealed partial class ShockerController
     /// <response code="404">Shocker does not exist</response>
     [HttpGet("logs")]
     [EnableRateLimiting("shocker-logs")]
-    [ProducesResponseType<LegacyDataResponse<LogEntryWithHub[]>>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
+    [ProducesResponseType<ShockerLogsResponse>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status404NotFound, MediaTypeNames.Application.ProblemJson)]
     [MapToApiVersion("1")]
-    public IActionResult GetAllShockerLogs([FromQuery(Name = "offset")] uint offset = 0,
+    public async Task<IActionResult> GetAllShockerLogs([FromQuery(Name = "offset")] uint offset = 0,
         [FromQuery, Range(1, 500)] uint limit = 100)
     {
-        var logs = _db.ShockerControlLogs
+        var logs = await _db.ShockerControlLogs
             .Where(x => x.Shocker.Device.OwnerId == CurrentUser.Id)
             .OrderByDescending(x => x.CreatedAt)
             .Skip((int)offset)
@@ -115,9 +115,11 @@ public sealed partial class ShockerController
                         CustomName = x.CustomName
                     }
             })
-            .AsAsyncEnumerable();
+            .ToListAsync();
 
-        return LegacyDataOk(logs);
+        return Ok(new ShockerLogsResponse
+        {
+            Logs = logs
+        });
     }
-
 }
