@@ -2,17 +2,12 @@
 
 namespace OpenShock.API.Models.Response;
 
-public sealed class ShockerLogsResponse
-{
-    public required ICollection<LogEntryV2> Logs { get; init; }
-}
-
-public sealed class LogEntryV2
+public sealed class LogEntryWithHub
 {
     public required Guid Id { get; init; }
 
-    public required Guid DeviceId { get; init; }
-    public required string DeviceName { get; init; }
+    public required Guid HubId { get; init; }
+    public required string HubName { get; init; }
 
     public required Guid ShockerId { get; init; }
     public required string ShockerName { get; init; }

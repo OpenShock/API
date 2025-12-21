@@ -77,24 +77,22 @@ public sealed partial class ShockerController
     /// <response code="404">Shocker does not exist</response>
     [HttpGet("logs")]
     [EnableRateLimiting("shocker-logs")]
-    [ProducesResponseType<ShockerLogsResponse>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
+    [ProducesResponseType<LegacyDataResponse<LogEntryWithHub[]>>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status404NotFound, MediaTypeNames.Application.ProblemJson)]
-    [MapToApiVersion("2")]
-    public async Task<ShockerLogsResponse> GetAllShockerLogs([FromQuery(Name = "offset")] uint offset = 0,
+    [MapToApiVersion("1")]
+    public IActionResult GetAllShockerLogs([FromQuery(Name = "offset")] uint offset = 0,
         [FromQuery, Range(1, 500)] uint limit = 100)
     {
-        var logs = await _db.ShockerControlLogs
-            .Include(x => x.Shocker)
-                .ThenInclude(x => x.Device)
+        var logs = _db.ShockerControlLogs
             .Where(x => x.Shocker.Device.OwnerId == CurrentUser.Id)
             .OrderByDescending(x => x.CreatedAt)
             .Skip((int)offset)
             .Take((int)limit)
-            .Select(x => new LogEntryV2
+            .Select(x => new LogEntryWithHub
             {
                 Id = x.Id,
-                DeviceId = x.Shocker.Device.Id,
-                DeviceName = x.Shocker.Device.Name,
+                HubId = x.Shocker.Device.Id,
+                HubName = x.Shocker.Device.Name,
                 ShockerId = x.Shocker.Id,
                 ShockerName = x.Shocker.Name,
                 Duration = x.Duration,
@@ -117,12 +115,9 @@ public sealed partial class ShockerController
                         CustomName = x.CustomName
                     }
             })
-            .ToListAsync();
+            .AsAsyncEnumerable();
 
-        return new ShockerLogsResponse
-        {
-            Logs = logs
-        };
+        return LegacyDataOk(logs);
     }
 
 }
