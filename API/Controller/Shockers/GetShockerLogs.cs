@@ -28,7 +28,7 @@ public sealed partial class ShockerController
     [ProducesResponseType<LegacyDataResponse<LogEntry[]>>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status404NotFound, MediaTypeNames.Application.ProblemJson)] // ShockerNotFound
     [MapToApiVersion("1")]
-    public async Task<IActionResult> GetShockerLogs([FromRoute] Guid shockerId, [FromQuery(Name="offset")] uint offset = 0,
+    public async Task<IActionResult> GetShockerLogs([FromRoute] Guid shockerId, [FromQuery(Name = "offset")] uint offset = 0,
         [FromQuery, Range(1, 500)] uint limit = 100)
     {
         var exists = await _db.Shockers.AnyAsync(x => x.Device.OwnerId == CurrentUser.Id && x.Id == shockerId);
@@ -66,4 +66,63 @@ public sealed partial class ShockerController
 
         return LegacyDataOk(logs);
     }
+
+
+    /// <summary>
+    /// Get the logs for all shockers
+    /// </summary>
+    /// <param name="offset"></param>
+    /// <param name="limit"></param>
+    /// <response code="200">The logs</response>
+    /// <response code="404">Shocker does not exist</response>
+    [HttpGet("logs")]
+    [EnableRateLimiting("shocker-logs")]
+    [ProducesResponseType<ShockerLogsResponse>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
+    [ProducesResponseType<OpenShockProblem>(StatusCodes.Status404NotFound, MediaTypeNames.Application.ProblemJson)]
+    [MapToApiVersion("2")]
+    public async Task<ShockerLogsResponse> GetAllShockerLogs([FromQuery(Name = "offset")] uint offset = 0,
+        [FromQuery, Range(1, 500)] uint limit = 100)
+    {
+        var logs = await _db.ShockerControlLogs
+            .Include(x => x.Shocker)
+                .ThenInclude(x => x.Device)
+            .Where(x => x.Shocker.Device.OwnerId == CurrentUser.Id)
+            .OrderByDescending(x => x.CreatedAt)
+            .Skip((int)offset)
+            .Take((int)limit)
+            .Select(x => new LogEntryV2
+            {
+                Id = x.Id,
+                DeviceId = x.Shocker.Device.Id,
+                DeviceName = x.Shocker.Device.Name,
+                ShockerId = x.Shocker.Id,
+                ShockerName = x.Shocker.Name,
+                Duration = x.Duration,
+                Intensity = x.Intensity,
+                Type = x.Type,
+                CreatedOn = x.CreatedAt,
+                ControlledBy = x.ControlledByUser == null
+                    ? new ControlLogSenderLight
+                    {
+                        Id = Guid.Empty,
+                        Name = "Guest",
+                        Image = GravatarUtils.GuestImageUrl,
+                        CustomName = x.CustomName
+                    }
+                    : new ControlLogSenderLight
+                    {
+                        Id = x.ControlledByUser.Id,
+                        Name = x.ControlledByUser.Name,
+                        Image = x.ControlledByUser.GetImageUrl(),
+                        CustomName = x.CustomName
+                    }
+            })
+            .ToListAsync();
+
+        return new ShockerLogsResponse
+        {
+            Logs = logs
+        };
+    }
+
 }
