@@ -1,4 +1,5 @@
-﻿using Microsoft.OpenApi;
+﻿using Asp.Versioning.ApiExplorer;
+using Microsoft.OpenApi;
 
 namespace OpenShock.Common.OpenAPI;
 
@@ -16,16 +17,23 @@ public static class OpenApiExtensions
         {
             options.AddPolicy("OpenAPI", policy => policy.Expire(TimeSpan.FromMinutes(10)));
         });
-        builder.Services.AddOpenApi(options =>
+
+        using (var tempProvider = builder.Services.BuildServiceProvider())
         {
-            options.OpenApiVersion = OpenApiSpecVersion.OpenApi3_1;
-            options.AddDocumentTransformer(DocumentDefaults.GetDocumentTransformer(version: "1"));
-        });
-        builder.Services.AddOpenApi("v2", options =>
-        {
-            options.OpenApiVersion = OpenApiSpecVersion.OpenApi3_1;
-            options.AddDocumentTransformer(DocumentDefaults.GetDocumentTransformer(version: "2"));
-        });
+            var apiVersionProvider = tempProvider.GetRequiredService<IApiVersionDescriptionProvider>();
+
+            // Configure OpenAPI for each API version
+            foreach (var description in apiVersionProvider.ApiVersionDescriptions)
+            {
+                builder.Services.AddOpenApi(description.GroupName, options =>
+                {
+                    options.OpenApiVersion = OpenApiSpecVersion.OpenApi3_1;
+                    options.AddDocumentTransformer(DocumentDefaults.GetDocumentTransformer(
+                        version: description.ApiVersion.ToString()));
+                });
+            }
+        }
+
         builder.Services.AddOpenApi("oauth", options =>
         {
             options.OpenApiVersion = OpenApiSpecVersion.OpenApi3_1;
@@ -38,7 +46,7 @@ public static class OpenApiExtensions
             options.ShouldInclude = apiDescription => apiDescription.GroupName is "admin";
             options.AddDocumentTransformer(DocumentDefaults.GetDocumentTransformer(version: "1"));
         });
-        
+
         return builder.Services;
     }
 }
