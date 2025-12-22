@@ -143,11 +143,13 @@ public static class OpenShockServiceHelper
         {
             options.DefaultApiVersion = new ApiVersion(1, 0);
             options.AssumeDefaultVersionWhenUnspecified = true;
-        });
-
-        apiVersioningBuilder.AddApiExplorer(setup =>
+            options.ReportApiVersions = true;
+            options.ApiVersionReader = new UrlSegmentApiVersionReader();
+        })
+        .AddMvc() // mvc required for ApiExplorer
+        .AddApiExplorer(setup =>
         {
-            setup.GroupNameFormat = "VVV";
+            setup.GroupNameFormat = "'v'V";
             setup.SubstituteApiVersionInUrl = true;
             setup.DefaultApiVersion = new ApiVersion(1, 0);
             setup.AssumeDefaultVersionWhenUnspecified = true;

@@ -84,9 +84,9 @@ public static class OpenShockMiddlewareHelper
 
         app.MapScalarApiReference("/scalar/viewer", options => 
                 options
-                    .WithOpenApiRoutePattern("/swagger/{documentName}/swagger.json")
-                    .AddDocument("1", "Version 1")
-                    .AddDocument("2", "Version 2")
+                    .WithOpenApiRoutePattern("/openapi/{documentName}.json")
+                    .AddDocument("v1", "Version 1")
+                    .AddDocument("v2", "Version 2")
                 );
         
         app.MapControllers();
