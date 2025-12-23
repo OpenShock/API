@@ -30,6 +30,41 @@ public static class OpenApiExtensions
                     options.OpenApiVersion = OpenApiSpecVersion.OpenApi3_1;
                     options.AddDocumentTransformer(DocumentDefaults.GetDocumentTransformer(
                         version: description.ApiVersion.ToString()));
+                    options.CreateSchemaReferenceId = (type) =>
+                    {
+                        var defaultName = type.Type.Name;
+                        var cleanName = defaultName
+                            .Replace("[]", "Array")
+                            .Replace("`1", "Of")
+                            .Replace("`2", "OfTwo");
+                        return cleanName;
+                    };
+                    options.AddOperationTransformer((operation, context, cancellationToken) =>
+                    {
+                        var actionDescriptor = context.Description.ActionDescriptor;
+
+                        // Use endpoint name if available
+                        var endpointName = actionDescriptor.EndpointMetadata
+                            .OfType<EndpointNameMetadata>()
+                            .FirstOrDefault()?.EndpointName;
+
+                        if (!string.IsNullOrEmpty(endpointName))
+                        {
+                            operation.OperationId = endpointName;
+                            return Task.CompletedTask;
+                        }
+
+                        // For controllers
+                        var controller = actionDescriptor.RouteValues.TryGetValue("controller", out var ctrl) ? ctrl : null;
+                        var action = actionDescriptor.RouteValues.TryGetValue("action", out var act) ? act : null;
+
+                        if (!string.IsNullOrEmpty(controller) && !string.IsNullOrEmpty(action))
+                        {
+                            operation.OperationId = $"{controller}{action}";
+                        }
+
+                        return Task.CompletedTask;
+                    });
                 });
             }
         }
