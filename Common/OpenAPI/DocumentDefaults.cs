@@ -13,7 +13,7 @@ public static class DocumentDefaults
             
             document.Info = new OpenApiInfo
             {
-                Title = "OpenShock API",
+                Title = "OpenShock.API",
                 // Summary = ...
                 // Description = ...
                 Version = version,

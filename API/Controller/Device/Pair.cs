@@ -22,11 +22,34 @@ public sealed partial class DeviceController
     [AllowAnonymous]
     [MapToApiVersion("1")]
     [HttpGet("pair/{pairCode}", Name = "Pair")]
-    [HttpGet("~/{version:apiVersion}/pair/{pairCode}", Name = "Pair_DEPRECATED")] // Backwards compatibility
+    [EndpointName("PairDeviceByCode")]
     [EnableRateLimiting("auth")]
     [ProducesResponseType<LegacyDataResponse<string>>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status404NotFound, MediaTypeNames.Application.ProblemJson)] // PairCodeNotFound
     public async Task<IActionResult> Pair([FromRoute] string pairCode)
+    {
+        return await PairInternal(pairCode);
+    }
+
+    /// <summary>
+    /// Pair a device with a pair code.
+    /// </summary>
+    /// <param name="pairCode">The pair code to pair with.</param>
+    /// <response code="200">Successfully assigned LCG node</response>
+    /// <response code="404">No such pair code exists</response>
+    [AllowAnonymous]
+    [MapToApiVersion("1")]
+    [HttpGet("~/{version:apiVersion}/pair/{pairCode}", Name = "PairDeviceByCode_DEPRECATED")] // Backwards compatibility
+    [EndpointName("PairDeviceByCode_DEPRECATED")]
+    [EnableRateLimiting("auth")]
+    [ProducesResponseType<LegacyDataResponse<string>>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
+    [ProducesResponseType<OpenShockProblem>(StatusCodes.Status404NotFound, MediaTypeNames.Application.ProblemJson)] // PairCodeNotFound
+    public async Task<IActionResult> PairDeprecated([FromRoute] string pairCode)
+    {
+        return await PairInternal(pairCode);
+    }
+
+    public async Task<IActionResult> PairInternal([FromRoute] string pairCode)
     {
         var devicePairs = _redis.RedisCollection<DevicePair>();
 
