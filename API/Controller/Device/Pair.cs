@@ -37,7 +37,7 @@ public sealed partial class DeviceController
     [AllowAnonymous]
     [MapToApiVersion("1")]
     [HttpGet("~/{version:apiVersion}/pair/{pairCode}")]
-    [ExcludeFromDescription]
+    [ApiExplorerSettings(IgnoreApi = true)]
     [EnableRateLimiting("auth")]
     public async Task<IActionResult> PairDeprecated([FromRoute] string pairCode)
     {

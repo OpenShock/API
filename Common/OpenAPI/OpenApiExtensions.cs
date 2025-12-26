@@ -1,5 +1,4 @@
-﻿using System.Text;
-using Asp.Versioning.ApiExplorer;
+﻿using Asp.Versioning.ApiExplorer;
 using Microsoft.OpenApi;
 using OpenShock.Common.Models;
 using OpenShock.Common.Utils;
