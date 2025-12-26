@@ -17,6 +17,11 @@ public static class OpenApiExtensions
     
     private static string GetCleanName(Type type)
     {
+        if (Nullable.GetUnderlyingType(type) is { } underlying)
+        {
+            return "Optional" + GetCleanName(underlying);
+        }
+        
         if (type.IsEnum || Type.GetTypeCode(type) is not TypeCode.Object)
         {
             return type.Name;
