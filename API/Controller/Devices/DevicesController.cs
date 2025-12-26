@@ -25,12 +25,12 @@ public sealed partial class DevicesController
     /// <response code="200">All devices for the current user</response>
     [HttpGet]
     [MapToApiVersion("1")]
-    [ProducesResponseType<LegacyDataResponse<Models.Response.ResponseDevice[]>>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
+    [ProducesResponseType<LegacyDataResponse<Models.Response.DeviceResponse[]>>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
     public IActionResult ListDevices()
     {
         var devices = _db.Devices
             .Where(x => x.OwnerId == CurrentUser.Id)
-            .Select(x => new Models.Response.ResponseDevice
+            .Select(x => new Models.Response.DeviceResponse
             {
                 Id = x.Id,
                 Name = x.Name,
@@ -47,7 +47,7 @@ public sealed partial class DevicesController
     /// <param name="deviceId"></param>
     /// <response code="200">The device</response>
     [HttpGet("{deviceId}")]
-    [ProducesResponseType<LegacyDataResponse<Models.Response.ResponseDeviceWithToken>>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
+    [ProducesResponseType<LegacyDataResponse<Models.Response.DeviceWithTokenResponse>>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status404NotFound, MediaTypeNames.Application.ProblemJson)] // DeviceNotFound
     [MapToApiVersion("1")]
     public async Task<IActionResult> GetDeviceById([FromRoute] Guid deviceId)
@@ -56,7 +56,7 @@ public sealed partial class DevicesController
         
         
         var device = await _db.Devices.Where(x => x.OwnerId == CurrentUser.Id && x.Id == deviceId)
-            .Select(x => new Models.Response.ResponseDeviceWithToken
+            .Select(x => new Models.Response.DeviceWithTokenResponse
             {
                 Id = x.Id,
                 Name = x.Name,

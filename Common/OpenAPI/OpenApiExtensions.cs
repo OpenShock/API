@@ -1,10 +1,77 @@
-﻿using Asp.Versioning.ApiExplorer;
+﻿using System.Text;
+using Asp.Versioning.ApiExplorer;
 using Microsoft.OpenApi;
+using OpenShock.Common.Models;
+using OpenShock.Common.Utils;
 
 namespace OpenShock.Common.OpenAPI;
 
 public static class OpenApiExtensions
 {
+    private static string RemoveResponseSuffix(string name)
+    {
+        string? value;
+        if (StringUtils.TryRemoveSuffix(name, "LegacyResponse", out value)) return value;
+        if (StringUtils.TryRemoveSuffix(name, "Response", out value)) return value;
+        return name;
+    }
+    
+    private static string GetCleanName(Type type)
+    {
+        if (type.IsEnum || Type.GetTypeCode(type) is not TypeCode.Object)
+        {
+            return type.Name;
+        }
+
+        // Handle arrays
+        if (type.IsArray)
+        {
+            return RemoveResponseSuffix(GetCleanName(type.GetElementType()!)) + "Array";
+        }
+    
+        var isGeneric = type.IsGenericType;
+        if (!isGeneric)
+        {
+            if (type == typeof(DateOnly)) return "Date";
+            if (type == typeof(DateTimeOffset)) return "DateTimeWithoutTimeZone";
+            
+            return type.Name;
+        }
+
+        var genericTypeDef = type.GetGenericTypeDefinition();
+        if (genericTypeDef == typeof(List<>) ||
+            genericTypeDef == typeof(IList<>) ||
+            genericTypeDef == typeof(HashSet<>) ||
+            genericTypeDef == typeof(IEnumerable<>) ||
+            genericTypeDef == typeof(IAsyncEnumerable<>))
+        {
+            return RemoveResponseSuffix(GetCleanName(type.GetGenericArguments()[0])) + "Array";
+        }
+
+        if (genericTypeDef == typeof(Dictionary<,>))
+        {
+            return $"DictionaryOf{GetCleanName(type.GetGenericArguments()[0])}And{GetCleanName(type.GetGenericArguments()[1])}";
+        }
+
+
+        if (genericTypeDef == typeof(LegacyDataResponse<>))
+        {
+            return RemoveResponseSuffix(GetCleanName(type.GetGenericArguments()[0])) + "LegacyResponse";
+        }
+    
+        // Handle generic types
+        var genericArgs = string.Join("And", type.GetGenericArguments().Select(GetCleanName));
+    
+        var name = type.Name.AsSpan();
+        var backtickIndex = name.IndexOf('`');
+        if (backtickIndex > 0)
+        {
+            name = name[..backtickIndex];
+        }
+
+        return $"{name}Of{genericArgs}";
+    }
+    
     public static IServiceCollection AddOpenApiExt<TProgram>(this WebApplicationBuilder builder) where TProgram : class
     {
         var assembly = typeof(TProgram).Assembly;
@@ -30,15 +97,7 @@ public static class OpenApiExtensions
                     options.OpenApiVersion = OpenApiSpecVersion.OpenApi3_1;
                     options.AddDocumentTransformer(DocumentDefaults.GetDocumentTransformer(
                         version: description.ApiVersion.ToString()));
-                    options.CreateSchemaReferenceId = (type) =>
-                    {
-                        var defaultName = type.Type.Name;
-                        var cleanName = defaultName
-                            .Replace("[]", "Array")
-                            .Replace("`1", "Of")
-                            .Replace("`2", "OfTwo");
-                        return cleanName;
-                    };
+                    options.CreateSchemaReferenceId = type => GetCleanName(type.Type);
                     options.AddOperationTransformer((operation, context, cancellationToken) =>
                     {
                         var actionDescriptor = context.Description.ActionDescriptor;
