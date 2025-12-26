@@ -32,18 +32,13 @@ public sealed partial class DeviceController
     }
 
     /// <summary>
-    /// Pair a device with a pair code.
+    /// Pair a device with a pair code, legacy endpoint kept for backwards compatibility
     /// </summary>
-    /// <param name="pairCode">The pair code to pair with.</param>
-    /// <response code="200">Successfully assigned LCG node</response>
-    /// <response code="404">No such pair code exists</response>
     [AllowAnonymous]
     [MapToApiVersion("1")]
-    [HttpGet("~/{version:apiVersion}/pair/{pairCode}", Name = "PairDeviceByCode_DEPRECATED")] // Backwards compatibility
-    [EndpointName("PairDeviceByCode_DEPRECATED")]
+    [HttpGet("~/{version:apiVersion}/pair/{pairCode}")]
+    [ExcludeFromDescription]
     [EnableRateLimiting("auth")]
-    [ProducesResponseType<LegacyDataResponse<string>>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
-    [ProducesResponseType<OpenShockProblem>(StatusCodes.Status404NotFound, MediaTypeNames.Application.ProblemJson)] // PairCodeNotFound
     public async Task<IActionResult> PairDeprecated([FromRoute] string pairCode)
     {
         return await PairInternal(pairCode);
