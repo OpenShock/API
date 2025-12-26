@@ -31,9 +31,6 @@ public static class OpenApiExtensions
         var isGeneric = type.IsGenericType;
         if (!isGeneric)
         {
-            if (type == typeof(DateOnly)) return "Date";
-            if (type == typeof(DateTimeOffset)) return "DateTimeWithoutTimeZone";
-            
             return type.Name;
         }
 
