@@ -1,4 +1,5 @@
 ﻿using Asp.Versioning.ApiExplorer;
+using Microsoft.AspNetCore.OpenApi;
 using Microsoft.OpenApi;
 using OpenShock.Common.Models;
 using OpenShock.Common.Utils;
@@ -7,6 +8,44 @@ namespace OpenShock.Common.OpenAPI;
 
 public static class OpenApiExtensions
 {
+    public static IServiceCollection AddOpenApiExt<TProgram>(this WebApplicationBuilder builder) where TProgram : class
+    {
+        builder.Services.AddOutputCache(options =>
+        {
+            options.AddPolicy("OpenAPI", policy => policy.Expire(TimeSpan.FromMinutes(10)));
+        });
+
+        builder.Services.AddOpenApi("v1", options =>
+        {
+            options.OpenApiVersion = OpenApiSpecVersion.OpenApi3_1;
+            options.AddDocumentTransformer(DocumentDefaults.GetDocumentTransformer(version: "v1"));
+            options.CreateSchemaReferenceId = type => GetCleanName(type.Type);
+            options.AddOperationTransformer(OperationTransformer);
+        });
+
+        builder.Services.AddOpenApi("v2", options =>
+        {
+            options.OpenApiVersion = OpenApiSpecVersion.OpenApi3_1;
+            options.AddDocumentTransformer(DocumentDefaults.GetDocumentTransformer(version: "v2"));
+            options.CreateSchemaReferenceId = type => GetCleanName(type.Type);
+            options.AddOperationTransformer(OperationTransformer);
+        });
+
+        builder.Services.AddOpenApi("oauth", options =>
+        {
+            options.OpenApiVersion = OpenApiSpecVersion.OpenApi3_1;
+            options.ShouldInclude = apiDescription => apiDescription.GroupName is "oauth";
+            options.AddDocumentTransformer(DocumentDefaults.GetDocumentTransformer(version: "1"));
+        });
+        builder.Services.AddOpenApi("admin", options =>
+        {
+            options.OpenApiVersion = OpenApiSpecVersion.OpenApi3_1;
+            options.ShouldInclude = apiDescription => apiDescription.GroupName is "admin";
+            options.AddDocumentTransformer(DocumentDefaults.GetDocumentTransformer(version: "1"));
+        });
+
+        return builder.Services;
+    }
     private static string RemoveResponseSuffix(string name)
     {
         string? value;
@@ -72,76 +111,31 @@ public static class OpenApiExtensions
 
         return $"{name}Of{genericArgs}";
     }
-    
-    public static IServiceCollection AddOpenApiExt<TProgram>(this WebApplicationBuilder builder) where TProgram : class
+
+    private static Task OperationTransformer(OpenApiOperation operation, OpenApiOperationTransformerContext context, CancellationToken cancellationToken)
     {
-        var assembly = typeof(TProgram).Assembly;
+        var actionDescriptor = context.Description.ActionDescriptor;
 
-        string assemblyName = assembly
-                                .GetName()
-                                .Name ?? throw new NullReferenceException("Assembly name");
+        // Use endpoint name if available
+        var endpointName = actionDescriptor.EndpointMetadata.OfType<EndpointNameMetadata>()
+            .FirstOrDefault()
+            ?.EndpointName;
 
-        builder.Services.AddOutputCache(options =>
+        if (!string.IsNullOrEmpty(endpointName))
         {
-            options.AddPolicy("OpenAPI", policy => policy.Expire(TimeSpan.FromMinutes(10)));
-        });
-
-        using (var tempProvider = builder.Services.BuildServiceProvider())
-        {
-            var apiVersionProvider = tempProvider.GetRequiredService<IApiVersionDescriptionProvider>();
-
-            // Configure OpenAPI for each API version
-            foreach (var description in apiVersionProvider.ApiVersionDescriptions)
-            {
-                builder.Services.AddOpenApi(description.GroupName, options =>
-                {
-                    options.OpenApiVersion = OpenApiSpecVersion.OpenApi3_1;
-                    options.AddDocumentTransformer(DocumentDefaults.GetDocumentTransformer(
-                        version: description.ApiVersion.ToString()));
-                    options.CreateSchemaReferenceId = type => GetCleanName(type.Type);
-                    options.AddOperationTransformer((operation, context, cancellationToken) =>
-                    {
-                        var actionDescriptor = context.Description.ActionDescriptor;
-
-                        // Use endpoint name if available
-                        var endpointName = actionDescriptor.EndpointMetadata
-                            .OfType<EndpointNameMetadata>()
-                            .FirstOrDefault()?.EndpointName;
-
-                        if (!string.IsNullOrEmpty(endpointName))
-                        {
-                            operation.OperationId = endpointName;
-                            return Task.CompletedTask;
-                        }
-
-                        // For controllers
-                        var controller = actionDescriptor.RouteValues.TryGetValue("controller", out var ctrl) ? ctrl : null;
-                        var action = actionDescriptor.RouteValues.TryGetValue("action", out var act) ? act : null;
-
-                        if (!string.IsNullOrEmpty(controller) && !string.IsNullOrEmpty(action))
-                        {
-                            operation.OperationId = $"{controller}{action}";
-                        }
-
-                        return Task.CompletedTask;
-                    });
-                });
-            }
+            operation.OperationId = endpointName;
+            return Task.CompletedTask;
         }
 
-        builder.Services.AddOpenApi("oauth", options =>
-        {
-            options.OpenApiVersion = OpenApiSpecVersion.OpenApi3_1;
-            options.ShouldInclude = apiDescription => apiDescription.GroupName is "oauth";
-            options.AddDocumentTransformer(DocumentDefaults.GetDocumentTransformer(version: "1"));
-        });
-        builder.Services.AddOpenApi("admin", options =>
-        {
-            options.OpenApiVersion = OpenApiSpecVersion.OpenApi3_1;
-            options.ShouldInclude = apiDescription => apiDescription.GroupName is "admin";
-            options.AddDocumentTransformer(DocumentDefaults.GetDocumentTransformer(version: "1"));
-        });
+        // For controllers
+        var controller = actionDescriptor.RouteValues.TryGetValue("controller", out var ctrl) ? ctrl : null;
+        var action = actionDescriptor.RouteValues.TryGetValue("action", out var act) ? act : null;
 
-        return builder.Services;
+        if (!string.IsNullOrEmpty(controller) && !string.IsNullOrEmpty(action))
+        {
+            operation.OperationId = $"{controller}{action}";
+        }
+
+        return Task.CompletedTask;
     }
 }
