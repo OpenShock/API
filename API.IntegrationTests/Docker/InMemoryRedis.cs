@@ -13,10 +13,9 @@ public sealed class InMemoryRedis : IAsyncInitializer, IAsyncDisposable
     {
         get
         {
-            _container ??= new RedisBuilder()
+            _container ??= new RedisBuilder(image: "redis/redis-stack-server:latest")
                 .WithNetwork(DockerNetwork.Instance)
                 .WithName($"tunit-redis-{Guid.CreateVersion7()}")
-                .WithImage("redis/redis-stack-server:latest")
                 .Build();
 
             return _container;
