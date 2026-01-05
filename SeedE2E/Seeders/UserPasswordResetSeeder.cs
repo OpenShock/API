@@ -19,7 +19,7 @@ public static class UserPasswordResetSeeder
         var allUserIds = await db.Users.Select(u => u.Id).ToListAsync();
 
         var prFaker = new Faker<UserPasswordReset>()
-            .RuleFor(p => p.Id, f => Guid.CreateVersion7())
+            .RuleFor(p => p.Id, f => f.Random.Guid())
             .RuleFor(p => p.UserId, f => f.PickRandom(allUserIds))
             .RuleFor(p => p.TokenHash, f =>
             {

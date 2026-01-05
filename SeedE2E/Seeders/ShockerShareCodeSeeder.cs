@@ -19,7 +19,7 @@ public static class ShockerShareCodeSeeder
 
         var codeFaker = new Faker<ShockerShareCode>()
             .ApplySafetySettingsRules()
-            .RuleFor(c => c.Id, f => Guid.CreateVersion7())
+            .RuleFor(c => c.Id, f => f.Random.Guid())
             .RuleFor(c => c.ShockerId, f => f.PickRandom(allShockerIds))
             .RuleFor(c => c.CreatedAt, f => f.Date.RecentOffset(30).UtcDateTime);
 

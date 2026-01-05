@@ -19,7 +19,7 @@ public sealed class PublicShareHub : Hub<IPublicShareHub>
     private readonly IControlSender _controlSender;
     private readonly IUserReferenceService _userReferenceService;
     private readonly ILogger<PublicShareHub> _logger;
-    private IReadOnlyList<PermissionType>? _tokenPermissions = null;
+    private IReadOnlyList<PermissionType>? _tokenPermissions;
 
     public PublicShareHub(OpenShockContext db, IHubContext<UserHub, IUserHub> userHub, ISessionService sessionService, IControlSender controlSender, IUserReferenceService userReferenceService, ILogger<PublicShareHub> logger)
     {

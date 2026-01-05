@@ -1,4 +1,5 @@
 ﻿using OpenShock.Common.Utils;
+// ReSharper disable ObjectCreationAsStatement
 
 namespace OpenShock.Common.Tests.Utils;
 

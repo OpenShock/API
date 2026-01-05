@@ -106,7 +106,7 @@ public static class OpenShockMiddlewareHelper
 
         if (pendingMigrations.Length > 0)
         {
-            logger.LogInformation("Found pending migrations, applying [{@Migrations}]", pendingMigrations);
+            logger.LogInformation("Found pending migrations, applying [{@Migrations}]", string.Join(", ", pendingMigrations));
             await migrationContext.Database.MigrateAsync();
             logger.LogInformation("Applied database migrations... proceeding with startup");
         }
