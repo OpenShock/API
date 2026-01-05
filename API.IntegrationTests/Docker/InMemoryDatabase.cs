@@ -14,10 +14,9 @@ public sealed class InMemoryDatabase : IAsyncInitializer, IAsyncDisposable
     {
         get
         {
-            _container ??= new PostgreSqlBuilder()
+            _container ??= new PostgreSqlBuilder(image: "postgres:latest")
                 .WithNetwork(DockerNetwork.Instance)
                 .WithName($"tunit-postgresql-{Guid.CreateVersion7()}")
-                .WithImage("postgres:latest")
                 .WithDatabase("openshock")
                 .WithUsername("openshock")
                 .WithPassword(CryptoUtils.RandomAlphaNumericString(32))
