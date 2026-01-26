@@ -28,19 +28,19 @@
     <PackageVersion Include="OneOf" Version="3.0.271" />
     <PackageVersion Include="OpenShock.Serialization.Flatbuffers" Version="2.0.0-preview.5" />
     <PackageVersion Include="OpenTelemetry.Exporter.Prometheus.AspNetCore" Version="1.12.0-beta.1" />
-    <PackageVersion Include="OpenTelemetry.Extensions.Hosting" Version="1.14.0" />
-    <PackageVersion Include="OpenTelemetry.Instrumentation.AspNetCore" Version="1.14.0" />
-    <PackageVersion Include="OpenTelemetry.Instrumentation.Http" Version="1.14.0" />
-    <PackageVersion Include="OpenTelemetry.Instrumentation.Runtime" Version="1.14.0" />
+    <PackageVersion Include="OpenTelemetry.Extensions.Hosting" Version="1.15.0" />
+    <PackageVersion Include="OpenTelemetry.Instrumentation.AspNetCore" Version="1.15.0" />
+    <PackageVersion Include="OpenTelemetry.Instrumentation.Http" Version="1.15.0" />
+    <PackageVersion Include="OpenTelemetry.Instrumentation.Runtime" Version="1.15.0" />
     <PackageVersion Include="Redis.OM" Version="1.1.0" />
-    <PackageVersion Include="Scalar.AspNetCore" Version="2.12.11" />
+    <PackageVersion Include="Scalar.AspNetCore" Version="2.12.18" />
     <PackageVersion Include="Serilog.AspNetCore" Version="10.0.0" />
     <PackageVersion Include="Serilog.Sinks.Grafana.Loki" Version="8.3.2" />
     <PackageVersion Include="Serilog.Sinks.OpenTelemetry" Version="4.2.0" />
-    <PackageVersion Include="Swashbuckle.AspNetCore.SwaggerGen" Version="9.0.6" />
+    <PackageVersion Include="Swashbuckle.AspNetCore.SwaggerGen" Version="10.1.0" />
     <PackageVersion Include="Testcontainers.PostgreSql" Version="4.10.0" />
     <PackageVersion Include="Testcontainers.Redis" Version="4.10.0" />
-    <PackageVersion Include="TUnit" Version="1.12.3" />
-    <PackageVersion Include="Z.EntityFramework.Plus.EFCore" Version="9.105.2" />
+    <PackageVersion Include="TUnit" Version="1.12.53" />
+    <PackageVersion Include="Z.EntityFramework.Plus.EFCore" Version="9.105.2.1" />
   </ItemGroup>
 </Project>
