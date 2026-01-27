@@ -1,6 +1,6 @@
 ﻿namespace OpenShock.API.Models.Response;
 
-public class ResponseDevice
+public class DeviceResponse
 {
     public required Guid Id { get; init; }
     public required string Name { get; init; }
