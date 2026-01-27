@@ -31,7 +31,7 @@ public static class IQueryableExtensions
 
     public static IQueryable<T> ApplyFilter<T>(this IQueryable<T> query, string filterQuery) where T : class
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(filterQuery, nameof(filterQuery));
+        ArgumentException.ThrowIfNullOrWhiteSpace(filterQuery);
 
         return query.Where(DBExpressionBuilder.GetFilterExpression<T>(filterQuery));
     }

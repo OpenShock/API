@@ -44,7 +44,7 @@ public sealed partial class DeviceController
         return await PairInternal(pairCode);
     }
 
-    public async Task<IActionResult> PairInternal(string pairCode)
+    private async Task<IActionResult> PairInternal(string pairCode)
     {
         var devicePairs = _redis.RedisCollection<DevicePair>();
 

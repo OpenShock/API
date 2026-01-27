@@ -18,7 +18,7 @@ public sealed class ApiTokenAuthentication : AuthenticationHandler<Authenticatio
     private readonly IUserReferenceService _userReferenceService;
     private readonly IBatchUpdateService _batchUpdateService;
     private readonly OpenShockContext _db;
-    private OpenShockProblem? _authResultError = null;
+    private OpenShockProblem? _authResultError;
 
     public ApiTokenAuthentication(
         IOptionsMonitor<AuthenticationSchemeOptions> options,

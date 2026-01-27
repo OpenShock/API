@@ -24,7 +24,7 @@ public sealed class UserHub : Hub<IUserHub>
     private readonly IRedisPubService _redisPubService;
     private readonly IControlSender _controlSender;
     private readonly IUserReferenceService _userReferenceService;
-    private IReadOnlyList<PermissionType>? _tokenPermissions = null;
+    private IReadOnlyList<PermissionType>? _tokenPermissions;
 
     public UserHub(ILogger<UserHub> logger, OpenShockContext db, IRedisConnectionProvider provider,
         IRedisPubService redisPubService, IControlSender controlSender, IUserReferenceService userReferenceService)

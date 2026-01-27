@@ -88,7 +88,7 @@ public sealed class LcgAssignmentTests
 
         var data = await response.Content.ReadFromJsonAsync<LcgNodeResponseV2>();
         await Assert.That(data).IsNotNull();
-        await Assert.That(data.Host).IsEqualTo(expectedHost);
+        await Assert.That(data!.Host).IsEqualTo(expectedHost);
     }
 
     [Test]
@@ -107,7 +107,7 @@ public sealed class LcgAssignmentTests
 
         var data = await response.Content.ReadFromJsonAsync<LcgNodeResponseV2>();
         await Assert.That(data).IsNotNull();
-        await Assert.That(data.Host).IsNotNullOrWhiteSpace();
+        await Assert.That(data!.Host).IsNotNullOrWhiteSpace();
     }
 
     [Test]

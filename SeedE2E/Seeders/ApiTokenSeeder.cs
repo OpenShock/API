@@ -23,7 +23,7 @@ public static class ApiTokenSeeder
         var allUserIds = await db.Users.Select(u => u.Id).ToListAsync();
 
         var apiTokenFaker = new Faker<ApiToken>()
-            .RuleFor(t => t.Id, f => Guid.CreateVersion7())
+            .RuleFor(t => t.Id, f => f.Random.Guid())
             .RuleFor(t => t.UserId, f => f.PickRandom(allUserIds))
             .RuleFor(t => t.Name, f => f.Lorem.Word().Truncate(HardLimits.ApiKeyNameMaxLength))
             .RuleFor(t => t.TokenHash, f =>
@@ -39,8 +39,8 @@ public static class ApiTokenSeeder
                 var take = f.Random.Number(0, PermissionTypes.Length);
                 return f.PickRandom(PermissionTypes, take).ToList();
             })
-            .RuleFor(t => t.ValidUntil, f => f.Date.FutureOffset(1).UtcDateTime)
-            .RuleFor(t => t.CreatedAt, f => f.Date.PastOffset(1).UtcDateTime)
+            .RuleFor(t => t.ValidUntil, f => f.Date.FutureOffset().UtcDateTime)
+            .RuleFor(t => t.CreatedAt, f => f.Date.PastOffset().UtcDateTime)
             .RuleFor(t => t.LastUsed, _ => DateTime.UnixEpoch);
 
         // Generate roughly 3 tokens per user

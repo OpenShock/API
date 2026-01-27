@@ -11,10 +11,10 @@ namespace OpenShock.Common.OpenShockDb;
 /// </summary>
 public sealed class MigrationOpenShockContext : OpenShockContext
 {
-    private readonly string? _connectionString = null;
+    private readonly string? _connectionString;
     private readonly bool _debug;
     private readonly bool _migrationTool;
-    private readonly ILoggerFactory? _loggerFactory = null;
+    private readonly ILoggerFactory? _loggerFactory;
     
     public MigrationOpenShockContext()
     {
