@@ -66,7 +66,7 @@ public sealed class LcgAssignmentTests
         await db.Devices.Where(x => x.Id == _hubId).ExecuteDeleteAsync();
         await db.Users.Where(x => x.Id == _userId).ExecuteDeleteAsync();
 
-        var allLcg = await lcgNodesCollection.ToArrayAsync();
+        var allLcg = await lcgNodesCollection.ToListAsync();
         await lcgNodesCollection.DeleteAsync(allLcg);
     }
 

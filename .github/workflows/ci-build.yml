@@ -33,7 +33,7 @@ name: ci-build
 
 env:
   REGISTRY: ghcr.io
-  DOTNET_VERSION: 9.0.x
+  DOTNET_VERSION: 10.0.x
 
 jobs:
 
@@ -60,7 +60,7 @@ jobs:
       - name: Run ${{ matrix.name }} tests
         run: |
           set -euo pipefail
-          dotnet test -c Release ${{ matrix.project }}
+          dotnet test -c Release --project ${{ matrix.project }}
 
   build:
     name: Build (${{ matrix.image }})

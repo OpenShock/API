@@ -95,11 +95,11 @@ public sealed class SessionService : ISessionService
 
     public async Task<int> DeleteSessionsByUserIdAsync(Guid userId)
     {
-        var sessions = await _loginSessions.Where(x => x.UserId == userId).ToArrayAsync();
+        var sessions = await _loginSessions.Where(x => x.UserId == userId).ToListAsync();
 
         await _loginSessions.DeleteAsync(sessions);
 
-        return sessions.Length;
+        return sessions.Count;
     }
 
     public async Task DeleteSessionAsync(LoginSession loginSession)
