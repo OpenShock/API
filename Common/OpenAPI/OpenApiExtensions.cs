@@ -1,4 +1,5 @@
-﻿using Asp.Versioning.ApiExplorer;
+﻿using System.Text.Json.Serialization.Metadata;
+using Asp.Versioning.ApiExplorer;
 using Microsoft.AspNetCore.OpenApi;
 using Microsoft.OpenApi;
 using OpenShock.Common.Models;
@@ -18,16 +19,16 @@ public static class OpenApiExtensions
         builder.Services.AddOpenApi("v1", options =>
         {
             options.OpenApiVersion = OpenApiSpecVersion.OpenApi3_1;
-            options.AddDocumentTransformer(DocumentDefaults.GetDocumentTransformer(version: "v1"));
-            options.CreateSchemaReferenceId = type => GetCleanName(type.Type);
+            options.AddDocumentTransformer(DocumentDefaults.GetDocumentTransformer(version: "1"));
+            options.CreateSchemaReferenceId = GetCleanName;
             options.AddOperationTransformer(OperationTransformer);
         });
 
         builder.Services.AddOpenApi("v2", options =>
         {
             options.OpenApiVersion = OpenApiSpecVersion.OpenApi3_1;
-            options.AddDocumentTransformer(DocumentDefaults.GetDocumentTransformer(version: "v2"));
-            options.CreateSchemaReferenceId = type => GetCleanName(type.Type);
+            options.AddDocumentTransformer(DocumentDefaults.GetDocumentTransformer(version: "2"));
+            options.CreateSchemaReferenceId = GetCleanName;
             options.AddOperationTransformer(OperationTransformer);
         });
 
@@ -36,12 +37,16 @@ public static class OpenApiExtensions
             options.OpenApiVersion = OpenApiSpecVersion.OpenApi3_1;
             options.ShouldInclude = apiDescription => apiDescription.GroupName is "oauth";
             options.AddDocumentTransformer(DocumentDefaults.GetDocumentTransformer(version: "1"));
+            options.CreateSchemaReferenceId = GetCleanName;
+            options.AddOperationTransformer(OperationTransformer);
         });
         builder.Services.AddOpenApi("admin", options =>
         {
             options.OpenApiVersion = OpenApiSpecVersion.OpenApi3_1;
             options.ShouldInclude = apiDescription => apiDescription.GroupName is "admin";
             options.AddDocumentTransformer(DocumentDefaults.GetDocumentTransformer(version: "1"));
+            options.CreateSchemaReferenceId = GetCleanName;
+            options.AddOperationTransformer(OperationTransformer);
         });
 
         return builder.Services;
@@ -53,12 +58,24 @@ public static class OpenApiExtensions
         if (StringUtils.TryRemoveSuffix(name, "Response", out value)) return value;
         return name;
     }
-    
-    private static string GetCleanName(Type type)
+
+    private static string? GetCleanName(JsonTypeInfo type)
+    {
+        if (!type.Type.IsEnum && Type.GetTypeCode(type.Type) is TypeCode.Char or TypeCode.Byte or TypeCode.Int16 or TypeCode.UInt16
+            or TypeCode.Int32 or TypeCode.UInt32 or TypeCode.Int64 or TypeCode.UInt64 or TypeCode.Single
+            or TypeCode.Double or TypeCode.Decimal)
+        {
+            return null;
+        }
+
+        return GetCleanNameRecursive(type.Type);
+    }
+
+    private static string GetCleanNameRecursive(Type type)
     {
         if (Nullable.GetUnderlyingType(type) is { } underlying)
         {
-            return "Optional" + GetCleanName(underlying);
+            type = underlying;
         }
         
         if (type.IsEnum || Type.GetTypeCode(type) is not TypeCode.Object)
@@ -69,7 +86,7 @@ public static class OpenApiExtensions
         // Handle arrays
         if (type.IsArray)
         {
-            return RemoveResponseSuffix(GetCleanName(type.GetElementType()!)) + "Array";
+            return RemoveResponseSuffix(GetCleanNameRecursive(type.GetElementType()!)) + "Array";
         }
     
         var isGeneric = type.IsGenericType;
@@ -85,22 +102,22 @@ public static class OpenApiExtensions
             genericTypeDef == typeof(IEnumerable<>) ||
             genericTypeDef == typeof(IAsyncEnumerable<>))
         {
-            return RemoveResponseSuffix(GetCleanName(type.GetGenericArguments()[0])) + "Array";
+            return RemoveResponseSuffix(GetCleanNameRecursive(type.GetGenericArguments()[0])) + "Array";
         }
 
         if (genericTypeDef == typeof(Dictionary<,>))
         {
-            return $"DictionaryOf{GetCleanName(type.GetGenericArguments()[0])}And{GetCleanName(type.GetGenericArguments()[1])}";
+            return $"DictionaryOf{GetCleanNameRecursive(type.GetGenericArguments()[0])}And{GetCleanNameRecursive(type.GetGenericArguments()[1])}";
         }
 
 
         if (genericTypeDef == typeof(LegacyDataResponse<>))
         {
-            return RemoveResponseSuffix(GetCleanName(type.GetGenericArguments()[0])) + "LegacyResponse";
+            return RemoveResponseSuffix(GetCleanNameRecursive(type.GetGenericArguments()[0])) + "LegacyResponse";
         }
     
         // Handle generic types
-        var genericArgs = string.Join("And", type.GetGenericArguments().Select(GetCleanName));
+        var genericArgs = string.Join("And", type.GetGenericArguments().Select(GetCleanNameRecursive));
     
         var name = type.Name.AsSpan();
         var backtickIndex = name.IndexOf('`');
