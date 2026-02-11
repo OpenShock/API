@@ -38,7 +38,7 @@ public sealed class DeviceEndpointTests
     }
 
     [Test]
-    public async Task GetDeviceSelf_WithShockers_ReturnsShokerList()
+    public async Task GetDeviceSelf_WithShockers_ReturnsShockerList()
     {
         var userId = await TestHelper.CreateUserInDb(WebApplicationFactory, "hubshockers", "hubshockers@test.org", "SecurePassword123#");
         var (deviceId, hubToken) = await TestHelper.CreateDeviceInDb(WebApplicationFactory, userId, "HubWithShockers");

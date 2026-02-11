@@ -40,7 +40,7 @@ public sealed class AccountAuthenticatedTests
     }
 
     [Test]
-    public async Task ChangePassword_WrongCurrentPassword_Returns401()
+    public async Task ChangePassword_WrongCurrentPassword_Returns403()
     {
         var user = await TestHelper.CreateAndLoginUser(WebApplicationFactory, "chgpwdbad", "chgpwdbad@test.org", "CorrectPassword123#");
         using var client = TestHelper.CreateAuthenticatedClient(WebApplicationFactory, user.SessionToken);

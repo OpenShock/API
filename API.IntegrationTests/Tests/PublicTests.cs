@@ -56,12 +56,12 @@ public sealed class PublicTests
     {
         using var client = WebApplicationFactory.CreateClient();
 
-        var response = await client.PostAsync("/1/account/username/check",
-            new StringContent(
-                JsonSerializer.Serialize(new { username = "totallyuniquename123" }),
-                System.Text.Encoding.UTF8,
-                "application/json"));
+        using var content = new StringContent(
+            JsonSerializer.Serialize(new { username = "totallyuniquename123" }),
+            System.Text.Encoding.UTF8,
+            "application/json");
 
+        var response = await client.PostAsync("/1/account/username/check", content);
         await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.OK);
 
         var json = await response.Content.ReadAsStringAsync();
