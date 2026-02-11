@@ -185,7 +185,7 @@ public sealed class TokensTests
     public async Task GetTokenSelf_WithApiToken_ReturnsInfo()
     {
         var userId = await TestHelper.CreateUserInDb(WebApplicationFactory, "tokself", "tokself@test.org", "SecurePassword123#");
-        var (tokenId, rawToken) = await TestHelper.CreateApiTokenInDb(WebApplicationFactory, userId, "SelfToken");
+        var (_, rawToken) = await TestHelper.CreateApiTokenInDb(WebApplicationFactory, userId, "SelfToken");
         using var client = TestHelper.CreateApiTokenClient(WebApplicationFactory, rawToken);
 
         var response = await client.GetAsync("/1/tokens/self");
