@@ -73,7 +73,7 @@ public sealed class AccountAuthenticatedTests
     [Test]
     public async Task ChangeUsername_Taken_Returns409()
     {
-        var user1 = await TestHelper.CreateAndLoginUser(WebApplicationFactory, "takenname", "takenname@test.org", "SecurePassword123#");
+        await TestHelper.CreateAndLoginUser(WebApplicationFactory, "takenname", "takenname@test.org", "SecurePassword123#");
         var user2 = await TestHelper.CreateAndLoginUser(WebApplicationFactory, "wantsname", "wantsname@test.org", "SecurePassword123#");
         using var client = TestHelper.CreateAuthenticatedClient(WebApplicationFactory, user2.SessionToken);
 
