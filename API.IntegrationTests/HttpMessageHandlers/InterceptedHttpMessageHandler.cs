@@ -70,11 +70,17 @@ sealed class InterceptedHttpMessageHandler : DelegatingHandler
 
     private class CloudflareTurnstileVerifyResponseDto
     {
+        [System.Text.Json.Serialization.JsonPropertyName("success")]
         public bool Success { get; init; }
+        [System.Text.Json.Serialization.JsonPropertyName("error-codes")]
         public required string[] ErrorCodes { get; init; }
+        [System.Text.Json.Serialization.JsonPropertyName("challenge_ts")]
         public DateTime ChallengeTs { get; init; }
+        [System.Text.Json.Serialization.JsonPropertyName("hostname")]
         public required string Hostname { get; init; }
+        [System.Text.Json.Serialization.JsonPropertyName("action")]
         public required string Action { get; init; }
+        [System.Text.Json.Serialization.JsonPropertyName("cdata")]
         public required string Cdata { get; init; }
     }
 }

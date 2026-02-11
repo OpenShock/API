@@ -1,8 +1,11 @@
-﻿using Microsoft.AspNetCore.Hosting;
+﻿using System.Threading.RateLimiting;
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Http;
+using Microsoft.Extensions.Options;
 using OpenShock.API.IntegrationTests.Docker;
 using OpenShock.API.IntegrationTests.HttpMessageHandlers;
 using Serilog;
@@ -15,7 +18,7 @@ public class WebApplicationFactory : WebApplicationFactory<Program>, IAsyncIniti
 {
     [ClassDataSource<InMemoryDatabase>(Shared = SharedType.PerTestSession)]
     public required InMemoryDatabase PostgreSql { get; init; }
-    
+
     [ClassDataSource<InMemoryRedis>(Shared = SharedType.PerTestSession)]
     public required InMemoryRedis Redis { get; init; }
 
@@ -41,17 +44,17 @@ public class WebApplicationFactory : WebApplicationFactory<Program>, IAsyncIniti
         var environmentVariables = new Dictionary<string, string>
         {
             { "ASPNETCORE_UNDER_INTEGRATION_TEST", "1" },
-            
+
             { "OPENSHOCK__DB__CONN", PostgreSql.Container.GetConnectionString() },
             { "OPENSHOCK__DB__SKIPMIGRATION", "false" },
             { "OPENSHOCK__DB__DEBUG", "false" },
-            
+
             { "OPENSHOCK__REDIS__CONN", Redis.Container.GetConnectionString() },
-            
+
             { "OPENSHOCK__FRONTEND__BASEURL", "https://openshock.app" },
             { "OPENSHOCK__FRONTEND__SHORTURL", "https://openshock.app" },
-            { "OPENSHOCK__FRONTEND__COOKIEDOMAIN", "openshock.app" },
-            
+            { "OPENSHOCK__FRONTEND__COOKIEDOMAIN", "openshock.app,localhost" },
+
             { "OPENSHOCK__MAIL__TYPE", "MAILJET" },
             { "OPENSHOCK__MAIL__SENDER__EMAIL", "system@openshock.org" },
             { "OPENSHOCK__MAIL__SENDER__NAME", "OpenShock" },
@@ -61,11 +64,11 @@ public class WebApplicationFactory : WebApplicationFactory<Program>, IAsyncIniti
             { "OPENSHOCK__MAIL__MAILJET__TEMPLATE__PASSWORDRESETCOMPLETE", "87654321" },
             { "OPENSHOCK__MAIL__MAILJET__TEMPLATE__VERIFYEMAIL", "11223344" },
             { "OPENSHOCK__MAIL__MAILJET__TEMPLATE__VERIFYEMAILCOMPLETE", "44332211" },
-            
+
             { "OPENSHOCK__TURNSTILE__ENABLED", "true" },
             { "OPENSHOCK__TURNSTILE__SECRETKEY", "turnstile-secret-key" },
             { "OPENSHOCK__TURNSTILE__SITEKEY", "turnstile-site-key" },
-            
+
             { "OPENSHOCK__LCG__FQDN", "de1-gateway.my-openshock-instance.net" },
             { "OPENSHOCK__LCG__COUNTRYCODE", "DE" }
         };
@@ -82,10 +85,35 @@ public class WebApplicationFactory : WebApplicationFactory<Program>, IAsyncIniti
                 configuration.WriteTo.Console(LogEventLevel.Warning);
             });
         });
-        
+
         builder.ConfigureTestServices(services =>
         {
             services.AddTransient<HttpMessageHandlerBuilder, InterceptedHttpMessageHandlerBuilder>();
+
+            // Disable rate limiting for integration tests so auth-endpoint tests
+            // don't interfere with each other (10 req/min is too restrictive for test suites).
+            // Rate limiter behavior is covered by dedicated unit tests.
+            var rateLimiterDescriptors = services
+                .Where(d => d.ServiceType.IsGenericType
+                            && d.ServiceType.GetGenericTypeDefinition() == typeof(IConfigureOptions<>)
+                            && d.ServiceType.GetGenericArguments()[0] == typeof(RateLimiterOptions))
+                .ToList();
+            foreach (var descriptor in rateLimiterDescriptors)
+            {
+                services.Remove(descriptor);
+            }
+
+            services.Configure<RateLimiterOptions>(options =>
+            {
+                options.GlobalLimiter = PartitionedRateLimiter.Create<Microsoft.AspNetCore.Http.HttpContext, string>(
+                    _ => RateLimitPartition.GetNoLimiter("test-no-limit"));
+                options.AddPolicy("auth", _ =>
+                    RateLimitPartition.GetNoLimiter("test-auth-no-limit"));
+                options.AddPolicy("token-reporting", _ =>
+                    RateLimitPartition.GetNoLimiter("test-token-reporting-no-limit"));
+                options.AddPolicy("shocker-logs", _ =>
+                    RateLimitPartition.GetNoLimiter("test-shocker-logs-no-limit"));
+            });
         });
     }
 }
