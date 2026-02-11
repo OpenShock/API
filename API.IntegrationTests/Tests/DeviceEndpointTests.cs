@@ -23,7 +23,7 @@ public sealed class DeviceEndpointTests
     public async Task GetDeviceSelf_ReturnsDeviceInfo()
     {
         var userId = await TestHelper.CreateUserInDb(WebApplicationFactory, "hubself", "hubself@test.org", "SecurePassword123#");
-        var (deviceId, hubToken) = await TestHelper.CreateDeviceInDb(WebApplicationFactory, userId, "MyHub");
+        var (_, hubToken) = await TestHelper.CreateDeviceInDb(WebApplicationFactory, userId, "MyHub");
         using var client = TestHelper.CreateHubTokenClient(WebApplicationFactory, hubToken);
 
         var response = await client.GetAsync("/1/device/self");
