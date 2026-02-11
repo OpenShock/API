@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.Net;
 using System.Text;
 using System.Text.Json;
@@ -15,6 +16,13 @@ public static class TestHelper
     {
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase
     };
+
+    /// <summary>
+    /// Cache BCrypt hashes to avoid repeated expensive hashing across tests.
+    /// BCrypt is synchronous and CPU-bound; hashing in every test causes thread pool
+    /// starvation on CI runners with fewer cores, leading to test server timeouts.
+    /// </summary>
+    private static readonly ConcurrentDictionary<string, string> PasswordHashCache = new();
 
     /// <summary>
     /// Creates a user directly in DB, creates a session via ISessionService, returns auth info.
@@ -93,12 +101,13 @@ public static class TestHelper
         var db = scope.ServiceProvider.GetRequiredService<OpenShockContext>();
 
         var userId = Guid.CreateVersion7();
+        var hash = PasswordHashCache.GetOrAdd(password, HashingUtils.HashPassword);
         db.Users.Add(new User
         {
             Id = userId,
             Name = username,
             Email = email,
-            PasswordHash = HashingUtils.HashPassword(password),
+            PasswordHash = hash,
             ActivatedAt = activated ? DateTime.UtcNow : null
         });
         await db.SaveChangesAsync();
