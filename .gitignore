@@ -6,3 +6,6 @@ bin/
 **/launchSettings.json
 Dev/dragonfly
 Dev/postgres
+
+# Claude Code
+.claude/
