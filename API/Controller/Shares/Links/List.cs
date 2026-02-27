@@ -17,7 +17,7 @@ public sealed partial class ShareLinksController
     public IActionResult List()
     {
         var ownPublicShares = _db.PublicShares
-            .Where(x => x.OwnerId == CurrentUser.Id && x.ExpiresAt > DateTime.UtcNow)
+            .Where(x => x.OwnerId == CurrentUser.Id && (x.ExpiresAt == null || x.ExpiresAt > DateTime.UtcNow))
             .Select(x => OwnPublicShareResponse.GetFromEf(x))
             .AsAsyncEnumerable();
 

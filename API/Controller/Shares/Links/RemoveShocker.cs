@@ -24,7 +24,7 @@ public sealed partial class ShareLinksController
     public async Task<IActionResult> RemoveShocker([FromRoute] Guid publicShareId, [FromRoute] Guid shockerId)
     {
         var exists = await _db.PublicShares
-            .Where(x => x.Id == publicShareId)
+            .Where(x => x.Id == publicShareId && (x.ExpiresAt == null || x.ExpiresAt > DateTime.UtcNow))
             .WhereIsUserOrPrivileged(x => x.Owner, CurrentUser)
             .AnyAsync();
         if (!exists)
