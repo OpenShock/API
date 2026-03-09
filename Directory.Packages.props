@@ -12,7 +12,7 @@
     <PackageVersion Include="Hangfire.AspNetCore" Version="1.8.23" />
     <PackageVersion Include="Hangfire.PostgreSql" Version="1.21.1" />
     <PackageVersion Include="IDisposableAnalyzers" Version="4.0.8" />
-    <PackageVersion Include="MailKit" Version="4.15.0" />
+    <PackageVersion Include="MailKit" Version="4.15.1" />
     <PackageVersion Include="MessagePack" Version="3.1.4" />
     <PackageVersion Include="Microsoft.AspNetCore.Authentication.Google" Version="10.0.3" />
     <PackageVersion Include="Microsoft.AspNetCore.Authentication.Twitter" Version="10.0.3" />
@@ -33,14 +33,14 @@
     <PackageVersion Include="OpenTelemetry.Instrumentation.Http" Version="1.15.0" />
     <PackageVersion Include="OpenTelemetry.Instrumentation.Runtime" Version="1.15.0" />
     <PackageVersion Include="Redis.OM" Version="1.1.0" />
-    <PackageVersion Include="Scalar.AspNetCore" Version="2.12.50" />
+    <PackageVersion Include="Scalar.AspNetCore" Version="2.13.1" />
     <PackageVersion Include="Serilog.AspNetCore" Version="10.0.0" />
     <PackageVersion Include="Serilog.Sinks.Grafana.Loki" Version="8.3.2" />
     <PackageVersion Include="Serilog.Sinks.OpenTelemetry" Version="4.2.0" />
     <PackageVersion Include="Swashbuckle.AspNetCore.SwaggerGen" Version="9.0.6" />
     <PackageVersion Include="Testcontainers.PostgreSql" Version="4.10.0" />
     <PackageVersion Include="Testcontainers.Redis" Version="4.10.0" />
-    <PackageVersion Include="TUnit" Version="1.18.0" />
+    <PackageVersion Include="TUnit" Version="1.19.16" />
     <PackageVersion Include="Z.EntityFramework.Plus.EFCore" Version="10.105.2.2" />
   </ItemGroup>
 </Project>
