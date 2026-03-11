@@ -20,7 +20,6 @@ public sealed partial class OAuthController
     /// <response code="400">Unsupported or misconfigured provider.</response>
     [EnableRateLimiting("auth")]
     [HttpPost("{provider}/authorize")]
-    [ApiExplorerSettings(IgnoreApi = true)]
     public async Task<IActionResult> OAuthAuthorize([FromRoute] string provider, [FromQuery(Name="flow"), Required] OAuthFlow flow)
     {
         if (!await _schemeProvider.IsSupportedOAuthScheme(provider))

@@ -13,6 +13,7 @@
     </PackageReference>
     <PackageReference Include="MessagePack" />
     <PackageReference Include="Microsoft.AspNetCore.DataProtection.EntityFrameworkCore" />
+    <PackageReference Include="Microsoft.AspNetCore.OpenApi" />
     <PackageReference Include="Microsoft.Extensions.Caching.Hybrid" />
     <PackageReference Include="Microsoft.IO.RecyclableMemoryStream" />
     <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" />
@@ -31,7 +32,6 @@
     <PackageReference Include="OneOf" />
     <PackageReference Include="Serilog.AspNetCore" />
     <PackageReference Include="Serilog.Sinks.OpenTelemetry" />
-    <PackageReference Include="Swashbuckle.AspNetCore.SwaggerGen" />
     <PackageReference Include="Z.EntityFramework.Plus.EFCore" />
   </ItemGroup>
 

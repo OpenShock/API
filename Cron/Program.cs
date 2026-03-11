@@ -2,9 +2,9 @@ using Hangfire;
 using Hangfire.PostgreSql;
 using OpenShock.Common;
 using OpenShock.Common.Extensions;
+using OpenShock.Common.OpenAPI;
 using OpenShock.Cron;
 using OpenShock.Cron.Utils;
-using OpenShock.Common.Swagger;
 
 var builder = OpenShockApplication.CreateDefaultBuilder<Program>(args);
 
@@ -21,7 +21,7 @@ builder.Services.AddHangfire(hangfire =>
         c.UseNpgsqlConnection(databaseOptions.Conn)));
 builder.Services.AddHangfireServer();
 
-builder.AddSwaggerExt<Program>();
+builder.AddOpenApiExt<Program>();
 
 var app = builder.Build();
 
