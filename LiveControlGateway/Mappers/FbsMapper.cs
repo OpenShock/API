@@ -14,6 +14,7 @@ public static class FbsMapper
             Common.Models.ShockerModelType.CaiXianlin => Serialization.Types.ShockerModelType.CaiXianlin,
             Common.Models.ShockerModelType.PetTrainer => Serialization.Types.ShockerModelType.Petrainer,
             Common.Models.ShockerModelType.Petrainer998DR => Serialization.Types.ShockerModelType.Petrainer998DR,
+            Common.Models.ShockerModelType.WellturnT330 => Serialization.Types.ShockerModelType.WellturnT330,
             _ => throw new NotImplementedException(),
         };
     }
