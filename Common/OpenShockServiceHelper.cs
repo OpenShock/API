@@ -207,6 +207,8 @@ public static class OpenShockServiceHelper
         services.AddHostedService<BatchUpdateService>(provider =>
             (BatchUpdateService)provider.GetRequiredService<IBatchUpdateService>());
 
+        // <---- Rate Limiter Setup ---->
+        
         services.AddRateLimiter(options =>
         {
             options.OnRejected = async (context, cancellationToken) =>
