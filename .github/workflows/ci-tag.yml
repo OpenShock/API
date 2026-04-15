@@ -15,7 +15,7 @@ jobs:
 
   # Pre-job to find the latest tag
   get-latest-tag:
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-2vcpu-ubuntu-2404
     outputs:
       latest-tag: ${{ steps.latest-tag.outputs.tag }}
     steps:

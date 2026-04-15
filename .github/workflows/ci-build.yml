@@ -39,7 +39,7 @@ jobs:
 
   tests:
     name: Tests (${{ matrix.name }})
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-4vcpu-ubuntu-2404
     strategy:
       fail-fast: false
       matrix:
@@ -64,7 +64,7 @@ jobs:
 
   build:
     name: Build (${{ matrix.image }})
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-4vcpu-ubuntu-2404
     strategy:
       fail-fast: false
       matrix:
@@ -80,8 +80,8 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v6
         
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v4
+      - name: Setup Blacksmith Builder
+        uses: useblacksmith/setup-docker-builder@v1
 
       - name: Log in to Container Registry
         uses: docker/login-action@v4
@@ -102,7 +102,7 @@ jobs:
   promote-image:
     name: Promote Image (${{ matrix.image }})
     needs: [build, tests]
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-2vcpu-ubuntu-2404
     if: ${{ inputs.push || (github.ref_protected && github.event_name != 'pull_request') }}
     strategy:
       fail-fast: false
@@ -131,7 +131,7 @@ jobs:
           latest: ${{ inputs.latest || false }}
           
   deploy-prod-workflow:
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-2vcpu-ubuntu-2404
     needs: promote-image
     if: ${{ github.ref_type == 'branch' && github.event_name != 'pull_request' && github.ref_name == 'master' }}
     environment: production
@@ -148,7 +148,7 @@ jobs:
             }
             
   deploy-staging:
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-2vcpu-ubuntu-2404
     needs: promote-image
     if: ${{ github.ref_type == 'branch' && github.event_name != 'pull_request' && github.ref_name == 'develop' }}
     environment: staging
@@ -166,7 +166,7 @@ jobs:
             }
 
   deploy-dev:
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-4vcpu-ubuntu-2404
     needs: promote-image
     if: ${{ github.ref_type == 'branch' && github.event_name != 'pull_request' && github.ref_name == 'develop' }}
     environment: development

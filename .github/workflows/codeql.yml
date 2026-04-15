@@ -14,7 +14,7 @@ env:
 jobs:
   analyze:
     name: Analyze (csharp)
-    runs-on: 'ubuntu-latest'
+    runs-on: 'blacksmith-2vcpu-ubuntu-2404'
     permissions:
       # required for all workflows
       security-events: write
