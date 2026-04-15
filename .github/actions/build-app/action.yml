@@ -32,7 +32,7 @@ runs:
           type=raw,value=${{ inputs.tag-prefix }}-${{ github.run_number }}-a${{ github.run_attempt }}
 
     - name: Build and push
-      uses: docker/build-push-action@v6
+      uses: useblacksmith/build-push-action@v2
       with:
         context: .
         file: ${{ inputs.dockerfile }}
@@ -40,7 +40,3 @@ runs:
         tags: ${{ steps.meta.outputs.tags }}
         labels: ${{ steps.meta.outputs.labels }}
         platforms: ${{ inputs.platforms }}
-        cache-from: |
-          type=gha
-        cache-to: |
-          type=gha
