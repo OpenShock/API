@@ -27,7 +27,7 @@ jobs:
           regex: '^\d+\.\d+\.\d+$'
           releases-only: false
 
-  # Delegate building and containerizing to a single workflow.
+  # Delegate building and containerizing to a single workflow
   build-and-containerize:
     needs: get-latest-tag
     uses: ./.github/workflows/ci-build.yml
