@@ -204,10 +204,15 @@ public abstract class HubControllerBase<TIn, TOut> : FlatbuffersWebsocketBaseCon
 
     private static DateTimeOffset? GetBootedAtFromUptimeMs(ulong uptimeMs)
     {
-        var uptime = TimeSpan.FromMilliseconds(uptimeMs);
-        if (uptime > HardLimits.FirmwareMaxUptime) return null; // Yeah, ok bro.
+        const ulong hundredYears = 100UL * 365UL * 24UL * 60UL * 60UL * 1000UL;
+        if (uptimeMs > hundredYears) return null; // Sure, dude...
+        
+        var uptimeMsFp = (double)uptimeMs;
+        
+        var maxUptimeMs = HardLimits.FirmwareMaxUptime.TotalMilliseconds;
+        if (uptimeMsFp > maxUptimeMs) return null; // Yeah, ok bro.
 
-        return DateTimeOffset.UtcNow.Subtract(uptime);
+        return DateTimeOffset.UtcNow.Subtract(TimeSpan.FromMilliseconds(uptimeMsFp));
     }
     
     /// <summary>
