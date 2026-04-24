@@ -7,7 +7,7 @@ on:
   push:
     paths:
       - '.github/workflows/update-cloudflare-proxies.yml'
-      - 'Common/Common.csproj'
+      - 'Common/CloudflareIPs.targets'
 
 jobs:
   update-proxies:
