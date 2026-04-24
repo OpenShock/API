@@ -2,7 +2,7 @@
 
 namespace OpenShock.Common.Utils;
 
-public static class TrustedProxiesFetcher
+public static partial class TrustedProxiesFetcher
 {
     private static readonly HttpClient Client = new();
 
@@ -77,14 +77,7 @@ public static class TrustedProxiesFetcher
             cfProxies = await FetchCloudflareIPs();
         }
 
-        if (cfProxies is null)
-        {
-            var assembly = typeof(TrustedProxiesFetcher).Assembly;
-            var resourceName = assembly.GetName().Name + ".cloudflare-ips.txt";
-            await using var stream = assembly.GetManifestResourceStream(resourceName) ?? throw new NullReferenceException("Could not open embedded cloudflare-ips.txt file");
-            using var reader = new StreamReader(stream);
-            cfProxies = ParseNetworks(await reader.ReadToEndAsync());
-        }
+        cfProxies ??= CloudflareNetworks;
 
         return [.. PrivateNetworksParsed, .. cfProxies];
     }
