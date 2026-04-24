@@ -35,8 +35,13 @@
     <PackageReference Include="Z.EntityFramework.Plus.EFCore" />
   </ItemGroup>
 
-  <!-- Fetch Cloudflare IPs at build time and generate C# source -->
-  <UsingTask TaskName="GenerateCloudflareIPsSource" TaskFactory="RoslynCodeTaskFactory" AssemblyFile="$(MSBuildToolsPath)/Microsoft.Build.Tasks.Core.dll">
+  <!--
+    Opt-in: fetch Cloudflare IPs and regenerate Utils/CloudflareNetworks.g.cs.
+    Enabled only by the monthly update-cloudflare-proxies workflow via -p:UpdateCloudflareIPs=true.
+    Normal builds (local, CI, Docker) just compile the committed .g.cs and never touch the network.
+  -->
+  <UsingTask Condition="'$(UpdateCloudflareIPs)' == 'true'"
+             TaskName="GenerateCloudflareIPsSource" TaskFactory="RoslynCodeTaskFactory" AssemblyFile="$(MSBuildToolsPath)/Microsoft.Build.Tasks.Core.dll">
     <ParameterGroup>
       <IPv4File ParameterType="System.String" Required="true" />
       <IPv6File ParameterType="System.String" Required="true" />
@@ -68,14 +73,22 @@
     </Task>
   </UsingTask>
 
-  <Target Name="FetchCloudflareIPs" BeforeTargets="PrepareForBuild">
+  <Target Name="FetchCloudflareIPs"
+          Condition="'$(UpdateCloudflareIPs)' == 'true'"
+          BeforeTargets="PrepareForBuild">
     <MakeDir Directories="$(IntermediateOutputPath)" />
     <DownloadFile SourceUrl="https://www.cloudflare.com/ips-v4"
                   DestinationFolder="$(IntermediateOutputPath)"
-                  DestinationFileName="cf-v4.txt" />
+                  DestinationFileName="cf-v4.txt"
+                  SkipUnchangedFiles="true"
+                  Retries="3"
+                  RetryDelayMilliseconds="2000" />
     <DownloadFile SourceUrl="https://www.cloudflare.com/ips-v6"
                   DestinationFolder="$(IntermediateOutputPath)"
-                  DestinationFileName="cf-v6.txt" />
+                  DestinationFileName="cf-v6.txt"
+                  SkipUnchangedFiles="true"
+                  Retries="3"
+                  RetryDelayMilliseconds="2000" />
     <GenerateCloudflareIPsSource IPv4File="$(IntermediateOutputPath)cf-v4.txt"
                                  IPv6File="$(IntermediateOutputPath)cf-v6.txt"
                                  OutputFile="$(MSBuildProjectDirectory)/Utils/CloudflareNetworks.g.cs" />

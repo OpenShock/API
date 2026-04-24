@@ -15,9 +15,11 @@ jobs:
           ref: ${{ github.ref }}
 
       - uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
 
-      - name: Build to regenerate Cloudflare IPs
-        run: dotnet build Common/Common.csproj
+      - name: Regenerate Cloudflare IPs source
+        run: dotnet build Common/Common.csproj -p:UpdateCloudflareIPs=true
 
       - name: Commit and Push Changes
         run: |
