@@ -19,7 +19,7 @@ public static class HashingUtils
     private static readonly VerifyHashResult VerifyHashFailureResult = new(false, false);
     
     /// <summary>
-    /// Hashes string using SHA-256 and returns the result as a uppercase string
+    /// Hashes string using SHA-256 and returns the result as a lowercase string
     /// </summary>
     /// <param name="str"></param>
     /// <returns></returns>
@@ -27,30 +27,16 @@ public static class HashingUtils
     {
         Span<byte> hashDigest = stackalloc byte[SHA256.HashSizeInBytes];
 
-        const int maxStackSize = 256; // Threshold for stack allocation
-        int byteCount = Encoding.UTF8.GetByteCount(str);
+        var nAlloc = str.Length <= 512
+            ? Encoding.UTF8.GetMaxByteCount(str.Length)
+            : Encoding.UTF8.GetByteCount(str);
+        var buffer = nAlloc <= 256
+            ? stackalloc byte[nAlloc]
+            : new byte[nAlloc];
 
-        if (byteCount > maxStackSize)
-        {
-            byte[] decodedBytes = ArrayPool<byte>.Shared.Rent(byteCount);
+        var byteCount = Encoding.UTF8.GetBytes(str, buffer);
 
-            try
-            {
-                int decodedCount = Encoding.UTF8.GetBytes(str, decodedBytes);
-                SHA256.HashData(decodedBytes.AsSpan(0, decodedCount), hashDigest);
-            }
-            finally
-            {
-                ArrayPool<byte>.Shared.Return(decodedBytes, true);
-            }
-        }
-        else
-        {
-            Span<byte> decodedBytes = stackalloc byte[maxStackSize];
-            int decodedCount = Encoding.UTF8.GetBytes(str, decodedBytes);
-            SHA256.HashData(decodedBytes[..decodedCount], hashDigest);
-        }
-
+        SHA256.HashData(buffer[..byteCount], hashDigest);
 
         return Convert.ToHexStringLower(hashDigest);
     }

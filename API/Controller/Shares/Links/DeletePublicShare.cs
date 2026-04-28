@@ -22,7 +22,7 @@ public sealed partial class ShareLinksController
     public async Task<IActionResult> DeletePublicShare([FromRoute] Guid publicShareId)
     {
         var result = await _db.PublicShares
-            .Where(x => x.Id == publicShareId)
+            .Where(x => x.Id == publicShareId && (x.ExpiresAt == null || x.ExpiresAt > DateTime.UtcNow))
             .WhereIsUserOrPrivileged(x => x.Owner, CurrentUser)
             .ExecuteDeleteAsync();
 

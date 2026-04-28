@@ -12,4 +12,7 @@ public static class PublicShareError
     
     // Remove shocker errors
     public static OpenShockProblem ShockerNotInPublicShare => new("ShareLink.ShockerNotInShareLink", "Shocker does not exist in public share", HttpStatusCode.NotFound);
+    
+    // Create share errors
+    public static OpenShockProblem PublicShareExpiryDateInPast => new("ShareLink.ExpiryDateInPast", "Expiry date cannot be in the past", HttpStatusCode.BadRequest);
 }
