@@ -34,20 +34,13 @@ name: ci-build
 env:
   REGISTRY: ghcr.io
   DOTNET_VERSION: 10.0.x
+  COVERAGE_MIN_PERCENT: '85'
 
 jobs:
 
-  tests:
-    name: Tests (${{ matrix.name }})
+  unit-tests:
+    name: Unit Tests
     runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - name: common-unit
-            project: Common.Tests/Common.Tests.csproj
-          - name: api-integration
-            project: API.IntegrationTests/API.IntegrationTests.csproj
 
     steps:
       - name: Checkout
@@ -57,14 +50,171 @@ jobs:
         with:
           dotnet-version: '${{ env.DOTNET_VERSION }}'
 
-      - name: Run ${{ matrix.name }} tests
+      - name: Run unit tests
         run: |
           set -euo pipefail
-          dotnet test -c Release --project ${{ matrix.project }}
+          results_dir="artifacts/test-results/common-unit"
+          dotnet test -c Release --project Common.Tests/Common.Tests.csproj \
+            --results-directory "$results_dir" \
+            -- \
+            --coverage \
+            --coverage-output coverage.cobertura.xml \
+            --coverage-output-format cobertura \
+            --report-trx \
+            --report-trx-filename test-results.trx
+
+      - name: Upload unit test artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results-common-unit
+          path: artifacts/test-results/common-unit
+          if-no-files-found: warn
+
+  integration-tests:
+    name: Integration Tests
+    runs-on: ubuntu-latest
+    if: ${{ github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch' || github.event_name == 'workflow_call' || github.ref_name == 'develop' || github.ref_name == 'master' }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: '${{ env.DOTNET_VERSION }}'
+
+      - name: Run integration tests
+        run: |
+          set -euo pipefail
+          results_dir="artifacts/test-results/api-integration"
+          dotnet test -c Release --project API.IntegrationTests/API.IntegrationTests.csproj \
+            --results-directory "$results_dir" \
+            -- \
+            --coverage \
+            --coverage-output coverage.cobertura.xml \
+            --coverage-output-format cobertura \
+            --report-trx \
+            --report-trx-filename test-results.trx
+
+      - name: Upload integration test artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results-api-integration
+          path: artifacts/test-results/api-integration
+          if-no-files-found: warn
+
+  coverage:
+    name: Coverage
+    runs-on: ubuntu-latest
+    needs: [unit-tests, integration-tests]
+    if: ${{ github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch' || github.event_name == 'workflow_call' || github.ref_name == 'develop' || github.ref_name == 'master' }}
+    outputs:
+      linecoverage: ${{ steps.enforce.outputs.linecoverage }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: '${{ env.DOTNET_VERSION }}'
+
+      - name: Download test artifacts
+        uses: actions/download-artifact@v5
+        with:
+          pattern: test-results-*
+          path: artifacts/test-results
+
+      - name: Install ReportGenerator
+        run: dotnet tool install --tool-path ./.tools dotnet-reportgenerator-globaltool
+
+      - name: Generate merged coverage report
+        run: |
+          set -euo pipefail
+          reports="$(find artifacts/test-results -name coverage.cobertura.xml -print | paste -sd ';' -)"
+          if [ -z "$reports" ]; then
+            echo "No coverage reports found" >&2
+            exit 1
+          fi
+
+          ./.tools/reportgenerator \
+            "-reports:${reports}" \
+            "-targetdir:artifacts/coverage" \
+            "-reporttypes:Html;MarkdownSummaryGithub;JsonSummary;Badges"
+
+      - name: Add coverage summary
+        run: cat artifacts/coverage/SummaryGithub.md >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Enforce minimum coverage
+        id: enforce
+        env:
+          COVERAGE_MIN_PERCENT: ${{ env.COVERAGE_MIN_PERCENT }}
+        run: |
+          python - <<'PY'
+          import json
+          import os
+
+          threshold = float(os.environ["COVERAGE_MIN_PERCENT"])
+          with open("artifacts/coverage/Summary.json", "r", encoding="utf-8") as handle:
+              summary = json.load(handle)["summary"]
+
+          line_coverage = float(summary["linecoverage"])
+          print(f"Line coverage: {line_coverage:.1f}%")
+
+          with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as output:
+              output.write(f"linecoverage={line_coverage:.1f}\n")
+
+          if line_coverage < threshold:
+              raise SystemExit(
+                  f"Coverage threshold not met: {line_coverage:.1f}% < {threshold:.1f}%"
+              )
+          PY
+
+      - name: Upload merged coverage report
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: artifacts/coverage
+          if-no-files-found: error
+
+  publish-coverage:
+    name: Publish coverage
+    runs-on: ubuntu-latest
+    needs: coverage
+    if: ${{ github.ref_type == 'branch' && github.event_name != 'pull_request' && github.ref_name == 'master' }}
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    steps:
+      - name: Configure Pages
+        uses: actions/configure-pages@v5
+
+      - name: Download merged coverage report
+        uses: actions/download-artifact@v5
+        with:
+          name: coverage-report
+          path: _site/coverage
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v4
+        with:
+          path: _site
+
+      - name: Deploy Pages site
+        id: deployment
+        uses: actions/deploy-pages@v4
 
   build:
     name: Build (${{ matrix.image }})
     runs-on: ubuntu-latest
+    needs: [coverage]
     strategy:
       fail-fast: false
       matrix:
@@ -101,7 +251,7 @@ jobs:
           
   promote-image:
     name: Promote Image (${{ matrix.image }})
-    needs: [build, tests]
+    needs: [build, coverage]
     runs-on: ubuntu-latest
     if: ${{ inputs.push || (github.ref_protected && github.event_name != 'pull_request') }}
     strategy:

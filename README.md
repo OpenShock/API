@@ -1,5 +1,7 @@
 # OpenShock API
 
+[![Coverage](https://openshock.github.io/API/coverage/badge_linecoverage.svg)](https://openshock.github.io/API/coverage/)
+
 OpenShock backend
 
 ### API Documentation 
