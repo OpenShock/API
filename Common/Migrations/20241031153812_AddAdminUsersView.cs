@@ -8,7 +8,7 @@ namespace OpenShock.Common.Migrations
     /// <inheritdoc />
     public partial class AddAdminUsersView : Migration
     {
-        public const string AdminUsersViewCreateQuery =
+        public const string Query_Create_AdminUsersView =
             """
             CREATE VIEW admin_users_view AS
                 SELECT
@@ -33,21 +33,21 @@ namespace OpenShock.Common.Migrations
                     users u;
             """;
 
-        public const string AdminUsersViewDropQuery =
+        public const string Query_Drop_AdminUsersView =
             """
-            DROP VIEW admin_users_view
+            DROP VIEW admin_users_view;
             """;
         
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.Sql(AdminUsersViewCreateQuery);
+            migrationBuilder.Sql(Query_Create_AdminUsersView);
         }
 
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.Sql(AdminUsersViewDropQuery);
+            migrationBuilder.Sql(Query_Drop_AdminUsersView);
         }
     }
 }

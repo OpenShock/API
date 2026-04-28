@@ -9,7 +9,7 @@ public interface IConfigurationService
     IQueryable<ConfigurationItem> GetAllItemsQuery();
 
     Task<OneOf<Success, AlreadyExists, InvalidNameFormat, InvalidValueFormat>> TryAddItemAsync(string name, string description, ConfigurationValueType type, string value);
-    Task<OneOf<Success, NotFound, InvalidNameFormat, InvalidValueFormat, InvalidValueType>> TryUpdateItemAsync(string name, string? description, string? value);
+    Task<OneOf<Success, NotFound, InvalidNameFormat, InvalidValueFormat>> TryUpdateItemAsync(string name, string? description, string? value);
     Task<OneOf<Success, NotFound, InvalidNameFormat>> TryDeleteItemAsync(string name);
 
     Task<OneOf<string, NotFound, InvalidValueType>> TryGetStringAsync(string name);

@@ -1,9 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 using OpenShock.API.Services.Account;
 using OpenShock.Common.Errors;
-using OpenShock.Common.Models;
-using Z.EntityFramework.Plus;
 
 namespace OpenShock.API.Controller.Admin;
 
@@ -16,7 +13,7 @@ public sealed partial class AdminController
     /// <response code="401">Unauthorized</response>
     [HttpPut("users/{userId}/reactivate")]
     [ProducesResponseType(StatusCodes.Status200OK)]
-    public async Task<IActionResult> ReactivateUser([FromRoute] Guid userId, IAccountService accountService)
+    public async Task<IActionResult> ReactivateUser([FromRoute] Guid userId, [FromServices] IAccountService accountService)
     {
         var reactivationResult = await accountService.ReactivateAccountAsync(CurrentUser.Id, userId);
         return reactivationResult.Match(

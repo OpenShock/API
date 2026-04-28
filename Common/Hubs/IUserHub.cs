@@ -2,7 +2,6 @@
 using OpenShock.Common.Models.WebSocket;
 using OpenShock.Common.Models.WebSocket.User;
 using OpenShock.Serialization.Types;
-using Semver;
 
 namespace OpenShock.Common.Hubs;
 

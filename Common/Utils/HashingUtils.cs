@@ -1,4 +1,5 @@
 ﻿using System.Buffers;
+using System.Diagnostics;
 using System.Security.Cryptography;
 using System.Text;
 using BCrypt.Net;
@@ -11,12 +12,14 @@ public static class HashingUtils
     private const string BCryptPrefix = "bcrypt";
     private const string Pbkdf2Prefix = "pbkdf2";
     private const HashType BCryptHashType = HashType.SHA512;
+
+    private static readonly LatencyEmulator VerifyTiming = new(200, 100);
     
     public readonly record struct VerifyHashResult(bool Verified, bool NeedsRehash);
     private static readonly VerifyHashResult VerifyHashFailureResult = new(false, false);
     
     /// <summary>
-    /// Hashes string using SHA-256 and returns the result as a uppercase string
+    /// Hashes string using SHA-256 and returns the result as a lowercase string
     /// </summary>
     /// <param name="str"></param>
     /// <returns></returns>
@@ -24,30 +27,16 @@ public static class HashingUtils
     {
         Span<byte> hashDigest = stackalloc byte[SHA256.HashSizeInBytes];
 
-        const int maxStackSize = 256; // Threshold for stack allocation
-        int byteCount = Encoding.UTF8.GetByteCount(str);
+        var nAlloc = str.Length <= 512
+            ? Encoding.UTF8.GetMaxByteCount(str.Length)
+            : Encoding.UTF8.GetByteCount(str);
+        var buffer = nAlloc <= 256
+            ? stackalloc byte[nAlloc]
+            : new byte[nAlloc];
 
-        if (byteCount > maxStackSize)
-        {
-            byte[] decodedBytes = ArrayPool<byte>.Shared.Rent(byteCount);
+        var byteCount = Encoding.UTF8.GetBytes(str, buffer);
 
-            try
-            {
-                int decodedCount = Encoding.UTF8.GetBytes(str, decodedBytes);
-                SHA256.HashData(decodedBytes.AsSpan(0, decodedCount), hashDigest);
-            }
-            finally
-            {
-                ArrayPool<byte>.Shared.Return(decodedBytes, true);
-            }
-        }
-        else
-        {
-            Span<byte> decodedBytes = stackalloc byte[maxStackSize];
-            int decodedCount = Encoding.UTF8.GetBytes(str, decodedBytes);
-            SHA256.HashData(decodedBytes[..decodedCount], hashDigest);
-        }
-
+        SHA256.HashData(buffer[..byteCount], hashDigest);
 
         return Convert.ToHexStringLower(hashDigest);
     }
@@ -73,6 +62,7 @@ public static class HashingUtils
     {
         return $"{BCryptPrefix}:{BCrypt.Net.BCrypt.EnhancedHashPassword(password, BCryptHashType)}";
     }
+    
     public static VerifyHashResult VerifyPassword(string password, string combinedHash)
     {
         int index = combinedHash.IndexOf(':');
@@ -82,9 +72,14 @@ public static class HashingUtils
 
         if (algorithm == PasswordHashingAlgorithm.BCrypt)
         {
+            var start = Stopwatch.GetTimestamp();
+            var verified =  BCrypt.Net.BCrypt.EnhancedVerify(password, combinedHash[(index + 1)..], BCryptHashType);
+            var stop = Stopwatch.GetTimestamp();
+            VerifyTiming.Record(stop - start);
+            
             return new VerifyHashResult
             {
-                Verified = BCrypt.Net.BCrypt.EnhancedVerify(password, combinedHash[(index + 1)..], BCryptHashType),
+                Verified = verified,
                 NeedsRehash = false
             };
         }
@@ -101,6 +96,11 @@ public static class HashingUtils
         }
         
         return VerifyHashFailureResult;
+    }
+
+    public static Task VerifyPasswordFake()
+    {
+        return Task.Delay(VerifyTiming.GetFake());
     }
 
     public static string HashToken(string token)

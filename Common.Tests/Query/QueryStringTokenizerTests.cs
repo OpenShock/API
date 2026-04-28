@@ -1,5 +1,4 @@
 ﻿using OpenShock.Common.Query;
-using TUnit.Assertions.AssertConditions.Throws;
 
 namespace OpenShock.Common.Tests.Query;
 

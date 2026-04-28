@@ -58,6 +58,9 @@ public static class OrderByQueryBuilder
 
     public static IOrderedQueryable<T> ApplyOrderBy<T>(this IQueryable<T> query, string orderbyQuery) where T : class
     {
+        ArgumentNullException.ThrowIfNull(query);
+        ArgumentException.ThrowIfNullOrWhiteSpace(orderbyQuery);
+        
         var parts = orderbyQuery.Split(',');
 
         var parsed = ParseOrderByPart(parts[0]);

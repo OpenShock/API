@@ -26,5 +26,8 @@ public static class AccountError
         "Account.Username.RecentlyChanged", "You have recently changed your username. You can only change your username every 7 days", HttpStatusCode.Forbidden);
 
     public static OpenShockProblem AccountNotActivated => new OpenShockProblem("Account.AccountNotActivated", "Your account has not been activated", HttpStatusCode.Unauthorized);
+    public static OpenShockProblem AccountActivationNotFound => new OpenShockProblem("Account.Activation.NotFound", "There is no account activation request matching the supplied token", HttpStatusCode.BadRequest);
     public static OpenShockProblem AccountDeactivated => new OpenShockProblem("Account.Deactivated", "Your account has been deactivated", HttpStatusCode.Unauthorized);
+
+    public static OpenShockProblem AccountOAuthOnly => new OpenShockProblem("Account.OAuthOnly", "This account is only accessible via OAuth", HttpStatusCode.Unauthorized);
 }

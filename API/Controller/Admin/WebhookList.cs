@@ -1,5 +1,4 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 using OpenShock.Common.Models;
 using OpenShock.Common.Services.Webhook;
 

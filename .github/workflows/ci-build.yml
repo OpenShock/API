@@ -17,82 +17,162 @@ on:
         required: false
         type: boolean
         default: false
+      push:
+        description: 'Push image to registry (makes it push if it usually wouldnt)'
+        required: false
+        type: boolean
+        default: false
+      tag-prefix:
+        description: 'Tag prefix to use'
+        required: false
+        type: string
+        default: 'rn'
   workflow_dispatch:
 
 name: ci-build
 
 env:
   REGISTRY: ghcr.io
+  DOTNET_VERSION: 10.0.x
 
 jobs:
 
-  build:
+  tests:
+    name: Tests (${{ matrix.name }})
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: common-unit
+            project: Common.Tests/Common.Tests.csproj
+          - name: api-integration
+            project: API.IntegrationTests/API.IntegrationTests.csproj
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
+      - uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: '${{ env.DOTNET_VERSION }}'
+
+      - name: Run ${{ matrix.name }} tests
+        run: |
+          set -euo pipefail
+          dotnet test -c Release --project ${{ matrix.project }}
+
+  build:
+    name: Build (${{ matrix.image }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - dockerfile: docker/API.Dockerfile
+            image: api
+          - dockerfile: docker/LiveControlGateway.Dockerfile
+            image: live-control-gateway
+          - dockerfile: docker/Cron.Dockerfile
+            image: cron
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+        uses: docker/setup-buildx-action@v4
 
       - name: Log in to Container Registry
-        uses: docker/login-action@v3
+        uses: docker/login-action@v4
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Run Common Unit Tests
-        uses: ./.github/actions/test-app
+      - name: Build ${{ matrix.image }}
+        uses: ./.github/actions/build-app
         with:
-          dockerfile: docker/Base.Dockerfile
-          image: test-common
-          target: test-common
+          dockerfile: ${{ matrix.dockerfile }}
+          push: ${{ inputs.push || (github.ref_protected && github.event_name != 'pull_request') }}
+          image: ${{ matrix.image }}
+          platforms: ${{ inputs.platforms || 'linux/amd64' }}
+          tag-prefix: ${{ inputs.tag-prefix  || 'rn' }}
+          
+  promote-image:
+    name: Promote Image (${{ matrix.image }})
+    needs: [build, tests]
+    runs-on: ubuntu-latest
+    if: ${{ inputs.push || (github.ref_protected && github.event_name != 'pull_request') }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - image: api
+          - image: live-control-gateway
+          - image: cron
+    
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
 
-      - name: Run API Integration Tests
-        uses: ./.github/actions/test-app
+      - name: Log in to Container Registry
+        uses: docker/login-action@v4
         with:
-          dockerfile: docker/API.Dockerfile
-          image: api-integration-tests
-          target: integration-test-api
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Build API
-        uses: ./.github/actions/build-app
+      - name: Promote Manifest ${{ matrix.image }}
+        uses: ./.github/actions/promote-image
         with:
-          dockerfile: docker/API.Dockerfile
-          push: ${{ github.ref_protected && github.event_name != 'pull_request' }}
-          image: api
-          platforms: ${{ inputs.platforms || 'linux/amd64' }}
+          image: ${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ matrix.image }}
+          run-tag: ${{ inputs.tag-prefix  || 'rn' }}-${{ github.run_number }}-a${{ github.run_attempt }}
           latest: ${{ inputs.latest || false }}
           
-      - name: Build LiveControlGateway
-        uses: ./.github/actions/build-app
+  deploy-prod-workflow:
+    runs-on: ubuntu-latest
+    needs: promote-image
+    if: ${{ github.ref_type == 'branch' && github.event_name != 'pull_request' && github.ref_name == 'master' }}
+    environment: production
+    steps:
+      - name: Send repository dispatch
+        uses: peter-evans/repository-dispatch@v4
         with:
-          dockerfile: docker/LiveControlGateway.Dockerfile
-          push: ${{ github.ref_protected && github.event_name != 'pull_request' }}
-          image: live-control-gateway
-          platforms: ${{ inputs.platforms || 'linux/amd64' }}
-          latest: ${{ inputs.latest || false }}
-          
-      - name: Build Cron
-        uses: ./.github/actions/build-app
+          token: ${{ secrets.GITOPS_PAT }}
+          repository: openshock/kubernetes-cluster-gitops
+          event-type: update-backend-prod
+          client-payload: |
+            {
+              "tag": "${{ inputs.tag-prefix  || 'rn' }}-${{ github.run_number }}-a${{ github.run_attempt }}"
+            }
+            
+  deploy-staging:
+    runs-on: ubuntu-latest
+    needs: promote-image
+    if: ${{ github.ref_type == 'branch' && github.event_name != 'pull_request' && github.ref_name == 'develop' }}
+    environment: staging
+
+    steps:
+      - name: Send repository dispatch
+        uses: peter-evans/repository-dispatch@v4
         with:
-          dockerfile: docker/Cron.Dockerfile
-          push: ${{ github.ref_protected && github.event_name != 'pull_request' }}
-          image: cron
-          platforms: ${{ inputs.platforms || 'linux/amd64' }}
-          latest: ${{ inputs.latest || false }}
-        
-          
+          token: ${{ secrets.GITOPS_PAT }}
+          repository: openshock/kubernetes-cluster-gitops
+          event-type: update-backend-staging
+          client-payload: |
+            {
+              "tag": "${{ inputs.tag-prefix  || 'rn' }}-${{ github.run_number }}-a${{ github.run_attempt }}"
+            }
+
   deploy-dev:
     runs-on: ubuntu-latest
-    needs: build
+    needs: promote-image
     if: ${{ github.ref_type == 'branch' && github.event_name != 'pull_request' && github.ref_name == 'develop' }}
     environment: development
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           sparse-checkout: |
             .github
@@ -101,22 +181,3 @@ jobs:
         with:
           url: ${{ vars.WATCHTOWER_URL }}
           token: ${{ secrets.WATCHTOWER_TOKEN }}
-          
-          
-  deploy-production:
-    runs-on: ubuntu-latest
-    needs: build
-    if: ${{ github.ref_type == 'branch' && github.event_name != 'pull_request' && github.ref_name == 'master' }}
-    environment: production
-
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          sparse-checkout: |
-            .github
-
-      - uses: ./.github/actions/kubernetes-rollout-restart
-        with:
-          apiurl: ${{ secrets.KUBERNETES_APIURL }}
-          token: ${{ secrets.KUBERNETES_TOKEN }}
-          deployments: ${{ vars.DEPLOYMENT_NAMES }}

@@ -2,7 +2,6 @@
 using OpenShock.Common.Models;
 using OpenShock.Common.Models.Services.Ota;
 using OpenShock.Common.OpenShockDb;
-using Semver;
 
 namespace OpenShock.Common.Services.Ota;
 
@@ -75,13 +74,13 @@ public sealed class OtaService : IOtaService
             .Where(x => x.DeviceId == deviceId)
             .OrderByDescending(x => x.CreatedAt)
             .Select(x => new OtaItem
-        {
-            Id = x.UpdateId,
-            StartedAt = x.CreatedAt,
-            Status = x.Status,
-            Version = SemVersion.Parse(x.Version, SemVersionStyles.Strict, 1024),
-            Message = x.Message
-        }).ToArrayAsync();
+            {
+                Id = x.UpdateId,
+                StartedAt = x.CreatedAt,
+                Status = x.Status,
+                Version = SemVersion.Parse(x.Version),
+                Message = x.Message
+            }).ToArrayAsync();
     }
 
     /// <inheritdoc />

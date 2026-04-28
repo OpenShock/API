@@ -1,9 +1,9 @@
-﻿using Microsoft.Extensions.Options;
-using OpenShock.API.Options;
+﻿using OpenShock.API.Options;
 using OpenShock.API.Services.Email.Mailjet.Mail;
 using System.Net.Mime;
 using System.Text;
 using System.Text.Json;
+using OpenShock.Common.JsonSerialization;
 
 namespace OpenShock.API.Services.Email.Mailjet;
 
@@ -11,8 +11,8 @@ public sealed class MailjetEmailService : IEmailService, IDisposable
 {
     private readonly HttpClient _httpClient;
     private readonly MailJetOptions _options;
-    private readonly ILogger<MailjetEmailService> _logger;
     private readonly MailOptions.MailSenderContact _sender;
+    private readonly ILogger<MailjetEmailService> _logger;
 
     /// <summary>
     /// DI Constructor
@@ -23,18 +23,33 @@ public sealed class MailjetEmailService : IEmailService, IDisposable
     /// <param name="logger"></param>
     public MailjetEmailService(
             HttpClient httpClient,
-            IOptions<MailJetOptions> options,
-            IOptions<MailOptions.MailSenderContact> sender,
+            MailJetOptions options,
+            MailOptions.MailSenderContact sender,
             ILogger<MailjetEmailService> logger
         )
     {
         _httpClient = httpClient;
-        _sender = sender.Value;
-        _options = options.Value;
+        _options = options;
+        _sender = sender;
         _logger = logger;
     }
 
     #region Interface methods
+
+    public async Task ActivateAccount(Contact to, Uri activationLink, CancellationToken cancellationToken = default)
+    {
+        await SendMail(new TemplateMail
+        {
+            From = _sender,
+            Subject = "Activate your account",
+            To = [to],
+            TemplateId = _options.Template.ActivateAccount,
+            Variables = new Dictionary<string, string>
+            {
+                {"link", activationLink.ToString() },
+            }
+        }, cancellationToken);
+    }
 
     /// <inheritdoc />
     public async Task PasswordReset(Contact to, Uri resetLink, CancellationToken cancellationToken = default)
@@ -53,7 +68,7 @@ public sealed class MailjetEmailService : IEmailService, IDisposable
     }
 
     /// <inheritdoc />
-    public async Task VerifyEmail(Contact to, Uri activationLink, CancellationToken cancellationToken = default)
+    public async Task VerifyEmail(Contact to, Uri verificationLink, CancellationToken cancellationToken = default)
     {
         await SendMail(new TemplateMail
         {
@@ -63,7 +78,7 @@ public sealed class MailjetEmailService : IEmailService, IDisposable
             TemplateId = _options.Template.VerifyEmail,
             Variables = new Dictionary<string, string>
             {
-                {"link", activationLink.ToString() },
+                {"link", verificationLink.ToString() },
             }
         }, cancellationToken);
     }
@@ -72,12 +87,6 @@ public sealed class MailjetEmailService : IEmailService, IDisposable
 
     private Task SendMail(MailBase templateMail, CancellationToken cancellationToken = default) => SendMails([templateMail], cancellationToken);
 
-    private static readonly JsonSerializerOptions Options = new JsonSerializerOptions
-    {
-        PropertyNamingPolicy = JsonNamingPolicy.CamelCase
-    };
-
-
     private async Task SendMails(MailBase[] mails, CancellationToken cancellationToken = default)
     {
         if (_logger.IsEnabled(LogLevel.Debug)) _logger.LogDebug("Sending mails {@Mails}", mails);
@@ -85,7 +94,7 @@ public sealed class MailjetEmailService : IEmailService, IDisposable
         var json = JsonSerializer.Serialize(new MailsWrap
         {
             Messages = mails
-        }, Options);
+        }, JsonOptions.Default);
 
         var response = await _httpClient.PostAsync("send",
             new StringContent(json, Encoding.UTF8, MediaTypeNames.Application.Json), cancellationToken);

@@ -10,15 +10,15 @@ public sealed partial class AuthenticatedAccountController
     /// <summary>
     /// Deactivate currently logged in account
     /// </summary>
-    /// <response code="200">Done.</response>
+    /// <response code="204">Done.</response>
     [HttpDelete]
-    [ProducesResponseType<string>(StatusCodes.Status200OK, MediaTypeNames.Text.Plain)]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status403Forbidden, MediaTypeNames.Application.ProblemJson)] // CannotDeactivatePrivledgedAccount
     public async Task<IActionResult> Deactivate()
     {
         var deactivationResult = await _accountService.DeactivateAccountAsync(CurrentUser.Id, CurrentUser.Id, deleteLater: true);
-        return deactivationResult.Match(
-            success => Ok("Account deactivated"),
+        return deactivationResult.Match<IActionResult>(
+            success => NoContent(),
             cannotDeactivatePrivledged => Problem(AccountActivationError.CannotDeactivateOrDeletePrivledgedAccount),
             alreadyDeactivated => Problem(AccountActivationError.AlreadyDeactivated),
             unauthorized => Problem(AccountActivationError.Unauthorized),

@@ -21,7 +21,7 @@ public static class DeviceSeeder
         var allUserIds = await db.Users.Select(u => u.Id).ToListAsync();
 
         var deviceFaker = new Faker<Device>()
-            .RuleFor(d => d.Id, f => Guid.CreateVersion7())
+            .RuleFor(d => d.Id, f => f.Random.Guid())
             .RuleFor(d => d.Name, f => f.Commerce.ProductName().Truncate(HardLimits.HubNameMaxLength))
             .RuleFor(d => d.OwnerId, f => f.PickRandom(allUserIds))
             .RuleFor(d => d.Token, f => f.Random.AlphaNumeric(HardLimits.HubTokenMaxLength))

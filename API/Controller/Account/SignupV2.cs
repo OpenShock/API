@@ -4,11 +4,11 @@ using System.Net;
 using System.Net.Mime;
 using Asp.Versioning;
 using Microsoft.AspNetCore.RateLimiting;
+using OpenShock.API.Errors;
+using OpenShock.API.Services.Turnstile;
 using OpenShock.Common.Errors;
 using OpenShock.Common.Problems;
-using OpenShock.Common.Services.Turnstile;
 using OpenShock.Common.Utils;
-using OpenShock.Common.Models;
 
 namespace OpenShock.API.Controller.Account;
 
@@ -24,7 +24,8 @@ public sealed partial class AccountController
     /// <response code="400">Username or email already exists</response>
     [HttpPost("signup")]
     [EnableRateLimiting("auth")]
-    [ProducesResponseType<LegacyEmptyResponse>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
+    [Consumes(MediaTypeNames.Application.Json)]
+    [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status409Conflict, MediaTypeNames.Application.ProblemJson)] // EmailOrUsernameAlreadyExists
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status403Forbidden, MediaTypeNames.Application.ProblemJson)] // InvalidTurnstileResponse
     [MapToApiVersion("2")]
@@ -37,16 +38,16 @@ public sealed partial class AccountController
         if (!turnStile.IsT0)
         {
             var cfErrors = turnStile.AsT1.Value;
-            if (cfErrors.All(err => err == CloduflareTurnstileError.InvalidResponse))
+            if (cfErrors.All(err => err == CloudflareTurnstileError.InvalidResponse))
                 return Problem(TurnstileError.InvalidTurnstile);
 
             return Problem(new OpenShockProblem("InternalServerError", "Internal Server Error", HttpStatusCode.InternalServerError));
         }
 
         var creationAction = await _accountService.CreateAccountWithActivationFlowAsync(body.Email, body.Username, body.Password);
-        return creationAction.Match(
-            _ => LegacyEmptyOk("Successfully signed up"),
-            _ => Problem(SignupError.EmailAlreadyExists)
+        return creationAction.Match<IActionResult>(
+            _ => Ok(),
+            _ => Problem(SignupError.UsernameOrEmailExists)
         );
     }
 }

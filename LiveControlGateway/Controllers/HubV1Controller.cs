@@ -2,9 +2,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.SignalR;
-using Microsoft.Extensions.Options;
 using OpenShock.Common.Authentication;
-using OpenShock.Common.Extensions;
 using OpenShock.Common.Hubs;
 using OpenShock.Common.Models;
 using OpenShock.Common.Services.Ota;
@@ -12,7 +10,6 @@ using OpenShock.LiveControlGateway.LifetimeManager;
 using OpenShock.LiveControlGateway.Options;
 using OpenShock.Serialization.Deprecated.DoNotUse.V1;
 using OpenShock.Serialization.Types;
-using Semver;
 using Serilog;
 
 namespace OpenShock.LiveControlGateway.Controllers;
@@ -23,7 +20,7 @@ namespace OpenShock.LiveControlGateway.Controllers;
 [ApiController]
 [ApiVersion("1")]
 [Route("/{version:apiVersion}/ws/device")]
-[Authorize(AuthenticationSchemes = OpenShockAuthSchemas.HubToken)]
+[Authorize(AuthenticationSchemes = OpenShockAuthSchemes.HubToken)]
 public sealed class HubV1Controller : HubControllerBase<HubToGatewayMessage, GatewayToHubMessage>
 {
     private readonly IHubContext<UserHub, IUserHub> _userHubContext;
@@ -40,7 +37,7 @@ public sealed class HubV1Controller : HubControllerBase<HubToGatewayMessage, Gat
             HubLifetimeManager hubLifetimeManager,
             IHubContext<UserHub, IUserHub> userHubContext,
             IServiceProvider serviceProvider,
-            IOptions<LcgOptions> options,
+            LcgOptions options,
             ILogger<HubV1Controller> logger
         )
         : base(HubToGatewayMessage.Serializer, GatewayToHubMessage.Serializer, hubLifetimeManager, serviceProvider, options, logger)
@@ -50,7 +47,7 @@ public sealed class HubV1Controller : HubControllerBase<HubToGatewayMessage, Gat
     
     private OtaUpdateStatus? _lastStatus;
     
-    private IUserHub HcOwner => _userHubContext.Clients.User(CurrentHub.OwnerId.ToString());
+    private IUserHub HcOwner => _userHubContext.Clients.User(CurrentHubOwnerId.ToString());
     
     /// <inheritdoc />
     protected override async Task<bool> Handle(HubToGatewayMessage data)
@@ -61,7 +58,7 @@ public sealed class HubV1Controller : HubControllerBase<HubToGatewayMessage, Gat
         await using var scope = ServiceProvider.CreateAsyncScope(); 
         var otaService = scope.ServiceProvider.GetRequiredService<IOtaService>();
 
-        Logger.LogTrace("Received payload [{Kind}] from hub [{HubId}]", payload.Kind, CurrentHub.Id);
+        Logger.LogTrace("Received payload [{Kind}] from hub [{HubId}]", payload.Kind, CurrentHubId);
         switch (payload.Kind)
         {
             case HubToGatewayMessagePayload.ItemKind.KeepAlive:
@@ -74,19 +71,19 @@ public sealed class HubV1Controller : HubControllerBase<HubToGatewayMessage, Gat
             case HubToGatewayMessagePayload.ItemKind.OtaInstallStarted:
                 _lastStatus = OtaUpdateStatus.Started;
                 await HcOwner.OtaInstallStarted(
-                    CurrentHub.Id,
+                    CurrentHubId,
                     payload.OtaInstallStarted.UpdateId,
-                    payload.OtaInstallStarted.Version!.ToSemVersion());
+                    SemVersion.FromFbs(payload.OtaInstallStarted.Version!));
                 await otaService.Started(
-                    CurrentHub.Id,
+                    CurrentHubId,
 
                     payload.OtaInstallStarted.UpdateId,
-                    payload.OtaInstallStarted.Version!.ToSemVersion());
+                    SemVersion.FromFbs(payload.OtaInstallStarted.Version!));
                 break;
 
             case HubToGatewayMessagePayload.ItemKind.OtaInstallProgress:
                 await HcOwner.OtaInstallProgress(
-                    CurrentHub.Id,
+                    CurrentHubId,
                     payload.OtaInstallProgress.UpdateId,
                     payload.OtaInstallProgress.Task,
                     payload.OtaInstallProgress.Progress);
@@ -94,19 +91,19 @@ public sealed class HubV1Controller : HubControllerBase<HubToGatewayMessage, Gat
                 if (_lastStatus == OtaUpdateStatus.Started)
                 {
                     _lastStatus = OtaUpdateStatus.Running;
-                    await otaService.Progress(CurrentHub.Id, payload.OtaInstallProgress.UpdateId);
+                    await otaService.Progress(CurrentHubId, payload.OtaInstallProgress.UpdateId);
                 }
 
                 break;
 
             case HubToGatewayMessagePayload.ItemKind.OtaInstallFailed:
                 await HcOwner.OtaInstallFailed(
-                    CurrentHub.Id,
+                    CurrentHubId,
                     payload.OtaInstallFailed.UpdateId,
                     payload.OtaInstallFailed.Fatal,
                     payload.OtaInstallFailed.Message!);
 
-                await otaService.Error(CurrentHub.Id, payload.OtaInstallFailed.UpdateId,
+                await otaService.Error(CurrentHubId, payload.OtaInstallFailed.UpdateId,
                     payload.OtaInstallFailed.Fatal, payload.OtaInstallFailed.Message!);
 
                 _lastStatus = OtaUpdateStatus.Error;
@@ -116,9 +113,9 @@ public sealed class HubV1Controller : HubControllerBase<HubToGatewayMessage, Gat
                 if (payload.BootStatus.BootType == FirmwareBootType.NewFirmware)
                 {
                     await HcOwner.OtaInstallSucceeded(
-                        CurrentHub.Id, payload.BootStatus.OtaUpdateId);
+                        CurrentHubId, payload.BootStatus.OtaUpdateId);
 
-                    await otaService.Success(CurrentHub.Id, payload.BootStatus.OtaUpdateId);
+                    await otaService.Success(CurrentHubId, payload.BootStatus.OtaUpdateId);
                     _lastStatus = OtaUpdateStatus.Finished;
                     break;
                 }
@@ -126,9 +123,9 @@ public sealed class HubV1Controller : HubControllerBase<HubToGatewayMessage, Gat
                 if (payload.BootStatus.BootType == FirmwareBootType.Rollback)
                 {
                     await HcOwner.OtaRollback(
-                        CurrentHub.Id, payload.BootStatus.OtaUpdateId);
+                        CurrentHubId, payload.BootStatus.OtaUpdateId);
 
-                    await otaService.Error(CurrentHub.Id, payload.BootStatus.OtaUpdateId, false,
+                    await otaService.Error(CurrentHubId, payload.BootStatus.OtaUpdateId, false,
                         "Hub booted with firmware rollback");
                     _lastStatus = OtaUpdateStatus.Error;
                     break;
@@ -138,7 +135,7 @@ public sealed class HubV1Controller : HubControllerBase<HubToGatewayMessage, Gat
                 {
                     if (payload.BootStatus.OtaUpdateId == 0) break;
 
-                    var unfinished = await otaService.UpdateUnfinished(CurrentHub.Id,
+                    var unfinished = await otaService.UpdateUnfinished(CurrentHubId,
                         payload.BootStatus.OtaUpdateId);
 
                     if (!unfinished) break;
@@ -146,9 +143,9 @@ public sealed class HubV1Controller : HubControllerBase<HubToGatewayMessage, Gat
                     Log.Warning("OTA update unfinished, rolling back");
 
                     await HcOwner.OtaRollback(
-                        CurrentHub.Id, payload.BootStatus.OtaUpdateId);
+                        CurrentHubId, payload.BootStatus.OtaUpdateId);
 
-                    await otaService.Error(CurrentHub.Id, payload.BootStatus.OtaUpdateId, false,
+                    await otaService.Error(CurrentHubId, payload.BootStatus.OtaUpdateId, false,
                         "Hub booted with normal boot, update seems unfinished");
                     _lastStatus = OtaUpdateStatus.Error;
                 }
@@ -165,19 +162,20 @@ public sealed class HubV1Controller : HubControllerBase<HubToGatewayMessage, Gat
     }
 
     /// <inheritdoc />
-    public override ValueTask Control(List<OpenShock.Serialization.Gateway.ShockerCommand> controlCommands)
+    [NonAction]
+    public override ValueTask Control(IList<OpenShock.Serialization.Gateway.ShockerCommand> controlCommands)
         => QueueMessage(new GatewayToHubMessage
         {
             Payload = new GatewayToHubMessagePayload(new ShockerCommandList
             {
-                Commands = controlCommands.Select(x => new ShockerCommand()
+                Commands = [.. controlCommands.Select(x => new ShockerCommand()
                 {
                     Duration = x.Duration,
                     Type = x.Type,
                     Id = x.Model == Serialization.Types.ShockerModelType.Petrainer998DR ? (ushort)(x.Id >> 1) : x.Id, // Fix for old hubs, their ids was serialized wrongly in the RFTransmitter, the V1 endpoint is being phased out, so this wont stay here forever
                     Intensity = x.Intensity,
                     Model = x.Model
-                }).ToList()
+                })]
             })
         });
 
@@ -210,7 +208,7 @@ public sealed class HubV1Controller : HubControllerBase<HubToGatewayMessage, Gat
         {
             Payload = new GatewayToHubMessagePayload(new OtaInstall
             {
-                Version = version.ToSemVer()
+                Version = version.ToFbs()
             })
         });
 

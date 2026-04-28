@@ -15,5 +15,5 @@ public sealed class LiveShockerPermission
     /// <summary>
     /// Perms and limits for the live shocker
     /// </summary>
-    public required SharePermsAndLimitsLive PermsAndLimits { get; set; }
+    public required SharePermsAndLimits PermsAndLimits { get; set; }
 }

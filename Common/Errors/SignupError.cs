@@ -5,5 +5,8 @@ namespace OpenShock.Common.Errors;
 
 public static class SignupError
 {
-    public static OpenShockProblem EmailAlreadyExists => new("Signup.EmailOrUsernameAlreadyExists", "Email or username already exists", HttpStatusCode.Conflict);
+    public static OpenShockProblem UsernameOrEmailExists => new(
+        "Signup.UsernameOrEmailExists",
+        "The chosen username or email is already in use",
+        HttpStatusCode.Conflict);
 }

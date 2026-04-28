@@ -19,7 +19,7 @@ public static class PublicShareSeeder
         var allUserIds = await db.Users.Select(u => u.Id).ToListAsync();
 
         var publicShareFaker = new Faker<PublicShare>()
-            .RuleFor(p => p.Id, f => Guid.CreateVersion7())
+            .RuleFor(p => p.Id, f => f.Random.Guid())
             .RuleFor(p => p.OwnerId, f => f.PickRandom(allUserIds))
             .RuleFor(p => p.Name, f => f.Commerce.ProductName().Truncate(HardLimits.PublicShareNameMaxLength))
             .RuleFor(p => p.ExpiresAt, f => f.Date.FutureOffset(60).UtcDateTime)

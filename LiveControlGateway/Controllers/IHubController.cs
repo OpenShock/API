@@ -1,5 +1,5 @@
-﻿using OpenShock.Serialization.Gateway;
-using Semver;
+﻿using OpenShock.Common.Models;
+using OpenShock.Serialization.Gateway;
 
 namespace OpenShock.LiveControlGateway.Controllers;
 
@@ -18,7 +18,7 @@ public interface IHubController : IAsyncDisposable
     /// </summary>
     /// <param name="controlCommands"></param>
     /// <returns></returns>
-    public ValueTask Control(List<ShockerCommand> controlCommands);
+    public ValueTask Control(IList<ShockerCommand> controlCommands);
 
     /// <summary>
     /// Turn the captive portal on or off

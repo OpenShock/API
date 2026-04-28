@@ -7,6 +7,7 @@ using OpenShock.Common.OpenShockDb;
 using System.Buffers;
 using System.Globalization;
 using System.Text.Json;
+using OpenShock.Common.JsonSerialization;
 
 namespace OpenShock.Common.Services.Configuration;
 
@@ -50,7 +51,7 @@ public sealed class ConfigurationService : IConfigurationService
     {
         return type switch
         {
-            ConfigurationValueType.String => value is not null,
+            ConfigurationValueType.String => true,
             ConfigurationValueType.Bool => bool.TryParse(value, out _),
             ConfigurationValueType.Int => int.TryParse(value, CultureInfo.InvariantCulture, out _),
             ConfigurationValueType.Float => float.TryParse(value, CultureInfo.InvariantCulture, out float f) && (float.IsNormal(f) || f == 0f),
@@ -101,7 +102,7 @@ public sealed class ConfigurationService : IConfigurationService
         return new Success();
     }
 
-    public async Task<OneOf<Success, NotFound, InvalidNameFormat, InvalidValueFormat, InvalidValueType>> TryUpdateItemAsync(string name, string? description, string? value)
+    public async Task<OneOf<Success, NotFound, InvalidNameFormat, InvalidValueFormat>> TryUpdateItemAsync(string name, string? description, string? value)
     {
         // Validate name
         if (!IsValidName(name))
@@ -289,7 +290,7 @@ public sealed class ConfigurationService : IConfigurationService
 
         try
         {
-            var obj = JsonSerializer.Deserialize<T>(pair.Value);
+            var obj = JsonSerializer.Deserialize<T>(pair.Value, JsonOptions.Default);
             return obj is not null ? obj : new InvalidValueFormat();
         }
         catch (JsonException ex)

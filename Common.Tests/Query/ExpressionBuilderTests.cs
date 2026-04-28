@@ -1,5 +1,4 @@
 ﻿using OpenShock.Common.Query;
-using TUnit.Assertions.AssertConditions.Throws;
 using Bogus;
 
 namespace OpenShock.Common.Tests.Query;
@@ -26,13 +25,13 @@ public class ExpressionBuilderTests
         Inactive
     }
 
-    private readonly TestClass[] TestArray;
+    private readonly TestClass[] _testArray;
 
     public ExpressionBuilderTests()
     {
         var faker = new Faker<TestClass>()
             .UseSeed(12345)
-            .RuleFor(t => t.Id, f => Guid.CreateVersion7())
+            .RuleFor(t => t.Id, f => f.Random.Guid())
             .RuleFor(t => t.Name, f => f.Name.FullName())
             .RuleFor(t => t.Age, f => f.Random.Int(18, 99))
             .RuleFor(t => t.Height, f => f.Random.UInt())
@@ -42,7 +41,7 @@ public class ExpressionBuilderTests
             .RuleFor(t => t.Score, f => f.Random.Float(0, 100))
             .RuleFor(t => t.Precision, f => f.Random.Double(0, 100));
 
-        TestArray = faker.Generate(100).ToArray();
+        _testArray = faker.Generate(100).ToArray();
     }
 
     [Test]
@@ -76,9 +75,9 @@ public class ExpressionBuilderTests
     public async Task Guid_ExactMatch()
     {
         // Act
-        var testGuid = TestArray.First().Id; // Grab a Guid from the test data
+        var testGuid = _testArray.First().Id; // Grab a Guid from the test data
         var expression = DBExpressionBuilder.GetFilterExpression<TestClass>($"id eq {testGuid}");
-        var result = TestArray.AsQueryable().Where(expression).ToArray();
+        var result = _testArray.AsQueryable().Where(expression).ToArray();
 
         // Assert
         await Assert.That(result).ContainsOnly(x => x.Id == testGuid);
@@ -89,7 +88,7 @@ public class ExpressionBuilderTests
     {
         // Act
         var expression = DBExpressionBuilder.GetFilterExpression<TestClass>("age gte 42");
-        var result = TestArray.AsQueryable().Where(expression).ToArray();
+        var result = _testArray.AsQueryable().Where(expression).ToArray();
 
         // Assert
         await Assert.That(result).ContainsOnly(x => x.Age >= 42);
@@ -100,7 +99,7 @@ public class ExpressionBuilderTests
     {
         // Act
         var expression = DBExpressionBuilder.GetFilterExpression<TestClass>("age lte 51");
-        var result = TestArray.AsQueryable().Where(expression).ToArray();
+        var result = _testArray.AsQueryable().Where(expression).ToArray();
 
         // Assert
         await Assert.That(result).ContainsOnly(x => x.Age <= 51);
@@ -111,7 +110,7 @@ public class ExpressionBuilderTests
     {
         // Act
         var expression = DBExpressionBuilder.GetFilterExpression<TestClass>("status eq Active");
-        var result = TestArray.AsQueryable().Where(expression).ToArray();
+        var result = _testArray.AsQueryable().Where(expression).ToArray();
 
         // Assert
         await Assert.That(result).ContainsOnly(x => x.Status == TestEnum.Active);
@@ -122,7 +121,7 @@ public class ExpressionBuilderTests
     {
         // Act
         var expression = DBExpressionBuilder.GetFilterExpression<TestClass>("status != Active");
-        var result = TestArray.AsQueryable().Where(expression).ToArray();
+        var result = _testArray.AsQueryable().Where(expression).ToArray();
 
         // Assert
         await Assert.That(result).DoesNotContain(x => x.Status == TestEnum.Active);
@@ -142,10 +141,10 @@ public class ExpressionBuilderTests
     {
         // Act
         var expression = DBExpressionBuilder.GetFilterExpression<TestClass>("isActive eq true");
-        var result = TestArray.AsQueryable().Where(expression).ToArray();
+        var result = _testArray.AsQueryable().Where(expression).ToArray();
 
         // Assert
-        await Assert.That(result).ContainsOnly(x => x.IsActive == true);
+        await Assert.That(result).ContainsOnly(x => x.IsActive);
     }
 
     [Test]
@@ -153,7 +152,7 @@ public class ExpressionBuilderTests
     {
         // Act
         var expression = DBExpressionBuilder.GetFilterExpression<TestClass>("isActive eq false");
-        var result = TestArray.AsQueryable().Where(expression).ToArray();
+        var result = _testArray.AsQueryable().Where(expression).ToArray();
 
         // Assert
         await Assert.That(result).ContainsOnly(x => x.IsActive == false);
@@ -163,9 +162,9 @@ public class ExpressionBuilderTests
     public async Task DateTime_ExactMatch()
     {
         // Act
-        var testDate = TestArray[20].CreatedAt;
+        var testDate = _testArray[20].CreatedAt;
         var expression = DBExpressionBuilder.GetFilterExpression<TestClass>($"createdAt eq {testDate:O}");
-        var result = TestArray.AsQueryable().Where(expression).ToArray();
+        var result = _testArray.AsQueryable().Where(expression).ToArray();
 
         // Assert
         await Assert.That(result).ContainsOnly(x => x.CreatedAt == testDate);
@@ -177,7 +176,7 @@ public class ExpressionBuilderTests
         // Act
         var referenceDate = DateTime.UtcNow.AddMonths(-6);
         var expression = DBExpressionBuilder.GetFilterExpression<TestClass>($"createdAt lt {referenceDate:O}");
-        var result = TestArray.AsQueryable().Where(expression).ToArray();
+        var result = _testArray.AsQueryable().Where(expression).ToArray();
 
         // Assert
         await Assert.That(result).ContainsOnly(x => x.CreatedAt < referenceDate);
@@ -188,7 +187,7 @@ public class ExpressionBuilderTests
     {
         // Act
         var expression = DBExpressionBuilder.GetFilterExpression<TestClass>("score gt 50");
-        var result = TestArray.AsQueryable().Where(expression).ToArray();
+        var result = _testArray.AsQueryable().Where(expression).ToArray();
 
         // Assert
         await Assert.That(result).ContainsOnly(x => x.Score > 50f);
@@ -199,7 +198,7 @@ public class ExpressionBuilderTests
     {
         // Act
         var expression = DBExpressionBuilder.GetFilterExpression<TestClass>("precision lt 50");
-        var result = TestArray.AsQueryable().Where(expression).ToArray();
+        var result = _testArray.AsQueryable().Where(expression).ToArray();
 
         // Assert
         await Assert.That(result).ContainsOnly(x => x.Precision < 50f);
@@ -212,7 +211,7 @@ public class ExpressionBuilderTests
     public async Task OrderByAscending_SortsCorrectly(string query)
     {
         // Arrange
-        var queryable = TestArray.AsQueryable();
+        var queryable = _testArray.AsQueryable();
 
         // Act
         var result = queryable.ApplyOrderBy(query).ToArray();
@@ -227,7 +226,7 @@ public class ExpressionBuilderTests
     public async Task OrderByDescending_SortsCorrectly(string query)
     {
         // Arrange
-        var queryable = TestArray.AsQueryable();
+        var queryable = _testArray.AsQueryable();
 
         // Act
         var result = queryable.ApplyOrderBy(query).ToArray();
@@ -242,13 +241,13 @@ public class ExpressionBuilderTests
     public async Task ThenByAscending_SortsCorrectly(string query)
     {
         // Arrange
-        var queryable = TestArray.AsQueryable();
+        var queryable = _testArray.AsQueryable();
 
         // Act
         var result = queryable.ApplyOrderBy(query).ToArray();
 
         // Assert
-        var expected = TestArray.OrderBy(x => x.Age).ThenBy(x => x.CreatedAt).ToArray();
+        var expected = _testArray.OrderBy(x => x.Age).ThenBy(x => x.CreatedAt).ToArray();
         await Assert.That(result).IsEquivalentTo(expected);
     }
 
@@ -257,13 +256,13 @@ public class ExpressionBuilderTests
     public async Task ThenByDescending_SortsCorrectly(string query)
     {
         // Arrange
-        var queryable = TestArray.AsQueryable();
+        var queryable = _testArray.AsQueryable();
 
         // Act
         var result = queryable.ApplyOrderBy(query).ToArray();
 
         // Assert
-        var expected = TestArray.OrderBy(x => x.Age).ThenByDescending(x => x.Name).ToArray();
+        var expected = _testArray.OrderBy(x => x.Age).ThenByDescending(x => x.Name).ToArray();
         await Assert.That(result).IsEquivalentTo(expected);
     }
 }

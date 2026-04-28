@@ -6,13 +6,11 @@ namespace OpenShock.Common.ExceptionHandle;
 
 public sealed class OpenShockExceptionHandler : IExceptionHandler
 {
-    private readonly IProblemDetailsService _problemDetailsService;
     private readonly IHostEnvironment _env;
     private readonly ILogger _logger;
     
-    public OpenShockExceptionHandler(IProblemDetailsService problemDetailsService, IHostEnvironment env, ILoggerFactory loggerFactory)
+    public OpenShockExceptionHandler(IHostEnvironment env, ILoggerFactory loggerFactory)
     {
-        _problemDetailsService = problemDetailsService;
         _env = env;
         _logger = loggerFactory.CreateLogger("RequestInfo");
     }
@@ -24,16 +22,9 @@ public sealed class OpenShockExceptionHandler : IExceptionHandler
         {
             await PrintRequestInfo(context);
         }
-        
-        var responseObject = ExceptionError.Exception;
-        responseObject.AddContext(context);
 
-        return await _problemDetailsService.TryWriteAsync(new ProblemDetailsContext
-        {
-            HttpContext = context,
-            Exception = exception,
-            ProblemDetails = responseObject
-        });
+        await ExceptionError.Exception.WriteAsJsonAsync(context, cancellationToken);
+        return context.Response.HasStarted;
     }
     
     private async Task PrintRequestInfo(HttpContext context)

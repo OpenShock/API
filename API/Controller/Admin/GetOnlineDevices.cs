@@ -4,7 +4,6 @@ using Microsoft.EntityFrameworkCore;
 using OpenShock.Common.Extensions;
 using OpenShock.Common.Models;
 using OpenShock.Common.Redis;
-using Semver;
 using System.Text.Json.Serialization;
 using OpenShock.Common.JsonSerialization;
 
@@ -18,12 +17,12 @@ public sealed partial class AdminController
     /// <response code="200">All online devices</response>
     /// <response code="401">Unauthorized</response>
     [HttpGet("monitoring/onlineDevices")]
-    [ProducesResponseType<LegacyDataResponse<IEnumerable<AdminOnlineDeviceResponse>>>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
+    [ProducesResponseType<LegacyDataResponse<AdminOnlineDeviceResponse[]>>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
     public async Task<IActionResult> GetOnlineDevices()
     {
         var devicesOnline = _redis.RedisCollection<DeviceOnline>(false);
 
-        var allOnlineDevices = await devicesOnline.ToArrayAsync();
+        var allOnlineDevices = await devicesOnline.ToListAsync();
         var dbLookup = await _db.Devices
             .Where(x => allOnlineDevices.Select(y => y.Id).Contains(x.Id))
             .Select(x => new

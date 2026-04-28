@@ -6,7 +6,7 @@ public interface ISessionService
 {
     public Task<CreateSessionResult> CreateSessionAsync(Guid userId, string userAgent, string ipAddress);
 
-    public Task<IReadOnlyList<LoginSession>> ListSessionsByUserIdAsync(Guid userId);
+    public IAsyncEnumerable<LoginSession> ListSessionsByUserIdAsync(Guid userId);
 
     public Task<LoginSession?> GetSessionByTokenAsync(string sessionToken);
 

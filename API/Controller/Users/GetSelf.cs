@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using System.Net.Mime;
+using Microsoft.AspNetCore.Mvc;
 using OpenShock.Common.Extensions;
 using OpenShock.Common.Models;
 
@@ -11,9 +12,10 @@ public sealed partial class UsersController
     /// </summary>
     /// <response code="200">The user's information was successfully retrieved.</response>
     [HttpGet("self")]
-    public LegacyDataResponse<UserSelfResponse> GetSelf()
+    [ProducesResponseType<LegacyDataResponse<UserSelfResponse>>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
+    public IActionResult GetSelf()
     {
-        return new(
+        return LegacyDataOk(
             new UserSelfResponse
             {
                 Id = CurrentUser.Id,

@@ -8,18 +8,17 @@ using OpenShock.Common.Swagger;
 
 var builder = OpenShockApplication.CreateDefaultBuilder<Program>(args);
 
-builder.RegisterCommonOpenShockOptions();
+var redisOptions = builder.RegisterRedisOptions();
+var databaseOptions = builder.RegisterDatabaseOptions();
+builder.RegisterMetricsOptions();
 
-var databaseConfig = builder.Configuration.GetDatabaseOptions();
-var redisConfig = builder.Configuration.GetRedisConfigurationOptions();
-
-builder.Services.AddOpenShockMemDB(redisConfig);
-builder.Services.AddOpenShockDB(databaseConfig);
+builder.Services.AddOpenShockMemDB(redisOptions);
+builder.Services.AddOpenShockDB(databaseOptions);
 builder.Services.AddOpenShockServices();
 
 builder.Services.AddHangfire(hangfire =>
     hangfire.UsePostgreSqlStorage(c =>
-        c.UseNpgsqlConnection(databaseConfig.Conn)));
+        c.UseNpgsqlConnection(databaseOptions.Conn)));
 builder.Services.AddHangfireServer();
 
 builder.AddSwaggerExt<Program>();

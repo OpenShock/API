@@ -9,7 +9,7 @@ namespace OpenShock.API.Controller.Tokens;
 [ApiController]
 [Tags("API Tokens")]
 [Route("/{version:apiVersion}/tokens")]
-[Authorize(AuthenticationSchemes = OpenShockAuthSchemas.UserSessionCookie)]
+[Authorize(AuthenticationSchemes = OpenShockAuthSchemes.UserSessionCookie)]
 public sealed partial class TokensController : AuthenticatedSessionControllerBase
 {
     private readonly OpenShockContext _db;

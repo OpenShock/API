@@ -1,4 +1,5 @@
-﻿using Asp.Versioning;
+﻿using System.Net.Mime;
+using Asp.Versioning;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using OpenShock.API.Models.Response;
@@ -25,7 +26,8 @@ public sealed partial class ShockerController
     /// <response code="200">The shockers were successfully retrieved.</response>
     [HttpGet("shared")]
     [MapToApiVersion("1")]
-    public async Task<LegacyDataResponse<IEnumerable<OwnerShockerResponse>>> ListSharedShockers()
+    [ProducesResponseType<LegacyDataResponse<OwnerShockerResponse[]>>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
+    public async Task<IActionResult> ListSharedShockers()
     {
         var sharedShockersData = await _db.UserShares
             .AsNoTracking()
@@ -78,6 +80,6 @@ public sealed partial class ShockerController
                     .ToArray()
             });
 
-        return new(sharesResponse);
+        return LegacyDataOk(sharesResponse);
     }
 }

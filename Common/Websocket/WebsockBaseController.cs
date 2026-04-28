@@ -1,15 +1,12 @@
-﻿using System.Net.Mime;
-using System.Net.WebSockets;
+﻿using System.Net.WebSockets;
 using System.Text.Json;
 using System.Threading.Channels;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Options;
 using OneOf;
 using OneOf.Types;
 using OpenShock.Common.Errors;
 using OpenShock.Common.Problems;
 using OpenShock.Common.Utils;
-using JsonOptions = Microsoft.AspNetCore.Http.Json.JsonOptions;
 
 namespace OpenShock.Common.Websocket;
 
@@ -57,9 +54,9 @@ public abstract class WebsocketBaseController<T> : OpenShockControllerBase, IAsy
     [NonAction]
     public ValueTask QueueMessage(T data)
     {
-        if (WebSocket is null or { State: WebSocketState.Closed or WebSocketState.CloseSent })
+        if (WebSocket is null or { State: WebSocketState.Closed or WebSocketState.CloseSent or WebSocketState.Aborted })
         {
-            Logger.LogDebug("WebSocket is null or closed, not sending message");
+            Logger.LogDebug("WebSocket is null, abort or closed, not sending message");
             return ValueTask.CompletedTask;
         }
         
@@ -107,8 +104,8 @@ public abstract class WebsocketBaseController<T> : OpenShockControllerBase, IAsy
     /// <summary>
     /// Initial get request to the websocket route - rewrite to websocket connection
     /// </summary>
-    [ApiExplorerSettings(IgnoreApi = true)]
     [HttpGet]
+    [ApiExplorerSettings(IgnoreApi = true)]
     public async Task Get([FromServices] IHostApplicationLifetime lifetime, CancellationToken cancellationToken)
     {
 #pragma warning disable IDISP003
@@ -118,32 +115,14 @@ public abstract class WebsocketBaseController<T> : OpenShockControllerBase, IAsy
         
         if (!HttpContext.WebSockets.IsWebSocketRequest)
         {
-            var jsonOptions = HttpContext.RequestServices.GetRequiredService<IOptions<JsonOptions>>();
-            HttpContext.Response.StatusCode = StatusCodes.Status400BadRequest;
-            var response = WebsocketError.NonWebsocketRequest;
-            response.AddContext(HttpContext);
-            // ReSharper disable once MethodSupportsCancellation
-            await HttpContext.Response.WriteAsJsonAsync(
-                response,
-                jsonOptions.Value.SerializerOptions,
-                contentType: MediaTypeNames.Application.ProblemJson,
-                cancellationToken: cancellationToken);
+            await WebsocketError.NonWebsocketRequest.WriteAsJsonAsync(HttpContext, LinkedToken);
             return;
         }
 
         var connectionPrecondition = await ConnectionPrecondition();
         if (connectionPrecondition.IsT1)
         {
-            var jsonOptions = HttpContext.RequestServices.GetRequiredService<IOptions<JsonOptions>>();
-            var response = connectionPrecondition.AsT1.Value;
-            HttpContext.Response.StatusCode = response.Status ?? StatusCodes.Status400BadRequest;
-            response.AddContext(HttpContext);
-            // ReSharper disable once MethodSupportsCancellation
-            await HttpContext.Response.WriteAsJsonAsync(
-                response,
-                jsonOptions.Value.SerializerOptions,
-                contentType: MediaTypeNames.Application.ProblemJson,
-                cancellationToken: cancellationToken);
+            await connectionPrecondition.AsT1.Value.WriteAsJsonAsync(HttpContext, LinkedToken);
             return;
         }
 
@@ -197,6 +176,7 @@ public abstract class WebsocketBaseController<T> : OpenShockControllerBase, IAsy
             catch (Exception e)
             {
                 Logger.LogError(e, "Error while sending message to client - {Msg}", JsonSerializer.Serialize(msg));
+                await ForceClose(WebSocketCloseStatus.InternalServerError, "Internal server error, error sending message to websocket client");
                 throw;
             }
         }

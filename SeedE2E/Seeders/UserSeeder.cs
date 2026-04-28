@@ -23,7 +23,7 @@ public static class UserSeeder
         // CreatedAt and ActivatedAt.  We'll override Name/Email/PasswordHash/Roles
         // for each “type” (Admin/System/Generic) below.
         var baseUserFaker = new Faker<User>()
-            .RuleFor(u => u.Id, f => Guid.CreateVersion7())
+            .RuleFor(u => u.Id, f => f.Random.Guid())
             // For random users, generate a username—but we'll override it for “well‐defined” accounts.
             .RuleFor(u => u.Name, f => f.Internet.UserNameUnicode().Truncate(HardLimits.UsernameMaxLength))
             // Random alphanumeric hash (truncated to the max length)
@@ -45,7 +45,7 @@ public static class UserSeeder
             // Email depends on Name
             .RuleFor(u => u.Email, (f, u) => f.Internet.Email(u.Name))
             // Default “no roles” (we'll override Roles when we clone for Admin/System/Generic-type fakes)
-            .RuleFor(u => u.Roles, f => []);
+            .RuleFor(u => u.Roles, _ => []);
 
         // Admin account
         var adminUser = adminUserFaker.Generate();

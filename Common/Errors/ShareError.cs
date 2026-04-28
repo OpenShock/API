@@ -11,4 +11,6 @@ public static class ShareError
     public static ShockersNotFoundProblem ShareCreateShockerNotFound(IReadOnlyList<Guid> missingShockers) => new("Share.Request.Create.ShockerNotFound", "One or multiple of the provided shocker's were not found or do not belong to you", missingShockers, HttpStatusCode.NotFound);
     
     public static OpenShockProblem ShareGetNoShares => new("Share.Get.NoShares", "You have no shares with the specified user, or the user doesnt exist", HttpStatusCode.NotFound);
+    
+    public static OpenShockProblem UserShareNotFound => new("Share.User.NotFound", "One or more user share was not found", HttpStatusCode.NotFound);
 }

@@ -1,7 +1,5 @@
 ﻿using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
 using OpenShock.Common.OpenShockDb;
 using OpenShock.Common.Options;
 using OpenShock.Common.Redis;
@@ -10,6 +8,7 @@ using Redis.OM;
 using Redis.OM.Contracts;
 using Scalar.AspNetCore;
 using Serilog;
+using IPNetwork = System.Net.IPNetwork;
 
 namespace OpenShock.Common;
 
@@ -25,12 +24,12 @@ public static class OpenShockMiddlewareHelper
     
     public static async Task<IApplicationBuilder> UseCommonOpenShockMiddleware(this WebApplication app)
     {
-        var metricsOptions = app.Services.GetRequiredService<IOptions<MetricsOptions>>().Value;
-        var metricsAllowedIpNetworks = metricsOptions.AllowedNetworks.Select(x => IPNetwork.Parse(x)).ToArray();
+        var metricsOptions = app.Services.GetRequiredService<MetricsOptions>();
+        var metricsAllowedIpNetworks = metricsOptions.AllowedNetworks.Select(IPNetwork.Parse).ToArray();
 
         foreach (var proxy in await TrustedProxiesFetcher.GetTrustedNetworksAsync())
         {
-            ForwardedSettings.KnownNetworks.Add(proxy);
+            ForwardedSettings.KnownIPNetworks.Add(proxy);
         }
 
         app.UseForwardedHeaders(ForwardedSettings);
@@ -108,7 +107,7 @@ public static class OpenShockMiddlewareHelper
 
         if (pendingMigrations.Length > 0)
         {
-            logger.LogInformation("Found pending migrations, applying [{@Migrations}]", pendingMigrations);
+            logger.LogInformation("Found pending migrations, applying [{@Migrations}]", string.Join(", ", pendingMigrations));
             await migrationContext.Database.MigrateAsync();
             logger.LogInformation("Applied database migrations... proceeding with startup");
         }

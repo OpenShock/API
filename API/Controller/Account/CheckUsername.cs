@@ -1,4 +1,5 @@
 ﻿using System.Diagnostics.CodeAnalysis;
+using System.Net.Mime;
 using Microsoft.AspNetCore.Mvc;
 using OpenShock.API.Models.Requests;
 using OpenShock.Common.Validation;
@@ -10,13 +11,14 @@ public sealed partial class AccountController
     /// <summary>
     /// Check if a username is available
     /// </summary>
-    /// <param name="data"></param>
+    /// <param name="body"></param>
     /// <param name="cancellationToken"></param>
     /// <returns></returns>
     [HttpPost("username/check")] // High-volume endpoint, we don't want to rate limit this
-    public async Task<UsernameCheckResponse> CheckUsername(ChangeUsernameRequest data, CancellationToken cancellationToken)
+    [Consumes(MediaTypeNames.Application.Json)]
+    public async Task<UsernameCheckResponse> CheckUsername([FromBody] ChangeUsernameRequest body, CancellationToken cancellationToken)
     {
-        var result = await _accountService.CheckUsernameAvailabilityAsync(data.Username, cancellationToken);
+        var result = await _accountService.CheckUsernameAvailabilityAsync(body.Username, cancellationToken);
 
         return result.Match(
             success => new UsernameCheckResponse(UsernameAvailability.Available),

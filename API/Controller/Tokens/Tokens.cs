@@ -69,9 +69,11 @@ public sealed partial class TokensController
     /// <param name="body"></param>
     /// <response code="200">The created token</response>
     [HttpPost]
+    [Consumes(MediaTypeNames.Application.Json)]
+    [Produces(MediaTypeNames.Application.Json)]
     public async Task<TokenCreatedResponse> CreateToken([FromBody] CreateTokenRequest body)
     {
-        var token = CryptoUtils.RandomString(AuthConstants.ApiTokenLength);
+        var token = CryptoUtils.RandomAlphaNumericString(AuthConstants.ApiTokenLength);
 
         var tokenDto = new ApiToken
         {
@@ -106,6 +108,7 @@ public sealed partial class TokensController
     /// <response code="200">The edited token</response>
     /// <response code="404">The token does not exist or you do not have access to it.</response>
     [HttpPatch("{tokenId}")]
+    [Consumes(MediaTypeNames.Application.Json)]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status404NotFound, MediaTypeNames.Application.ProblemJson)] // ApiTokenNotFound    
     public async Task<IActionResult> EditToken([FromRoute] Guid tokenId, [FromBody] EditTokenRequest body)

@@ -4,7 +4,6 @@ using OpenShock.Common.Extensions;
 using OpenShock.Common.Models;
 using OpenShock.Common.OpenShockDb;
 using OpenShock.Common.Services.Session;
-using OpenShock.Common.Utils;
 
 namespace OpenShock.Cron;
 

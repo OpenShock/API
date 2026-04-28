@@ -36,7 +36,7 @@ public static class EmailServiceExtension
 
     private static WebApplicationBuilder AddSenderContactConfiguration(this WebApplicationBuilder builder)
     {
-        builder.Services.Configure<MailOptions.MailSenderContact>(builder.Configuration.GetRequiredSection(MailOptions.SenderSectionName));
+        builder.Services.AddSingleton(builder.Configuration.GetRequiredSection(MailOptions.SenderSectionName).Get<MailOptions.MailSenderContact>() ?? throw new NullReferenceException());
         return builder;
     }
 }
