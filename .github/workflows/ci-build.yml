@@ -38,8 +38,8 @@ env:
 
 jobs:
 
-  unit-tests:
-    name: Unit Tests
+  tests:
+    name: Tests
     runs-on: ubuntu-latest
 
     steps:
@@ -50,65 +50,31 @@ jobs:
         with:
           dotnet-version: '${{ env.DOTNET_VERSION }}'
 
-      - name: Run unit tests
+      - name: Run tests
         run: |
           set -euo pipefail
-          results_dir="artifacts/test-results/common-unit"
-          dotnet test -c Release --project Common.Tests/Common.Tests.csproj \
-            --results-directory "$results_dir" \
+          dotnet test -c Release OpenShockBackend.slnx \
+            --results-directory "artifacts/test-results" \
             -- \
+            ${{ (github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch' || github.event_name == 'workflow_call' || github.ref_name == 'develop' || github.ref_name == 'master') && '' || '--treenode-filter "/*/*/*/*[Category!=Integration]"' }} \
             --coverage \
             --coverage-output coverage.cobertura.xml \
             --coverage-output-format cobertura \
             --report-trx \
             --report-trx-filename test-results.trx
 
-      - name: Upload unit test artifacts
+      - name: Upload test artifacts
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: test-results-common-unit
-          path: artifacts/test-results/common-unit
-          if-no-files-found: warn
-
-  integration-tests:
-    name: Integration Tests
-    runs-on: ubuntu-latest
-    if: ${{ github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch' || github.event_name == 'workflow_call' || github.ref_name == 'develop' || github.ref_name == 'master' }}
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v6
-
-      - uses: actions/setup-dotnet@v5
-        with:
-          dotnet-version: '${{ env.DOTNET_VERSION }}'
-
-      - name: Run integration tests
-        run: |
-          set -euo pipefail
-          results_dir="artifacts/test-results/api-integration"
-          dotnet test -c Release --project API.IntegrationTests/API.IntegrationTests.csproj \
-            --results-directory "$results_dir" \
-            -- \
-            --coverage \
-            --coverage-output coverage.cobertura.xml \
-            --coverage-output-format cobertura \
-            --report-trx \
-            --report-trx-filename test-results.trx
-
-      - name: Upload integration test artifacts
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: test-results-api-integration
-          path: artifacts/test-results/api-integration
+          name: test-results
+          path: artifacts/test-results
           if-no-files-found: warn
 
   coverage:
     name: Coverage
     runs-on: ubuntu-latest
-    needs: [unit-tests, integration-tests]
+    needs: [tests]
     if: ${{ github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch' || github.event_name == 'workflow_call' || github.ref_name == 'develop' || github.ref_name == 'master' }}
     outputs:
       linecoverage: ${{ steps.enforce.outputs.linecoverage }}
@@ -124,7 +90,7 @@ jobs:
       - name: Download test artifacts
         uses: actions/download-artifact@v5
         with:
-          pattern: test-results-*
+          name: test-results
           path: artifacts/test-results
 
       - name: Install ReportGenerator
