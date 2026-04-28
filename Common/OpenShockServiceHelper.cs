@@ -207,8 +207,24 @@ public static class OpenShockServiceHelper
         services.AddHostedService<BatchUpdateService>(provider =>
             (BatchUpdateService)provider.GetRequiredService<IBatchUpdateService>());
 
+        // <---- Rate Limiter Setup ---->
+
+        // Disable rate limiting when running under integration tests (both .NET WebApplicationFactory
+        // and external Playwright tests started with ASPNETCORE_UNDER_INTEGRATION_TEST=1).
+        var underIntegrationTest = Environment.GetEnvironmentVariable("ASPNETCORE_UNDER_INTEGRATION_TEST") == "1";
+
         services.AddRateLimiter(options =>
         {
+            if (underIntegrationTest)
+            {
+                options.GlobalLimiter = PartitionedRateLimiter.Create<HttpContext, string>(
+                    _ => RateLimitPartition.GetNoLimiter("test-nolimit"));
+                options.AddPolicy("auth", _ => RateLimitPartition.GetNoLimiter("test-nolimit"));
+                options.AddPolicy("token-reporting", _ => RateLimitPartition.GetNoLimiter("test-nolimit"));
+                options.AddPolicy("shocker-logs", _ => RateLimitPartition.GetNoLimiter("test-nolimit"));
+                return;
+            }
+
             options.OnRejected = async (context, cancellationToken) =>
             {
                 var logger = context.HttpContext.RequestServices.GetRequiredService<ILoggerFactory>()
