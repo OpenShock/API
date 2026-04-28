@@ -54,7 +54,7 @@ jobs:
           if [ "$RUN_INTEGRATION" = "true" ]; then
             target="--solution OpenShockBackend.slnx"
           else
-            target="Common.Tests/Common.Tests.csproj"
+            target="--project Common.Tests/Common.Tests.csproj"
           fi
           dotnet test -c Release $target \
             --results-directory "artifacts/test-results" \
