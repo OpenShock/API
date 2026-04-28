@@ -53,17 +53,11 @@ sealed class InterceptedHttpMessageHandler : DelegatingHandler
         return responseMessage;
     }
 
-    private Task<HttpResponseMessage> HandleMailJetApiHost(HttpRequestMessage request, CancellationToken cancellationToken)
-    {
-        return Task.FromResult(new HttpResponseMessage(HttpStatusCode.NotFound));
-    }
-
     protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
     {
         return request.RequestUri switch
         {
             { Host: "challenges.cloudflare.com", AbsolutePath: "/turnstile/v0/siteverify" } => await HandleCloudflareTurnstileRequest(request, cancellationToken),
-            { Host: "api.mailjet.com" } => await HandleMailJetApiHost(request, cancellationToken),
             _ => new HttpResponseMessage(HttpStatusCode.NotFound)
         };
     }

@@ -7,7 +7,11 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Http;
 using Microsoft.Extensions.Options;
 using OpenShock.API.IntegrationTests.Docker;
+using OpenShock.API.IntegrationTests.Helpers;
 using OpenShock.API.IntegrationTests.HttpMessageHandlers;
+using OpenShock.API.Options;
+using OpenShock.API.Services.Email;
+using OpenShock.API.Services.Email.Smtp;
 using Serilog;
 using Serilog.Events;
 using TUnit.Core.Interfaces;
@@ -21,6 +25,11 @@ public class WebApplicationFactory : WebApplicationFactory<Program>, IAsyncIniti
 
     [ClassDataSource<InMemoryRedis>(Shared = SharedType.PerTestSession)]
     public required InMemoryRedis Redis { get; init; }
+
+    [ClassDataSource<InMemoryMailpit>(Shared = SharedType.PerTestSession)]
+    public required InMemoryMailpit Mailpit { get; init; }
+
+    public MailpitHelper CreateMailpitHelper() => new(Mailpit.ApiBaseUrl);
 
     public Task InitializeAsync()
     {
@@ -55,15 +64,13 @@ public class WebApplicationFactory : WebApplicationFactory<Program>, IAsyncIniti
             { "OPENSHOCK__FRONTEND__SHORTURL", "https://openshock.app" },
             { "OPENSHOCK__FRONTEND__COOKIEDOMAIN", "openshock.app,localhost" },
 
-            { "OPENSHOCK__MAIL__TYPE", "MAILJET" },
+            { "OPENSHOCK__MAIL__TYPE", "SMTP" },
             { "OPENSHOCK__MAIL__SENDER__EMAIL", "system@openshock.org" },
             { "OPENSHOCK__MAIL__SENDER__NAME", "OpenShock" },
-            { "OPENSHOCK__MAIL__MAILJET__KEY", "mailjet-key" },
-            { "OPENSHOCK__MAIL__MAILJET__SECRET", "mailjet-secret" },
-            { "OPENSHOCK__MAIL__MAILJET__TEMPLATE__PASSWORDRESET", "12345678" },
-            { "OPENSHOCK__MAIL__MAILJET__TEMPLATE__PASSWORDRESETCOMPLETE", "87654321" },
-            { "OPENSHOCK__MAIL__MAILJET__TEMPLATE__VERIFYEMAIL", "11223344" },
-            { "OPENSHOCK__MAIL__MAILJET__TEMPLATE__VERIFYEMAILCOMPLETE", "44332211" },
+            { "OPENSHOCK__MAIL__SMTP__HOST", Mailpit.SmtpHost },
+            { "OPENSHOCK__MAIL__SMTP__PORT", Mailpit.SmtpPort.ToString() },
+            { "OPENSHOCK__MAIL__SMTP__ENABLESSL", "false" },
+            { "OPENSHOCK__MAIL__SMTP__VERIFYCERTIFICATE", "false" },
 
             { "OPENSHOCK__TURNSTILE__ENABLED", "true" },
             { "OPENSHOCK__TURNSTILE__SECRETKEY", "turnstile-secret-key" },
@@ -114,6 +121,18 @@ public class WebApplicationFactory : WebApplicationFactory<Program>, IAsyncIniti
                 options.AddPolicy("shocker-logs", _ =>
                     RateLimitPartition.GetNoLimiter("test-shocker-logs-no-limit"));
             });
+
+            // Replace the fire-and-forget SmtpEmailService with a synchronous wrapper so that
+            // API endpoints return only after the email has been delivered to Mailpit. This
+            // makes Mailpit assertions deterministic without needing long polling timeouts.
+            var emailServiceDescriptor = services.FirstOrDefault(d => d.ServiceType == typeof(IEmailService));
+            if (emailServiceDescriptor is not null)
+                services.Remove(emailServiceDescriptor);
+
+            services.AddSingleton<IEmailService>(sp => new TestSmtpEmailService(
+                sp.GetRequiredService<SmtpServiceTemplates>(),
+                sp.GetRequiredService<SmtpOptions>(),
+                sp.GetRequiredService<MailOptions.MailSenderContact>()));
         });
     }
 }
