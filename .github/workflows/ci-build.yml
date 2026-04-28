@@ -53,7 +53,7 @@ jobs:
       - name: Run tests
         run: |
           set -euo pipefail
-          dotnet test -c Release OpenShockBackend.slnx \
+          dotnet test -c Release --solution OpenShockBackend.slnx \
             --results-directory "artifacts/test-results" \
             -- \
             ${{ (github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch' || github.event_name == 'workflow_call' || github.ref_name == 'develop' || github.ref_name == 'master') && '' || '--treenode-filter "/*/*/*/*[Category!=Integration]"' }} \
@@ -180,7 +180,6 @@ jobs:
   build:
     name: Build (${{ matrix.image }})
     runs-on: ubuntu-latest
-    needs: [coverage]
     strategy:
       fail-fast: false
       matrix:
