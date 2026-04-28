@@ -3,19 +3,13 @@ using OpenShock.API.Models.Requests;
 using System.Net;
 using System.Net.Mime;
 using Asp.Versioning;
-using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.RateLimiting;
-using OpenShock.API.Services.Account;
 using OpenShock.Common.Errors;
 using OpenShock.Common.Problems;
 using OpenShock.Common.Utils;
-using OpenShock.Common.Models;
-using Microsoft.Extensions.Options;
 using OpenShock.API.Errors;
 using OpenShock.API.Models.Response;
 using OpenShock.API.Services.Turnstile;
-using OpenShock.Common.Options;
-using OpenShock.Common.Services.Session;
 
 namespace OpenShock.API.Controller.Account;
 

@@ -1,4 +1,5 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using System.Diagnostics.Metrics;
+using Microsoft.EntityFrameworkCore;
 using OneOf.Types;
 using OpenShock.Common.Extensions;
 using OpenShock.Common.Models;
@@ -34,12 +35,14 @@ public sealed class HubLifetimeManager
     /// <param name="redisConnectionProvider"></param>
     /// <param name="redisPubService"></param>
     /// <param name="loggerFactory"></param>
+    /// <param name="meter"></param>
     public HubLifetimeManager(
         IDbContextFactory<OpenShockContext> dbContextFactory,
         IConnectionMultiplexer connectionMultiplexer,
         IRedisConnectionProvider redisConnectionProvider,
         IRedisPubService redisPubService,
-        ILoggerFactory loggerFactory
+        ILoggerFactory loggerFactory,
+        [FromKeyedServices("OpenShock.Gateway.Meter")] Meter meter
     )
     {
         _dbContextFactory = dbContextFactory;
@@ -49,6 +52,15 @@ public sealed class HubLifetimeManager
         _loggerFactory = loggerFactory;
 
         _logger = _loggerFactory.CreateLogger<HubLifetimeManager>();
+        
+        
+        meter.CreateObservableUpDownCounter("openshock_hub_connections", () =>
+        {
+            return new[]
+            {
+                new Measurement<int>(_lifetimes.Count)
+            };
+        }, "connections", "Current number of connected hubs");
     }
 
     /// <summary>
@@ -191,7 +203,7 @@ public sealed class HubLifetimeManager
     /// <exception cref="ArgumentNullException"></exception>
     public async Task<OneOf.OneOf<HubLifetime, NotFound, Busy>> AddLiveControlConnection(LiveControlController liveControlController)
     {
-        if (!liveControlController.HubId.HasValue) throw new ArgumentException(nameof(liveControlController), "LiveControlController does not have a hubId");
+        if (!liveControlController.HubId.HasValue) throw new ArgumentException("LiveControlController does not have a hubId", nameof(liveControlController));
         
         using (await _lifetimesLock.LockAsyncScoped())
         {

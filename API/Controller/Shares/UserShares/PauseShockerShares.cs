@@ -2,14 +2,10 @@
 using Asp.Versioning;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Storage;
 using OpenShock.API.Services.DeviceUpdate;
 using OpenShock.API.Utils;
-using OpenShock.Common.DeviceControl;
 using OpenShock.Common.Errors;
-using OpenShock.Common.Extensions;
 using OpenShock.Common.Models;
-using OpenShock.Common.Services;
 
 namespace OpenShock.API.Controller.Shares.UserShares;
 

@@ -1,7 +1,5 @@
 ﻿using System.Buffers;
-using System.Diagnostics;
 using System.Net.WebSockets;
-using System.Text;
 using System.Text.Json;
 using Microsoft.IO;
 using OpenShock.Common.JsonSerialization;
@@ -22,11 +20,9 @@ public static class JsonWebSocketUtils
         {
             ValueWebSocketReceiveResult result;
             await using var message = RecyclableMemory.GetStream();
-            var bytes = 0;
             do
             {
                 result = await socket.ReceiveAsync(new Memory<byte>(buffer), cancellationToken);
-                bytes += result.Count;
                 if (result.MessageType == WebSocketMessageType.Close)
                 {
                     return new WebsocketClosure();

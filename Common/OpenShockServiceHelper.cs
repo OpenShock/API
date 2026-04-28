@@ -39,7 +39,8 @@ public static class OpenShockServiceHelper
     {
         // <---- Redis ---->
         services.AddSingleton<IConnectionMultiplexer>(ConnectionMultiplexer.Connect(options));
-        services.AddSingleton<IRedisConnectionProvider, RedisConnectionProvider>(serviceProvider => new RedisConnectionProvider(serviceProvider.GetRequiredService<IConnectionMultiplexer>()));
+        services.AddSingleton<IRedisConnectionProvider, RedisConnectionProvider>(serviceProvider =>
+            new RedisConnectionProvider(serviceProvider.GetRequiredService<IConnectionMultiplexer>()));
         services.AddSingleton<IRedisPubService, RedisPubService>();
 
         return services;
@@ -48,7 +49,8 @@ public static class OpenShockServiceHelper
     public static IServiceCollection AddOpenShockDB(this IServiceCollection services, DatabaseOptions options)
     {
         // <---- Postgres EF Core ---->
-        services.AddDbContextPool<OpenShockContext>(builder => OpenShockContext.ConfigureOptionsBuilder(builder, options.Conn, options.Debug));
+        services.AddDbContextPool<OpenShockContext>(builder =>
+            OpenShockContext.ConfigureOptionsBuilder(builder, options.Conn, options.Debug));
         services.AddPooledDbContextFactory<OpenShockContext>(builder =>
         {
             builder.UseNpgsql(options.Conn);
@@ -68,7 +70,8 @@ public static class OpenShockServiceHelper
     /// <param name="services"></param>
     /// <param name="configureOptions"></param>
     /// <returns></returns>
-    private static AuthenticationBuilder AddOpenShockAuthentication(this IServiceCollection services, Action<AuthenticationOptions> configureOptions)
+    private static AuthenticationBuilder AddOpenShockAuthentication(this IServiceCollection services,
+        Action<AuthenticationOptions> configureOptions)
     {
         ArgumentNullException.ThrowIfNull(services);
         ArgumentNullException.ThrowIfNull(configureOptions);
@@ -79,9 +82,9 @@ public static class OpenShockServiceHelper
         services.TryAddSingleton(TimeProvider.System);
         // services.TryAddSingleton<ISystemClock, SystemClock>(); // Exists in original AddAuthentication method
         // services.TryAddSingleton<IAuthenticationConfigurationProvider, DefaultAuthenticationConfigurationProvider>(); // Exists in original AddAuthentication method
-        
+
         var builder = new AuthenticationBuilder(services);
-        
+
         services.Configure(configureOptions);
 
         return builder;
@@ -92,8 +95,10 @@ public static class OpenShockServiceHelper
     /// </summary>
     /// <param name="services"></param>
     /// <param name="configureAuth"></param>
+    /// <param name="configureMetrics"></param>
     /// <returns></returns>
-    public static IServiceCollection AddOpenShockServices(this IServiceCollection services, Action<AuthenticationBuilder>? configureAuth = null)
+    public static IServiceCollection AddOpenShockServices(this IServiceCollection services,
+        Action<AuthenticationBuilder>? configureAuth = null, Action<MeterProviderBuilder>? configureMetrics = null)
     {
         // <---- ASP.NET ---->
         services.AddExceptionHandler<OpenShockExceptionHandler>();
@@ -117,7 +122,8 @@ public static class OpenShockServiceHelper
                 opt.DefaultScheme = OpenShockAuthSchemes.UserSessionCookie;
                 opt.DefaultAuthenticateScheme = OpenShockAuthSchemes.UserSessionCookie;
             })
-            .AddScheme<AuthenticationSchemeOptions, UserSessionAuthentication>(OpenShockAuthSchemes.UserSessionCookie, _ => { })
+            .AddScheme<AuthenticationSchemeOptions, UserSessionAuthentication>(OpenShockAuthSchemes.UserSessionCookie,
+                _ => { })
             .AddScheme<AuthenticationSchemeOptions, ApiTokenAuthentication>(OpenShockAuthSchemes.ApiToken, _ => { })
             .AddScheme<AuthenticationSchemeOptions, HubAuthentication>(OpenShockAuthSchemes.HubToken, _ => { });
 
@@ -128,12 +134,12 @@ public static class OpenShockServiceHelper
             options.AddPolicy(OpenShockAuthPolicies.RankAdmin, policy => policy.RequireRole("Admin", "System"));
             // TODO: Add token permission policies
         });
-        
+
         services.AddSingleton<IAuthorizationMiddlewareResultHandler, OpenShockAuthorizationMiddlewareResultHandler>();
-        
+
         services.ConfigureHttpJsonOptions(opt => JsonOptions.ConfigureDefault(opt.SerializerOptions));
         services.AddControllers().AddJsonOptions(opt => JsonOptions.ConfigureDefault(opt.JsonSerializerOptions));
-        
+
         var apiVersioningBuilder = services.AddApiVersioning(options =>
         {
             options.DefaultApiVersion = new ApiVersion(1, 0);
@@ -147,13 +153,13 @@ public static class OpenShockServiceHelper
             setup.DefaultApiVersion = new ApiVersion(1, 0);
             setup.AssumeDefaultVersionWhenUnspecified = true;
         });
-        
+
         // generic ASP.NET stuff
         services.AddMemoryCache();
         services.AddHttpContextAccessor();
         services.AddWebEncoders();
         services.AddProblemDetails();
-        
+
         services.AddCors(options =>
         {
             options.AddDefaultPolicy(builder =>
@@ -165,7 +171,7 @@ public static class OpenShockServiceHelper
                 builder.SetPreflightMaxAge(TimeSpan.FromHours(24));
             });
         });
-        
+
         // This needs to be at this position, earlier will break validation error responses
         services.Configure<ApiBehaviorOptions>(options =>
         {
@@ -175,18 +181,22 @@ public static class OpenShockServiceHelper
                 return problemDetails.ToObjectResult(context.HttpContext);
             };
         });
-        
+
         // OpenTelemetry
 
         services.AddSingleton<IWebSocketMeter, WebSocketMeter>();
         services.AddOpenTelemetry()
-            .WithMetrics(metrics => metrics
-                .AddRuntimeInstrumentation()
-                .AddAspNetCoreInstrumentation()
-                .AddHttpClientInstrumentation()
-                .AddMeter("OpenShock.WebSocket")
-                .AddPrometheusExporter());
-        
+            .WithMetrics(metrics =>
+            {
+                metrics
+                    .AddRuntimeInstrumentation()
+                    .AddAspNetCoreInstrumentation()
+                    .AddHttpClientInstrumentation()
+                    .AddMeter("OpenShock.WebSocket")
+                    .AddPrometheusExporter();
+
+                configureMetrics?.Invoke(metrics);
+            });
         // <---- OpenShock Services ---->
 
         services.AddScoped<IConfigurationService, ConfigurationService>();
@@ -199,8 +209,27 @@ public static class OpenShockServiceHelper
         services.AddHostedService<BatchUpdateService>(provider =>
             (BatchUpdateService)provider.GetRequiredService<IBatchUpdateService>());
 
+        // <---- Rate Limiter Setup ---->
+
+        // Disable rate limiting when:
+        // - ASPNETCORE_UNDER_INTEGRATION_TEST=1 (.NET WebApplicationFactory tests, in-process)
+        // - OPENSHOCK_DISABLE_RATE_LIMITING=1  (external Playwright tests against a real server)
+        var underIntegrationTest =
+            Environment.GetEnvironmentVariable("ASPNETCORE_UNDER_INTEGRATION_TEST") == "1" ||
+            Environment.GetEnvironmentVariable("OPENSHOCK_DISABLE_RATE_LIMITING") == "1";
+
         services.AddRateLimiter(options =>
         {
+            if (underIntegrationTest)
+            {
+                options.GlobalLimiter = PartitionedRateLimiter.Create<HttpContext, string>(
+                    _ => RateLimitPartition.GetNoLimiter("test-nolimit"));
+                options.AddPolicy("auth", _ => RateLimitPartition.GetNoLimiter("test-nolimit"));
+                options.AddPolicy("token-reporting", _ => RateLimitPartition.GetNoLimiter("test-nolimit"));
+                options.AddPolicy("shocker-logs", _ => RateLimitPartition.GetNoLimiter("test-nolimit"));
+                return;
+            }
+
             options.OnRejected = async (context, cancellationToken) =>
             {
                 var logger = context.HttpContext.RequestServices.GetRequiredService<ILoggerFactory>()
@@ -236,16 +265,17 @@ public static class OpenShockServiceHelper
                     var ip = context.GetRemoteIP();
                     if (IPAddress.IsLoopback(ip)) return RateLimitPartition.GetNoLimiter("ip-loopback-nolimit");
 
-                    return RateLimitPartition.GetSlidingWindowLimiter($"ip-{ip}", _ => new SlidingWindowRateLimiterOptions
-                    {
-                        PermitLimit = 1000,
-                        Window = TimeSpan.FromMinutes(1),
-                        SegmentsPerWindow = 6,
-                        QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
-                        QueueLimit = 100
-                    });
+                    return RateLimitPartition.GetSlidingWindowLimiter($"ip-{ip}", _ =>
+                        new SlidingWindowRateLimiterOptions
+                        {
+                            PermitLimit = 1000,
+                            Window = TimeSpan.FromMinutes(1),
+                            SegmentsPerWindow = 6,
+                            QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
+                            QueueLimit = 100
+                        });
                 }
-                
+
                 if (user.HasClaim(claim => claim is { Type: ClaimTypes.Role, Value: "Admin" or "System" }))
                     return RateLimitPartition.GetNoLimiter("privileged-nolimit");
 
@@ -293,7 +323,8 @@ public static class OpenShockServiceHelper
         return services;
     }
 
-    public static IServiceCollection AddOpenShockSignalR(this IServiceCollection services, ConfigurationOptions redisConfig)
+    public static IServiceCollection AddOpenShockSignalR(this IServiceCollection services,
+        ConfigurationOptions redisConfig)
     {
         services.AddSignalR()
             .AddOpenShockStackExchangeRedis(options => { options.Configuration = redisConfig; })
@@ -302,7 +333,7 @@ public static class OpenShockServiceHelper
                 options.PayloadSerializerOptions.PropertyNameCaseInsensitive = true;
                 options.PayloadSerializerOptions.Converters.Add(new SemVersionJsonConverter());
             });
-        
+
         return services;
     }
 }

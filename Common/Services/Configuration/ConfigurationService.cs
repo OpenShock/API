@@ -51,7 +51,7 @@ public sealed class ConfigurationService : IConfigurationService
     {
         return type switch
         {
-            ConfigurationValueType.String => value is not null,
+            ConfigurationValueType.String => true,
             ConfigurationValueType.Bool => bool.TryParse(value, out _),
             ConfigurationValueType.Int => int.TryParse(value, CultureInfo.InvariantCulture, out _),
             ConfigurationValueType.Float => float.TryParse(value, CultureInfo.InvariantCulture, out float f) && (float.IsNormal(f) || f == 0f),

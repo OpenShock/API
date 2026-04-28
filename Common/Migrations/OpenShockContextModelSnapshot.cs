@@ -21,7 +21,7 @@ namespace OpenShock.Common.Migrations
 #pragma warning disable 612, 618
             modelBuilder
                 .HasAnnotation("Npgsql:CollationDefinition:public.ndcoll", "und-u-ks-level2,und-u-ks-level2,icu,False")
-                .HasAnnotation("ProductVersion", "9.0.8")
+                .HasAnnotation("ProductVersion", "10.0.5")
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "configuration_value_type", new[] { "string", "bool", "int", "float", "json" });
@@ -31,7 +31,7 @@ namespace OpenShock.Common.Migrations
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "password_encryption_type", new[] { "pbkdf2", "bcrypt_enhanced" });
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "permission_type", new[] { "shockers.use", "shockers.edit", "shockers.pause", "devices.edit", "devices.auth" });
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "role_type", new[] { "support", "staff", "admin", "system" });
-            NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "shocker_model_type", new[] { "caiXianlin", "petTrainer", "petrainer998DR" });
+            NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "shocker_model_type", new[] { "caiXianlin", "petTrainer", "petrainer998DR", "wellturnT330" });
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
             modelBuilder.Entity("Microsoft.AspNetCore.DataProtection.EntityFrameworkCore.DataProtectionKey", b =>
@@ -102,7 +102,6 @@ namespace OpenShock.Common.Migrations
                         .HasColumnName("name_change_request_count");
 
                     b.Property<string>("PasswordHashType")
-                        .IsRequired()
                         .HasColumnType("character varying")
                         .HasColumnName("password_hash_type");
 

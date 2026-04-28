@@ -32,16 +32,10 @@
     <PackageReference Include="Serilog.AspNetCore" />
     <PackageReference Include="Serilog.Sinks.OpenTelemetry" />
     <PackageReference Include="Swashbuckle.AspNetCore.SwaggerGen" />
-    <PackageReference Include="System.Diagnostics.DiagnosticSource" />
     <PackageReference Include="Z.EntityFramework.Plus.EFCore" />
   </ItemGroup>
 
-  <!-- Files to copy -->
-  <ItemGroup>
-    <EmbeddedResource Include="cloudflare-ips.txt">
-      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
-    </EmbeddedResource>
-  </ItemGroup>
+  <Import Project="CloudflareIPs.targets" />
 
   <!-- Capture git commit only if we're in a git repo; pipe output back to MSBuild -->
   <Target Name="SetSourceRevisionId" BeforeTargets="InitializeSourceControlInformation">

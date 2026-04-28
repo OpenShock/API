@@ -2,7 +2,6 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using OpenShock.API.Models.Requests;
-using OpenShock.API.Services;
 using OpenShock.Common.Authentication.Attributes;
 using OpenShock.Common.Constants;
 using OpenShock.Common.Errors;
@@ -12,6 +11,7 @@ using OpenShock.Common.Problems;
 using OpenShock.Common.Redis;
 using OpenShock.Common.Utils;
 using System.Net.Mime;
+using System.Security.Cryptography;
 using OpenShock.API.Services.DeviceUpdate;
 using Redis.OM;
 
@@ -25,12 +25,12 @@ public sealed partial class DevicesController
     /// <response code="200">All devices for the current user</response>
     [HttpGet]
     [MapToApiVersion("1")]
-    [ProducesResponseType<LegacyDataResponse<Models.Response.ResponseDevice[]>>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
+    [ProducesResponseType<LegacyDataResponse<Models.Response.DeviceResponse[]>>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
     public IActionResult ListDevices()
     {
         var devices = _db.Devices
             .Where(x => x.OwnerId == CurrentUser.Id)
-            .Select(x => new Models.Response.ResponseDevice
+            .Select(x => new Models.Response.DeviceResponse
             {
                 Id = x.Id,
                 Name = x.Name,
@@ -47,7 +47,7 @@ public sealed partial class DevicesController
     /// <param name="deviceId"></param>
     /// <response code="200">The device</response>
     [HttpGet("{deviceId}")]
-    [ProducesResponseType<LegacyDataResponse<Models.Response.ResponseDeviceWithToken>>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
+    [ProducesResponseType<LegacyDataResponse<Models.Response.DeviceWithTokenResponse>>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status404NotFound, MediaTypeNames.Application.ProblemJson)] // DeviceNotFound
     [MapToApiVersion("1")]
     public async Task<IActionResult> GetDeviceById([FromRoute] Guid deviceId)
@@ -56,7 +56,7 @@ public sealed partial class DevicesController
         
         
         var device = await _db.Devices.Where(x => x.OwnerId == CurrentUser.Id && x.Id == deviceId)
-            .Select(x => new Models.Response.ResponseDeviceWithToken
+            .Select(x => new Models.Response.DeviceWithTokenResponse
             {
                 Id = x.Id,
                 Name = x.Name,
@@ -112,7 +112,7 @@ public sealed partial class DevicesController
         var device = await _db.Devices.FirstOrDefaultAsync(x => x.OwnerId == CurrentUser.Id && x.Id == deviceId);
         if (device is null) return Problem(HubError.HubNotFound);
 
-        device.Token = CryptoUtils.RandomString(256);
+        device.Token = CryptoUtils.RandomAlphaNumericString(256);
 
         var affected = await _db.SaveChangesAsync();
         if (affected <= 0) throw new Exception("Failed to save regenerated token");
@@ -179,7 +179,7 @@ public sealed partial class DevicesController
             Id = Guid.CreateVersion7(),
             OwnerId = CurrentUser.Id,
             Name = body.Name,
-            Token = CryptoUtils.RandomString(256)
+            Token = CryptoUtils.RandomAlphaNumericString(256)
         };
         _db.Devices.Add(device);
         await _db.SaveChangesAsync();
@@ -208,7 +208,7 @@ public sealed partial class DevicesController
         if (!deviceExists) return Problem(HubError.HubNotFound);
         await _redis.Connection.UnlinkAsync($"{typeof(DevicePair).FullName}:{deviceId}");
 
-        string pairCode = CryptoUtils.RandomNumericString(6);
+        string pairCode = RandomNumberGenerator.GetInt32(100000, 1000000).ToString();
 
         var devicePairDto = new DevicePair
         {

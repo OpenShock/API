@@ -1,9 +1,7 @@
-﻿using Microsoft.Extensions.Options;
-using OpenShock.Common.Redis;
+﻿using OpenShock.Common.Redis;
 using OpenShock.Common.Utils;
 using OpenShock.LiveControlGateway.Options;
 using Redis.OM.Contracts;
-using Redis.OM.Searching;
 
 namespace OpenShock.LiveControlGateway;
 
@@ -17,7 +15,10 @@ public sealed class LcgKeepAlive : IHostedService
     private readonly LcgOptions _options;
     private readonly ILogger<LcgKeepAlive> _logger;
     
-    private const uint KeepAliveInterval = 35; // 35 seconds
+    private uint _errorsInRow;
+    
+    private static readonly TimeSpan KeepAliveKeyTTL = TimeSpan.FromSeconds(35); // 35 seconds
+    private static readonly TimeSpan KeepAliveInterval = TimeSpan.FromSeconds(15); // 15 seconds
 
     /// <summary>
     /// DI Constructor
@@ -47,27 +48,30 @@ public sealed class LcgKeepAlive : IHostedService
                 Country = _options.CountryCode,
                 Load = 0,
                 Environment = _env.EnvironmentName
-            }, TimeSpan.FromSeconds(35));
+            }, KeepAliveKeyTTL);
             return;
         }
 
-        if (online.Country != _options.CountryCode)
+        // TODO: Load reporting
+        if (online.Country != _options.CountryCode || online.Environment != _env.EnvironmentName)
         {
             var changeTracker = _redisConnectionProvider.RedisCollection<LcgNode>();
             var tracked = await changeTracker.FindByIdAsync(_options.Fqdn);
             if (tracked is not null)
             {
                 tracked.Country = _options.CountryCode;
+                tracked.Environment = _env.EnvironmentName;
+                
                 await changeTracker.SaveAsync();
-                _logger.LogInformation("Updated firmware version of online device");
+                _logger.LogInformation("Updated keep alive key in redis {@NewKey}", tracked);
             }
             else
                 _logger.LogWarning(
-                    "Could not save changed firmware version to redis, device was not found in change tracker, this shouldn't be possible but it somehow was?");
+                    "Could not save changed firmware version to redis, device was not found in change tracker, this can only happen when our key expired between reads");
         }
 
         await _redisConnectionProvider.Connection.ExecuteAsync("EXPIRE",
-            $"{typeof(LcgNode).FullName}:{_options.Fqdn}", KeepAliveInterval);
+            $"{typeof(LcgNode).FullName}:{_options.Fqdn}", (int)KeepAliveKeyTTL.TotalSeconds);
     }
 
     private async Task Loop()
@@ -78,11 +82,21 @@ public sealed class LcgKeepAlive : IHostedService
             {
                 _logger.LogDebug("Sending keep alive...");
                 await SelfOnline();
-                await Task.Delay(15_000);
+                _logger.LogDebug("Sent keep alive!");
+                _errorsInRow = 0;
+                await Task.Delay(KeepAliveInterval);
             }
             catch (Exception e)
             {
-                _logger.LogError(e, "Error in loop");
+                ++_errorsInRow;
+                _logger.LogError(e, "Error sending gateway keep alive {Attempt}", _errorsInRow);
+                if(_errorsInRow >= 10)
+                {
+                    _logger.LogCritical("Too many errors in a row sending keep alive, terminating process");
+                    Environment.Exit(1001);
+                }
+                
+                await Task.Delay(KeepAliveInterval);
             }
         }
         // ReSharper disable once FunctionNeverReturns

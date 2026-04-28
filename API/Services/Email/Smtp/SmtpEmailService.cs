@@ -1,12 +1,10 @@
 ﻿using System.Text.Encodings.Web;
 using Fluid;
 using MailKit.Net.Smtp;
-using Microsoft.Extensions.Options;
 using MimeKit;
 using MimeKit.Text;
 using OpenShock.API.Options;
 using OpenShock.API.Services.Email.Mailjet.Mail;
-using OpenShock.Common.Utils;
 
 namespace OpenShock.API.Services.Email.Smtp;
 
@@ -44,35 +42,16 @@ public sealed class SmtpEmailService : IEmailService
         _templateOptions.MemberAccessStrategy.Register<Contact>();
     }
 
+    public Task ActivateAccount(Contact to, Uri activationLink, CancellationToken cancellationToken = default)
+        => SendMail(to, _templates.AccountActivation, new { To = to, ActivationLink = activationLink }, cancellationToken);
+
     /// <inheritdoc />
     public Task PasswordReset(Contact to, Uri resetLink, CancellationToken cancellationToken = default)
-    {
-        var data = new
-        {
-            To = to,
-            ResetLink = resetLink
-        };
-
-        SendMailAndForget(to, _templates.PasswordReset, data, cancellationToken);
-        return Task.CompletedTask;
-    }
+        => SendMail(to, _templates.PasswordReset, new { To = to, ResetLink = resetLink }, cancellationToken);
 
     /// <inheritdoc />
-    public Task VerifyEmail(Contact to, Uri activationLink, CancellationToken cancellationToken = default)
-    {
-        var data = new
-        {
-            To = to,
-            ActivationLink = activationLink
-        };
-
-        SendMailAndForget(to, _templates.EmailVerification, data, cancellationToken);
-        return Task.CompletedTask;
-    }
-
-    private void SendMailAndForget<T>(Contact to, SmtpTemplate template, T data,
-        CancellationToken cancellationToken = default) =>
-        OsTask.Run(() => SendMail(to, template, data, cancellationToken));
+    public Task VerifyEmail(Contact to, Uri verificationLink, CancellationToken cancellationToken = default)
+        => SendMail(to, _templates.EmailVerification, new { To = to, ActivationLink = verificationLink }, cancellationToken);
 
 
     private async Task SendMail<T>(Contact to, SmtpTemplate template, T data,
@@ -85,7 +64,9 @@ public sealed class SmtpEmailService : IEmailService
         await using var buffer = new MemoryStream();
         await using (var textStreamWriter = new StreamWriter(buffer, leaveOpen: true))
             await template.Body.RenderAsync(textStreamWriter, HtmlEncoder.Default, context);
-        
+
+        buffer.Position = 0;
+
         var message = new MimeMessage
         {
             From = { _sender },
@@ -108,7 +89,8 @@ public sealed class SmtpEmailService : IEmailService
 
         await smtpClient.ConnectAsync(_options.Host, _options.Port, _options.EnableSsl, cancellationToken);
         _logger.LogTrace("Authenticating...");
-        await smtpClient.AuthenticateAsync(_options.Username, _options.Password, cancellationToken);
+        if (smtpClient.Capabilities.HasFlag(SmtpCapabilities.Authentication))
+            await smtpClient.AuthenticateAsync(_options.Username, _options.Password, cancellationToken);
 
         _logger.LogTrace("Smtp client connected, sending email...");
 

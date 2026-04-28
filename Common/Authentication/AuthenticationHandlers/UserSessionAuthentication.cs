@@ -20,7 +20,7 @@ public sealed class UserSessionAuthentication : AuthenticationHandler<Authentica
     private readonly IBatchUpdateService _batchUpdateService;
     private readonly OpenShockContext _db;
     private readonly ISessionService _sessionService;
-    private OpenShockProblem? _authResultError = null;
+    private OpenShockProblem? _authResultError;
 
     public UserSessionAuthentication(
         IOptionsMonitor<AuthenticationSchemeOptions> options,

@@ -1,4 +1,3 @@
-using System.Diagnostics.CodeAnalysis;
 using System.Net.Mime;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;

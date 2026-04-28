@@ -3,7 +3,6 @@ using System.Text.Encodings.Web;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
-using OpenShock.Common.Authentication.Services;
 using OpenShock.Common.Errors;
 using OpenShock.Common.Extensions;
 using OpenShock.Common.OpenShockDb;
@@ -18,7 +17,7 @@ public sealed class HubAuthentication : AuthenticationHandler<AuthenticationSche
 {
     private readonly OpenShockContext _db;
     
-    private OpenShockProblem? _authResultError = null;
+    private OpenShockProblem? _authResultError;
 
 
     public HubAuthentication(

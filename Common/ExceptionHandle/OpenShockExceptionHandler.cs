@@ -6,13 +6,11 @@ namespace OpenShock.Common.ExceptionHandle;
 
 public sealed class OpenShockExceptionHandler : IExceptionHandler
 {
-    private readonly IProblemDetailsService _problemDetailsService;
     private readonly IHostEnvironment _env;
     private readonly ILogger _logger;
     
-    public OpenShockExceptionHandler(IProblemDetailsService problemDetailsService, IHostEnvironment env, ILoggerFactory loggerFactory)
+    public OpenShockExceptionHandler(IHostEnvironment env, ILoggerFactory loggerFactory)
     {
-        _problemDetailsService = problemDetailsService;
         _env = env;
         _logger = loggerFactory.CreateLogger("RequestInfo");
     }

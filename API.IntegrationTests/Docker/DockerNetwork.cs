@@ -1,6 +1,5 @@
 ﻿using DotNet.Testcontainers.Builders;
 using DotNet.Testcontainers.Networks;
-using Testcontainers.Redis;
 using TUnit.Core.Interfaces;
 
 namespace OpenShock.API.IntegrationTests.Docker;

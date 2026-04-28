@@ -3,7 +3,6 @@ using Asp.Versioning;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.SignalR;
 using OpenShock.Common.Authentication.Attributes;
-using OpenShock.Common.DeviceControl;
 using OpenShock.Common.Errors;
 using OpenShock.Common.Extensions;
 using OpenShock.Common.Hubs;

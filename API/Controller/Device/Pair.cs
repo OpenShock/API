@@ -2,7 +2,6 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using OpenShock.Common.Redis;
-using Redis.OM;
 using System.Net.Mime;
 using Asp.Versioning;
 using Microsoft.AspNetCore.RateLimiting;
@@ -23,11 +22,29 @@ public sealed partial class DeviceController
     [AllowAnonymous]
     [MapToApiVersion("1")]
     [HttpGet("pair/{pairCode}", Name = "Pair")]
-    [HttpGet("~/{version:apiVersion}/pair/{pairCode}", Name = "Pair_DEPRECATED")] // Backwards compatibility
+    [EndpointName("PairDeviceByCode")]
     [EnableRateLimiting("auth")]
     [ProducesResponseType<LegacyDataResponse<string>>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status404NotFound, MediaTypeNames.Application.ProblemJson)] // PairCodeNotFound
     public async Task<IActionResult> Pair([FromRoute] string pairCode)
+    {
+        return await PairInternal(pairCode);
+    }
+
+    /// <summary>
+    /// Pair a device with a pair code, legacy endpoint kept for backwards compatibility
+    /// </summary>
+    [AllowAnonymous]
+    [MapToApiVersion("1")]
+    [HttpGet("~/{version:apiVersion}/pair/{pairCode}")]
+    [ApiExplorerSettings(IgnoreApi = true)]
+    [EnableRateLimiting("auth")]
+    public async Task<IActionResult> PairDeprecated([FromRoute] string pairCode)
+    {
+        return await PairInternal(pairCode);
+    }
+
+    private async Task<IActionResult> PairInternal(string pairCode)
     {
         var devicePairs = _redis.RedisCollection<DevicePair>();
 

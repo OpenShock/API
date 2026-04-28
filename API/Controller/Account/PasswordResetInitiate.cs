@@ -4,7 +4,6 @@ using OpenShock.Common.Models;
 using Asp.Versioning;
 using Microsoft.AspNetCore.RateLimiting;
 using OpenShock.Common.DataAnnotations;
-using OpenShock.Common.Problems;
 
 namespace OpenShock.API.Controller.Account;
 

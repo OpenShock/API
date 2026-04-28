@@ -34,7 +34,7 @@ public sealed class MetadataTests
 
         // Validate Version
         var version = data.GetProperty("version").GetString();
-        await Assert.That(version).IsNotNullOrWhitespace();
+        await Assert.That(version).IsNotNullOrWhiteSpace();
 
         // Validate Commit
         var commit = data.GetProperty("commit").GetString();
@@ -62,7 +62,7 @@ public sealed class MetadataTests
         if (turnstileSiteKeyProp.ValueKind is not JsonValueKind.Null)
         {
             var turnstileSiteKey = turnstileSiteKeyProp.GetString();
-            await Assert.That(turnstileSiteKey).IsNotNullOrWhitespace();
+            await Assert.That(turnstileSiteKey).IsNotNullOrWhiteSpace();
         }
 
         // Validate OAuthProviders (string[])
@@ -71,7 +71,7 @@ public sealed class MetadataTests
         foreach (var provider in oauthProviders.EnumerateArray())
         {
             var p = provider.GetString();
-            await Assert.That(p).IsNotNullOrWhitespace();
+            await Assert.That(p).IsNotNullOrWhiteSpace();
         }
 
         // Validate IsUserAuthenticated (bool)

@@ -27,7 +27,7 @@ public sealed class SessionService : ISessionService
     public async Task<CreateSessionResult> CreateSessionAsync(Guid userId, string userAgent, string ipAddress)
     {
         Guid id = Guid.CreateVersion7();
-        string token = CryptoUtils.RandomString(AuthConstants.GeneratedTokenLength);
+        string token = CryptoUtils.RandomAlphaNumericString(AuthConstants.GeneratedTokenLength);
 
         await _loginSessions.InsertAsync(new LoginSession
         {
@@ -43,9 +43,9 @@ public sealed class SessionService : ISessionService
         return new CreateSessionResult(id, token);
     }
 
-    public async Task<IReadOnlyList<LoginSession>> ListSessionsByUserIdAsync(Guid userId)
+    public IAsyncEnumerable<LoginSession> ListSessionsByUserIdAsync(Guid userId)
     {
-        return await _loginSessions.Where(x => x.UserId == userId).ToArrayAsync();
+        return _loginSessions.Where(x => x.UserId == userId);
     }
 
     public async Task<LoginSession?> GetSessionByTokenAsync(string sessionToken)
@@ -95,11 +95,11 @@ public sealed class SessionService : ISessionService
 
     public async Task<int> DeleteSessionsByUserIdAsync(Guid userId)
     {
-        var sessions = await _loginSessions.Where(x => x.UserId == userId).ToArrayAsync();
+        var sessions = await _loginSessions.Where(x => x.UserId == userId).ToListAsync();
 
         await _loginSessions.DeleteAsync(sessions);
 
-        return sessions.Length;
+        return sessions.Count;
     }
 
     public async Task DeleteSessionAsync(LoginSession loginSession)

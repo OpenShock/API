@@ -3,7 +3,6 @@ using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using OpenShock.Common.Authentication;
 using OpenShock.Common.Authentication.Services;
-using OpenShock.Common.DeviceControl;
 using OpenShock.Common.Extensions;
 using OpenShock.Common.Models;
 using OpenShock.Common.Models.WebSocket;
@@ -25,7 +24,7 @@ public sealed class UserHub : Hub<IUserHub>
     private readonly IRedisPubService _redisPubService;
     private readonly IControlSender _controlSender;
     private readonly IUserReferenceService _userReferenceService;
-    private IReadOnlyList<PermissionType>? _tokenPermissions = null;
+    private IReadOnlyList<PermissionType>? _tokenPermissions;
 
     public UserHub(ILogger<UserHub> logger, OpenShockContext db, IRedisConnectionProvider provider,
         IRedisPubService redisPubService, IControlSender controlSender, IUserReferenceService userReferenceService)
@@ -48,7 +47,7 @@ public sealed class UserHub : Hub<IUserHub>
             .Where(x => x.Shockers.Any(y => y.UserShares.Any(z => z.SharedWithUserId == UserId)))
             .Select(x => x.Id.ToString()).ToArrayAsync();
 
-        var own = devicesOnline.Where(x => x.Owner == UserId).ToArrayAsync();
+        var own = devicesOnline.Where(x => x.Owner == UserId).ToListAsync();
         var shared = devicesOnline.FindByIdsAsync(sharedDevices);
         await Task.WhenAll(own, shared);
 

@@ -1,6 +1,5 @@
 ﻿using System.Net.Mail;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Options;
 using Npgsql;
 using OneOf;
 using OneOf.Types;
@@ -108,7 +107,7 @@ public sealed class AccountService : IAccountService
 
         var user = accountCreate.AsT0.Value;
 
-        var token = CryptoUtils.RandomString(AuthConstants.GeneratedTokenLength);
+        var token = CryptoUtils.RandomAlphaNumericString(AuthConstants.GeneratedTokenLength);
 
         user.UserActivationRequest = new UserActivationRequest
         {
@@ -118,8 +117,8 @@ public sealed class AccountService : IAccountService
 
         await _db.SaveChangesAsync();
 
-        await _emailService.VerifyEmail(new Contact(email, username),
-            new Uri(_frontendConfig.BaseUrl, $"/#/account/activate/{user.Id}/{token}"));
+        await _emailService.ActivateAccount(new Contact(email, username),
+            new Uri(_frontendConfig.BaseUrl, $"/activate?token={token}"));
         return new Success<User>(user);
     }
 
@@ -166,7 +165,7 @@ public sealed class AccountService : IAccountService
             // If email isn't trusted, create an activation request (email verification)
             if (!isEmailTrusted)
             {
-                activationToken = CryptoUtils.RandomString(AuthConstants.GeneratedTokenLength);
+                activationToken = CryptoUtils.RandomAlphaNumericString(AuthConstants.GeneratedTokenLength);
 
                 user.UserActivationRequest = new UserActivationRequest
                 {
@@ -192,12 +191,12 @@ public sealed class AccountService : IAccountService
 
             await tx.CommitAsync();
 
-            // Send verification email only after successful commit
+            // Send verification email only after a successful commit
             if (!isEmailTrusted && activationToken is not null)
             {
-                await _emailService.VerifyEmail(
+                await _emailService.ActivateAccount(
                     new Contact(email, username),
-                    new Uri(_frontendConfig.BaseUrl, $"/#/account/activate/{user.Id}/{activationToken}")
+                    new Uri(_frontendConfig.BaseUrl, $"/activate?token={activationToken}")
                 );
             }
 
@@ -412,7 +411,7 @@ public sealed class AccountService : IAccountService
         if (user.User.UserDeactivation is not null) return new AccountDeactivated();
         if (user.PasswordResetCount >= 3) return new TooManyPasswordResets();
 
-        var token = CryptoUtils.RandomString(AuthConstants.GeneratedTokenLength);
+        var token = CryptoUtils.RandomAlphaNumericString(AuthConstants.GeneratedTokenLength);
         var passwordReset = new UserPasswordReset
         {
             Id = Guid.CreateVersion7(),

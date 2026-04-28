@@ -12,7 +12,6 @@ using OpenShock.Common.OpenShockDb;
 using OpenShock.Common.Redis.PubSub;
 using OpenShock.Common.Services.RedisPubSub;
 using OpenShock.Common.Utils;
-using Z.EntityFramework.Plus;
 
 namespace OpenShock.Common.Services;
 

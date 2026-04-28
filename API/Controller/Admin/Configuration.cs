@@ -2,7 +2,6 @@
 using Microsoft.EntityFrameworkCore;
 using OpenShock.API.Controller.Admin.DTOs;
 using OpenShock.Common.Errors;
-using OpenShock.Common.Models;
 using OpenShock.Common.Problems;
 using OpenShock.Common.Services.Configuration;
 using System.Net.Mime;
@@ -17,7 +16,7 @@ public sealed partial class AdminController
     /// <response code="200"></response>
     /// <response code="401">Unauthorized</response>
     [HttpGet("config")]
-    [ProducesResponseType<IAsyncEnumerable<ConfigurationItemDto>>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)] // Ok
+    [ProducesResponseType<ConfigurationItemDto[]>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)] // Ok
     public IAsyncEnumerable<ConfigurationItemDto> ConfigurationList([FromServices] IConfigurationService configurationService)
     {
         return configurationService

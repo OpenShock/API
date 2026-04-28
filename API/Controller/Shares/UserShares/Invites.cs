@@ -35,9 +35,10 @@ file static class QueryHelper
                     Name = x.RecipientUser.Name,
                     Image = x.RecipientUser.GetImageUrl()
                 },
-            Shockers = x.ShockerMappings.Select(y => new ShockerPermLimitPairWithId
+            Shockers = x.ShockerMappings.Select(y => new ShockerPermLimitPairWithIdAndName
             {
                 Id = y.ShockerId,
+                Name = y.Shocker.Name,
                 Limits = new ShockerLimits
                 {
                     Intensity = y.MaxIntensity,
@@ -121,7 +122,13 @@ public sealed partial class UserSharesController
             .FirstOrDefaultAsync(x => x.Id == inviteId && (x.RecipientUserId == null || x.RecipientUserId == CurrentUser.Id));
         
         if (shareRequest is null) return Problem(ShareError.ShareRequestNotFound);
-        
+
+        var isShareOwner = shareRequest.OwnerId == CurrentUser.Id;
+        if (isShareOwner)
+        {
+            return Problem(ShareError.ShareRequestCreateCannotShareWithSelf);
+        }
+
         var alreadySharedShockers = await _db.UserShares.Where(x => x.Shocker.Device.Owner.Id == shareRequest.OwnerId && x.SharedWithUserId == CurrentUser.Id).ToListAsync();
         
         foreach (var shareInvitationShocker in shareRequest.ShockerMappings)
@@ -159,7 +166,6 @@ public sealed partial class UserSharesController
         }
         
         _db.UserShareInvites.Remove(shareRequest);
-        var a = _db.ChangeTracker.ToDebugString();
         
         if (await _db.SaveChangesAsync() < 1) throw new Exception("Error while linking share code to your account");
 
@@ -221,5 +227,5 @@ public sealed class ShareInviteBaseItem : ShareRequestBase
 
 public sealed class ShareInviteBaseDetails : ShareRequestBase
 {
-    public required IEnumerable<ShockerPermLimitPairWithId> Shockers { get; set; }
+    public required IEnumerable<ShockerPermLimitPairWithIdAndName> Shockers { get; set; }
 }

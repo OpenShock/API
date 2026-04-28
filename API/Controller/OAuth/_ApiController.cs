@@ -1,13 +1,11 @@
 ﻿using System.Security.Claims;
 using Asp.Versioning;
 using Microsoft.AspNetCore.Authentication;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using OneOf;
 using OpenShock.API.OAuth;
 using OpenShock.API.Services.Account;
 using OpenShock.Common;
-using OpenShock.Common.Authentication;
 
 namespace OpenShock.API.Controller.OAuth;
 

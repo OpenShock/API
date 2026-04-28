@@ -1,6 +1,5 @@
 ﻿using Microsoft.Extensions.Options;
 using OpenShock.API.Options;
-using OpenShock.Common.Options;
 
 namespace OpenShock.API.Services.Turnstile;
 

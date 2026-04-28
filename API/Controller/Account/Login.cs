@@ -1,16 +1,11 @@
 ﻿using Asp.Versioning;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Options;
 using OpenShock.API.Models.Requests;
-using OpenShock.API.Services.Account;
 using OpenShock.Common.Errors;
 using OpenShock.Common.Models;
-using OpenShock.Common.Options;
 using OpenShock.Common.Problems;
-using OpenShock.Common.Utils;
 using System.Net.Mime;
 using Microsoft.AspNetCore.RateLimiting;
-using OpenShock.Common.Services.Session;
 
 namespace OpenShock.API.Controller.Account;
 

@@ -3,7 +3,6 @@ using OpenShock.API.Models.Requests;
 using OpenShock.Common.Errors;
 using OpenShock.Common.Models;
 using OpenShock.Common.Problems;
-using OpenShock.Common.Validation;
 using System.Net.Mime;
 
 namespace OpenShock.API.Controller.Account.Authenticated;
