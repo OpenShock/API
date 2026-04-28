@@ -23,8 +23,8 @@ public class WebApplicationFactory : WebApplicationFactory<Program>, IAsyncIniti
     [ClassDataSource<InMemoryRedis>(Shared = SharedType.PerTestSession)]
     public required InMemoryRedis Redis { get; init; }
 
-    [ClassDataSource<InMemoryMailpit>(Shared = SharedType.PerTestSession)]
-    public required InMemoryMailpit Mailpit { get; init; }
+    [ClassDataSource<TestMailServer>(Shared = SharedType.PerTestSession)]
+    public required TestMailServer Mailpit { get; init; }
 
     public MailpitHelper CreateMailpitHelper() => new(Mailpit.ApiBaseUrl);
 

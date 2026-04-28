@@ -4,7 +4,7 @@ using TUnit.Core.Interfaces;
 
 namespace OpenShock.API.IntegrationTests.Docker;
 
-public sealed class InMemoryMailpit : IAsyncInitializer, IAsyncDisposable
+public sealed class TestMailServer : IAsyncInitializer, IAsyncDisposable
 {
     [ClassDataSource<DockerNetwork>(Shared = SharedType.PerTestSession)]
     public required DockerNetwork DockerNetwork { get; init; }
