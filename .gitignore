@@ -9,3 +9,7 @@ Dev/postgres
 
 # Claude Code
 .claude/
+
+# Code coverage
+TestResults/
+*.cobertura.xml

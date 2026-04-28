@@ -42,5 +42,15 @@ services:
     ports:
         - 8080:80
 
+  mailpit:
+    image: axllent/mailpit:latest
+    container_name: openshock-mailpit
+    restart: unless-stopped
+    networks:
+      - openshock
+    ports:
+      - "8025:8025"  # Web UI and HTTP API  →  http://localhost:8025
+      - "1025:1025"  # SMTP (no auth required)
+
 networks:
   openshock:
