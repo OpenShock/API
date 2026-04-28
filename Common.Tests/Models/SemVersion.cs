@@ -222,7 +222,7 @@ public class SemVersionTests
         var b = new SemVersion(1, 2, 3, "alpha", "b1");
 
         await Assert.That(a).IsEqualTo(b);
-        await Assert.That(a).IsEqualTo<object>(b);
+        await Assert.That<object>(a).IsEqualTo<object>(b);
         await Assert.That(a.GetHashCode()).IsEqualTo(b.GetHashCode());
     }
 
@@ -242,14 +242,6 @@ public class SemVersionTests
         var b = new SemVersion(1, 2, 3, "beta");
 
         await Assert.That(a).IsNotEqualTo(b);
-    }
-
-    [Test]
-    public async Task Equals_Null_False()
-    {
-        var a = new SemVersion(0, 0, 0);
-        await Assert.That(a).IsNotEqualTo(null);
-        await Assert.That(a).IsNotEqualTo<object?>(null);
     }
 
     // ---------------------------

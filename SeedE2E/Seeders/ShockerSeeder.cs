@@ -22,7 +22,7 @@ public static class ShockerSeeder
         var allDeviceIds = await db.Devices.Select(d => d.Id).ToListAsync();
 
         var shockerFaker = new Faker<Shocker>()
-            .RuleFor(s => s.Id, f => Guid.CreateVersion7())
+            .RuleFor(s => s.Id, f => f.Random.Guid())
             .RuleFor(s => s.DeviceId, f => f.PickRandom(allDeviceIds))
             .RuleFor(s => s.Name, f => f.Commerce.ProductAdjective().Truncate(HardLimits.ShockerNameMaxLength))
             .RuleFor(s => s.Model, f => f.PickRandom<ShockerModelType>())

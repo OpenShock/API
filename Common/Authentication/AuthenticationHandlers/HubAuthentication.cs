@@ -17,7 +17,7 @@ public sealed class HubAuthentication : AuthenticationHandler<AuthenticationSche
 {
     private readonly OpenShockContext _db;
     
-    private OpenShockProblem? _authResultError = null;
+    private OpenShockProblem? _authResultError;
 
 
     public HubAuthentication(

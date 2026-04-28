@@ -56,13 +56,42 @@ public sealed class RedisSubscriberService : IHostedService, IAsyncDisposable
 
     private void HandleKeyExpired(RedisChannel _, RedisValue message)
     {
-        if (!message.HasValue) return;
-        if (message.ToString().Split(':', 2) is not [{ } guid, { } name]) return;
-
-        if (!Guid.TryParse(guid, out var id)) return;
-
-        if (typeof(DeviceOnline).FullName == name)
+        if (!message.HasValue)
         {
+            _logger.LogWarning("Received expired key with empty value for hub offline status");
+            return;
+        }
+        
+        var messageString = (string?)message;
+        if (messageString is null)
+        {
+            _logger.LogWarning("Received expired key that could not be converted to string for hub offline status. Raw value type: {ValueType}", message.GetType().FullName);
+            return;
+        }
+        
+        var messageSpan = messageString.AsSpan();
+        
+        // We always expect TypeName:GUID right now, if GUID is not present, something is really wrong
+        var colonPos = messageSpan.IndexOf(':');
+        if (colonPos < 0)
+        {
+            _logger.LogError("Received expired key with unexpected format (missing colon) for hub offline status. Value: {MessageValue}", messageString);
+            return;
+        }
+        
+        // Data structure is TypeName:GUID
+        var typeNameSpan = messageSpan[..colonPos];
+        var guidSpan = messageSpan[(colonPos + 1)..];
+        
+        // Check what type of expired key this is
+        if (typeNameSpan.SequenceEqual(typeof(DeviceOnline).FullName))
+        {
+            if (!Guid.TryParse(guidSpan, out var id))
+            {
+                _logger.LogError("Received expired key with invalid GUID for hub offline status: {MessageValue}", messageString);
+                return;
+            }
+            
             OsTask.Run(() => LogicDeviceOnlineStatus(id));
         }
     }

@@ -9,7 +9,7 @@ on:
     - cron: '0 6 * * 1'
 
 env:
-  DOTNET_VERSION: 9.x.x
+  DOTNET_VERSION: 10.x.x
 
 jobs:
   analyze:
@@ -27,7 +27,7 @@ jobs:
       contents: read
     steps:
     - name: Checkout repository
-      uses: actions/checkout@v5
+      uses: actions/checkout@v6
 
     # Initializes the CodeQL tools for scanning.
     - name: Initialize CodeQL

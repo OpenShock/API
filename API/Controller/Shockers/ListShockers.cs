@@ -15,12 +15,12 @@ public sealed partial class ShockerController
     /// <response code="200">The shockers were successfully retrieved.</response>
     [HttpGet("own")]
     [MapToApiVersion("1")]
-    [ProducesResponseType<LegacyDataResponse<ResponseDeviceWithShockers[]>>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
+    [ProducesResponseType<LegacyDataResponse<DeviceWithShockersResponse[]>>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
     public IActionResult ListShockers()
     {
         var shockers = _db.Devices
             .Where(x => x.OwnerId == CurrentUser.Id)
-            .OrderBy(x => x.CreatedAt).Select(x => new ResponseDeviceWithShockers
+            .OrderBy(x => x.CreatedAt).Select(x => new DeviceWithShockersResponse
             {
                 Id = x.Id,
                 Name = x.Name,

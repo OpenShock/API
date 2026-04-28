@@ -103,6 +103,7 @@ public sealed class HubLifetime : IAsyncDisposable
                 _logger.LogWarning("Client already registered, not sure how this happened, probably a bug");
                 return null;
             }
+
             _liveControlClients = _liveControlClients.Add(controller);
         }
 
@@ -180,7 +181,8 @@ public sealed class HubLifetime : IAsyncDisposable
         DeviceMessage message;
         try
         {
-            message = MessagePackSerializer.Deserialize<DeviceMessage>((ReadOnlyMemory<byte>)value, cancellationToken: cancellationToken);
+            message = MessagePackSerializer.Deserialize<DeviceMessage>((ReadOnlyMemory<byte>)value,
+                cancellationToken: cancellationToken);
         }
         catch (Exception e)
         {
@@ -208,7 +210,8 @@ public sealed class HubLifetime : IAsyncDisposable
                 await OtaInstall(version);
                 break;
             default:
-                _logger.LogError("Got DeviceMessage with unknown payload type: {PayloadType}", message.Payload.GetType().Name);
+                _logger.LogError("Got DeviceMessage with unknown payload type: {PayloadType}",
+                    message.Payload.GetType().Name);
                 break;
         }
     }
@@ -338,7 +341,7 @@ public sealed class HubLifetime : IAsyncDisposable
         foreach (var state in _shockerStates.Values)
         {
             if (state.ActiveUntil < now || state.ExclusiveUntil >= now) continue;
-            
+
             commandList.Add(new ShockerCommand
             {
                 Model = FbsMapper.ToFbsModelType(state.Model),
@@ -416,7 +419,7 @@ public sealed class HubLifetime : IAsyncDisposable
     public ValueTask Control(IReadOnlyList<ShockerControlCommand> commands)
     {
         var shocksTransformed = new List<ShockerCommand>(commands.Count);
-        
+
         foreach (var command in commands)
         {
             if (!_shockerStates.TryGetValue(command.ShockerId, out var state)) continue;
@@ -469,20 +472,7 @@ public sealed class HubLifetime : IAsyncDisposable
         var online = await deviceOnline.FindByIdAsync(deviceId);
         if (online is null)
         {
-            await deviceOnline.InsertAsync(new DeviceOnline
-            {
-                Id = device,
-                Owner = data.Owner,
-                FirmwareVersion = data.FirmwareVersion,
-                Gateway = data.Gateway,
-                ConnectedAt = data.ConnectedAt,
-                UserAgent = data.UserAgent,
-                BootedAt = data.BootedAt,
-                LatencyMs = data.LatencyMs,
-                Rssi = data.Rssi,
-            }, Duration.DeviceKeepAliveTimeout);
-
-
+            await InsertNewDeviceOnline();
             await _redisPubService.SendDeviceOnlineStatus(device, true);
             return new Success();
         }
@@ -508,7 +498,20 @@ public sealed class HubLifetime : IAsyncDisposable
             sendOnlineStatusUpdate = true;
         }
 
-        await deviceOnline.UpdateAsync(online, Duration.DeviceKeepAliveTimeout);
+        try
+        {
+            // This can fail, when the key TTL expires while we are updating it, we should catch and try to insert a new one
+            await deviceOnline.UpdateAsync(online, Duration.DeviceKeepAliveTimeout);
+        }
+        catch (Exception e)
+        {
+            _logger.LogDebug(e, "Failed to update device online status for device [{DeviceId}], trying to insert new",
+                device);
+            // If this fails, then whatever honestly, we could disconnect the client here
+            // but I dont think this is relevant
+            await InsertNewDeviceOnline();
+            sendOnlineStatusUpdate = true; // In case of there was already a offline message sent to the clients
+        }
 
         if (sendOnlineStatusUpdate)
         {
@@ -517,6 +520,22 @@ public sealed class HubLifetime : IAsyncDisposable
         }
 
         return new Success();
+
+        async Task InsertNewDeviceOnline()
+        {
+            await deviceOnline.InsertAsync(new DeviceOnline
+            {
+                Id = device,
+                Owner = data.Owner,
+                FirmwareVersion = data.FirmwareVersion,
+                Gateway = data.Gateway,
+                ConnectedAt = data.ConnectedAt,
+                UserAgent = data.UserAgent,
+                BootedAt = data.BootedAt,
+                LatencyMs = data.LatencyMs,
+                Rssi = data.Rssi,
+            }, Duration.DeviceKeepAliveTimeout);
+        }
     }
 
     private bool _disposed;
@@ -526,7 +545,7 @@ public sealed class HubLifetime : IAsyncDisposable
     {
         if (_disposed) return;
         _disposed = true;
-        
+
         await _cancellationSource.CancelAsync();
 
         if (_deviceMsgQueue is not null)

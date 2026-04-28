@@ -26,7 +26,7 @@ public sealed partial class ShareLinksController
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status404NotFound, MediaTypeNames.Application.ProblemJson)] // PublicShareNotFound, ShockerNotInPublicShare
     public async Task<IActionResult> PauseShocker([FromRoute] Guid publicShareId, [FromRoute] Guid shockerId, [FromBody] PauseRequest body)
     {
-        var exists = await _db.PublicShares.AnyAsync(x => x.OwnerId == CurrentUser.Id && x.Id == publicShareId);
+        var exists = await _db.PublicShares.AnyAsync(x => x.OwnerId == CurrentUser.Id && x.Id == publicShareId && (x.ExpiresAt == null || x.ExpiresAt > DateTime.UtcNow));
         if (!exists) return Problem(PublicShareError.PublicShareNotFound);
 
         var shocker =

@@ -11,10 +11,10 @@ namespace OpenShock.Common.OpenShockDb;
 /// </summary>
 public sealed class MigrationOpenShockContext : OpenShockContext
 {
-    private readonly string? _connectionString = null;
+    private readonly string? _connectionString;
     private readonly bool _debug;
     private readonly bool _migrationTool;
-    private readonly ILoggerFactory? _loggerFactory = null;
+    private readonly ILoggerFactory? _loggerFactory;
     
     public MigrationOpenShockContext()
     {
@@ -146,7 +146,7 @@ public class OpenShockContext : DbContext, IDataProtectionKeyContext
             .HasPostgresEnum("permission_type",
                 ["shockers.use", "shockers.edit", "shockers.pause", "devices.edit", "devices.auth"])
             .HasPostgresEnum("role_type", ["support", "staff", "admin", "system"])
-            .HasPostgresEnum("shocker_model_type", ["caiXianlin", "petTrainer", "petrainer998DR"])
+            .HasPostgresEnum("shocker_model_type", ["caiXianlin", "petTrainer", "petrainer998DR", "wellturnT330"])
             .HasPostgresEnum("match_type_enum", ["exact", "contains"])
             .HasPostgresEnum("configuration_value_type", ["string", "bool", "int", "float", "json"])
             .HasCollation("public", "ndcoll", "und-u-ks-level2", "icu", false); // Add case-insensitive, accent-sensitive comparison collation
