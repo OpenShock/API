@@ -9,9 +9,6 @@ using Microsoft.Extensions.Options;
 using OpenShock.API.IntegrationTests.Docker;
 using OpenShock.API.IntegrationTests.Helpers;
 using OpenShock.API.IntegrationTests.HttpMessageHandlers;
-using OpenShock.API.Options;
-using OpenShock.API.Services.Email;
-using OpenShock.API.Services.Email.Smtp;
 using Serilog;
 using Serilog.Events;
 using TUnit.Core.Interfaces;
@@ -121,18 +118,6 @@ public class WebApplicationFactory : WebApplicationFactory<Program>, IAsyncIniti
                 options.AddPolicy("shocker-logs", _ =>
                     RateLimitPartition.GetNoLimiter("test-shocker-logs-no-limit"));
             });
-
-            // Replace the fire-and-forget SmtpEmailService with a synchronous wrapper so that
-            // API endpoints return only after the email has been delivered to Mailpit. This
-            // makes Mailpit assertions deterministic without needing long polling timeouts.
-            var emailServiceDescriptor = services.FirstOrDefault(d => d.ServiceType == typeof(IEmailService));
-            if (emailServiceDescriptor is not null)
-                services.Remove(emailServiceDescriptor);
-
-            services.AddSingleton<IEmailService>(sp => new TestSmtpEmailService(
-                sp.GetRequiredService<SmtpServiceTemplates>(),
-                sp.GetRequiredService<SmtpOptions>(),
-                sp.GetRequiredService<MailOptions.MailSenderContact>()));
         });
     }
 }
