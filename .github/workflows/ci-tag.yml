@@ -21,7 +21,7 @@ jobs:
     steps:
       - name: Find latest tag
         id: latest-tag
-        uses: oprypin/find-latest-tag@v1
+        uses: oprypin/find-latest-tag@dd2729fe78b0bb55523ae2b2a310c6773a652bd1 # v1.1.2
         with:
           repository: ${{ github.repository }}
           regex: '^\d+\.\d+\.\d+$'
