@@ -51,7 +51,7 @@ public sealed class SmtpEmailService : IEmailService
 
     /// <inheritdoc />
     public Task VerifyEmail(Contact to, Uri verificationLink, CancellationToken cancellationToken = default)
-        => SendMail(to, _templates.EmailVerification, new { To = to, ActivationLink = verificationLink }, cancellationToken);
+        => SendMail(to, _templates.EmailVerification, new { To = to, VerifyLink = verificationLink }, cancellationToken);
 
 
     private async Task SendMail<T>(Contact to, SmtpTemplate template, T data,

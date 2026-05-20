@@ -1,23 +1,41 @@
-﻿using System.Net.Mime;
+using System.Net.Mime;
 using Microsoft.AspNetCore.Mvc;
 using OpenShock.API.Models.Requests;
-using OpenShock.Common.Models;
+using OpenShock.Common.Errors;
+using OpenShock.Common.Problems;
+using OpenShock.Common.Utils;
 
 namespace OpenShock.API.Controller.Account.Authenticated;
 
 public sealed partial class AuthenticatedAccountController
 {
     /// <summary>
-    /// Change the password of the current user
+    /// Initiate an email change for the current user. A verification link is sent to the new
+    /// address; the change is not applied until that link is opened.
     /// </summary>
     /// <param name="body"></param>
-    /// <returns></returns>
-    /// <exception cref="Exception"></exception>
     [HttpPost("email")]
     [Consumes(MediaTypeNames.Application.Json)]
-    [ProducesResponseType<LegacyEmptyResponse>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
-    public Task<IActionResult> ChangeEmail([FromBody] ChangeEmailRequest body)
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType<OpenShockProblem>(StatusCodes.Status400BadRequest, MediaTypeNames.Application.ProblemJson)] // EmailChangeUnchanged
+    [ProducesResponseType<OpenShockProblem>(StatusCodes.Status403Forbidden, MediaTypeNames.Application.ProblemJson)] // PasswordChangeInvalidPassword
+    [ProducesResponseType<OpenShockProblem>(StatusCodes.Status409Conflict, MediaTypeNames.Application.ProblemJson)] // EmailChangeAlreadyInUse
+    [ProducesResponseType<OpenShockProblem>(StatusCodes.Status429TooManyRequests, MediaTypeNames.Application.ProblemJson)] // EmailChangeTooMany
+    public async Task<IActionResult> ChangeEmail([FromBody] ChangeEmailRequest body)
     {
-        throw new NotImplementedException();
+        if (string.IsNullOrEmpty(CurrentUser.PasswordHash) || !HashingUtils.VerifyPassword(body.CurrentPassword, CurrentUser.PasswordHash).Verified)
+        {
+            return Problem(AccountError.PasswordChangeInvalidPassword);
+        }
+
+        var result = await _accountService.CreateEmailChangeFlowAsync(CurrentUser.Id, body.Email);
+
+        return result.Match<IActionResult>(
+            success => Ok(),
+            alreadyInUse => Problem(AccountError.EmailChangeAlreadyInUse),
+            unchanged => Problem(AccountError.EmailChangeUnchanged),
+            tooMany => Problem(AccountError.EmailChangeTooMany),
+            deactivated => Problem(AccountError.AccountDeactivated),
+            notFound => throw new Exception("Unexpected result, apparently our current user does not exist..."));
     }
 }

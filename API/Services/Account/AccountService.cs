@@ -381,14 +381,15 @@ public sealed class AccountService : IAccountService
     {
         var validSince = DateTime.UtcNow - Duration.PasswordResetRequestLifetime;
         var reset = await _db.UserPasswordResets.FirstOrDefaultAsync(x =>
-                x.Id == passwordResetId && x.UsedAt == null && x.CreatedAt >= validSince,
+                x.Id == passwordResetId && x.UsedAt == null && x.CreatedAt >= validSince
+                && x.PasswordVersionAtCreate == x.User.PasswordVersion,
             cancellationToken: cancellationToken);
 
         if (reset is null) return new NotFound();
 
         var result = HashingUtils.VerifyToken(secret, reset.TokenHash);
         if (!result.Verified) return new SecretInvalid();
-        
+
         return new Success();
     }
 
@@ -416,7 +417,8 @@ public sealed class AccountService : IAccountService
         {
             Id = Guid.CreateVersion7(),
             UserId = user.User.Id,
-            TokenHash = HashingUtils.HashToken(token)
+            TokenHash = HashingUtils.HashToken(token),
+            PasswordVersionAtCreate = user.User.PasswordVersion
         };
         _db.UserPasswordResets.Add(passwordReset);
         await _db.SaveChangesAsync();
@@ -436,7 +438,8 @@ public sealed class AccountService : IAccountService
         var reset = await _db.UserPasswordResets
             .Include(x => x.User)
             .Include(x => x.User.UserDeactivation)
-            .FirstOrDefaultAsync(x => x.Id == passwordResetId && x.UsedAt == null && x.CreatedAt >= validSince);
+            .FirstOrDefaultAsync(x => x.Id == passwordResetId && x.UsedAt == null && x.CreatedAt >= validSince
+                && x.PasswordVersionAtCreate == x.User.PasswordVersion);
         if (reset is null) return new NotFound();
         if (reset.User.ActivatedAt is null) return new AccountNotActivated();
         if (reset.User.UserDeactivation is not null) return new AccountDeactivated();
@@ -446,6 +449,7 @@ public sealed class AccountService : IAccountService
 
         reset.UsedAt = DateTime.UtcNow;
         reset.User.PasswordHash = HashingUtils.HashPassword(newPassword);
+        reset.User.PasswordVersion++; // Bumps the counter — every other pending reset for this user is now invalid by predicate.
         await _db.SaveChangesAsync();
         return new Success();
     }
@@ -517,8 +521,54 @@ public sealed class AccountService : IAccountService
         if (user.UserDeactivation is not null) return new AccountDeactivated();
 
         user.PasswordHash = HashingUtils.HashPassword(newPassword);
+        user.PasswordVersion++; // Any outstanding reset row for this user has a stale PasswordVersionAtCreate after this — predicate handles invalidation.
 
         await _db.SaveChangesAsync();
+
+        return new Success();
+    }
+
+    /// <inheritdoc />
+    public async Task<OneOf<Success, EmailAlreadyInUse, EmailUnchanged, TooManyEmailChanges, AccountDeactivated, NotFound>> CreateEmailChangeFlowAsync(Guid userId, string newEmail)
+    {
+        var lowerCaseEmail = newEmail.ToLowerInvariant();
+        var validSince = DateTime.UtcNow - Duration.EmailChangeRequestLifetime;
+
+        var data = await _db.Users
+            .Where(x => x.Id == userId)
+            .Include(x => x.UserDeactivation)
+            .Select(x => new
+            {
+                User = x,
+                PendingCount = x.EmailChanges.Count(y => y.UsedAt == null && y.CreatedAt >= validSince)
+            })
+            .FirstOrDefaultAsync();
+        if (data is null) return new NotFound();
+        if (data.User.UserDeactivation is not null) return new AccountDeactivated();
+        if (string.Equals(data.User.Email, lowerCaseEmail, StringComparison.Ordinal)) return new EmailUnchanged();
+        if (data.PendingCount >= 3) return new TooManyEmailChanges();
+
+        if (await IsEmailProviderBlacklisted(lowerCaseEmail))
+            return new EmailAlreadyInUse(); // Don't reveal blacklist hits
+
+        if (await _db.Users.AnyAsync(x => x.Email == lowerCaseEmail))
+            return new EmailAlreadyInUse();
+
+        var token = CryptoUtils.RandomAlphaNumericString(AuthConstants.GeneratedTokenLength);
+        var emailChange = new UserEmailChange
+        {
+            Id = Guid.CreateVersion7(),
+            UserId = data.User.Id,
+            OldEmail = data.User.Email,
+            NewEmail = lowerCaseEmail,
+            TokenHash = HashingUtils.HashToken(token),
+            EmailVersionAtCreate = data.User.EmailVersion
+        };
+        _db.UserEmailChanges.Add(emailChange);
+        await _db.SaveChangesAsync();
+
+        await _emailService.VerifyEmail(new Contact(lowerCaseEmail, data.User.Name),
+            new Uri(_frontendConfig.BaseUrl, $"/verify-email?token={token}"));
 
         return new Success();
     }
@@ -526,15 +576,22 @@ public sealed class AccountService : IAccountService
     public async Task<bool> TryVerifyEmailAsync(string token, CancellationToken cancellationToken = default)
     {
         var hash = HashingUtils.HashToken(token);
+        var validSince = DateTime.UtcNow - Duration.EmailChangeRequestLifetime;
 
-        int nChanges = await _db.UserEmailChanges
-            .Where(x => x.TokenHash == hash && x.UsedAt == null && x.User.Email == x.OldEmail && x.User.UserDeactivation == null && x.User.ActivatedAt != null)
-            .ExecuteUpdateAsync(spc => spc
-                .SetProperty(x => x.UsedAt, _ => DateTime.UtcNow)
-                .SetProperty(x => x.User.Email, x => x.NewEmail)
-            , cancellationToken);
+        var change = await _db.UserEmailChanges
+            .Include(x => x.User).ThenInclude(u => u.UserDeactivation)
+            .FirstOrDefaultAsync(x => x.TokenHash == hash && x.UsedAt == null && x.CreatedAt >= validSince
+                && x.EmailVersionAtCreate == x.User.EmailVersion
+                && x.User.UserDeactivation == null && x.User.ActivatedAt != null, cancellationToken);
 
-        return nChanges > 0;
+        if (change is null) return false;
+
+        change.UsedAt = DateTime.UtcNow;
+        change.User.Email = change.NewEmail;
+        change.User.EmailVersion++; // Predicate-bound: every other pending change for this user is now invalid.
+
+        await _db.SaveChangesAsync(cancellationToken);
+        return true;
     }
 
     private async Task<bool> CheckPassword(string password, User user)

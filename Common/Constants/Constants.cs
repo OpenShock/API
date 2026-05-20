@@ -7,6 +7,8 @@ public static class Duration
     
     public static readonly TimeSpan PasswordResetRequestLifetime = TimeSpan.FromHours(1);
 
+    public static readonly TimeSpan EmailChangeRequestLifetime = TimeSpan.FromHours(1);
+
     public static readonly TimeSpan NameChangeCooldown = TimeSpan.FromDays(7);
     
     public static readonly TimeSpan LoginSessionLifetime = TimeSpan.FromDays(30);
