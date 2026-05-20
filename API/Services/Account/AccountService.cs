@@ -590,8 +590,18 @@ public sealed class AccountService : IAccountService
         change.User.Email = change.NewEmail;
         change.User.EmailVersion++; // Predicate-bound: every other pending change for this user is now invalid.
 
-        await _db.SaveChangesAsync(cancellationToken);
-        return true;
+        try
+        {
+            await _db.SaveChangesAsync(cancellationToken);
+            return true;
+        }
+        catch (DbUpdateException ex) when (ex.InnerException is PostgresException { SqlState: "23505" })
+        {
+            // Another account claimed this email between request creation and verification.
+            // The pending row stays as-is (not marked used) so it can expire naturally; the user
+            // gets a 4xx from the controller instead of a 500.
+            return false;
+        }
     }
 
     private async Task<bool> CheckPassword(string password, User user)
