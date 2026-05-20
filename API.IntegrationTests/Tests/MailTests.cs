@@ -9,7 +9,8 @@ namespace OpenShock.API.IntegrationTests.Tests;
 
 /// <summary>
 /// Tests that verify emails are actually delivered via SMTP to Mailpit.
-/// Each test uses a unique email address so messages can be filtered by recipient.
+/// Each test uses a unique recipient address via <see cref="TestHelper.UniqueEmail"/> so Mailpit
+/// lookups never collide with other tests in the session.
 /// </summary>
 public sealed partial class MailTests
 {
@@ -21,13 +22,14 @@ public sealed partial class MailTests
     [Test]
     public async Task V2Signup_SendsAccountActivationEmail()
     {
-        const string email = "mail-activation@test.org";
+        var email = TestHelper.UniqueEmail("mail-activation");
+        var username = TestHelper.UniqueUsername("mailactivation");
         using var mailpit = WebApplicationFactory.CreateMailpitHelper();
         using var client = WebApplicationFactory.CreateClient();
 
         var response = await client.PostAsync("/2/account/signup", TestHelper.JsonContent(new
         {
-            username = "mailactivationuser",
+            username,
             password = "SecurePassword123#",
             email,
             turnstileResponse = "valid-token"
@@ -43,14 +45,15 @@ public sealed partial class MailTests
     [Test]
     public async Task ActivationFlow_ViaEmailLink_ActivatesAccount()
     {
-        const string email = "mail-activate-flow@test.org";
+        var email = TestHelper.UniqueEmail("mail-activate-flow");
+        var username = TestHelper.UniqueUsername("mailactivateflow");
         using var mailpit = WebApplicationFactory.CreateMailpitHelper();
         using var client = WebApplicationFactory.CreateClient();
 
         // Sign up — this triggers an activation email
         var signupResponse = await client.PostAsync("/2/account/signup", TestHelper.JsonContent(new
         {
-            username = "mailactivateflowuser",
+            username,
             password = "SecurePassword123#",
             email,
             turnstileResponse = "valid-token"
@@ -85,16 +88,14 @@ public sealed partial class MailTests
     [Test]
     public async Task V1PasswordReset_SendsPasswordResetEmail()
     {
-        const string email = "mail-pwreset@test.org";
+        var email = TestHelper.UniqueEmail("mail-pwreset");
+        var username = TestHelper.UniqueUsername("mailpwreset");
         using var mailpit = WebApplicationFactory.CreateMailpitHelper();
 
-        await TestHelper.CreateUserInDb(WebApplicationFactory, "mailpwresetuser", email, "OldPassword123#");
+        await TestHelper.CreateUserInDb(WebApplicationFactory, username, email, "OldPassword123#");
 
         using var client = WebApplicationFactory.CreateClient();
-        var response = await client.PostAsync("/1/account/reset", TestHelper.JsonContent(new
-        {
-            email
-        }));
+        var response = await client.PostAsync("/1/account/reset", TestHelper.JsonContent(new { email }));
 
         await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.OK);
 
@@ -106,10 +107,11 @@ public sealed partial class MailTests
     [Test]
     public async Task V2PasswordReset_SendsPasswordResetEmail()
     {
-        const string email = "mail-pwreset-v2@test.org";
+        var email = TestHelper.UniqueEmail("mail-pwreset-v2");
+        var username = TestHelper.UniqueUsername("mailpwresetv2");
         using var mailpit = WebApplicationFactory.CreateMailpitHelper();
 
-        await TestHelper.CreateUserInDb(WebApplicationFactory, "mailpwresetv2user", email, "OldPassword123#");
+        await TestHelper.CreateUserInDb(WebApplicationFactory, username, email, "OldPassword123#");
 
         using var client = WebApplicationFactory.CreateClient();
         var response = await client.PostAsync("/2/account/reset-password", TestHelper.JsonContent(new
@@ -128,11 +130,12 @@ public sealed partial class MailTests
     [Test]
     public async Task PasswordResetFlow_ViaEmailLink_ChangesPassword()
     {
-        const string email = "mail-pwreset-flow@test.org";
+        var email = TestHelper.UniqueEmail("mail-pwreset-flow");
+        var username = TestHelper.UniqueUsername("mailpwresetflow");
         const string newPassword = "NewSecurePassword456#";
         using var mailpit = WebApplicationFactory.CreateMailpitHelper();
 
-        await TestHelper.CreateUserInDb(WebApplicationFactory, "mailpwresetflowuser", email, "OldPassword123#");
+        await TestHelper.CreateUserInDb(WebApplicationFactory, username, email, "OldPassword123#");
 
         using var client = WebApplicationFactory.CreateClient();
 
@@ -177,12 +180,13 @@ public sealed partial class MailTests
     [Test]
     public async Task ChangeEmailFlow_ViaEmailLink_ChangesEmail()
     {
-        const string oldEmail = "mail-chgemail-flow@test.org";
-        const string newEmail = "mail-chgemail-flow-new@test.org";
+        var oldEmail = TestHelper.UniqueEmail("mail-chgemail-flow-old");
+        var newEmail = TestHelper.UniqueEmail("mail-chgemail-flow-new");
+        var username = TestHelper.UniqueUsername("mailchgemailflow");
         const string password = "SecurePassword123#";
         using var mailpit = WebApplicationFactory.CreateMailpitHelper();
 
-        var user = await TestHelper.CreateAndLoginUser(WebApplicationFactory, "mailchgemailflow", oldEmail, password);
+        var user = await TestHelper.CreateAndLoginUser(WebApplicationFactory, username, oldEmail, password);
         using var client = TestHelper.CreateAuthenticatedClient(WebApplicationFactory, user.SessionToken);
 
         // Initiate the email change
@@ -232,11 +236,12 @@ public sealed partial class MailTests
     [Test]
     public async Task ChangeEmail_WrongPassword_Returns403_AndSendsNoEmail()
     {
-        const string oldEmail = "mail-chgemail-badpwd@test.org";
-        const string newEmail = "mail-chgemail-badpwd-new@test.org";
+        var oldEmail = TestHelper.UniqueEmail("mail-chgemail-badpwd-old");
+        var newEmail = TestHelper.UniqueEmail("mail-chgemail-badpwd-new");
+        var username = TestHelper.UniqueUsername("mailchgemailbadpwd");
         using var mailpit = WebApplicationFactory.CreateMailpitHelper();
 
-        var user = await TestHelper.CreateAndLoginUser(WebApplicationFactory, "mailchgemailbadpwd", oldEmail, "CorrectPassword123#");
+        var user = await TestHelper.CreateAndLoginUser(WebApplicationFactory, username, oldEmail, "CorrectPassword123#");
         using var client = TestHelper.CreateAuthenticatedClient(WebApplicationFactory, user.SessionToken);
 
         var response = await client.PostAsync("/1/account/email", TestHelper.JsonContent(new
@@ -255,13 +260,14 @@ public sealed partial class MailTests
     [Test]
     public async Task ChangeEmailFlow_SecondPendingRequest_InvalidatedAfterFirstCompletes()
     {
-        const string oldEmail = "mail-chgemail-sibling@test.org";
-        const string firstNewEmail = "mail-chgemail-sibling-first@test.org";
-        const string secondNewEmail = "mail-chgemail-sibling-second@test.org";
+        var oldEmail = TestHelper.UniqueEmail("mail-chgemail-sibling-old");
+        var firstNewEmail = TestHelper.UniqueEmail("mail-chgemail-sibling-first");
+        var secondNewEmail = TestHelper.UniqueEmail("mail-chgemail-sibling-second");
+        var username = TestHelper.UniqueUsername("mailchgemailsibling");
         const string password = "SecurePassword123#";
         using var mailpit = WebApplicationFactory.CreateMailpitHelper();
 
-        var user = await TestHelper.CreateAndLoginUser(WebApplicationFactory, "mailchgemailsibling", oldEmail, password);
+        var user = await TestHelper.CreateAndLoginUser(WebApplicationFactory, username, oldEmail, password);
         using var client = TestHelper.CreateAuthenticatedClient(WebApplicationFactory, user.SessionToken);
 
         // Initiate two concurrent email change requests
@@ -297,7 +303,7 @@ public sealed partial class MailTests
         var firstVerify = await anonClient.PostAsync($"/1/account/verify-email?token={firstToken}", null);
         await Assert.That(firstVerify.StatusCode).IsEqualTo(HttpStatusCode.OK);
 
-        // Second pending request must now be unusable because its OldEmail no longer matches the user's current email
+        // Second pending request is now invalid: its EmailVersionAtCreate snapshot no longer matches User.EmailVersion.
         var secondVerify = await anonClient.PostAsync($"/1/account/verify-email?token={secondToken}", null);
         await Assert.That(secondVerify.StatusCode).IsEqualTo(HttpStatusCode.BadRequest);
 
@@ -310,41 +316,29 @@ public sealed partial class MailTests
     [Test]
     public async Task PasswordResetFlow_SecondPendingResetInvalidatedAfterFirstCompletes()
     {
-        const string email = "mail-pwreset-sibling@test.org";
+        var email = TestHelper.UniqueEmail("mail-pwreset-sibling");
+        var username = TestHelper.UniqueUsername("mailpwresetsibling");
         const string firstNewPassword = "FirstNewPassword123#";
         const string secondNewPassword = "SecondNewPassword456#";
         using var mailpit = WebApplicationFactory.CreateMailpitHelper();
 
-        await TestHelper.CreateUserInDb(WebApplicationFactory, "mailpwresetsibling", email, "OldPassword123#");
+        await TestHelper.CreateUserInDb(WebApplicationFactory, username, email, "OldPassword123#");
 
         using var client = WebApplicationFactory.CreateClient();
 
-        // Initiate two password reset requests
+        // Fire two reset requests back-to-back, then wait for both emails to land.
         var firstInit = await client.PostAsync("/1/account/reset", TestHelper.JsonContent(new { email }));
         await Assert.That(firstInit.StatusCode).IsEqualTo(HttpStatusCode.OK);
-
-        // Wait for first message before triggering second so we can distinguish them
-        var firstMessage = await mailpit.WaitForMessageAsync(email);
-        await Assert.That(firstMessage).IsNotNull();
 
         var secondInit = await client.PostAsync("/1/account/reset", TestHelper.JsonContent(new { email }));
         await Assert.That(secondInit.StatusCode).IsEqualTo(HttpStatusCode.OK);
 
-        // Find the second (newer) message
-        MailpitHelper.MailpitMessage? secondMessage = null;
-        var deadline = DateTime.UtcNow + TimeSpan.FromSeconds(15);
-        while (DateTime.UtcNow < deadline && secondMessage is null)
-        {
-            var all = await mailpit.GetAllMessagesAsync();
-            secondMessage = all.FirstOrDefault(m =>
-                m.Id != firstMessage!.Id &&
-                m.To?.Any(t => t.Address.Equals(email, StringComparison.OrdinalIgnoreCase)) == true);
-            if (secondMessage is null) await Task.Delay(300);
-        }
-        await Assert.That(secondMessage).IsNotNull();
+        var messages = await mailpit.WaitForMessagesAsync(email, minCount: 2);
+        await Assert.That(messages.Count).IsGreaterThanOrEqualTo(2);
 
-        var firstFull = await mailpit.GetMessageAsync(firstMessage!.Id);
-        var secondFull = await mailpit.GetMessageAsync(secondMessage!.Id);
+        // Mailpit returns messages in reverse-chronological order; take the two for our recipient.
+        var firstFull = await mailpit.GetMessageAsync(messages[1].Id);
+        var secondFull = await mailpit.GetMessageAsync(messages[0].Id);
         var (firstResetId, firstSecret) = ExtractPasswordResetParams(firstFull!.Html);
         var (secondResetId, secondSecret) = ExtractPasswordResetParams(secondFull!.Html);
         await Assert.That(firstResetId).IsNotNull().And.IsNotEmpty();
@@ -378,12 +372,14 @@ public sealed partial class MailTests
     [Test]
     public async Task ChangeEmail_AlreadyInUse_Returns409()
     {
-        const string takenEmail = "mail-chgemail-taken-existing@test.org";
-        const string ownEmail = "mail-chgemail-taken-own@test.org";
+        var takenEmail = TestHelper.UniqueEmail("mail-chgemail-taken-existing");
+        var ownEmail = TestHelper.UniqueEmail("mail-chgemail-taken-own");
+        var takenUser = TestHelper.UniqueUsername("mailchgemailtaken1");
+        var ownUser = TestHelper.UniqueUsername("mailchgemailtaken2");
         const string password = "SecurePassword123#";
 
-        await TestHelper.CreateUserInDb(WebApplicationFactory, "mailchgemailtaken1", takenEmail, password);
-        var user = await TestHelper.CreateAndLoginUser(WebApplicationFactory, "mailchgemailtaken2", ownEmail, password);
+        await TestHelper.CreateUserInDb(WebApplicationFactory, takenUser, takenEmail, password);
+        var user = await TestHelper.CreateAndLoginUser(WebApplicationFactory, ownUser, ownEmail, password);
         using var client = TestHelper.CreateAuthenticatedClient(WebApplicationFactory, user.SessionToken);
 
         var response = await client.PostAsync("/1/account/email", TestHelper.JsonContent(new
