@@ -18,7 +18,7 @@ public sealed partial class AccountController
     /// <param name="body"></param>
     /// <response code="200">Password successfully changed</response>
     /// <response code="404">Password reset process not found</response>
-    [HttpPost("recover/{passwordResetId}/{secret}")]
+    [HttpPost("password-reset/{passwordResetId}/{secret}/complete")]
     [EnableRateLimiting("auth")]
     [Consumes(MediaTypeNames.Application.Json)]
     [ProducesResponseType<LegacyEmptyResponse>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]

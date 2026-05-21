@@ -14,7 +14,7 @@ public sealed partial class AccountController
     /// <response code="200">Email change verified and applied</response>
     /// <response code="400">Token is invalid, already used, or the request has expired</response>
     /// <response code="409">The new email address was claimed by another account before verification completed</response>
-    [HttpPost("verify-email")]
+    [HttpPost("email-change/verify")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status400BadRequest, MediaTypeNames.Application.ProblemJson)]
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status409Conflict, MediaTypeNames.Application.ProblemJson)]

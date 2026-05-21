@@ -15,7 +15,7 @@ public sealed partial class AuthenticatedAccountController
     /// address; the change is not applied until that link is opened.
     /// </summary>
     /// <param name="body"></param>
-    [HttpPost("email")]
+    [HttpPost("email-change")]
     [Consumes(MediaTypeNames.Application.Json)]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status400BadRequest, MediaTypeNames.Application.ProblemJson)] // EmailChangeUnchanged

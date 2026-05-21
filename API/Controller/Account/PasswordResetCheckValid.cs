@@ -18,7 +18,7 @@ public sealed partial class AccountController
     /// <param name="cancellationToken"></param>
     /// <response code="200">Valid password reset process</response>
     /// <response code="404">Password reset process not found</response>
-    [HttpHead("recover/{passwordResetId}/{secret}")]
+    [HttpGet("password-reset/{passwordResetId}/{secret}")]
     [EnableRateLimiting("auth")]
     [ProducesResponseType<LegacyEmptyResponse>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status404NotFound, MediaTypeNames.Application.ProblemJson)] // PasswordResetNotFound

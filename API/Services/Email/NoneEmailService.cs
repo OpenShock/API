@@ -33,4 +33,10 @@ public class NoneEmailService : IEmailService
         _logger.LogError("Email verification email not sent, this is a noop implementation of the email service");
         return Task.CompletedTask;
     }
+
+    public Task EmailChangeNotice(Contact to, string newEmail, CancellationToken cancellationToken = default)
+    {
+        _logger.LogError("Email change notice not sent, this is a noop implementation of the email service");
+        return Task.CompletedTask;
+    }
 }

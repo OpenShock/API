@@ -17,7 +17,7 @@ public sealed partial class AccountController
     /// Initiate a password reset
     /// </summary>
     /// <response code="200">Password reset email sent if the email is associated to an registered account</response>
-    [HttpPost("reset-password")]
+    [HttpPost("password-reset")]
     [EnableRateLimiting("auth")]
     [Consumes(MediaTypeNames.Application.Json)]
     [ProducesResponseType(StatusCodes.Status200OK)]

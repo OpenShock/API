@@ -114,7 +114,7 @@ public sealed partial class MailTests
         await TestHelper.CreateUserInDb(WebApplicationFactory, username, email, "OldPassword123#");
 
         using var client = WebApplicationFactory.CreateClient();
-        var response = await client.PostAsync("/2/account/reset-password", TestHelper.JsonContent(new
+        var response = await client.PostAsync("/2/account/password-reset", TestHelper.JsonContent(new
         {
             email,
             turnstileResponse = "valid-token"
@@ -156,13 +156,12 @@ public sealed partial class MailTests
         await Assert.That(secret).IsNotNull().And.IsNotEmpty();
 
         // Verify the reset token is valid
-        var checkResponse = await client.SendAsync(new HttpRequestMessage(
-            HttpMethod.Head, $"/1/account/recover/{resetId}/{secret}"));
+        var checkResponse = await client.GetAsync($"/1/account/password-reset/{resetId}/{secret}");
         await Assert.That(checkResponse.StatusCode).IsEqualTo(HttpStatusCode.OK);
 
         // Complete the reset with a new password
         var completeResponse = await client.PostAsync(
-            $"/1/account/recover/{resetId}/{secret}",
+            $"/1/account/password-reset/{resetId}/{secret}/complete",
             TestHelper.JsonContent(new { password = newPassword }));
         await Assert.That(completeResponse.StatusCode).IsEqualTo(HttpStatusCode.OK);
 
@@ -190,7 +189,7 @@ public sealed partial class MailTests
         using var client = TestHelper.CreateAuthenticatedClient(WebApplicationFactory, user.SessionToken);
 
         // Initiate the email change
-        var initiateResponse = await client.PostAsync("/1/account/email", TestHelper.JsonContent(new
+        var initiateResponse = await client.PostAsync("/1/account/email-change", TestHelper.JsonContent(new
         {
             currentPassword = password,
             email = newEmail
@@ -217,7 +216,7 @@ public sealed partial class MailTests
 
         // Use the token to complete the change
         using var anonClient = WebApplicationFactory.CreateClient();
-        var verifyResponse = await anonClient.PostAsync($"/1/account/verify-email?token={token}", null);
+        var verifyResponse = await anonClient.PostAsync($"/1/account/email-change/verify?token={token}", null);
         await Assert.That(verifyResponse.StatusCode).IsEqualTo(HttpStatusCode.OK);
 
         // Email is now updated
@@ -229,7 +228,7 @@ public sealed partial class MailTests
         }
 
         // Re-using the same token must now fail
-        var replayResponse = await anonClient.PostAsync($"/1/account/verify-email?token={token}", null);
+        var replayResponse = await anonClient.PostAsync($"/1/account/email-change/verify?token={token}", null);
         await Assert.That(replayResponse.StatusCode).IsEqualTo(HttpStatusCode.BadRequest);
     }
 
@@ -244,7 +243,7 @@ public sealed partial class MailTests
         var user = await TestHelper.CreateAndLoginUser(WebApplicationFactory, username, oldEmail, "CorrectPassword123#");
         using var client = TestHelper.CreateAuthenticatedClient(WebApplicationFactory, user.SessionToken);
 
-        var response = await client.PostAsync("/1/account/email", TestHelper.JsonContent(new
+        var response = await client.PostAsync("/1/account/email-change", TestHelper.JsonContent(new
         {
             currentPassword = "WrongPassword!",
             email = newEmail
@@ -252,9 +251,88 @@ public sealed partial class MailTests
 
         await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.Forbidden);
 
-        // No verification email should have been dispatched
-        var message = await mailpit.WaitForMessageAsync(newEmail, TimeSpan.FromSeconds(2));
-        await Assert.That(message).IsNull();
+        // Neither the verification (new address) nor the change notice (old address) should have been dispatched.
+        var verification = await mailpit.WaitForMessageAsync(newEmail, TimeSpan.FromSeconds(2));
+        await Assert.That(verification).IsNull();
+        var notice = await mailpit.WaitForMessageAsync(oldEmail, TimeSpan.FromSeconds(2));
+        await Assert.That(notice).IsNull();
+    }
+
+    [Test]
+    public async Task ChangeEmailFlow_SendsNoticeToOldEmail()
+    {
+        var oldEmail = TestHelper.UniqueEmail("mail-chgemail-notice-old");
+        var newEmail = TestHelper.UniqueEmail("mail-chgemail-notice-new");
+        var username = TestHelper.UniqueUsername("mailchgemailnotice");
+        const string password = "SecurePassword123#";
+        using var mailpit = WebApplicationFactory.CreateMailpitHelper();
+
+        var user = await TestHelper.CreateAndLoginUser(WebApplicationFactory, username, oldEmail, password);
+        using var client = TestHelper.CreateAuthenticatedClient(WebApplicationFactory, user.SessionToken);
+
+        var initiateResponse = await client.PostAsync("/1/account/email-change", TestHelper.JsonContent(new
+        {
+            currentPassword = password,
+            email = newEmail
+        }));
+        await Assert.That(initiateResponse.StatusCode).IsEqualTo(HttpStatusCode.OK);
+
+        // Verification email lands at the new address...
+        var verification = await mailpit.WaitForMessageAsync(newEmail);
+        await Assert.That(verification).IsNotNull();
+        await Assert.That(verification!.To?.Select(c => c.Address)).Contains(newEmail);
+
+        // ...and a notice lands at the OLD address, mentioning the new address.
+        var notice = await mailpit.WaitForMessageAsync(oldEmail);
+        await Assert.That(notice).IsNotNull();
+        await Assert.That(notice!.To?.Select(c => c.Address)).Contains(oldEmail);
+
+        var noticeFull = await mailpit.GetMessageAsync(notice.Id);
+        await Assert.That(noticeFull).IsNotNull();
+        await Assert.That(noticeFull!.Html).Contains(newEmail);
+
+        // The notice must not contain a verification link — it's informational only.
+        await Assert.That(noticeFull.Html).DoesNotContain("token=");
+    }
+
+    [Test]
+    public async Task ChangeEmail_Unchanged_Returns400_AndSendsNoEmail()
+    {
+        var email = TestHelper.UniqueEmail("mail-chgemail-unchanged");
+        var username = TestHelper.UniqueUsername("mailchgemailunchanged");
+        const string password = "SecurePassword123#";
+        using var mailpit = WebApplicationFactory.CreateMailpitHelper();
+
+        var user = await TestHelper.CreateAndLoginUser(WebApplicationFactory, username, email, password);
+        using var client = TestHelper.CreateAuthenticatedClient(WebApplicationFactory, user.SessionToken);
+
+        var response = await client.PostAsync("/1/account/email-change", TestHelper.JsonContent(new
+        {
+            currentPassword = password,
+            email
+        }));
+
+        await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.BadRequest);
+
+        // No emails at all — neither verification nor notice.
+        var any = await mailpit.WaitForMessageAsync(email, TimeSpan.FromSeconds(2));
+        await Assert.That(any).IsNull();
+    }
+
+    [Test]
+    public async Task PasswordResetCheck_InvalidToken_Returns404()
+    {
+        var email = TestHelper.UniqueEmail("mail-pwreset-check-invalid");
+        var username = TestHelper.UniqueUsername("mailpwresetcheckinvalid");
+        await TestHelper.CreateUserInDb(WebApplicationFactory, username, email, "OldPassword123#");
+
+        using var client = WebApplicationFactory.CreateClient();
+
+        var bogusId = Guid.NewGuid();
+        const string bogusSecret = "thisisnotarealtokenatallzz";
+
+        var response = await client.GetAsync($"/1/account/password-reset/{bogusId}/{bogusSecret}");
+        await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.NotFound);
     }
 
     [Test]
@@ -271,14 +349,14 @@ public sealed partial class MailTests
         using var client = TestHelper.CreateAuthenticatedClient(WebApplicationFactory, user.SessionToken);
 
         // Initiate two concurrent email change requests
-        var firstInit = await client.PostAsync("/1/account/email", TestHelper.JsonContent(new
+        var firstInit = await client.PostAsync("/1/account/email-change", TestHelper.JsonContent(new
         {
             currentPassword = password,
             email = firstNewEmail
         }));
         await Assert.That(firstInit.StatusCode).IsEqualTo(HttpStatusCode.OK);
 
-        var secondInit = await client.PostAsync("/1/account/email", TestHelper.JsonContent(new
+        var secondInit = await client.PostAsync("/1/account/email-change", TestHelper.JsonContent(new
         {
             currentPassword = password,
             email = secondNewEmail
@@ -300,11 +378,11 @@ public sealed partial class MailTests
         using var anonClient = WebApplicationFactory.CreateClient();
 
         // Complete the first request — email becomes firstNewEmail
-        var firstVerify = await anonClient.PostAsync($"/1/account/verify-email?token={firstToken}", null);
+        var firstVerify = await anonClient.PostAsync($"/1/account/email-change/verify?token={firstToken}", null);
         await Assert.That(firstVerify.StatusCode).IsEqualTo(HttpStatusCode.OK);
 
         // Second pending request is now invalid: its EmailVersionAtCreate snapshot no longer matches User.EmailVersion.
-        var secondVerify = await anonClient.PostAsync($"/1/account/verify-email?token={secondToken}", null);
+        var secondVerify = await anonClient.PostAsync($"/1/account/email-change/verify?token={secondToken}", null);
         await Assert.That(secondVerify.StatusCode).IsEqualTo(HttpStatusCode.BadRequest);
 
         await using var scope = WebApplicationFactory.Services.CreateAsyncScope();
@@ -346,17 +424,17 @@ public sealed partial class MailTests
 
         // Complete the first reset
         var firstComplete = await client.PostAsync(
-            $"/1/account/recover/{firstResetId}/{firstSecret}",
+            $"/1/account/password-reset/{firstResetId}/{firstSecret}/complete",
             TestHelper.JsonContent(new { password = firstNewPassword }));
         await Assert.That(firstComplete.StatusCode).IsEqualTo(HttpStatusCode.OK);
 
         // The second (sibling) reset must no longer be usable
-        var secondCheck = await client.SendAsync(new HttpRequestMessage(
-            HttpMethod.Head, $"/1/account/recover/{secondResetId}/{secondSecret}"));
+        var secondCheck = await client.GetAsync(
+            $"/1/account/password-reset/{secondResetId}/{secondSecret}");
         await Assert.That(secondCheck.StatusCode).IsEqualTo(HttpStatusCode.NotFound);
 
         var secondComplete = await client.PostAsync(
-            $"/1/account/recover/{secondResetId}/{secondSecret}",
+            $"/1/account/password-reset/{secondResetId}/{secondSecret}/complete",
             TestHelper.JsonContent(new { password = secondNewPassword }));
         await Assert.That(secondComplete.StatusCode).IsEqualTo(HttpStatusCode.NotFound);
 
@@ -382,7 +460,7 @@ public sealed partial class MailTests
         var user = await TestHelper.CreateAndLoginUser(WebApplicationFactory, ownUser, ownEmail, password);
         using var client = TestHelper.CreateAuthenticatedClient(WebApplicationFactory, user.SessionToken);
 
-        var response = await client.PostAsync("/1/account/email", TestHelper.JsonContent(new
+        var response = await client.PostAsync("/1/account/email-change", TestHelper.JsonContent(new
         {
             currentPassword = password,
             email = takenEmail

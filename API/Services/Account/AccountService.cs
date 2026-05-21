@@ -570,6 +570,19 @@ public sealed class AccountService : IAccountService
         await _emailService.VerifyEmail(new Contact(lowerCaseEmail, data.User.Name),
             new Uri(_frontendConfig.BaseUrl, $"/verify-email?token={token}"));
 
+        // Notify the previous address so the legitimate owner sees the change request even if
+        // the session/password used to start it was compromised. Best-effort: a failure here
+        // must not roll back the change request, since the verification email has already been
+        // dispatched and the row is committed.
+        try
+        {
+            await _emailService.EmailChangeNotice(new Contact(data.User.Email, data.User.Name), lowerCaseEmail);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to send email-change notice to previous address for user {UserId}", data.User.Id);
+        }
+
         return new Success();
     }
 

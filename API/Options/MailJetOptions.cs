@@ -33,6 +33,9 @@ public sealed class MailJetOptions
 
         [Required]
         public required ulong VerifyEmailComplete { get; init; }
+
+        [Required]
+        public required ulong EmailChangeNotice { get; init; }
     }
 }
 
