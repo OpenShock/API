@@ -382,7 +382,7 @@ public sealed class AccountService : IAccountService
         var validSince = DateTime.UtcNow - Duration.PasswordResetRequestLifetime;
         var reset = await _db.UserPasswordResets.FirstOrDefaultAsync(x =>
                 x.Id == passwordResetId && x.UsedAt == null && x.CreatedAt >= validSince
-                && x.PasswordVersionAtCreate == x.User.PasswordVersion,
+                && x.SecurityStampAtCreate == x.User.SecurityStamp,
             cancellationToken: cancellationToken);
 
         if (reset is null) return new NotFound();
@@ -418,7 +418,7 @@ public sealed class AccountService : IAccountService
             Id = Guid.CreateVersion7(),
             UserId = user.User.Id,
             TokenHash = HashingUtils.HashToken(token),
-            PasswordVersionAtCreate = user.User.PasswordVersion
+            SecurityStampAtCreate = user.User.SecurityStamp
         };
         _db.UserPasswordResets.Add(passwordReset);
         await _db.SaveChangesAsync();
@@ -439,7 +439,7 @@ public sealed class AccountService : IAccountService
             .Include(x => x.User)
             .Include(x => x.User.UserDeactivation)
             .FirstOrDefaultAsync(x => x.Id == passwordResetId && x.UsedAt == null && x.CreatedAt >= validSince
-                && x.PasswordVersionAtCreate == x.User.PasswordVersion);
+                && x.SecurityStampAtCreate == x.User.SecurityStamp);
         if (reset is null) return new NotFound();
         if (reset.User.ActivatedAt is null) return new AccountNotActivated();
         if (reset.User.UserDeactivation is not null) return new AccountDeactivated();
@@ -449,7 +449,7 @@ public sealed class AccountService : IAccountService
 
         reset.UsedAt = DateTime.UtcNow;
         reset.User.PasswordHash = HashingUtils.HashPassword(newPassword);
-        reset.User.PasswordVersion++; // Bumps the counter — every other pending reset for this user is now invalid by predicate.
+        reset.User.SecurityStamp = Guid.CreateVersion7(); // Rotates the stamp; every other pending reset/email-change for this user is now invalid by predicate.
         await _db.SaveChangesAsync();
         return new Success();
     }
@@ -521,7 +521,7 @@ public sealed class AccountService : IAccountService
         if (user.UserDeactivation is not null) return new AccountDeactivated();
 
         user.PasswordHash = HashingUtils.HashPassword(newPassword);
-        user.PasswordVersion++; // Any outstanding reset row for this user has a stale PasswordVersionAtCreate after this — predicate handles invalidation.
+        user.SecurityStamp = Guid.CreateVersion7(); // Any outstanding reset/email-change row for this user has a stale SecurityStampAtCreate after this; predicate handles invalidation.
 
         await _db.SaveChangesAsync();
 
@@ -562,7 +562,7 @@ public sealed class AccountService : IAccountService
             OldEmail = data.User.Email,
             NewEmail = lowerCaseEmail,
             TokenHash = HashingUtils.HashToken(token),
-            EmailVersionAtCreate = data.User.EmailVersion
+            SecurityStampAtCreate = data.User.SecurityStamp
         };
         _db.UserEmailChanges.Add(emailChange);
         await _db.SaveChangesAsync();
@@ -594,14 +594,14 @@ public sealed class AccountService : IAccountService
         var change = await _db.UserEmailChanges
             .Include(x => x.User).ThenInclude(u => u.UserDeactivation)
             .FirstOrDefaultAsync(x => x.TokenHash == hash && x.UsedAt == null && x.CreatedAt >= validSince
-                && x.EmailVersionAtCreate == x.User.EmailVersion
+                && x.SecurityStampAtCreate == x.User.SecurityStamp
                 && x.User.UserDeactivation == null && x.User.ActivatedAt != null, cancellationToken);
 
         if (change is null) return new NotFound();
 
         change.UsedAt = DateTime.UtcNow;
         change.User.Email = change.NewEmail;
-        change.User.EmailVersion++; // Predicate-bound: every other pending change for this user is now invalid.
+        change.User.SecurityStamp = Guid.CreateVersion7(); // Rotates the stamp; every other pending reset/email-change for this user is now invalid by predicate.
 
         try
         {

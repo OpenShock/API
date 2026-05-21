@@ -690,12 +690,6 @@ namespace OpenShock.Common.Migrations
                         .HasColumnType("character varying(320)")
                         .HasColumnName("email");
 
-                    b.Property<int>("EmailVersion")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer")
-                        .HasDefaultValue(0)
-                        .HasColumnName("email_version");
-
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(32)
@@ -709,16 +703,16 @@ namespace OpenShock.Common.Migrations
                         .HasColumnName("password_hash")
                         .UseCollation("C");
 
-                    b.Property<int>("PasswordVersion")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer")
-                        .HasDefaultValue(0)
-                        .HasColumnName("password_version");
-
                     b.PrimitiveCollection<List<RoleType>>("Roles")
                         .IsRequired()
                         .HasColumnType("role_type[]")
                         .HasColumnName("roles");
+
+                    b.Property<Guid>("SecurityStamp")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("security_stamp")
+                        .HasDefaultValueSql("gen_random_uuid()");
 
                     b.HasKey("Id")
                         .HasName("users_pkey");
@@ -810,12 +804,6 @@ namespace OpenShock.Common.Migrations
                         .HasColumnName("created_at")
                         .HasDefaultValueSql("CURRENT_TIMESTAMP");
 
-                    b.Property<int>("EmailVersionAtCreate")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer")
-                        .HasDefaultValue(0)
-                        .HasColumnName("email_version_at_create");
-
                     b.Property<string>("NewEmail")
                         .IsRequired()
                         .HasMaxLength(320)
@@ -827,6 +815,10 @@ namespace OpenShock.Common.Migrations
                         .HasMaxLength(320)
                         .HasColumnType("character varying(320)")
                         .HasColumnName("email_old");
+
+                    b.Property<Guid>("SecurityStampAtCreate")
+                        .HasColumnType("uuid")
+                        .HasColumnName("security_stamp_at_create");
 
                     b.Property<string>("TokenHash")
                         .IsRequired()
@@ -971,11 +963,9 @@ namespace OpenShock.Common.Migrations
                         .HasColumnName("created_at")
                         .HasDefaultValueSql("CURRENT_TIMESTAMP");
 
-                    b.Property<int>("PasswordVersionAtCreate")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer")
-                        .HasDefaultValue(0)
-                        .HasColumnName("password_version_at_create");
+                    b.Property<Guid>("SecurityStampAtCreate")
+                        .HasColumnType("uuid")
+                        .HasColumnName("security_stamp_at_create");
 
                     b.Property<string>("TokenHash")
                         .IsRequired()

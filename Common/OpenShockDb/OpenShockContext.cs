@@ -303,9 +303,8 @@ public class OpenShockContext : DbContext, IDataProtectionKeyContext
                 .UseCollation("C")
                 .VarCharWithLength(HardLimits.PasswordResetSecretMaxLength)
                 .HasColumnName("token_hash");
-            entity.Property(e => e.PasswordVersionAtCreate)
-                .HasDefaultValue(0)
-                .HasColumnName("password_version_at_create");
+            entity.Property(e => e.SecurityStampAtCreate)
+                .HasColumnName("security_stamp_at_create");
             entity.Property(e => e.UsedAt)
                 .HasColumnName("used_at");
             entity.Property(e => e.UserId).HasColumnName("user_id");
@@ -609,12 +608,9 @@ public class OpenShockContext : DbContext, IDataProtectionKeyContext
                 .UseCollation("C")
                 .VarCharWithLength(HardLimits.PasswordHashMaxLength)
                 .HasColumnName("password_hash");
-            entity.Property(e => e.PasswordVersion)
-                .HasDefaultValue(0)
-                .HasColumnName("password_version");
-            entity.Property(e => e.EmailVersion)
-                .HasDefaultValue(0)
-                .HasColumnName("email_version");
+            entity.Property(e => e.SecurityStamp)
+                .HasDefaultValueSql("gen_random_uuid()")
+                .HasColumnName("security_stamp");
             entity.Property(e => e.Roles)
                 .HasColumnType("role_type[]")
                 .HasColumnName("roles");
@@ -728,9 +724,8 @@ public class OpenShockContext : DbContext, IDataProtectionKeyContext
                 .UseCollation("C")
                 .VarCharWithLength(HardLimits.UserEmailChangeSecretMaxLength)
                 .HasColumnName("token_hash");
-            entity.Property(e => e.EmailVersionAtCreate)
-                .HasDefaultValue(0)
-                .HasColumnName("email_version_at_create");
+            entity.Property(e => e.SecurityStampAtCreate)
+                .HasColumnName("security_stamp_at_create");
             entity.Property(e => e.UsedAt)
                 .HasColumnName("used_at");
             entity.Property(e => e.CreatedAt)

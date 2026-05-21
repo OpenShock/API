@@ -24,11 +24,12 @@ public sealed class UserPasswordReset
     public required string TokenHash { get; set; }
 
     /// <summary>
-    /// Snapshot of <see cref="User.PasswordVersion"/> at the moment this request was created.
-    /// The reset is only valid while this still matches the user's current password version, so
-    /// any password change through any path silently invalidates every outstanding reset link.
+    /// Snapshot of <see cref="User.SecurityStamp"/> at the moment this request was created.
+    /// The reset is only valid while this still matches the user's current stamp, so any
+    /// password (or email) change through any path silently invalidates every outstanding
+    /// reset link.
     /// </summary>
-    public required int PasswordVersionAtCreate { get; set; }
+    public required Guid SecurityStampAtCreate { get; set; }
 
     /// <summary>
     /// When the reset was consumed. Null while the request is still pending.

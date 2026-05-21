@@ -13,18 +13,12 @@ public sealed class User
     public string? PasswordHash { get; set; }
 
     /// <summary>
-    /// Monotonically increasing version bumped whenever <see cref="PasswordHash"/> is changed.
-    /// Snapshotted onto outstanding password reset requests so that any pending reset becomes
-    /// unusable as soon as the password changes through any path.
+    /// Opaque value rotated whenever a security-sensitive field on this user changes
+    /// (currently <see cref="PasswordHash"/> and <see cref="Email"/>). Snapshotted onto pending
+    /// password resets and email changes so that any rotation silently invalidates every
+    /// outstanding request for this user, regardless of which code path applied the change.
     /// </summary>
-    public int PasswordVersion { get; set; }
-
-    /// <summary>
-    /// Monotonically increasing version bumped whenever <see cref="Email"/> is changed.
-    /// Snapshotted onto outstanding email change requests so that any pending change becomes
-    /// unusable as soon as the email changes through any path.
-    /// </summary>
-    public int EmailVersion { get; set; }
+    public Guid SecurityStamp { get; set; }
 
     public List<RoleType> Roles { get; set; } = [];
 

@@ -37,11 +37,11 @@ public sealed class UserEmailChange
     public required string TokenHash { get; set; }
 
     /// <summary>
-    /// Snapshot of <see cref="User.EmailVersion"/> at the moment this request was created.
-    /// The change is only valid while this still matches the user's current email version, so any
-    /// other email change going through first silently invalidates this one.
+    /// Snapshot of <see cref="User.SecurityStamp"/> at the moment this request was created.
+    /// The change is only valid while this still matches the user's current stamp, so any
+    /// password or other email change going through first silently invalidates this one.
     /// </summary>
-    public required int EmailVersionAtCreate { get; set; }
+    public required Guid SecurityStampAtCreate { get; set; }
 
     /// <summary>
     /// When the verification link was followed and the email was actually changed. Null while the

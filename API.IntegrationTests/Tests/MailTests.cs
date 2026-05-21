@@ -386,7 +386,7 @@ public sealed partial class MailTests
 
         using var client = WebApplicationFactory.CreateClient();
 
-        var bogusId = Guid.NewGuid();
+        var bogusId = Guid.CreateVersion7();
         const string bogusSecret = "thisisnotarealtokenatallzz";
 
         var response = await client.GetAsync($"/1/account/password-reset/{bogusId}/{bogusSecret}");
