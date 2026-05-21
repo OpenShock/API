@@ -573,7 +573,7 @@ public sealed class AccountService : IAccountService
         return new Success();
     }
 
-    public async Task<bool> TryVerifyEmailAsync(string token, CancellationToken cancellationToken = default)
+    public async Task<OneOf<Success, NotFound, EmailAlreadyInUse>> TryVerifyEmailAsync(string token, CancellationToken cancellationToken = default)
     {
         var hash = HashingUtils.HashToken(token);
         var validSince = DateTime.UtcNow - Duration.EmailChangeRequestLifetime;
@@ -584,7 +584,7 @@ public sealed class AccountService : IAccountService
                 && x.EmailVersionAtCreate == x.User.EmailVersion
                 && x.User.UserDeactivation == null && x.User.ActivatedAt != null, cancellationToken);
 
-        if (change is null) return false;
+        if (change is null) return new NotFound();
 
         change.UsedAt = DateTime.UtcNow;
         change.User.Email = change.NewEmail;
@@ -593,14 +593,13 @@ public sealed class AccountService : IAccountService
         try
         {
             await _db.SaveChangesAsync(cancellationToken);
-            return true;
+            return new Success();
         }
         catch (DbUpdateException ex) when (ex.InnerException is PostgresException { SqlState: "23505" })
         {
             // Another account claimed this email between request creation and verification.
-            // The pending row stays as-is (not marked used) so it can expire naturally; the user
-            // gets a 4xx from the controller instead of a 500.
-            return false;
+            // The pending row stays as-is (not marked used) so it can expire naturally.
+            return new EmailAlreadyInUse();
         }
     }
 

@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Net.Mime;
 using Microsoft.AspNetCore.Mvc;
 using OpenShock.API.Models.Requests;
@@ -36,6 +37,6 @@ public sealed partial class AuthenticatedAccountController
             unchanged => Problem(AccountError.EmailChangeUnchanged),
             tooMany => Problem(AccountError.EmailChangeTooMany),
             deactivated => Problem(AccountError.AccountDeactivated),
-            notFound => throw new Exception("Unexpected result, apparently our current user does not exist..."));
+            notFound => throw new UnreachableException("Authenticated user not found in database"));
     }
 }

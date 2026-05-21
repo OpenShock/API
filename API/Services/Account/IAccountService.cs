@@ -127,11 +127,14 @@ public interface IAccountService
 
     /// <summary>
     /// Verifies a pending email change using the supplied token. On success the user's email is updated.
+    /// Returns <see cref="NotFound"/> when the token is invalid, expired, or already used.
+    /// Returns <see cref="EmailAlreadyInUse"/> when the new address was claimed by another account between
+    /// request creation and verification (race condition).
     /// </summary>
     /// <param name="token"></param>
     /// <param name="cancellationToken"></param>
     /// <returns></returns>
-    Task<bool> TryVerifyEmailAsync(string token, CancellationToken cancellationToken = default);
+    Task<OneOf<Success, NotFound, EmailAlreadyInUse>> TryVerifyEmailAsync(string token, CancellationToken cancellationToken = default);
 }
 
 public readonly struct AccountIsOAuthOnly;

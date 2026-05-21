@@ -1,4 +1,5 @@
-﻿using System.Net.Mime;
+﻿using System.Diagnostics;
+using System.Net.Mime;
 using Microsoft.AspNetCore.Mvc;
 using OpenShock.API.Models.Requests;
 using OpenShock.Common.Errors;
@@ -32,7 +33,7 @@ public sealed partial class AuthenticatedAccountController
         return result.Match<IActionResult>(
             success => Ok(),
             deactivated => Problem(AccountError.AccountDeactivated),
-            notFound => throw new Exception("Unexpected result, apparently our current user does not exist...")
-            );
+            notFound => throw new UnreachableException("Authenticated user not found in database"));
+
     }
 }
