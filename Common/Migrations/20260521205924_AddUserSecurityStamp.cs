@@ -11,6 +11,13 @@ namespace OpenShock.Common.Migrations
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
+            // Any existing pending password-reset and email-change rows predate the security stamp,
+            // so they have no valid snapshot to compare against once the column is added. Clear them
+            // so affected users have to start a new flow; in-flight email links from before this
+            // migration are dropped on the floor.
+            migrationBuilder.Sql("DELETE FROM user_password_resets;");
+            migrationBuilder.Sql("DELETE FROM user_email_changes;");
+
             migrationBuilder.AddColumn<Guid>(
                 name: "security_stamp",
                 table: "users",
