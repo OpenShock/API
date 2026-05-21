@@ -355,6 +355,29 @@ public sealed partial class MailTests
     }
 
     [Test]
+    public async Task PasswordResetCheck_LegacyHeadRecoverRoute_StillWorks()
+    {
+        var email = TestHelper.UniqueEmail("mail-pwreset-check-legacy");
+        var username = TestHelper.UniqueUsername("mailpwresetchecklegacy");
+        using var mailpit = WebApplicationFactory.CreateMailpitHelper();
+
+        await TestHelper.CreateUserInDb(WebApplicationFactory, username, email, "OldPassword123#");
+
+        using var client = WebApplicationFactory.CreateClient();
+        var resetResponse = await client.PostAsync("/1/account/reset", TestHelper.JsonContent(new { email }));
+        await Assert.That(resetResponse.StatusCode).IsEqualTo(HttpStatusCode.OK);
+
+        var message = await mailpit.WaitForMessageAsync(email);
+        await Assert.That(message).IsNotNull();
+        var fullMessage = await mailpit.GetMessageAsync(message!.Id);
+        var (resetId, secret) = ExtractPasswordResetParams(fullMessage!.Html);
+
+        var legacyCheck = await client.SendAsync(new HttpRequestMessage(
+            HttpMethod.Head, $"/1/account/recover/{resetId}/{secret}"));
+        await Assert.That(legacyCheck.StatusCode).IsEqualTo(HttpStatusCode.OK);
+    }
+
+    [Test]
     public async Task PasswordResetCheck_InvalidToken_Returns404()
     {
         var email = TestHelper.UniqueEmail("mail-pwreset-check-invalid");
