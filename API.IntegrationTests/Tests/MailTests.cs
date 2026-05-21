@@ -320,6 +320,41 @@ public sealed partial class MailTests
     }
 
     [Test]
+    public async Task PasswordResetComplete_LegacyRecoverRoute_StillWorks()
+    {
+        var email = TestHelper.UniqueEmail("mail-pwreset-legacy");
+        var username = TestHelper.UniqueUsername("mailpwresetlegacy");
+        const string newPassword = "LegacyNewPassword456#";
+        using var mailpit = WebApplicationFactory.CreateMailpitHelper();
+
+        await TestHelper.CreateUserInDb(WebApplicationFactory, username, email, "OldPassword123#");
+
+        using var client = WebApplicationFactory.CreateClient();
+
+        var resetResponse = await client.PostAsync("/1/account/reset", TestHelper.JsonContent(new { email }));
+        await Assert.That(resetResponse.StatusCode).IsEqualTo(HttpStatusCode.OK);
+
+        var message = await mailpit.WaitForMessageAsync(email);
+        await Assert.That(message).IsNotNull();
+        var fullMessage = await mailpit.GetMessageAsync(message!.Id);
+        var (resetId, secret) = ExtractPasswordResetParams(fullMessage!.Html);
+        await Assert.That(resetId).IsNotNull().And.IsNotEmpty();
+
+        // Hit the deprecated route directly — must still complete the reset.
+        var completeResponse = await client.PostAsync(
+            $"/1/account/recover/{resetId}/{secret}",
+            TestHelper.JsonContent(new { password = newPassword }));
+        await Assert.That(completeResponse.StatusCode).IsEqualTo(HttpStatusCode.OK);
+
+        var loginResponse = await client.PostAsync("/1/account/login", TestHelper.JsonContent(new
+        {
+            email,
+            password = newPassword
+        }));
+        await Assert.That(loginResponse.StatusCode).IsEqualTo(HttpStatusCode.OK);
+    }
+
+    [Test]
     public async Task PasswordResetCheck_InvalidToken_Returns404()
     {
         var email = TestHelper.UniqueEmail("mail-pwreset-check-invalid");
