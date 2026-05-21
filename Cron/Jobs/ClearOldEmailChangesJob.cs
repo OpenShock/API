@@ -6,7 +6,7 @@ using OpenShock.Cron.Attributes;
 namespace OpenShock.Cron.Jobs;
 
 /// <summary>
-/// Deletes old email change requests once they have expired their lifetime and haven't been used.
+/// Deletes unused email change requests after they have been expired for an additional audit-retention period.
 /// </summary>
 [CronJob("0 0 * * *")] // Every day at midnight (https://crontab.guru/)
 public sealed class ClearOldEmailChangesJob
