@@ -1,4 +1,6 @@
-﻿namespace OpenShock.Common.OpenShockDb;
+﻿using OpenShock.Common.Constants;
+
+namespace OpenShock.Common.OpenShockDb;
 
 /// <summary>
 /// A pending or completed email-change request. The row is created when an authenticated user
@@ -50,7 +52,7 @@ public sealed class UserEmailChange
     public DateTime? UsedAt { get; set; }
 
     /// <summary>
-    /// When the request was created. Combined with <see cref="Constants.Duration.EmailChangeRequestLifetime"/>
+    /// When the request was created. Combined with <see cref="Duration.EmailChangeRequestLifetime"/>
     /// to enforce the link's expiry.
     /// </summary>
     public DateTime CreatedAt { get; set; }

@@ -13,10 +13,11 @@ public sealed class User
     public string? PasswordHash { get; set; }
 
     /// <summary>
-    /// Opaque value rotated whenever a security-sensitive field on this user changes
-    /// (currently <see cref="PasswordHash"/> and <see cref="Email"/>). Snapshotted onto pending
-    /// password resets and email changes so that any rotation silently invalidates every
-    /// outstanding request for this user, regardless of which code path applied the change.
+    /// Opaque value rotated whenever the user's password or email <em>value</em> changes
+    /// (re-hashing the same password with a stronger algorithm does not rotate it).
+    /// Snapshotted onto pending password resets and email changes so that any rotation
+    /// silently invalidates every outstanding request for this user, regardless of which
+    /// code path applied the change.
     /// </summary>
     public Guid SecurityStamp { get; set; }
 

@@ -1,4 +1,6 @@
-﻿namespace OpenShock.Common.OpenShockDb;
+﻿using OpenShock.Common.Constants;
+
+namespace OpenShock.Common.OpenShockDb;
 
 /// <summary>
 /// A pending or completed password reset request, created when a user (or someone with knowledge
@@ -37,7 +39,7 @@ public sealed class UserPasswordReset
     public DateTime? UsedAt { get; set; }
 
     /// <summary>
-    /// When the reset was created. Combined with <see cref="Constants.Duration.PasswordResetRequestLifetime"/>
+    /// When the reset was created. Combined with <see cref="Duration.PasswordResetRequestLifetime"/>
     /// to enforce the link's expiry.
     /// </summary>
     public DateTime CreatedAt { get; set; }

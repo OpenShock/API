@@ -400,16 +400,16 @@ public sealed class AccountService : IAccountService
         var lowerCaseEmail = email.ToLowerInvariant();
         var user = await _db.Users
             .Where(x => x.Email == lowerCaseEmail)
-            .Include(x => x.UserDeactivation)
             .Select(x => new
             {
                 User = x,
+                IsDeactivated = x.UserDeactivation != null,
                 PasswordResetCount = x.PasswordResets.Count(y => y.UsedAt == null && y.CreatedAt >= validSince)
             })
             .FirstOrDefaultAsync();
         if (user is null) return new NotFound();
         if (user.User.ActivatedAt is null) return new AccountNotActivated();
-        if (user.User.UserDeactivation is not null) return new AccountDeactivated();
+        if (user.IsDeactivated) return new AccountDeactivated();
         if (user.PasswordResetCount >= 3) return new TooManyPasswordResets();
 
         var token = CryptoUtils.RandomAlphaNumericString(AuthConstants.GeneratedTokenLength);
@@ -436,21 +436,39 @@ public sealed class AccountService : IAccountService
         var validSince = DateTime.UtcNow - Duration.PasswordResetRequestLifetime;
 
         var reset = await _db.UserPasswordResets
-            .Include(x => x.User)
-            .Include(x => x.User.UserDeactivation)
-            .FirstOrDefaultAsync(x => x.Id == passwordResetId && x.UsedAt == null && x.CreatedAt >= validSince
-                && x.SecurityStampAtCreate == x.User.SecurityStamp);
+            .Select(x => new
+            {
+                Reset = x,
+                UserActivatedAt = x.User.ActivatedAt,
+                IsDeactivated = x.User.UserDeactivation != null,
+                UserSecurityStamp = x.User.SecurityStamp
+            })
+            .FirstOrDefaultAsync(x => x.Reset.Id == passwordResetId && x.Reset.UsedAt == null && x.Reset.CreatedAt >= validSince
+                && x.Reset.SecurityStampAtCreate == x.UserSecurityStamp);
         if (reset is null) return new NotFound();
-        if (reset.User.ActivatedAt is null) return new AccountNotActivated();
-        if (reset.User.UserDeactivation is not null) return new AccountDeactivated();
+        if (reset.UserActivatedAt is null) return new AccountNotActivated();
+        if (reset.IsDeactivated) return new AccountDeactivated();
 
-        var result = HashingUtils.VerifyToken(secret, reset.TokenHash);
+        var result = HashingUtils.VerifyToken(secret, reset.Reset.TokenHash);
         if (!result.Verified) return new SecretInvalid();
 
-        reset.UsedAt = DateTime.UtcNow;
-        reset.User.PasswordHash = HashingUtils.HashPassword(newPassword);
-        reset.User.SecurityStamp = Guid.CreateVersion7(); // Rotates the stamp; every other pending reset/email-change for this user is now invalid by predicate.
-        await _db.SaveChangesAsync();
+        // Race-safe consume + apply: only updates if SecurityStamp still matches the snapshot.
+        // If a sibling reset (or a separate password/email change) completed since the read above,
+        // the stamp has rotated and the predicate matches zero rows.
+        var newPasswordHash = HashingUtils.HashPassword(newPassword);
+        var newStamp = Guid.CreateVersion7();
+        var userRows = await _db.Users
+            .Where(u => u.Id == reset.Reset.UserId && u.SecurityStamp == reset.Reset.SecurityStampAtCreate)
+            .ExecuteUpdateAsync(s => s
+                .SetProperty(u => u.PasswordHash, newPasswordHash)
+                .SetProperty(u => u.SecurityStamp, newStamp));
+        if (userRows == 0) return new NotFound();
+
+        var now = DateTime.UtcNow;
+        await _db.UserPasswordResets
+            .Where(r => r.Id == reset.Reset.Id && r.UsedAt == null)
+            .ExecuteUpdateAsync(s => s.SetProperty(r => r.UsedAt, now));
+
         return new Success();
     }
 
@@ -537,16 +555,16 @@ public sealed class AccountService : IAccountService
 
         var data = await _db.Users
             .Where(x => x.Id == userId)
-            .Include(x => x.UserDeactivation)
             .Select(x => new
             {
                 User = x,
+                IsDeactivated = x.UserDeactivation != null,
                 PendingCount = x.EmailChanges.Count(y => y.UsedAt == null && y.CreatedAt >= validSince)
             })
             .FirstOrDefaultAsync();
         if (data is null) return new NotFound();
         if (data.User.ActivatedAt is null) return new AccountNotActivated();
-        if (data.User.UserDeactivation is not null) return new AccountDeactivated();
+        if (data.IsDeactivated) return new AccountDeactivated();
         if (string.Equals(data.User.Email, lowerCaseEmail, StringComparison.Ordinal)) return new EmailUnchanged();
         if (data.PendingCount >= 3) return new TooManyEmailChanges();
 
@@ -594,21 +612,31 @@ public sealed class AccountService : IAccountService
         var validSince = DateTime.UtcNow - Duration.EmailChangeRequestLifetime;
 
         var change = await _db.UserEmailChanges
-            .Include(x => x.User).ThenInclude(u => u.UserDeactivation)
-            .FirstOrDefaultAsync(x => x.TokenHash == hash && x.UsedAt == null && x.CreatedAt >= validSince
+            .Where(x => x.TokenHash == hash && x.UsedAt == null && x.CreatedAt >= validSince
                 && x.SecurityStampAtCreate == x.User.SecurityStamp
-                && x.User.UserDeactivation == null && x.User.ActivatedAt != null, cancellationToken);
+                && x.User.UserDeactivation == null && x.User.ActivatedAt != null)
+            .Select(x => new
+            {
+                ChangeId = x.Id,
+                UserId = x.UserId,
+                x.NewEmail,
+                x.SecurityStampAtCreate
+            })
+            .FirstOrDefaultAsync(cancellationToken);
 
         if (change is null) return new NotFound();
 
-        change.UsedAt = DateTime.UtcNow;
-        change.User.Email = change.NewEmail;
-        change.User.SecurityStamp = Guid.CreateVersion7(); // Rotates the stamp; every other pending reset/email-change for this user is now invalid by predicate.
-
+        // Race-safe consume + apply: only updates if SecurityStamp still matches the snapshot, so
+        // sibling email changes / password resets that completed since the read above cleanly lose.
+        var newStamp = Guid.CreateVersion7();
         try
         {
-            await _db.SaveChangesAsync(cancellationToken);
-            return new Success();
+            var userRows = await _db.Users
+                .Where(u => u.Id == change.UserId && u.SecurityStamp == change.SecurityStampAtCreate)
+                .ExecuteUpdateAsync(s => s
+                    .SetProperty(u => u.Email, change.NewEmail)
+                    .SetProperty(u => u.SecurityStamp, newStamp), cancellationToken);
+            if (userRows == 0) return new NotFound();
         }
         catch (DbUpdateException ex) when (ex.InnerException is PostgresException { SqlState: "23505" })
         {
@@ -616,6 +644,13 @@ public sealed class AccountService : IAccountService
             // The pending row stays as-is (not marked used) so it can expire naturally.
             return new EmailAlreadyInUse();
         }
+
+        var now = DateTime.UtcNow;
+        await _db.UserEmailChanges
+            .Where(c => c.Id == change.ChangeId && c.UsedAt == null)
+            .ExecuteUpdateAsync(s => s.SetProperty(c => c.UsedAt, now), cancellationToken);
+
+        return new Success();
     }
 
     private async Task<bool> CheckPassword(string password, User user)

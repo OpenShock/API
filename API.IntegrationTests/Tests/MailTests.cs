@@ -439,7 +439,7 @@ public sealed partial class MailTests
         var firstVerify = await anonClient.PostAsync($"/1/account/email-change/verify?token={firstToken}", null);
         await Assert.That(firstVerify.StatusCode).IsEqualTo(HttpStatusCode.OK);
 
-        // Second pending request is now invalid: its EmailVersionAtCreate snapshot no longer matches User.EmailVersion.
+        // Second pending request is now invalid: its SecurityStampAtCreate snapshot no longer matches User.SecurityStamp.
         var secondVerify = await anonClient.PostAsync($"/1/account/email-change/verify?token={secondToken}", null);
         await Assert.That(secondVerify.StatusCode).IsEqualTo(HttpStatusCode.BadRequest);
 
