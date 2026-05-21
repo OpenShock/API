@@ -514,10 +514,11 @@ public sealed class AccountService : IAccountService
 
 
     /// <inheritdoc />
-    public async Task<OneOf<Success, AccountDeactivated, NotFound>> ChangePasswordAsync(Guid userId, string newPassword)
+    public async Task<OneOf<Success, AccountNotActivated, AccountDeactivated, NotFound>> ChangePasswordAsync(Guid userId, string newPassword)
     {
         var user = await _db.Users.Include(u => u.UserDeactivation).FirstOrDefaultAsync(x => x.Id == userId);
         if (user is null) return new NotFound();
+        if (user.ActivatedAt is null) return new AccountNotActivated();
         if (user.UserDeactivation is not null) return new AccountDeactivated();
 
         user.PasswordHash = HashingUtils.HashPassword(newPassword);
@@ -529,7 +530,7 @@ public sealed class AccountService : IAccountService
     }
 
     /// <inheritdoc />
-    public async Task<OneOf<Success, EmailAlreadyInUse, EmailUnchanged, TooManyEmailChanges, AccountDeactivated, NotFound>> CreateEmailChangeFlowAsync(Guid userId, string newEmail)
+    public async Task<OneOf<Success, EmailAlreadyInUse, EmailUnchanged, TooManyEmailChanges, AccountNotActivated, AccountDeactivated, NotFound>> CreateEmailChangeFlowAsync(Guid userId, string newEmail)
     {
         var lowerCaseEmail = newEmail.ToLowerInvariant();
         var validSince = DateTime.UtcNow - Duration.EmailChangeRequestLifetime;
@@ -544,6 +545,7 @@ public sealed class AccountService : IAccountService
             })
             .FirstOrDefaultAsync();
         if (data is null) return new NotFound();
+        if (data.User.ActivatedAt is null) return new AccountNotActivated();
         if (data.User.UserDeactivation is not null) return new AccountDeactivated();
         if (string.Equals(data.User.Email, lowerCaseEmail, StringComparison.Ordinal)) return new EmailUnchanged();
         if (data.PendingCount >= 3) return new TooManyEmailChanges();

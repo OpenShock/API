@@ -32,6 +32,7 @@ public sealed partial class AuthenticatedAccountController
 
         return result.Match<IActionResult>(
             success => Ok(),
+            notActivated => throw new UnreachableException("Authenticated user is not activated"),
             deactivated => Problem(AccountError.AccountDeactivated),
             notFound => throw new UnreachableException("Authenticated user not found in database"));
 
