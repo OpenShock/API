@@ -472,31 +472,34 @@ public sealed partial class MailTests
         var messages = await mailpit.WaitForMessagesAsync(email, minCount: 2);
         await Assert.That(messages.Count).IsGreaterThanOrEqualTo(2);
 
-        // Mailpit returns messages in reverse-chronological order; take the two for our recipient.
-        var firstFull = await mailpit.GetMessageAsync(messages[1].Id);
-        var secondFull = await mailpit.GetMessageAsync(messages[0].Id);
-        var (firstResetId, firstSecret) = ExtractPasswordResetParams(firstFull!.Html);
-        var (secondResetId, secondSecret) = ExtractPasswordResetParams(secondFull!.Html);
-        await Assert.That(firstResetId).IsNotNull().And.IsNotEmpty();
-        await Assert.That(secondResetId).IsNotNull().And.IsNotEmpty();
+        // We don't care which of the two emails came from which request — the scenario is just
+        // "two valid pending resets exist; completing either must invalidate the other". Pick the
+        // first two distinct reset-id/secret pairs we see and call them A and B.
+        var fullA = await mailpit.GetMessageAsync(messages[0].Id);
+        var fullB = await mailpit.GetMessageAsync(messages[1].Id);
+        var (resetIdA, secretA) = ExtractPasswordResetParams(fullA!.Html);
+        var (resetIdB, secretB) = ExtractPasswordResetParams(fullB!.Html);
+        await Assert.That(resetIdA).IsNotNull().And.IsNotEmpty();
+        await Assert.That(resetIdB).IsNotNull().And.IsNotEmpty();
+        await Assert.That(resetIdA).IsNotEqualTo(resetIdB);
 
-        // Complete the first reset
-        var firstComplete = await client.PostAsync(
-            $"/1/account/password-reset/{firstResetId}/{firstSecret}/complete",
+        // Complete reset A
+        var completeA = await client.PostAsync(
+            $"/1/account/password-reset/{resetIdA}/{secretA}/complete",
             TestHelper.JsonContent(new { password = firstNewPassword }));
-        await Assert.That(firstComplete.StatusCode).IsEqualTo(HttpStatusCode.OK);
+        await Assert.That(completeA.StatusCode).IsEqualTo(HttpStatusCode.OK);
 
-        // The second (sibling) reset must no longer be usable
-        var secondCheck = await client.GetAsync(
-            $"/1/account/password-reset/{secondResetId}/{secondSecret}");
-        await Assert.That(secondCheck.StatusCode).IsEqualTo(HttpStatusCode.NotFound);
+        // Reset B (sibling) must no longer be usable
+        var checkB = await client.GetAsync(
+            $"/1/account/password-reset/{resetIdB}/{secretB}");
+        await Assert.That(checkB.StatusCode).IsEqualTo(HttpStatusCode.NotFound);
 
-        var secondComplete = await client.PostAsync(
-            $"/1/account/password-reset/{secondResetId}/{secondSecret}/complete",
+        var completeB = await client.PostAsync(
+            $"/1/account/password-reset/{resetIdB}/{secretB}/complete",
             TestHelper.JsonContent(new { password = secondNewPassword }));
-        await Assert.That(secondComplete.StatusCode).IsEqualTo(HttpStatusCode.NotFound);
+        await Assert.That(completeB.StatusCode).IsEqualTo(HttpStatusCode.NotFound);
 
-        // First (new) password still works
+        // Password from the winning reset works
         var loginResponse = await client.PostAsync("/1/account/login", TestHelper.JsonContent(new
         {
             email,

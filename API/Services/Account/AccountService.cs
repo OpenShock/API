@@ -550,7 +550,6 @@ public sealed class AccountService : IAccountService
     /// <inheritdoc />
     public async Task<OneOf<Success, EmailAlreadyInUse, EmailUnchanged, TooManyEmailChanges, AccountNotActivated, AccountDeactivated, NotFound>> CreateEmailChangeFlowAsync(Guid userId, string newEmail)
     {
-        var lowerCaseEmail = newEmail.ToLowerInvariant();
         var validSince = DateTime.UtcNow - Duration.EmailChangeRequestLifetime;
 
         var data = await _db.Users
@@ -565,12 +564,13 @@ public sealed class AccountService : IAccountService
         if (data is null) return new NotFound();
         if (data.User.ActivatedAt is null) return new AccountNotActivated();
         if (data.IsDeactivated) return new AccountDeactivated();
-        if (string.Equals(data.User.Email, lowerCaseEmail, StringComparison.Ordinal)) return new EmailUnchanged();
+        if (string.Equals(data.User.Email, newEmail, StringComparison.OrdinalIgnoreCase)) return new EmailUnchanged();
         if (data.PendingCount >= 3) return new TooManyEmailChanges();
 
-        if (await IsEmailProviderBlacklisted(lowerCaseEmail))
+        if (await IsEmailProviderBlacklisted(newEmail))
             return new EmailAlreadyInUse(); // Don't reveal blacklist hits
 
+        var lowerCaseEmail = newEmail.ToLowerInvariant();
         if (await _db.Users.AnyAsync(x => x.Email == lowerCaseEmail))
             return new EmailAlreadyInUse();
 
@@ -584,16 +584,20 @@ public sealed class AccountService : IAccountService
             TokenHash = HashingUtils.HashToken(token),
             SecurityStampAtCreate = data.User.SecurityStamp
         };
-        _db.UserEmailChanges.Add(emailChange);
-        await _db.SaveChangesAsync();
 
+        // Dispatch the verification email *before* committing the row. If the mail service throws
+        // (provider outage, transient network failure), the exception propagates and the row is
+        // never inserted, the user can simply retry without burning a pending-count slot.
         await _emailService.VerifyEmail(new Contact(lowerCaseEmail, data.User.Name),
             new Uri(_frontendConfig.BaseUrl, $"/verify-email?token={token}"));
 
+        _db.UserEmailChanges.Add(emailChange);
+        await _db.SaveChangesAsync();
+
         // Notify the previous address so the legitimate owner sees the change request even if
-        // the session/password used to start it was compromised. Best-effort: a failure here
-        // must not roll back the change request, since the verification email has already been
-        // dispatched and the row is committed.
+        // the session/password used to start it was compromised. Best-effort: the verification
+        // email has already been dispatched and the row is committed, so a failure here must not
+        // unwind the request.
         try
         {
             await _emailService.EmailChangeNotice(new Contact(data.User.Email, data.User.Name), lowerCaseEmail);
@@ -670,6 +674,9 @@ public sealed class AccountService : IAccountService
 
         if (result.NeedsRehash)
         {
+            // Re-hashing the same password to upgrade algorithms intentionally does not rotate
+            // SecurityStamp, the credential value is unchanged, so outstanding reset / email-change
+            // links for this user must continue to work.
             _logger.LogInformation("Rehashing password for user ID: [{Id}]", user.Id);
             user.PasswordHash = HashingUtils.HashPassword(password);
             await _db.SaveChangesAsync();

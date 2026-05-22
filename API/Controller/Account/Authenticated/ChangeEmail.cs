@@ -23,6 +23,7 @@ public sealed partial class AuthenticatedAccountController
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status403Forbidden, MediaTypeNames.Application.ProblemJson)] // PasswordChangeInvalidPassword
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status409Conflict, MediaTypeNames.Application.ProblemJson)] // EmailChangeAlreadyInUse
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status429TooManyRequests, MediaTypeNames.Application.ProblemJson)] // EmailChangeTooMany
+    // notActivated / deactivated / notFound are blocked by UserSessionAuthentication before reaching this controller.
     public async Task<IActionResult> ChangeEmail([FromBody] ChangeEmailRequest body)
     {
         if (string.IsNullOrEmpty(CurrentUser.PasswordHash))
@@ -43,7 +44,7 @@ public sealed partial class AuthenticatedAccountController
             unchanged => Problem(AccountError.EmailChangeUnchanged),
             tooMany => Problem(AccountError.EmailChangeTooMany),
             notActivated => throw new UnreachableException("Authenticated user is not activated"),
-            deactivated => Problem(AccountError.AccountDeactivated),
+            deactivated => throw new UnreachableException("Authenticated user is deactivated"),
             notFound => throw new UnreachableException("Authenticated user not found in database"));
     }
 }

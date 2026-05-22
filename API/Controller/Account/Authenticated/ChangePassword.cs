@@ -19,8 +19,8 @@ public sealed partial class AuthenticatedAccountController
     [HttpPost("password")]
     [Consumes(MediaTypeNames.Application.Json)]
     [ProducesResponseType(StatusCodes.Status200OK)]
-    [ProducesResponseType<OpenShockProblem>(StatusCodes.Status401Unauthorized, MediaTypeNames.Application.ProblemJson)]
-    [ProducesResponseType<OpenShockProblem>(StatusCodes.Status403Forbidden, MediaTypeNames.Application.ProblemJson)]
+    [ProducesResponseType<OpenShockProblem>(StatusCodes.Status403Forbidden, MediaTypeNames.Application.ProblemJson)] // PasswordChangeInvalidPassword
+    // notActivated / deactivated / notFound are blocked by UserSessionAuthentication before reaching this controller.
     public async Task<IActionResult> ChangePassword([FromBody] ChangePasswordRequest body)
     {
         if (!string.IsNullOrEmpty(CurrentUser.PasswordHash) && !HashingUtils.VerifyPassword(body.CurrentPassword, CurrentUser.PasswordHash).Verified)
@@ -33,7 +33,7 @@ public sealed partial class AuthenticatedAccountController
         return result.Match<IActionResult>(
             success => Ok(),
             notActivated => throw new UnreachableException("Authenticated user is not activated"),
-            deactivated => Problem(AccountError.AccountDeactivated),
+            deactivated => throw new UnreachableException("Authenticated user is deactivated"),
             notFound => throw new UnreachableException("Authenticated user not found in database"));
 
     }
