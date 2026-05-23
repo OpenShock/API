@@ -31,6 +31,9 @@ public static class AccountError
 
     public static OpenShockProblem AccountOAuthOnly => new OpenShockProblem("Account.OAuthOnly", "This account is only accessible via OAuth", HttpStatusCode.Unauthorized);
 
+    public static OpenShockProblem PasswordNotSet => new OpenShockProblem("Account.Password.NotSet",
+        "This account has no password set. Initiate a password set flow via POST /password/set instead.", HttpStatusCode.Conflict);
+
     public static OpenShockProblem EmailChangeAlreadyInUse => new OpenShockProblem("Account.Email.AlreadyInUse",
         "This email address is already in use", HttpStatusCode.Conflict);
 
