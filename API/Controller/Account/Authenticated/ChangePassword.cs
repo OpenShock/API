@@ -20,10 +20,18 @@ public sealed partial class AuthenticatedAccountController
     [Consumes(MediaTypeNames.Application.Json)]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status403Forbidden, MediaTypeNames.Application.ProblemJson)] // PasswordChangeInvalidPassword
+    [ProducesResponseType<OpenShockProblem>(StatusCodes.Status409Conflict, MediaTypeNames.Application.ProblemJson)] // PasswordNotSet
     // notActivated / deactivated / notFound are blocked by UserSessionAuthentication before reaching this controller.
     public async Task<IActionResult> ChangePassword([FromBody] ChangePasswordRequest body)
     {
-        if (!string.IsNullOrEmpty(CurrentUser.PasswordHash) && !HashingUtils.VerifyPassword(body.CurrentPassword, CurrentUser.PasswordHash).Verified)
+        // OAuth-only accounts that have never set a password must go through the email-confirmed
+        // /password/set flow rather than silently setting one through this endpoint.
+        if (string.IsNullOrEmpty(CurrentUser.PasswordHash))
+        {
+            return Problem(AccountError.PasswordNotSet);
+        }
+
+        if (!HashingUtils.VerifyPassword(body.CurrentPassword, CurrentUser.PasswordHash).Verified)
         {
             return Problem(AccountError.PasswordChangeInvalidPassword);
         }
