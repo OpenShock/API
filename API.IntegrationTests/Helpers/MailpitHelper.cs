@@ -19,6 +19,11 @@ public sealed class MailpitHelper : IDisposable
     /// Polls until at least one email arrives for the given recipient address, or the timeout elapses.
     /// Returns null if no message arrived within the timeout.
     /// </summary>
+    /// <remarks>
+    /// Uses Mailpit's server-side search so the lookup is unaffected by how many unrelated messages
+    /// have accumulated in the inbox. Listing endpoints page at 50 by default which silently hid
+    /// matches once enough emails piled up across a test session.
+    /// </remarks>
     public async Task<MailpitMessage?> WaitForMessageAsync(
         string toAddress,
         TimeSpan? timeout = null,
@@ -27,18 +32,47 @@ public sealed class MailpitHelper : IDisposable
         var deadline = DateTime.UtcNow + (timeout ?? TimeSpan.FromSeconds(15));
         while (DateTime.UtcNow < deadline && !cancellationToken.IsCancellationRequested)
         {
-            var response = await _client.GetFromJsonAsync<MailpitSearchResponse>(
-                "/api/v1/messages?limit=50", cancellationToken);
-
-            var match = response?.Messages?.FirstOrDefault(m =>
-                m.To?.Any(c => c.Address.Equals(toAddress, StringComparison.OrdinalIgnoreCase)) == true);
-
-            if (match is not null)
-                return match;
-
+            var match = (await SearchByRecipientAsync(toAddress, limit: 1, cancellationToken)).FirstOrDefault();
+            if (match is not null) return match;
             await Task.Delay(300, cancellationToken);
         }
         return null;
+    }
+
+    /// <summary>
+    /// Polls until at least <paramref name="minCount"/> emails are present for the recipient, or
+    /// the timeout elapses. Useful when a test expects multiple emails to arrive (e.g. two reset
+    /// requests in a row) and needs to disambiguate them.
+    /// </summary>
+    public async Task<List<MailpitMessage>> WaitForMessagesAsync(
+        string toAddress,
+        int minCount,
+        TimeSpan? timeout = null,
+        CancellationToken cancellationToken = default)
+    {
+        var deadline = DateTime.UtcNow + (timeout ?? TimeSpan.FromSeconds(15));
+        while (DateTime.UtcNow < deadline && !cancellationToken.IsCancellationRequested)
+        {
+            var matches = await SearchByRecipientAsync(toAddress, limit: Math.Max(minCount, 10), cancellationToken);
+            if (matches.Count >= minCount) return matches;
+            await Task.Delay(300, cancellationToken);
+        }
+        return await SearchByRecipientAsync(toAddress, limit: Math.Max(minCount, 10), cancellationToken);
+    }
+
+    /// <summary>
+    /// Returns all messages currently in Mailpit addressed to the given recipient.
+    /// Server-side filtered via the Mailpit search API.
+    /// </summary>
+    public async Task<List<MailpitMessage>> SearchByRecipientAsync(
+        string toAddress,
+        int limit = 10,
+        CancellationToken cancellationToken = default)
+    {
+        var query = Uri.EscapeDataString($"to:{toAddress}");
+        var response = await _client.GetFromJsonAsync<MailpitSearchResponse>(
+            $"/api/v1/search?query={query}&limit={limit}", cancellationToken);
+        return response?.Messages ?? [];
     }
 
     /// <summary>

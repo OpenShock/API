@@ -170,6 +170,26 @@ public static class TestHelper
     {
         return new StringContent(JsonSerializer.Serialize(obj, JsonOptions), Encoding.UTF8, "application/json");
     }
+
+    /// <summary>
+    /// Generates a unique recipient address so per-test Mailpit lookups never collide with other
+    /// tests' emails. Format: <c>{prefix}-{8hex}@test.org</c>.
+    /// </summary>
+    public static string UniqueEmail(string prefix)
+    {
+        var suffix = Guid.CreateVersion7().ToString("N")[..8];
+        return $"{prefix}-{suffix}@test.org";
+    }
+
+    /// <summary>
+    /// Generates a unique username so concurrent tests in the same session never collide on the
+    /// users.name unique index.
+    /// </summary>
+    public static string UniqueUsername(string prefix)
+    {
+        var suffix = Guid.CreateVersion7().ToString("N")[..8];
+        return ($"{prefix}{suffix}").ToLowerInvariant();
+    }
 }
 
 public sealed record AuthenticatedUser(Guid Id, string Username, string Email, string SessionToken);

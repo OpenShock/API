@@ -83,6 +83,22 @@ public sealed class MailjetEmailService : IEmailService, IDisposable
         }, cancellationToken);
     }
 
+    /// <inheritdoc />
+    public async Task EmailChangeNotice(Contact to, string newEmail, CancellationToken cancellationToken = default)
+    {
+        await SendMail(new TemplateMail
+        {
+            From = _sender,
+            Subject = "Your OpenShock email is being changed",
+            To = [to],
+            TemplateId = _options.Template.EmailChangeNotice,
+            Variables = new Dictionary<string, string>
+            {
+                { "newEmail", newEmail },
+            }
+        }, cancellationToken);
+    }
+
     #endregion
 
     private Task SendMail(MailBase templateMail, CancellationToken cancellationToken = default) => SendMails([templateMail], cancellationToken);

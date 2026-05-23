@@ -381,14 +381,15 @@ public sealed class AccountService : IAccountService
     {
         var validSince = DateTime.UtcNow - Duration.PasswordResetRequestLifetime;
         var reset = await _db.UserPasswordResets.FirstOrDefaultAsync(x =>
-                x.Id == passwordResetId && x.UsedAt == null && x.CreatedAt >= validSince,
+                x.Id == passwordResetId && x.UsedAt == null && x.CreatedAt >= validSince
+                && x.SecurityStampAtCreate == x.User.SecurityStamp,
             cancellationToken: cancellationToken);
 
         if (reset is null) return new NotFound();
 
         var result = HashingUtils.VerifyToken(secret, reset.TokenHash);
         if (!result.Verified) return new SecretInvalid();
-        
+
         return new Success();
     }
 
@@ -399,16 +400,16 @@ public sealed class AccountService : IAccountService
         var lowerCaseEmail = email.ToLowerInvariant();
         var user = await _db.Users
             .Where(x => x.Email == lowerCaseEmail)
-            .Include(x => x.UserDeactivation)
             .Select(x => new
             {
                 User = x,
+                IsDeactivated = x.UserDeactivation != null,
                 PasswordResetCount = x.PasswordResets.Count(y => y.UsedAt == null && y.CreatedAt >= validSince)
             })
             .FirstOrDefaultAsync();
         if (user is null) return new NotFound();
         if (user.User.ActivatedAt is null) return new AccountNotActivated();
-        if (user.User.UserDeactivation is not null) return new AccountDeactivated();
+        if (user.IsDeactivated) return new AccountDeactivated();
         if (user.PasswordResetCount >= 3) return new TooManyPasswordResets();
 
         var token = CryptoUtils.RandomAlphaNumericString(AuthConstants.GeneratedTokenLength);
@@ -416,7 +417,8 @@ public sealed class AccountService : IAccountService
         {
             Id = Guid.CreateVersion7(),
             UserId = user.User.Id,
-            TokenHash = HashingUtils.HashToken(token)
+            TokenHash = HashingUtils.HashToken(token),
+            SecurityStampAtCreate = user.User.SecurityStamp
         };
         _db.UserPasswordResets.Add(passwordReset);
         await _db.SaveChangesAsync();
@@ -434,19 +436,39 @@ public sealed class AccountService : IAccountService
         var validSince = DateTime.UtcNow - Duration.PasswordResetRequestLifetime;
 
         var reset = await _db.UserPasswordResets
-            .Include(x => x.User)
-            .Include(x => x.User.UserDeactivation)
-            .FirstOrDefaultAsync(x => x.Id == passwordResetId && x.UsedAt == null && x.CreatedAt >= validSince);
+            .Select(x => new
+            {
+                Reset = x,
+                UserActivatedAt = x.User.ActivatedAt,
+                IsDeactivated = x.User.UserDeactivation != null,
+                UserSecurityStamp = x.User.SecurityStamp
+            })
+            .FirstOrDefaultAsync(x => x.Reset.Id == passwordResetId && x.Reset.UsedAt == null && x.Reset.CreatedAt >= validSince
+                && x.Reset.SecurityStampAtCreate == x.UserSecurityStamp);
         if (reset is null) return new NotFound();
-        if (reset.User.ActivatedAt is null) return new AccountNotActivated();
-        if (reset.User.UserDeactivation is not null) return new AccountDeactivated();
+        if (reset.UserActivatedAt is null) return new AccountNotActivated();
+        if (reset.IsDeactivated) return new AccountDeactivated();
 
-        var result = HashingUtils.VerifyToken(secret, reset.TokenHash);
+        var result = HashingUtils.VerifyToken(secret, reset.Reset.TokenHash);
         if (!result.Verified) return new SecretInvalid();
 
-        reset.UsedAt = DateTime.UtcNow;
-        reset.User.PasswordHash = HashingUtils.HashPassword(newPassword);
-        await _db.SaveChangesAsync();
+        // Race-safe consume + apply: only updates if SecurityStamp still matches the snapshot.
+        // If a sibling reset (or a separate password/email change) completed since the read above,
+        // the stamp has rotated and the predicate matches zero rows.
+        var newPasswordHash = HashingUtils.HashPassword(newPassword);
+        var newStamp = Guid.CreateVersion7();
+        var userRows = await _db.Users
+            .Where(u => u.Id == reset.Reset.UserId && u.SecurityStamp == reset.Reset.SecurityStampAtCreate)
+            .ExecuteUpdateAsync(s => s
+                .SetProperty(u => u.PasswordHash, newPasswordHash)
+                .SetProperty(u => u.SecurityStamp, newStamp));
+        if (userRows == 0) return new NotFound();
+
+        var now = DateTime.UtcNow;
+        await _db.UserPasswordResets
+            .Where(r => r.Id == reset.Reset.Id && r.UsedAt == null)
+            .ExecuteUpdateAsync(s => s.SetProperty(r => r.UsedAt, now));
+
         return new Success();
     }
 
@@ -510,31 +532,129 @@ public sealed class AccountService : IAccountService
 
 
     /// <inheritdoc />
-    public async Task<OneOf<Success, AccountDeactivated, NotFound>> ChangePasswordAsync(Guid userId, string newPassword)
+    public async Task<OneOf<Success, AccountNotActivated, AccountDeactivated, NotFound>> ChangePasswordAsync(Guid userId, string newPassword)
     {
         var user = await _db.Users.Include(u => u.UserDeactivation).FirstOrDefaultAsync(x => x.Id == userId);
         if (user is null) return new NotFound();
+        if (user.ActivatedAt is null) return new AccountNotActivated();
         if (user.UserDeactivation is not null) return new AccountDeactivated();
 
         user.PasswordHash = HashingUtils.HashPassword(newPassword);
+        user.SecurityStamp = Guid.CreateVersion7(); // Any outstanding reset/email-change row for this user has a stale SecurityStampAtCreate after this; predicate handles invalidation.
 
         await _db.SaveChangesAsync();
 
         return new Success();
     }
 
-    public async Task<bool> TryVerifyEmailAsync(string token, CancellationToken cancellationToken = default)
+    /// <inheritdoc />
+    public async Task<OneOf<Success, EmailAlreadyInUse, EmailUnchanged, TooManyEmailChanges, AccountNotActivated, AccountDeactivated, NotFound>> CreateEmailChangeFlowAsync(Guid userId, string newEmail)
+    {
+        var validSince = DateTime.UtcNow - Duration.EmailChangeRequestLifetime;
+
+        var data = await _db.Users
+            .Where(x => x.Id == userId)
+            .Select(x => new
+            {
+                User = x,
+                IsDeactivated = x.UserDeactivation != null,
+                PendingCount = x.EmailChanges.Count(y => y.UsedAt == null && y.CreatedAt >= validSince)
+            })
+            .FirstOrDefaultAsync();
+        if (data is null) return new NotFound();
+        if (data.User.ActivatedAt is null) return new AccountNotActivated();
+        if (data.IsDeactivated) return new AccountDeactivated();
+        if (string.Equals(data.User.Email, newEmail, StringComparison.OrdinalIgnoreCase)) return new EmailUnchanged();
+        if (data.PendingCount >= 3) return new TooManyEmailChanges();
+
+        if (await IsEmailProviderBlacklisted(newEmail))
+            return new EmailAlreadyInUse(); // Don't reveal blacklist hits
+
+        var lowerCaseEmail = newEmail.ToLowerInvariant();
+        if (await _db.Users.AnyAsync(x => x.Email == lowerCaseEmail))
+            return new EmailAlreadyInUse();
+
+        var token = CryptoUtils.RandomAlphaNumericString(AuthConstants.GeneratedTokenLength);
+        var emailChange = new UserEmailChange
+        {
+            Id = Guid.CreateVersion7(),
+            UserId = data.User.Id,
+            OldEmail = data.User.Email,
+            NewEmail = lowerCaseEmail,
+            TokenHash = HashingUtils.HashToken(token),
+            SecurityStampAtCreate = data.User.SecurityStamp
+        };
+
+        // Dispatch the verification email *before* committing the row. If the mail service throws
+        // (provider outage, transient network failure), the exception propagates and the row is
+        // never inserted, the user can simply retry without burning a pending-count slot.
+        await _emailService.VerifyEmail(new Contact(lowerCaseEmail, data.User.Name),
+            new Uri(_frontendConfig.BaseUrl, $"/verify-email?token={token}"));
+
+        _db.UserEmailChanges.Add(emailChange);
+        await _db.SaveChangesAsync();
+
+        // Notify the previous address so the legitimate owner sees the change request even if
+        // the session/password used to start it was compromised. Best-effort: the verification
+        // email has already been dispatched and the row is committed, so a failure here must not
+        // unwind the request.
+        try
+        {
+            await _emailService.EmailChangeNotice(new Contact(data.User.Email, data.User.Name), lowerCaseEmail);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to send email-change notice to previous address for user {UserId}", data.User.Id);
+        }
+
+        return new Success();
+    }
+
+    public async Task<OneOf<Success, NotFound, EmailAlreadyInUse>> TryVerifyEmailAsync(string token, CancellationToken cancellationToken = default)
     {
         var hash = HashingUtils.HashToken(token);
+        var validSince = DateTime.UtcNow - Duration.EmailChangeRequestLifetime;
 
-        int nChanges = await _db.UserEmailChanges
-            .Where(x => x.TokenHash == hash && x.UsedAt == null && x.User.Email == x.OldEmail && x.User.UserDeactivation == null && x.User.ActivatedAt != null)
-            .ExecuteUpdateAsync(spc => spc
-                .SetProperty(x => x.UsedAt, _ => DateTime.UtcNow)
-                .SetProperty(x => x.User.Email, x => x.NewEmail)
-            , cancellationToken);
+        var change = await _db.UserEmailChanges
+            .Where(x => x.TokenHash == hash && x.UsedAt == null && x.CreatedAt >= validSince
+                && x.SecurityStampAtCreate == x.User.SecurityStamp
+                && x.User.UserDeactivation == null && x.User.ActivatedAt != null)
+            .Select(x => new
+            {
+                ChangeId = x.Id,
+                UserId = x.UserId,
+                x.NewEmail,
+                x.SecurityStampAtCreate
+            })
+            .FirstOrDefaultAsync(cancellationToken);
 
-        return nChanges > 0;
+        if (change is null) return new NotFound();
+
+        // Race-safe consume + apply: only updates if SecurityStamp still matches the snapshot, so
+        // sibling email changes / password resets that completed since the read above cleanly lose.
+        var newStamp = Guid.CreateVersion7();
+        try
+        {
+            var userRows = await _db.Users
+                .Where(u => u.Id == change.UserId && u.SecurityStamp == change.SecurityStampAtCreate)
+                .ExecuteUpdateAsync(s => s
+                    .SetProperty(u => u.Email, change.NewEmail)
+                    .SetProperty(u => u.SecurityStamp, newStamp), cancellationToken);
+            if (userRows == 0) return new NotFound();
+        }
+        catch (DbUpdateException ex) when (ex.InnerException is PostgresException { SqlState: "23505" })
+        {
+            // Another account claimed this email between request creation and verification.
+            // The pending row stays as-is (not marked used) so it can expire naturally.
+            return new EmailAlreadyInUse();
+        }
+
+        var now = DateTime.UtcNow;
+        await _db.UserEmailChanges
+            .Where(c => c.Id == change.ChangeId && c.UsedAt == null)
+            .ExecuteUpdateAsync(s => s.SetProperty(c => c.UsedAt, now), cancellationToken);
+
+        return new Success();
     }
 
     private async Task<bool> CheckPassword(string password, User user)
@@ -554,6 +674,9 @@ public sealed class AccountService : IAccountService
 
         if (result.NeedsRehash)
         {
+            // Re-hashing the same password to upgrade algorithms intentionally does not rotate
+            // SecurityStamp, the credential value is unchanged, so outstanding reset / email-change
+            // links for this user must continue to work.
             _logger.LogInformation("Rehashing password for user ID: [{Id}]", user.Id);
             user.PasswordHash = HashingUtils.HashPassword(password);
             await _db.SaveChangesAsync();

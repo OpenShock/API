@@ -114,15 +114,27 @@ public interface IAccountService
     /// <param name="userId"></param>
     /// <param name="newPassword"></param>
     /// <returns></returns>
-    public Task<OneOf<Success, AccountDeactivated, NotFound>> ChangePasswordAsync(Guid userId, string newPassword);
+    public Task<OneOf<Success, AccountNotActivated, AccountDeactivated, NotFound>> ChangePasswordAsync(Guid userId, string newPassword);
 
     /// <summary>
-    /// 
+    /// Creates a new email change request and sends a verification email to the new address.
+    /// The email change is not applied until the user confirms via <see cref="TryVerifyEmailAsync"/>.
+    /// </summary>
+    /// <param name="userId">Id of the user whose email is being changed.</param>
+    /// <param name="newEmail">Requested new email address.</param>
+    /// <returns></returns>
+    public Task<OneOf<Success, EmailAlreadyInUse, EmailUnchanged, TooManyEmailChanges, AccountNotActivated, AccountDeactivated, NotFound>> CreateEmailChangeFlowAsync(Guid userId, string newEmail);
+
+    /// <summary>
+    /// Verifies a pending email change using the supplied token. On success the user's email is updated.
+    /// Returns <see cref="NotFound"/> when the token is invalid, expired, or already used.
+    /// Returns <see cref="EmailAlreadyInUse"/> when the new address was claimed by another account between
+    /// request creation and verification (race condition).
     /// </summary>
     /// <param name="token"></param>
     /// <param name="cancellationToken"></param>
     /// <returns></returns>
-    Task<bool> TryVerifyEmailAsync(string token, CancellationToken cancellationToken = default);
+    Task<OneOf<Success, NotFound, EmailAlreadyInUse>> TryVerifyEmailAsync(string token, CancellationToken cancellationToken = default);
 }
 
 public readonly struct AccountIsOAuthOnly;
@@ -139,3 +151,7 @@ public readonly struct Unauthorized;
 public readonly struct UsernameTaken;
 
 public readonly struct RecentlyChanged;
+
+public readonly struct EmailAlreadyInUse;
+public readonly struct EmailUnchanged;
+public readonly struct TooManyEmailChanges;

@@ -1,4 +1,5 @@
-﻿using System.Net;
+﻿using System;
+using System.Net;
 using System.Net.Mime;
 using Microsoft.AspNetCore.Mvc;
 using Asp.Versioning;
@@ -17,13 +18,30 @@ public sealed partial class AccountController
     /// Initiate a password reset
     /// </summary>
     /// <response code="200">Password reset email sent if the email is associated to an registered account</response>
+    [HttpPost("password-reset")]
+    [EnableRateLimiting("auth")]
+    [Consumes(MediaTypeNames.Application.Json)]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType<OpenShockProblem>(StatusCodes.Status403Forbidden, MediaTypeNames.Application.ProblemJson)]
+    [MapToApiVersion("2")]
+    public Task<IActionResult> PasswordResetInitiateV2([FromBody] PasswordResetRequestV2 body, [FromServices] ICloudflareTurnstileService turnstileService, CancellationToken cancellationToken)
+        => PasswordResetInitiate(body, turnstileService, cancellationToken);
+
+    /// <summary>
+    /// Initiate a password reset. Deprecated: use POST /password-reset instead.
+    /// </summary>
+    /// <response code="200">Password reset email sent if the email is associated to an registered account</response>
+    [Obsolete("Use POST /password-reset instead.")]
     [HttpPost("reset-password")]
     [EnableRateLimiting("auth")]
     [Consumes(MediaTypeNames.Application.Json)]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status403Forbidden, MediaTypeNames.Application.ProblemJson)]
     [MapToApiVersion("2")]
-    public async Task<IActionResult> PasswordResetInitiateV2([FromBody] PasswordResetRequestV2 body, [FromServices] ICloudflareTurnstileService turnstileService, CancellationToken cancellationToken)
+    public Task<IActionResult> PasswordResetInitiateV2Legacy([FromBody] PasswordResetRequestV2 body, [FromServices] ICloudflareTurnstileService turnstileService, CancellationToken cancellationToken)
+        => PasswordResetInitiate(body, turnstileService, cancellationToken);
+
+    private async Task<IActionResult> PasswordResetInitiate(PasswordResetRequestV2 body, ICloudflareTurnstileService turnstileService, CancellationToken cancellationToken)
     {
         var turnStile = await turnstileService.VerifyUserResponseTokenAsync(body.TurnstileResponse, HttpContext.GetRemoteIP(), cancellationToken);
         if (!turnStile.IsT0)
@@ -34,9 +52,9 @@ public sealed partial class AccountController
 
             return Problem(new OpenShockProblem("InternalServerError", "Internal Server Error", HttpStatusCode.InternalServerError));
         }
-        
+
         await _accountService.CreatePasswordResetFlowAsync(body.Email);
-        
+
         return Ok();
     }
 }

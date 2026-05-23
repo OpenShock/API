@@ -30,4 +30,19 @@ public static class AccountError
     public static OpenShockProblem AccountDeactivated => new OpenShockProblem("Account.Deactivated", "Your account has been deactivated", HttpStatusCode.Unauthorized);
 
     public static OpenShockProblem AccountOAuthOnly => new OpenShockProblem("Account.OAuthOnly", "This account is only accessible via OAuth", HttpStatusCode.Unauthorized);
+
+    public static OpenShockProblem PasswordNotSet => new OpenShockProblem("Account.Password.NotSet",
+        "This account has no password set. Initiate a password set flow via POST /password/set instead.", HttpStatusCode.Conflict);
+
+    public static OpenShockProblem EmailChangeAlreadyInUse => new OpenShockProblem("Account.Email.AlreadyInUse",
+        "This email address is already in use", HttpStatusCode.Conflict);
+
+    public static OpenShockProblem EmailChangeUnchanged => new OpenShockProblem("Account.Email.Unchanged",
+        "The new email address is the same as the current one", HttpStatusCode.BadRequest);
+
+    public static OpenShockProblem EmailChangeTooMany => new OpenShockProblem("Account.Email.TooManyRequests",
+        "You have too many pending email change requests", HttpStatusCode.TooManyRequests);
+
+    public static OpenShockProblem EmailChangeNotFound => new OpenShockProblem("Account.Email.VerifyNotFound",
+        "There is no email change request matching the supplied token", HttpStatusCode.BadRequest);
 }

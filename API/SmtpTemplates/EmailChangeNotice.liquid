@@ -1,0 +1,51 @@
+Your OpenShock email is being changed
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Email change requested</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            background-color: #f4f4f4;
+            margin: 0;
+            padding: 0;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+        .container {
+            max-width: 600px;
+            margin: 20px auto;
+            padding: 20px;
+            background-color: #fff;
+            border-radius: 5px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+        h2 {
+            color: #333;
+        }
+        p {
+            margin-bottom: 20px;
+        }
+        .new-email {
+            font-family: monospace;
+            background-color: #f0f0f0;
+            padding: 2px 6px;
+            border-radius: 3px;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h2>Email change requested</h2>
+    <p>Hello {{ To.Name }},</p>
+    <p>Someone requested that the email address on your OpenShock account be changed to <span class="new-email">{{ NewEmail }}</span>.</p>
+    <p>The change is <strong>not yet applied</strong>. It will only take effect once the new address is verified via the link sent to it.</p>
+    <p>If this was you, no action is needed.</p>
+    <p>If this was <strong>not you</strong>, sign in immediately and change your password — your account may be compromised.</p>
+    <p>Thank you,<br>OpenShock Team</p>
+</div>
+</body>
+</html>

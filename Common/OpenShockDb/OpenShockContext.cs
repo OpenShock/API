@@ -303,6 +303,8 @@ public class OpenShockContext : DbContext, IDataProtectionKeyContext
                 .UseCollation("C")
                 .VarCharWithLength(HardLimits.PasswordResetSecretMaxLength)
                 .HasColumnName("token_hash");
+            entity.Property(e => e.SecurityStampAtCreate)
+                .HasColumnName("security_stamp_at_create");
             entity.Property(e => e.UsedAt)
                 .HasColumnName("used_at");
             entity.Property(e => e.UserId).HasColumnName("user_id");
@@ -606,6 +608,9 @@ public class OpenShockContext : DbContext, IDataProtectionKeyContext
                 .UseCollation("C")
                 .VarCharWithLength(HardLimits.PasswordHashMaxLength)
                 .HasColumnName("password_hash");
+            entity.Property(e => e.SecurityStamp)
+                .HasDefaultValueSql("gen_random_uuid()")
+                .HasColumnName("security_stamp");
             entity.Property(e => e.Roles)
                 .HasColumnType("role_type[]")
                 .HasColumnName("roles");
@@ -719,6 +724,8 @@ public class OpenShockContext : DbContext, IDataProtectionKeyContext
                 .UseCollation("C")
                 .VarCharWithLength(HardLimits.UserEmailChangeSecretMaxLength)
                 .HasColumnName("token_hash");
+            entity.Property(e => e.SecurityStampAtCreate)
+                .HasColumnName("security_stamp_at_create");
             entity.Property(e => e.UsedAt)
                 .HasColumnName("used_at");
             entity.Property(e => e.CreatedAt)

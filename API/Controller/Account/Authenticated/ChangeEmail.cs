@@ -1,23 +1,50 @@
-﻿using System.Net.Mime;
+using System.Diagnostics;
+using System.Net.Mime;
 using Microsoft.AspNetCore.Mvc;
 using OpenShock.API.Models.Requests;
-using OpenShock.Common.Models;
+using OpenShock.Common.Errors;
+using OpenShock.Common.Problems;
+using OpenShock.Common.Utils;
 
 namespace OpenShock.API.Controller.Account.Authenticated;
 
 public sealed partial class AuthenticatedAccountController
 {
     /// <summary>
-    /// Change the password of the current user
+    /// Initiate an email change for the current user. A verification link is sent to the new
+    /// address; the change is not applied until that link is opened.
     /// </summary>
     /// <param name="body"></param>
-    /// <returns></returns>
-    /// <exception cref="Exception"></exception>
-    [HttpPost("email")]
+    [HttpPost("email-change")]
     [Consumes(MediaTypeNames.Application.Json)]
-    [ProducesResponseType<LegacyEmptyResponse>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
-    public Task<IActionResult> ChangeEmail([FromBody] ChangeEmailRequest body)
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType<OpenShockProblem>(StatusCodes.Status400BadRequest, MediaTypeNames.Application.ProblemJson)] // EmailChangeUnchanged
+    [ProducesResponseType<OpenShockProblem>(StatusCodes.Status401Unauthorized, MediaTypeNames.Application.ProblemJson)] // AccountOAuthOnly
+    [ProducesResponseType<OpenShockProblem>(StatusCodes.Status403Forbidden, MediaTypeNames.Application.ProblemJson)] // PasswordChangeInvalidPassword
+    [ProducesResponseType<OpenShockProblem>(StatusCodes.Status409Conflict, MediaTypeNames.Application.ProblemJson)] // EmailChangeAlreadyInUse
+    [ProducesResponseType<OpenShockProblem>(StatusCodes.Status429TooManyRequests, MediaTypeNames.Application.ProblemJson)] // EmailChangeTooMany
+    // notActivated / deactivated / notFound are blocked by UserSessionAuthentication before reaching this controller.
+    public async Task<IActionResult> ChangeEmail([FromBody] ChangeEmailRequest body)
     {
-        throw new NotImplementedException();
+        if (string.IsNullOrEmpty(CurrentUser.PasswordHash))
+        {
+            return Problem(AccountError.AccountOAuthOnly);
+        }
+
+        if (!HashingUtils.VerifyPassword(body.CurrentPassword, CurrentUser.PasswordHash).Verified)
+        {
+            return Problem(AccountError.PasswordChangeInvalidPassword);
+        }
+
+        var result = await _accountService.CreateEmailChangeFlowAsync(CurrentUser.Id, body.Email);
+
+        return result.Match<IActionResult>(
+            success => Ok(),
+            alreadyInUse => Problem(AccountError.EmailChangeAlreadyInUse),
+            unchanged => Problem(AccountError.EmailChangeUnchanged),
+            tooMany => Problem(AccountError.EmailChangeTooMany),
+            notActivated => throw new UnreachableException("Authenticated user is not activated"),
+            deactivated => throw new UnreachableException("Authenticated user is deactivated"),
+            notFound => throw new UnreachableException("Authenticated user not found in database"));
     }
 }
