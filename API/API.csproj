@@ -1,4 +1,12 @@
 <Project Sdk="Microsoft.NET.Sdk.Web">
+  <!-- Keep the SmtpTemplates React-Email source tree out of the SDK's default
+       Compile/Content/None globs so package.json, tsconfig.json, *.tsx, etc.
+       don't get swept into the build or published. -->
+  <PropertyGroup>
+    <DefaultItemExcludes>$(DefaultItemExcludes);SmtpTemplates\**</DefaultItemExcludes>
+    <SmtpTemplatesDir>$(MSBuildProjectDirectory)\SmtpTemplates</SmtpTemplatesDir>
+  </PropertyGroup>
+
   <ItemGroup>
     <ProjectReference Include="..\Common\Common.csproj" />
   </ItemGroup>
@@ -8,7 +16,7 @@
     <!-- Expose API internals to IntegrationTest project -->
     <InternalsVisibleTo Include="$(AssemblyName).Tests.Integration" />
   </ItemGroup>
-  
+
   <!-- NuGet packages -->
   <ItemGroup>
     <PackageReference Include="AspNet.Security.OAuth.Discord" />
@@ -20,14 +28,73 @@
 
   <!-- Files to copy -->
   <ItemGroup>
-    <!-- Copy all Liquid templates (recursively) to build and publish outputs -->
-    <None Update="SmtpTemplates\**\*.liquid">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
-
     <!-- Dev cert included on publish -->
     <None Include="devcert.pfx" CopyToPublishDirectory="Always" />
   </ItemGroup>
+
+  <!-- Show the React-Email sources in the IDE without copying them anywhere. -->
+  <ItemGroup>
+    <None Include="SmtpTemplates\emails\**\*.tsx" />
+    <None Include="SmtpTemplates\scripts\**\*.ts" />
+    <None Include="SmtpTemplates\package.json" />
+    <None Include="SmtpTemplates\pnpm-lock.yaml" />
+    <None Include="SmtpTemplates\tsconfig.json" />
+    <None Include="SmtpTemplates\README.md" />
+    <None Include="SmtpTemplates\.gitignore" />
+  </ItemGroup>
+
+  <!-- React-Email template build pipeline -->
+
+  <ItemGroup>
+    <SmtpTemplateSources Include="$(SmtpTemplatesDir)\emails\**\*.tsx" />
+    <SmtpTemplateSources Include="$(SmtpTemplatesDir)\emails\**\*.ts" />
+    <SmtpTemplateSources Include="$(SmtpTemplatesDir)\scripts\**\*.ts" />
+    <SmtpTemplateSources Include="$(SmtpTemplatesDir)\package.json" />
+    <SmtpTemplateSources Include="$(SmtpTemplatesDir)\pnpm-lock.yaml" />
+    <SmtpTemplateSources Include="$(SmtpTemplatesDir)\tsconfig.json" />
+  </ItemGroup>
+
+  <Target Name="InstallEmailTemplateDeps"
+          Inputs="$(SmtpTemplatesDir)\package.json;$(SmtpTemplatesDir)\pnpm-lock.yaml"
+          Outputs="$(SmtpTemplatesDir)\node_modules\.package-lock.json">
+    <Exec WorkingDirectory="$(SmtpTemplatesDir)" Command="pnpm install --frozen-lockfile" />
+  </Target>
+
+  <Target Name="BuildEmailTemplates"
+          DependsOnTargets="InstallEmailTemplateDeps"
+          Inputs="@(SmtpTemplateSources)"
+          Outputs="$(SmtpTemplatesDir)\dist\.stamp">
+    <Exec WorkingDirectory="$(SmtpTemplatesDir)" Command="pnpm export" />
+    <Touch Files="$(SmtpTemplatesDir)\dist\.stamp" AlwaysCreate="true" />
+  </Target>
+
+  <!-- Glob the generated .liquid files into Content items so the SDK copies
+       them to the output dir and propagates them transitively via
+       GetCopyToOutputDirectoryItems to ProjectReference dependents. Done in a
+       target (rather than a top-level ItemGroup) so the glob is evaluated
+       AFTER BuildEmailTemplates has materialised dist/. Safe because
+       DefaultItemExcludes above stops the SDK from globbing SmtpTemplates\**
+       on its own. -->
+  <Target Name="IncludeEmailTemplates"
+          DependsOnTargets="BuildEmailTemplates"
+          BeforeTargets="AssignTargetPaths;GetCopyToOutputDirectoryItems">
+    <ItemGroup>
+      <!-- Stage in a private item type first so the %(Filename) batching is
+           qualified to these items only — an unqualified %(Filename) inside a
+           <Content> ItemGroup batches across ALL existing Content items
+           (including appsettings*.json), producing a cartesian-product mess. -->
+      <_EmailTemplateLiquid Include="$(SmtpTemplatesDir)\dist\*.liquid" />
+      <Content Include="@(_EmailTemplateLiquid)">
+        <Link>SmtpTemplates\%(_EmailTemplateLiquid.Filename)%(_EmailTemplateLiquid.Extension)</Link>
+        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+      </Content>
+    </ItemGroup>
+  </Target>
+
+  <Target Name="CleanEmailTemplates" BeforeTargets="Clean">
+    <RemoveDir Directories="$(SmtpTemplatesDir)\dist" />
+  </Target>
 
   <!-- Git stuff -->
   <Target Name="SetHash" AfterTargets="InitializeSourceControlInformation">

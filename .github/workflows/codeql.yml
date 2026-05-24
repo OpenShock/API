@@ -41,6 +41,14 @@ jobs:
       with:
         dotnet-version: ${{ env.DOTNET_VERSION }}
 
+    # API.csproj builds the React-Email templates during dotnet publish.
+    - uses: pnpm/action-setup@v4
+    - uses: actions/setup-node@v6
+      with:
+        node-version: '20'
+        cache: 'pnpm'
+        cache-dependency-path: API/SmtpTemplates/pnpm-lock.yaml
+
     - name: Build .NET
       shell: bash
       run: |

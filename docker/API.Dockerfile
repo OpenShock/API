@@ -2,6 +2,11 @@
 
 FROM ./docker/Base.Dockerfile#build-common AS build-api
 
+# Node + pnpm: required by the API.csproj MSBuild target that renders the
+# React-Email templates to SmtpTemplates/dist/*.liquid during publish.
+RUN apk add --no-cache nodejs npm \
+ && npm install -g --no-audit --no-fund pnpm@10.33.2
+
 COPY --link API/*.csproj API/
 RUN dotnet restore API/API.csproj
 
