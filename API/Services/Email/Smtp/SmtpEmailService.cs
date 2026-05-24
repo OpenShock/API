@@ -1,6 +1,4 @@
-﻿using System.Text.Encodings.Web;
-using Fluid;
-using MailKit.Net.Smtp;
+﻿using MailKit.Net.Smtp;
 using MimeKit;
 using MimeKit.Text;
 using OpenShock.API.Options;
@@ -10,23 +8,13 @@ namespace OpenShock.API.Services.Email.Smtp;
 
 public sealed class SmtpEmailService : IEmailService
 {
-    private readonly SmtpServiceTemplates _templates;
+    private readonly EmailServiceTemplates _templates;
     private readonly SmtpOptions _options;
     private readonly MailboxAddress _sender;
     private readonly ILogger<SmtpEmailService> _logger;
 
-    private readonly TemplateOptions _templateOptions;
-
-
-    /// <summary>
-    /// DI Constructor
-    /// </summary>
-    /// <param name="templates"></param>
-    /// <param name="options"></param>
-    /// <param name="sender"></param>
-    /// <param name="logger"></param>
     public SmtpEmailService(
-            SmtpServiceTemplates templates,
+            EmailServiceTemplates templates,
             SmtpOptions options,
             MailOptions.MailSenderContact sender,
             ILogger<SmtpEmailService> logger
@@ -36,10 +24,6 @@ public sealed class SmtpEmailService : IEmailService
         _options = options;
         _sender = sender.ToMailAddress();
         _logger = logger;
-
-        // This class is will be registered as a singleton, static members are not needed
-        _templateOptions = new TemplateOptions();
-        _templateOptions.MemberAccessStrategy.Register<Contact>();
     }
 
     public Task ActivateAccount(Contact to, Uri activationLink, CancellationToken cancellationToken = default)
@@ -57,19 +41,10 @@ public sealed class SmtpEmailService : IEmailService
     public Task EmailChangeNotice(Contact to, string newEmail, CancellationToken cancellationToken = default)
         => SendMail(to, _templates.EmailChangeNotice, new { To = to, NewEmail = newEmail }, cancellationToken);
 
-
-    private async Task SendMail<T>(Contact to, SmtpTemplate template, T data,
-        CancellationToken cancellationToken = default)
+    private async Task SendMail<T>(Contact to, EmailTemplate template, T data, CancellationToken cancellationToken = default)
     {
         _logger.LogDebug("Sending email");
-        var context = new TemplateContext(data, _templateOptions);
-        var subject = await template.Subject.RenderAsync(context);
-
-        await using var buffer = new MemoryStream();
-        await using (var textStreamWriter = new StreamWriter(buffer, leaveOpen: true))
-            await template.Body.RenderAsync(textStreamWriter, HtmlEncoder.Default, context);
-
-        buffer.Position = 0;
+        var (subject, htmlBody) = await template.RenderAsync(data);
 
         var message = new MimeMessage
         {
@@ -77,10 +52,7 @@ public sealed class SmtpEmailService : IEmailService
             Sender = _sender,
             To = { to.ToMailAddress() },
             Subject = subject,
-            Body = new TextPart(TextFormat.Html)
-            {
-                Content = new MimeContent(buffer)
-            }
+            Body = new TextPart(TextFormat.Html) { Text = htmlBody }
         };
 
         _logger.LogTrace("Creating smtp client and connecting...");

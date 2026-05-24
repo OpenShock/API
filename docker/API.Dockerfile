@@ -4,6 +4,8 @@ FROM ./docker/Base.Dockerfile#build-common AS build-api
 
 # Node + pnpm: required by the API.csproj MSBuild target that renders the
 # React-Email templates to SmtpTemplates/dist/*.liquid during publish.
+# CI=true makes pnpm run non-interactively (no TTY in docker buildx).
+ENV CI=true
 RUN apk add --no-cache nodejs npm \
  && npm install -g --no-audit --no-fund pnpm@10.33.2
 

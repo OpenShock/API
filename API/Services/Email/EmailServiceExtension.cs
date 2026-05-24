@@ -10,7 +10,7 @@ public static class EmailServiceExtension
     {
         var mailOptions = builder.Configuration.GetRequiredSection(MailOptions.SectionName).Get<MailOptions>() ?? throw new NullReferenceException();
         
-        if(mailOptions.Type == MailOptions.MailType.None)
+        if (mailOptions.Type == MailOptions.MailType.None)
         {
             builder.Services.AddSingleton<IEmailService, NoneEmailService>(); // Add a dummy email service
             return builder;
@@ -18,6 +18,7 @@ public static class EmailServiceExtension
 
         // Add sender contact configuration
         builder.AddSenderContactConfiguration();
+        builder.AddEmailServiceTemplates();
         
         switch (mailOptions.Type)
         {
@@ -37,6 +38,18 @@ public static class EmailServiceExtension
     private static WebApplicationBuilder AddSenderContactConfiguration(this WebApplicationBuilder builder)
     {
         builder.Services.AddSingleton(builder.Configuration.GetRequiredSection(MailOptions.SenderSectionName).Get<MailOptions.MailSenderContact>() ?? throw new NullReferenceException());
+        return builder;
+    }
+
+    private static WebApplicationBuilder AddEmailServiceTemplates(this WebApplicationBuilder builder)
+    {
+        builder.Services.AddSingleton(new EmailServiceTemplates
+        {
+            AccountActivation = EmailTemplate.ParseFromFileThrow("SmtpTemplates/AccountActivation.liquid").Result,
+            PasswordReset = EmailTemplate.ParseFromFileThrow("SmtpTemplates/PasswordReset.liquid").Result,
+            EmailVerification = EmailTemplate.ParseFromFileThrow("SmtpTemplates/EmailVerification.liquid").Result,
+            EmailChangeNotice = EmailTemplate.ParseFromFileThrow("SmtpTemplates/EmailChangeNotice.liquid").Result,
+        });
         return builder;
     }
 }
