@@ -122,7 +122,7 @@ public sealed class AccountService : IAccountService
         return new Success<User>(user);
     }
 
-    public async Task<OneOf<Success<User>, AccountWithEmailOrUsernameExists>> CreateOAuthOnlyAccountAsync(
+    public async Task<OneOf<Success<User>, UsernameAlreadyTaken, EmailAlreadyTaken>> CreateOAuthOnlyAccountAsync(
         string email,
         string username,
         string provider,
@@ -133,13 +133,23 @@ public sealed class AccountService : IAccountService
         email = email.ToLowerInvariant();
         provider = provider.ToLowerInvariant();
 
-        // Reuse your existing guards
+        // Reuse existing guards. Blacklist hits are reported as username-taken so we don't leak
+        // the existence of the blacklist or the validity of the email domain to anonymous callers.
         if (await IsUserNameBlacklisted(username) || await IsEmailProviderBlacklisted(email))
-            return new AccountWithEmailOrUsernameExists();
+            return new UsernameAlreadyTaken();
 
-        // Fast uniqueness check (optimistic; race handled by unique constraints below)
-        var exists = await _db.Users.AnyAsync(u => u.Email == email || u.Name == username);
-        if (exists) return new AccountWithEmailOrUsernameExists();
+        // Fast uniqueness pre-check (optimistic; race handled by unique constraints below).
+        // Prefer reporting the email collision when both are taken — only the email path lets the
+        // user recover by signing in to link the provider to the existing account.
+        var emailOwner = await _db.Users
+            .Where(u => u.Email == email)
+            .Select(u => new { HasPassword = u.PasswordHash != null })
+            .FirstOrDefaultAsync();
+        if (emailOwner is not null)
+            return new EmailAlreadyTaken { HasPassword = emailOwner.HasPassword };
+
+        if (await _db.Users.AnyAsync(u => u.Name == username))
+            return new UsernameAlreadyTaken();
 
         await using var tx = await _db.Database.BeginTransactionAsync();
 
@@ -205,7 +215,31 @@ public sealed class AccountService : IAccountService
         catch (DbUpdateException ex) when (ex.InnerException is PostgresException { SqlState: "23505" })
         {
             await tx.RollbackAsync();
-            return new AccountWithEmailOrUsernameExists();
+
+            // Map known unique indexes to specific outcomes.
+            switch (pgEx.ConstraintName)
+            {
+                case "IX_users_email":
+                {
+                    var hasPassword = await _db.Users
+                        .Where(u => u.Email == email)
+                        .Select(u => (bool?)(u.PasswordHash != null))
+                        .FirstOrDefaultAsync() ?? false;
+                    return new EmailAlreadyTaken { HasPassword = hasPassword };
+                }
+                case "IX_users_name":
+                    return new UsernameAlreadyTaken();
+            }
+
+            // Ambiguous constraint — re-query both. Prefer the email outcome.
+            var emailRow = await _db.Users
+                .Where(u => u.Email == email)
+                .Select(u => new { HasPassword = u.PasswordHash != null })
+                .FirstOrDefaultAsync();
+            if (emailRow is not null)
+                return new EmailAlreadyTaken { HasPassword = emailRow.HasPassword };
+
+            return new UsernameAlreadyTaken();
         }
     }
 

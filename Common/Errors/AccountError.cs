@@ -37,6 +37,16 @@ public static class AccountError
     public static OpenShockProblem EmailChangeAlreadyInUse => new OpenShockProblem("Account.Email.AlreadyInUse",
         "This email address is already in use", HttpStatusCode.Conflict);
 
+    public static OpenShockProblem EmailTakenLinkAvailable => new OpenShockProblem(
+        "Account.Email.TakenLinkAvailable",
+        "An account with this email already exists. Sign in with your password to link this provider to your existing account.",
+        HttpStatusCode.Conflict);
+
+    public static OpenShockProblem EmailTakenLinkUnavailable => new OpenShockProblem(
+        "Account.Email.TakenLinkUnavailable",
+        "An account with this email already exists but cannot be linked via password.",
+        HttpStatusCode.Conflict);
+
     public static OpenShockProblem EmailChangeUnchanged => new OpenShockProblem("Account.Email.Unchanged",
         "The new email address is the same as the current one", HttpStatusCode.BadRequest);
 

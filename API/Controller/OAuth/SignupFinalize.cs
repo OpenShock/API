@@ -93,11 +93,15 @@ public sealed partial class OAuthController
             isEmailTrusted
         );
 
-        if (!created.TryPickT0(out var newUser, out _))
+        if (!created.TryPickT0(out var newUser, out var conflict))
         {
-            // Username or email already exists — conflict.
-            // Do NOT clear the flow cookie so the frontend can retry with a different username.
-            return Problem(SignupError.UsernameOrEmailExists);
+            // Do NOT clear the flow cookie on conflict — the frontend may retry signup-finalize
+            // with a different username, or upgrade the flow to a link via signup-link-password.
+            return conflict.Match(
+                _ => Problem(AccountError.UsernameTaken),
+                email => Problem(email.HasPassword
+                    ? AccountError.EmailTakenLinkAvailable
+                    : AccountError.EmailTakenLinkUnavailable));
         }
 
         // Authenticate the client if its activated (create session and set session cookie)

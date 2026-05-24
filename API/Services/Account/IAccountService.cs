@@ -39,8 +39,12 @@ public interface IAccountService
     /// <param name="providerAccountId">external subject/id from provider</param>
     /// <param name="providerAccountName">display name from provider</param>
     /// <param name="isEmailTrusted"></param>
-    /// <returns>Success with the created user, or AccountWithEmailOrUsernameExists when taken/blocked.</returns>
-    Task<OneOf<Success<User>, AccountWithEmailOrUsernameExists>> CreateOAuthOnlyAccountAsync(string email, string username, string provider, string providerAccountId, string? providerAccountName, bool isEmailTrusted);
+    /// <returns>
+    /// Success with the created user, or a conflict marker distinguishing username vs. email collision.
+    /// When both collide, prefer <see cref="EmailAlreadyTaken"/> (the email path enables linking via
+    /// password login; username conflict can only be retried).
+    /// </returns>
+    Task<OneOf<Success<User>, UsernameAlreadyTaken, EmailAlreadyTaken>> CreateOAuthOnlyAccountAsync(string email, string username, string provider, string providerAccountId, string? providerAccountName, bool isEmailTrusted);
 
     /// <summary>
     /// 
@@ -141,6 +145,12 @@ public readonly struct AccountIsOAuthOnly;
 public readonly struct AccountNotActivated;
 public readonly struct AccountDeactivated;
 public readonly struct AccountWithEmailOrUsernameExists;
+public readonly struct UsernameAlreadyTaken;
+public readonly struct EmailAlreadyTaken
+{
+    /// <summary>True if the existing user has a password hash and can therefore log in to link this provider.</summary>
+    public bool HasPassword { get; init; }
+}
 public readonly struct CannotDeactivatePrivilegedAccount;
 public readonly struct AccountDeactivationAlreadyInProgress;
 public readonly struct CannotDeletePrivilegedAccount;

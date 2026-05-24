@@ -58,6 +58,16 @@ public static class OAuthError
         "This external account is already linked to another user",
         HttpStatusCode.Conflict);
 
+    public static OpenShockProblem ProviderAlreadyLinkedToAccount => new(
+        "OAuth.Provider.AlreadyLinkedToAccount",
+        "This provider is already linked to the target account",
+        HttpStatusCode.Conflict);
+
+    public static OpenShockProblem LinkFailed => new(
+        "OAuth.Link.Failed",
+        "Failed to link the external account",
+        HttpStatusCode.Conflict);
+
     // Misc / generic
     public static OpenShockProblem InternalError => new(
         "OAuth.InternalError",
