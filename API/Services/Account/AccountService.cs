@@ -212,7 +212,7 @@ public sealed class AccountService : IAccountService
 
             return new Success<User>(user);
         }
-        catch (DbUpdateException ex) when (ex.InnerException is PostgresException { SqlState: "23505" })
+        catch (DbUpdateException ex) when (ex.InnerException is PostgresException { SqlState: "23505" } pgEx)
         {
             await tx.RollbackAsync();
 
