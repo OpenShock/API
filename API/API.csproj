@@ -1,11 +1,4 @@
 <Project Sdk="Microsoft.NET.Sdk.Web">
-  <!-- Keep the SmtpTemplates React-Email source tree out of the SDK's default
-       Compile/Content/None globs so package.json, tsconfig.json, *.tsx, etc.
-       don't get swept into the build or published. -->
-  <PropertyGroup>
-    <DefaultItemExcludes>$(DefaultItemExcludes);SmtpTemplates\**</DefaultItemExcludes>
-  </PropertyGroup>
-
   <ItemGroup>
     <ProjectReference Include="..\Common\Common.csproj" />
   </ItemGroup>
@@ -31,19 +24,8 @@
     <None Include="devcert.pfx" CopyToPublishDirectory="Always" />
   </ItemGroup>
 
-  <!-- Show the React-Email sources in the IDE without copying them anywhere. -->
-  <ItemGroup>
-    <None Include="SmtpTemplates\emails\**\*.tsx" />
-    <None Include="SmtpTemplates\scripts\**\*.ts" />
-    <None Include="SmtpTemplates\package.json" />
-    <None Include="SmtpTemplates\pnpm-lock.yaml" />
-    <None Include="SmtpTemplates\tsconfig.json" />
-    <None Include="SmtpTemplates\README.md" />
-    <None Include="SmtpTemplates\.gitignore" />
-  </ItemGroup>
-
   <!-- Pre-rendered Liquid email templates (committed to repo, not built at compile time).
-       Re-render with `pnpm export` in SmtpTemplates/ when you change a .tsx source. -->
+       Re-render with `pnpm export` in email-templates/ when you change a .tsx source. -->
   <ItemGroup>
     <Content Include="SmtpTemplates\*.liquid">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>

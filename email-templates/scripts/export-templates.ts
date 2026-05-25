@@ -8,7 +8,7 @@ import { build_placeholders } from '../emails/_lib/placeholders.ts';
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const root = resolve(__dirname, '..');
 const emails_dir = join(root, 'emails');
-const out_dir = root;
+const out_dir = resolve(root, '..', 'API', 'SmtpTemplates');
 
 import type { ComponentType } from 'react';
 
