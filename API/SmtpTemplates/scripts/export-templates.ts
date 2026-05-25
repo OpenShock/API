@@ -1,5 +1,5 @@
 import { render } from '@react-email/render';
-import { mkdir, readdir, writeFile } from 'node:fs/promises';
+import { readdir, writeFile } from 'node:fs/promises';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { createElement } from 'react';
@@ -8,7 +8,7 @@ import { build_placeholders } from '../emails/_lib/placeholders.ts';
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const root = resolve(__dirname, '..');
 const emails_dir = join(root, 'emails');
-const out_dir = join(root, 'dist');
+const out_dir = root;
 
 import type { ComponentType } from 'react';
 
@@ -40,8 +40,6 @@ async function list_templates(): Promise<string[]> {
 }
 
 async function export_liquid() {
-  await mkdir(out_dir, { recursive: true });
-
   const files = await list_templates();
   let rendered = 0;
   for (const file of files) {
@@ -61,7 +59,7 @@ async function export_liquid() {
     const body = await render(createElement(Component, props), { pretty: true });
     const out_name = file.replace(/\.tsx$/, '.liquid');
     await writeFile(join(out_dir, out_name), `${mod.subject}\n${body}`, 'utf8');
-    console.log(`  dist/${out_name}`);
+    console.log(`  ${out_name}`);
     rendered++;
   }
   console.log(`  ${rendered} template(s) rendered\n`);

@@ -2,7 +2,6 @@ node_modules
 .react-email
 .next
 out
-dist
 .env
 .env.local
 *.log
