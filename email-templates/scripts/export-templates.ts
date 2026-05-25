@@ -19,9 +19,13 @@ type TemplateModule = {
   [key: string]: unknown;
 };
 
-function pick_component(mod: TemplateModule, file: string): ComponentType<object> {
+function pick_component(
+  mod: TemplateModule,
+  file: string,
+): ComponentType<object> {
   for (const [name, value] of Object.entries(mod)) {
-    if (name === 'default' || name === 'sampleProps' || name === 'subject') continue;
+    if (name === 'default' || name === 'sampleProps' || name === 'subject')
+      continue;
     if (typeof value === 'function' && /^[A-Z]/.test(name)) {
       return value as ComponentType<object>;
     }
@@ -56,7 +60,9 @@ async function export_liquid() {
     }
     const Component = pick_component(mod, file);
     const props = build_placeholders(mod.sampleProps);
-    const body = await render(createElement(Component, props), { pretty: true });
+    const body = await render(createElement(Component, props), {
+      pretty: true,
+    });
     const out_name = file.replace(/\.tsx$/, '.liquid');
     await writeFile(join(out_dir, out_name), `${mod.subject}\n${body}`, 'utf8');
     console.log(`  ${out_name}`);

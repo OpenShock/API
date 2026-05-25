@@ -3,6 +3,8 @@ import {
   Greeting,
   Layout,
   Paragraph,
+  RawLinkFallback,
+  SecurityNotice,
   Signoff,
 } from './_lib/components.tsx';
 
@@ -11,7 +13,7 @@ export interface PasswordResetProps {
   ResetLink: string;
 }
 
-export const subject = 'Password reset request';
+export const subject = 'Reset your OpenShock password';
 
 export const sampleProps: PasswordResetProps = {
   'To.Name': 'shockee',
@@ -20,16 +22,23 @@ export const sampleProps: PasswordResetProps = {
 
 export function PasswordReset(props: PasswordResetProps) {
   return (
-    <Layout heading="Password Reset">
+    <Layout
+      heading="Password reset"
+      preview="Reset the password for your OpenShock account."
+    >
       <Greeting name={props['To.Name']} />
       <Paragraph>
-        We have received a request to reset the password for your account.
-        Click the button below to reset your password:
+        We received a request to reset the password for your OpenShock account.
+        Click the button below to choose a new one.
       </Paragraph>
-      <CtaButton href={props.ResetLink}>Reset Password</CtaButton>
-      <Paragraph>
-        If you did not request this change, you can safely ignore this email.
-      </Paragraph>
+      <CtaButton href={props.ResetLink}>Reset password</CtaButton>
+      <RawLinkFallback href={props.ResetLink} />
+      <SecurityNotice>
+        This link is single-use and will expire shortly. If you did not request
+        a password reset, you can safely ignore this email. Your password will
+        remain unchanged. If you receive these messages repeatedly, sign in and
+        review your account's recent activity.
+      </SecurityNotice>
       <Signoff />
     </Layout>
   );

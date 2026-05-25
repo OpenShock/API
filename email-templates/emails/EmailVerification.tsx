@@ -3,6 +3,8 @@ import {
   Greeting,
   Layout,
   Paragraph,
+  RawLinkFallback,
+  SecurityNotice,
   Signoff,
 } from './_lib/components.tsx';
 
@@ -11,7 +13,7 @@ export interface EmailVerificationProps {
   VerifyLink: string;
 }
 
-export const subject = 'Hi! Verify your Email!';
+export const subject = 'Verify your new OpenShock email address';
 
 export const sampleProps: EmailVerificationProps = {
   'To.Name': 'shockee',
@@ -20,16 +22,21 @@ export const sampleProps: EmailVerificationProps = {
 
 export function EmailVerification(props: EmailVerificationProps) {
   return (
-    <Layout heading="Email verification">
+    <Layout
+      heading="Verify your email"
+      preview="Confirm this email address to apply the change on your OpenShock account."
+    >
       <Greeting name={props['To.Name']} />
       <Paragraph>
-        Thanks for signing up! Please verify your email address by clicking on
-        the link below.
+        Please confirm this is your email address by clicking the button below.
+        The change will only take effect once this address has been verified.
       </Paragraph>
-      <CtaButton href={props.VerifyLink}>Verify Email</CtaButton>
-      <Paragraph>
-        If you did not sign up, you can safely ignore this email.
-      </Paragraph>
+      <CtaButton href={props.VerifyLink}>Verify email</CtaButton>
+      <RawLinkFallback href={props.VerifyLink} />
+      <SecurityNotice>
+        If you did not request this change, you can safely ignore this email.
+        Your account email will not be updated.
+      </SecurityNotice>
       <Signoff />
     </Layout>
   );
