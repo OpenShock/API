@@ -12,31 +12,6 @@ public sealed class MailJetOptions
 
     [Required(AllowEmptyStrings = false)]
     public required string Secret { get; init; }
-
-    [Required]
-    [ValidateObjectMembers]
-    public required MailjetTemplateOptions Template { get; init; }
-
-    public sealed class MailjetTemplateOptions
-    {
-        [Required]
-        public ulong ActivateAccount { get; set; }
-        
-        [Required]
-        public required ulong PasswordReset { get; init; }
-
-        [Required]
-        public required ulong PasswordResetComplete { get; init; }
-
-        [Required]
-        public required ulong VerifyEmail { get; init; }
-
-        [Required]
-        public required ulong VerifyEmailComplete { get; init; }
-
-        [Required]
-        public required ulong EmailChangeNotice { get; init; }
-    }
 }
 
 [OptionsValidator]

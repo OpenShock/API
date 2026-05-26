@@ -106,7 +106,7 @@ builder.Services.AddScoped<ILCGNodeProvisioner, LCGNodeProvisioner>();
 builder.AddSwaggerExt<Program>();
 
 builder.AddCloudflareTurnstileService();
-builder.AddEmailService();
+await builder.AddEmailService();
 
 //services.AddHealthChecks().AddCheck<DatabaseHealthCheck>("database");
 

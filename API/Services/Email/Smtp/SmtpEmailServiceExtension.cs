@@ -14,14 +14,6 @@ public static class SmtpEmailServiceExtension
         builder.Services.AddSingleton<IValidateOptions<SmtpOptions>, SmtpOptionsValidator>();
         builder.Services.AddSingleton<SmtpOptions>(sp => sp.GetRequiredService<IOptions<SmtpOptions>>().Value);
 
-        builder.Services.AddSingleton(new SmtpServiceTemplates
-        {
-            AccountActivation = SmtpTemplate.ParseFromFileThrow("SmtpTemplates/AccountActivation.liquid").Result,
-            PasswordReset = SmtpTemplate.ParseFromFileThrow("SmtpTemplates/PasswordReset.liquid").Result,
-            EmailVerification = SmtpTemplate.ParseFromFileThrow("SmtpTemplates/EmailVerification.liquid").Result,
-            EmailChangeNotice = SmtpTemplate.ParseFromFileThrow("SmtpTemplates/EmailChangeNotice.liquid").Result
-        });
-
         builder.Services.AddSingleton<IEmailService, SmtpEmailService>();
 
         return builder;

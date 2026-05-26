@@ -8,7 +8,7 @@
     <!-- Expose API internals to IntegrationTest project -->
     <InternalsVisibleTo Include="$(AssemblyName).Tests.Integration" />
   </ItemGroup>
-  
+
   <!-- NuGet packages -->
   <ItemGroup>
     <PackageReference Include="AspNet.Security.OAuth.Discord" />
@@ -20,13 +20,17 @@
 
   <!-- Files to copy -->
   <ItemGroup>
-    <!-- Copy all Liquid templates (recursively) to build and publish outputs -->
-    <None Update="SmtpTemplates\**\*.liquid">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
-
     <!-- Dev cert included on publish -->
     <None Include="devcert.pfx" CopyToPublishDirectory="Always" />
+  </ItemGroup>
+
+  <!-- Pre-rendered Liquid email templates (committed to repo, not built at compile time).
+       Re-render with `pnpm export` in email-templates/ when you change a .tsx source. -->
+  <ItemGroup>
+    <Content Include="SmtpTemplates\*.liquid">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+    </Content>
   </ItemGroup>
 
   <!-- Git stuff -->

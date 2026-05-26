@@ -10,26 +10,19 @@ namespace OpenShock.API.Services.Email.Mailjet;
 public sealed class MailjetEmailService : IEmailService, IDisposable
 {
     private readonly HttpClient _httpClient;
-    private readonly MailJetOptions _options;
+    private readonly EmailServiceTemplates _templates;
     private readonly MailOptions.MailSenderContact _sender;
     private readonly ILogger<MailjetEmailService> _logger;
 
-    /// <summary>
-    /// DI Constructor
-    /// </summary>
-    /// <param name="httpClient"></param>
-    /// <param name="options"></param>
-    /// <param name="sender"></param>
-    /// <param name="logger"></param>
     public MailjetEmailService(
             HttpClient httpClient,
-            MailJetOptions options,
+            EmailServiceTemplates templates,
             MailOptions.MailSenderContact sender,
             ILogger<MailjetEmailService> logger
         )
     {
         _httpClient = httpClient;
-        _options = options;
+        _templates = templates;
         _sender = sender;
         _logger = logger;
     }
@@ -38,79 +31,41 @@ public sealed class MailjetEmailService : IEmailService, IDisposable
 
     public async Task ActivateAccount(Contact to, Uri activationLink, CancellationToken cancellationToken = default)
     {
-        await SendMail(new TemplateMail
-        {
-            From = _sender,
-            Subject = "Activate your account",
-            To = [to],
-            TemplateId = _options.Template.ActivateAccount,
-            Variables = new Dictionary<string, string>
-            {
-                {"link", activationLink.ToString() },
-            }
-        }, cancellationToken);
+        var (subject, htmlBody) = await _templates.AccountActivation.RenderAsync(new { To = to, ActivationLink = activationLink });
+        await SendMail(to, subject, htmlBody, cancellationToken);
     }
 
     /// <inheritdoc />
     public async Task PasswordReset(Contact to, Uri resetLink, CancellationToken cancellationToken = default)
     {
-        await SendMail(new TemplateMail
-        {
-            From = _sender,
-            Subject = "Password reset request",
-            To = [to],
-            TemplateId = _options.Template.PasswordReset,
-            Variables = new Dictionary<string, string>
-            {
-                {"link", resetLink.ToString() },
-            }
-        }, cancellationToken);
+        var (subject, htmlBody) = await _templates.PasswordReset.RenderAsync(new { To = to, ResetLink = resetLink });
+        await SendMail(to, subject, htmlBody, cancellationToken);
     }
 
     /// <inheritdoc />
     public async Task VerifyEmail(Contact to, Uri verificationLink, CancellationToken cancellationToken = default)
     {
-        await SendMail(new TemplateMail
-        {
-            From = _sender,
-            Subject = "Verify your Email Address",
-            To = [to],
-            TemplateId = _options.Template.VerifyEmail,
-            Variables = new Dictionary<string, string>
-            {
-                {"link", verificationLink.ToString() },
-            }
-        }, cancellationToken);
+        var (subject, htmlBody) = await _templates.EmailVerification.RenderAsync(new { To = to, VerifyLink = verificationLink });
+        await SendMail(to, subject, htmlBody, cancellationToken);
     }
 
     /// <inheritdoc />
     public async Task EmailChangeNotice(Contact to, string newEmail, CancellationToken cancellationToken = default)
     {
-        await SendMail(new TemplateMail
-        {
-            From = _sender,
-            Subject = "Your OpenShock email is being changed",
-            To = [to],
-            TemplateId = _options.Template.EmailChangeNotice,
-            Variables = new Dictionary<string, string>
-            {
-                { "newEmail", newEmail },
-            }
-        }, cancellationToken);
+        var (subject, htmlBody) = await _templates.EmailChangeNotice.RenderAsync(new { To = to, NewEmail = newEmail });
+        await SendMail(to, subject, htmlBody, cancellationToken);
     }
 
     #endregion
 
-    private Task SendMail(MailBase templateMail, CancellationToken cancellationToken = default) => SendMails([templateMail], cancellationToken);
+    private Task SendMail(Contact to, string subject, string htmlBody, CancellationToken cancellationToken = default)
+        => SendMails([new DirectMail { From = _sender, To = [to], Subject = subject, HTMLPart = htmlBody }], cancellationToken);
 
-    private async Task SendMails(MailBase[] mails, CancellationToken cancellationToken = default)
+    private async Task SendMails(DirectMail[] mails, CancellationToken cancellationToken = default)
     {
         if (_logger.IsEnabled(LogLevel.Debug)) _logger.LogDebug("Sending mails {@Mails}", mails);
 
-        var json = JsonSerializer.Serialize(new MailsWrap
-        {
-            Messages = mails
-        }, JsonOptions.Default);
+        var json = JsonSerializer.Serialize(new MailsWrap { Messages = mails }, JsonOptions.Default);
 
         var response = await _httpClient.PostAsync("send",
             new StringContent(json, Encoding.UTF8, MediaTypeNames.Application.Json), cancellationToken);
