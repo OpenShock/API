@@ -17,7 +17,6 @@ using OpenShock.Common.OpenShockDb;
 using OpenShock.Common.Options;
 using OpenShock.Common.Problems;
 using OpenShock.Common.Services.BatchUpdate;
-using OpenShock.Common.Services.Bypass;
 using OpenShock.Common.Services.Configuration;
 using OpenShock.Common.Services.RedisPubSub;
 using OpenShock.Common.Services.Session;
@@ -200,7 +199,6 @@ public static class OpenShockServiceHelper
 
         services.AddScoped<IConfigurationService, ConfigurationService>();
         services.AddScoped<ISessionService, SessionService>();
-        services.AddScoped<IBypassTokenService, BypassTokenService>();
         services.AddHttpClient<IWebhookService, WebhookService>(client =>
         {
             client.Timeout = TimeSpan.FromSeconds(30);
@@ -230,16 +228,13 @@ public static class OpenShockServiceHelper
                 return;
             }
 
-            // If the request resolved a bypass token granting RateLimit, skip every limiter on it.
-            // Selectors are sync and the BypassTokenMiddleware (which runs before UseRateLimiter)
-            // has already populated HttpContext.Items, so this is just a dictionary lookup.
+            // If the request presented the configured RATE_LIMIT_BYPASS_TOKEN, skip every limiter on it.
+            // BypassTokenMiddleware (which runs before UseRateLimiter) has already set HttpContext.Items;
+            // selectors are sync and this is just a dictionary lookup.
             static RateLimitPartition<string>? TryBypass(HttpContext ctx)
-            {
-                var bypass = ctx.GetResolvedBypassToken();
-                return bypass is not null && bypass.Types.Contains(Models.BypassTokenType.RateLimit)
-                    ? RateLimitPartition.GetNoLimiter($"bypass-{bypass.Id}")
+                => ctx.IsBypassed(Models.BypassTokenType.RateLimit)
+                    ? RateLimitPartition.GetNoLimiter("bypass-ratelimit")
                     : null;
-            }
 
             options.OnRejected = async (context, cancellationToken) =>
             {

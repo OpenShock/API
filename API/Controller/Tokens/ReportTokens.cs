@@ -10,7 +10,7 @@ using Microsoft.AspNetCore.RateLimiting;
 using OpenShock.API.Errors;
 using OpenShock.API.Services.Turnstile;
 using OpenShock.Common.Extensions;
-using OpenShock.Common.Services.Bypass;
+using OpenShock.Common.Models;
 using OpenShock.Common.Services.Webhook;
 
 namespace OpenShock.API.Controller.Tokens;
@@ -22,7 +22,6 @@ public sealed partial class TokensController
     /// </summary>
     /// <param name="body"></param>
     /// <param name="turnstileService"></param>
-    /// <param name="bypassTokens"></param>
     /// <param name="webhookService"></param>
     /// <param name="cancellationToken"></param>
     /// <response code="200">The tokens were deleted if found</response>
@@ -33,7 +32,6 @@ public sealed partial class TokensController
     public async Task<IActionResult> ReportTokens(
         [FromBody] ReportTokensRequest body,
         [FromServices] ICloudflareTurnstileService turnstileService,
-        [FromServices] IBypassTokenService bypassTokens,
         [FromServices] IWebhookService webhookService,
         CancellationToken cancellationToken)
     {
@@ -49,8 +47,8 @@ public sealed partial class TokensController
             return Problem(new OpenShockProblem("InternalServerError", "Internal Server Error", HttpStatusCode.InternalServerError));
         }
 
-        // Caller is already authenticated; admin role on a bypass-using request is rejected.
-        if (!await bypassTokens.TryRecordUseAsync(CurrentUser.Id, cancellationToken))
+        // Admin accounts must never authenticate through a bypassed flow.
+        if (HttpContext.IsBypassed(BypassTokenType.Turnstile) && CurrentUser.Roles.Contains(RoleType.Admin))
             return Problem(TurnstileError.InvalidTurnstile);
 
         var reportId = Guid.CreateVersion7();

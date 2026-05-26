@@ -1,18 +1,25 @@
+using System.Security.Cryptography;
+using System.Text;
+using OneOf.Types;
 using OpenShock.Common.Extensions;
-using OpenShock.Common.Services.Bypass;
+using OpenShock.Common.Models;
+using OpenShock.Common.Services.Configuration;
 
 namespace OpenShock.Common.Middleware;
 
 /// <summary>
-/// Resolves the <c>X-OpenShock-Bypass-Token</c> header (if present) into a <see cref="ResolvedBypassToken"/>
-/// stored on <see cref="HttpContext.Items"/>. Downstream guards (rate limiter partition selectors,
-/// the turnstile service, controllers needing post-auth user linkage) read the cached value
-/// synchronously and filter on the type they care about.
+/// Resolves the <c>X-OpenShock-Bypass-Token</c> header by comparing it to admin-set configuration
+/// properties (<c>TURNSTILE_BYPASS_TOKEN</c>, <c>RATE_LIMIT_BYPASS_TOKEN</c>). The matched bypass
+/// flags are stored on <see cref="HttpContext.Items"/> so downstream guards (rate limiter selectors,
+/// turnstile service) can read them synchronously.
 ///
-/// Runs before <c>UseRateLimiter</c> so the rate limiter can honor the bypass for the very same request.
+/// Runs before <c>UseRateLimiter</c>.
 /// </summary>
 public sealed class BypassTokenMiddleware
 {
+    public const string TurnstileConfigKey = "TURNSTILE_BYPASS_TOKEN";
+    public const string RateLimitConfigKey = "RATE_LIMIT_BYPASS_TOKEN";
+
     private readonly RequestDelegate _next;
 
     public BypassTokenMiddleware(RequestDelegate next)
@@ -20,14 +27,31 @@ public sealed class BypassTokenMiddleware
         _next = next;
     }
 
-    public async Task InvokeAsync(HttpContext context, IBypassTokenService bypassTokens)
+    public async Task InvokeAsync(HttpContext context, IConfigurationService config)
     {
-        if (context.TryGetBypassTokenFromHeader(out var secret))
+        if (!context.TryGetBypassTokenFromHeader(out var presented))
         {
-            var resolved = await bypassTokens.ResolveAsync(secret, context.RequestAborted);
-            context.SetResolvedBypassToken(resolved);
+            await _next(context);
+            return;
         }
 
+        var matched = BypassTokenType.None;
+
+        if (await MatchesAsync(config, TurnstileConfigKey, presented)) matched |= BypassTokenType.Turnstile;
+        if (await MatchesAsync(config, RateLimitConfigKey, presented)) matched |= BypassTokenType.RateLimit;
+
+        if (matched != BypassTokenType.None) context.SetBypassedTypes(matched);
+
         await _next(context);
+    }
+
+    private static async Task<bool> MatchesAsync(IConfigurationService config, string key, string presented)
+    {
+        var result = await config.TryGetStringAsync(key);
+        return result.TryPickT0(out var configured, out _)
+               && !string.IsNullOrEmpty(configured)
+               && CryptographicOperations.FixedTimeEquals(
+                   Encoding.UTF8.GetBytes(configured),
+                   Encoding.UTF8.GetBytes(presented));
     }
 }

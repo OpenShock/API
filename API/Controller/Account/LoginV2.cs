@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc;
 using OpenShock.API.Models.Requests;
 using System.Net;
 using System.Net.Mime;
@@ -6,8 +6,8 @@ using Asp.Versioning;
 using Microsoft.AspNetCore.RateLimiting;
 using OpenShock.Common.Errors;
 using OpenShock.Common.Extensions;
+using OpenShock.Common.Models;
 using OpenShock.Common.Problems;
-using OpenShock.Common.Services.Bypass;
 using OpenShock.Common.Utils;
 using OpenShock.API.Errors;
 using OpenShock.API.Models.Response;
@@ -32,7 +32,6 @@ public sealed partial class AccountController
     public async Task<IActionResult> LoginV2(
         [FromBody] LoginV2 body,
         [FromServices] ICloudflareTurnstileService turnstileService,
-        [FromServices] IBypassTokenService bypassTokens,
         CancellationToken cancellationToken)
     {
         var cookieDomain = GetCurrentCookieDomain();
@@ -48,7 +47,7 @@ public sealed partial class AccountController
 
             return Problem(new OpenShockProblem("InternalServerError", "Internal Server Error", HttpStatusCode.InternalServerError));
         }
-        
+
         var getAccountResult = await _accountService.GetAccountByCredentialsAsync(body.UsernameOrEmail, body.Password, cancellationToken);
         if (!getAccountResult.TryPickT0(out var account, out var errors))
         {
@@ -59,13 +58,14 @@ public sealed partial class AccountController
                 oauthOnly => Problem(AccountError.AccountOAuthOnly)
             );
         }
-        
-        // Mark this account as having used a bypass token if the token is present, if the bypass token has set that it should delete accounts that use it, this account will be marked for deletion
-        if (!await bypassTokens.TryRecordUseAsync(account.Id, cancellationToken))
+
+        // Admin accounts must never be authenticated through a bypassed flow — the bypass exists for
+        // automated tests, not as a credential-less back door to a privileged account.
+        if (HttpContext.IsBypassed(BypassTokenType.Turnstile) && account.Roles.Contains(RoleType.Admin))
             return Problem(TurnstileError.InvalidTurnstile);
 
         await CreateSession(account.Id, cookieDomain);
-        
+
         return Ok(LoginV2OkResponse.FromUser(account));
     }
 }

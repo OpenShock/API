@@ -1,13 +1,13 @@
 ﻿using System.Diagnostics.CodeAnalysis;
 using Microsoft.AspNetCore.Http;
 using OpenShock.Common.Constants;
-using OpenShock.Common.Services.Bypass;
+using OpenShock.Common.Models;
 
 namespace OpenShock.Common.Extensions;
 
 public static class HttpContextExtensions
 {
-    private static readonly object ResolvedBypassTokenItemKey = new();
+    private static readonly object BypassedTypesItemKey = new();
 
     public static bool TryGetBypassTokenFromHeader(this HttpContext context, [NotNullWhen(true)] out string? token)
     {
@@ -24,22 +24,22 @@ public static class HttpContextExtensions
     }
 
     /// <summary>
-    /// Stores the result of resolving the bypass-token header. Called by the bypass middleware.
+    /// Stores the set of bypass types that the header matched. Called by the bypass middleware.
     /// </summary>
-    public static void SetResolvedBypassToken(this HttpContext context, ResolvedBypassToken? resolved)
+    public static void SetBypassedTypes(this HttpContext context, BypassTokenType types)
     {
         ArgumentNullException.ThrowIfNull(context);
-        context.Items[ResolvedBypassTokenItemKey] = resolved;
+        context.Items[BypassedTypesItemKey] = types;
     }
 
     /// <summary>
-    /// Returns the bypass token resolved earlier in the pipeline, or <c>null</c> if no header was
-    /// present (or it did not resolve to a known token).
+    /// Returns true if the request presented a bypass token that grants <paramref name="type"/>.
     /// </summary>
-    public static ResolvedBypassToken? GetResolvedBypassToken(this HttpContext context)
+    public static bool IsBypassed(this HttpContext context, BypassTokenType type)
     {
         ArgumentNullException.ThrowIfNull(context);
-        return context.Items.TryGetValue(ResolvedBypassTokenItemKey, out var v) ? v as ResolvedBypassToken : null;
+        if (!context.Items.TryGetValue(BypassedTypesItemKey, out var v) || v is not BypassTokenType set) return false;
+        return (set & type) == type;
     }
 
     private static readonly string[] TokenHeaderNames = [

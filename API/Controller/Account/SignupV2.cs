@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc;
 using OpenShock.API.Models.Requests;
 using System.Net;
 using System.Net.Mime;
@@ -7,9 +7,7 @@ using Microsoft.AspNetCore.RateLimiting;
 using OpenShock.API.Errors;
 using OpenShock.API.Services.Turnstile;
 using OpenShock.Common.Errors;
-using OpenShock.Common.Extensions;
 using OpenShock.Common.Problems;
-using OpenShock.Common.Services.Bypass;
 using OpenShock.Common.Utils;
 
 namespace OpenShock.API.Controller.Account;
@@ -21,7 +19,6 @@ public sealed partial class AccountController
     /// </summary>
     /// <param name="body"></param>
     /// <param name="turnstileService"></param>
-    /// <param name="bypassTokens"></param>
     /// <param name="cancellationToken"></param>
     /// <response code="200">User successfully signed up</response>
     /// <response code="400">Username or email already exists</response>
@@ -35,7 +32,6 @@ public sealed partial class AccountController
     public async Task<IActionResult> SignUpV2(
         [FromBody] SignUpV2 body,
         [FromServices] ICloudflareTurnstileService turnstileService,
-        [FromServices] IBypassTokenService bypassTokens,
         CancellationToken cancellationToken)
     {
         var turnStile = await turnstileService.VerifyUserResponseTokenAsync(body.TurnstileResponse, HttpContext.GetRemoteIP(), cancellationToken);
@@ -49,12 +45,9 @@ public sealed partial class AccountController
         }
 
         var creationAction = await _accountService.CreateAccountWithActivationFlowAsync(body.Email, body.Username, body.Password);
-        if (!creationAction.TryPickT0(out var created, out _))
-            return Problem(SignupError.UsernameOrEmailExists);
-
-        // No-op when no bypass token resolved. Signups can't yield an Admin user, so the bool return is ignored.
-        await bypassTokens.TryRecordUseAsync(created.Value.Id, cancellationToken);
-
-        return Ok();
+        return creationAction.Match<IActionResult>(
+            _ => Ok(),
+            _ => Problem(SignupError.UsernameOrEmailExists)
+        );
     }
 }
