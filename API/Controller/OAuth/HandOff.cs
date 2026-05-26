@@ -33,8 +33,8 @@ public sealed partial class OAuthController
         {
             return error switch
             {
-                OAuthValidationError.FlowStateMissing => RedirectFrontendError("OAuthFlowNotStarted"),
-                _ => RedirectFrontendError("InternalError")
+                OAuthValidationError.FlowStateMissing => RedirectFrontendError("oauthFlowNotStarted"),
+                _ => RedirectFrontendError("internalError")
             };
         }
 
@@ -60,6 +60,17 @@ public sealed partial class OAuthController
 
                 if (connection is null)
                 {
+                    // If the provider returned an email that already belongs to an existing OpenShock
+                    // user, do not allow creating a second account with the same email. The user must
+                    // log in to that account and link the provider from the connections settings.
+                    var externalEmail = auth.Principal.FindFirst(ClaimTypes.Email)?.Value;
+                    if (!string.IsNullOrWhiteSpace(externalEmail) &&
+                        await _accountService.IsEmailRegisteredAsync(externalEmail, cancellationToken))
+                    {
+                        await HttpContext.SignOutAsync(OAuthConstants.FlowScheme);
+                        return RedirectFrontendError("emailAlreadyRegistered");
+                    }
+
                     // No connection -> continue to CREATE flow on frontend
                     return RedirectFrontendPath($"/oauth/{Uri.EscapeDataString(provider)}/create");
                 }

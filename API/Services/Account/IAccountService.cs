@@ -43,6 +43,11 @@ public interface IAccountService
     Task<OneOf<Success<User>, AccountWithEmailOrUsernameExists>> CreateOAuthOnlyAccountAsync(string email, string username, string provider, string providerAccountId, string? providerAccountName, bool isEmailTrusted);
 
     /// <summary>
+    /// Returns true if the given email is already associated with an existing user account.
+    /// </summary>
+    Task<bool> IsEmailRegisteredAsync(string email, CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// 
     /// </summary>
     /// <param name="token"></param>

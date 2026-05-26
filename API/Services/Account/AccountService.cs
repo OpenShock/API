@@ -122,6 +122,12 @@ public sealed class AccountService : IAccountService
         return new Success<User>(user);
     }
 
+    public Task<bool> IsEmailRegisteredAsync(string email, CancellationToken cancellationToken = default)
+    {
+        email = email.ToLowerInvariant();
+        return _db.Users.AnyAsync(u => u.Email == email, cancellationToken);
+    }
+
     public async Task<OneOf<Success<User>, AccountWithEmailOrUsernameExists>> CreateOAuthOnlyAccountAsync(
         string email,
         string username,
