@@ -19,8 +19,8 @@ pnpm export       # overwrites API/SmtpTemplates/*.liquid
 ```
 
 Each exported file is a Fluid/Liquid template: line 1 is the subject, the rest
-is the HTML body — the format expected by
-`API/Services/Email/Smtp/SmtpTemplate.cs`.
+is the HTML body — the format expected by the runtime template handling in
+`API/Services/Email/EmailTemplate.cs` / `EmailServiceTemplates`.
 
 ## Authoring a template
 
