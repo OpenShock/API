@@ -42,12 +42,16 @@ export const styles = {
     backgroundColor: colors.accent,
     color: colors.accentText,
   },
-  brand: {
-    margin: '0',
-    fontSize: '18px',
+  brandLogo: {
+    display: 'block',
+    margin: '0 auto',
+    // Styles below apply to the `alt` text when the image is blocked,
+    // so the OpenShock wordmark still looks like a header in that case.
+    fontSize: '20px',
     fontWeight: '700',
     letterSpacing: '0.5px',
     color: colors.accentText,
+    textDecoration: 'none',
   },
   content: {
     padding: '28px 32px 8px',

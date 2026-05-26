@@ -6,6 +6,7 @@ import {
   Heading,
   Hr,
   Html,
+  Img,
   Link,
   Preview,
   Section,
@@ -43,7 +44,12 @@ export function Layout({
 function Header() {
   return (
     <Section style={styles.header}>
-      <Text style={styles.brand}>OpenShock</Text>
+      <Img
+        src="https://wiki.openshock.org/branding/Logo128.png"
+        height="32"
+        alt="OpenShock"
+        style={styles.brandLogo}
+      />
     </Section>
   );
 }
