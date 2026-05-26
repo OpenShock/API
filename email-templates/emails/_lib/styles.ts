@@ -1,22 +1,21 @@
 import type { CSSProperties } from 'react';
 
 const fontStack =
-  '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif';
+  'ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif';
+
+const monoStack =
+  'ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace';
 
 const colors = {
-  pageBg: '#f4f5f7',
-  cardBg: '#ffffff',
-  border: '#e4e7eb',
-  text: '#1f2329',
-  textMuted: '#5a6473',
-  textFaint: '#8a93a3',
-  accent: '#111827',
-  accentText: '#ffffff',
-  noticeBg: '#fff8e1',
-  noticeBorder: '#f0c419',
-  noticeText: '#5a4500',
-  codeBg: '#f1f3f5',
-  link: '#1f6feb',
+  pageBg: '#f4f4f5',
+  card: '#ffffff',
+  foreground: '#09090b',
+  mutedForeground: '#71717a',
+  border: '#e4e4e7',
+  muted: '#f4f4f5',
+  primary: '#18181b',
+  primaryForeground: '#fafafa',
+  codeBg: '#f4f4f5',
 } as const;
 
 export const styles = {
@@ -24,7 +23,7 @@ export const styles = {
     fontFamily: fontStack,
     lineHeight: '1.6',
     backgroundColor: colors.pageBg,
-    color: colors.text,
+    color: colors.foreground,
     margin: '0',
     padding: '0',
     WebkitFontSmoothing: 'antialiased',
@@ -32,90 +31,83 @@ export const styles = {
   container: {
     maxWidth: '560px',
     margin: '32px auto',
-    backgroundColor: colors.cardBg,
+    backgroundColor: colors.card,
     border: `1px solid ${colors.border}`,
-    borderRadius: '8px',
+    borderRadius: '12px',
     overflow: 'hidden',
   },
   header: {
-    padding: '20px 32px',
-    backgroundColor: colors.accent,
-    color: colors.accentText,
+    padding: '24px 32px',
+    backgroundColor: colors.primary,
   },
-  brandLogo: {
+  headerLogo: {
     display: 'block',
-    margin: '0 auto',
-    // Styles below apply to the `alt` text when the image is blocked,
-    // so the OpenShock wordmark still looks like a header in that case.
-    fontSize: '20px',
-    fontWeight: '700',
-    letterSpacing: '0.5px',
-    color: colors.accentText,
-    textDecoration: 'none',
   },
   content: {
     padding: '28px 32px 8px',
   },
   heading: {
-    color: colors.text,
+    color: colors.foreground,
     fontSize: '22px',
     fontWeight: '600',
     margin: '0 0 16px',
     lineHeight: '1.3',
+    letterSpacing: '-0.025em',
   },
   text: {
-    fontSize: '15px',
-    color: colors.text,
+    fontSize: '14px',
+    color: colors.foreground,
     margin: '0 0 16px',
+    lineHeight: '1.7',
   },
   muted: {
     fontSize: '13px',
-    color: colors.textMuted,
+    color: colors.mutedForeground,
     margin: '0 0 12px',
+    lineHeight: '1.6',
   },
   buttonSection: {
     padding: '8px 0 20px',
   },
   button: {
     display: 'inline-block',
-    padding: '12px 24px',
-    backgroundColor: colors.accent,
-    color: colors.accentText,
-    fontSize: '15px',
-    fontWeight: '600',
+    padding: '10px 20px',
+    backgroundColor: colors.primary,
+    color: colors.primaryForeground,
+    fontSize: '14px',
+    fontWeight: '500',
     textDecoration: 'none',
     borderRadius: '6px',
   },
   rawLinkLabel: {
     fontSize: '13px',
-    color: colors.textMuted,
+    color: colors.mutedForeground,
     margin: '0 0 6px',
   },
   rawLink: {
-    fontFamily:
-      'ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace',
+    fontFamily: monoStack,
     fontSize: '12px',
-    color: colors.link,
+    color: colors.mutedForeground,
     wordBreak: 'break-all',
     margin: '0 0 20px',
     display: 'block',
   },
   inlineCode: {
-    fontFamily:
-      'ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace',
+    fontFamily: monoStack,
     backgroundColor: colors.codeBg,
     padding: '2px 6px',
     borderRadius: '4px',
     fontSize: '13px',
   },
   notice: {
-    backgroundColor: colors.noticeBg,
-    border: `1px solid ${colors.noticeBorder}`,
-    borderRadius: '6px',
+    backgroundColor: colors.muted,
+    border: `1px solid ${colors.border}`,
+    borderRadius: '8px',
     padding: '12px 16px',
     margin: '0 0 20px',
-    fontSize: '14px',
-    color: colors.noticeText,
+    fontSize: '13px',
+    color: colors.mutedForeground,
+    lineHeight: '1.6',
   },
   divider: {
     border: 'none',
@@ -124,12 +116,12 @@ export const styles = {
   },
   footer: {
     padding: '20px 32px 24px',
-    backgroundColor: '#fafbfc',
+    backgroundColor: colors.muted,
     borderTop: `1px solid ${colors.border}`,
   },
   footerText: {
     fontSize: '12px',
-    color: colors.textFaint,
+    color: colors.mutedForeground,
     margin: '0 0 6px',
     lineHeight: '1.5',
   },
