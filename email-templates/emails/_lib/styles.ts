@@ -48,7 +48,7 @@ export const styles = {
     fontSize: '20px',
     fontWeight: '700',
     letterSpacing: '0.5px',
-    color: colors.accentText,
+    color: colors.primaryForeground,
     textDecoration: 'none',
   },
   content: {
