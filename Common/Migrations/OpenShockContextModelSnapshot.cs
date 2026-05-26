@@ -21,10 +21,9 @@ namespace OpenShock.Common.Migrations
 #pragma warning disable 612, 618
             modelBuilder
                 .HasAnnotation("Npgsql:CollationDefinition:public.ndcoll", "und-u-ks-level2,und-u-ks-level2,icu,False")
-                .HasAnnotation("ProductVersion", "10.0.8")
+                .HasAnnotation("ProductVersion", "10.0.7")
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
-            NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "bypass_token_type", new[] { "turnstile", "rate_limit" });
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "configuration_value_type", new[] { "string", "bool", "int", "float", "json" });
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "control_type", new[] { "sound", "vibrate", "shock", "stop" });
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "match_type_enum", new[] { "exact", "contains" });
@@ -237,113 +236,6 @@ namespace OpenShock.Common.Migrations
                     b.HasIndex("UserId");
 
                     b.ToTable("api_token_reports", (string)null);
-                });
-
-            modelBuilder.Entity("OpenShock.Common.OpenShockDb.BypassToken", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .HasColumnType("uuid")
-                        .HasColumnName("id");
-
-                    b.Property<TimeSpan?>("AutoCleanupAfter")
-                        .HasColumnType("interval")
-                        .HasColumnName("auto_cleanup_after");
-
-                    b.Property<bool>("AutoCleanupUsers")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("boolean")
-                        .HasDefaultValue(false)
-                        .HasColumnName("auto_cleanup_users");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("created_at")
-                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
-
-                    b.Property<DateTime?>("LastRotatedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("last_rotated_at");
-
-                    b.Property<DateTime?>("LastUsedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("last_used_at");
-
-                    b.Property<Guid?>("LastUsedByUserId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("last_used_by_user_id");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasMaxLength(64)
-                        .HasColumnType("character varying(64)")
-                        .HasColumnName("name");
-
-                    b.Property<string>("TokenHash")
-                        .IsRequired()
-                        .HasMaxLength(64)
-                        .HasColumnType("character varying(64)")
-                        .HasColumnName("token_hash")
-                        .UseCollation("C");
-
-                    b.PrimitiveCollection<List<BypassTokenType>>("Types")
-                        .IsRequired()
-                        .HasColumnType("bypass_token_type[]")
-                        .HasColumnName("types");
-
-                    b.Property<long>("UseCount")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("bigint")
-                        .HasDefaultValue(0L)
-                        .HasColumnName("use_count");
-
-                    b.HasKey("Id")
-                        .HasName("bypass_tokens_pkey");
-
-                    b.HasIndex("LastUsedByUserId");
-
-                    b.HasIndex("TokenHash")
-                        .IsUnique();
-
-                    b.ToTable("bypass_tokens", (string)null);
-                });
-
-            modelBuilder.Entity("OpenShock.Common.OpenShockDb.BypassTokenUserUse", b =>
-                {
-                    b.Property<Guid>("BypassTokenId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("bypass_token_id");
-
-                    b.Property<Guid>("UserId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("user_id");
-
-                    b.Property<DateTime>("FirstUsedAt")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("first_used_at")
-                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
-
-                    b.Property<DateTime>("LastUsedAt")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("last_used_at")
-                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
-
-                    b.Property<long>("UseCount")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("bigint")
-                        .HasDefaultValue(0L)
-                        .HasColumnName("use_count");
-
-                    b.HasKey("BypassTokenId", "UserId")
-                        .HasName("bypass_token_user_uses_pkey");
-
-                    b.HasIndex("LastUsedAt");
-
-                    b.HasIndex("UserId");
-
-                    b.ToTable("bypass_token_user_uses", (string)null);
                 });
 
             modelBuilder.Entity("OpenShock.Common.OpenShockDb.ConfigurationItem", b =>
@@ -1272,38 +1164,6 @@ namespace OpenShock.Common.Migrations
                     b.Navigation("ReportedByUser");
                 });
 
-            modelBuilder.Entity("OpenShock.Common.OpenShockDb.BypassToken", b =>
-                {
-                    b.HasOne("OpenShock.Common.OpenShockDb.User", "LastUsedByUser")
-                        .WithMany()
-                        .HasForeignKey("LastUsedByUserId")
-                        .OnDelete(DeleteBehavior.SetNull)
-                        .HasConstraintName("fk_bypass_tokens_last_used_by_user_id");
-
-                    b.Navigation("LastUsedByUser");
-                });
-
-            modelBuilder.Entity("OpenShock.Common.OpenShockDb.BypassTokenUserUse", b =>
-                {
-                    b.HasOne("OpenShock.Common.OpenShockDb.BypassToken", "BypassToken")
-                        .WithMany("UserUses")
-                        .HasForeignKey("BypassTokenId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired()
-                        .HasConstraintName("fk_bypass_token_user_uses_bypass_token_id");
-
-                    b.HasOne("OpenShock.Common.OpenShockDb.User", "User")
-                        .WithMany("BypassTokenUses")
-                        .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired()
-                        .HasConstraintName("fk_bypass_token_user_uses_user_id");
-
-                    b.Navigation("BypassToken");
-
-                    b.Navigation("User");
-                });
-
             modelBuilder.Entity("OpenShock.Common.OpenShockDb.Device", b =>
                 {
                     b.HasOne("OpenShock.Common.OpenShockDb.User", "Owner")
@@ -1548,11 +1408,6 @@ namespace OpenShock.Common.Migrations
                     b.Navigation("Shocker");
                 });
 
-            modelBuilder.Entity("OpenShock.Common.OpenShockDb.BypassToken", b =>
-                {
-                    b.Navigation("UserUses");
-                });
-
             modelBuilder.Entity("OpenShock.Common.OpenShockDb.Device", b =>
                 {
                     b.Navigation("OtaUpdates");
@@ -1581,8 +1436,6 @@ namespace OpenShock.Common.Migrations
             modelBuilder.Entity("OpenShock.Common.OpenShockDb.User", b =>
                 {
                     b.Navigation("ApiTokens");
-
-                    b.Navigation("BypassTokenUses");
 
                     b.Navigation("Devices");
 
