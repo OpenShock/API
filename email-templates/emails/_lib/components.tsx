@@ -45,7 +45,7 @@ function Header() {
   return (
     <Section style={styles.header}>
       <Img
-        src="https://wiki.openshock.org/branding/Logo128.png"
+        src="https://wiki.openshock.org/branding/Logo/Logo128.png"
         height="32"
         alt="OpenShock"
         style={styles.brandLogo}
