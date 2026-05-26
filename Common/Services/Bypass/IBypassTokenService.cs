@@ -31,11 +31,4 @@ public interface IBypassTokenService
     /// was used, when the user doesn't exist, or when the link was recorded.
     /// </summary>
     Task<bool> TryRecordUseAsync(Guid userId, CancellationToken ct);
-
-    /// <summary>
-    /// Same contract as <see cref="TryRecordUseAsync"/> but resolves the user by email first.
-    /// If no matching user exists, this is a no-op and returns <c>true</c> so the caller does not
-    /// expose user-existence by behaving differently — relevant on flows like password-reset initiation.
-    /// </summary>
-    Task<bool> TryRecordUseByEmailAsync(string email, CancellationToken ct);
 }

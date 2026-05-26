@@ -48,21 +48,6 @@ public sealed class BypassTokenService : IBypassTokenService
         return LinkAsync(bypass.Id, userId, ct);
     }
 
-    public async Task<bool> TryRecordUseByEmailAsync(string email, CancellationToken ct)
-    {
-        var bypass = _httpContextAccessor.HttpContext?.GetResolvedBypassToken();
-        if (bypass is null) return true;
-
-        var userId = await _db.Users
-            .Where(u => u.Email == email)
-            .Select(u => (Guid?)u.Id)
-            .FirstOrDefaultAsync(ct);
-
-        if (userId is null) return true;
-
-        return await LinkAsync(bypass.Id, userId.Value, ct);
-    }
-
     private async Task<bool> LinkAsync(Guid bypassTokenId, Guid userId, CancellationToken ct)
     {
         var roles = await _db.Users
