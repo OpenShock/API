@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.EntityFrameworkCore;
+using OpenShock.Common.Middleware;
 using OpenShock.Common.OpenShockDb;
 using OpenShock.Common.Options;
 using OpenShock.Common.Redis;
@@ -68,6 +69,10 @@ public static class OpenShockMiddlewareHelper
         await redisConnection.CreateIndexAsync(typeof(DeviceOnline));
         await redisConnection.CreateIndexAsync(typeof(DevicePair));
         await redisConnection.CreateIndexAsync(typeof(LcgNode));
+
+        // Resolve the X-OpenShock-Bypass-Token header (if present) before rate limiting so the
+        // rate limiter partition selectors can honor the bypass for this same request.
+        app.UseMiddleware<BypassTokenMiddleware>();
 
         app.UseRateLimiter();
         

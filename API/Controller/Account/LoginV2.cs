@@ -5,7 +5,9 @@ using System.Net.Mime;
 using Asp.Versioning;
 using Microsoft.AspNetCore.RateLimiting;
 using OpenShock.Common.Errors;
+using OpenShock.Common.Extensions;
 using OpenShock.Common.Problems;
+using OpenShock.Common.Services.Bypass;
 using OpenShock.Common.Utils;
 using OpenShock.API.Errors;
 using OpenShock.API.Models.Response;
@@ -30,6 +32,7 @@ public sealed partial class AccountController
     public async Task<IActionResult> LoginV2(
         [FromBody] LoginV2 body,
         [FromServices] ICloudflareTurnstileService turnstileService,
+        [FromServices] IBypassTokenService bypassTokens,
         CancellationToken cancellationToken)
     {
         var cookieDomain = GetCurrentCookieDomain();
@@ -57,6 +60,11 @@ public sealed partial class AccountController
             );
         }
         
+        // Admin accounts must never be authenticated through a bypassed flow — RecordUseAsync returns
+        // false in that one case and the request is rejected with the same shape as a bad turnstile token.
+        if (!await bypassTokens.TryRecordUseAsync(account.Id, cancellationToken))
+            return Problem(TurnstileError.InvalidTurnstile);
+
         await CreateSession(account.Id, cookieDomain);
         
         return Ok(LoginV2OkResponse.FromUser(account));

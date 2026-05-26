@@ -70,6 +70,7 @@ public class OpenShockContext : DbContext, IDataProtectionKeyContext
             npgsqlBuilder.MapEnum<OtaUpdateStatus>();
             npgsqlBuilder.MapEnum<MatchTypeEnum>();
             npgsqlBuilder.MapEnum<ConfigurationValueType>();
+            npgsqlBuilder.MapEnum<BypassTokenType>();
         });
 
         if (debug)
@@ -126,6 +127,10 @@ public class OpenShockContext : DbContext, IDataProtectionKeyContext
     public DbSet<UserNameBlacklist> UserNameBlacklists { get; set; }
 
     public DbSet<EmailProviderBlacklist> EmailProviderBlacklists { get; set; }
+
+    public DbSet<BypassToken> BypassTokens { get; set; }
+
+    public DbSet<BypassTokenUserUse> BypassTokenUserUses { get; set; }
     
     public DbSet<DataProtectionKey> DataProtectionKeys { get; set; }
 
@@ -149,6 +154,7 @@ public class OpenShockContext : DbContext, IDataProtectionKeyContext
             .HasPostgresEnum("shocker_model_type", ["caiXianlin", "petTrainer", "petrainer998DR", "wellturnT330"])
             .HasPostgresEnum("match_type_enum", ["exact", "contains"])
             .HasPostgresEnum("configuration_value_type", ["string", "bool", "int", "float", "json"])
+            .HasPostgresEnum("bypass_token_type", ["turnstile", "rate_limit"])
             .HasCollation("public", "ndcoll", "und-u-ks-level2", "icu", false); // Add case-insensitive, accent-sensitive comparison collation
 
         modelBuilder.Entity<ApiToken>(entity =>
@@ -845,6 +851,79 @@ public class OpenShockContext : DbContext, IDataProtectionKeyContext
             entity.Property(e => e.CreatedAt)
                 .HasDefaultValueSql("CURRENT_TIMESTAMP")
                 .HasColumnName("created_at");
+        });
+
+        modelBuilder.Entity<BypassToken>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("bypass_tokens_pkey");
+
+            entity.ToTable("bypass_tokens");
+
+            entity.HasIndex(e => e.TokenHash).IsUnique();
+            entity.HasIndex(e => e.LastUsedByUserId);
+
+            entity.Property(e => e.Id)
+                .ValueGeneratedNever()
+                .HasColumnName("id");
+            entity.Property(e => e.Name)
+                .VarCharWithLength(HardLimits.ApiKeyNameMaxLength)
+                .HasColumnName("name");
+            entity.Property(e => e.TokenHash)
+                .UseCollation("C")
+                .VarCharWithLength(HardLimits.Sha256HashHexLength)
+                .HasColumnName("token_hash");
+            entity.Property(e => e.Types)
+                .HasColumnType("bypass_token_type[]")
+                .HasColumnName("types");
+            entity.Property(e => e.CreatedAt)
+                .HasDefaultValueSql("CURRENT_TIMESTAMP")
+                .HasColumnName("created_at");
+            entity.Property(e => e.LastUsedAt).HasColumnName("last_used_at");
+            entity.Property(e => e.LastUsedByUserId).HasColumnName("last_used_by_user_id");
+            entity.Property(e => e.LastRotatedAt).HasColumnName("last_rotated_at");
+            entity.Property(e => e.UseCount)
+                .HasDefaultValue(0L)
+                .HasColumnName("use_count");
+            entity.Property(e => e.AutoCleanupUsers)
+                .HasDefaultValue(false)
+                .HasColumnName("auto_cleanup_users");
+            entity.Property(e => e.AutoCleanupAfter).HasColumnName("auto_cleanup_after");
+
+            entity.HasOne(d => d.LastUsedByUser).WithMany()
+                .HasForeignKey(d => d.LastUsedByUserId)
+                .OnDelete(DeleteBehavior.SetNull)
+                .HasConstraintName("fk_bypass_tokens_last_used_by_user_id");
+        });
+
+        modelBuilder.Entity<BypassTokenUserUse>(entity =>
+        {
+            entity.HasKey(e => new { e.BypassTokenId, e.UserId }).HasName("bypass_token_user_uses_pkey");
+
+            entity.ToTable("bypass_token_user_uses");
+
+            entity.HasIndex(e => e.LastUsedAt);
+
+            entity.Property(e => e.BypassTokenId).HasColumnName("bypass_token_id");
+            entity.Property(e => e.UserId).HasColumnName("user_id");
+            entity.Property(e => e.FirstUsedAt)
+                .HasDefaultValueSql("CURRENT_TIMESTAMP")
+                .HasColumnName("first_used_at");
+            entity.Property(e => e.LastUsedAt)
+                .HasDefaultValueSql("CURRENT_TIMESTAMP")
+                .HasColumnName("last_used_at");
+            entity.Property(e => e.UseCount)
+                .HasDefaultValue(0L)
+                .HasColumnName("use_count");
+
+            entity.HasOne(d => d.BypassToken).WithMany(p => p.UserUses)
+                .HasForeignKey(d => d.BypassTokenId)
+                .OnDelete(DeleteBehavior.Cascade)
+                .HasConstraintName("fk_bypass_token_user_uses_bypass_token_id");
+
+            entity.HasOne(d => d.User).WithMany(p => p.BypassTokenUses)
+                .HasForeignKey(d => d.UserId)
+                .OnDelete(DeleteBehavior.Cascade)
+                .HasConstraintName("fk_bypass_token_user_uses_user_id");
         });
 
         modelBuilder.Entity<AdminUsersView>(entity =>

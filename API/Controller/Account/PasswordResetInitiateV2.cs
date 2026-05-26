@@ -7,7 +7,9 @@ using Microsoft.AspNetCore.RateLimiting;
 using OpenShock.API.Errors;
 using OpenShock.API.Models.Requests;
 using OpenShock.API.Services.Turnstile;
+using OpenShock.Common.Extensions;
 using OpenShock.Common.Problems;
+using OpenShock.Common.Services.Bypass;
 using OpenShock.Common.Utils;
 
 namespace OpenShock.API.Controller.Account;
@@ -24,8 +26,8 @@ public sealed partial class AccountController
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status403Forbidden, MediaTypeNames.Application.ProblemJson)]
     [MapToApiVersion("2")]
-    public Task<IActionResult> PasswordResetInitiateV2([FromBody] PasswordResetRequestV2 body, [FromServices] ICloudflareTurnstileService turnstileService, CancellationToken cancellationToken)
-        => PasswordResetInitiate(body, turnstileService, cancellationToken);
+    public Task<IActionResult> PasswordResetInitiateV2([FromBody] PasswordResetRequestV2 body, [FromServices] ICloudflareTurnstileService turnstileService, [FromServices] IBypassTokenService bypassTokens, CancellationToken cancellationToken)
+        => PasswordResetInitiate(body, turnstileService, bypassTokens, cancellationToken);
 
     /// <summary>
     /// Initiate a password reset. Deprecated: use POST /password-reset instead.
@@ -38,10 +40,10 @@ public sealed partial class AccountController
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status403Forbidden, MediaTypeNames.Application.ProblemJson)]
     [MapToApiVersion("2")]
-    public Task<IActionResult> PasswordResetInitiateV2Legacy([FromBody] PasswordResetRequestV2 body, [FromServices] ICloudflareTurnstileService turnstileService, CancellationToken cancellationToken)
-        => PasswordResetInitiate(body, turnstileService, cancellationToken);
+    public Task<IActionResult> PasswordResetInitiateV2Legacy([FromBody] PasswordResetRequestV2 body, [FromServices] ICloudflareTurnstileService turnstileService, [FromServices] IBypassTokenService bypassTokens, CancellationToken cancellationToken)
+        => PasswordResetInitiate(body, turnstileService, bypassTokens, cancellationToken);
 
-    private async Task<IActionResult> PasswordResetInitiate(PasswordResetRequestV2 body, ICloudflareTurnstileService turnstileService, CancellationToken cancellationToken)
+    private async Task<IActionResult> PasswordResetInitiate(PasswordResetRequestV2 body, ICloudflareTurnstileService turnstileService, IBypassTokenService bypassTokens, CancellationToken cancellationToken)
     {
         var turnStile = await turnstileService.VerifyUserResponseTokenAsync(body.TurnstileResponse, HttpContext.GetRemoteIP(), cancellationToken);
         if (!turnStile.IsT0)
@@ -52,6 +54,11 @@ public sealed partial class AccountController
 
             return Problem(new OpenShockProblem("InternalServerError", "Internal Server Error", HttpStatusCode.InternalServerError));
         }
+
+        // If a bypass token resolved against an admin email, abort silently — same response shape as
+        // a missing/non-admin email so the bypass scheme can't be used to enumerate admin addresses.
+        if (!await bypassTokens.TryRecordUseByEmailAsync(body.Email, cancellationToken))
+            return Ok();
 
         await _accountService.CreatePasswordResetFlowAsync(body.Email);
 
