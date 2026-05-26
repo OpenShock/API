@@ -60,8 +60,7 @@ public sealed partial class AccountController
             );
         }
         
-        // Admin accounts must never be authenticated through a bypassed flow — RecordUseAsync returns
-        // false in that one case and the request is rejected with the same shape as a bad turnstile token.
+        // Mark this account as having used a bypass token if the token is present, if the bypass token has set that it should delete accounts that use it, this account will be marked for deletion
         if (!await bypassTokens.TryRecordUseAsync(account.Id, cancellationToken))
             return Problem(TurnstileError.InvalidTurnstile);
 
