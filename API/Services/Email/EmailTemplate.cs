@@ -30,14 +30,13 @@ public sealed class EmailTemplate
     public static async Task<EmailTemplate> ParseFromFileThrow(string filePath)
     {
         var result = await ParseFromFile(filePath);
-        if (result.IsT0) return result.AsT0;
-        throw new InvalidDataException(result.AsT1);
+        return result.IsT0 ? result.AsT0 : throw new InvalidDataException(result.AsT1);
     }
 
-    public static Task<OneOf.OneOf<EmailTemplate, string>> ParseFromFile(string filePath) =>
+    private static Task<OneOf.OneOf<EmailTemplate, string>> ParseFromFile(string filePath) =>
         ParseFromFile(File.OpenRead(filePath));
 
-    public static async Task<OneOf.OneOf<EmailTemplate, string>> ParseFromFile(FileStream fileStream)
+    private static async Task<OneOf.OneOf<EmailTemplate, string>> ParseFromFile(FileStream fileStream)
     {
         using var streamReader = new StreamReader(fileStream);
         var subject = await streamReader.ReadLineAsync();

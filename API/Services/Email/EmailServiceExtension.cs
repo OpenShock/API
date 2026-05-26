@@ -6,7 +6,7 @@ namespace OpenShock.API.Services.Email;
 
 public static class EmailServiceExtension
 {
-    public static WebApplicationBuilder AddEmailService(this WebApplicationBuilder builder)
+    public static async Task<WebApplicationBuilder> AddEmailService(this WebApplicationBuilder builder)
     {
         var mailOptions = builder.Configuration.GetRequiredSection(MailOptions.SectionName).Get<MailOptions>() ?? throw new NullReferenceException();
         
@@ -18,7 +18,7 @@ public static class EmailServiceExtension
 
         // Add sender contact configuration
         builder.AddSenderContactConfiguration();
-        builder.AddEmailServiceTemplates();
+        await builder.AddEmailServiceTemplates();
         
         switch (mailOptions.Type)
         {
@@ -41,14 +41,21 @@ public static class EmailServiceExtension
         return builder;
     }
 
-    private static WebApplicationBuilder AddEmailServiceTemplates(this WebApplicationBuilder builder)
+    private static async Task<WebApplicationBuilder> AddEmailServiceTemplates(this WebApplicationBuilder builder)
     {
+        var accountActivation = EmailTemplate.ParseFromFileThrow("SmtpTemplates/AccountActivation.liquid");
+        var passwordReset = EmailTemplate.ParseFromFileThrow("SmtpTemplates/PasswordReset.liquid");
+        var emailVerification = EmailTemplate.ParseFromFileThrow("SmtpTemplates/EmailVerification.liquid");
+        var emailChangeNotice = EmailTemplate.ParseFromFileThrow("SmtpTemplates/EmailChangeNotice.liquid");
+
+        await Task.WhenAll(accountActivation, passwordReset, emailVerification, emailChangeNotice);
+
         builder.Services.AddSingleton(new EmailServiceTemplates
         {
-            AccountActivation = EmailTemplate.ParseFromFileThrow("SmtpTemplates/AccountActivation.liquid").Result,
-            PasswordReset = EmailTemplate.ParseFromFileThrow("SmtpTemplates/PasswordReset.liquid").Result,
-            EmailVerification = EmailTemplate.ParseFromFileThrow("SmtpTemplates/EmailVerification.liquid").Result,
-            EmailChangeNotice = EmailTemplate.ParseFromFileThrow("SmtpTemplates/EmailChangeNotice.liquid").Result,
+            AccountActivation = await accountActivation,
+            PasswordReset = await passwordReset,
+            EmailVerification = await emailVerification,
+            EmailChangeNotice = await emailChangeNotice,
         });
         return builder;
     }
