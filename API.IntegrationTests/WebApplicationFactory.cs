@@ -34,6 +34,14 @@ public class WebApplicationFactory : WebApplicationFactory<Program>, IAsyncIniti
         return Task.CompletedTask;
     }
 
+    protected override void ConfigureClient(HttpClient client)
+    {
+        base.ConfigureClient(client);
+        // BCrypt hashing in concurrent tests can starve the thread pool on CI runners,
+        // causing in-process requests to queue far beyond the default 100 s timeout.
+        client.Timeout = TimeSpan.FromMinutes(5);
+    }
+
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
         // TODO: Find a way to do the following instead of the current implementation
