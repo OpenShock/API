@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using OpenShock.API.Models.Requests;
 using System.Net;
 using System.Net.Mime;
@@ -47,7 +47,7 @@ public sealed partial class AccountController
 
             return Problem(new OpenShockProblem("InternalServerError", "Internal Server Error", HttpStatusCode.InternalServerError));
         }
-
+        
         var getAccountResult = await _accountService.GetAccountByCredentialsAsync(body.UsernameOrEmail, body.Password, cancellationToken);
         if (!getAccountResult.TryPickT0(out var account, out var errors))
         {
@@ -63,9 +63,9 @@ public sealed partial class AccountController
         // automated tests, not as a credential-less back door to a privileged account.
         if (HttpContext.IsBypassed(BypassTokenType.Turnstile) && account.Roles.Contains(RoleType.Admin))
             return Problem(TurnstileError.InvalidTurnstile);
-
+        
         await CreateSession(account.Id, cookieDomain);
-
+        
         return Ok(LoginV2OkResponse.FromUser(account));
     }
 }

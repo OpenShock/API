@@ -126,7 +126,7 @@ public class OpenShockContext : DbContext, IDataProtectionKeyContext
     public DbSet<UserNameBlacklist> UserNameBlacklists { get; set; }
 
     public DbSet<EmailProviderBlacklist> EmailProviderBlacklists { get; set; }
-
+    
     public DbSet<DataProtectionKey> DataProtectionKeys { get; set; }
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
