@@ -1,4 +1,6 @@
+using System.Linq.Expressions;
 using System.Net.Mime;
+using Asp.Versioning;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using OpenShock.API.Models.Requests;
@@ -13,25 +15,57 @@ namespace OpenShock.API.Controller.Tokens;
 
 public sealed partial class TokensController
 {
+    private static readonly Expression<Func<ApiToken, TokenResponse>> ToTokenResponse = x => new TokenResponse
+    {
+        CreatedOn = x.CreatedAt,
+        ValidUntil = x.ValidUntil,
+        LastUsed = x.LastUsed ?? default,
+        Permissions = x.Permissions,
+        Name = x.Name,
+        Id = x.Id
+    };
+
+    private static readonly Expression<Func<ApiToken, TokenResponseV2>> ToTokenResponseV2 = x => new TokenResponseV2
+    {
+        CreatedOn = x.CreatedAt,
+        ValidUntil = x.ValidUntil,
+        LastUsed = x.LastUsed,
+        Permissions = x.Permissions,
+        Name = x.Name,
+        Id = x.Id
+    };
+
+    /// <summary>
+    /// Tokens belonging to the current user that have not expired.
+    /// </summary>
+    private IQueryable<ApiToken> CurrentUserValidTokens => _db.ApiTokens
+        .Where(x => x.UserId == CurrentUser.Id && (x.ValidUntil == null || x.ValidUntil > DateTime.UtcNow));
+
     /// <summary>
     /// List all tokens for the current user
     /// </summary>
     /// <response code="200">All tokens for the current user</response>
     [HttpGet]
+    [MapToApiVersion("1")]
     public IAsyncEnumerable<TokenResponse> ListTokens()
     {
-        return _db.ApiTokens
-            .Where(x => x.UserId == CurrentUser.Id && (x.ValidUntil == null || x.ValidUntil > DateTime.UtcNow))
+        return CurrentUserValidTokens
             .OrderBy(x => x.CreatedAt)
-            .Select(x => new TokenResponse
-            {
-                CreatedOn = x.CreatedAt,
-                ValidUntil = x.ValidUntil,
-                LastUsed = x.LastUsed,
-                Permissions = x.Permissions,
-                Name = x.Name,
-                Id = x.Id
-            })
+            .Select(ToTokenResponse)
+            .AsAsyncEnumerable();
+    }
+
+    /// <summary>
+    /// List all tokens for the current user
+    /// </summary>
+    /// <response code="200">All tokens for the current user</response>
+    [HttpGet]
+    [MapToApiVersion("2")]
+    public IAsyncEnumerable<TokenResponseV2> ListTokensV2()
+    {
+        return CurrentUserValidTokens
+            .OrderBy(x => x.CreatedAt)
+            .Select(ToTokenResponseV2)
             .AsAsyncEnumerable();
     }
 
@@ -43,23 +77,39 @@ public sealed partial class TokensController
     /// <response code="404">The token does not exist or you do not have access to it.</response>
     [HttpGet("{tokenId}")]
     [ProducesResponseType<TokenResponse>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
-    [ProducesResponseType<OpenShockProblem>(StatusCodes.Status404NotFound, MediaTypeNames.Application.ProblemJson)] // ApiTokenNotFound    
+    [ProducesResponseType<OpenShockProblem>(StatusCodes.Status404NotFound, MediaTypeNames.Application.ProblemJson)] // ApiTokenNotFound
+    [MapToApiVersion("1")]
     public async Task<IActionResult> GetTokenById([FromRoute] Guid tokenId)
     {
-        var apiToken = await _db.ApiTokens
-            .Where(x => x.UserId == CurrentUser.Id && x.Id == tokenId && (x.ValidUntil == null || x.ValidUntil > DateTime.UtcNow))
-            .Select(x => new TokenResponse
-        {
-            CreatedOn = x.CreatedAt,
-            ValidUntil = x.ValidUntil,
-            Permissions = x.Permissions,
-            LastUsed = x.LastUsed,
-            Name = x.Name,
-            Id = x.Id
-        }).FirstOrDefaultAsync();
-        
+        var apiToken = await CurrentUserValidTokens
+            .Where(x => x.Id == tokenId)
+            .Select(ToTokenResponse)
+            .FirstOrDefaultAsync();
+
         if (apiToken is null) return Problem(ApiTokenError.ApiTokenNotFound);
-        
+
+        return Ok(apiToken);
+    }
+
+    /// <summary>
+    /// Get a token by id
+    /// </summary>
+    /// <param name="tokenId"></param>
+    /// <response code="200">The token</response>
+    /// <response code="404">The token does not exist or you do not have access to it.</response>
+    [HttpGet("{tokenId}")]
+    [ProducesResponseType<TokenResponseV2>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
+    [ProducesResponseType<OpenShockProblem>(StatusCodes.Status404NotFound, MediaTypeNames.Application.ProblemJson)] // ApiTokenNotFound
+    [MapToApiVersion("2")]
+    public async Task<IActionResult> GetTokenByIdV2([FromRoute] Guid tokenId)
+    {
+        var apiToken = await CurrentUserValidTokens
+            .Where(x => x.Id == tokenId)
+            .Select(ToTokenResponseV2)
+            .FirstOrDefaultAsync();
+
+        if (apiToken is null) return Problem(ApiTokenError.ApiTokenNotFound);
+
         return Ok(apiToken);
     }
 
@@ -71,6 +121,7 @@ public sealed partial class TokensController
     [HttpPost]
     [Consumes(MediaTypeNames.Application.Json)]
     [Produces(MediaTypeNames.Application.Json)]
+    [MapToApiVersion("1")]
     public async Task<TokenCreatedResponse> CreateToken([FromBody] CreateTokenRequest body)
     {
         var token = CryptoUtils.RandomAlphaNumericString(AuthConstants.ApiTokenLength);
@@ -95,7 +146,7 @@ public sealed partial class TokensController
             Token = token,
             CreatedAt = tokenDto.CreatedAt,
             ValidUntil = tokenDto.ValidUntil,
-            LastUsed = tokenDto.LastUsed,
+            LastUsed = tokenDto.LastUsed ?? default,
             Permissions = tokenDto.Permissions
         };
     }
@@ -111,10 +162,10 @@ public sealed partial class TokensController
     [Consumes(MediaTypeNames.Application.Json)]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status404NotFound, MediaTypeNames.Application.ProblemJson)] // ApiTokenNotFound    
+    [MapToApiVersion("1")]
     public async Task<IActionResult> EditToken([FromRoute] Guid tokenId, [FromBody] EditTokenRequest body)
     {
-        var token = await _db.ApiTokens
-            .FirstOrDefaultAsync(x => x.UserId == CurrentUser.Id && x.Id == tokenId && (x.ValidUntil == null || x.ValidUntil > DateTime.UtcNow));
+        var token = await CurrentUserValidTokens.FirstOrDefaultAsync(x => x.Id == tokenId);
         if (token is null) return Problem(ApiTokenError.ApiTokenNotFound);
 
         token.Name = body.Name;

@@ -21,7 +21,7 @@ public sealed class ApiToken
 
     public DateTime CreatedAt { get; set; }
 
-    public DateTime LastUsed { get; set; }
+    public DateTime? LastUsed { get; set; }
 
     // Navigations
     public User User { get; set; } = null!;

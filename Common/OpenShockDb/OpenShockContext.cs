@@ -170,7 +170,6 @@ public class OpenShockContext : DbContext, IDataProtectionKeyContext
                 .HasDefaultValueSql("CURRENT_TIMESTAMP")
                 .HasColumnName("created_at");
             entity.Property(e => e.LastUsed)
-                .HasDefaultValueSql("'-infinity'::timestamp without time zone")
                 .HasColumnName("last_used");
             entity.Property(e => e.Name)
                 .HasMaxLength(HardLimits.ApiKeyNameMaxLength)
