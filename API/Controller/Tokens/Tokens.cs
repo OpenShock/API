@@ -3,6 +3,7 @@ using System.Net.Mime;
 using Asp.Versioning;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using OpenShock.API.Models;
 using OpenShock.API.Models.Requests;
 using OpenShock.API.Models.Response;
 using OpenShock.Common.Constants;
@@ -32,7 +33,23 @@ public sealed partial class TokensController
         LastUsed = x.LastUsed,
         Permissions = x.Permissions,
         Name = x.Name,
-        Id = x.Id
+        Id = x.Id,
+        ShockerControl = new ShockerControlSettings
+        {
+            Enabled = x.ShockerControlEnabled,
+            Intensity = new IntensityLimitSettings
+            {
+                Min = x.ShockerControlIntensityMin,
+                Max = x.ShockerControlIntensityMax,
+                Mode = x.ShockerControlIntensityMode
+            },
+            Duration = new DurationLimitSettings
+            {
+                Min = x.ShockerControlDurationMin,
+                Max = x.ShockerControlDurationMax,
+                Mode = x.ShockerControlDurationMode
+            }
+        }
     };
 
     /// <summary>
@@ -170,6 +187,74 @@ public sealed partial class TokensController
 
         token.Name = body.Name;
         token.Permissions = body.Permissions.Distinct().ToList();
+        await _db.SaveChangesAsync();
+
+        return Ok();
+    }
+
+    /// <summary>
+    /// Create a new token
+    /// </summary>
+    /// <param name="body"></param>
+    /// <response code="200">The created token</response>
+    [HttpPost]
+    [Consumes(MediaTypeNames.Application.Json)]
+    [Produces(MediaTypeNames.Application.Json)]
+    [MapToApiVersion("2")]
+    public async Task<TokenCreatedResponseV2> CreateTokenV2([FromBody] CreateTokenRequestV2 body)
+    {
+        var token = CryptoUtils.RandomAlphaNumericString(AuthConstants.ApiTokenLength);
+
+        var shockerControl = body.ShockerControl ?? ShockerControlSettings.Default;
+
+        var tokenDto = new ApiToken
+        {
+            Id = Guid.CreateVersion7(),
+            UserId = CurrentUser.Id,
+            Name = body.Name,
+            TokenHash = HashingUtils.HashToken(token),
+            CreatedByIp = HttpContext.GetRemoteIP(),
+            Permissions = body.Permissions.Distinct().ToList(),
+            ValidUntil = body.ValidUntil?.ToUniversalTime()
+        };
+        shockerControl.ApplyTo(tokenDto);
+
+        _db.ApiTokens.Add(tokenDto);
+        await _db.SaveChangesAsync();
+
+        return new TokenCreatedResponseV2
+        {
+            Id = tokenDto.Id,
+            Name = tokenDto.Name,
+            Token = token,
+            CreatedAt = tokenDto.CreatedAt,
+            ValidUntil = tokenDto.ValidUntil,
+            LastUsed = tokenDto.LastUsed,
+            Permissions = tokenDto.Permissions,
+            ShockerControl = ShockerControlSettings.FromToken(tokenDto)
+        };
+    }
+
+    /// <summary>
+    /// Edit a token
+    /// </summary>
+    /// <param name="tokenId"></param>
+    /// <param name="body"></param>
+    /// <response code="200">The edited token</response>
+    /// <response code="404">The token does not exist or you do not have access to it.</response>
+    [HttpPatch("{tokenId}")]
+    [Consumes(MediaTypeNames.Application.Json)]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType<OpenShockProblem>(StatusCodes.Status404NotFound, MediaTypeNames.Application.ProblemJson)] // ApiTokenNotFound
+    [MapToApiVersion("2")]
+    public async Task<IActionResult> EditTokenV2([FromRoute] Guid tokenId, [FromBody] EditTokenRequestV2 body)
+    {
+        var token = await CurrentUserValidTokens.FirstOrDefaultAsync(x => x.Id == tokenId);
+        if (token is null) return Problem(ApiTokenError.ApiTokenNotFound);
+
+        token.Name = body.Name;
+        token.Permissions = body.Permissions.Distinct().ToList();
+        (body.ShockerControl ?? ShockerControlSettings.Default).ApplyTo(token);
         await _db.SaveChangesAsync();
 
         return Ok();

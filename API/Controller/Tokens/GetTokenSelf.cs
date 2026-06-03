@@ -1,6 +1,7 @@
 ﻿using Asp.Versioning;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using OpenShock.API.Models;
 using OpenShock.API.Models.Response;
 using OpenShock.Common.Authentication;
 using OpenShock.Common.Authentication.ControllerBase;
@@ -32,7 +33,7 @@ public sealed partial class TokensSelfController : AuthenticatedSessionControlle
         {
             CreatedOn = token.CreatedAt,
             ValidUntil = token.ValidUntil,
-            LastUsed = token.LastUsed ?? default,
+            LastUsed = token.LastUsed ?? DateTime.MinValue,
             Permissions = token.Permissions,
             Name = token.Name,
             Id = token.Id
@@ -58,7 +59,8 @@ public sealed partial class TokensSelfController : AuthenticatedSessionControlle
             LastUsed = token.LastUsed,
             Permissions = token.Permissions,
             Name = token.Name,
-            Id = token.Id
+            Id = token.Id,
+            ShockerControl = ShockerControlSettings.FromToken(token)
         };
     }
 

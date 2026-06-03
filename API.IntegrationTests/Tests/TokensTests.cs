@@ -33,6 +33,111 @@ public sealed class TokensTests
         await Assert.That(root.TryGetProperty("id", out _)).IsTrue();
     }
 
+    // --- Create Token V2 (shocker control) ---
+
+    [Test]
+    public async Task CreateTokenV2_DefaultShockerControl_IsPermissive()
+    {
+        var user = await TestHelper.CreateAndLoginUser(WebApplicationFactory, "tokv2def", "tokv2def@test.org", "SecurePassword123#");
+        using var client = TestHelper.CreateAuthenticatedClient(WebApplicationFactory, user.SessionToken);
+
+        var response = await client.PostAsync("/2/tokens", TestHelper.JsonContent(new
+        {
+            name = "DefaultsToken",
+            permissions = new[] { "shockers.use" }
+        }));
+
+        await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.OK);
+
+        var json = await response.Content.ReadAsStringAsync();
+        using var doc = JsonDocument.Parse(json);
+        var sc = doc.RootElement.GetProperty("shockerControl");
+        await Assert.That(sc.GetProperty("enabled").GetBoolean()).IsTrue();
+        await Assert.That(sc.GetProperty("intensity").GetProperty("min").GetInt32()).IsEqualTo(0);
+        await Assert.That(sc.GetProperty("intensity").GetProperty("max").GetInt32()).IsEqualTo(100);
+        await Assert.That(sc.GetProperty("intensity").GetProperty("mode").GetString()).IsEqualTo("Clamp");
+        await Assert.That(sc.GetProperty("duration").GetProperty("min").GetInt32()).IsEqualTo(300);
+        await Assert.That(sc.GetProperty("duration").GetProperty("max").GetInt32()).IsEqualTo(65535);
+    }
+
+    [Test]
+    public async Task CreateTokenV2_CustomShockerControl_RoundTrips()
+    {
+        var user = await TestHelper.CreateAndLoginUser(WebApplicationFactory, "tokv2custom", "tokv2custom@test.org", "SecurePassword123#");
+        using var client = TestHelper.CreateAuthenticatedClient(WebApplicationFactory, user.SessionToken);
+
+        var createResponse = await client.PostAsync("/2/tokens", TestHelper.JsonContent(new
+        {
+            name = "CustomToken",
+            permissions = new[] { "shockers.use" },
+            shockerControl = new
+            {
+                enabled = false,
+                intensity = new { min = 10, max = 50, mode = "Lerp" },
+                duration = new { min = 500, max = 2000, mode = "Clamp" }
+            }
+        }));
+
+        await Assert.That(createResponse.StatusCode).IsEqualTo(HttpStatusCode.OK);
+        var createJson = await createResponse.Content.ReadAsStringAsync();
+        using var createDoc = JsonDocument.Parse(createJson);
+        var tokenId = createDoc.RootElement.GetProperty("id").GetString();
+
+        // Read it back via v2 GET and confirm the configuration persisted.
+        var getResponse = await client.GetAsync($"/2/tokens/{tokenId}");
+        var json = await getResponse.Content.ReadAsStringAsync();
+        using var doc = JsonDocument.Parse(json);
+        var sc = doc.RootElement.GetProperty("shockerControl");
+        await Assert.That(sc.GetProperty("enabled").GetBoolean()).IsFalse();
+        await Assert.That(sc.GetProperty("intensity").GetProperty("min").GetInt32()).IsEqualTo(10);
+        await Assert.That(sc.GetProperty("intensity").GetProperty("max").GetInt32()).IsEqualTo(50);
+        await Assert.That(sc.GetProperty("intensity").GetProperty("mode").GetString()).IsEqualTo("Lerp");
+        await Assert.That(sc.GetProperty("duration").GetProperty("min").GetInt32()).IsEqualTo(500);
+        await Assert.That(sc.GetProperty("duration").GetProperty("max").GetInt32()).IsEqualTo(2000);
+    }
+
+    [Test]
+    public async Task CreateTokenV2_MinGreaterThanMax_Returns400()
+    {
+        var user = await TestHelper.CreateAndLoginUser(WebApplicationFactory, "tokv2minmax", "tokv2minmax@test.org", "SecurePassword123#");
+        using var client = TestHelper.CreateAuthenticatedClient(WebApplicationFactory, user.SessionToken);
+
+        var response = await client.PostAsync("/2/tokens", TestHelper.JsonContent(new
+        {
+            name = "BadToken",
+            permissions = new[] { "shockers.use" },
+            shockerControl = new
+            {
+                enabled = true,
+                intensity = new { min = 80, max = 20, mode = "Clamp" },
+                duration = new { min = 300, max = 65535, mode = "Clamp" }
+            }
+        }));
+
+        await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.BadRequest);
+    }
+
+    [Test]
+    public async Task CreateTokenV2_IntensityOutOfRange_Returns400()
+    {
+        var user = await TestHelper.CreateAndLoginUser(WebApplicationFactory, "tokv2range", "tokv2range@test.org", "SecurePassword123#");
+        using var client = TestHelper.CreateAuthenticatedClient(WebApplicationFactory, user.SessionToken);
+
+        var response = await client.PostAsync("/2/tokens", TestHelper.JsonContent(new
+        {
+            name = "OutOfRange",
+            permissions = new[] { "shockers.use" },
+            shockerControl = new
+            {
+                enabled = true,
+                intensity = new { min = 0, max = 200, mode = "Clamp" },
+                duration = new { min = 300, max = 65535, mode = "Clamp" }
+            }
+        }));
+
+        await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.BadRequest);
+    }
+
     // --- List Tokens ---
 
     [Test]

@@ -1,15 +1,17 @@
-﻿using OpenShock.API.Models;
+using OpenShock.API.Models;
 using OpenShock.Common.Models;
 
 namespace OpenShock.API.Models.Response;
 
-public sealed class TokenResponseV2
+public sealed class TokenCreatedResponseV2
 {
     public required Guid Id { get; init; }
 
     public required string Name { get; init; }
 
-    public required DateTime CreatedOn { get; init; }
+    public required string Token { get; init; }
+
+    public required DateTime CreatedAt { get; init; }
 
     public required DateTime? ValidUntil { get; init; }
 

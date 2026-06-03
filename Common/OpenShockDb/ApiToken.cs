@@ -1,4 +1,5 @@
 ﻿using System.Net;
+using OpenShock.Common.Constants;
 using OpenShock.Common.Models;
 
 namespace OpenShock.Common.OpenShockDb;
@@ -22,6 +23,24 @@ public sealed class ApiToken
     public DateTime CreatedAt { get; set; }
 
     public DateTime? LastUsed { get; set; }
+
+    /// <summary>
+    /// Whether this token is allowed to send shocker control messages at all.
+    /// Independent gate on top of the <see cref="PermissionType.Shockers_Use"/> permission.
+    /// </summary>
+    public bool ShockerControlEnabled { get; set; } = true;
+
+    public byte ShockerControlIntensityMin { get; set; } = HardLimits.MinControlIntensity;
+
+    public byte ShockerControlIntensityMax { get; set; } = HardLimits.MaxControlIntensity;
+
+    public ControlLimitMode ShockerControlIntensityMode { get; set; } = ControlLimitMode.Clamp;
+
+    public ushort ShockerControlDurationMin { get; set; } = HardLimits.MinControlDuration;
+
+    public ushort ShockerControlDurationMax { get; set; } = HardLimits.MaxControlDuration;
+
+    public ControlLimitMode ShockerControlDurationMode { get; set; } = ControlLimitMode.Clamp;
 
     // Navigations
     public User User { get; set; } = null!;
