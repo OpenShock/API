@@ -11,33 +11,13 @@ namespace OpenShock.API.Models;
 public sealed class ShockerControlSettings : IValidatableObject
 {
     /// <summary>
-    /// Whether this token is allowed to send shocker control messages at all.
+    /// When true, this token is paused and may not send shocker control messages.
     /// </summary>
-    public bool Enabled { get; init; } = true;
+    public required bool Paused { get; init; }
 
     public required IntensityLimitSettings Intensity { get; init; }
 
     public required DurationLimitSettings Duration { get; init; }
-
-    /// <summary>
-    /// The permissive default: enabled, full-range clamp for both intensity and duration (a no-op).
-    /// </summary>
-    public static ShockerControlSettings Default => new()
-    {
-        Enabled = true,
-        Intensity = new IntensityLimitSettings
-        {
-            Min = HardLimits.MinControlIntensity,
-            Max = HardLimits.MaxControlIntensity,
-            Mode = ControlLimitMode.Clamp
-        },
-        Duration = new DurationLimitSettings
-        {
-            Min = HardLimits.MinControlDuration,
-            Max = HardLimits.MaxControlDuration,
-            Mode = ControlLimitMode.Clamp
-        }
-    };
 
     /// <summary>
     /// Maps the flat shocker-control columns of an <see cref="ApiToken"/> onto this DTO.
@@ -45,7 +25,7 @@ public sealed class ShockerControlSettings : IValidatableObject
     /// </summary>
     public static ShockerControlSettings FromToken(ApiToken token) => new()
     {
-        Enabled = token.ShockerControlEnabled,
+        Paused = token.ShockerControlPaused,
         Intensity = new IntensityLimitSettings
         {
             Min = token.ShockerControlIntensityMin,
@@ -65,7 +45,7 @@ public sealed class ShockerControlSettings : IValidatableObject
     /// </summary>
     public void ApplyTo(ApiToken token)
     {
-        token.ShockerControlEnabled = Enabled;
+        token.ShockerControlPaused = Paused;
         token.ShockerControlIntensityMin = Intensity.Min;
         token.ShockerControlIntensityMax = Intensity.Max;
         token.ShockerControlIntensityMode = Intensity.Mode;
@@ -102,7 +82,7 @@ public sealed class IntensityLimitSettings
     [Range(HardLimits.MinControlIntensity, HardLimits.MaxControlIntensity)]
     public required byte Max { get; init; }
 
-    public ControlLimitMode Mode { get; init; } = ControlLimitMode.Clamp;
+    public required ControlLimitMode Mode { get; init; }
 }
 
 public sealed class DurationLimitSettings
@@ -113,5 +93,5 @@ public sealed class DurationLimitSettings
     [Range(HardLimits.MinControlDuration, HardLimits.MaxControlDuration)]
     public required ushort Max { get; init; }
 
-    public ControlLimitMode Mode { get; init; } = ControlLimitMode.Clamp;
+    public ControlLimitMode Mode { get; init; }
 }

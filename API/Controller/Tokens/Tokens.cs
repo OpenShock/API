@@ -1,14 +1,10 @@
-using System.Linq.Expressions;
 using System.Net.Mime;
 using Asp.Versioning;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using OpenShock.API.Models;
 using OpenShock.API.Models.Requests;
 using OpenShock.API.Models.Response;
-using OpenShock.Common.Constants;
+using OpenShock.API.Services.Token;
 using OpenShock.Common.Errors;
-using OpenShock.Common.OpenShockDb;
 using OpenShock.Common.Problems;
 using OpenShock.Common.Utils;
 
@@ -16,60 +12,15 @@ namespace OpenShock.API.Controller.Tokens;
 
 public sealed partial class TokensController
 {
-    private static readonly Expression<Func<ApiToken, TokenResponse>> ToTokenResponse = x => new TokenResponse
-    {
-        CreatedOn = x.CreatedAt,
-        ValidUntil = x.ValidUntil,
-        LastUsed = x.LastUsed ?? default,
-        Permissions = x.Permissions,
-        Name = x.Name,
-        Id = x.Id
-    };
-
-    private static readonly Expression<Func<ApiToken, TokenResponseV2>> ToTokenResponseV2 = x => new TokenResponseV2
-    {
-        CreatedOn = x.CreatedAt,
-        ValidUntil = x.ValidUntil,
-        LastUsed = x.LastUsed,
-        Permissions = x.Permissions,
-        Name = x.Name,
-        Id = x.Id,
-        ShockerControl = new ShockerControlSettings
-        {
-            Enabled = x.ShockerControlEnabled,
-            Intensity = new IntensityLimitSettings
-            {
-                Min = x.ShockerControlIntensityMin,
-                Max = x.ShockerControlIntensityMax,
-                Mode = x.ShockerControlIntensityMode
-            },
-            Duration = new DurationLimitSettings
-            {
-                Min = x.ShockerControlDurationMin,
-                Max = x.ShockerControlDurationMax,
-                Mode = x.ShockerControlDurationMode
-            }
-        }
-    };
-
-    /// <summary>
-    /// Tokens belonging to the current user that have not expired.
-    /// </summary>
-    private IQueryable<ApiToken> CurrentUserValidTokens => _db.ApiTokens
-        .Where(x => x.UserId == CurrentUser.Id && (x.ValidUntil == null || x.ValidUntil > DateTime.UtcNow));
-
     /// <summary>
     /// List all tokens for the current user
     /// </summary>
     /// <response code="200">All tokens for the current user</response>
     [HttpGet]
     [MapToApiVersion("1")]
-    public IAsyncEnumerable<TokenResponse> ListTokens()
+    public IAsyncEnumerable<TokenResponse> ListTokens([FromServices] IApiTokenService tokenService)
     {
-        return CurrentUserValidTokens
-            .OrderBy(x => x.CreatedAt)
-            .Select(ToTokenResponse)
-            .AsAsyncEnumerable();
+        return tokenService.ListTokensV1(ownerId: CurrentUser.Id);
     }
 
     /// <summary>
@@ -78,31 +29,25 @@ public sealed partial class TokensController
     /// <response code="200">All tokens for the current user</response>
     [HttpGet]
     [MapToApiVersion("2")]
-    public IAsyncEnumerable<TokenResponseV2> ListTokensV2()
+    public IAsyncEnumerable<TokenResponseV2> ListTokensV2([FromServices] IApiTokenService tokenService)
     {
-        return CurrentUserValidTokens
-            .OrderBy(x => x.CreatedAt)
-            .Select(ToTokenResponseV2)
-            .AsAsyncEnumerable();
+        return tokenService.ListTokensV2(ownerId: CurrentUser.Id);
     }
 
     /// <summary>
     /// Get a token by id
     /// </summary>
     /// <param name="tokenId"></param>
+    /// <param name="tokenService"></param>
     /// <response code="200">The token</response>
     /// <response code="404">The token does not exist or you do not have access to it.</response>
     [HttpGet("{tokenId}")]
     [ProducesResponseType<TokenResponse>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status404NotFound, MediaTypeNames.Application.ProblemJson)] // ApiTokenNotFound
     [MapToApiVersion("1")]
-    public async Task<IActionResult> GetTokenById([FromRoute] Guid tokenId)
+    public async Task<IActionResult> GetTokenById([FromRoute] Guid tokenId, [FromServices] IApiTokenService tokenService)
     {
-        var apiToken = await CurrentUserValidTokens
-            .Where(x => x.Id == tokenId)
-            .Select(ToTokenResponse)
-            .FirstOrDefaultAsync();
-
+        var apiToken = await tokenService.GetTokenV1(tokenId, CurrentUser.Id);
         if (apiToken is null) return Problem(ApiTokenError.ApiTokenNotFound);
 
         return Ok(apiToken);
@@ -112,19 +57,16 @@ public sealed partial class TokensController
     /// Get a token by id
     /// </summary>
     /// <param name="tokenId"></param>
+    /// <param name="tokenService"></param>
     /// <response code="200">The token</response>
     /// <response code="404">The token does not exist or you do not have access to it.</response>
     [HttpGet("{tokenId}")]
     [ProducesResponseType<TokenResponseV2>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status404NotFound, MediaTypeNames.Application.ProblemJson)] // ApiTokenNotFound
     [MapToApiVersion("2")]
-    public async Task<IActionResult> GetTokenByIdV2([FromRoute] Guid tokenId)
+    public async Task<IActionResult> GetTokenByIdV2([FromRoute] Guid tokenId, [FromServices] IApiTokenService tokenService)
     {
-        var apiToken = await CurrentUserValidTokens
-            .Where(x => x.Id == tokenId)
-            .Select(ToTokenResponseV2)
-            .FirstOrDefaultAsync();
-
+        var apiToken = await tokenService.GetTokenV2(tokenId, CurrentUser.Id);
         if (apiToken is null) return Problem(ApiTokenError.ApiTokenNotFound);
 
         return Ok(apiToken);
@@ -134,38 +76,15 @@ public sealed partial class TokensController
     /// Create a new token
     /// </summary>
     /// <param name="body"></param>
+    /// <param name="tokenService"></param>
     /// <response code="200">The created token</response>
     [HttpPost]
     [Consumes(MediaTypeNames.Application.Json)]
     [Produces(MediaTypeNames.Application.Json)]
     [MapToApiVersion("1")]
-    public async Task<TokenCreatedResponse> CreateToken([FromBody] CreateTokenRequest body)
+    public Task<TokenCreatedResponse> CreateToken([FromBody] CreateTokenRequest body, [FromServices] IApiTokenService tokenService)
     {
-        var token = CryptoUtils.RandomAlphaNumericString(AuthConstants.ApiTokenLength);
-
-        var tokenDto = new ApiToken
-        {
-            Id = Guid.CreateVersion7(),
-            UserId = CurrentUser.Id,
-            Name = body.Name,
-            TokenHash = HashingUtils.HashToken(token),
-            CreatedByIp = HttpContext.GetRemoteIP(),
-            Permissions = body.Permissions.Distinct().ToList(),
-            ValidUntil = body.ValidUntil?.ToUniversalTime()
-        };
-        _db.ApiTokens.Add(tokenDto);
-        await _db.SaveChangesAsync();
-
-        return new TokenCreatedResponse
-        {
-            Id = tokenDto.Id,
-            Name = body.Name,
-            Token = token,
-            CreatedAt = tokenDto.CreatedAt,
-            ValidUntil = tokenDto.ValidUntil,
-            LastUsed = tokenDto.LastUsed ?? default,
-            Permissions = tokenDto.Permissions
-        };
+        return tokenService.CreateTokenV1(CurrentUser.Id, HttpContext.GetRemoteIP(), body);
     }
 
     /// <summary>
@@ -173,21 +92,17 @@ public sealed partial class TokensController
     /// </summary>
     /// <param name="tokenId"></param>
     /// <param name="body"></param>
+    /// <param name="tokenService"></param>
     /// <response code="200">The edited token</response>
     /// <response code="404">The token does not exist or you do not have access to it.</response>
     [HttpPatch("{tokenId}")]
     [Consumes(MediaTypeNames.Application.Json)]
     [ProducesResponseType(StatusCodes.Status200OK)]
-    [ProducesResponseType<OpenShockProblem>(StatusCodes.Status404NotFound, MediaTypeNames.Application.ProblemJson)] // ApiTokenNotFound    
+    [ProducesResponseType<OpenShockProblem>(StatusCodes.Status404NotFound, MediaTypeNames.Application.ProblemJson)] // ApiTokenNotFound
     [MapToApiVersion("1")]
-    public async Task<IActionResult> EditToken([FromRoute] Guid tokenId, [FromBody] EditTokenRequest body)
+    public async Task<IActionResult> EditToken([FromRoute] Guid tokenId, [FromBody] EditTokenRequest body, [FromServices] IApiTokenService tokenService)
     {
-        var token = await CurrentUserValidTokens.FirstOrDefaultAsync(x => x.Id == tokenId);
-        if (token is null) return Problem(ApiTokenError.ApiTokenNotFound);
-
-        token.Name = body.Name;
-        token.Permissions = body.Permissions.Distinct().ToList();
-        await _db.SaveChangesAsync();
+        if (!await tokenService.EditTokenV1(tokenId, body, CurrentUser.Id)) return Problem(ApiTokenError.ApiTokenNotFound);
 
         return Ok();
     }
@@ -196,43 +111,15 @@ public sealed partial class TokensController
     /// Create a new token
     /// </summary>
     /// <param name="body"></param>
+    /// <param name="tokenService"></param>
     /// <response code="200">The created token</response>
     [HttpPost]
     [Consumes(MediaTypeNames.Application.Json)]
     [Produces(MediaTypeNames.Application.Json)]
     [MapToApiVersion("2")]
-    public async Task<TokenCreatedResponseV2> CreateTokenV2([FromBody] CreateTokenRequestV2 body)
+    public Task<TokenCreatedResponseV2> CreateTokenV2([FromBody] CreateTokenRequestV2 body, [FromServices] IApiTokenService tokenService)
     {
-        var token = CryptoUtils.RandomAlphaNumericString(AuthConstants.ApiTokenLength);
-
-        var shockerControl = body.ShockerControl ?? ShockerControlSettings.Default;
-
-        var tokenDto = new ApiToken
-        {
-            Id = Guid.CreateVersion7(),
-            UserId = CurrentUser.Id,
-            Name = body.Name,
-            TokenHash = HashingUtils.HashToken(token),
-            CreatedByIp = HttpContext.GetRemoteIP(),
-            Permissions = body.Permissions.Distinct().ToList(),
-            ValidUntil = body.ValidUntil?.ToUniversalTime()
-        };
-        shockerControl.ApplyTo(tokenDto);
-
-        _db.ApiTokens.Add(tokenDto);
-        await _db.SaveChangesAsync();
-
-        return new TokenCreatedResponseV2
-        {
-            Id = tokenDto.Id,
-            Name = tokenDto.Name,
-            Token = token,
-            CreatedAt = tokenDto.CreatedAt,
-            ValidUntil = tokenDto.ValidUntil,
-            LastUsed = tokenDto.LastUsed,
-            Permissions = tokenDto.Permissions,
-            ShockerControl = ShockerControlSettings.FromToken(tokenDto)
-        };
+        return tokenService.CreateTokenV2(CurrentUser.Id, HttpContext.GetRemoteIP(), body);
     }
 
     /// <summary>
@@ -240,6 +127,7 @@ public sealed partial class TokensController
     /// </summary>
     /// <param name="tokenId"></param>
     /// <param name="body"></param>
+    /// <param name="tokenService"></param>
     /// <response code="200">The edited token</response>
     /// <response code="404">The token does not exist or you do not have access to it.</response>
     [HttpPatch("{tokenId}")]
@@ -247,16 +135,32 @@ public sealed partial class TokensController
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status404NotFound, MediaTypeNames.Application.ProblemJson)] // ApiTokenNotFound
     [MapToApiVersion("2")]
-    public async Task<IActionResult> EditTokenV2([FromRoute] Guid tokenId, [FromBody] EditTokenRequestV2 body)
+    public async Task<IActionResult> EditTokenV2([FromRoute] Guid tokenId, [FromBody] EditTokenRequestV2 body, [FromServices] IApiTokenService tokenService)
     {
-        var token = await CurrentUserValidTokens.FirstOrDefaultAsync(x => x.Id == tokenId);
-        if (token is null) return Problem(ApiTokenError.ApiTokenNotFound);
-
-        token.Name = body.Name;
-        token.Permissions = body.Permissions.Distinct().ToList();
-        (body.ShockerControl ?? ShockerControlSettings.Default).ApplyTo(token);
-        await _db.SaveChangesAsync();
+        if (!await tokenService.EditTokenV2(tokenId, body, CurrentUser.Id)) return Problem(ApiTokenError.ApiTokenNotFound);
 
         return Ok();
+    }
+
+    /// <summary>
+    /// Set whether a token is paused. A paused token may not send shocker control messages.
+    /// </summary>
+    /// <param name="tokenId"></param>
+    /// <param name="body"></param>
+    /// <param name="tokenService"></param>
+    /// <response code="200">The now-set paused state of the token.</response>
+    /// <response code="404">The token does not exist or you do not have access to it.</response>
+    [HttpPatch("{tokenId}/paused")]
+    [Consumes(MediaTypeNames.Application.Json)]
+    [Produces(MediaTypeNames.Application.Json)]
+    [ProducesResponseType<TokenPausedResponse>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
+    [ProducesResponseType<OpenShockProblem>(StatusCodes.Status404NotFound, MediaTypeNames.Application.ProblemJson)] // ApiTokenNotFound
+    [MapToApiVersion("2")]
+    public async Task<IActionResult> SetTokenPaused([FromRoute] Guid tokenId, [FromBody] SetTokenPausedRequest body, [FromServices] IApiTokenService tokenService)
+    {
+        var paused = await tokenService.SetTokenPaused(tokenId, body.Paused, CurrentUser.Id);
+        if (paused is null) return Problem(ApiTokenError.ApiTokenNotFound);
+
+        return Ok(new TokenPausedResponse { Paused = paused.Value });
     }
 }

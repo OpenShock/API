@@ -45,7 +45,14 @@ public sealed partial class ShockerController
 
         ApiTokenControlLimits? tokenLimits = null;
         if (userReferenceService.AuthReference is { IsT1: true } authReference)
-            tokenLimits = ApiTokenControlLimits.FromToken(authReference.AsT1);
+        {
+            var apiToken = authReference.AsT1;
+
+            // A paused token may not control shockers.
+            if (apiToken.ShockerControlPaused) return Problem(ApiTokenError.ApiTokenPaused);
+
+            tokenLimits = ApiTokenControlLimits.FromToken(apiToken);
+        }
 
         var controlAction = await controlSender.ControlByUser(body.Shocks, sender, userHub.Clients, tokenLimits);
         return controlAction.Match(
