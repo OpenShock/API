@@ -21,14 +21,14 @@ namespace OpenShock.Common.Migrations
                 oldDefaultValueSql: "'-infinity'::timestamp without time zone");
 
             // Tokens that were never used were stored with the '-infinity' sentinel; represent that as NULL now.
-            migrationBuilder.Sql("UPDATE api_tokens SET last_used = NULL WHERE last_used = '-infinity';");
+            migrationBuilder.Sql("UPDATE api_tokens SET last_used = NULL WHERE last_used = '-infinity'::timestamptz;");
         }
 
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
             // Restore the '-infinity' sentinel before reinstating the NOT NULL constraint.
-            migrationBuilder.Sql("UPDATE api_tokens SET last_used = '-infinity' WHERE last_used IS NULL;");
+            migrationBuilder.Sql("UPDATE api_tokens SET last_used = '-infinity'::timestamptz WHERE last_used IS NULL;");
 
             migrationBuilder.AlterColumn<DateTime>(
                 name: "last_used",
