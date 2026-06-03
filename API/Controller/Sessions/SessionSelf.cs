@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using System.Diagnostics;
+using Microsoft.AspNetCore.Mvc;
 using OpenShock.API.Models.Response;
 using OpenShock.Common.Authentication.Services;
 
@@ -17,8 +18,8 @@ public sealed partial class SessionsController
     {
         var x = userReferenceService.AuthReference;
         
-        if (x is null) throw new Exception("This should not be reachable due to AuthenticatedSession requirement");
-        if (!x.Value.IsT0) throw new Exception("This should not be reachable due to the [UserSessionOnly] attribute");
+        if (x is null) throw new UnreachableException("AuthenticatedSession requirement");
+        if (!x.Value.IsT0) throw new UnreachableException("the [UserSessionOnly] attribute");
         
         var session = x.Value.AsT0;
         

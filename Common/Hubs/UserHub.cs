@@ -93,10 +93,8 @@ public sealed class UserHub : Hub<IUserHub>
         }).FirstAsync();
 
         ApiTokenControlLimits? tokenLimits = null;
-        if (_userReferenceService.AuthReference is { IsT1: true } authReference)
+        if (_userReferenceService.AuthReference is { } authReference && authReference.TryPickT1(out var apiToken, out _))
         {
-            var apiToken = authReference.AsT1;
-
             // A paused token may not control shockers.
             if (apiToken.ShockerControlPaused) return;
 

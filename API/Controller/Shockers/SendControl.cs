@@ -1,4 +1,4 @@
-﻿using System.Net.Mime;
+ ﻿using System.Net.Mime;
 using Asp.Versioning;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.SignalR;
@@ -44,10 +44,8 @@ public sealed partial class ShockerController
         };
 
         ApiTokenControlLimits? tokenLimits = null;
-        if (userReferenceService.AuthReference is { IsT1: true } authReference)
+        if (userReferenceService.AuthReference is { } authReference && authReference.TryPickT1(out var apiToken, out _))
         {
-            var apiToken = authReference.AsT1;
-
             // A paused token may not control shockers.
             if (apiToken.ShockerControlPaused) return Problem(ApiTokenError.ApiTokenPaused);
 

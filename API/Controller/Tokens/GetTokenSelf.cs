@@ -1,4 +1,5 @@
-﻿using Asp.Versioning;
+﻿using System.Diagnostics;
+using Asp.Versioning;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using OpenShock.API.Models;
@@ -27,17 +28,7 @@ public sealed partial class TokensSelfController : AuthenticatedSessionControlle
     [MapToApiVersion("1")]
     public TokenResponse GetSelfToken([FromServices] IUserReferenceService userReferenceService)
     {
-        var token = GetSelfTokenDto(userReferenceService);
-
-        return new TokenResponse
-        {
-            CreatedOn = token.CreatedAt,
-            ValidUntil = token.ValidUntil,
-            LastUsed = token.LastUsed ?? DateTime.MinValue,
-            Permissions = token.Permissions,
-            Name = token.Name,
-            Id = token.Id
-        };
+        return TokenResponse.MapFrom(GetSelfTokenV2(userReferenceService));
     }
 
     /// <summary>
@@ -68,8 +59,8 @@ public sealed partial class TokensSelfController : AuthenticatedSessionControlle
     {
         var x = userReferenceService.AuthReference;
 
-        if (x is null) throw new Exception("This should not be reachable due to AuthenticatedSession requirement");
-        if (!x.Value.IsT1) throw new Exception("This should not be reachable due to the [TokenOnly] attribute");
+        if (x is null) throw new UnreachableException("AuthenticatedSession requirement");
+        if (!x.Value.IsT1) throw new UnreachableException("the [TokenOnly] attribute");
 
         return x.Value.AsT1;
     }
