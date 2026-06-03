@@ -185,9 +185,9 @@ public class OpenShockContext : DbContext, IDataProtectionKeyContext
 
             entity.Property(e => e.Permissions).HasColumnType("permission_type[]").HasColumnName("permissions");
 
-            entity.Property(e => e.ShockerControlEnabled)
-                .HasDefaultValue(true)
-                .HasColumnName("shocker_control_enabled");
+            entity.Property(e => e.ShockerControlPaused)
+                .HasDefaultValue(false)
+                .HasColumnName("shocker_control_paused");
             entity.Property(e => e.ShockerControlIntensityMin)
                 .HasDefaultValue(HardLimits.MinControlIntensity)
                 .HasColumnName("shocker_control_intensity_min");

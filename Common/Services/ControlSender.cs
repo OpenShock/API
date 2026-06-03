@@ -119,12 +119,9 @@ public sealed class ControlSender : IControlSender
             if (!PermissionUtils.IsAllowed(control.Type, false, shocker.PermsAndLimits))
                 return new ShockerNoPermission(control.Id);
 
-            // The token may disable shocker control entirely, or scope intensity/duration into its own range.
+            // The token may scope intensity/duration into its own range.
             if (tokenLimits is { } limits)
             {
-                if (!limits.Enabled)
-                    return new ShockerNoPermission(control.Id);
-
                 control.Intensity = limits.ApplyIntensity(control.Intensity);
                 control.Duration = limits.ApplyDuration(control.Duration);
             }

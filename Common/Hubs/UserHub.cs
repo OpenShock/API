@@ -94,7 +94,14 @@ public sealed class UserHub : Hub<IUserHub>
 
         ApiTokenControlLimits? tokenLimits = null;
         if (_userReferenceService.AuthReference is { IsT1: true } authReference)
-            tokenLimits = ApiTokenControlLimits.FromToken(authReference.AsT1);
+        {
+            var apiToken = authReference.AsT1;
+
+            // A paused token may not control shockers.
+            if (apiToken.ShockerControlPaused) return;
+
+            tokenLimits = ApiTokenControlLimits.FromToken(apiToken);
+        }
 
         await _controlSender.ControlByUser(shocks, sender, Clients, tokenLimits);
     }

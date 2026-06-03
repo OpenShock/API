@@ -1,5 +1,4 @@
 using System.ComponentModel.DataAnnotations;
-using OpenShock.API.Models;
 using OpenShock.Common.Constants;
 using OpenShock.Common.Models;
 
@@ -11,10 +10,10 @@ public class EditTokenRequestV2
     public required string Name { get; set; }
 
     [MaxLength(HardLimits.ApiKeyMaxPermissions, ErrorMessage = "API token permissions must be between {1} and {2}")]
-    public List<PermissionType> Permissions { get; set; } = [PermissionType.Shockers_Use];
+    public required IReadOnlyList<PermissionType> Permissions { get; set; }
 
     /// <summary>
     /// Per-token shocker control configuration. When omitted, the permissive default is used.
     /// </summary>
-    public ShockerControlSettings? ShockerControl { get; set; } = null;
+    public required ShockerControlSettings ShockerControl { get; set; }
 }

@@ -15,7 +15,7 @@ using OpenShock.Common.OpenShockDb;
 namespace OpenShock.Common.Migrations
 {
     [DbContext(typeof(MigrationOpenShockContext))]
-    [Migration("20260603105919_AddApiTokenShockerControl")]
+    [Migration("20260603134636_AddApiTokenShockerControl")]
     partial class AddApiTokenShockerControl
     {
         /// <inheritdoc />
@@ -189,12 +189,6 @@ namespace OpenShock.Common.Migrations
                         .HasDefaultValue(ControlLimitMode.Clamp)
                         .HasColumnName("shocker_control_duration_mode");
 
-                    b.Property<bool>("ShockerControlEnabled")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("boolean")
-                        .HasDefaultValue(true)
-                        .HasColumnName("shocker_control_enabled");
-
                     b.Property<byte>("ShockerControlIntensityMax")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("smallint")
@@ -212,6 +206,12 @@ namespace OpenShock.Common.Migrations
                         .HasColumnType("control_limit_mode")
                         .HasDefaultValue(ControlLimitMode.Clamp)
                         .HasColumnName("shocker_control_intensity_mode");
+
+                    b.Property<bool>("ShockerControlPaused")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false)
+                        .HasColumnName("shocker_control_paused");
 
                     b.Property<string>("TokenHash")
                         .IsRequired()

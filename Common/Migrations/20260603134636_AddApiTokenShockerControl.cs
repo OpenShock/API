@@ -53,13 +53,6 @@ namespace OpenShock.Common.Migrations
                 nullable: false,
                 defaultValue: ControlLimitMode.Clamp);
 
-            migrationBuilder.AddColumn<bool>(
-                name: "shocker_control_enabled",
-                table: "api_tokens",
-                type: "boolean",
-                nullable: false,
-                defaultValue: true);
-
             migrationBuilder.AddColumn<byte>(
                 name: "shocker_control_intensity_max",
                 table: "api_tokens",
@@ -80,6 +73,13 @@ namespace OpenShock.Common.Migrations
                 type: "control_limit_mode",
                 nullable: false,
                 defaultValue: ControlLimitMode.Clamp);
+
+            migrationBuilder.AddColumn<bool>(
+                name: "shocker_control_paused",
+                table: "api_tokens",
+                type: "boolean",
+                nullable: false,
+                defaultValue: false);
         }
 
         /// <inheritdoc />
@@ -98,10 +98,6 @@ namespace OpenShock.Common.Migrations
                 table: "api_tokens");
 
             migrationBuilder.DropColumn(
-                name: "shocker_control_enabled",
-                table: "api_tokens");
-
-            migrationBuilder.DropColumn(
                 name: "shocker_control_intensity_max",
                 table: "api_tokens");
 
@@ -111,6 +107,10 @@ namespace OpenShock.Common.Migrations
 
             migrationBuilder.DropColumn(
                 name: "shocker_control_intensity_mode",
+                table: "api_tokens");
+
+            migrationBuilder.DropColumn(
+                name: "shocker_control_paused",
                 table: "api_tokens");
 
             migrationBuilder.AlterDatabase()

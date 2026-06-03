@@ -35,29 +35,27 @@ public sealed class TokensTests
 
     // --- Create Token V2 (shocker control) ---
 
+    private static object ShockerControlBody(bool paused = false) => new
+    {
+        paused,
+        intensity = new { min = 0, max = 100, mode = "Clamp" },
+        duration = new { min = 300, max = 65535, mode = "Clamp" }
+    };
+
     [Test]
-    public async Task CreateTokenV2_DefaultShockerControl_IsPermissive()
+    public async Task CreateTokenV2_MissingShockerControl_Returns400()
     {
         var user = await TestHelper.CreateAndLoginUser(WebApplicationFactory, "tokv2def", "tokv2def@test.org", "SecurePassword123#");
         using var client = TestHelper.CreateAuthenticatedClient(WebApplicationFactory, user.SessionToken);
 
+        // shockerControl is required on v2 create.
         var response = await client.PostAsync("/2/tokens", TestHelper.JsonContent(new
         {
-            name = "DefaultsToken",
+            name = "NoShockerControl",
             permissions = new[] { "shockers.use" }
         }));
 
-        await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.OK);
-
-        var json = await response.Content.ReadAsStringAsync();
-        using var doc = JsonDocument.Parse(json);
-        var sc = doc.RootElement.GetProperty("shockerControl");
-        await Assert.That(sc.GetProperty("enabled").GetBoolean()).IsTrue();
-        await Assert.That(sc.GetProperty("intensity").GetProperty("min").GetInt32()).IsEqualTo(0);
-        await Assert.That(sc.GetProperty("intensity").GetProperty("max").GetInt32()).IsEqualTo(100);
-        await Assert.That(sc.GetProperty("intensity").GetProperty("mode").GetString()).IsEqualTo("Clamp");
-        await Assert.That(sc.GetProperty("duration").GetProperty("min").GetInt32()).IsEqualTo(300);
-        await Assert.That(sc.GetProperty("duration").GetProperty("max").GetInt32()).IsEqualTo(65535);
+        await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.BadRequest);
     }
 
     [Test]
@@ -72,7 +70,7 @@ public sealed class TokensTests
             permissions = new[] { "shockers.use" },
             shockerControl = new
             {
-                enabled = false,
+                paused = true,
                 intensity = new { min = 10, max = 50, mode = "Lerp" },
                 duration = new { min = 500, max = 2000, mode = "Clamp" }
             }
@@ -88,7 +86,7 @@ public sealed class TokensTests
         var json = await getResponse.Content.ReadAsStringAsync();
         using var doc = JsonDocument.Parse(json);
         var sc = doc.RootElement.GetProperty("shockerControl");
-        await Assert.That(sc.GetProperty("enabled").GetBoolean()).IsFalse();
+        await Assert.That(sc.GetProperty("paused").GetBoolean()).IsTrue();
         await Assert.That(sc.GetProperty("intensity").GetProperty("min").GetInt32()).IsEqualTo(10);
         await Assert.That(sc.GetProperty("intensity").GetProperty("max").GetInt32()).IsEqualTo(50);
         await Assert.That(sc.GetProperty("intensity").GetProperty("mode").GetString()).IsEqualTo("Lerp");
@@ -108,7 +106,7 @@ public sealed class TokensTests
             permissions = new[] { "shockers.use" },
             shockerControl = new
             {
-                enabled = true,
+                paused = false,
                 intensity = new { min = 80, max = 20, mode = "Clamp" },
                 duration = new { min = 300, max = 65535, mode = "Clamp" }
             }
@@ -129,13 +127,54 @@ public sealed class TokensTests
             permissions = new[] { "shockers.use" },
             shockerControl = new
             {
-                enabled = true,
+                paused = false,
                 intensity = new { min = 0, max = 200, mode = "Clamp" },
                 duration = new { min = 300, max = 65535, mode = "Clamp" }
             }
         }));
 
         await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.BadRequest);
+    }
+
+    [Test]
+    public async Task SetTokenPaused_TogglesAndReturnsState()
+    {
+        var user = await TestHelper.CreateAndLoginUser(WebApplicationFactory, "tokv2pause", "tokv2pause@test.org", "SecurePassword123#");
+        using var client = TestHelper.CreateAuthenticatedClient(WebApplicationFactory, user.SessionToken);
+
+        var createResponse = await client.PostAsync("/2/tokens", TestHelper.JsonContent(new
+        {
+            name = "PauseMe",
+            permissions = new[] { "shockers.use" },
+            shockerControl = ShockerControlBody(paused: false)
+        }));
+        var createJson = await createResponse.Content.ReadAsStringAsync();
+        using var createDoc = JsonDocument.Parse(createJson);
+        var tokenId = createDoc.RootElement.GetProperty("id").GetString();
+
+        // Pause it; the endpoint returns the now-set state.
+        var pauseResponse = await client.PatchAsync($"/2/tokens/{tokenId}/paused", TestHelper.JsonContent(new { paused = true }));
+        await Assert.That(pauseResponse.StatusCode).IsEqualTo(HttpStatusCode.OK);
+        using (var pauseDoc = JsonDocument.Parse(await pauseResponse.Content.ReadAsStringAsync()))
+        {
+            await Assert.That(pauseDoc.RootElement.GetProperty("paused").GetBoolean()).IsTrue();
+        }
+
+        // Confirm it persisted.
+        var getResponse = await client.GetAsync($"/2/tokens/{tokenId}");
+        using var getDoc = JsonDocument.Parse(await getResponse.Content.ReadAsStringAsync());
+        await Assert.That(getDoc.RootElement.GetProperty("shockerControl").GetProperty("paused").GetBoolean()).IsTrue();
+    }
+
+    [Test]
+    public async Task SetTokenPaused_Nonexistent_Returns404()
+    {
+        var user = await TestHelper.CreateAndLoginUser(WebApplicationFactory, "tokv2pause404", "tokv2pause404@test.org", "SecurePassword123#");
+        using var client = TestHelper.CreateAuthenticatedClient(WebApplicationFactory, user.SessionToken);
+
+        var response = await client.PatchAsync($"/2/tokens/{Guid.CreateVersion7()}/paused", TestHelper.JsonContent(new { paused = true }));
+
+        await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.NotFound);
     }
 
     // --- List Tokens ---

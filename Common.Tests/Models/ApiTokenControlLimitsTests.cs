@@ -6,7 +6,6 @@ public class ApiTokenControlLimitsTests
 {
     private static ApiTokenControlLimits IntensityLimits(byte min, byte max, ControlLimitMode mode) => new()
     {
-        Enabled = true,
         IntensityMin = min,
         IntensityMax = max,
         IntensityMode = mode,
@@ -17,7 +16,6 @@ public class ApiTokenControlLimitsTests
 
     private static ApiTokenControlLimits DurationLimits(ushort min, ushort max, ControlLimitMode mode) => new()
     {
-        Enabled = true,
         IntensityMin = 0,
         IntensityMax = 100,
         IntensityMode = ControlLimitMode.Clamp,

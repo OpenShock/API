@@ -8,8 +8,6 @@ namespace OpenShock.Common.Models;
 /// </summary>
 public readonly struct ApiTokenControlLimits
 {
-    public required bool Enabled { get; init; }
-
     public required byte IntensityMin { get; init; }
     public required byte IntensityMax { get; init; }
     public required ControlLimitMode IntensityMode { get; init; }
@@ -20,7 +18,6 @@ public readonly struct ApiTokenControlLimits
 
     public static ApiTokenControlLimits FromToken(ApiToken token) => new()
     {
-        Enabled = token.ShockerControlEnabled,
         IntensityMin = token.ShockerControlIntensityMin,
         IntensityMax = token.ShockerControlIntensityMax,
         IntensityMode = token.ShockerControlIntensityMode,

@@ -25,10 +25,10 @@ public sealed class ApiToken
     public DateTime? LastUsed { get; set; }
 
     /// <summary>
-    /// Whether this token is allowed to send shocker control messages at all.
+    /// When true, this token is paused and may not send shocker control messages.
     /// Independent gate on top of the <see cref="PermissionType.Shockers_Use"/> permission.
     /// </summary>
-    public bool ShockerControlEnabled { get; set; } = true;
+    public bool ShockerControlPaused { get; set; } = false;
 
     public byte ShockerControlIntensityMin { get; set; } = HardLimits.MinControlIntensity;
 
