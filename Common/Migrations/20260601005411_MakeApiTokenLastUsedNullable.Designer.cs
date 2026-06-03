@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Net;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using OpenShock.Common.Models;
@@ -14,9 +15,11 @@ using OpenShock.Common.OpenShockDb;
 namespace OpenShock.Common.Migrations
 {
     [DbContext(typeof(MigrationOpenShockContext))]
-    partial class OpenShockContextModelSnapshot : ModelSnapshot
+    [Migration("20260601005411_MakeApiTokenLastUsedNullable")]
+    partial class MakeApiTokenLastUsedNullable
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -25,7 +28,6 @@ namespace OpenShock.Common.Migrations
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "configuration_value_type", new[] { "string", "bool", "int", "float", "json" });
-            NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "control_limit_mode", new[] { "clamp", "lerp" });
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "control_type", new[] { "sound", "vibrate", "shock", "stop" });
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "match_type_enum", new[] { "exact", "contains" });
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "ota_update_status", new[] { "started", "running", "finished", "error", "timeout" });
@@ -167,48 +169,6 @@ namespace OpenShock.Common.Migrations
                         .IsRequired()
                         .HasColumnType("permission_type[]")
                         .HasColumnName("permissions");
-
-                    b.Property<int>("ShockerControlDurationMax")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer")
-                        .HasDefaultValue(65535)
-                        .HasColumnName("shocker_control_duration_max");
-
-                    b.Property<int>("ShockerControlDurationMin")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer")
-                        .HasDefaultValue(300)
-                        .HasColumnName("shocker_control_duration_min");
-
-                    b.Property<ControlLimitMode>("ShockerControlDurationMode")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("control_limit_mode")
-                        .HasDefaultValue(ControlLimitMode.Clamp)
-                        .HasColumnName("shocker_control_duration_mode");
-
-                    b.Property<byte>("ShockerControlIntensityMax")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("smallint")
-                        .HasDefaultValue((byte)100)
-                        .HasColumnName("shocker_control_intensity_max");
-
-                    b.Property<byte>("ShockerControlIntensityMin")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("smallint")
-                        .HasDefaultValue((byte)0)
-                        .HasColumnName("shocker_control_intensity_min");
-
-                    b.Property<ControlLimitMode>("ShockerControlIntensityMode")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("control_limit_mode")
-                        .HasDefaultValue(ControlLimitMode.Clamp)
-                        .HasColumnName("shocker_control_intensity_mode");
-
-                    b.Property<bool>("ShockerControlPaused")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("boolean")
-                        .HasDefaultValue(false)
-                        .HasColumnName("shocker_control_paused");
 
                     b.Property<string>("TokenHash")
                         .IsRequired()

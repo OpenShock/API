@@ -92,7 +92,16 @@ public sealed class UserHub : Hub<IUserHub>
             CustomName = customName
         }).FirstAsync();
 
-        await _controlSender.ControlByUser(shocks, sender, Clients);
+        ApiTokenControlLimits? tokenLimits = null;
+        if (_userReferenceService.AuthReference is { } authReference && authReference.TryPickT1(out var apiToken, out _))
+        {
+            // A paused token may not control shockers.
+            if (apiToken.ShockerControlPaused) return;
+
+            tokenLimits = ApiTokenControlLimits.FromToken(apiToken);
+        }
+
+        await _controlSender.ControlByUser(shocks, sender, Clients, tokenLimits);
     }
 
     public async Task CaptivePortal(Guid deviceId, bool enabled)

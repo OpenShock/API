@@ -7,6 +7,7 @@ using OpenShock.API.Services.DeviceUpdate;
 using OpenShock.API.Services.Email;
 using OpenShock.API.Services.LCGNodeProvisioner;
 using OpenShock.API.Services.OAuthConnection;
+using OpenShock.API.Services.Token;
 using OpenShock.API.Services.Turnstile;
 using OpenShock.API.Services.UserService;
 using OpenShock.Common;
@@ -101,6 +102,7 @@ builder.Services.AddScoped<IDeviceUpdateService, DeviceUpdateService>();
 builder.Services.AddScoped<IAccountService, AccountService>();
 builder.Services.AddScoped<IOAuthConnectionService, OAuthConnectionService>();
 builder.Services.AddScoped<IUserService, UserService>();
+builder.Services.AddScoped<IApiTokenService, ApiTokenService>();
 builder.Services.AddScoped<ILCGNodeProvisioner, LCGNodeProvisioner>();
 
 builder.AddSwaggerExt<Program>();

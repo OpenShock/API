@@ -65,6 +65,7 @@ public class OpenShockContext : DbContext, IDataProtectionKeyContext
         {
             npgsqlBuilder.MapEnum<RoleType>();
             npgsqlBuilder.MapEnum<ControlType>();
+            npgsqlBuilder.MapEnum<ControlLimitMode>();
             npgsqlBuilder.MapEnum<PermissionType>();
             npgsqlBuilder.MapEnum<ShockerModelType>();
             npgsqlBuilder.MapEnum<OtaUpdateStatus>();
@@ -141,6 +142,7 @@ public class OpenShockContext : DbContext, IDataProtectionKeyContext
     {
         modelBuilder
             .HasPostgresEnum("control_type", ["sound", "vibrate", "shock", "stop"])
+            .HasPostgresEnum("control_limit_mode", ["clamp", "lerp"])
             .HasPostgresEnum("ota_update_status", ["started", "running", "finished", "error", "timeout"])
             .HasPostgresEnum("password_encryption_type", ["pbkdf2", "bcrypt_enhanced"])
             .HasPostgresEnum("permission_type",
@@ -170,7 +172,6 @@ public class OpenShockContext : DbContext, IDataProtectionKeyContext
                 .HasDefaultValueSql("CURRENT_TIMESTAMP")
                 .HasColumnName("created_at");
             entity.Property(e => e.LastUsed)
-                .HasDefaultValueSql("'-infinity'::timestamp without time zone")
                 .HasColumnName("last_used");
             entity.Property(e => e.Name)
                 .HasMaxLength(HardLimits.ApiKeyNameMaxLength)
@@ -183,6 +184,30 @@ public class OpenShockContext : DbContext, IDataProtectionKeyContext
             entity.Property(e => e.ValidUntil).HasColumnName("valid_until");
 
             entity.Property(e => e.Permissions).HasColumnType("permission_type[]").HasColumnName("permissions");
+
+            entity.Property(e => e.ShockerControlPaused)
+                .HasDefaultValue(false)
+                .HasColumnName("shocker_control_paused");
+            entity.Property(e => e.ShockerControlIntensityMin)
+                .HasDefaultValue(HardLimits.MinControlIntensity)
+                .HasColumnName("shocker_control_intensity_min");
+            entity.Property(e => e.ShockerControlIntensityMax)
+                .HasDefaultValue(HardLimits.MaxControlIntensity)
+                .HasColumnName("shocker_control_intensity_max");
+            entity.Property(e => e.ShockerControlIntensityMode)
+                .HasColumnType("control_limit_mode")
+                .HasDefaultValue(ControlLimitMode.Clamp)
+                .HasColumnName("shocker_control_intensity_mode");
+            entity.Property(e => e.ShockerControlDurationMin)
+                .HasDefaultValue(HardLimits.MinControlDuration)
+                .HasColumnName("shocker_control_duration_min");
+            entity.Property(e => e.ShockerControlDurationMax)
+                .HasDefaultValue(HardLimits.MaxControlDuration)
+                .HasColumnName("shocker_control_duration_max");
+            entity.Property(e => e.ShockerControlDurationMode)
+                .HasColumnType("control_limit_mode")
+                .HasDefaultValue(ControlLimitMode.Clamp)
+                .HasColumnName("shocker_control_duration_mode");
 
             entity.HasOne(d => d.User).WithMany(p => p.ApiTokens)
                 .HasForeignKey(d => d.UserId)

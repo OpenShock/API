@@ -1,8 +1,9 @@
-﻿using System.Net.Mime;
+ ﻿using System.Net.Mime;
 using Asp.Versioning;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.SignalR;
 using OpenShock.Common.Authentication.Attributes;
+using OpenShock.Common.Authentication.Services;
 using OpenShock.Common.Errors;
 using OpenShock.Common.Extensions;
 using OpenShock.Common.Hubs;
@@ -29,7 +30,8 @@ public sealed partial class ShockerController
     public async Task<IActionResult> SendControl(
         [FromBody] ControlRequest body,
         [FromServices] IHubContext<UserHub, IUserHub> userHub,
-        [FromServices] IControlSender controlSender)
+        [FromServices] IControlSender controlSender,
+        [FromServices] IUserReferenceService userReferenceService)
     {
         var sender = new ControlLogSender
         {
@@ -41,7 +43,16 @@ public sealed partial class ShockerController
             CustomName = body.CustomName
         };
 
-        var controlAction = await controlSender.ControlByUser(body.Shocks, sender, userHub.Clients);
+        ApiTokenControlLimits? tokenLimits = null;
+        if (userReferenceService.AuthReference is { } authReference && authReference.TryPickT1(out var apiToken, out _))
+        {
+            // A paused token may not control shockers.
+            if (apiToken.ShockerControlPaused) return Problem(ApiTokenError.ApiTokenPaused);
+
+            tokenLimits = ApiTokenControlLimits.FromToken(apiToken);
+        }
+
+        var controlAction = await controlSender.ControlByUser(body.Shocks, sender, userHub.Clients, tokenLimits);
         return controlAction.Match(
             success => LegacyEmptyOk("Successfully sent control messages"),
             notFound => Problem(ShockerControlError.ShockerControlNotFound(notFound.Value)),
@@ -64,12 +75,13 @@ public sealed partial class ShockerController
     public Task<IActionResult> SendControl_DEPRECATED(
         [FromBody] IReadOnlyList<Common.Models.WebSocket.User.Control> body,
         [FromServices] IHubContext<UserHub, IUserHub> userHub,
-        [FromServices] IControlSender controlSender)
+        [FromServices] IControlSender controlSender,
+        [FromServices] IUserReferenceService userReferenceService)
     {
         return SendControl(new ControlRequest
         {
             Shocks = body,
             CustomName = null
-        }, userHub, controlSender);
+        }, userHub, controlSender, userReferenceService);
     }
 }
