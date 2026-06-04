@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Mvc;
 using OpenShock.API.Models.Response;
 using OpenShock.Common.Authentication.Services;
+using OpenShock.Common.Redis;
 
 namespace OpenShock.API.Controller.Sessions;
 
@@ -16,12 +17,8 @@ public sealed partial class SessionsController
     [HttpGet("self")]
     public LoginSessionResponse GetSelfSession([FromServices] IUserReferenceService userReferenceService)
     {
-        var x = userReferenceService.AuthReference;
-        
-        if (x is null) throw new UnreachableException("AuthenticatedSession requirement");
-        if (!x.Value.IsT0) throw new UnreachableException("the [UserSessionOnly] attribute");
-        
-        var session = x.Value.AsT0;
+        if (!userReferenceService.AuthReference.TryPickT0(out LoginSession? session, out _))
+            throw new UnreachableException("the [UserSessionOnly] attribute should have blocked caller");
         
         return LoginSessionResponse.MapFrom(session);
     }

@@ -8,6 +8,7 @@ using OpenShock.Common.Errors;
 using OpenShock.Common.Extensions;
 using OpenShock.Common.Hubs;
 using OpenShock.Common.Models;
+using OpenShock.Common.OpenShockDb;
 using OpenShock.Common.Problems;
 using OpenShock.Common.Services;
 
@@ -44,7 +45,7 @@ public sealed partial class ShockerController
         };
 
         ApiTokenControlLimits? tokenLimits = null;
-        if (userReferenceService.AuthReference is { } authReference && authReference.TryPickT1(out var apiToken, out _))
+        if (userReferenceService.AuthReference.TryPickT1(out ApiToken? apiToken, out _))
         {
             // A paused token may not control shockers.
             if (apiToken.ShockerControlPaused) return Problem(ApiTokenError.ApiTokenPaused);
