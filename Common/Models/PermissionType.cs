@@ -2,11 +2,13 @@
 using System.Text.Json.Serialization;
 using NpgsqlTypes;
 using OpenShock.Common.JsonSerialization;
+using OpenShock.Common.Utils;
 
 // ReSharper disable InconsistentNaming
 
 namespace OpenShock.Common.Models;
 
+[PgEnum]
 [JsonConverter(typeof(PermissionTypeConverter))]
 public enum PermissionType
 {

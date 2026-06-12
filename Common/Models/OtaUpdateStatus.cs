@@ -1,10 +1,14 @@
-﻿namespace OpenShock.Common.Models;
+using NpgsqlTypes;
+using OpenShock.Common.Utils;
 
+namespace OpenShock.Common.Models;
+
+[PgEnum]
 public enum OtaUpdateStatus
 {
-    Started,
-    Running,
-    Finished,
-    Error,
-    Timeout
+    [PgName("started")] Started,
+    [PgName("running")] Running,
+    [PgName("finished")] Finished,
+    [PgName("error")] Error,
+    [PgName("timeout")] Timeout,
 }

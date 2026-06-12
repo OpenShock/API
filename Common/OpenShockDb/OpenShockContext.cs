@@ -61,17 +61,7 @@ public class OpenShockContext : DbContext, IDataProtectionKeyContext
     public static void ConfigureOptionsBuilder(DbContextOptionsBuilder optionsBuilder, string connectionString,
         bool debug)
     {
-        optionsBuilder.UseNpgsql(connectionString, npgsqlBuilder =>
-        {
-            npgsqlBuilder.MapEnum<RoleType>();
-            npgsqlBuilder.MapEnum<ControlType>();
-            npgsqlBuilder.MapEnum<ControlLimitMode>();
-            npgsqlBuilder.MapEnum<PermissionType>();
-            npgsqlBuilder.MapEnum<ShockerModelType>();
-            npgsqlBuilder.MapEnum<OtaUpdateStatus>();
-            npgsqlBuilder.MapEnum<MatchTypeEnum>();
-            npgsqlBuilder.MapEnum<ConfigurationValueType>();
-        });
+        optionsBuilder.UseNpgsql(connectionString, npgsqlBuilder => npgsqlBuilder.MapPgEnums());
 
         if (debug)
         {
@@ -141,16 +131,7 @@ public class OpenShockContext : DbContext, IDataProtectionKeyContext
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder
-            .HasPostgresEnum("control_type", ["sound", "vibrate", "shock", "stop"])
-            .HasPostgresEnum("control_limit_mode", ["clamp", "lerp"])
-            .HasPostgresEnum("ota_update_status", ["started", "running", "finished", "error", "timeout"])
-            .HasPostgresEnum("password_encryption_type", ["pbkdf2", "bcrypt_enhanced"])
-            .HasPostgresEnum("permission_type",
-                ["shockers.use", "shockers.edit", "shockers.pause", "devices.edit", "devices.auth"])
-            .HasPostgresEnum("role_type", ["support", "staff", "admin", "system"])
-            .HasPostgresEnum("shocker_model_type", ["caiXianlin", "petTrainer", "petrainer998DR", "wellturnT330"])
-            .HasPostgresEnum("match_type_enum", ["exact", "contains"])
-            .HasPostgresEnum("configuration_value_type", ["string", "bool", "int", "float", "json"])
+            .RegisterPgEnums()
             .HasCollation("public", "ndcoll", "und-u-ks-level2", "icu", false); // Add case-insensitive, accent-sensitive comparison collation
 
         modelBuilder.Entity<ApiToken>(entity =>

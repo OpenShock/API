@@ -1,9 +1,13 @@
-﻿namespace OpenShock.Common.Models;
+using NpgsqlTypes;
+using OpenShock.Common.Utils;
 
+namespace OpenShock.Common.Models;
+
+[PgEnum]
 public enum RoleType
 {
-    Support,
-    Staff,
-    Admin,
-    System
+    [PgName("support")] Support,
+    [PgName("staff")] Staff,
+    [PgName("admin")] Admin,
+    [PgName("system")] System,
 }
