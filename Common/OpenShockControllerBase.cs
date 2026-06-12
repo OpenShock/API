@@ -3,6 +3,7 @@ using OpenShock.Common.Constants;
 using OpenShock.Common.Models;
 using OpenShock.Common.Options;
 using OpenShock.Common.Problems;
+using OpenShock.Common.Services.Geo;
 using OpenShock.Common.Services.Session;
 using OpenShock.Common.Utils;
 
@@ -42,8 +43,12 @@ public class OpenShockControllerBase : ControllerBase
     protected async Task CreateSession(Guid accountId, string domain)
     {
         var sessionService = HttpContext.RequestServices.GetRequiredService<ISessionService>();
-        
-        var session = await sessionService.CreateSessionAsync(accountId, HttpContext.GetUserAgent(), HttpContext.GetRemoteIP().ToString());
+        var enrichmentService = HttpContext.RequestServices.GetRequiredService<IIpEnrichmentService>();
+
+        var remoteIp = HttpContext.GetRemoteIP();
+        var enrichment = enrichmentService.Enrich(remoteIp);
+
+        var session = await sessionService.CreateSessionAsync(accountId, HttpContext.GetUserAgent(), remoteIp.ToString(), enrichment);
         
         HttpContext.Response.Cookies.Append(AuthConstants.UserSessionCookieName, session.Token, new CookieOptions
         {

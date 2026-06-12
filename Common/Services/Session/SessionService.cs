@@ -1,6 +1,7 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using OpenShock.Common.Constants;
 using OpenShock.Common.Redis;
+using OpenShock.Common.Services.Geo;
 using OpenShock.Common.Utils;
 using Redis.OM;
 using Redis.OM.Contracts;
@@ -24,7 +25,7 @@ public sealed class SessionService : ISessionService
         _loginSessions = redisConnectionProvider.RedisCollection<LoginSession>(false);
     }
 
-    public async Task<CreateSessionResult> CreateSessionAsync(Guid userId, string userAgent, string ipAddress)
+    public async Task<CreateSessionResult> CreateSessionAsync(Guid userId, string userAgent, string ipAddress, IpEnrichmentData? enrichment = null)
     {
         Guid id = Guid.CreateVersion7();
         string token = CryptoUtils.RandomAlphaNumericString(AuthConstants.GeneratedTokenLength);
@@ -38,6 +39,10 @@ public sealed class SessionService : ISessionService
             PublicId = id,
             Created = DateTime.UtcNow,
             Expires = DateTime.UtcNow.Add(Duration.LoginSessionLifetime),
+            AsnOrg = enrichment?.AsnOrg,
+            IsVpn = enrichment?.IsVpn,
+            CountryCode = enrichment?.CountryCode,
+            City = enrichment?.City,
         }, Duration.LoginSessionLifetime);
 
         return new CreateSessionResult(id, token);
