@@ -41,4 +41,6 @@ public sealed class User
     public ICollection<UserNameChange> NameChanges { get; } = [];
     public ICollection<UserEmailChange> EmailChanges { get; } = [];
     public ICollection<UserPasswordReset> PasswordResets { get; } = [];
+    public ICollection<UserAuditLog> AuditLogs { get; } = [];
+    public ICollection<UserAuditLog> ActorAuditLogs { get; } = [];
 }

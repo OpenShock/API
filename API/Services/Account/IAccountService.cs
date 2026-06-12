@@ -139,7 +139,7 @@ public interface IAccountService
     /// <param name="token"></param>
     /// <param name="cancellationToken"></param>
     /// <returns></returns>
-    Task<OneOf<Success, NotFound, EmailAlreadyInUse>> TryVerifyEmailAsync(string token, CancellationToken cancellationToken = default);
+    Task<OneOf<Success<(Guid UserId, string OldEmail, string NewEmail)>, NotFound, EmailAlreadyInUse>> TryVerifyEmailAsync(string token, CancellationToken cancellationToken = default);
 }
 
 public readonly struct AccountIsOAuthOnly;

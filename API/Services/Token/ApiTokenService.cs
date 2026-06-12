@@ -205,4 +205,15 @@ public sealed class ApiTokenService : IApiTokenService
         var nDeleted = await Tokens(ownerId).Where(x => x.Id == tokenId).ExecuteDeleteAsync(cancellationToken);
         return nDeleted > 0;
     }
+
+    /// <inheritdoc />
+    public async Task<(Guid OwnerId, string Name)?> GetTokenAuditInfoAsync(Guid tokenId, Guid? ownerId = null, CancellationToken cancellationToken = default)
+    {
+        var result = await Tokens(ownerId)
+            .Where(x => x.Id == tokenId)
+            .Select(x => new { x.UserId, x.Name })
+            .FirstOrDefaultAsync(cancellationToken);
+
+        return result is null ? null : (result.UserId, result.Name);
+    }
 }

@@ -5,7 +5,10 @@ using OpenShock.API.Models.Requests;
 using OpenShock.API.Models.Response;
 using OpenShock.API.Services.Token;
 using OpenShock.Common.Errors;
+using OpenShock.Common.Extensions;
+using OpenShock.Common.Models;
 using OpenShock.Common.Problems;
+using OpenShock.Common.Services.Audit;
 using OpenShock.Common.Utils;
 
 namespace OpenShock.API.Controller.Tokens;
@@ -82,9 +85,19 @@ public sealed partial class TokensController
     [Consumes(MediaTypeNames.Application.Json)]
     [Produces(MediaTypeNames.Application.Json)]
     [MapToApiVersion("1")]
-    public Task<TokenCreatedResponse> CreateToken([FromBody] CreateTokenRequest body, [FromServices] IApiTokenService tokenService)
+    public async Task<TokenCreatedResponse> CreateToken(
+        [FromBody] CreateTokenRequest body,
+        [FromServices] IApiTokenService tokenService,
+        [FromServices] IAuditService auditService)
     {
-        return tokenService.CreateTokenV1(CurrentUser.Id, HttpContext.GetRemoteIP(), body);
+        var result = await tokenService.CreateTokenV1(CurrentUser.Id, HttpContext.GetRemoteIP(), body);
+        await auditService.LogAsync(
+            CurrentUser.Id,
+            AuditAction.ApiTokenCreated,
+            ipAddress: HttpContext.GetRemoteIP(),
+            userAgent: HttpContext.GetUserAgent(),
+            metadata: new ApiTokenCreatedMetadata(result.Id, result.Name, result.Permissions.Select(p => p.ToString()).ToList()));
+        return result;
     }
 
     /// <summary>
@@ -117,9 +130,19 @@ public sealed partial class TokensController
     [Consumes(MediaTypeNames.Application.Json)]
     [Produces(MediaTypeNames.Application.Json)]
     [MapToApiVersion("2")]
-    public Task<TokenCreatedResponseV2> CreateTokenV2([FromBody] CreateTokenRequestV2 body, [FromServices] IApiTokenService tokenService)
+    public async Task<TokenCreatedResponseV2> CreateTokenV2(
+        [FromBody] CreateTokenRequestV2 body,
+        [FromServices] IApiTokenService tokenService,
+        [FromServices] IAuditService auditService)
     {
-        return tokenService.CreateTokenV2(CurrentUser.Id, HttpContext.GetRemoteIP(), body);
+        var result = await tokenService.CreateTokenV2(CurrentUser.Id, HttpContext.GetRemoteIP(), body);
+        await auditService.LogAsync(
+            CurrentUser.Id,
+            AuditAction.ApiTokenCreated,
+            ipAddress: HttpContext.GetRemoteIP(),
+            userAgent: HttpContext.GetUserAgent(),
+            metadata: new ApiTokenCreatedMetadata(result.Id, result.Name, result.Permissions.Select(p => p.ToString()).ToList()));
+        return result;
     }
 
     /// <summary>

@@ -3,6 +3,7 @@ using OpenShock.Common.Constants;
 using OpenShock.Common.Models;
 using OpenShock.Common.Options;
 using OpenShock.Common.Problems;
+using OpenShock.Common.Services.Audit;
 using OpenShock.Common.Services.Session;
 using OpenShock.Common.Utils;
 
@@ -42,9 +43,20 @@ public class OpenShockControllerBase : ControllerBase
     protected async Task CreateSession(Guid accountId, string domain)
     {
         var sessionService = HttpContext.RequestServices.GetRequiredService<ISessionService>();
-        
-        var session = await sessionService.CreateSessionAsync(accountId, HttpContext.GetUserAgent(), HttpContext.GetRemoteIP().ToString());
-        
+        var auditService = HttpContext.RequestServices.GetRequiredService<IAuditService>();
+
+        var remoteIp = HttpContext.GetRemoteIP();
+        var userAgent = HttpContext.GetUserAgent();
+
+        var session = await sessionService.CreateSessionAsync(accountId, userAgent, remoteIp.ToString());
+
+        await auditService.LogAsync(
+            accountId,
+            AuditAction.Login,
+            ipAddress: remoteIp,
+            userAgent: userAgent,
+            metadata: new LoginMetadata(session.Id));
+
         HttpContext.Response.Cookies.Append(AuthConstants.UserSessionCookieName, session.Token, new CookieOptions
         {
             Expires = DateTimeOffset.UtcNow.Add(Duration.LoginSessionLifetime),

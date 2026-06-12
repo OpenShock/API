@@ -6,6 +6,9 @@ using OpenShock.API.Services.OAuthConnection;
 using OpenShock.Common.Options;
 using OpenShock.API.OAuth;
 using OpenShock.Common.Extensions;
+using OpenShock.Common.Utils;
+using OpenShock.Common.Models;
+using OpenShock.Common.Services.Audit;
 
 namespace OpenShock.API.Controller.OAuth;
 
@@ -114,6 +117,14 @@ public sealed partial class OAuthController
                     await HttpContext.SignOutAsync(OAuthConstants.FlowScheme);
                     return RedirectFrontendConnections("linkFailed");
                 }
+
+                var auditService = HttpContext.RequestServices.GetRequiredService<IAuditService>();
+                await auditService.LogAsync(
+                    userId,
+                    AuditAction.OAuthConnected,
+                    ipAddress: HttpContext.GetRemoteIP(),
+                    userAgent: HttpContext.GetUserAgent(),
+                    metadata: new OAuthConnectedMetadata(provider));
 
                 // Direct sign-in
                 var domain = GetCurrentCookieDomain();

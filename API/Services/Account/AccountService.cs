@@ -616,7 +616,7 @@ public sealed class AccountService : IAccountService
         return new Success();
     }
 
-    public async Task<OneOf<Success, NotFound, EmailAlreadyInUse>> TryVerifyEmailAsync(string token, CancellationToken cancellationToken = default)
+    public async Task<OneOf<Success<(Guid UserId, string OldEmail, string NewEmail)>, NotFound, EmailAlreadyInUse>> TryVerifyEmailAsync(string token, CancellationToken cancellationToken = default)
     {
         var hash = HashingUtils.HashToken(token);
         var validSince = DateTime.UtcNow - Duration.EmailChangeRequestLifetime;
@@ -629,6 +629,7 @@ public sealed class AccountService : IAccountService
             {
                 ChangeId = x.Id,
                 UserId = x.UserId,
+                OldEmail = x.User.Email,
                 x.NewEmail,
                 x.SecurityStampAtCreate
             })
@@ -660,7 +661,7 @@ public sealed class AccountService : IAccountService
             .Where(c => c.Id == change.ChangeId && c.UsedAt == null)
             .ExecuteUpdateAsync(s => s.SetProperty(c => c.UsedAt, now), cancellationToken);
 
-        return new Success();
+        return new Success<(Guid, string, string)>((change.UserId, change.OldEmail, change.NewEmail));
     }
 
     private async Task<bool> CheckPassword(string password, User user)

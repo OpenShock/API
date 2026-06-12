@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.DataProtection.EntityFrameworkCore;
+﻿using System.Text.Json;
+using Microsoft.AspNetCore.DataProtection.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using OpenShock.Common.Constants;
 using OpenShock.Common.Extensions;
@@ -130,6 +131,8 @@ public class OpenShockContext : DbContext, IDataProtectionKeyContext
     
     public DbSet<DataProtectionKey> DataProtectionKeys { get; set; }
 
+    public DbSet<UserAuditLog> UserAuditLogs { get; set; }
+
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {
         if (!optionsBuilder.IsConfigured)
@@ -151,6 +154,12 @@ public class OpenShockContext : DbContext, IDataProtectionKeyContext
             .HasPostgresEnum("shocker_model_type", ["caiXianlin", "petTrainer", "petrainer998DR", "wellturnT330"])
             .HasPostgresEnum("match_type_enum", ["exact", "contains"])
             .HasPostgresEnum("configuration_value_type", ["string", "bool", "int", "float", "json"])
+            .HasPostgresEnum("audit_action", [
+                "login", "logout", "password_changed", "email_change_requested", "email_changed",
+                "username_changed", "api_token_created", "api_token_deleted",
+                "oauth_connected", "oauth_disconnected",
+                "account_deactivated", "account_reactivated", "account_deleted"
+            ])
             .HasCollation("public", "ndcoll", "und-u-ks-level2", "icu", false); // Add case-insensitive, accent-sensitive comparison collation
 
         modelBuilder.Entity<ApiToken>(entity =>
@@ -919,6 +928,51 @@ public class OpenShockContext : DbContext, IDataProtectionKeyContext
                 .HasColumnName("shocker_count");
             entity.Property(e => e.ShockerControlLogCount)
                 .HasColumnName("shocker_control_log_count");
+        });
+
+        modelBuilder.Entity<UserAuditLog>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("user_audit_logs_pkey");
+
+            entity.ToTable("user_audit_logs");
+
+            entity.HasIndex(e => e.UserId);
+            entity.HasIndex(e => e.ActorId);
+            entity.HasIndex(e => e.CreatedAt);
+
+            entity.Property(e => e.Id)
+                .ValueGeneratedNever()
+                .HasColumnName("id");
+            entity.Property(e => e.UserId).HasColumnName("user_id");
+            entity.Property(e => e.ActorId).HasColumnName("actor_id");
+            entity.Property(e => e.Action)
+                .HasColumnType("audit_action")
+                .HasColumnName("action");
+            entity.Property(e => e.IpAddress)
+                .VarCharWithLength(HardLimits.IpAddressMaxLength)
+                .HasColumnName("ip_address");
+            entity.Property(e => e.UserAgent)
+                .VarCharWithLength(HardLimits.UserAgentMaxLength)
+                .HasColumnName("user_agent");
+            entity.Property(e => e.Metadata)
+                .HasColumnType("jsonb")
+                .HasColumnName("metadata")
+                .HasConversion(
+                    v => JsonSerializer.Serialize(v, (JsonSerializerOptions?)null),
+                    v => JsonSerializer.Deserialize<AuditMetadata>(v, (JsonSerializerOptions?)null));
+            entity.Property(e => e.CreatedAt)
+                .HasDefaultValueSql("CURRENT_TIMESTAMP")
+                .HasColumnName("created_at");
+
+            entity.HasOne(e => e.User).WithMany(u => u.AuditLogs)
+                .HasForeignKey(e => e.UserId)
+                .OnDelete(DeleteBehavior.Cascade)
+                .HasConstraintName("fk_user_audit_logs_user_id");
+
+            entity.HasOne(e => e.Actor).WithMany(u => u.ActorAuditLogs)
+                .HasForeignKey(e => e.ActorId)
+                .OnDelete(DeleteBehavior.Cascade)
+                .HasConstraintName("fk_user_audit_logs_actor_id");
         });
     }
 }

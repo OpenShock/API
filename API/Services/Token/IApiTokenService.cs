@@ -56,4 +56,9 @@ public interface IApiTokenService
     /// Delete a token by id (optionally restricted to an owner). Returns <c>false</c> if no token was deleted.
     /// </summary>
     Task<bool> DeleteToken(Guid tokenId, Guid? ownerId = null, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Returns the minimum info needed to write an audit log entry for a token deletion, or <c>null</c> if the token does not exist.
+    /// </summary>
+    Task<(Guid OwnerId, string Name)?> GetTokenAuditInfoAsync(Guid tokenId, Guid? ownerId = null, CancellationToken cancellationToken = default);
 }

@@ -1,6 +1,9 @@
 ﻿using Asp.Versioning;
 using Microsoft.AspNetCore.Mvc;
 using OpenShock.Common.Extensions;
+using OpenShock.Common.Utils;
+using OpenShock.Common.Models;
+using OpenShock.Common.Services.Audit;
 using OpenShock.Common.Services.Session;
 
 namespace OpenShock.API.Controller.Account;
@@ -10,12 +13,22 @@ public sealed partial class AccountController
     [HttpPost("logout")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [MapToApiVersion("1")]
-    public async Task<IActionResult> Logout([FromServices] ISessionService sessionService)
+    public async Task<IActionResult> Logout(
+        [FromServices] ISessionService sessionService,
+        [FromServices] IAuditService auditService)
     {
-        // Remove session if valid
         if (HttpContext.TryGetUserSessionToken(out var sessionToken))
         {
-            await sessionService.DeleteSessionByTokenAsync(sessionToken);
+            var session = await sessionService.GetSessionByTokenAsync(sessionToken);
+            if (session is not null)
+            {
+                await sessionService.DeleteSessionAsync(session);
+                await auditService.LogAsync(
+                    session.UserId,
+                    AuditAction.Logout,
+                    ipAddress: HttpContext.GetRemoteIP(),
+                    userAgent: HttpContext.GetUserAgent());
+            }
         }
 
         // Make sure cookie is removed, no matter if authenticated or not
