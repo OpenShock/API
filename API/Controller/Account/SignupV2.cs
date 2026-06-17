@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.RateLimiting;
 using OpenShock.API.Errors;
 using OpenShock.API.Services.Turnstile;
 using OpenShock.Common.Errors;
+using OpenShock.Common.Options;
 using OpenShock.Common.Problems;
 using OpenShock.Common.Utils;
 
@@ -19,6 +20,7 @@ public sealed partial class AccountController
     /// </summary>
     /// <param name="body"></param>
     /// <param name="turnstileService"></param>
+    /// <param name="accountOptions"></param>
     /// <param name="cancellationToken"></param>
     /// <response code="200">User successfully signed up</response>
     /// <response code="400">Username or email already exists</response>
@@ -27,13 +29,17 @@ public sealed partial class AccountController
     [Consumes(MediaTypeNames.Application.Json)]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status409Conflict, MediaTypeNames.Application.ProblemJson)] // EmailOrUsernameAlreadyExists
-    [ProducesResponseType<OpenShockProblem>(StatusCodes.Status403Forbidden, MediaTypeNames.Application.ProblemJson)] // InvalidTurnstileResponse
+    [ProducesResponseType<OpenShockProblem>(StatusCodes.Status403Forbidden, MediaTypeNames.Application.ProblemJson)] // RegistrationDisabled or InvalidTurnstileResponse
     [MapToApiVersion("2")]
     public async Task<IActionResult> SignUpV2(
         [FromBody] SignUpV2 body,
         [FromServices] ICloudflareTurnstileService turnstileService,
+        [FromServices] AccountOptions accountOptions,
         CancellationToken cancellationToken)
     {
+        if (!accountOptions.RegistrationEnabled)
+            return Problem(SignupError.RegistrationDisabled);
+
         var turnStile = await turnstileService.VerifyUserResponseTokenAsync(body.TurnstileResponse, HttpContext.GetRemoteIP(), cancellationToken);
         if (!turnStile.IsT0)
         {

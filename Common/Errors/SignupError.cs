@@ -9,4 +9,9 @@ public static class SignupError
         "Signup.UsernameOrEmailExists",
         "The chosen username or email is already in use",
         HttpStatusCode.Conflict);
+
+    public static OpenShockProblem RegistrationDisabled => new(
+        "Signup.RegistrationDisabled",
+        "New account registration is currently disabled",
+        HttpStatusCode.Forbidden);
 }
