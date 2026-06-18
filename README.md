@@ -14,21 +14,22 @@ https://api.openshock.app/scalar/viewer
 The API can be configured using the following environment variables:
 Preferred way is a .env file.
 
-| Variable                            | Required | Default value | Allowed / Example value                                                                                  |
-| ----------------------------------- | -------- | ------------- | -------------------------------------------------------------------------------------------------------- |
-| `OPENSHOCK__DB__CONN`               | x        |               | `Host=postgres-server-host;Port=5432;Database=openshock;Username=openshock;Password=superSecurePassword` |
-| `OPENSHOCK__DB__SKIPMIGRATION`      |          | `false`       | `true`, `false`                                                                                          |
-| `OPENSHOCK__DB__DEBUG`              |          | `false`       | `true`, `false`                                                                                          |
-| `OPENSHOCK__FRONTEND__BASEURL`      | x        |               | `https://my-openshock-instance.net` or `https://shocklink.net`                                           |
-| `OPENSHOCK__FRONTEND__SHORTURL`     | x        |               | `https://myoi.net` or `https://shockl.ink`                                                               |
-| `OPENSHOCK__FRONTEND__COOKIEDOMAIN` | x        |               | `my-openshock-instance.net`                                                                              |
-| `OPENSHOCK__REDIS__CONN`            | x        |               | `redis-server-host:6379`                                                                                 |
-| `OPENSHOCK__MAIL__SENDER__EMAIL`    | x        |               | `system@my-openshock-instance.net`                                                                       |
-| `OPENSHOCK__MAIL__SENDER__NAME`     | x        |               | `MyOpenShockInstance System`                                                                             |
-| `OPENSHOCK__MAIL__TYPE`             | x        |               | `MAILJET`, `SMTP`                                                                                        |
-| `OPENSHOCK__TURNSTILE__ENABLE`      | x        |               | `true`, `false`                                                                                          |
-| `OPENSHOCK__LCG__FQDN`              | x        |               | `de1-gateway.my-openshock-instance.net` `de1-gateway.shocklink.net`                                      |
-| `OPENSHOCK__LCG__COUNTRYCODE`       | x        |               | `DE` or `XX` as a placeholder / unknown                                                                  |
+| Variable                                  | Required | Default value | Allowed / Example value                                                                                  |
+|-------------------------------------------|----------|---------------|----------------------------------------------------------------------------------------------------------|
+| `OPENSHOCK__DB__CONN`                     | x        |               | `Host=postgres-server-host;Port=5432;Database=openshock;Username=openshock;Password=superSecurePassword` |
+| `OPENSHOCK__DB__SKIPMIGRATION`            |          | `false`       | `true`, `false`                                                                                          |
+| `OPENSHOCK__DB__DEBUG`                    |          | `false`       | `true`, `false`                                                                                          |
+| `OPENSHOCK__ACCOUNT__REGISTRATIONENABLED` |          | `true`        | `true`, `false` - `false` disables new user sign-ups                                                     |
+| `OPENSHOCK__FRONTEND__BASEURL`            | x        |               | `https://my-openshock-instance.net` or `https://shocklink.net`                                           |
+| `OPENSHOCK__FRONTEND__SHORTURL`           | x        |               | `https://myoi.net` or `https://shockl.ink`                                                               |
+| `OPENSHOCK__FRONTEND__COOKIEDOMAIN`       | x        |               | `my-openshock-instance.net`                                                                              |
+| `OPENSHOCK__REDIS__CONN`                  | x        |               | `redis-server-host:6379`                                                                                 |
+| `OPENSHOCK__MAIL__SENDER__EMAIL`          | x        |               | `system@my-openshock-instance.net`                                                                       |
+| `OPENSHOCK__MAIL__SENDER__NAME`           | x        |               | `MyOpenShockInstance System`                                                                             |
+| `OPENSHOCK__MAIL__TYPE`                   | x        |               | `MAILJET`, `SMTP`                                                                                        |
+| `OPENSHOCK__TURNSTILE__ENABLE`            | x        |               | `true`, `false`                                                                                          |
+| `OPENSHOCK__LCG__FQDN`                    | x        |               | `de1-gateway.my-openshock-instance.net` `de1-gateway.shocklink.net`                                      |
+| `OPENSHOCK__LCG__COUNTRYCODE`             | x        |               | `DE` or `XX` as a placeholder / unknown                                                                  |
 
 Refer to the [Npgsql Connection String](https://www.npgsql.org/doc/connection-string-parameters.html) documentation page for details about `OPENSHOCK__DB_CONN`.
 Refer to [StackExchange.Redis Configuration](https://stackexchange.github.io/StackExchange.Redis/Configuration.html) documentation page for details about `OPENSHOCK__REDIS__CONN`.

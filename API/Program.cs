@@ -26,6 +26,7 @@ var redisOptions = builder.RegisterRedisOptions();
 var databaseOptions = builder.RegisterDatabaseOptions();
 builder.RegisterMetricsOptions();
 builder.RegisterFrontendOptions();
+builder.RegisterAccountOptions();
 
 builder.Services
     .AddOpenShockMemDB(redisOptions)
