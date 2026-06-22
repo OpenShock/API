@@ -1,4 +1,4 @@
-using OpenShock.Common.Utils;
+using OpenShock.Internal.Common.Utils;
 
 namespace OpenShock.Common.Tests.Utils;
 
@@ -9,33 +9,33 @@ public class CryptoUtilsTests
     [Arguments(10)]
     [Arguments(64)]
     [Arguments(256)]
-    public async Task RandomAlphaNumericString_CorrectLength(int length)
+    public async Task RandomString_CorrectLength(int length)
     {
-        var result = CryptoUtils.RandomAlphaNumericString(length);
+        var result = CryptoUtils.RandomString(length);
         await Assert.That(result.Length).IsEqualTo(length);
     }
 
     [Test]
-    public async Task RandomAlphaNumericString_OnlyAlphaNumericChars()
+    public async Task RandomString_OnlyAlphaNumericChars()
     {
-        var result = CryptoUtils.RandomAlphaNumericString(1000);
+        var result = CryptoUtils.RandomString(1000);
         await Assert.That(result.All(c => char.IsLetterOrDigit(c))).IsTrue();
     }
 
     [Test]
-    public async Task RandomAlphaNumericString_ContainsVariety()
+    public async Task RandomString_ContainsVariety()
     {
         // With 1000 chars, should have both letters and digits
-        var result = CryptoUtils.RandomAlphaNumericString(1000);
+        var result = CryptoUtils.RandomString(1000);
         await Assert.That(result.Any(char.IsLetter)).IsTrue();
         await Assert.That(result.Any(char.IsDigit)).IsTrue();
     }
 
     [Test]
-    public async Task RandomAlphaNumericString_TwoCallsProduceDifferentResults()
+    public async Task RandomString_TwoCallsProduceDifferentResults()
     {
-        var a = CryptoUtils.RandomAlphaNumericString(32);
-        var b = CryptoUtils.RandomAlphaNumericString(32);
+        var a = CryptoUtils.RandomString(32);
+        var b = CryptoUtils.RandomString(32);
         await Assert.That(a).IsNotEqualTo(b);
     }
 

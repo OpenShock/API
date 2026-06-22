@@ -6,6 +6,10 @@ using OpenShock.Common.Errors;
 using OpenShock.Common.Problems;
 using OpenShock.Common.Utils;
 
+using OpenShock.Internal.Common.Utils;
+
+using OpenShock.Internal.Common.Problems;
+
 namespace OpenShock.API.Controller.Account.Authenticated;
 
 public sealed partial class AuthenticatedAccountController

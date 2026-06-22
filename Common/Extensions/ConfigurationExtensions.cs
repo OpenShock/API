@@ -2,6 +2,8 @@
 using OpenShock.Common.Utils;
 using StackExchange.Redis;
 
+using OpenShock.Internal.Common.Utils;
+
 namespace OpenShock.Common.Extensions;
 
 file sealed class RedisSection

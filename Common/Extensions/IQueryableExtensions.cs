@@ -1,10 +1,13 @@
 ﻿using System.Linq.Expressions;
 using OpenShock.Common.Models;
 using OpenShock.Common.OpenShockDb;
-using OpenShock.Common.Query;
+
+using OpenShock.Internal.DynamicLinq.Extensions;
 
 namespace OpenShock.Common.Extensions;
 
+// ApplyFilter/ApplyOrderBy now live in OpenShock.Internal.DynamicLinq (OpenShock.Internal.DynamicLinq.Extensions).
+// These two helpers depend on the User/RoleType domain model and stay local.
 public static class IQueryableExtensions
 {
     public static IQueryable<TEntity> WhereUserIdMatches<TEntity>(this IQueryable<TEntity> source, Expression<Func<TEntity, User>> userNavigation, Guid userId)
@@ -27,12 +30,5 @@ public static class IQueryableExtensions
         }
 
         return WhereUserIdMatches(source, userNavigation, user.Id);
-    }
-
-    public static IQueryable<T> ApplyFilter<T>(this IQueryable<T> query, string filterQuery) where T : class
-    {
-        ArgumentException.ThrowIfNullOrWhiteSpace(filterQuery);
-
-        return query.Where(DBExpressionBuilder.GetFilterExpression<T>(filterQuery));
     }
 }

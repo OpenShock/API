@@ -10,6 +10,8 @@ using OpenShock.Common.Redis;
 using OpenShock.Common.Utils;
 using Redis.OM.Contracts;
 
+using OpenShock.Internal.Common.Utils;
+
 namespace OpenShock.API.IntegrationTests.Tests;
 
 public sealed class LcgAssignmentTests
@@ -32,7 +34,7 @@ public sealed class LcgAssignmentTests
         // Set up variables
         _userId = Guid.CreateVersion7();
         _hubId = Guid.CreateVersion7();
-        _hubToken = CryptoUtils.RandomAlphaNumericString(256);
+        _hubToken = CryptoUtils.RandomString(256);
 
         // Create mock data
         db.Users.Add(new User

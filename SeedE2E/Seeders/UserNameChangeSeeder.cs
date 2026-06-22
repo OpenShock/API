@@ -5,6 +5,8 @@ using OpenShock.Common.Constants;
 using OpenShock.Common.OpenShockDb;
 using OpenShock.Common.Utils;
 
+using OpenShock.Internal.Common.Constants;
+
 namespace OpenShock.SeedE2E.Seeders;
 
 public static class UserNameChangeSeeder

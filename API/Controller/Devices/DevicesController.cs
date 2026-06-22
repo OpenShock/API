@@ -15,6 +15,12 @@ using System.Security.Cryptography;
 using OpenShock.API.Services.DeviceUpdate;
 using Redis.OM;
 
+using OpenShock.Internal.Common.Utils;
+
+using OpenShock.Internal.Common.Constants;
+
+using OpenShock.Internal.Common.Problems;
+
 namespace OpenShock.API.Controller.Devices;
 
 public sealed partial class DevicesController
@@ -112,7 +118,7 @@ public sealed partial class DevicesController
         var device = await _db.Devices.FirstOrDefaultAsync(x => x.OwnerId == CurrentUser.Id && x.Id == deviceId);
         if (device is null) return Problem(HubError.HubNotFound);
 
-        device.Token = CryptoUtils.RandomAlphaNumericString(256);
+        device.Token = CryptoUtils.RandomString(256);
 
         var affected = await _db.SaveChangesAsync();
         if (affected <= 0) throw new Exception("Failed to save regenerated token");
@@ -179,7 +185,7 @@ public sealed partial class DevicesController
             Id = Guid.CreateVersion7(),
             OwnerId = CurrentUser.Id,
             Name = body.Name,
-            Token = CryptoUtils.RandomAlphaNumericString(256)
+            Token = CryptoUtils.RandomString(256)
         };
         _db.Devices.Add(device);
         await _db.SaveChangesAsync();

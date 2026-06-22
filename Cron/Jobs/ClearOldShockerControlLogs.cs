@@ -3,6 +3,8 @@ using OpenShock.Common.Constants;
 using OpenShock.Common.OpenShockDb;
 using OpenShock.Cron.Attributes;
 
+using OpenShock.Internal.Common.Constants;
+
 namespace OpenShock.Cron.Jobs;
 
 /// <summary>

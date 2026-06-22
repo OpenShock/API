@@ -5,6 +5,8 @@ using System.Net.Mime;
 using OpenShock.Common.Errors;
 using OpenShock.Common.Problems;
 
+using OpenShock.Internal.Common.Problems;
+
 namespace OpenShock.API.Controller.Shares.Links;
 
 public sealed partial class ShareLinksController

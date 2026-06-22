@@ -10,6 +10,8 @@ using Scalar.AspNetCore;
 using Serilog;
 using IPNetwork = System.Net.IPNetwork;
 
+using OpenShock.Internal.Common.Utils;
+
 namespace OpenShock.Common;
 
 public static class OpenShockMiddlewareHelper

@@ -19,7 +19,7 @@
   <!-- Git stuff -->
   <Target Name="SetHash" AfterTargets="InitializeSourceControlInformation">
     <ItemGroup>
-      <AssemblyAttribute Include="OpenShock.Common.Utils.GitHashAttribute">
+      <AssemblyAttribute Include="OpenShock.Internal.Common.Utils.GitHashAttribute">
         <_Parameter1>$(SourceRevisionId)</_Parameter1>
       </AssemblyAttribute>
     </ItemGroup>

@@ -2,6 +2,8 @@
 using OpenShock.Common.Constants;
 using OpenShock.Common.Models;
 
+using OpenShock.Internal.Common.Constants;
+
 namespace OpenShock.API.Models.Requests;
 
 public sealed class NewShocker

@@ -12,6 +12,8 @@ using OpenShock.Common.OpenShockDb;
 using OpenShock.Common.Problems;
 using OpenShock.Common.Services.Ota;
 
+using OpenShock.Internal.Common.Problems;
+
 namespace OpenShock.API.Controller.Devices;
 
 [ApiController]

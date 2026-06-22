@@ -3,6 +3,8 @@ using System.Net.Mime;
 using OpenShock.Common.Errors;
 using OpenShock.Common.Problems;
 
+using OpenShock.Internal.Common.Problems;
+
 namespace OpenShock.API.Controller.Account.Authenticated;
 
 public sealed partial class AuthenticatedAccountController

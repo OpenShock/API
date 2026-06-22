@@ -1,6 +1,8 @@
 ﻿using OpenShock.Common.Utils;
 // ReSharper disable ObjectCreationAsStatement
 
+using OpenShock.Internal.Common.Utils;
+
 namespace OpenShock.Common.Tests.Utils;
 
 public class LatencyEmulatorTests

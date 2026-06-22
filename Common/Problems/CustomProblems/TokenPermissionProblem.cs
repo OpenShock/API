@@ -1,6 +1,8 @@
 ﻿using System.Net;
 using OpenShock.Common.Models;
 
+using OpenShock.Internal.Common.Problems;
+
 namespace OpenShock.Common.Problems.CustomProblems;
 
 public sealed class TokenPermissionProblem(

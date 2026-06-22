@@ -6,6 +6,8 @@ using OpenShock.Common.Problems;
 using OpenShock.Common.Services.Configuration;
 using System.Net.Mime;
 
+using OpenShock.Internal.Common.Problems;
+
 namespace OpenShock.API.Controller.Admin;
 
 public sealed partial class AdminController

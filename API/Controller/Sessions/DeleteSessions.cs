@@ -5,6 +5,8 @@ using OpenShock.Common.Models;
 using OpenShock.Common.Problems;
 using System.Net.Mime;
 
+using OpenShock.Internal.Common.Problems;
+
 namespace OpenShock.API.Controller.Sessions;
 
 public sealed partial class SessionsController

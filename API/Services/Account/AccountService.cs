@@ -13,6 +13,8 @@ using OpenShock.Common.Services.Session;
 using OpenShock.Common.Utils;
 using OpenShock.Common.Validation;
 
+using OpenShock.Internal.Common.Utils;
+
 namespace OpenShock.API.Services.Account;
 
 /// <summary>
@@ -107,7 +109,7 @@ public sealed class AccountService : IAccountService
 
         var user = accountCreate.AsT0.Value;
 
-        var token = CryptoUtils.RandomAlphaNumericString(AuthConstants.GeneratedTokenLength);
+        var token = CryptoUtils.RandomString(AuthConstants.GeneratedTokenLength);
 
         user.UserActivationRequest = new UserActivationRequest
         {
@@ -171,7 +173,7 @@ public sealed class AccountService : IAccountService
             // If email isn't trusted, create an activation request (email verification)
             if (!isEmailTrusted)
             {
-                activationToken = CryptoUtils.RandomAlphaNumericString(AuthConstants.GeneratedTokenLength);
+                activationToken = CryptoUtils.RandomString(AuthConstants.GeneratedTokenLength);
 
                 user.UserActivationRequest = new UserActivationRequest
                 {
@@ -418,7 +420,7 @@ public sealed class AccountService : IAccountService
         if (user.IsDeactivated) return new AccountDeactivated();
         if (user.PasswordResetCount >= 3) return new TooManyPasswordResets();
 
-        var token = CryptoUtils.RandomAlphaNumericString(AuthConstants.GeneratedTokenLength);
+        var token = CryptoUtils.RandomString(AuthConstants.GeneratedTokenLength);
         var passwordReset = new UserPasswordReset
         {
             Id = Guid.CreateVersion7(),
@@ -580,7 +582,7 @@ public sealed class AccountService : IAccountService
         if (await _db.Users.AnyAsync(x => x.Email == lowerCaseEmail))
             return new EmailAlreadyInUse();
 
-        var token = CryptoUtils.RandomAlphaNumericString(AuthConstants.GeneratedTokenLength);
+        var token = CryptoUtils.RandomString(AuthConstants.GeneratedTokenLength);
         var emailChange = new UserEmailChange
         {
             Id = Guid.CreateVersion7(),

@@ -8,6 +8,8 @@ using OpenShock.Common.Utils;
 using StackExchange.Redis;
 using Timer = System.Timers.Timer;
 
+using OpenShock.Internal.Common.Utils;
+
 namespace OpenShock.Common.Services.BatchUpdate;
 
 internal sealed class ConcurrentUniqueBatchQueue<TKey, TValue> where TKey : notnull

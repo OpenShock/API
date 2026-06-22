@@ -10,6 +10,8 @@ using OpenShock.Common.Utils;
 using System.Reflection;
 using Microsoft.AspNetCore.Authentication;
 
+using OpenShock.Internal.Common.Utils;
+
 namespace OpenShock.API.Controller.Version;
 
 

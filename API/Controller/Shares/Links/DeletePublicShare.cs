@@ -6,6 +6,8 @@ using OpenShock.Common.Problems;
 using OpenShock.Common.Models;
 using OpenShock.Common.Extensions;
 
+using OpenShock.Internal.Common.Problems;
+
 namespace OpenShock.API.Controller.Shares.Links;
 
 public sealed partial class ShareLinksController
