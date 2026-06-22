@@ -22,6 +22,12 @@ public sealed class RedisPubService : IRedisPubService
         return PublishMessage(deviceId, DeviceMessage.Create(DeviceTriggerType.DeviceInfoUpdated));
     }
 
+    public Task SendApiTokenUpdate(Guid tokenId)
+    {
+        // The channel is already scoped to the token, so the message itself carries no payload.
+        return _subscriber.PublishAsync(RedisChannels.ApiTokenUpdate(tokenId), RedisValue.EmptyString);
+    }
+
     public Task SendDeviceOnlineStatus(Guid deviceId, bool isOnline)
     {
         return Publish(RedisChannels.DeviceStatus, DeviceStatus.Create(deviceId, DeviceBoolStateType.Online, isOnline));

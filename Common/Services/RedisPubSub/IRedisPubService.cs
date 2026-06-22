@@ -13,6 +13,14 @@ public interface IRedisPubService
     Task SendDeviceUpdate(Guid deviceId);
 
     /// <summary>
+    /// The shocker-control scoping (limits, pause state) of an API token changed, or the token was revoked.
+    /// Notifies live control gateways so open connections using the token refetch their limits.
+    /// </summary>
+    /// <param name="tokenId"></param>
+    /// <returns></returns>
+    Task SendApiTokenUpdate(Guid tokenId);
+
+    /// <summary>
     /// Used when a device comes online or changes its connection details like, gateway, firmware version, etc.
     /// </summary>
     /// <param name="deviceId"></param>
