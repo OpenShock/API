@@ -235,6 +235,47 @@ public sealed class AccountService : IAccountService
     }
 
     /// <inheritdoc />
+    public async Task ResendActivationEmailAsync(string email, CancellationToken cancellationToken = default)
+    {
+        var lowerCaseEmail = email.ToLowerInvariant();
+
+        var user = await _db.Users
+            .Include(u => u.UserDeactivation)
+            .Include(u => u.UserActivationRequest)
+            .FirstOrDefaultAsync(u => u.Email == lowerCaseEmail, cancellationToken);
+
+        // Silently no-op when there is nothing to send, so this endpoint can't be used to probe
+        // which emails are registered, already activated, or deactivated.
+        if (user is null || user.ActivatedAt is not null || user.UserDeactivation is not null) return;
+
+        // Rotate the activation token (invalidating any previously sent link) and persist before
+        // sending, so the link in the new email is the one stored in the database.
+        var token = CryptoUtils.RandomAlphaNumericString(AuthConstants.GeneratedTokenLength);
+
+        if (user.UserActivationRequest is null)
+        {
+            // Account is pending activation but has no activation request (e.g. legacy data or a
+            // failed initial send). Create one so the user can still complete activation.
+            user.UserActivationRequest = new UserActivationRequest
+            {
+                UserId = user.Id,
+                TokenHash = HashingUtils.HashToken(token),
+                EmailSendAttempts = 1
+            };
+        }
+        else
+        {
+            user.UserActivationRequest.TokenHash = HashingUtils.HashToken(token);
+            user.UserActivationRequest.EmailSendAttempts++;
+        }
+
+        await _db.SaveChangesAsync(cancellationToken);
+
+        await _emailService.ActivateAccount(new Contact(user.Email, user.Name),
+            new Uri(_frontendConfig.BaseUrl, $"/activate?token={token}"), cancellationToken);
+    }
+
+    /// <inheritdoc />
     public async Task<OneOf<Success, CannotDeactivatePrivilegedAccount, AccountDeactivationAlreadyInProgress, Unauthorized, NotFound>> DeactivateAccountAsync(Guid executingUserId, Guid userId, bool deleteLater)
     {
         if (executingUserId != userId)

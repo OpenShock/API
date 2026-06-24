@@ -83,6 +83,119 @@ public sealed partial class MailTests
         await Assert.That(user!.ActivatedAt).IsNotNull();
     }
 
+    // --- Resend Activation ---
+
+    [Test]
+    public async Task ResendActivation_UnactivatedUser_SendsWorkingActivationEmail()
+    {
+        var email = TestHelper.UniqueEmail("mail-resend-activate");
+        var username = TestHelper.UniqueUsername("mailresendactivate");
+        using var mailpit = WebApplicationFactory.CreateMailpitHelper();
+
+        // Unactivated user with no existing activation request — exercises the create-request path.
+        await TestHelper.CreateUserInDb(WebApplicationFactory, username, email, "SecurePassword123#", activated: false);
+
+        using var client = WebApplicationFactory.CreateClient();
+        var response = await client.PostAsync("/1/account/activate/resend", TestHelper.JsonContent(new { email }));
+        await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.OK);
+
+        var message = await mailpit.WaitForMessageAsync(email);
+        await Assert.That(message).IsNotNull();
+        await Assert.That(message!.To?.Select(c => c.Address)).Contains(email);
+
+        // The link in the resent email must actually activate the account.
+        var fullMessage = await mailpit.GetMessageAsync(message.Id);
+        var token = ExtractQueryParam(fullMessage!.Html, "token");
+        await Assert.That(token).IsNotNull().And.IsNotEmpty();
+
+        var activateResponse = await client.PostAsync($"/1/account/activate?token={token}", null);
+        await Assert.That(activateResponse.StatusCode).IsEqualTo(HttpStatusCode.OK);
+
+        await using var scope = WebApplicationFactory.Services.CreateAsyncScope();
+        var db = scope.ServiceProvider.GetRequiredService<OpenShockContext>();
+        var user = await db.Users.AsNoTracking().FirstAsync(u => u.Email == email);
+        await Assert.That(user.ActivatedAt).IsNotNull();
+    }
+
+    [Test]
+    public async Task ResendActivation_RotatesToken_PreviousLinkInvalidated()
+    {
+        var email = TestHelper.UniqueEmail("mail-resend-rotate");
+        var username = TestHelper.UniqueUsername("mailresendrotate");
+        using var mailpit = WebApplicationFactory.CreateMailpitHelper();
+
+        using var client = WebApplicationFactory.CreateClient();
+
+        // Sign up (V2) — creates an unactivated user and sends the first activation email.
+        var signupResponse = await client.PostAsync("/2/account/signup", TestHelper.JsonContent(new
+        {
+            username,
+            password = "SecurePassword123#",
+            email,
+            turnstileResponse = "valid-token"
+        }));
+        await Assert.That(signupResponse.StatusCode).IsEqualTo(HttpStatusCode.OK);
+
+        var firstMessage = await mailpit.WaitForMessageAsync(email);
+        await Assert.That(firstMessage).IsNotNull();
+        var firstFull = await mailpit.GetMessageAsync(firstMessage!.Id);
+        var firstToken = ExtractQueryParam(firstFull!.Html, "token");
+        await Assert.That(firstToken).IsNotNull().And.IsNotEmpty();
+
+        // Resend — rotates the token and sends a second email.
+        var resendResponse = await client.PostAsync("/1/account/activate/resend", TestHelper.JsonContent(new { email }));
+        await Assert.That(resendResponse.StatusCode).IsEqualTo(HttpStatusCode.OK);
+
+        var messages = await mailpit.WaitForMessagesAsync(email, minCount: 2);
+        await Assert.That(messages.Count).IsGreaterThanOrEqualTo(2);
+
+        var secondMessage = messages.First(m => m.Id != firstMessage.Id);
+        var secondFull = await mailpit.GetMessageAsync(secondMessage.Id);
+        var secondToken = ExtractQueryParam(secondFull!.Html, "token");
+        await Assert.That(secondToken).IsNotNull().And.IsNotEmpty();
+        await Assert.That(secondToken).IsNotEqualTo(firstToken);
+
+        // The original (rotated-out) token must no longer activate the account.
+        var staleActivate = await client.PostAsync($"/1/account/activate?token={firstToken}", null);
+        await Assert.That(staleActivate.StatusCode).IsEqualTo(HttpStatusCode.BadRequest);
+
+        // The freshly issued token works.
+        var freshActivate = await client.PostAsync($"/1/account/activate?token={secondToken}", null);
+        await Assert.That(freshActivate.StatusCode).IsEqualTo(HttpStatusCode.OK);
+    }
+
+    [Test]
+    public async Task ResendActivation_AlreadyActivatedUser_Returns200_AndSendsNoEmail()
+    {
+        var email = TestHelper.UniqueEmail("mail-resend-activated");
+        var username = TestHelper.UniqueUsername("mailresendactivated");
+        using var mailpit = WebApplicationFactory.CreateMailpitHelper();
+
+        await TestHelper.CreateUserInDb(WebApplicationFactory, username, email, "SecurePassword123#", activated: true);
+
+        using var client = WebApplicationFactory.CreateClient();
+        var response = await client.PostAsync("/1/account/activate/resend", TestHelper.JsonContent(new { email }));
+
+        // Generic 200 (no account-state leak), but nothing is sent to an already-activated account.
+        await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.OK);
+        var message = await mailpit.WaitForMessageAsync(email, TimeSpan.FromSeconds(2));
+        await Assert.That(message).IsNull();
+    }
+
+    [Test]
+    public async Task ResendActivation_UnknownEmail_Returns200_AndSendsNoEmail()
+    {
+        var email = TestHelper.UniqueEmail("mail-resend-unknown");
+        using var mailpit = WebApplicationFactory.CreateMailpitHelper();
+
+        using var client = WebApplicationFactory.CreateClient();
+        var response = await client.PostAsync("/1/account/activate/resend", TestHelper.JsonContent(new { email }));
+
+        await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.OK);
+        var message = await mailpit.WaitForMessageAsync(email, TimeSpan.FromSeconds(2));
+        await Assert.That(message).IsNull();
+    }
+
     // --- Password Reset ---
 
     [Test]

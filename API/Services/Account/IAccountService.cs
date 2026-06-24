@@ -55,6 +55,15 @@ public interface IAccountService
     /// <returns></returns>
     Task<bool> TryActivateAccountAsync(string token, CancellationToken cancellationToken = default);
 
+    /// <summary>
+    /// Resends the account activation email for an unactivated account, rotating the activation token.
+    /// Silently does nothing when no email is needed (unknown email, already activated, or deactivated)
+    /// to avoid leaking account state.
+    /// </summary>
+    /// <param name="email">The email address of the account to resend the activation email for.</param>
+    /// <param name="cancellationToken"></param>
+    Task ResendActivationEmailAsync(string email, CancellationToken cancellationToken = default);
+
     public Task<OneOf<Success, CannotDeactivatePrivilegedAccount, AccountDeactivationAlreadyInProgress, Unauthorized, NotFound>> DeactivateAccountAsync(Guid executingUserId, Guid userId, bool deleteLater = true);
     
     public Task<OneOf<Success, Unauthorized, NotFound>> ReactivateAccountAsync(Guid executingUserId, Guid userId);
