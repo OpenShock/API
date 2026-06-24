@@ -4,7 +4,7 @@ using Npgsql;
 using OneOf;
 using OneOf.Types;
 using OpenShock.API.Services.Email;
-using OpenShock.API.Services.Email.Mailjet.Mail;
+using OpenShock.Common.Services.Email.Mailjet.Mail;
 using OpenShock.Common.Constants;
 using OpenShock.Common.Models;
 using OpenShock.Common.OpenShockDb;
@@ -117,7 +117,7 @@ public sealed class AccountService : IAccountService
 
         await _db.SaveChangesAsync();
 
-        await _emailService.ActivateAccount(new Contact(email, username),
+        await _emailService.ActivateAccount(user.Id, new Contact(email, username),
             new Uri(_frontendConfig.BaseUrl, $"/activate?token={token}"));
         return new Success<User>(user);
     }
@@ -201,6 +201,7 @@ public sealed class AccountService : IAccountService
             if (!isEmailTrusted && activationToken is not null)
             {
                 await _emailService.ActivateAccount(
+                    user.Id,
                     new Contact(email, username),
                     new Uri(_frontendConfig.BaseUrl, $"/activate?token={activationToken}")
                 );
@@ -594,7 +595,7 @@ public sealed class AccountService : IAccountService
         // Dispatch the verification email *before* committing the row. If the mail service throws
         // (provider outage, transient network failure), the exception propagates and the row is
         // never inserted, the user can simply retry without burning a pending-count slot.
-        await _emailService.VerifyEmail(new Contact(lowerCaseEmail, data.User.Name),
+        await _emailService.VerifyEmail(data.User.Id, new Contact(lowerCaseEmail, data.User.Name),
             new Uri(_frontendConfig.BaseUrl, $"/verify-email?token={token}"));
 
         _db.UserEmailChanges.Add(emailChange);
@@ -606,7 +607,7 @@ public sealed class AccountService : IAccountService
         // unwind the request.
         try
         {
-            await _emailService.EmailChangeNotice(new Contact(data.User.Email, data.User.Name), lowerCaseEmail);
+            await _emailService.EmailChangeNotice(data.User.Id, new Contact(data.User.Email, data.User.Name), lowerCaseEmail);
         }
         catch (Exception ex)
         {

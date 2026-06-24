@@ -1,7 +1,7 @@
 ﻿using Microsoft.Extensions.Options;
-using OpenShock.API.Options;
+using OpenShock.Common.Options;
 
-namespace OpenShock.API.Services.Email.Smtp;
+namespace OpenShock.Common.Services.Email.Smtp;
 
 public static class SmtpEmailServiceExtension
 {
@@ -14,7 +14,7 @@ public static class SmtpEmailServiceExtension
         builder.Services.AddSingleton<IValidateOptions<SmtpOptions>, SmtpOptionsValidator>();
         builder.Services.AddSingleton<SmtpOptions>(sp => sp.GetRequiredService<IOptions<SmtpOptions>>().Value);
 
-        builder.Services.AddSingleton<IEmailService, SmtpEmailService>();
+        builder.Services.AddSingleton<IEmailSender, SmtpEmailService>();
 
         return builder;
     }

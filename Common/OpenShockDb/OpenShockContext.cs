@@ -71,6 +71,7 @@ public class OpenShockContext : DbContext, IDataProtectionKeyContext
             npgsqlBuilder.MapEnum<OtaUpdateStatus>();
             npgsqlBuilder.MapEnum<MatchTypeEnum>();
             npgsqlBuilder.MapEnum<ConfigurationValueType>();
+            npgsqlBuilder.MapEnum<QueuedEmailType>();
         });
 
         if (debug)
@@ -127,7 +128,9 @@ public class OpenShockContext : DbContext, IDataProtectionKeyContext
     public DbSet<UserNameBlacklist> UserNameBlacklists { get; set; }
 
     public DbSet<EmailProviderBlacklist> EmailProviderBlacklists { get; set; }
-    
+
+    public DbSet<QueuedEmail> QueuedEmails { get; set; }
+
     public DbSet<DataProtectionKey> DataProtectionKeys { get; set; }
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
@@ -151,6 +154,7 @@ public class OpenShockContext : DbContext, IDataProtectionKeyContext
             .HasPostgresEnum("shocker_model_type", ["caiXianlin", "petTrainer", "petrainer998DR", "wellturnT330"])
             .HasPostgresEnum("match_type_enum", ["exact", "contains"])
             .HasPostgresEnum("configuration_value_type", ["string", "bool", "int", "float", "json"])
+            .HasPostgresEnum("queued_email_type", ["account_activation", "email_verification", "email_change_notice"])
             .HasCollation("public", "ndcoll", "und-u-ks-level2", "icu", false); // Add case-insensitive, accent-sensitive comparison collation
 
         modelBuilder.Entity<ApiToken>(entity =>
@@ -867,6 +871,34 @@ public class OpenShockContext : DbContext, IDataProtectionKeyContext
                 .UseCollation("ndcoll")
                 .VarCharWithLength(HardLimits.EmailProviderDomainMaxLength)
                 .HasColumnName("domain");
+            entity.Property(e => e.CreatedAt)
+                .HasDefaultValueSql("CURRENT_TIMESTAMP")
+                .HasColumnName("created_at");
+        });
+
+        modelBuilder.Entity<QueuedEmail>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("queued_emails_pkey");
+
+            entity.ToTable("queued_emails");
+
+            entity.HasIndex(e => e.NextAttemptAt);
+
+            entity.Property(e => e.Id)
+                .ValueGeneratedNever()
+                .HasColumnName("id");
+            entity.Property(e => e.Type)
+                .HasColumnType("queued_email_type")
+                .HasColumnName("type");
+            entity.Property(e => e.Payload)
+                .HasColumnType("jsonb")
+                .HasColumnName("payload");
+            entity.Property(e => e.Attempts)
+                .HasColumnName("attempts");
+            entity.Property(e => e.NextAttemptAt)
+                .HasColumnName("next_attempt_at");
+            entity.Property(e => e.LastError)
+                .HasColumnName("last_error");
             entity.Property(e => e.CreatedAt)
                 .HasDefaultValueSql("CURRENT_TIMESTAMP")
                 .HasColumnName("created_at");

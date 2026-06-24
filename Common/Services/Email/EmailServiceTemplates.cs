@@ -1,4 +1,4 @@
-namespace OpenShock.API.Services.Email;
+namespace OpenShock.Common.Services.Email;
 
 public sealed class EmailServiceTemplates
 {

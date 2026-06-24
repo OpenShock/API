@@ -7,6 +7,8 @@
   <!-- NuGet packages -->
   <ItemGroup>
     <PackageReference Include="BCrypt.Net-Next" />
+    <PackageReference Include="Fluid.Core" />
+    <PackageReference Include="MailKit" />
     <PackageReference Include="IDisposableAnalyzers">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
@@ -33,6 +35,16 @@
     <PackageReference Include="Serilog.Sinks.OpenTelemetry" />
     <PackageReference Include="Swashbuckle.AspNetCore.SwaggerGen" />
     <PackageReference Include="Z.EntityFramework.Plus.EFCore" />
+  </ItemGroup>
+
+  <!-- Pre-rendered Liquid email templates (committed to repo, not built at compile time).
+       Re-render with `pnpm export` in email-templates/ when you change a .tsx source.
+       Copied to the output of every project that references Common (API send path, Cron worker). -->
+  <ItemGroup>
+    <Content Include="SmtpTemplates\*.liquid">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+    </Content>
   </ItemGroup>
 
   <Import Project="CloudflareIPs.targets" />

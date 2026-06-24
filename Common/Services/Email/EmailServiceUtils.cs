@@ -1,8 +1,8 @@
 ﻿using System.Net.Mail;
 using MimeKit;
-using OpenShock.API.Services.Email.Mailjet.Mail;
+using OpenShock.Common.Services.Email.Mailjet.Mail;
 
-namespace OpenShock.API.Services.Email;
+namespace OpenShock.Common.Services.Email;
 
 public static class EmailServiceUtils
 {

@@ -2,6 +2,8 @@ using Hangfire;
 using Hangfire.PostgreSql;
 using OpenShock.Common;
 using OpenShock.Common.Extensions;
+using OpenShock.Common.Services.Email;
+using OpenShock.Common.Services.Email.Queue;
 using OpenShock.Cron;
 using OpenShock.Cron.Utils;
 using OpenShock.Common.Swagger;
@@ -10,11 +12,16 @@ var builder = OpenShockApplication.CreateDefaultBuilder<Program>(args);
 
 var redisOptions = builder.RegisterRedisOptions();
 var databaseOptions = builder.RegisterDatabaseOptions();
+builder.RegisterFrontendOptions(); // Needed to build activation / verification links when resending
 builder.RegisterMetricsOptions();
 
 builder.Services.AddOpenShockMemDB(redisOptions);
 builder.Services.AddOpenShockDB(databaseOptions);
 builder.Services.AddOpenShockServices();
+
+// Email retry queue: the raw sender plus the processor the ProcessEmailQueueJob drains.
+await builder.AddOpenShockEmailSender();
+builder.Services.AddScoped<EmailQueueProcessor>();
 
 builder.Services.AddHangfire(hangfire =>
     hangfire.UsePostgreSqlStorage(c =>

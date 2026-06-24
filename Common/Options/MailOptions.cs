@@ -1,7 +1,7 @@
 ﻿using System.ComponentModel.DataAnnotations;
-using OpenShock.API.Services.Email.Mailjet.Mail;
+using OpenShock.Common.Services.Email.Mailjet.Mail;
 
-namespace OpenShock.API.Options;
+namespace OpenShock.Common.Options;
 
 public sealed class MailOptions
 {

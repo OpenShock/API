@@ -1,13 +1,13 @@
-﻿using OpenShock.API.Options;
-using OpenShock.API.Services.Email.Mailjet.Mail;
+﻿using OpenShock.Common.Options;
+using OpenShock.Common.Services.Email.Mailjet.Mail;
 using System.Net.Mime;
 using System.Text;
 using System.Text.Json;
 using OpenShock.Common.JsonSerialization;
 
-namespace OpenShock.API.Services.Email.Mailjet;
+namespace OpenShock.Common.Services.Email.Mailjet;
 
-public sealed class MailjetEmailService : IEmailService, IDisposable
+public sealed class MailjetEmailService : IEmailSender
 {
     private readonly HttpClient _httpClient;
     private readonly EmailServiceTemplates _templates;
@@ -67,18 +67,35 @@ public sealed class MailjetEmailService : IEmailService, IDisposable
 
         var json = JsonSerializer.Serialize(new MailsWrap { Messages = mails }, JsonOptions.Default);
 
-        var response = await _httpClient.PostAsync("send",
-            new StringContent(json, Encoding.UTF8, MediaTypeNames.Application.Json), cancellationToken);
-        if (!response.IsSuccessStatusCode)
+        HttpResponseMessage response;
+        try
         {
-            _logger.LogError("Error sending mails. Got unsuccessful status code {StatusCode} for mails {@Mails} with error body {Body}",
-                response.StatusCode, mails, await response.Content.ReadAsStringAsync(cancellationToken));
+            using var content = new StringContent(json, Encoding.UTF8, MediaTypeNames.Application.Json);
+            response = await _httpClient.PostAsync("send", content, cancellationToken);
         }
-        else _logger.LogDebug("Successfully sent mail");
-    }
+        catch (HttpRequestException ex)
+        {
+            // Connection-level failure (DNS, refused, reset, TLS). Always worth retrying.
+            throw new EmailDeliveryException(isTransient: true, "Failed to reach the Mailjet API", ex);
+        }
 
-    public void Dispose()
-    {
-        _httpClient.Dispose();
+        using (response)
+        {
+            if (response.IsSuccessStatusCode)
+            {
+                _logger.LogDebug("Successfully sent mail");
+                return;
+            }
+
+            var body = await response.Content.ReadAsStringAsync(cancellationToken);
+            _logger.LogError("Error sending mails. Got unsuccessful status code {StatusCode} for mails {@Mails} with error body {Body}",
+                response.StatusCode, mails, body);
+
+            // Retry only on rate limiting (429) and server-side errors (5xx). Other 4xx (bad request,
+            // auth, rejected recipient) are permanent and re-sending would just fail again.
+            var statusCode = (int)response.StatusCode;
+            var isTransient = statusCode == 429 || statusCode >= 500;
+            throw new EmailDeliveryException(isTransient, $"Mailjet returned status code {statusCode}");
+        }
     }
 }
