@@ -15,25 +15,6 @@ public sealed class RegistrationDisabledTests
     public required RegistrationDisabledWebApplicationFactory WebApplicationFactory { get; init; }
 
     [Test]
-    public async Task V1Signup_RegistrationDisabled_Returns403WithProblemType()
-    {
-        using var client = WebApplicationFactory.CreateClient();
-
-        var response = await client.PostAsync("/1/account/signup", TestHelper.JsonContent(new
-        {
-            username = "disabledv1",
-            password = "SecurePassword123#",
-            email = "disabledv1@test.org"
-        }));
-
-        await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.Forbidden);
-
-        var problem = await response.Content.ReadFromJsonAsync<ProblemDetails>();
-        await Assert.That(problem).IsNotNull();
-        await Assert.That(problem!.Type).IsEqualTo("Signup.RegistrationDisabled");
-    }
-
-    [Test]
     public async Task V2Signup_RegistrationDisabled_Returns403WithProblemType()
     {
         using var client = WebApplicationFactory.CreateClient();

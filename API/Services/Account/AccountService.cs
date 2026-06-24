@@ -61,7 +61,7 @@ public sealed class AccountService : IAccountService
         return await _db.EmailProviderBlacklists.AnyAsync(e => e.Domain == domain);
     }
 
-    private async Task<OneOf<Success<User>, AccountWithEmailOrUsernameExists>> CreateAccount(string email, string username, string password, bool verifyOnCreation)
+    private async Task<OneOf<Success<User>, AccountWithEmailOrUsernameExists>> CreateAccount(string email, string username, string password, bool verifyOnCreation = false)
     {
         email = email.ToLowerInvariant();
 
@@ -92,17 +92,11 @@ public sealed class AccountService : IAccountService
 
         return new Success<User>(user);
     }
-    
-    /// <inheritdoc />
-    public async Task<OneOf<Success<User>, AccountWithEmailOrUsernameExists>> CreateAccountWithoutActivationFlowLegacyAsync(string email, string username, string password)
-    {
-        return await CreateAccount(email, username, password, true);
-    }
 
     /// <inheritdoc />
     public async Task<OneOf<Success<User>, AccountWithEmailOrUsernameExists>> CreateAccountWithActivationFlowAsync(string email, string username, string password)
     {
-        var accountCreate = await CreateAccount(email, username, password, false);
+        var accountCreate = await CreateAccount(email, username, password);
         if (accountCreate.IsT1) return accountCreate;
 
         var user = accountCreate.AsT0.Value;

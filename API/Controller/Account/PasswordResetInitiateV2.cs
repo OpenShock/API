@@ -1,14 +1,10 @@
-﻿using System;
-using System.Net;
-using System.Net.Mime;
+﻿using System.Net.Mime;
 using Microsoft.AspNetCore.Mvc;
 using Asp.Versioning;
 using Microsoft.AspNetCore.RateLimiting;
-using OpenShock.API.Errors;
 using OpenShock.API.Models.Requests;
 using OpenShock.API.Services.Turnstile;
 using OpenShock.Common.Problems;
-using OpenShock.Common.Utils;
 
 namespace OpenShock.API.Controller.Account;
 
@@ -43,15 +39,8 @@ public sealed partial class AccountController
 
     private async Task<IActionResult> PasswordResetInitiate(PasswordResetRequestV2 body, ICloudflareTurnstileService turnstileService, CancellationToken cancellationToken)
     {
-        var turnStile = await turnstileService.VerifyUserResponseTokenAsync(body.TurnstileResponse, HttpContext.GetRemoteIP(), cancellationToken);
-        if (!turnStile.IsT0)
-        {
-            var cfErrors = turnStile.AsT1.Value;
-            if (cfErrors.All(err => err == CloudflareTurnstileError.InvalidResponse))
-                return Problem(TurnstileError.InvalidTurnstile);
-
-            return Problem(new OpenShockProblem("InternalServerError", "Internal Server Error", HttpStatusCode.InternalServerError));
-        }
+        var turnstileError = await VerifyTurnstileAsync(turnstileService, body.TurnstileResponse, cancellationToken);
+        if (turnstileError is not null) return turnstileError;
 
         await _accountService.CreatePasswordResetFlowAsync(body.Email);
 
