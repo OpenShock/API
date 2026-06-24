@@ -28,21 +28,16 @@ public sealed partial class AccountController
         => CheckPasswordReset(passwordResetId, secret, cancellationToken);
 
     /// <summary>
-    /// Check if a password reset is in progress. Deprecated: use GET /password-reset/{id}/{secret} instead.
+    /// Check if a password reset is in progress. Retired: use GET /1/account/password-reset/{passwordResetId}/{secret} instead.
     /// </summary>
     /// <param name="passwordResetId">The id of the password reset</param>
     /// <param name="secret">The secret of the password reset</param>
-    /// <param name="cancellationToken"></param>
-    /// <response code="200">Valid password reset process</response>
-    /// <response code="404">Password reset process not found</response>
-    [Obsolete("Use GET /password-reset/{passwordResetId}/{secret} instead.")]
+    [Obsolete("Retired. Use GET /1/account/password-reset/{passwordResetId}/{secret} instead.")]
     [HttpHead("recover/{passwordResetId}/{secret}")]
-    [EnableRateLimiting("auth")]
-    [ProducesResponseType<LegacyEmptyResponse>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
-    [ProducesResponseType<OpenShockProblem>(StatusCodes.Status404NotFound, MediaTypeNames.Application.ProblemJson)] // PasswordResetNotFound
+    [ApiExplorerSettings(IgnoreApi = true)]
     [MapToApiVersion("1")]
-    public Task<IActionResult> PasswordResetCheckValidLegacy([FromRoute] Guid passwordResetId, [FromRoute] string secret, CancellationToken cancellationToken)
-        => CheckPasswordReset(passwordResetId, secret, cancellationToken);
+    public IActionResult PasswordResetCheckValidLegacy([FromRoute] Guid passwordResetId, [FromRoute] string secret)
+        => Problem(GoneError.EndpointRetired("GET /1/account/password-reset/{passwordResetId}/{secret}"));
 
     private async Task<IActionResult> CheckPasswordReset(Guid passwordResetId, string secret, CancellationToken cancellationToken)
     {
