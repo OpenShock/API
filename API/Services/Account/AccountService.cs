@@ -92,12 +92,6 @@ public sealed class AccountService : IAccountService
 
         return new Success<User>(user);
     }
-    
-    /// <inheritdoc />
-    public async Task<OneOf<Success<User>, AccountWithEmailOrUsernameExists>> CreateAccountWithoutActivationFlowLegacyAsync(string email, string username, string password)
-    {
-        return await CreateAccount(email, username, password, true);
-    }
 
     /// <inheritdoc />
     public async Task<OneOf<Success<User>, AccountWithEmailOrUsernameExists>> CreateAccountWithActivationFlowAsync(string email, string username, string password)

@@ -10,60 +10,20 @@ public sealed class AccountLoginTests
     [ClassDataSource<WebApplicationFactory>(Shared = SharedType.PerTestSession)]
     public required WebApplicationFactory WebApplicationFactory { get; init; }
 
-    // --- V1 Login ---
+    // --- V1 Login (retired) ---
 
     [Test]
-    public async Task V1Login_Success_ReturnsCookie()
+    public async Task V1Login_Retired_Returns410Gone()
     {
-        await TestHelper.CreateUserInDb(WebApplicationFactory, "loginv1", "loginv1@test.org", "SecurePassword123#");
-
-        using var client = WebApplicationFactory.CreateClient(new Microsoft.AspNetCore.Mvc.Testing.WebApplicationFactoryClientOptions
-        {
-            AllowAutoRedirect = false,
-            HandleCookies = false
-        });
+        using var client = WebApplicationFactory.CreateClient();
 
         var response = await client.PostAsync("/1/account/login", TestHelper.JsonContent(new
         {
-            email = "loginv1@test.org",
+            email = "whatever@test.org",
             password = "SecurePassword123#"
         }));
 
-        await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.OK);
-
-        var setCookie = response.Headers.GetValues("Set-Cookie").ToArray();
-        var hasSessionCookie = setCookie.Any(c => c.Contains(AuthConstants.UserSessionCookieName));
-        await Assert.That(hasSessionCookie).IsTrue();
-    }
-
-    [Test]
-    public async Task V1Login_InvalidPassword_Returns401()
-    {
-        await TestHelper.CreateUserInDb(WebApplicationFactory, "loginv1bad", "loginv1bad@test.org", "SecurePassword123#");
-
-        using var client = WebApplicationFactory.CreateClient();
-
-        var response = await client.PostAsync("/1/account/login", TestHelper.JsonContent(new
-        {
-            email = "loginv1bad@test.org",
-            password = "WrongPassword999!"
-        }));
-
-        await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.Unauthorized);
-    }
-
-    [Test]
-    public async Task V1Login_NonexistentUser_Returns401()
-    {
-        using var client = WebApplicationFactory.CreateClient();
-
-        var response = await client.PostAsync("/1/account/login", TestHelper.JsonContent(new
-        {
-            email = "doesnotexist@test.org",
-            password = "SomePassword123#"
-        }));
-
-        await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.Unauthorized);
+        await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.Gone);
     }
 
     // --- V2 Login ---
