@@ -12,6 +12,15 @@ namespace OpenShock.API.Controller.Account;
 public sealed partial class AccountController
 {
     /// <summary>
+    /// Initiate a password reset. Retired: use POST /2/account/password-reset instead.
+    /// </summary>
+    [Obsolete("Retired. Use POST /2/account/password-reset instead.")]
+    [HttpPost("reset-password")]
+    [ApiExplorerSettings(IgnoreApi = true)]
+    [MapToApiVersion("2")]
+    public IActionResult PasswordResetInitiateV2Legacy() => Problem(GoneError.EndpointRetired("POST /2/account/password-reset"));
+    
+    /// <summary>
     /// Initiate a password reset
     /// </summary>
     /// <response code="200">Password reset email sent if the email is associated to an registered account</response>
@@ -21,19 +30,7 @@ public sealed partial class AccountController
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status403Forbidden, MediaTypeNames.Application.ProblemJson)]
     [MapToApiVersion("2")]
-    public Task<IActionResult> PasswordResetInitiateV2([FromBody] PasswordResetRequestV2 body, [FromServices] ICloudflareTurnstileService turnstileService, CancellationToken cancellationToken)
-        => PasswordResetInitiate(body, turnstileService, cancellationToken);
-
-    /// <summary>
-    /// Initiate a password reset. Retired: use POST /2/account/password-reset instead.
-    /// </summary>
-    [Obsolete("Retired. Use POST /2/account/password-reset instead.")]
-    [HttpPost("reset-password")]
-    [ApiExplorerSettings(IgnoreApi = true)]
-    [MapToApiVersion("2")]
-    public IActionResult PasswordResetInitiateV2Legacy() => Problem(GoneError.EndpointRetired("POST /2/account/password-reset"));
-
-    private async Task<IActionResult> PasswordResetInitiate(PasswordResetRequestV2 body, ICloudflareTurnstileService turnstileService, CancellationToken cancellationToken)
+    public async Task<IActionResult> PasswordResetInitiateV2([FromBody] PasswordResetRequestV2 body, [FromServices] ICloudflareTurnstileService turnstileService, CancellationToken cancellationToken)
     {
         var turnstileError = await VerifyTurnstileAsync(turnstileService, body.TurnstileResponse, cancellationToken);
         if (turnstileError is not null) return turnstileError;

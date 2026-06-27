@@ -12,6 +12,18 @@ namespace OpenShock.API.Controller.Account;
 public sealed partial class AccountController
 {
     /// <summary>
+    /// Complete a password reset process. Retired: use POST /1/account/password-reset/{passwordResetId}/{secret}/complete instead.
+    /// </summary>
+    /// <param name="passwordResetId">The id of the password reset</param>
+    /// <param name="secret">The secret of the password reset</param>
+    [Obsolete("Retired. Use POST /1/account/password-reset/{passwordResetId}/{secret}/complete instead.")]
+    [HttpPost("recover/{passwordResetId}/{secret}")]
+    [ApiExplorerSettings(IgnoreApi = true)]
+    [MapToApiVersion("1")]
+    public IActionResult PasswordResetCompleteLegacy([FromRoute] Guid passwordResetId, [FromRoute] string secret)
+        => Problem(GoneError.EndpointRetired("POST /1/account/password-reset/{passwordResetId}/{secret}/complete"));
+
+    /// <summary>
     /// Complete a password reset process
     /// </summary>
     /// <param name="passwordResetId">The id of the password reset</param>
@@ -25,23 +37,8 @@ public sealed partial class AccountController
     [ProducesResponseType<LegacyEmptyResponse>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status404NotFound, MediaTypeNames.Application.ProblemJson)] // PasswordResetNotFound
     [MapToApiVersion("1")]
-    public Task<IActionResult> PasswordResetComplete([FromRoute] Guid passwordResetId,
+    public async Task<IActionResult> PasswordResetComplete([FromRoute] Guid passwordResetId,
         [FromRoute] string secret, [FromBody] PasswordResetProcessData body)
-        => CompletePasswordReset(passwordResetId, secret, body);
-
-    /// <summary>
-    /// Complete a password reset process. Retired: use POST /1/account/password-reset/{passwordResetId}/{secret}/complete instead.
-    /// </summary>
-    /// <param name="passwordResetId">The id of the password reset</param>
-    /// <param name="secret">The secret of the password reset</param>
-    [Obsolete("Retired. Use POST /1/account/password-reset/{passwordResetId}/{secret}/complete instead.")]
-    [HttpPost("recover/{passwordResetId}/{secret}")]
-    [ApiExplorerSettings(IgnoreApi = true)]
-    [MapToApiVersion("1")]
-    public IActionResult PasswordResetCompleteLegacy([FromRoute] Guid passwordResetId, [FromRoute] string secret)
-        => Problem(GoneError.EndpointRetired("POST /1/account/password-reset/{passwordResetId}/{secret}/complete"));
-
-    private async Task<IActionResult> CompletePasswordReset(Guid passwordResetId, string secret, PasswordResetProcessData body)
     {
         var passwordResetComplete = await _accountService.CompletePasswordResetFlowAsync(passwordResetId, secret, body.Password);
 
