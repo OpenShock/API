@@ -86,22 +86,25 @@ public sealed partial class MailTests
     // --- Password Reset ---
 
     [Test]
-    public async Task V1PasswordReset_SendsPasswordResetEmail()
+    public async Task V1PasswordReset_Retired_Returns410Gone()
     {
-        var email = TestHelper.UniqueEmail("mail-pwreset");
-        var username = TestHelper.UniqueUsername("mailpwreset");
-        using var mailpit = WebApplicationFactory.CreateMailpitHelper();
-
-        await TestHelper.CreateUserInDb(WebApplicationFactory, username, email, "OldPassword123#");
-
         using var client = WebApplicationFactory.CreateClient();
-        var response = await client.PostAsync("/1/account/reset", TestHelper.JsonContent(new { email }));
+        var response = await client.PostAsync("/1/account/reset", TestHelper.JsonContent(new { email = "whatever@test.org" }));
 
-        await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.OK);
+        await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.Gone);
+    }
 
-        var message = await mailpit.WaitForMessageAsync(email);
-        await Assert.That(message).IsNotNull();
-        await Assert.That(message!.To?.Select(c => c.Address)).Contains(email);
+    [Test]
+    public async Task ResetPasswordAlias_Retired_Returns410Gone()
+    {
+        using var client = WebApplicationFactory.CreateClient();
+        var response = await client.PostAsync("/2/account/reset-password", TestHelper.JsonContent(new
+        {
+            email = "whatever@test.org",
+            turnstileResponse = "valid-token"
+        }));
+
+        await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.Gone);
     }
 
     [Test]
@@ -140,7 +143,7 @@ public sealed partial class MailTests
         using var client = WebApplicationFactory.CreateClient();
 
         // Initiate password reset
-        var resetResponse = await client.PostAsync("/1/account/reset", TestHelper.JsonContent(new { email }));
+        var resetResponse = await client.PostAsync("/2/account/password-reset", TestHelper.JsonContent(new { email, turnstileResponse = "valid-token" }));
         await Assert.That(resetResponse.StatusCode).IsEqualTo(HttpStatusCode.OK);
 
         // Wait for reset email and extract the link
@@ -166,10 +169,11 @@ public sealed partial class MailTests
         await Assert.That(completeResponse.StatusCode).IsEqualTo(HttpStatusCode.OK);
 
         // Confirm we can log in with the new password
-        var loginResponse = await client.PostAsync("/1/account/login", TestHelper.JsonContent(new
+        var loginResponse = await client.PostAsync("/2/account/login", TestHelper.JsonContent(new
         {
-            email,
-            password = newPassword
+            usernameOrEmail = email,
+            password = newPassword,
+            turnstileResponse = "valid-token"
         }));
         await Assert.That(loginResponse.StatusCode).IsEqualTo(HttpStatusCode.OK);
     }
@@ -320,61 +324,26 @@ public sealed partial class MailTests
     }
 
     [Test]
-    public async Task PasswordResetComplete_LegacyRecoverRoute_StillWorks()
+    public async Task PasswordResetComplete_LegacyRecoverRoute_Returns410Gone()
     {
-        var email = TestHelper.UniqueEmail("mail-pwreset-legacy");
-        var username = TestHelper.UniqueUsername("mailpwresetlegacy");
-        const string newPassword = "LegacyNewPassword456#";
-        using var mailpit = WebApplicationFactory.CreateMailpitHelper();
-
-        await TestHelper.CreateUserInDb(WebApplicationFactory, username, email, "OldPassword123#");
-
         using var client = WebApplicationFactory.CreateClient();
 
-        var resetResponse = await client.PostAsync("/1/account/reset", TestHelper.JsonContent(new { email }));
-        await Assert.That(resetResponse.StatusCode).IsEqualTo(HttpStatusCode.OK);
+        var response = await client.PostAsync(
+            $"/1/account/recover/{Guid.CreateVersion7()}/somesecret",
+            TestHelper.JsonContent(new { password = "LegacyNewPassword456#" }));
 
-        var message = await mailpit.WaitForMessageAsync(email);
-        await Assert.That(message).IsNotNull();
-        var fullMessage = await mailpit.GetMessageAsync(message!.Id);
-        var (resetId, secret) = ExtractPasswordResetParams(fullMessage!.Html);
-        await Assert.That(resetId).IsNotNull().And.IsNotEmpty();
-
-        // Hit the deprecated route directly — must still complete the reset.
-        var completeResponse = await client.PostAsync(
-            $"/1/account/recover/{resetId}/{secret}",
-            TestHelper.JsonContent(new { password = newPassword }));
-        await Assert.That(completeResponse.StatusCode).IsEqualTo(HttpStatusCode.OK);
-
-        var loginResponse = await client.PostAsync("/1/account/login", TestHelper.JsonContent(new
-        {
-            email,
-            password = newPassword
-        }));
-        await Assert.That(loginResponse.StatusCode).IsEqualTo(HttpStatusCode.OK);
+        await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.Gone);
     }
 
     [Test]
-    public async Task PasswordResetCheck_LegacyHeadRecoverRoute_StillWorks()
+    public async Task PasswordResetCheck_LegacyHeadRecoverRoute_Returns410Gone()
     {
-        var email = TestHelper.UniqueEmail("mail-pwreset-check-legacy");
-        var username = TestHelper.UniqueUsername("mailpwresetchecklegacy");
-        using var mailpit = WebApplicationFactory.CreateMailpitHelper();
-
-        await TestHelper.CreateUserInDb(WebApplicationFactory, username, email, "OldPassword123#");
-
         using var client = WebApplicationFactory.CreateClient();
-        var resetResponse = await client.PostAsync("/1/account/reset", TestHelper.JsonContent(new { email }));
-        await Assert.That(resetResponse.StatusCode).IsEqualTo(HttpStatusCode.OK);
 
-        var message = await mailpit.WaitForMessageAsync(email);
-        await Assert.That(message).IsNotNull();
-        var fullMessage = await mailpit.GetMessageAsync(message!.Id);
-        var (resetId, secret) = ExtractPasswordResetParams(fullMessage!.Html);
+        var response = await client.SendAsync(new HttpRequestMessage(
+            HttpMethod.Head, $"/1/account/recover/{Guid.CreateVersion7()}/somesecret"));
 
-        var legacyCheck = await client.SendAsync(new HttpRequestMessage(
-            HttpMethod.Head, $"/1/account/recover/{resetId}/{secret}"));
-        await Assert.That(legacyCheck.StatusCode).IsEqualTo(HttpStatusCode.OK);
+        await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.Gone);
     }
 
     [Test]
@@ -463,10 +432,10 @@ public sealed partial class MailTests
         using var client = WebApplicationFactory.CreateClient();
 
         // Fire two reset requests back-to-back, then wait for both emails to land.
-        var firstInit = await client.PostAsync("/1/account/reset", TestHelper.JsonContent(new { email }));
+        var firstInit = await client.PostAsync("/2/account/password-reset", TestHelper.JsonContent(new { email, turnstileResponse = "valid-token" }));
         await Assert.That(firstInit.StatusCode).IsEqualTo(HttpStatusCode.OK);
 
-        var secondInit = await client.PostAsync("/1/account/reset", TestHelper.JsonContent(new { email }));
+        var secondInit = await client.PostAsync("/2/account/password-reset", TestHelper.JsonContent(new { email, turnstileResponse = "valid-token" }));
         await Assert.That(secondInit.StatusCode).IsEqualTo(HttpStatusCode.OK);
 
         var messages = await mailpit.WaitForMessagesAsync(email, minCount: 2);
@@ -500,10 +469,11 @@ public sealed partial class MailTests
         await Assert.That(completeB.StatusCode).IsEqualTo(HttpStatusCode.NotFound);
 
         // Password from the winning reset works
-        var loginResponse = await client.PostAsync("/1/account/login", TestHelper.JsonContent(new
+        var loginResponse = await client.PostAsync("/2/account/login", TestHelper.JsonContent(new
         {
-            email,
-            password = firstNewPassword
+            usernameOrEmail = email,
+            password = firstNewPassword,
+            turnstileResponse = "valid-token"
         }));
         await Assert.That(loginResponse.StatusCode).IsEqualTo(HttpStatusCode.OK);
     }

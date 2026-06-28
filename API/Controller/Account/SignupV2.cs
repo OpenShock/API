@@ -1,15 +1,12 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using OpenShock.API.Models.Requests;
-using System.Net;
 using System.Net.Mime;
 using Asp.Versioning;
 using Microsoft.AspNetCore.RateLimiting;
-using OpenShock.API.Errors;
 using OpenShock.API.Services.Turnstile;
 using OpenShock.Common.Errors;
 using OpenShock.Common.Options;
 using OpenShock.Common.Problems;
-using OpenShock.Common.Utils;
 
 using OpenShock.Internal.Common.Problems;
 
@@ -42,15 +39,8 @@ public sealed partial class AccountController
         if (!accountOptions.RegistrationEnabled)
             return Problem(SignupError.RegistrationDisabled);
 
-        var turnStile = await turnstileService.VerifyUserResponseTokenAsync(body.TurnstileResponse, HttpContext.GetRemoteIP(), cancellationToken);
-        if (!turnStile.IsT0)
-        {
-            var cfErrors = turnStile.AsT1.Value;
-            if (cfErrors.All(err => err == CloudflareTurnstileError.InvalidResponse))
-                return Problem(TurnstileError.InvalidTurnstile);
-
-            return Problem(new OpenShockProblem("InternalServerError", "Internal Server Error", HttpStatusCode.InternalServerError));
-        }
+        var turnstileError = await VerifyTurnstileAsync(turnstileService, body.TurnstileResponse, cancellationToken);
+        if (turnstileError is not null) return turnstileError;
 
         var creationAction = await _accountService.CreateAccountWithActivationFlowAsync(body.Email, body.Username, body.Password);
         return creationAction.Match<IActionResult>(
