@@ -1,6 +1,9 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <ItemGroup>
     <ProjectReference Include="..\API\API.csproj" />
+    <!-- The Cron host owns email delivery; alias it so its top-level Program doesn't clash with the
+         API's, while still letting the test fixture boot the Cron pipeline in-process. -->
+    <ProjectReference Include="..\Cron\Cron.csproj" Aliases="cronhost" />
   </ItemGroup>
 
   <!-- Props -->
@@ -16,6 +19,14 @@
     <PackageReference Include="Testcontainers.Redis" />
     <PackageReference Include="TUnit" />
     <PackageReference Include="Microsoft.Testing.Extensions.CodeCoverage" />
+  </ItemGroup>
+
+  <!-- The in-process Cron host loads these Liquid templates by relative path; copy them next to the
+       test binaries so they resolve against the test working directory. -->
+  <ItemGroup>
+    <Content Include="..\Cron\SmtpTemplates\*.liquid" Link="SmtpTemplates\%(Filename)%(Extension)">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
   </ItemGroup>
 
   <!-- Git stuff -->

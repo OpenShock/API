@@ -1,4 +1,6 @@
-﻿using System.Threading.RateLimiting;
+﻿extern alias cronhost;
+
+using System.Threading.RateLimiting;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.RateLimiting;
@@ -28,10 +30,39 @@ public class WebApplicationFactory : WebApplicationFactory<Program>, IAsyncIniti
 
     public MailpitHelper CreateMailpitHelper() => new(Mailpit.ApiBaseUrl);
 
+    // The Cron host, booted in-process so the email outbox is actually drained and delivered. It reads
+    // the same OPENSHOCK__* environment variables this factory sets (shared DB / Redis / Mailpit), so
+    // it sees the same outbox rows the API writes.
+    private CronHost? _cronHost;
+
+    /// <summary>Service provider of the in-process Cron host (email dispatcher, outbox job, etc.).</summary>
+    public IServiceProvider CronServices => _cronHost?.Services
+        ?? throw new InvalidOperationException("Cron host not initialized");
+
     public Task InitializeAsync()
     {
-        _ = Server;
+        _ = Server; // Boots the API host, which sets the shared OPENSHOCK__* environment variables.
+        _cronHost = new CronHost();
+        _ = _cronHost.Services; // Boots the Cron host: outbox consumer + Hangfire delivery now run.
         return Task.CompletedTask;
+    }
+
+    protected override void Dispose(bool disposing)
+    {
+        if (disposing) _cronHost?.Dispose();
+        base.Dispose(disposing);
+    }
+
+    /// <summary>Minimal factory that boots the Cron host (<c>cronhost::Program</c>) for delivery.</summary>
+    private sealed class CronHost : WebApplicationFactory<cronhost::Program>
+    {
+        protected override void ConfigureWebHost(IWebHostBuilder builder)
+        {
+            builder.ConfigureServices(services =>
+            {
+                services.AddSerilog(configuration => configuration.WriteTo.Console(LogEventLevel.Warning));
+            });
+        }
     }
 
     protected override void ConfigureClient(HttpClient client)
@@ -64,6 +95,10 @@ public class WebApplicationFactory : WebApplicationFactory<Program>, IAsyncIniti
             { "OPENSHOCK__DB__DEBUG", "false" },
 
             { "OPENSHOCK__REDIS__CONN", Redis.Container.GetConnectionString() },
+
+            // Tests only: make the Cron host's Hangfire workers pick up enqueued email jobs fast so
+            // delivery lands inside the Mailpit wait window. Production keeps Hangfire's 15s default.
+            { "OPENSHOCK__HANGFIRE__QUEUEPOLLINTERVAL", "00:00:00.5" },
 
             { "OPENSHOCK__FRONTEND__BASEURL", "https://openshock.app" },
             { "OPENSHOCK__FRONTEND__SHORTURL", "https://openshock.app" },
