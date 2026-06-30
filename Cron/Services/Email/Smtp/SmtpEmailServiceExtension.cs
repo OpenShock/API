@@ -1,7 +1,7 @@
 ﻿using Microsoft.Extensions.Options;
-using OpenShock.API.Options;
+using OpenShock.Cron.Options;
 
-namespace OpenShock.API.Services.Email.Smtp;
+namespace OpenShock.Cron.Services.Email.Smtp;
 
 public static class SmtpEmailServiceExtension
 {

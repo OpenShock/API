@@ -1,9 +1,9 @@
-﻿using OpenShock.API.Options;
-using OpenShock.API.Services.Email.Mailjet;
-using OpenShock.API.Services.Email.Outbox;
-using OpenShock.API.Services.Email.Smtp;
+﻿using OpenShock.Cron.Options;
+using OpenShock.Cron.Services.Email.Mailjet;
+using OpenShock.Cron.Services.Email.Outbox;
+using OpenShock.Cron.Services.Email.Smtp;
 
-namespace OpenShock.API.Services.Email;
+namespace OpenShock.Cron.Services.Email;
 
 public static class EmailServiceExtension
 {
@@ -12,9 +12,10 @@ public static class EmailServiceExtension
         var mailOptions = builder.Configuration.GetRequiredSection(MailOptions.SectionName).Get<MailOptions>() ?? throw new NullReferenceException();
 
         // The outbox dispatcher + consumer drive all transactional email regardless of provider; even
-        // with mail disabled the consumer runs and marks messages terminal (the no-op provider).
+        // with mail disabled the consumer runs and the send job marks messages terminal (no-op provider).
         builder.Services.AddSingleton<IEmailOutboxDispatcher, EmailOutboxDispatcher>();
-        builder.Services.AddHostedService<EmailOutboxWorker>();
+        builder.Services.AddScoped<EmailOutboxJob>();
+        builder.Services.AddHostedService<EmailOutboxConsumer>();
 
         if (mailOptions.Type == MailOptions.MailType.None)
         {

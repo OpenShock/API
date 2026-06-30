@@ -160,7 +160,7 @@ public class OpenShockContext : DbContext, IDataProtectionKeyContext
             .HasPostgresEnum("match_type_enum", ["exact", "contains"])
             .HasPostgresEnum("configuration_value_type", ["string", "bool", "int", "float", "json"])
             .HasPostgresEnum("email_type", ["account_activation", "password_reset", "email_verification", "email_change_notice"])
-            .HasPostgresEnum("email_status", ["sending", "sent", "failed"])
+            .HasPostgresEnum("email_status", ["pending", "queued", "sent", "failed"])
             .HasCollation("public", "ndcoll", "und-u-ks-level2", "icu", false); // Add case-insensitive, accent-sensitive comparison collation
 
         modelBuilder.Entity<ApiToken>(entity =>
@@ -888,9 +888,9 @@ public class OpenShockContext : DbContext, IDataProtectionKeyContext
 
             entity.ToTable("email_outbox");
 
-            // The consumer claims rows by (status, due time); created_at gives a stable FIFO order.
-            entity.HasIndex(e => new { e.Status, e.NextAttemptAt });
-            entity.HasIndex(e => e.CreatedAt);
+            // The consumer claims fresh (Pending) rows in FIFO order; (status, created_at) serves both
+            // the status filter and the ordering. Retry scheduling after hand-off is owned by Hangfire.
+            entity.HasIndex(e => new { e.Status, e.CreatedAt });
             entity.HasIndex(e => e.Recipient);
 
             entity.Property(e => e.Id)
@@ -909,12 +909,6 @@ public class OpenShockContext : DbContext, IDataProtectionKeyContext
                 .HasColumnName("payload");
             entity.Property(e => e.Status)
                 .HasColumnName("status");
-            entity.Property(e => e.AttemptCount)
-                .HasColumnName("attempt_count");
-            entity.Property(e => e.NextAttemptAt)
-                .HasColumnName("next_attempt_at");
-            entity.Property(e => e.AttemptStartedAt)
-                .HasColumnName("attempt_started_at");
             entity.Property(e => e.LastError)
                 .VarCharWithLength(HardLimits.EmailOutboxLastErrorMaxLength)
                 .HasColumnName("last_error");

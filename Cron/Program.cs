@@ -3,6 +3,7 @@ using Hangfire.PostgreSql;
 using OpenShock.Common;
 using OpenShock.Common.Extensions;
 using OpenShock.Cron;
+using OpenShock.Cron.Services.Email;
 using OpenShock.Cron.Utils;
 using OpenShock.Common.Swagger;
 
@@ -20,6 +21,11 @@ builder.Services.AddHangfire(hangfire =>
     hangfire.UsePostgreSqlStorage(c =>
         c.UseNpgsqlConnection(databaseOptions.Conn)));
 builder.Services.AddHangfireServer();
+
+// Registers the email providers, the outbox dispatcher, the per-email Hangfire send job, and the
+// outbox consumer that hands pending rows off to Hangfire. The API host only writes outbox rows;
+// all sending happens here.
+await builder.AddEmailService();
 
 builder.AddSwaggerExt<Program>();
 

@@ -1,9 +1,9 @@
-﻿using OpenShock.API.Options;
+﻿using OpenShock.Cron.Options;
 using System.Net.Http.Headers;
 using System.Text;
 using Microsoft.Extensions.Options;
 
-namespace OpenShock.API.Services.Email.Mailjet;
+namespace OpenShock.Cron.Services.Email.Mailjet;
 
 public static class MailjetEmailServiceExtension
 {

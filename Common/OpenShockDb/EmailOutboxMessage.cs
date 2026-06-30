@@ -11,50 +11,34 @@ namespace OpenShock.Common.OpenShockDb;
 /// </summary>
 /// <remarks>
 /// <para>
-/// <b>Flow.</b> The request handler creates this row (and any related request row, e.g. a
-/// <see cref="UserPasswordReset"/>) and commits. It does <em>not</em> send. A single background
-/// consumer claims the row, renders the body, mints a fresh secret for token-bearing types, hands
+/// <b>Flow.</b> The API request handler creates this row (and any related request row, e.g. a
+/// <see cref="UserPasswordReset"/>) and commits it as <see cref="EmailStatus.Pending"/>. It does
+/// <em>not</em> send. The Cron host's outbox consumer claims pending rows and hands each to Hangfire,
+/// which runs the send job: it renders the body, mints a fresh secret for token-bearing types, hands
 /// the message to the email provider, and records the outcome. Delivery is therefore decoupled from
-/// the HTTP request: a provider outage, a process restart, or a crash mid-send cannot lose the
-/// email - the row simply stays <see cref="EmailStatus.Sending"/> and is retried.
+/// the HTTP request: a provider outage, a process restart, or a crash mid-send cannot lose the email.
 /// </para>
 ///
 /// <para>
-/// <b>Why this lives in our database (rather than a job framework such as Hangfire).</b>
-/// This is intentionally an <i>outbox</i>, not a generic background-job queue, and the two solve
-/// different problems:
+/// <b>Why this row exists alongside Hangfire (it is an outbox, not a duplicate job queue).</b>
+/// The two layers own different things and are deliberately combined:
 /// </para>
 /// <list type="bullet">
 ///   <item><description>
-///     <b>Transactional integrity.</b> The email intent is committed in the <em>same</em> transaction
-///     as the change that caused it (account created, reset requested, email changed). There is no
-///     window where the business row commits but the email is lost, or where an email is scheduled
-///     for a change that then rolls back. A separate job store cannot give this guarantee without,
-///     in effect, reinventing an outbox alongside it.
+///     <b>This row owns transactional integrity + the audit fact.</b> The email intent is committed
+///     in the <em>same</em> transaction as the change that caused it (account created, reset
+///     requested, email changed), so there is no window where the business row commits but the email
+///     is lost, nor an email scheduled for a change that then rolls back. The row is also the domain
+///     answer to "is this user owed this email, and what is its delivery state" (who, which type,
+///     how many attempts, last error, sent/failed) - a single place to look, kept forever.
 ///   </description></item>
 ///   <item><description>
-///     <b>Single source of truth.</b> A job framework's record is "a method was scheduled and ran";
-///     this row is the domain fact "this user is owed this email, here is its delivery state". When
-///     a user reports a missing email, this table answers it directly (who, which type, how many
-///     attempts, last error, sent/failed) - no second system to correlate against.
-///   </description></item>
-///   <item><description>
-///     <b>No new infrastructure or operational surface.</b> Reliability rides on PostgreSQL, which
-///     is already the system's durable store. There is no extra schema owned by a third-party
-///     scheduler, no dashboard to secure, and no job-serialization/versioning concerns.
-///   </description></item>
-///   <item><description>
-///     <b>Latency.</b> Delivery is push-triggered (a Redis notification on enqueue) with a periodic
-///     poll only as a safety net, so first-send is sub-second. A minute-granularity scheduler would
-///     not meet that.
+///     <b>Hangfire owns the delivery machinery.</b> Once the consumer hands a row off, Hangfire owns
+///     durable execution, retry scheduling, crash requeue, and the operator dashboard - the parts a
+///     bespoke worker would otherwise have to reinvent. The back-off curve itself is supplied by
+///     <c>EmailOutboxRetryPolicy</c>, which the send job feeds into Hangfire's scheduler.
 ///   </description></item>
 /// </list>
-/// <para>
-/// This is not a claim that job frameworks are bad - for recurring/scheduled maintenance work they
-/// are the right tool, and the codebase uses one for cron jobs. It is the narrower point that
-/// <i>transactional, must-not-be-lost, resendable email</i> is an outbox-shaped problem, and modelling
-/// it as a first-class table is the simplest design that satisfies those requirements.
-/// </para>
 ///
 /// <para>
 /// <b>Why the related auth flows mint their token lazily.</b> Because a working reset/verification
@@ -96,24 +80,9 @@ public sealed class EmailOutboxMessage
     /// </summary>
     public required Dictionary<string, string> Payload { get; set; }
 
-    /// <summary>Delivery state. See <see cref="EmailStatus"/>.</summary>
-    public EmailStatus Status { get; set; } = EmailStatus.Sending;
-
-    /// <summary>Number of send attempts started so far. Incremented when the row is claimed.</summary>
-    public int AttemptCount { get; set; }
-
-    /// <summary>
-    /// Earliest time the next attempt may run. Null means "as soon as possible". Set into the future
-    /// after a transient failure to implement back-off.
-    /// </summary>
-    public DateTime? NextAttemptAt { get; set; }
-
-    /// <summary>
-    /// When the current attempt was claimed, acting as a lease. A row whose lease is older than the
-    /// lease timeout is considered abandoned (the worker crashed mid-send) and may be re-claimed.
-    /// Cleared whenever the row reaches a resting state (sent, failed, or waiting for retry).
-    /// </summary>
-    public DateTime? AttemptStartedAt { get; set; }
+    /// <summary>Delivery state. See <see cref="EmailStatus"/>. Retry count and scheduling are owned by
+    /// Hangfire once the row is handed off, so they are not tracked here.</summary>
+    public EmailStatus Status { get; set; } = EmailStatus.Pending;
 
     /// <summary>Last error recorded for a failed/retried attempt. Null while healthy.</summary>
     public string? LastError { get; set; }
@@ -128,7 +97,7 @@ public sealed class EmailOutboxMessage
     public DateTime? FailedAt { get; set; }
 
     /// <summary>
-    /// Builds a new enqueued message in the <see cref="EmailStatus.Sending"/> state. The caller adds
+    /// Builds a new enqueued message in the <see cref="EmailStatus.Pending"/> state. The caller adds
     /// it to the context and commits it together with the related business change.
     /// </summary>
     public static EmailOutboxMessage Create(EmailType type, string recipient, string? recipientName, Dictionary<string, string> payload)
@@ -140,7 +109,7 @@ public sealed class EmailOutboxMessage
             Recipient = recipient,
             RecipientName = recipientName,
             Payload = payload,
-            Status = EmailStatus.Sending
+            Status = EmailStatus.Pending
         };
     }
 }

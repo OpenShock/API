@@ -1,4 +1,4 @@
-﻿namespace OpenShock.API.Services.Email.Mailjet.Mail;
+﻿namespace OpenShock.Cron.Services.Email.Mailjet.Mail;
 
 public sealed class MailsWrap
 {

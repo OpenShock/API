@@ -18,7 +18,7 @@ namespace OpenShock.Common.Migrations
                 .Annotation("Npgsql:Enum:configuration_value_type", "string,bool,int,float,json")
                 .Annotation("Npgsql:Enum:control_limit_mode", "clamp,lerp")
                 .Annotation("Npgsql:Enum:control_type", "sound,vibrate,shock,stop")
-                .Annotation("Npgsql:Enum:email_status", "sending,sent,failed")
+                .Annotation("Npgsql:Enum:email_status", "pending,queued,sent,failed")
                 .Annotation("Npgsql:Enum:email_type", "account_activation,password_reset,email_verification,email_change_notice")
                 .Annotation("Npgsql:Enum:match_type_enum", "exact,contains")
                 .Annotation("Npgsql:Enum:ota_update_status", "started,running,finished,error,timeout")
@@ -47,9 +47,6 @@ namespace OpenShock.Common.Migrations
                     recipient_name = table.Column<string>(type: "character varying(32)", maxLength: 32, nullable: true),
                     payload = table.Column<Dictionary<string, string>>(type: "jsonb", nullable: false),
                     status = table.Column<EmailStatus>(type: "email_status", nullable: false),
-                    attempt_count = table.Column<int>(type: "integer", nullable: false),
-                    next_attempt_at = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
-                    attempt_started_at = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
                     last_error = table.Column<string>(type: "character varying(1024)", maxLength: 1024, nullable: true),
                     created_at = table.Column<DateTime>(type: "timestamp with time zone", nullable: false, defaultValueSql: "CURRENT_TIMESTAMP"),
                     sent_at = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
@@ -61,19 +58,14 @@ namespace OpenShock.Common.Migrations
                 });
 
             migrationBuilder.CreateIndex(
-                name: "IX_email_outbox_created_at",
-                table: "email_outbox",
-                column: "created_at");
-
-            migrationBuilder.CreateIndex(
                 name: "IX_email_outbox_recipient",
                 table: "email_outbox",
                 column: "recipient");
 
             migrationBuilder.CreateIndex(
-                name: "IX_email_outbox_status_next_attempt_at",
+                name: "IX_email_outbox_status_created_at",
                 table: "email_outbox",
-                columns: new[] { "status", "next_attempt_at" });
+                columns: new[] { "status", "created_at" });
         }
 
         /// <inheritdoc />
@@ -97,7 +89,7 @@ namespace OpenShock.Common.Migrations
                 .OldAnnotation("Npgsql:Enum:configuration_value_type", "string,bool,int,float,json")
                 .OldAnnotation("Npgsql:Enum:control_limit_mode", "clamp,lerp")
                 .OldAnnotation("Npgsql:Enum:control_type", "sound,vibrate,shock,stop")
-                .OldAnnotation("Npgsql:Enum:email_status", "sending,sent,failed")
+                .OldAnnotation("Npgsql:Enum:email_status", "pending,queued,sent,failed")
                 .OldAnnotation("Npgsql:Enum:email_type", "account_activation,password_reset,email_verification,email_change_notice")
                 .OldAnnotation("Npgsql:Enum:match_type_enum", "exact,contains")
                 .OldAnnotation("Npgsql:Enum:ota_update_status", "started,running,finished,error,timeout")

@@ -1,12 +1,12 @@
 using Microsoft.EntityFrameworkCore;
-using OpenShock.API.Services.Email.Mailjet.Mail;
+using OpenShock.Cron.Services.Email.Mailjet.Mail;
 using OpenShock.Common.Constants;
 using OpenShock.Common.Models;
 using OpenShock.Common.OpenShockDb;
 using OpenShock.Common.Options;
 using OpenShock.Common.Utils;
 
-namespace OpenShock.API.Services.Email.Outbox;
+namespace OpenShock.Cron.Services.Email.Outbox;
 
 /// <inheritdoc />
 public sealed class EmailOutboxDispatcher : IEmailOutboxDispatcher

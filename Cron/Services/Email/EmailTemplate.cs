@@ -1,8 +1,8 @@
 using System.Text.Encodings.Web;
 using Fluid;
-using OpenShock.API.Services.Email.Mailjet.Mail;
+using OpenShock.Cron.Services.Email.Mailjet.Mail;
 
-namespace OpenShock.API.Services.Email;
+namespace OpenShock.Cron.Services.Email;
 
 public sealed class EmailTemplate
 {

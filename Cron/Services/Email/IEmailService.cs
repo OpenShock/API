@@ -1,6 +1,6 @@
-﻿using OpenShock.API.Services.Email.Mailjet.Mail;
+﻿using OpenShock.Cron.Services.Email.Mailjet.Mail;
 
-namespace OpenShock.API.Services.Email;
+namespace OpenShock.Cron.Services.Email;
 
 /// <summary>
 /// Low-level email provider abstraction: renders a template and hands the message to the provider.

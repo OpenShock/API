@@ -1,6 +1,6 @@
 using OpenShock.Common.OpenShockDb;
 
-namespace OpenShock.API.Services.Email.Outbox;
+namespace OpenShock.Cron.Services.Email.Outbox;
 
 /// <summary>
 /// Renders and sends a single <see cref="EmailOutboxMessage"/>. This is the one place email is

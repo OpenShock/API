@@ -1,11 +1,11 @@
-﻿using OpenShock.API.Options;
-using OpenShock.API.Services.Email.Mailjet.Mail;
+﻿using OpenShock.Cron.Options;
+using OpenShock.Cron.Services.Email.Mailjet.Mail;
 using System.Net.Mime;
 using System.Text;
 using System.Text.Json;
 using OpenShock.Common.JsonSerialization;
 
-namespace OpenShock.API.Services.Email.Mailjet;
+namespace OpenShock.Cron.Services.Email.Mailjet;
 
 public sealed class MailjetEmailService : IEmailService, IDisposable
 {

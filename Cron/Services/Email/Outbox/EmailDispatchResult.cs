@@ -1,4 +1,4 @@
-namespace OpenShock.API.Services.Email.Outbox;
+namespace OpenShock.Cron.Services.Email.Outbox;
 
 /// <summary>What happened when the consumer tried to dispatch an outbox message.</summary>
 public enum EmailDispatchOutcome

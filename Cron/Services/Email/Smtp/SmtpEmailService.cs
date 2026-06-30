@@ -1,10 +1,10 @@
 ﻿using MailKit.Net.Smtp;
 using MimeKit;
 using MimeKit.Text;
-using OpenShock.API.Options;
-using OpenShock.API.Services.Email.Mailjet.Mail;
+using OpenShock.Cron.Options;
+using OpenShock.Cron.Services.Email.Mailjet.Mail;
 
-namespace OpenShock.API.Services.Email.Smtp;
+namespace OpenShock.Cron.Services.Email.Smtp;
 
 public sealed class SmtpEmailService : IEmailService
 {

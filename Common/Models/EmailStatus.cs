@@ -4,21 +4,25 @@ namespace OpenShock.Common.Models;
 /// Delivery state of an <see cref="OpenShockDb.EmailOutboxMessage"/>.
 /// </summary>
 /// <remarks>
-/// There are deliberately only three states. A separate "pending" state would carry no information
-/// here: a message that has been enqueued but not yet delivered is simply one the consumer has not
-/// finished sending, which is exactly what <see cref="Sending"/> means. A row waiting for its next
-/// retry is also <see cref="Sending"/> (with a future <c>NextAttemptAt</c>), it is still in flight,
-/// just not this instant. Collapsing "queued", "in progress" and "awaiting retry" into one state
-/// keeps the claim query and the state machine trivial.
+/// The row is written by the API as <see cref="Pending"/> in the same transaction as the business
+/// change. The Cron consumer claims pending rows and hands each to Hangfire for delivery, flipping it
+/// to <see cref="Queued"/>; from there Hangfire owns execution, retry scheduling, and crash recovery
+/// until the message reaches a terminal <see cref="Sent"/> or <see cref="Failed"/> state.
 /// </remarks>
 public enum EmailStatus
 {
     /// <summary>
-    /// The message still needs to be delivered. Covers freshly enqueued rows, rows currently being
-    /// attempted (see <c>AttemptStartedAt</c>), and rows waiting for a retry (see <c>NextAttemptAt</c>).
-    /// This is the only state the consumer claims from.
+    /// Freshly enqueued by the API and not yet handed to the sender. This is the only state the Cron
+    /// consumer claims from.
     /// </summary>
-    Sending,
+    Pending,
+
+    /// <summary>
+    /// Handed off to Hangfire for delivery: a send job is enqueued, running, or scheduled for a
+    /// retry. The consumer never re-claims a row in this state - Hangfire drives it to a terminal
+    /// state.
+    /// </summary>
+    Queued,
 
     /// <summary>The message was handed to the email provider successfully. Terminal.</summary>
     Sent,

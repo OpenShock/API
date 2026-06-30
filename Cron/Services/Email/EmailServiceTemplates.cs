@@ -1,4 +1,4 @@
-namespace OpenShock.API.Services.Email;
+namespace OpenShock.Cron.Services.Email;
 
 public sealed class EmailServiceTemplates
 {

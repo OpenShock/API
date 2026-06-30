@@ -1,7 +1,7 @@
 ﻿using Microsoft.Extensions.Options;
 using System.ComponentModel.DataAnnotations;
 
-namespace OpenShock.API.Options;
+namespace OpenShock.Cron.Options;
 
 public sealed class SmtpOptions
 {

@@ -1,4 +1,4 @@
-namespace OpenShock.API.Services.Email;
+namespace OpenShock.Cron.Services.Email;
 
 /// <summary>
 /// Outcome of a single attempt to hand an email to the provider. Drives the outbox consumer's

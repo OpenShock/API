@@ -1,7 +1,7 @@
 ﻿using System.ComponentModel.DataAnnotations;
 using System.Diagnostics.CodeAnalysis;
 
-namespace OpenShock.API.Services.Email.Mailjet.Mail;
+namespace OpenShock.Cron.Services.Email.Mailjet.Mail;
 
 public class Contact
 {

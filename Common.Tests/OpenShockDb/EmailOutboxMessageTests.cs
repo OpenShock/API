@@ -6,7 +6,7 @@ namespace OpenShock.Common.Tests.OpenShockDb;
 public class EmailOutboxMessageTests
 {
     [Test]
-    public async Task Create_InitializesAsSendingWithGivenFields()
+    public async Task Create_InitializesAsPendingWithGivenFields()
     {
         var payload = new Dictionary<string, string>
         {
@@ -15,11 +15,10 @@ public class EmailOutboxMessageTests
 
         var message = EmailOutboxMessage.Create(EmailType.PasswordReset, "user@example.com", "User", payload);
 
-        await Assert.That(message.Status).IsEqualTo(EmailStatus.Sending);
+        await Assert.That(message.Status).IsEqualTo(EmailStatus.Pending);
         await Assert.That(message.Type).IsEqualTo(EmailType.PasswordReset);
         await Assert.That(message.Recipient).IsEqualTo("user@example.com");
         await Assert.That(message.RecipientName).IsEqualTo("User");
-        await Assert.That(message.AttemptCount).IsEqualTo(0);
         await Assert.That(message.SentAt).IsNull();
         await Assert.That(message.FailedAt).IsNull();
         await Assert.That(message.Id).IsNotEqualTo(Guid.Empty);
