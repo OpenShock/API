@@ -114,12 +114,10 @@ public sealed class EmailOutboxMessage
     /// <summary>
     /// Builds a new enqueued message in the <see cref="EmailStatus.Pending"/> state, due immediately.
     /// The caller adds it to the context and commits it together with the related business change.
+    /// <paramref name="coalesceKey"/> is the optional opaque coalescing key (see <see cref="CoalesceKey"/>):
+    /// a stable per-intent key (e.g. <c>pwreset:{userId}</c>) makes only the newest such request deliver;
+    /// <c>null</c> means always deliver. Prefer the per-type factories (<see cref="ForPasswordReset"/> etc.).
     /// </summary>
-    /// <param name="coalesceKey">
-    /// Optional opaque coalescing key (see <see cref="CoalesceKey"/>). Pass a stable per-intent key
-    /// (e.g. <c>pwreset:{userId}</c>) for "only the newest such request is delivered"; leave
-    /// <c>null</c> for "always deliver" types.
-    /// </param>
     public static EmailOutboxMessage Create(EmailType type, string recipient, string? recipientName, Dictionary<string, string> payload, string? coalesceKey = null)
     {
         return new EmailOutboxMessage

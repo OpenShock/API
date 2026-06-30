@@ -81,23 +81,11 @@ public sealed partial class EmailOutboxDeliveryTests
 
         var (userId, stamp) = await AddUserAsync(email, "Coalesce User");
 
-        // Two pending resets for the same user, sharing one coalesce key, committed together so both are
-        // pending before the delivery job runs.
-        Guid olderOutboxId, newerOutboxId;
-        await using (var db = await Factory.DbContextFactory.CreateDbContextAsync())
-        {
-            var olderReset = NewResetRow(userId, stamp);
-            var olderOutbox = EmailOutboxMessage.ForPasswordReset(olderReset.Id, userId, email, "Coalesce User");
-            var newerReset = NewResetRow(userId, stamp);
-            var newerOutbox = EmailOutboxMessage.ForPasswordReset(newerReset.Id, userId, email, "Coalesce User");
-
-            db.UserPasswordResets.AddRange(olderReset, newerReset);
-            db.EmailOutbox.AddRange(olderOutbox, newerOutbox);
-            await db.SaveChangesAsync();
-
-            olderOutboxId = olderOutbox.Id;
-            newerOutboxId = newerOutbox.Id;
-        }
+        // Two pending resets for the same user sharing one coalesce key, each committed in its own
+        // transaction so they get distinct created_at timestamps - exactly as two separate API requests
+        // would. Both are pending before delivery runs; the newest must win, the older is superseded.
+        var olderOutboxId = await AddPendingResetOutboxAsync(userId, stamp, email, "Coalesce User");
+        var newerOutboxId = await AddPendingResetOutboxAsync(userId, stamp, email, "Coalesce User");
 
         await Factory.RunDeliveryAsync();
 
@@ -154,6 +142,18 @@ public sealed partial class EmailOutboxDeliveryTests
         db.EmailOutbox.Add(EmailOutboxMessage.ForPasswordReset(reset.Id, userId, email, name));
         await db.SaveChangesAsync();
         return reset.Id;
+    }
+
+    /// <summary>Seeds a reset + its outbox row in their own transaction and returns the outbox row id.</summary>
+    private async Task<Guid> AddPendingResetOutboxAsync(Guid userId, Guid stamp, string email, string name)
+    {
+        await using var db = await Factory.DbContextFactory.CreateDbContextAsync();
+        var reset = NewResetRow(userId, stamp);
+        var outbox = EmailOutboxMessage.ForPasswordReset(reset.Id, userId, email, name);
+        db.UserPasswordResets.Add(reset);
+        db.EmailOutbox.Add(outbox);
+        await db.SaveChangesAsync();
+        return outbox.Id;
     }
 
     private static string UniqueEmail(string prefix) => $"{prefix}-{Guid.CreateVersion7().ToString("N")[..8]}@test.org";
