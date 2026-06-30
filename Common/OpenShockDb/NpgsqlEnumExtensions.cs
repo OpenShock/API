@@ -51,6 +51,8 @@ public static partial class NpgsqlEnumExtensions
         BuildInfo<ShockerModelType>(),
         BuildInfo<MatchTypeEnum>(),
         BuildInfo<ConfigurationValueType>(),
+        BuildInfo<EmailType>(),
+        BuildInfo<EmailStatus>(),
     ];
 
     public static NpgsqlDbContextOptionsBuilder MapPgEnums(this NpgsqlDbContextOptionsBuilder builder)

@@ -1,32 +1,17 @@
-﻿using System.Net.Mime;
-using Microsoft.AspNetCore.Mvc;
-using OpenShock.Common.Models;
 using Asp.Versioning;
-using Microsoft.AspNetCore.RateLimiting;
-using OpenShock.Common.DataAnnotations;
+using Microsoft.AspNetCore.Mvc;
+using OpenShock.Common.Errors;
 
 namespace OpenShock.API.Controller.Account;
 
 public sealed partial class AccountController
 {
     /// <summary>
-    /// Initiate a password reset
+    /// Initiate a password reset. Retired: use POST /2/account/password-reset instead.
     /// </summary>
-    /// <response code="200">Password reset email sent if the email is associated to an registered account</response>
     [HttpPost("reset")]
-    [EnableRateLimiting("auth")]
-    [Consumes(MediaTypeNames.Application.Json)]
+    [Obsolete("Retired. Use POST /2/account/password-reset instead.")]
+    [ApiExplorerSettings(IgnoreApi = true)]
     [MapToApiVersion("1")]
-    [ProducesResponseType<LegacyEmptyResponse>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
-    public async Task<IActionResult> PasswordResetInitiate([FromBody] ResetRequest body)
-    {
-        await _accountService.CreatePasswordResetFlowAsync(body.Email);
-        return LegacyEmptyOk("Password reset has been sent via email if the email is associated to an registered account");
-    }
-
-    public sealed class ResetRequest
-    {
-        [EmailAddress(true)]
-        public required string Email { get; init; }
-    }
+    public IActionResult PasswordResetInitiate() => Problem(GoneError.EndpointRetired("POST /2/account/password-reset"));
 }

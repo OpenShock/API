@@ -52,6 +52,7 @@ services:
       OPENSHOCK__DB__CONN: Host=db;Port=5432;Database=${PG_USER:-openshock};Username=${PG_USER:-openshock};Password=${PG_PASS}
       OPENSHOCK__REDIS__HOST: redis
       OPENSHOCK__TURNSTILE__ENABLE: false
+      OPENSHOCK__ACCOUNT__REGISTRATIONENABLED: true
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.openshock-api.rule=Host(`${OPENSHOCK_API_SUBDOMAIN:-api}.${OPENSHOCK_DOMAIN:-openshock.local}`)"
