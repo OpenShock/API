@@ -1,6 +1,5 @@
 using Hangfire;
 using OpenShock.Common.Services.RedisPubSub;
-using OpenShock.Common.Utils;
 using OpenShock.Cron.Jobs;
 using StackExchange.Redis;
 
@@ -36,18 +35,10 @@ public sealed class EmailOutboxNotificationListener : IHostedService
     }
 
     /// <inheritdoc />
-    public Task StartAsync(CancellationToken cancellationToken)
-        => _subscriber.SubscribeAsync(RedisChannels.EmailOutboxPending, OnPendingNotification);
+    public Task StartAsync(CancellationToken cancellationToken) =>
+        _subscriber.SubscribeAsync(RedisChannels.EmailOutboxPending, OnPendingNotification);
 
     private void OnPendingNotification(RedisChannel channel, RedisValue value)
-    {
-        // Offload off the Redis subscription's message-processing thread: enqueueing is a synchronous
-        // Hangfire/Postgres write, and blocking it here would serialize every other notification behind
-        // this DB round-trip (see RedisSubscriberService for the same pattern).
-        OsTask.Run(EnqueueDeliveryAsync);
-    }
-
-    private Task EnqueueDeliveryAsync()
     {
         try
         {
@@ -57,11 +48,9 @@ public sealed class EmailOutboxNotificationListener : IHostedService
         {
             _logger.LogWarning(ex, "Failed to enqueue email outbox delivery from pending notification; delivery falls back to the scheduled sweep");
         }
-
-        return Task.CompletedTask;
     }
 
     /// <inheritdoc />
-    public Task StopAsync(CancellationToken cancellationToken)
-        => _subscriber.UnsubscribeAsync(RedisChannels.EmailOutboxPending, OnPendingNotification);
+    public  Task StopAsync(CancellationToken cancellationToken) =>
+        _subscriber.UnsubscribeAsync(RedisChannels.EmailOutboxPending, OnPendingNotification);
 }
