@@ -41,6 +41,8 @@ public static class HardLimits
 
     public const int PasswordHashMaxLength = 100;
 
+    public const int EmailOutboxLastErrorMaxLength = 1024;
+
     public const int UserEmailChangeSecretMaxLength = 128;
     public const int UserActivationRequestSecretMaxLength = 128;
     public const int PasswordResetSecretMaxLength = 100;

@@ -71,6 +71,8 @@ public class OpenShockContext : DbContext, IDataProtectionKeyContext
             npgsqlBuilder.MapEnum<OtaUpdateStatus>();
             npgsqlBuilder.MapEnum<MatchTypeEnum>();
             npgsqlBuilder.MapEnum<ConfigurationValueType>();
+            npgsqlBuilder.MapEnum<EmailType>();
+            npgsqlBuilder.MapEnum<EmailStatus>();
         });
 
         if (debug)
@@ -127,6 +129,8 @@ public class OpenShockContext : DbContext, IDataProtectionKeyContext
     public DbSet<UserNameBlacklist> UserNameBlacklists { get; set; }
 
     public DbSet<EmailProviderBlacklist> EmailProviderBlacklists { get; set; }
+
+    public DbSet<EmailOutboxMessage> EmailOutbox { get; set; }
     
     public DbSet<DataProtectionKey> DataProtectionKeys { get; set; }
 
@@ -151,6 +155,8 @@ public class OpenShockContext : DbContext, IDataProtectionKeyContext
             .HasPostgresEnum("shocker_model_type", ["caiXianlin", "petTrainer", "petrainer998DR", "wellturnT330"])
             .HasPostgresEnum("match_type_enum", ["exact", "contains"])
             .HasPostgresEnum("configuration_value_type", ["string", "bool", "int", "float", "json"])
+            .HasPostgresEnum("email_type", ["accountActivation", "passwordReset", "emailVerification", "emailChangeNotice"])
+            .HasPostgresEnum("email_status", ["sending", "sent", "failed"])
             .HasCollation("public", "ndcoll", "und-u-ks-level2", "icu", false); // Add case-insensitive, accent-sensitive comparison collation
 
         modelBuilder.Entity<ApiToken>(entity =>
@@ -870,6 +876,51 @@ public class OpenShockContext : DbContext, IDataProtectionKeyContext
             entity.Property(e => e.CreatedAt)
                 .HasDefaultValueSql("CURRENT_TIMESTAMP")
                 .HasColumnName("created_at");
+        });
+
+        modelBuilder.Entity<EmailOutboxMessage>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("email_outbox_pkey");
+
+            entity.ToTable("email_outbox");
+
+            // The consumer claims rows by (status, due time); created_at gives a stable FIFO order.
+            entity.HasIndex(e => new { e.Status, e.NextAttemptAt });
+            entity.HasIndex(e => e.CreatedAt);
+            entity.HasIndex(e => e.Recipient);
+
+            entity.Property(e => e.Id)
+                .ValueGeneratedNever()
+                .HasColumnName("id");
+            entity.Property(e => e.Type)
+                .HasColumnName("type");
+            entity.Property(e => e.Recipient)
+                .VarCharWithLength(HardLimits.EmailAddressMaxLength)
+                .HasColumnName("recipient");
+            entity.Property(e => e.RecipientName)
+                .VarCharWithLength(HardLimits.UsernameMaxLength)
+                .HasColumnName("recipient_name");
+            entity.Property(e => e.Payload)
+                .HasColumnType("jsonb")
+                .HasColumnName("payload");
+            entity.Property(e => e.Status)
+                .HasColumnName("status");
+            entity.Property(e => e.AttemptCount)
+                .HasColumnName("attempt_count");
+            entity.Property(e => e.NextAttemptAt)
+                .HasColumnName("next_attempt_at");
+            entity.Property(e => e.AttemptStartedAt)
+                .HasColumnName("attempt_started_at");
+            entity.Property(e => e.LastError)
+                .VarCharWithLength(HardLimits.EmailOutboxLastErrorMaxLength)
+                .HasColumnName("last_error");
+            entity.Property(e => e.CreatedAt)
+                .HasDefaultValueSql("CURRENT_TIMESTAMP")
+                .HasColumnName("created_at");
+            entity.Property(e => e.SentAt)
+                .HasColumnName("sent_at");
+            entity.Property(e => e.FailedAt)
+                .HasColumnName("failed_at");
         });
 
         modelBuilder.Entity<AdminUsersView>(entity =>

@@ -26,22 +26,22 @@ public sealed class SmtpEmailService : IEmailService
         _logger = logger;
     }
 
-    public Task ActivateAccount(Contact to, Uri activationLink, CancellationToken cancellationToken = default)
+    public Task<EmailSendResult> ActivateAccount(Contact to, Uri activationLink, CancellationToken cancellationToken = default)
         => SendMail(to, _templates.AccountActivation, new { To = to, ActivationLink = activationLink }, cancellationToken);
 
     /// <inheritdoc />
-    public Task PasswordReset(Contact to, Uri resetLink, CancellationToken cancellationToken = default)
+    public Task<EmailSendResult> PasswordReset(Contact to, Uri resetLink, CancellationToken cancellationToken = default)
         => SendMail(to, _templates.PasswordReset, new { To = to, ResetLink = resetLink }, cancellationToken);
 
     /// <inheritdoc />
-    public Task VerifyEmail(Contact to, Uri verificationLink, CancellationToken cancellationToken = default)
+    public Task<EmailSendResult> VerifyEmail(Contact to, Uri verificationLink, CancellationToken cancellationToken = default)
         => SendMail(to, _templates.EmailVerification, new { To = to, VerifyLink = verificationLink }, cancellationToken);
 
     /// <inheritdoc />
-    public Task EmailChangeNotice(Contact to, string newEmail, CancellationToken cancellationToken = default)
+    public Task<EmailSendResult> EmailChangeNotice(Contact to, string newEmail, CancellationToken cancellationToken = default)
         => SendMail(to, _templates.EmailChangeNotice, new { To = to, NewEmail = newEmail }, cancellationToken);
 
-    private async Task SendMail<T>(Contact to, EmailTemplate template, T data, CancellationToken cancellationToken = default)
+    private async Task<EmailSendResult> SendMail<T>(Contact to, EmailTemplate template, T data, CancellationToken cancellationToken = default)
     {
         _logger.LogDebug("Sending email");
         var (subject, htmlBody) = await template.RenderAsync(data);
@@ -55,23 +55,43 @@ public sealed class SmtpEmailService : IEmailService
             Body = new TextPart(TextFormat.Html) { Text = htmlBody }
         };
 
-        _logger.LogTrace("Creating smtp client and connecting...");
-        using var smtpClient = new SmtpClient();
-        if (!_options.VerifyCertificate)
+        try
         {
-            smtpClient.ServerCertificateValidationCallback = (sender, certificate, chain, errors) => true;
-            smtpClient.CheckCertificateRevocation = false;
+            _logger.LogTrace("Creating smtp client and connecting...");
+            using var smtpClient = new SmtpClient();
+            if (!_options.VerifyCertificate)
+            {
+                smtpClient.ServerCertificateValidationCallback = (sender, certificate, chain, errors) => true;
+                smtpClient.CheckCertificateRevocation = false;
+            }
+
+            await smtpClient.ConnectAsync(_options.Host, _options.Port, _options.EnableSsl, cancellationToken);
+            _logger.LogTrace("Authenticating...");
+            if (smtpClient.Capabilities.HasFlag(SmtpCapabilities.Authentication))
+                await smtpClient.AuthenticateAsync(_options.Username, _options.Password, cancellationToken);
+
+            _logger.LogTrace("Smtp client connected, sending email...");
+
+            await smtpClient.SendAsync(message, cancellationToken);
+            await smtpClient.DisconnectAsync(true, cancellationToken);
+            _logger.LogTrace("Sent email");
+
+            return EmailSendResult.Sent;
         }
-
-        await smtpClient.ConnectAsync(_options.Host, _options.Port, _options.EnableSsl, cancellationToken);
-        _logger.LogTrace("Authenticating...");
-        if (smtpClient.Capabilities.HasFlag(SmtpCapabilities.Authentication))
-            await smtpClient.AuthenticateAsync(_options.Username, _options.Password, cancellationToken);
-
-        _logger.LogTrace("Smtp client connected, sending email...");
-
-        await smtpClient.SendAsync(message, cancellationToken);
-        await smtpClient.DisconnectAsync(true, cancellationToken);
-        _logger.LogTrace("Sent email");
+        catch (SmtpCommandException ex)
+        {
+            // A 5xx reply (e.g. mailbox unavailable, message rejected) won't be fixed by retrying;
+            // 4xx replies are temporary.
+            var permanent = (int)ex.StatusCode is >= 500 and <= 599;
+            _logger.LogError(ex, "SMTP command failed with status {StatusCode} sending to {Recipient}", ex.StatusCode, to.Email);
+            return permanent ? EmailSendResult.PermanentFailure : EmailSendResult.TransientFailure;
+        }
+        catch (Exception ex)
+        {
+            // Connection, TLS, auth, protocol and timeout failures are all treated as temporary; the
+            // retry budget bounds how long a genuinely broken configuration keeps being attempted.
+            _logger.LogError(ex, "Transient SMTP failure sending to {Recipient}", to.Email);
+            return EmailSendResult.TransientFailure;
+        }
     }
 }

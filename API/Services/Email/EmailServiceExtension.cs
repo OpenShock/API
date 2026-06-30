@@ -1,5 +1,6 @@
 ﻿using OpenShock.API.Options;
 using OpenShock.API.Services.Email.Mailjet;
+using OpenShock.API.Services.Email.Outbox;
 using OpenShock.API.Services.Email.Smtp;
 
 namespace OpenShock.API.Services.Email;
@@ -9,7 +10,12 @@ public static class EmailServiceExtension
     public static async Task<WebApplicationBuilder> AddEmailService(this WebApplicationBuilder builder)
     {
         var mailOptions = builder.Configuration.GetRequiredSection(MailOptions.SectionName).Get<MailOptions>() ?? throw new NullReferenceException();
-        
+
+        // The outbox dispatcher + consumer drive all transactional email regardless of provider; even
+        // with mail disabled the consumer runs and marks messages terminal (the no-op provider).
+        builder.Services.AddSingleton<IEmailOutboxDispatcher, EmailOutboxDispatcher>();
+        builder.Services.AddHostedService<EmailOutboxWorker>();
+
         if (mailOptions.Type == MailOptions.MailType.None)
         {
             builder.Services.AddSingleton<IEmailService, NoneEmailService>(); // Add a dummy email service

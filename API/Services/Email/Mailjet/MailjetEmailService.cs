@@ -29,52 +29,72 @@ public sealed class MailjetEmailService : IEmailService, IDisposable
 
     #region Interface methods
 
-    public async Task ActivateAccount(Contact to, Uri activationLink, CancellationToken cancellationToken = default)
+    public async Task<EmailSendResult> ActivateAccount(Contact to, Uri activationLink, CancellationToken cancellationToken = default)
     {
         var (subject, htmlBody) = await _templates.AccountActivation.RenderAsync(new { To = to, ActivationLink = activationLink });
-        await SendMail(to, subject, htmlBody, cancellationToken);
+        return await SendMail(to, subject, htmlBody, cancellationToken);
     }
 
     /// <inheritdoc />
-    public async Task PasswordReset(Contact to, Uri resetLink, CancellationToken cancellationToken = default)
+    public async Task<EmailSendResult> PasswordReset(Contact to, Uri resetLink, CancellationToken cancellationToken = default)
     {
         var (subject, htmlBody) = await _templates.PasswordReset.RenderAsync(new { To = to, ResetLink = resetLink });
-        await SendMail(to, subject, htmlBody, cancellationToken);
+        return await SendMail(to, subject, htmlBody, cancellationToken);
     }
 
     /// <inheritdoc />
-    public async Task VerifyEmail(Contact to, Uri verificationLink, CancellationToken cancellationToken = default)
+    public async Task<EmailSendResult> VerifyEmail(Contact to, Uri verificationLink, CancellationToken cancellationToken = default)
     {
         var (subject, htmlBody) = await _templates.EmailVerification.RenderAsync(new { To = to, VerifyLink = verificationLink });
-        await SendMail(to, subject, htmlBody, cancellationToken);
+        return await SendMail(to, subject, htmlBody, cancellationToken);
     }
 
     /// <inheritdoc />
-    public async Task EmailChangeNotice(Contact to, string newEmail, CancellationToken cancellationToken = default)
+    public async Task<EmailSendResult> EmailChangeNotice(Contact to, string newEmail, CancellationToken cancellationToken = default)
     {
         var (subject, htmlBody) = await _templates.EmailChangeNotice.RenderAsync(new { To = to, NewEmail = newEmail });
-        await SendMail(to, subject, htmlBody, cancellationToken);
+        return await SendMail(to, subject, htmlBody, cancellationToken);
     }
 
     #endregion
 
-    private Task SendMail(Contact to, string subject, string htmlBody, CancellationToken cancellationToken = default)
+    private Task<EmailSendResult> SendMail(Contact to, string subject, string htmlBody, CancellationToken cancellationToken = default)
         => SendMails([new DirectMail { From = _sender, To = [to], Subject = subject, HTMLPart = htmlBody }], cancellationToken);
 
-    private async Task SendMails(DirectMail[] mails, CancellationToken cancellationToken = default)
+    private async Task<EmailSendResult> SendMails(DirectMail[] mails, CancellationToken cancellationToken = default)
     {
         if (_logger.IsEnabled(LogLevel.Debug)) _logger.LogDebug("Sending mails {@Mails}", mails);
 
         var json = JsonSerializer.Serialize(new MailsWrap { Messages = mails }, JsonOptions.Default);
 
-        var response = await _httpClient.PostAsync("send",
-            new StringContent(json, Encoding.UTF8, MediaTypeNames.Application.Json), cancellationToken);
-        if (!response.IsSuccessStatusCode)
+        HttpResponseMessage response;
+        try
         {
-            _logger.LogError("Error sending mails. Got unsuccessful status code {StatusCode} for mails {@Mails} with error body {Body}",
-                response.StatusCode, mails, await response.Content.ReadAsStringAsync(cancellationToken));
+            response = await _httpClient.PostAsync("send",
+                new StringContent(json, Encoding.UTF8, MediaTypeNames.Application.Json), cancellationToken);
         }
-        else _logger.LogDebug("Successfully sent mail");
+        catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException && !cancellationToken.IsCancellationRequested)
+        {
+            // Network failure or request timeout — worth retrying.
+            _logger.LogWarning(ex, "Transient failure sending mails {@Mails}", mails);
+            return EmailSendResult.TransientFailure;
+        }
+
+        if (response.IsSuccessStatusCode)
+        {
+            _logger.LogDebug("Successfully sent mail");
+            return EmailSendResult.Sent;
+        }
+
+        var statusCode = (int)response.StatusCode;
+        var body = await response.Content.ReadAsStringAsync(cancellationToken);
+        _logger.LogError("Error sending mails. Got unsuccessful status code {StatusCode} for mails {@Mails} with error body {Body}",
+            response.StatusCode, mails, body);
+
+        // 429 (rate limited) and 5xx (provider-side) are temporary; other 4xx are permanent.
+        return statusCode is 429 or >= 500 and <= 599
+            ? EmailSendResult.TransientFailure
+            : EmailSendResult.PermanentFailure;
     }
 
     public void Dispose()
