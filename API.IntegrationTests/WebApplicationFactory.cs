@@ -43,7 +43,7 @@ public class WebApplicationFactory : WebApplicationFactory<Program>, IAsyncIniti
     {
         _ = Server; // Boots the API host, which sets the shared OPENSHOCK__* environment variables.
         _cronHost = new CronHost();
-        _ = _cronHost.Services; // Boots the Cron host: outbox consumer + Hangfire delivery now run.
+        _ = _cronHost.Services; // Boots the Cron host: the outbox delivery job + notification listener run.
         return Task.CompletedTask;
     }
 
@@ -96,8 +96,9 @@ public class WebApplicationFactory : WebApplicationFactory<Program>, IAsyncIniti
 
             { "OPENSHOCK__REDIS__CONN", Redis.Container.GetConnectionString() },
 
-            // Tests only: make the Cron host's Hangfire workers pick up enqueued email jobs fast so
-            // delivery lands inside the Mailpit wait window. Production keeps Hangfire's 15s default.
+            // Tests only: make the Cron host's Hangfire workers pick up enqueued jobs fast. The Redis
+            // pending notification enqueues the email delivery job the instant a row is written, so this
+            // is what lands mail inside the Mailpit wait window. Production keeps Hangfire's 15s default.
             { "OPENSHOCK__HANGFIRE__QUEUEPOLLINTERVAL", "00:00:00.5" },
 
             { "OPENSHOCK__FRONTEND__BASEURL", "https://openshock.app" },

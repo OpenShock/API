@@ -27,7 +27,7 @@ public sealed class AccountService : IAccountService
     /// DI Constructor
     /// </summary>
     /// <param name="db"></param>
-    /// <param name="redisPubService">Used to notify the email outbox consumer that mail was enqueued.</param>
+    /// <param name="redisPubService">Used to notify the email outbox delivery job that mail was enqueued.</param>
     /// <param name="sessionService"></param>
     /// <param name="logger"></param>
     public AccountService(OpenShockContext db, IRedisPubService redisPubService,
@@ -41,16 +41,16 @@ public sealed class AccountService : IAccountService
 
     /// <summary>
     /// Seeds a random token hash for a freshly created request row. The plaintext is discarded
-    /// immediately: the email outbox consumer mints the real token (and overwrites this hash) when it
+    /// immediately: the email outbox delivery job mints the real token (and overwrites this hash) when it
     /// sends, so this value is never the one delivered. It exists only to keep the column populated.
     /// </summary>
     private static string SeedTokenHash()
         => HashingUtils.HashToken(CryptoUtils.RandomAlphaNumericString(AuthConstants.GeneratedTokenLength));
 
     /// <summary>
-    /// Best-effort nudge to the email outbox consumer that a message was enqueued. Deliberately
+    /// Best-effort nudge to the email outbox delivery job that a message was enqueued. Deliberately
     /// swallows failures: the outbox row is already committed, so a dropped notification only delays
-    /// delivery to the consumer's next poll, and a transient Redis hiccup must not fail a request
+    /// delivery to the next scheduled delivery sweep, and a transient Redis hiccup must not fail a request
     /// whose work already succeeded.
     /// </summary>
     private async Task NotifyEmailOutboxAsync()
@@ -61,7 +61,7 @@ public sealed class AccountService : IAccountService
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "Failed to notify the email outbox consumer; delivery will fall back to polling");
+            _logger.LogWarning(ex, "Failed to notify the email outbox delivery job; delivery will fall back to the scheduled sweep");
         }
     }
 
@@ -122,7 +122,7 @@ public sealed class AccountService : IAccountService
 
         var user = accountCreate.AsT0.Value;
 
-        // The real activation token is minted by the outbox consumer at send time; here we record the
+        // The real activation token is minted by the outbox delivery job at send time; here we record the
         // request (with a seeded hash) and durably enqueue the email.
         user.UserActivationRequest = new UserActivationRequest
         {
@@ -184,7 +184,7 @@ public sealed class AccountService : IAccountService
             await _db.SaveChangesAsync();
 
             // If email isn't trusted, create an activation request and durably enqueue the activation
-            // email. The token itself is minted by the outbox consumer at send time.
+            // email. The token itself is minted by the outbox delivery job at send time.
             if (!isEmailTrusted)
             {
                 user.UserActivationRequest = new UserActivationRequest
@@ -214,7 +214,7 @@ public sealed class AccountService : IAccountService
 
             await tx.CommitAsync();
 
-            // Notify the outbox consumer only after a successful commit.
+            // Notify the outbox delivery job only after a successful commit.
             if (!isEmailTrusted)
             {
                 await NotifyEmailOutboxAsync();
@@ -432,7 +432,7 @@ public sealed class AccountService : IAccountService
         if (user.IsDeactivated) return new AccountDeactivated();
         if (user.PasswordResetCount >= 3) return new TooManyPasswordResets();
 
-        // The reset token is minted lazily by the outbox consumer at send time (and re-minted on any
+        // The reset token is minted lazily by the outbox delivery job at send time (and re-minted on any
         // resend), so no usable reset link is ever stored. Here we only record the request and
         // durably enqueue the email.
         var passwordReset = new UserPasswordReset
@@ -596,7 +596,7 @@ public sealed class AccountService : IAccountService
         if (await _db.Users.AnyAsync(x => x.Email == lowerCaseEmail))
             return new EmailAlreadyInUse();
 
-        // The verification token is minted lazily by the outbox consumer at send time, so no usable
+        // The verification token is minted lazily by the outbox delivery job at send time, so no usable
         // verification link is ever stored.
         var emailChange = new UserEmailChange
         {
@@ -613,7 +613,7 @@ public sealed class AccountService : IAccountService
         // notice to the previous address so the legitimate owner sees the change request even if the
         // session/password used to start it was compromised. The outbox guarantees delivery with
         // retries; this replaces the previous best-effort inline sends. Committing the row even if
-        // mail later fails is intentional - the request is durable and the consumer keeps retrying.
+        // mail later fails is intentional - the request is durable and the delivery job keeps retrying.
         _db.EmailOutbox.Add(EmailOutboxMessage.Create(EmailType.EmailVerification, lowerCaseEmail, data.User.Name,
             new Dictionary<string, string> { [EmailOutboxPayloadKeys.EmailChangeId] = emailChange.Id.ToString() }));
         _db.EmailOutbox.Add(EmailOutboxMessage.Create(EmailType.EmailChangeNotice, data.User.Email, data.User.Name,

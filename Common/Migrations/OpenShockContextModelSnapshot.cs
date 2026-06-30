@@ -27,7 +27,7 @@ namespace OpenShock.Common.Migrations
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "configuration_value_type", new[] { "string", "bool", "int", "float", "json" });
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "control_limit_mode", new[] { "clamp", "lerp" });
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "control_type", new[] { "sound", "vibrate", "shock", "stop" });
-            NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "email_status", new[] { "pending", "queued", "sent", "failed" });
+            NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "email_status", new[] { "pending", "sending", "sent", "failed", "skipped" });
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "email_type", new[] { "account_activation", "password_reset", "email_verification", "email_change_notice" });
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "match_type_enum", new[] { "exact", "contains" });
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "ota_update_status", new[] { "started", "running", "finished", "error", "timeout" });
@@ -434,6 +434,12 @@ namespace OpenShock.Common.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("id");
 
+                    b.Property<int>("AttemptCount")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(0)
+                        .HasColumnName("attempt_count");
+
                     b.Property<DateTime>("CreatedAt")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("timestamp with time zone")
@@ -448,6 +454,12 @@ namespace OpenShock.Common.Migrations
                         .HasMaxLength(1024)
                         .HasColumnType("character varying(1024)")
                         .HasColumnName("last_error");
+
+                    b.Property<DateTime>("NextAttemptAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("next_attempt_at")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
 
                     b.Property<Dictionary<string, string>>("Payload")
                         .IsRequired()
@@ -477,12 +489,18 @@ namespace OpenShock.Common.Migrations
                         .HasColumnType("email_type")
                         .HasColumnName("type");
 
+                    b.Property<uint>("xmin")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
                     b.HasKey("Id")
                         .HasName("email_outbox_pkey");
 
                     b.HasIndex("Recipient");
 
-                    b.HasIndex("Status", "CreatedAt");
+                    b.HasIndex("Status", "NextAttemptAt");
 
                     b.ToTable("email_outbox", (string)null);
                 });

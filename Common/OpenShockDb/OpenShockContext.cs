@@ -160,7 +160,7 @@ public class OpenShockContext : DbContext, IDataProtectionKeyContext
             .HasPostgresEnum("match_type_enum", ["exact", "contains"])
             .HasPostgresEnum("configuration_value_type", ["string", "bool", "int", "float", "json"])
             .HasPostgresEnum("email_type", ["account_activation", "password_reset", "email_verification", "email_change_notice"])
-            .HasPostgresEnum("email_status", ["pending", "queued", "sent", "failed"])
+            .HasPostgresEnum("email_status", ["pending", "sending", "sent", "failed", "skipped"])
             .HasCollation("public", "ndcoll", "und-u-ks-level2", "icu", false); // Add case-insensitive, accent-sensitive comparison collation
 
         modelBuilder.Entity<ApiToken>(entity =>
@@ -888,9 +888,20 @@ public class OpenShockContext : DbContext, IDataProtectionKeyContext
 
             entity.ToTable("email_outbox");
 
-            // The consumer claims fresh (Pending) rows in FIFO order; (status, created_at) serves both
-            // the status filter and the ordering. Retry scheduling after hand-off is owned by Hangfire.
-            entity.HasIndex(e => new { e.Status, e.CreatedAt });
+            // Optimistic concurrency for the deferred delivery write: if a lapsed lease lets another run
+            // reclaim a Sending row mid-batch, the loser's UPDATE matches no row (xmin advanced) and
+            // throws DbUpdateConcurrencyException instead of clobbering attempt count / terminal state.
+            // Maps the Postgres xmin system column as a store-generated concurrency token (the manual
+            // form of the removed UseXminAsConcurrencyToken helper; no real column is created).
+            entity.Property<uint>("xmin")
+                .HasColumnName("xmin")
+                .HasColumnType("xid")
+                .ValueGeneratedOnAddOrUpdate()
+                .IsConcurrencyToken();
+
+            // The consumer claims due rows ordered by next_attempt_at; (status, next_attempt_at) serves
+            // both the status filter and the ordering for the FOR UPDATE SKIP LOCKED claim query.
+            entity.HasIndex(e => new { e.Status, e.NextAttemptAt });
             entity.HasIndex(e => e.Recipient);
 
             entity.Property(e => e.Id)
@@ -909,6 +920,12 @@ public class OpenShockContext : DbContext, IDataProtectionKeyContext
                 .HasColumnName("payload");
             entity.Property(e => e.Status)
                 .HasColumnName("status");
+            entity.Property(e => e.AttemptCount)
+                .HasDefaultValue(0)
+                .HasColumnName("attempt_count");
+            entity.Property(e => e.NextAttemptAt)
+                .HasDefaultValueSql("CURRENT_TIMESTAMP")
+                .HasColumnName("next_attempt_at");
             entity.Property(e => e.LastError)
                 .VarCharWithLength(HardLimits.EmailOutboxLastErrorMaxLength)
                 .HasColumnName("last_error");

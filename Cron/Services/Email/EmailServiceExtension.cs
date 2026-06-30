@@ -11,11 +11,12 @@ public static class EmailServiceExtension
     {
         var mailOptions = builder.Configuration.GetRequiredSection(MailOptions.SectionName).Get<MailOptions>() ?? throw new NullReferenceException();
 
-        // The outbox dispatcher + consumer drive all transactional email regardless of provider; even
-        // with mail disabled the consumer runs and the send job marks messages terminal (no-op provider).
+        // The outbox dispatcher delivers all transactional email regardless of provider; even with mail
+        // disabled the delivery job still runs and marks messages terminal (no-op provider). Delivery is
+        // driven through Hangfire (a recurring sweep job, auto-registered via [CronJob]; plus the
+        // notification listener that enqueues it on demand) - there is no background polling loop.
         builder.Services.AddSingleton<IEmailOutboxDispatcher, EmailOutboxDispatcher>();
-        builder.Services.AddScoped<EmailOutboxJob>();
-        builder.Services.AddHostedService<EmailOutboxConsumer>();
+        builder.Services.AddHostedService<EmailOutboxNotificationListener>();
 
         if (mailOptions.Type == MailOptions.MailType.None)
         {

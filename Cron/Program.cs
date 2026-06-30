@@ -32,9 +32,10 @@ builder.Services.AddHangfire(hangfire =>
         hangfireStorageOptions));
 builder.Services.AddHangfireServer();
 
-// Registers the email providers, the outbox dispatcher, the per-email Hangfire send job, and the
-// outbox consumer that hands pending rows off to Hangfire. The API host only writes outbox rows;
-// all sending happens here.
+// Registers the email providers, the outbox dispatcher, and the Redis notification listener. Delivery
+// is the EmailOutboxDeliveryJob, driven through Hangfire (recurring every-minute sweep auto-registered
+// via [CronJob], plus on-demand enqueue from the listener); all retry/lease/state lives on the
+// email_outbox row, not in Hangfire. The API host only writes outbox rows; all sending happens here.
 await builder.AddEmailService();
 
 builder.AddSwaggerExt<Program>();
