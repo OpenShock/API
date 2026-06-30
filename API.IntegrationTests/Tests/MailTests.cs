@@ -3,7 +3,10 @@ using System.Text.RegularExpressions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using OpenShock.API.IntegrationTests.Helpers;
+using OpenShock.Common.Constants;
+using OpenShock.Common.Models;
 using OpenShock.Common.OpenShockDb;
+using OpenShock.Common.Utils;
 
 namespace OpenShock.API.IntegrationTests.Tests;
 
@@ -363,7 +366,7 @@ public sealed partial class MailTests
     }
 
     [Test]
-    public async Task ChangeEmailFlow_SecondPendingRequest_InvalidatedAfterFirstCompletes()
+    public async Task ChangeEmailFlow_NewerRequest_SupersedesOlder_OnlyNewestVerificationDelivered()
     {
         var oldEmail = TestHelper.UniqueEmail("mail-chgemail-sibling-old");
         var firstNewEmail = TestHelper.UniqueEmail("mail-chgemail-sibling-first");
@@ -372,107 +375,124 @@ public sealed partial class MailTests
         const string password = "SecurePassword123#";
         using var mailpit = WebApplicationFactory.CreateMailpitHelper();
 
-        var user = await TestHelper.CreateAndLoginUser(WebApplicationFactory, username, oldEmail, password);
-        using var client = TestHelper.CreateAuthenticatedClient(WebApplicationFactory, user.SessionToken);
+        var userId = await TestHelper.CreateUserInDb(WebApplicationFactory, username, oldEmail, password);
 
-        // Initiate two concurrent email change requests
-        var firstInit = await client.PostAsync("/1/account/email-change", TestHelper.JsonContent(new
+        // Seed two pending email-change requests for the same user, sharing one coalesce key, committed
+        // together so both are pending before the delivery job runs. Newest-wins coalescing must deliver
+        // only the newer verification (to secondNewEmail) and skip the older (to firstNewEmail).
+        Guid olderOutboxId, newerOutboxId;
+        await using (var scope = WebApplicationFactory.Services.CreateAsyncScope())
         {
-            currentPassword = password,
-            email = firstNewEmail
-        }));
-        await Assert.That(firstInit.StatusCode).IsEqualTo(HttpStatusCode.OK);
+            var db = scope.ServiceProvider.GetRequiredService<OpenShockContext>();
+            var stamp = await db.Users.Where(u => u.Id == userId).Select(u => u.SecurityStamp).FirstAsync();
 
-        var secondInit = await client.PostAsync("/1/account/email-change", TestHelper.JsonContent(new
-        {
-            currentPassword = password,
-            email = secondNewEmail
-        }));
-        await Assert.That(secondInit.StatusCode).IsEqualTo(HttpStatusCode.OK);
+            var older = NewPendingEmailChange(userId, oldEmail, firstNewEmail, username, stamp);
+            var newer = NewPendingEmailChange(userId, oldEmail, secondNewEmail, username, stamp);
 
-        var firstMessage = await mailpit.WaitForMessageAsync(firstNewEmail);
-        var secondMessage = await mailpit.WaitForMessageAsync(secondNewEmail);
-        await Assert.That(firstMessage).IsNotNull();
-        await Assert.That(secondMessage).IsNotNull();
+            db.UserEmailChanges.AddRange(older.Change, newer.Change);
+            db.EmailOutbox.AddRange(older.Outbox, newer.Outbox);
+            await db.SaveChangesAsync();
 
-        var firstFull = await mailpit.GetMessageAsync(firstMessage!.Id);
-        var secondFull = await mailpit.GetMessageAsync(secondMessage!.Id);
-        var firstToken = ExtractQueryParam(firstFull!.Html, "token");
-        var secondToken = ExtractQueryParam(secondFull!.Html, "token");
-        await Assert.That(firstToken).IsNotNull().And.IsNotEmpty();
-        await Assert.That(secondToken).IsNotNull().And.IsNotEmpty();
+            olderOutboxId = older.Outbox.Id;
+            newerOutboxId = newer.Outbox.Id;
+        }
+
+        // Only the newest request's verification email is delivered; the older is skipped as superseded.
+        var message = await mailpit.WaitForMessageAsync(secondNewEmail);
+        await Assert.That(message).IsNotNull();
+
+        var newerOutbox = await WaitForOutboxStatusAsync(newerOutboxId, EmailStatus.Sent);
+        var olderOutbox = await WaitForOutboxStatusAsync(olderOutboxId, EmailStatus.Skipped);
+        await Assert.That(newerOutbox.Status).IsEqualTo(EmailStatus.Sent);
+        await Assert.That(olderOutbox.Status).IsEqualTo(EmailStatus.Skipped);
+
+        // The superseded request's address never receives anything.
+        var firstInbox = await mailpit.SearchByRecipientAsync(firstNewEmail);
+        await Assert.That(firstInbox.Count).IsEqualTo(0);
+
+        // The delivered (newer) verification completes, switching the email to secondNewEmail.
+        var full = await mailpit.GetMessageAsync(message!.Id);
+        var token = ExtractQueryParam(full!.Html, "token");
+        await Assert.That(token).IsNotNull().And.IsNotEmpty();
 
         using var anonClient = WebApplicationFactory.CreateClient();
+        var verify = await anonClient.PostAsync($"/1/account/email-change/verify?token={token}", null);
+        await Assert.That(verify.StatusCode).IsEqualTo(HttpStatusCode.OK);
 
-        // Complete the first request — email becomes firstNewEmail
-        var firstVerify = await anonClient.PostAsync($"/1/account/email-change/verify?token={firstToken}", null);
-        await Assert.That(firstVerify.StatusCode).IsEqualTo(HttpStatusCode.OK);
-
-        // Second pending request is now invalid: its SecurityStampAtCreate snapshot no longer matches User.SecurityStamp.
-        var secondVerify = await anonClient.PostAsync($"/1/account/email-change/verify?token={secondToken}", null);
-        await Assert.That(secondVerify.StatusCode).IsEqualTo(HttpStatusCode.BadRequest);
-
-        await using var scope = WebApplicationFactory.Services.CreateAsyncScope();
-        var db = scope.ServiceProvider.GetRequiredService<OpenShockContext>();
-        var afterUser = await db.Users.AsNoTracking().FirstAsync(u => u.Id == user.Id);
-        await Assert.That(afterUser.Email).IsEqualTo(firstNewEmail);
+        await using (var scope = WebApplicationFactory.Services.CreateAsyncScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<OpenShockContext>();
+            var afterUser = await db.Users.AsNoTracking().FirstAsync(u => u.Id == userId);
+            await Assert.That(afterUser.Email).IsEqualTo(secondNewEmail);
+        }
     }
 
     [Test]
-    public async Task PasswordResetFlow_SecondPendingResetInvalidatedAfterFirstCompletes()
+    public async Task PasswordResetFlow_NewerRequest_SupersedesOlder_OnlyNewestDelivered()
     {
         var email = TestHelper.UniqueEmail("mail-pwreset-sibling");
         var username = TestHelper.UniqueUsername("mailpwresetsibling");
-        const string firstNewPassword = "FirstNewPassword123#";
-        const string secondNewPassword = "SecondNewPassword456#";
+        const string newPassword = "FreshPassword123#";
         using var mailpit = WebApplicationFactory.CreateMailpitHelper();
 
-        await TestHelper.CreateUserInDb(WebApplicationFactory, username, email, "OldPassword123#");
+        var userId = await TestHelper.CreateUserInDb(WebApplicationFactory, username, email, "OldPassword123#");
+
+        // Seed two pending password-reset requests for the same user, sharing one coalesce key, committed
+        // together so both are pending before the delivery job runs. The older must be superseded.
+        Guid olderResetId, newerResetId, olderOutboxId, newerOutboxId;
+        await using (var scope = WebApplicationFactory.Services.CreateAsyncScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<OpenShockContext>();
+            var stamp = await db.Users.Where(u => u.Id == userId).Select(u => u.SecurityStamp).FirstAsync();
+
+            var older = NewPendingReset(userId, email, username, stamp);
+            var newer = NewPendingReset(userId, email, username, stamp);
+
+            db.UserPasswordResets.AddRange(older.Reset, newer.Reset);
+            db.EmailOutbox.AddRange(older.Outbox, newer.Outbox);
+            await db.SaveChangesAsync();
+
+            olderResetId = older.Reset.Id;
+            newerResetId = newer.Reset.Id;
+            olderOutboxId = older.Outbox.Id;
+            newerOutboxId = newer.Outbox.Id;
+        }
+
+        // Only the newest request's email is delivered; the older is skipped as superseded.
+        var message = await mailpit.WaitForMessageAsync(email);
+        await Assert.That(message).IsNotNull();
+
+        var newerOutbox = await WaitForOutboxStatusAsync(newerOutboxId, EmailStatus.Sent);
+        var olderOutbox = await WaitForOutboxStatusAsync(olderOutboxId, EmailStatus.Skipped);
+        await Assert.That(newerOutbox.Status).IsEqualTo(EmailStatus.Sent);
+        await Assert.That(olderOutbox.Status).IsEqualTo(EmailStatus.Skipped);
+
+        var delivered = await mailpit.SearchByRecipientAsync(email);
+        await Assert.That(delivered.Count).IsEqualTo(1);
+
+        // The delivered link belongs to the newer reset, and it completes.
+        var full = await mailpit.GetMessageAsync(message!.Id);
+        var (resetId, secret) = ExtractPasswordResetParams(full!.Html);
+        await Assert.That(resetId).IsEqualTo(newerResetId.ToString());
 
         using var client = WebApplicationFactory.CreateClient();
+        var complete = await client.PostAsync(
+            $"/1/account/password-reset/{resetId}/{secret}/complete",
+            TestHelper.JsonContent(new { password = newPassword }));
+        await Assert.That(complete.StatusCode).IsEqualTo(HttpStatusCode.OK);
 
-        // Fire two reset requests back-to-back, then wait for both emails to land.
-        var firstInit = await client.PostAsync("/2/account/password-reset", TestHelper.JsonContent(new { email, turnstileResponse = "valid-token" }));
-        await Assert.That(firstInit.StatusCode).IsEqualTo(HttpStatusCode.OK);
+        // Completing the surviving reset rotated the security stamp, so the superseded sibling is dead
+        // at redemption too (its SecurityStampAtCreate no longer matches) - not just undelivered.
+        var completeOlder = await client.PostAsync(
+            $"/1/account/password-reset/{olderResetId}/irrelevant-secret/complete",
+            TestHelper.JsonContent(new { password = "AnotherPassword789#" }));
+        await Assert.That(completeOlder.StatusCode).IsEqualTo(HttpStatusCode.NotFound);
 
-        var secondInit = await client.PostAsync("/2/account/password-reset", TestHelper.JsonContent(new { email, turnstileResponse = "valid-token" }));
-        await Assert.That(secondInit.StatusCode).IsEqualTo(HttpStatusCode.OK);
-
-        var messages = await mailpit.WaitForMessagesAsync(email, minCount: 2);
-        await Assert.That(messages.Count).IsGreaterThanOrEqualTo(2);
-
-        // We don't care which of the two emails came from which request — the scenario is just
-        // "two valid pending resets exist; completing either must invalidate the other". Pick the
-        // first two distinct reset-id/secret pairs we see and call them A and B.
-        var fullA = await mailpit.GetMessageAsync(messages[0].Id);
-        var fullB = await mailpit.GetMessageAsync(messages[1].Id);
-        var (resetIdA, secretA) = ExtractPasswordResetParams(fullA!.Html);
-        var (resetIdB, secretB) = ExtractPasswordResetParams(fullB!.Html);
-        await Assert.That(resetIdA).IsNotNull().And.IsNotEmpty();
-        await Assert.That(resetIdB).IsNotNull().And.IsNotEmpty();
-        await Assert.That(resetIdA).IsNotEqualTo(resetIdB);
-
-        // Complete reset A
-        var completeA = await client.PostAsync(
-            $"/1/account/password-reset/{resetIdA}/{secretA}/complete",
-            TestHelper.JsonContent(new { password = firstNewPassword }));
-        await Assert.That(completeA.StatusCode).IsEqualTo(HttpStatusCode.OK);
-
-        // Reset B (sibling) must no longer be usable
-        var checkB = await client.GetAsync(
-            $"/1/account/password-reset/{resetIdB}/{secretB}");
-        await Assert.That(checkB.StatusCode).IsEqualTo(HttpStatusCode.NotFound);
-
-        var completeB = await client.PostAsync(
-            $"/1/account/password-reset/{resetIdB}/{secretB}/complete",
-            TestHelper.JsonContent(new { password = secondNewPassword }));
-        await Assert.That(completeB.StatusCode).IsEqualTo(HttpStatusCode.NotFound);
-
-        // Password from the winning reset works
+        // The new password from the surviving reset works.
         var loginResponse = await client.PostAsync("/2/account/login", TestHelper.JsonContent(new
         {
             usernameOrEmail = email,
-            password = firstNewPassword,
+            password = newPassword,
             turnstileResponse = "valid-token"
         }));
         await Assert.That(loginResponse.StatusCode).IsEqualTo(HttpStatusCode.OK);
@@ -501,6 +521,66 @@ public sealed partial class MailTests
     }
 
     // --- Helpers ---
+
+    /// <summary>
+    /// Builds a pending <see cref="UserPasswordReset"/> and its matching outbox row (carrying
+    /// <paramref name="coalesceKey"/>), exactly as the API would, for direct DB seeding. Each call mints
+    /// fresh UUIDv7 ids, so calling it twice in order yields a strictly-older then strictly-newer pair.
+    /// </summary>
+    private static (UserPasswordReset Reset, EmailOutboxMessage Outbox) NewPendingReset(
+        Guid userId, string email, string? recipientName, Guid stamp)
+    {
+        var reset = new UserPasswordReset
+        {
+            Id = Guid.CreateVersion7(),
+            UserId = userId,
+            TokenHash = HashingUtils.HashToken(CryptoUtils.RandomAlphaNumericString(AuthConstants.GeneratedTokenLength)),
+            SecurityStampAtCreate = stamp,
+            CreatedAt = DateTime.UtcNow
+        };
+        var outbox = EmailOutboxMessage.ForPasswordReset(reset.Id, userId, email, recipientName);
+        return (reset, outbox);
+    }
+
+    /// <summary>
+    /// Builds a pending <see cref="UserEmailChange"/> and its matching verification outbox row (carrying
+    /// <paramref name="coalesceKey"/>) for direct DB seeding. Ordering mirrors <see cref="NewPendingReset"/>.
+    /// </summary>
+    private static (UserEmailChange Change, EmailOutboxMessage Outbox) NewPendingEmailChange(
+        Guid userId, string oldEmail, string newEmail, string? recipientName, Guid stamp)
+    {
+        var change = new UserEmailChange
+        {
+            Id = Guid.CreateVersion7(),
+            UserId = userId,
+            OldEmail = oldEmail,
+            NewEmail = newEmail,
+            TokenHash = HashingUtils.HashToken(CryptoUtils.RandomAlphaNumericString(AuthConstants.GeneratedTokenLength)),
+            SecurityStampAtCreate = stamp,
+            CreatedAt = DateTime.UtcNow
+        };
+        var outbox = EmailOutboxMessage.ForEmailVerification(change.Id, userId, newEmail, recipientName);
+        return (change, outbox);
+    }
+
+    /// <summary>
+    /// Polls the outbox row until it reaches <paramref name="status"/> or the timeout elapses, returning
+    /// the last-read row either way so the caller's assertion reports the actual state.
+    /// </summary>
+    private async Task<EmailOutboxMessage> WaitForOutboxStatusAsync(Guid outboxId, EmailStatus status, TimeSpan? timeout = null)
+    {
+        var deadline = DateTime.UtcNow + (timeout ?? TimeSpan.FromSeconds(15));
+        EmailOutboxMessage? row = null;
+        while (DateTime.UtcNow < deadline)
+        {
+            await using var scope = WebApplicationFactory.Services.CreateAsyncScope();
+            var db = scope.ServiceProvider.GetRequiredService<OpenShockContext>();
+            row = await db.EmailOutbox.AsNoTracking().FirstOrDefaultAsync(m => m.Id == outboxId);
+            if (row is not null && row.Status == status) return row;
+            await Task.Delay(200);
+        }
+        return row ?? throw new InvalidOperationException($"Outbox row {outboxId} not found");
+    }
 
     /// <summary>
     /// Extracts a query parameter value from a URL embedded in HTML (first &lt;a href&gt; containing the param).

@@ -440,6 +440,11 @@ namespace OpenShock.Common.Migrations
                         .HasDefaultValue(0)
                         .HasColumnName("attempt_count");
 
+                    b.Property<string>("CoalesceKey")
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)")
+                        .HasColumnName("coalesce_key");
+
                     b.Property<DateTime>("CreatedAt")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("timestamp with time zone")
@@ -497,6 +502,8 @@ namespace OpenShock.Common.Migrations
 
                     b.HasKey("Id")
                         .HasName("email_outbox_pkey");
+
+                    b.HasIndex("CoalesceKey");
 
                     b.HasIndex("Recipient");
 

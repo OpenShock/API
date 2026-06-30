@@ -143,6 +143,27 @@ public sealed class EmailOutboxDeliveryJob
 
         if (message.Status != EmailStatus.Sending) return;
 
+        // Newest-wins coalescing: if a strictly-newer row shares this row's coalesce key, this row is a
+        // stale duplicate (a superseded request, or a redrive of an old dead row after a newer one was
+        // already sent) - skip it instead of sending. The queue only compares the opaque key; what it
+        // means (and whether to set one at all) is the enqueueing domain's choice. A null key never
+        // coalesces. Rows are time-ordered by their UUIDv7 id, so "newest" is just the max id in the group.
+        if (message.CoalesceKey is not null)
+        {
+            var newestId = await _db.EmailOutbox
+                .Where(m => m.CoalesceKey == message.CoalesceKey)
+                .OrderByDescending(m => m.CreatedAt).ThenByDescending(m => m.Id)
+                .Select(m => m.Id)
+                .FirstAsync();
+
+            if (newestId != message.Id)
+            {
+                EmailOutboxStateMachine.ApplyResult(message, EmailDispatchResult.Skip("Superseded by a newer request"), DateTime.UtcNow);
+                await _db.SaveChangesAsync();
+                return;
+            }
+        }
+
         var result = await _dispatcher.SendAsync(message, _db);
 
         if (result.Outcome == EmailDispatchOutcome.TransientFailure && message.AttemptCount >= EmailOutboxRetryPolicy.MaxAttempts)

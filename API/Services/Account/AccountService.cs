@@ -130,8 +130,7 @@ public sealed class AccountService : IAccountService
             TokenHash = SeedTokenHash()
         };
 
-        _db.EmailOutbox.Add(EmailOutboxMessage.Create(EmailType.AccountActivation, email, username,
-            new Dictionary<string, string> { [EmailOutboxPayloadKeys.UserId] = user.Id.ToString() }));
+        _db.EmailOutbox.Add(EmailOutboxMessage.ForAccountActivation(user.Id, email, username));
 
         await _db.SaveChangesAsync();
         await NotifyEmailOutboxAsync();
@@ -194,8 +193,7 @@ public sealed class AccountService : IAccountService
                     CreatedAt = creationTime
                 };
 
-                _db.EmailOutbox.Add(EmailOutboxMessage.Create(EmailType.AccountActivation, email, username,
-                    new Dictionary<string, string> { [EmailOutboxPayloadKeys.UserId] = user.Id.ToString() }));
+                _db.EmailOutbox.Add(EmailOutboxMessage.ForAccountActivation(user.Id, email, username));
 
                 await _db.SaveChangesAsync();
             }
@@ -443,8 +441,7 @@ public sealed class AccountService : IAccountService
             SecurityStampAtCreate = user.User.SecurityStamp
         };
         _db.UserPasswordResets.Add(passwordReset);
-        _db.EmailOutbox.Add(EmailOutboxMessage.Create(EmailType.PasswordReset, user.User.Email, user.User.Name,
-            new Dictionary<string, string> { [EmailOutboxPayloadKeys.PasswordResetId] = passwordReset.Id.ToString() }));
+        _db.EmailOutbox.Add(EmailOutboxMessage.ForPasswordReset(passwordReset.Id, user.User.Id, user.User.Email, user.User.Name));
         await _db.SaveChangesAsync();
         await NotifyEmailOutboxAsync();
 
@@ -614,10 +611,8 @@ public sealed class AccountService : IAccountService
         // session/password used to start it was compromised. The outbox guarantees delivery with
         // retries; this replaces the previous best-effort inline sends. Committing the row even if
         // mail later fails is intentional - the request is durable and the delivery job keeps retrying.
-        _db.EmailOutbox.Add(EmailOutboxMessage.Create(EmailType.EmailVerification, lowerCaseEmail, data.User.Name,
-            new Dictionary<string, string> { [EmailOutboxPayloadKeys.EmailChangeId] = emailChange.Id.ToString() }));
-        _db.EmailOutbox.Add(EmailOutboxMessage.Create(EmailType.EmailChangeNotice, data.User.Email, data.User.Name,
-            new Dictionary<string, string> { [EmailOutboxPayloadKeys.NewEmail] = lowerCaseEmail }));
+        _db.EmailOutbox.Add(EmailOutboxMessage.ForEmailVerification(emailChange.Id, data.User.Id, lowerCaseEmail, data.User.Name));
+        _db.EmailOutbox.Add(EmailOutboxMessage.ForEmailChangeNotice(lowerCaseEmail, data.User.Email, data.User.Name));
 
         await _db.SaveChangesAsync();
         await NotifyEmailOutboxAsync();

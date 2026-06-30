@@ -35,6 +35,7 @@ public sealed class EmailOutboxPersistenceTests
                 message.Status = status;
                 message.AttemptCount = 3;
                 message.LastError = "boom";
+                message.CoalesceKey = "pwreset:round-trip";
                 db.EmailOutbox.Add(message);
                 await db.SaveChangesAsync();
                 id = message.Id;
@@ -46,6 +47,7 @@ public sealed class EmailOutboxPersistenceTests
             await Assert.That(loaded.Status).IsEqualTo(status);
             await Assert.That(loaded.AttemptCount).IsEqualTo(3);
             await Assert.That(loaded.LastError).IsEqualTo("boom");
+            await Assert.That(loaded.CoalesceKey).IsEqualTo("pwreset:round-trip");
         }
     }
 

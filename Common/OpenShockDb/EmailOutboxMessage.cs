@@ -73,6 +73,15 @@ public sealed class EmailOutboxMessage
     /// </summary>
     public required Dictionary<string, string> Payload { get; set; }
 
+    /// <summary>
+    /// Optional opaque coalescing key. When set, only the newest outbox row sharing this key is
+    /// actually delivered; older siblings are skipped as superseded (see the delivery job). The key is
+    /// stamped by the domain that enqueues the message (e.g. <c>pwreset:{userId}</c>) and is treated as
+    /// an opaque string by the queue - the delivery path never parses it. A <c>null</c> key means
+    /// "always deliver, never coalesce" (every row stands on its own).
+    /// </summary>
+    public string? CoalesceKey { get; set; }
+
     /// <summary>Delivery state. See <see cref="EmailStatus"/>.</summary>
     public EmailStatus Status { get; set; } = EmailStatus.Pending;
 
@@ -106,7 +115,12 @@ public sealed class EmailOutboxMessage
     /// Builds a new enqueued message in the <see cref="EmailStatus.Pending"/> state, due immediately.
     /// The caller adds it to the context and commits it together with the related business change.
     /// </summary>
-    public static EmailOutboxMessage Create(EmailType type, string recipient, string? recipientName, Dictionary<string, string> payload)
+    /// <param name="coalesceKey">
+    /// Optional opaque coalescing key (see <see cref="CoalesceKey"/>). Pass a stable per-intent key
+    /// (e.g. <c>pwreset:{userId}</c>) for "only the newest such request is delivered"; leave
+    /// <c>null</c> for "always deliver" types.
+    /// </param>
+    public static EmailOutboxMessage Create(EmailType type, string recipient, string? recipientName, Dictionary<string, string> payload, string? coalesceKey = null)
     {
         return new EmailOutboxMessage
         {
@@ -115,7 +129,35 @@ public sealed class EmailOutboxMessage
             Recipient = recipient,
             RecipientName = recipientName,
             Payload = payload,
+            CoalesceKey = coalesceKey,
             Status = EmailStatus.Pending
         };
     }
+
+    // Per-type builders: each one owns the (type, payload key, coalesce key) triple for its email so
+    // callers never repeat it - and so the three can never drift out of sync. Newest-wins types key on
+    // the user; the change notice is always-delivered and carries no key.
+
+    /// <summary>Account-activation email for <paramref name="userId"/>. Newest activation per user wins.</summary>
+    public static EmailOutboxMessage ForAccountActivation(Guid userId, string recipient, string? recipientName) =>
+        Create(EmailType.AccountActivation, recipient, recipientName,
+            new Dictionary<string, string> { [EmailOutboxPayloadKeys.UserId] = userId.ToString() },
+            EmailOutboxCoalesceKeys.AccountActivation(userId));
+
+    /// <summary>Password-reset email for reset <paramref name="passwordResetId"/>. Newest reset per user wins.</summary>
+    public static EmailOutboxMessage ForPasswordReset(Guid passwordResetId, Guid userId, string recipient, string? recipientName) =>
+        Create(EmailType.PasswordReset, recipient, recipientName,
+            new Dictionary<string, string> { [EmailOutboxPayloadKeys.PasswordResetId] = passwordResetId.ToString() },
+            EmailOutboxCoalesceKeys.PasswordReset(userId));
+
+    /// <summary>Email-change verification for change <paramref name="emailChangeId"/>. Newest change per user wins.</summary>
+    public static EmailOutboxMessage ForEmailVerification(Guid emailChangeId, Guid userId, string recipient, string? recipientName) =>
+        Create(EmailType.EmailVerification, recipient, recipientName,
+            new Dictionary<string, string> { [EmailOutboxPayloadKeys.EmailChangeId] = emailChangeId.ToString() },
+            EmailOutboxCoalesceKeys.EmailVerification(userId));
+
+    /// <summary>Informational notice to a previous address that the email is being changed. Always delivered (no coalescing).</summary>
+    public static EmailOutboxMessage ForEmailChangeNotice(string newEmail, string recipient, string? recipientName) =>
+        Create(EmailType.EmailChangeNotice, recipient, recipientName,
+            new Dictionary<string, string> { [EmailOutboxPayloadKeys.NewEmail] = newEmail });
 }

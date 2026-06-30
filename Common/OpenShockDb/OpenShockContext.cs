@@ -903,6 +903,9 @@ public class OpenShockContext : DbContext, IDataProtectionKeyContext
             // both the status filter and the ordering for the FOR UPDATE SKIP LOCKED claim query.
             entity.HasIndex(e => new { e.Status, e.NextAttemptAt });
             entity.HasIndex(e => e.Recipient);
+            // The delivery job resolves newest-wins coalescing by looking up siblings that share a
+            // coalesce key, so index it.
+            entity.HasIndex(e => e.CoalesceKey);
 
             entity.Property(e => e.Id)
                 .ValueGeneratedNever()
@@ -918,6 +921,9 @@ public class OpenShockContext : DbContext, IDataProtectionKeyContext
             entity.Property(e => e.Payload)
                 .HasColumnType("jsonb")
                 .HasColumnName("payload");
+            entity.Property(e => e.CoalesceKey)
+                .VarCharWithLength(HardLimits.EmailOutboxCoalesceKeyMaxLength)
+                .HasColumnName("coalesce_key");
             entity.Property(e => e.Status)
                 .HasColumnName("status");
             entity.Property(e => e.AttemptCount)

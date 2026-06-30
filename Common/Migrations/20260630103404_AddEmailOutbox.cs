@@ -46,6 +46,7 @@ namespace OpenShock.Common.Migrations
                     recipient = table.Column<string>(type: "character varying(320)", maxLength: 320, nullable: false),
                     recipient_name = table.Column<string>(type: "character varying(32)", maxLength: 32, nullable: true),
                     payload = table.Column<Dictionary<string, string>>(type: "jsonb", nullable: false),
+                    coalesce_key = table.Column<string>(type: "character varying(128)", maxLength: 128, nullable: true),
                     status = table.Column<EmailStatus>(type: "email_status", nullable: false),
                     attempt_count = table.Column<int>(type: "integer", nullable: false, defaultValue: 0),
                     next_attempt_at = table.Column<DateTime>(type: "timestamp with time zone", nullable: false, defaultValueSql: "CURRENT_TIMESTAMP"),
@@ -60,6 +61,11 @@ namespace OpenShock.Common.Migrations
                 {
                     table.PrimaryKey("email_outbox_pkey", x => x.id);
                 });
+
+            migrationBuilder.CreateIndex(
+                name: "IX_email_outbox_coalesce_key",
+                table: "email_outbox",
+                column: "coalesce_key");
 
             migrationBuilder.CreateIndex(
                 name: "IX_email_outbox_recipient",
