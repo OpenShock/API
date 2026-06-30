@@ -21,6 +21,14 @@ public interface IRedisPubService
     Task SendApiTokenUpdate(Guid tokenId);
 
     /// <summary>
+    /// Notifies the email outbox consumer that one or more messages were just enqueued, so it drains
+    /// them without waiting for its next safety-net poll. Best-effort: a lost notification only delays
+    /// delivery until the next poll, it cannot lose the email (the row is already durably committed).
+    /// </summary>
+    /// <returns></returns>
+    Task SendEmailOutboxPending();
+
+    /// <summary>
     /// Used when a device comes online or changes its connection details like, gateway, firmware version, etc.
     /// </summary>
     /// <param name="deviceId"></param>

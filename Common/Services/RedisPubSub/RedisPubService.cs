@@ -28,6 +28,12 @@ public sealed class RedisPubService : IRedisPubService
         return _subscriber.PublishAsync(RedisChannels.ApiTokenUpdate(tokenId), RedisValue.EmptyString);
     }
 
+    public Task SendEmailOutboxPending()
+    {
+        // Payload-less wake-up nudge; the consumer reads the actual rows from the database.
+        return _subscriber.PublishAsync(RedisChannels.EmailOutboxPending, RedisValue.EmptyString);
+    }
+
     public Task SendDeviceOnlineStatus(Guid deviceId, bool isOnline)
     {
         return Publish(RedisChannels.DeviceStatus, DeviceStatus.Create(deviceId, DeviceBoolStateType.Online, isOnline));

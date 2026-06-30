@@ -20,8 +20,10 @@ public sealed class UserPasswordReset
     public required Guid UserId { get; set; }
 
     /// <summary>
-    /// Hash of the secret token that was sent in the reset email. The plaintext token is never
-    /// stored — it only exists in the email link and in the request the user submits.
+    /// Hash of the secret token for the reset link. The plaintext token is never stored - it only
+    /// exists in the email link and in the request the user submits. Seeded when the request is
+    /// created and re-minted by the email outbox consumer on every (re)send, so the queue never
+    /// holds a usable reset link and a resend always supersedes earlier links. See <see cref="EmailOutboxMessage"/>.
     /// </summary>
     public required string TokenHash { get; set; }
 

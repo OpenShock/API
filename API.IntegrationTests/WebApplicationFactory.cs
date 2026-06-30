@@ -7,32 +7,23 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Http;
 using Microsoft.Extensions.Options;
 using OpenShock.API.IntegrationTests.Docker;
-using OpenShock.API.IntegrationTests.Helpers;
 using OpenShock.API.IntegrationTests.HttpMessageHandlers;
 using Serilog;
 using Serilog.Events;
-using TUnit.Core.Interfaces;
 
 namespace OpenShock.API.IntegrationTests;
 
-public class WebApplicationFactory : WebApplicationFactory<Program>, IAsyncInitializer
+// These tests exercise the API only. The API's job for transactional email is to write the
+// EmailOutboxMessage row (and its business row) atomically - it never sends mail. Delivery, token
+// minting, and newest-wins coalescing belong to the Cron host and are covered by Cron.IntegrationTests,
+// so this factory deliberately boots no Cron host, no SMTP server, and no delivery loop.
+public class WebApplicationFactory : WebApplicationFactory<Program>
 {
     [ClassDataSource<InMemoryDatabase>(Shared = SharedType.PerTestSession)]
     public required InMemoryDatabase PostgreSql { get; init; }
 
     [ClassDataSource<InMemoryRedis>(Shared = SharedType.PerTestSession)]
     public required InMemoryRedis Redis { get; init; }
-
-    [ClassDataSource<TestMailServer>(Shared = SharedType.PerTestSession)]
-    public required TestMailServer Mailpit { get; init; }
-
-    public MailpitHelper CreateMailpitHelper() => new(Mailpit.ApiBaseUrl);
-
-    public Task InitializeAsync()
-    {
-        _ = Server;
-        return Task.CompletedTask;
-    }
 
     protected override void ConfigureClient(HttpClient client)
     {
@@ -68,14 +59,6 @@ public class WebApplicationFactory : WebApplicationFactory<Program>, IAsyncIniti
             { "OPENSHOCK__FRONTEND__BASEURL", "https://openshock.app" },
             { "OPENSHOCK__FRONTEND__SHORTURL", "https://openshock.app" },
             { "OPENSHOCK__FRONTEND__COOKIEDOMAIN", "openshock.app,localhost" },
-
-            { "OPENSHOCK__MAIL__TYPE", "SMTP" },
-            { "OPENSHOCK__MAIL__SENDER__EMAIL", "system@openshock.org" },
-            { "OPENSHOCK__MAIL__SENDER__NAME", "OpenShock" },
-            { "OPENSHOCK__MAIL__SMTP__HOST", Mailpit.SmtpHost },
-            { "OPENSHOCK__MAIL__SMTP__PORT", Mailpit.SmtpPort.ToString() },
-            { "OPENSHOCK__MAIL__SMTP__ENABLESSL", "false" },
-            { "OPENSHOCK__MAIL__SMTP__VERIFYCERTIFICATE", "false" },
 
             { "OPENSHOCK__TURNSTILE__ENABLED", "true" },
             { "OPENSHOCK__TURNSTILE__SECRETKEY", "turnstile-secret-key" },

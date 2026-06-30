@@ -11,15 +11,6 @@ namespace OpenShock.API.Services.Account;
 public interface IAccountService
 {
     /// <summary>
-    /// Creates an account 
-    /// </summary>
-    /// <param name="email"></param>
-    /// <param name="username"></param>
-    /// <param name="password"></param>
-    /// <returns></returns>
-    public Task<OneOf<Success<User>, AccountWithEmailOrUsernameExists>> CreateAccountWithoutActivationFlowLegacyAsync(string email, string username, string password);
-    
-    /// <summary>
     /// When a user uses the signup form, this also initiates an account activation flow
     /// </summary>
     /// <param name="email"></param>

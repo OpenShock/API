@@ -1,8 +1,22 @@
 # OpenShock API
 
-[![Coverage](https://openshock.github.io/API/coverage/badge_linecoverage.svg)](https://openshock.github.io/API/coverage/)
+[![Documentation](https://img.shields.io/badge/docs-mkdocs-blue.svg)](https://openshock.org)
+[![GitHub license](https://img.shields.io/github/license/openshock/frontend.svg)](https://raw.githubusercontent.com/openshock/frontend/master/LICENSE)
+[![GitHub Sponsors](https://img.shields.io/badge/GitHub-Sponsors-ff69b4)](https://github.com/sponsors/openshock)
+[![Discord](https://img.shields.io/discord/1078124408775901204)](https://discord.gg/openshock)
 
-OpenShock backend
+<table>
+  <tr>
+    <td>master</td>
+    <td><a href="https://github.com/OpenShock/API/actions/workflows/ci-build.yml"><img src="https://github.com/OpenShock/API/actions/workflows/ci-build.yml/badge.svg?branch=master" alt="Build Status" /></a></td>
+    <td><a href="https://github.com/OpenShock/API/actions/workflows/codeql.yml"><img src="https://github.com/OpenShock/API/actions/workflows/codeql.yml/badge.svg?branch=master" alt="CodeQL Status" /></a></td>
+  </tr>
+  <tr>
+    <td>develop</td>
+    <td><a href="https://github.com/OpenShock/API/actions/workflows/ci-build.yml"><img src="https://github.com/OpenShock/API/actions/workflows/ci-build.yml/badge.svg?branch=develop" alt="Build Status" /></a></td>
+    <td><a href="https://github.com/OpenShock/API/actions/workflows/codeql.yml"><img src="https://github.com/OpenShock/API/actions/workflows/codeql.yml/badge.svg?branch=develop" alt="CodeQL Status" /></a></td>
+  </tr>
+</table>
 
 ### API Documentation 
 You can access our Open API Doc here:
