@@ -54,8 +54,6 @@ namespace OpenShock.Common.Migrations
                     created_at = table.Column<DateTime>(type: "timestamp with time zone", nullable: false, defaultValueSql: "CURRENT_TIMESTAMP"),
                     sent_at = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
                     failed_at = table.Column<DateTime>(type: "timestamp with time zone", nullable: true)
-                    // xmin is the Postgres system column (mapped as the concurrency token in the model);
-                    // it is not a real user column, so it must not be created here.
                 },
                 constraints: table =>
                 {

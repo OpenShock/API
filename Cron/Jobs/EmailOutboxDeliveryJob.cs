@@ -14,9 +14,10 @@ namespace OpenShock.Cron.Jobs;
 /// fresh mail goes out without waiting for the next minute.
 /// </summary>
 /// <remarks>
-/// Concurrent runs are safe: a row is claimed with FOR UPDATE SKIP LOCKED and leased (Sending), and the
-/// terminal write uses an optimistic-concurrency token (xmin), so if a lapsed lease lets another run
-/// reclaim a row mid-batch the loser's write fails with <see cref="DbUpdateConcurrencyException"/>
+/// Concurrent runs are safe: a row is claimed with FOR UPDATE SKIP LOCKED and leased (Sending) with an
+/// incremented attempt_count, which acts as the lease's fencing token. The terminal write is guarded by
+/// it (mapped as a concurrency token), so if a lapsed lease lets another run reclaim a row mid-batch
+/// (bumping attempt_count) the loser's write fails with <see cref="DbUpdateConcurrencyException"/>
 /// instead of clobbering it. Each message is delivered in isolation (its own reload + change-tracker
 /// reset and its own try/catch), so one failure never aborts the rest of the batch, and the whole
 /// backlog is drained batch by batch rather than 50 per run.

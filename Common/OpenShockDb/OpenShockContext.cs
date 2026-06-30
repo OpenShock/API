@@ -888,17 +888,6 @@ public class OpenShockContext : DbContext, IDataProtectionKeyContext
 
             entity.ToTable("email_outbox");
 
-            // Optimistic concurrency for the deferred delivery write: if a lapsed lease lets another run
-            // reclaim a Sending row mid-batch, the loser's UPDATE matches no row (xmin advanced) and
-            // throws DbUpdateConcurrencyException instead of clobbering attempt count / terminal state.
-            // Maps the Postgres xmin system column as a store-generated concurrency token (the manual
-            // form of the removed UseXminAsConcurrencyToken helper; no real column is created).
-            entity.Property<uint>("xmin")
-                .HasColumnName("xmin")
-                .HasColumnType("xid")
-                .ValueGeneratedOnAddOrUpdate()
-                .IsConcurrencyToken();
-
             // The consumer claims due rows ordered by next_attempt_at; (status, next_attempt_at) serves
             // both the status filter and the ordering for the FOR UPDATE SKIP LOCKED claim query.
             entity.HasIndex(e => new { e.Status, e.NextAttemptAt });
@@ -926,8 +915,14 @@ public class OpenShockContext : DbContext, IDataProtectionKeyContext
                 .HasColumnName("coalesce_key");
             entity.Property(e => e.Status)
                 .HasColumnName("status");
+            // attempt_count doubles as the delivery lease's fencing token: every claim increments it, and
+            // the deferred terminal write is guarded by it (IsConcurrencyToken). If a lapsed lease lets
+            // another run reclaim a Sending row mid-batch (bumping attempt_count), the original run's
+            // UPDATE matches no row and throws DbUpdateConcurrencyException instead of clobbering the
+            // reclaimer's claim / terminal state.
             entity.Property(e => e.AttemptCount)
                 .HasDefaultValue(0)
+                .IsConcurrencyToken()
                 .HasColumnName("attempt_count");
             entity.Property(e => e.NextAttemptAt)
                 .HasDefaultValueSql("CURRENT_TIMESTAMP")

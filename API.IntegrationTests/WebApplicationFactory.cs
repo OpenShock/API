@@ -41,7 +41,8 @@ public class WebApplicationFactory : WebApplicationFactory<Program>, IAsyncIniti
     // on-demand enqueue from the Redis "pending" nudge. WebApplicationFactory stops the Cron host at
     // Build(), so that post-build recurring registration never runs here and a per-minute sweep would be
     // far too coarse for the Mailpit wait window anyway. To keep delivery deterministic we run the very
-    // same job directly on a fast loop; it is built to run concurrently (FOR UPDATE SKIP LOCKED + xmin),
+    // same job directly on a fast loop; it is built to run concurrently (FOR UPDATE SKIP LOCKED + an
+    // attempt_count fencing token),
     // so it composes safely with the still-live notification listener.
     private CancellationTokenSource? _deliveryPumpCts;
     private Task? _deliveryPump;

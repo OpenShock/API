@@ -15,7 +15,7 @@ using OpenShock.Common.OpenShockDb;
 namespace OpenShock.Common.Migrations
 {
     [DbContext(typeof(MigrationOpenShockContext))]
-    [Migration("20260630103404_AddEmailOutbox")]
+    [Migration("20260630210423_AddEmailOutbox")]
     partial class AddEmailOutbox
     {
         /// <inheritdoc />
@@ -438,6 +438,7 @@ namespace OpenShock.Common.Migrations
                         .HasColumnName("id");
 
                     b.Property<int>("AttemptCount")
+                        .IsConcurrencyToken()
                         .ValueGeneratedOnAdd()
                         .HasColumnType("integer")
                         .HasDefaultValue(0)
@@ -496,12 +497,6 @@ namespace OpenShock.Common.Migrations
                     b.Property<EmailType>("Type")
                         .HasColumnType("email_type")
                         .HasColumnName("type");
-
-                    b.Property<uint>("xmin")
-                        .IsConcurrencyToken()
-                        .ValueGeneratedOnAddOrUpdate()
-                        .HasColumnType("xid")
-                        .HasColumnName("xmin");
 
                     b.HasKey("Id")
                         .HasName("email_outbox_pkey");
