@@ -14,6 +14,7 @@ using OpenShock.API.IntegrationTests.HttpMessageHandlers;
 using Serilog;
 using Serilog.Events;
 using TUnit.Core.Interfaces;
+using EmailOutboxDeliveryJob = cronhost::OpenShock.Cron.Jobs.EmailOutboxDeliveryJob;
 
 namespace OpenShock.API.IntegrationTests;
 
@@ -35,6 +36,16 @@ public class WebApplicationFactory : WebApplicationFactory<Program>, IAsyncIniti
     // it sees the same outbox rows the API writes.
     private CronHost? _cronHost;
 
+    // Drives the email-outbox delivery job in the test host. In production the job runs on a recurring
+    // every-minute Hangfire sweep (registered in Cron/Program.cs *after* WebApplication.Build()) plus an
+    // on-demand enqueue from the Redis "pending" nudge. WebApplicationFactory stops the Cron host at
+    // Build(), so that post-build recurring registration never runs here and a per-minute sweep would be
+    // far too coarse for the Mailpit wait window anyway. To keep delivery deterministic we run the very
+    // same job directly on a fast loop; it is built to run concurrently (FOR UPDATE SKIP LOCKED + xmin),
+    // so it composes safely with the still-live notification listener.
+    private CancellationTokenSource? _deliveryPumpCts;
+    private Task? _deliveryPump;
+
     /// <summary>Service provider of the in-process Cron host (email dispatcher, outbox job, etc.).</summary>
     public IServiceProvider CronServices => _cronHost?.Services
         ?? throw new InvalidOperationException("Cron host not initialized");
@@ -44,12 +55,59 @@ public class WebApplicationFactory : WebApplicationFactory<Program>, IAsyncIniti
         _ = Server; // Boots the API host, which sets the shared OPENSHOCK__* environment variables.
         _cronHost = new CronHost();
         _ = _cronHost.Services; // Boots the Cron host: the outbox delivery job + notification listener run.
+        StartOutboxDeliveryPump(_cronHost.Services);
         return Task.CompletedTask;
+    }
+
+    private void StartOutboxDeliveryPump(IServiceProvider cronServices)
+    {
+        _deliveryPumpCts = new CancellationTokenSource();
+        var cancellationToken = _deliveryPumpCts.Token;
+
+        _deliveryPump = Task.Run(async () =>
+        {
+            while (!cancellationToken.IsCancellationRequested)
+            {
+                try
+                {
+                    await using var scope = cronServices.CreateAsyncScope();
+                    var job = ActivatorUtilities.CreateInstance<EmailOutboxDeliveryJob>(scope.ServiceProvider);
+                    await job.Execute();
+                }
+                catch
+                {
+                    // Best effort: a transient hiccup (e.g. a row reclaimed by the live notification
+                    // listener mid-batch) is simply picked up again on the next tick.
+                }
+
+                try
+                {
+                    await Task.Delay(TimeSpan.FromMilliseconds(250), cancellationToken);
+                }
+                catch (OperationCanceledException)
+                {
+                    return;
+                }
+            }
+        }, cancellationToken);
     }
 
     protected override void Dispose(bool disposing)
     {
-        if (disposing) _cronHost?.Dispose();
+        if (disposing)
+        {
+            _deliveryPumpCts?.Cancel();
+            try
+            {
+                _deliveryPump?.GetAwaiter().GetResult();
+            }
+            catch (OperationCanceledException)
+            {
+                // Expected when the pump is cancelled on shutdown.
+            }
+            _deliveryPumpCts?.Dispose();
+            _cronHost?.Dispose();
+        }
         base.Dispose(disposing);
     }
 
