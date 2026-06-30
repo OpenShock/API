@@ -147,7 +147,7 @@ public sealed class EmailOutboxDispatcher : IEmailOutboxDispatcher
 
     private static bool TryGetGuid(EmailOutboxMessage message, string key, out Guid value)
     {
-        value = default;
+        value = Guid.Empty;
         return message.Payload.TryGetValue(key, out var raw) && Guid.TryParse(raw, out value);
     }
 
