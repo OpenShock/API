@@ -63,6 +63,10 @@ public class OpenShockContext : DbContext, IDataProtectionKeyContext
     {
         optionsBuilder.UseNpgsql(connectionString, npgsqlBuilder =>
         {
+            // Required so Npgsql can serialize the email outbox's Dictionary<string,string> payload
+            // to its jsonb column. Without dynamic JSON, Npgsql maps Dictionary<string,string> to
+            // hstore by default and writing it to a jsonb column fails at runtime.
+            npgsqlBuilder.ConfigureDataSource(dataSourceBuilder => dataSourceBuilder.EnableDynamicJson());
             npgsqlBuilder.MapEnum<RoleType>();
             npgsqlBuilder.MapEnum<ControlType>();
             npgsqlBuilder.MapEnum<ControlLimitMode>();
@@ -71,6 +75,8 @@ public class OpenShockContext : DbContext, IDataProtectionKeyContext
             npgsqlBuilder.MapEnum<OtaUpdateStatus>();
             npgsqlBuilder.MapEnum<MatchTypeEnum>();
             npgsqlBuilder.MapEnum<ConfigurationValueType>();
+            npgsqlBuilder.MapEnum<EmailType>();
+            npgsqlBuilder.MapEnum<EmailStatus>();
         });
 
         if (debug)
@@ -127,6 +133,8 @@ public class OpenShockContext : DbContext, IDataProtectionKeyContext
     public DbSet<UserNameBlacklist> UserNameBlacklists { get; set; }
 
     public DbSet<EmailProviderBlacklist> EmailProviderBlacklists { get; set; }
+
+    public DbSet<EmailOutboxMessage> EmailOutbox { get; set; }
     
     public DbSet<DataProtectionKey> DataProtectionKeys { get; set; }
 
@@ -151,6 +159,8 @@ public class OpenShockContext : DbContext, IDataProtectionKeyContext
             .HasPostgresEnum("shocker_model_type", ["caiXianlin", "petTrainer", "petrainer998DR", "wellturnT330"])
             .HasPostgresEnum("match_type_enum", ["exact", "contains"])
             .HasPostgresEnum("configuration_value_type", ["string", "bool", "int", "float", "json"])
+            .HasPostgresEnum("email_type", ["account_activation", "password_reset", "email_verification", "email_change_notice"])
+            .HasPostgresEnum("email_status", ["pending", "sending", "sent", "failed", "skipped"])
             .HasCollation("public", "ndcoll", "und-u-ks-level2", "icu", false); // Add case-insensitive, accent-sensitive comparison collation
 
         modelBuilder.Entity<ApiToken>(entity =>
@@ -870,6 +880,63 @@ public class OpenShockContext : DbContext, IDataProtectionKeyContext
             entity.Property(e => e.CreatedAt)
                 .HasDefaultValueSql("CURRENT_TIMESTAMP")
                 .HasColumnName("created_at");
+        });
+
+        modelBuilder.Entity<EmailOutboxMessage>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("email_outbox_pkey");
+
+            entity.ToTable("email_outbox");
+
+            // The consumer claims due rows ordered by next_attempt_at; (status, next_attempt_at) serves
+            // both the status filter and the ordering for the FOR UPDATE SKIP LOCKED claim query.
+            entity.HasIndex(e => new { e.Status, e.NextAttemptAt });
+            entity.HasIndex(e => e.Recipient);
+            // The delivery job resolves newest-wins coalescing by looking up siblings that share a
+            // coalesce key, so index it.
+            entity.HasIndex(e => e.CoalesceKey);
+
+            entity.Property(e => e.Id)
+                .ValueGeneratedNever()
+                .HasColumnName("id");
+            entity.Property(e => e.Type)
+                .HasColumnName("type");
+            entity.Property(e => e.Recipient)
+                .VarCharWithLength(HardLimits.EmailAddressMaxLength)
+                .HasColumnName("recipient");
+            entity.Property(e => e.RecipientName)
+                .VarCharWithLength(HardLimits.UsernameMaxLength)
+                .HasColumnName("recipient_name");
+            entity.Property(e => e.Payload)
+                .HasColumnType("jsonb")
+                .HasColumnName("payload");
+            entity.Property(e => e.CoalesceKey)
+                .VarCharWithLength(HardLimits.EmailOutboxCoalesceKeyMaxLength)
+                .HasColumnName("coalesce_key");
+            entity.Property(e => e.Status)
+                .HasColumnName("status");
+            // attempt_count doubles as the delivery lease's fencing token: every claim increments it, and
+            // the deferred terminal write is guarded by it (IsConcurrencyToken). If a lapsed lease lets
+            // another run reclaim a Sending row mid-batch (bumping attempt_count), the original run's
+            // UPDATE matches no row and throws DbUpdateConcurrencyException instead of clobbering the
+            // reclaimer's claim / terminal state.
+            entity.Property(e => e.AttemptCount)
+                .HasDefaultValue(0)
+                .IsConcurrencyToken()
+                .HasColumnName("attempt_count");
+            entity.Property(e => e.NextAttemptAt)
+                .HasDefaultValueSql("CURRENT_TIMESTAMP")
+                .HasColumnName("next_attempt_at");
+            entity.Property(e => e.LastError)
+                .VarCharWithLength(HardLimits.EmailOutboxLastErrorMaxLength)
+                .HasColumnName("last_error");
+            entity.Property(e => e.CreatedAt)
+                .HasDefaultValueSql("CURRENT_TIMESTAMP")
+                .HasColumnName("created_at");
+            entity.Property(e => e.SentAt)
+                .HasColumnName("sent_at");
+            entity.Property(e => e.FailedAt)
+                .HasColumnName("failed_at");
         });
 
         modelBuilder.Entity<AdminUsersView>(entity =>

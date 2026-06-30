@@ -1,0 +1,37 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <ProjectReference Include="..\Cron\Cron.csproj" />
+    <ProjectReference Include="..\Common\Common.csproj" />
+  </ItemGroup>
+
+  <!-- Props -->
+  <PropertyGroup>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <!-- NuGet packages -->
+  <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" />
+    <PackageReference Include="Testcontainers.PostgreSql" />
+    <PackageReference Include="Testcontainers.Redis" />
+    <PackageReference Include="TUnit" />
+    <PackageReference Include="Microsoft.Testing.Extensions.CodeCoverage" />
+  </ItemGroup>
+
+  <!-- The dispatcher loads these Liquid templates by relative path; copy them next to the test
+       binaries so they resolve against the test working directory. -->
+  <ItemGroup>
+    <Content Include="..\Cron\SmtpTemplates\*.liquid" Link="SmtpTemplates\%(Filename)%(Extension)">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
+
+  <!-- Git stuff -->
+  <Target Name="SetHash" AfterTargets="InitializeSourceControlInformation">
+    <ItemGroup>
+      <AssemblyAttribute Include="OpenShock.Common.Utils.GitHashAttribute">
+        <_Parameter1>$(SourceRevisionId)</_Parameter1>
+      </AssemblyAttribute>
+    </ItemGroup>
+  </Target>
+</Project>
