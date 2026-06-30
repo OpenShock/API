@@ -83,14 +83,16 @@ public sealed class SmtpEmailService : IEmailService
             // A 5xx reply (e.g. mailbox unavailable, message rejected) won't be fixed by retrying;
             // 4xx replies are temporary.
             var permanent = (int)ex.StatusCode is >= 500 and <= 599;
-            _logger.LogError(ex, "SMTP command failed with status {StatusCode} sending to {Recipient}", ex.StatusCode, to.Email);
+            // Don't log the recipient address - the outbox row (keyed by message id) already records it.
+            _logger.LogError(ex, "SMTP command failed with status {StatusCode}", ex.StatusCode);
             return permanent ? EmailSendResult.PermanentFailure : EmailSendResult.TransientFailure;
         }
         catch (Exception ex)
         {
             // Connection, TLS, auth, protocol and timeout failures are all treated as temporary; the
             // retry budget bounds how long a genuinely broken configuration keeps being attempted.
-            _logger.LogError(ex, "Transient SMTP failure sending to {Recipient}", to.Email);
+            // Don't log the recipient address - the outbox row (keyed by message id) already records it.
+            _logger.LogError(ex, "Transient SMTP failure while sending email");
             return EmailSendResult.TransientFailure;
         }
     }
