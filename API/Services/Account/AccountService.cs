@@ -41,11 +41,29 @@ public sealed class AccountService : IAccountService
 
     /// <summary>
     /// Seeds a random token hash for a freshly created request row. The plaintext is discarded
-    /// immediately — the email outbox consumer mints the real token (and overwrites this hash) when it
+    /// immediately: the email outbox consumer mints the real token (and overwrites this hash) when it
     /// sends, so this value is never the one delivered. It exists only to keep the column populated.
     /// </summary>
     private static string SeedTokenHash()
         => HashingUtils.HashToken(CryptoUtils.RandomAlphaNumericString(AuthConstants.GeneratedTokenLength));
+
+    /// <summary>
+    /// Best-effort nudge to the email outbox consumer that a message was enqueued. Deliberately
+    /// swallows failures: the outbox row is already committed, so a dropped notification only delays
+    /// delivery to the consumer's next poll, and a transient Redis hiccup must not fail a request
+    /// whose work already succeeded.
+    /// </summary>
+    private async Task NotifyEmailOutboxAsync()
+    {
+        try
+        {
+            await _redisPubService.SendEmailOutboxPending();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to notify the email outbox consumer; delivery will fall back to polling");
+        }
+    }
 
     private async Task<bool> IsUserNameBlacklisted(string username)
     {
@@ -116,7 +134,7 @@ public sealed class AccountService : IAccountService
             new Dictionary<string, string> { [EmailOutboxPayloadKeys.UserId] = user.Id.ToString() }));
 
         await _db.SaveChangesAsync();
-        await _redisPubService.SendEmailOutboxPending();
+        await NotifyEmailOutboxAsync();
 
         return new Success<User>(user);
     }
@@ -199,7 +217,7 @@ public sealed class AccountService : IAccountService
             // Notify the outbox consumer only after a successful commit.
             if (!isEmailTrusted)
             {
-                await _redisPubService.SendEmailOutboxPending();
+                await NotifyEmailOutboxAsync();
             }
 
             return new Success<User>(user);
@@ -428,7 +446,7 @@ public sealed class AccountService : IAccountService
         _db.EmailOutbox.Add(EmailOutboxMessage.Create(EmailType.PasswordReset, user.User.Email, user.User.Name,
             new Dictionary<string, string> { [EmailOutboxPayloadKeys.PasswordResetId] = passwordReset.Id.ToString() }));
         await _db.SaveChangesAsync();
-        await _redisPubService.SendEmailOutboxPending();
+        await NotifyEmailOutboxAsync();
 
         return new Success();
     }
@@ -595,14 +613,14 @@ public sealed class AccountService : IAccountService
         // notice to the previous address so the legitimate owner sees the change request even if the
         // session/password used to start it was compromised. The outbox guarantees delivery with
         // retries; this replaces the previous best-effort inline sends. Committing the row even if
-        // mail later fails is intentional — the request is durable and the consumer keeps retrying.
+        // mail later fails is intentional - the request is durable and the consumer keeps retrying.
         _db.EmailOutbox.Add(EmailOutboxMessage.Create(EmailType.EmailVerification, lowerCaseEmail, data.User.Name,
             new Dictionary<string, string> { [EmailOutboxPayloadKeys.EmailChangeId] = emailChange.Id.ToString() }));
         _db.EmailOutbox.Add(EmailOutboxMessage.Create(EmailType.EmailChangeNotice, data.User.Email, data.User.Name,
             new Dictionary<string, string> { [EmailOutboxPayloadKeys.NewEmail] = lowerCaseEmail }));
 
         await _db.SaveChangesAsync();
-        await _redisPubService.SendEmailOutboxPending();
+        await NotifyEmailOutboxAsync();
 
         return new Success();
     }

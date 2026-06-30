@@ -33,7 +33,7 @@ public sealed class UserEmailChange
     public required string NewEmail { get; set; }
 
     /// <summary>
-    /// Hash of the secret token sent to <see cref="NewEmail"/>. The plaintext token is never stored —
+    /// Hash of the secret token sent to <see cref="NewEmail"/>. The plaintext token is never stored -
     /// it only exists in the verification email and in the request the user submits. Seeded when the
     /// request is created and re-minted by the email outbox consumer on every (re)send, so the queue
     /// never holds a usable verification link. See <see cref="EmailOutboxMessage"/>.

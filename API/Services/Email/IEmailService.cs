@@ -6,7 +6,7 @@ namespace OpenShock.API.Services.Email;
 /// Low-level email provider abstraction: renders a template and hands the message to the provider.
 /// Implementations return an <see cref="EmailSendResult"/> instead of throwing, so the email outbox
 /// consumer (the only caller) can classify failures and decide whether to retry. Callers must not
-/// invoke this directly to send transactional mail — enqueue an
+/// invoke this directly to send transactional mail - enqueue an
 /// <see cref="OpenShock.Common.OpenShockDb.EmailOutboxMessage"/> instead so the send is durable.
 /// </summary>
 public interface IEmailService

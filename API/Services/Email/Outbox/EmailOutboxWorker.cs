@@ -19,7 +19,7 @@ namespace OpenShock.API.Services.Email.Outbox;
 /// (<see cref="Duration.EmailOutboxPollInterval"/>) still runs as a fallback: it picks up due retries
 /// (whose <c>NextAttemptAt</c> is in the future), re-claims leases abandoned by a crashed instance,
 /// and covers the rare case of a dropped notification. The notification can therefore be best-effort
-/// — losing one only delays delivery to the next tick, it can never lose the email.
+/// - losing one only delays delivery to the next tick, it can never lose the email.
 /// </para>
 /// <para>
 /// <b>Runs in every API instance, safely.</b> Rows are claimed with <c>FOR UPDATE SKIP LOCKED</c>, so
@@ -110,7 +110,7 @@ public sealed class EmailOutboxWorker : BackgroundService
         }
         catch (SemaphoreFullException)
         {
-            // Already pending a wake-up — nothing to do.
+            // Already pending a wake-up - nothing to do.
         }
     }
 

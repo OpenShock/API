@@ -75,7 +75,7 @@ public sealed class MailjetEmailService : IEmailService, IDisposable
         }
         catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException && !cancellationToken.IsCancellationRequested)
         {
-            // Network failure or request timeout — worth retrying.
+            // Network failure or request timeout - worth retrying.
             _logger.LogWarning(ex, "Transient failure sending mails {@Mails}", mails);
             return EmailSendResult.TransientFailure;
         }

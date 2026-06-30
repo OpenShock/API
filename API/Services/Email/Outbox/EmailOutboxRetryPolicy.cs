@@ -23,7 +23,7 @@ public static class EmailOutboxRetryPolicy
     public static TimeSpan GetBaseDelay(int attemptCount)
     {
         // Compute in seconds (double) and cap before converting, so a large attempt count can't
-        // overflow TimeSpan — Math.Pow can reach infinity, which simply compares above the cap.
+        // overflow TimeSpan - Math.Pow can reach infinity, which simply compares above the cap.
         var maxDelay = Duration.EmailOutboxRetryMaxDelay;
         var seconds = Duration.EmailOutboxRetryBaseDelay.TotalSeconds * Math.Pow(2, Math.Max(0, attemptCount - 1));
         return seconds >= maxDelay.TotalSeconds ? maxDelay : TimeSpan.FromSeconds(seconds);
@@ -35,7 +35,7 @@ public static class EmailOutboxRetryPolicy
 
     /// <summary>
     /// Applies a dispatch outcome to a message, advancing it to its next state: delivered, failed
-    /// (permanent / skipped / exhausted), or scheduled for another retry. Pure — only mutates
+    /// (permanent / skipped / exhausted), or scheduled for another retry. Pure - only mutates
     /// <paramref name="message"/>.
     /// </summary>
     public static void Apply(EmailOutboxMessage message, EmailDispatchResult result, DateTime nowUtc)

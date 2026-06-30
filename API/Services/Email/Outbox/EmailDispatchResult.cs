@@ -14,7 +14,7 @@ public enum EmailDispatchOutcome
 
     /// <summary>
     /// Nothing was sent because the underlying request no longer needs the email (expired, already
-    /// used, superseded, or gone). Terminal — there is nothing to retry.
+    /// used, superseded, or gone). Terminal - there is nothing to retry.
     /// </summary>
     Skipped
 }

@@ -16,7 +16,7 @@ namespace OpenShock.Common.OpenShockDb;
 /// consumer claims the row, renders the body, mints a fresh secret for token-bearing types, hands
 /// the message to the email provider, and records the outcome. Delivery is therefore decoupled from
 /// the HTTP request: a provider outage, a process restart, or a crash mid-send cannot lose the
-/// email — the row simply stays <see cref="EmailStatus.Sending"/> and is retried.
+/// email - the row simply stays <see cref="EmailStatus.Sending"/> and is retried.
 /// </para>
 ///
 /// <para>
@@ -36,7 +36,7 @@ namespace OpenShock.Common.OpenShockDb;
 ///     <b>Single source of truth.</b> A job framework's record is "a method was scheduled and ran";
 ///     this row is the domain fact "this user is owed this email, here is its delivery state". When
 ///     a user reports a missing email, this table answers it directly (who, which type, how many
-///     attempts, last error, sent/failed) — no second system to correlate against.
+///     attempts, last error, sent/failed) - no second system to correlate against.
 ///   </description></item>
 ///   <item><description>
 ///     <b>No new infrastructure or operational surface.</b> Reliability rides on PostgreSQL, which
@@ -50,7 +50,7 @@ namespace OpenShock.Common.OpenShockDb;
 ///   </description></item>
 /// </list>
 /// <para>
-/// This is not a claim that job frameworks are bad — for recurring/scheduled maintenance work they
+/// This is not a claim that job frameworks are bad - for recurring/scheduled maintenance work they
 /// are the right tool, and the codebase uses one for cron jobs. It is the narrower point that
 /// <i>transactional, must-not-be-lost, resendable email</i> is an outbox-shaped problem, and modelling
 /// it as a first-class table is the simplest design that satisfies those requirements.
@@ -61,13 +61,14 @@ namespace OpenShock.Common.OpenShockDb;
 /// link cannot be reconstructed from the stored hash, "store the intent, mint on send" is the only
 /// model that keeps the queue free of usable secrets while still allowing a resend. The consumer
 /// generates the secret at send time and writes only its hash to the request row (see
-/// <see cref="UserPasswordReset.TokenHash"/> etc., now nullable until first send). A resend produces
-/// a brand-new token — which is exactly the desired behaviour for security links anyway.
+/// <see cref="UserPasswordReset.TokenHash"/> etc.; the row is created with a seeded throwaway hash
+/// that the consumer overwrites on first send). A resend produces a brand-new token, which is
+/// exactly the desired behaviour for security links anyway.
 /// </para>
 ///
 /// <para>
-/// <b>Delivery guarantee.</b> This is at-least-once. The unavoidable edge case — the provider accepts
-/// the message but the process dies before the row is marked <see cref="EmailStatus.Sent"/> — results
+/// <b>Delivery guarantee.</b> This is at-least-once. The unavoidable edge case - the provider accepts
+/// the message but the process dies before the row is marked <see cref="EmailStatus.Sent"/> - results
 /// in one duplicate send on retry. For these email types that is harmless (a second activation /
 /// reset / notice), and it is the correct trade against the alternative of silently losing mail.
 /// </para>
@@ -88,7 +89,8 @@ public sealed class EmailOutboxMessage
 
     /// <summary>
     /// Dynamic, non-secret parameters needed to render and send, stored as Postgres <c>jsonb</c>
-    /// (via a value converter). An open key/value bag keyed by the well-known names in
+    /// (Npgsql maps the dictionary to jsonb via dynamic JSON; see <c>EnableDynamicJson</c> in the
+    /// context configuration). An open key/value bag keyed by the well-known names in
     /// <see cref="EmailOutboxPayloadKeys"/>, so new email types need no schema change. Never contains
     /// a rendered body or a usable secret.
     /// </summary>

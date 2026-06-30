@@ -75,11 +75,8 @@ public sealed class EmailOutboxDispatcher : IEmailOutboxDispatcher
             .Include(r => r.User)
             .FirstOrDefaultAsync(r => r.Id == resetId, ct);
         if (reset is null) return EmailDispatchResult.Skip("Password reset no longer exists");
-        if (reset.UsedAt is not null) return EmailDispatchResult.Skip("Password reset already used");
-        if (reset.CreatedAt < DateTime.UtcNow - Duration.PasswordResetRequestLifetime)
-            return EmailDispatchResult.Skip("Password reset expired");
-        if (reset.SecurityStampAtCreate != reset.User.SecurityStamp)
-            return EmailDispatchResult.Skip("Password reset superseded by a newer credential change");
+        if (ValidatePending("Password reset", reset.UsedAt, reset.CreatedAt, Duration.PasswordResetRequestLifetime,
+                reset.SecurityStampAtCreate, reset.User.SecurityStamp) is { } resetSkip) return resetSkip;
 
         var token = await MintTokenAsync(db, h => reset.TokenHash = h, ct);
         var link = new Uri(_frontendOptions.BaseUrl, $"/#/account/password/recover/{reset.Id}/{token}");
@@ -95,11 +92,8 @@ public sealed class EmailOutboxDispatcher : IEmailOutboxDispatcher
             .Include(c => c.User)
             .FirstOrDefaultAsync(c => c.Id == changeId, ct);
         if (change is null) return EmailDispatchResult.Skip("Email change no longer exists");
-        if (change.UsedAt is not null) return EmailDispatchResult.Skip("Email change already used");
-        if (change.CreatedAt < DateTime.UtcNow - Duration.EmailChangeRequestLifetime)
-            return EmailDispatchResult.Skip("Email change expired");
-        if (change.SecurityStampAtCreate != change.User.SecurityStamp)
-            return EmailDispatchResult.Skip("Email change superseded by a newer credential change");
+        if (ValidatePending("Email change", change.UsedAt, change.CreatedAt, Duration.EmailChangeRequestLifetime,
+                change.SecurityStampAtCreate, change.User.SecurityStamp) is { } changeSkip) return changeSkip;
 
         var token = await MintTokenAsync(db, h => change.TokenHash = h, ct);
         var link = new Uri(_frontendOptions.BaseUrl, $"/verify-email?token={token}");
@@ -127,6 +121,19 @@ public sealed class EmailOutboxDispatcher : IEmailOutboxDispatcher
         applyHash(HashingUtils.HashToken(token));
         await db.SaveChangesAsync(ct);
         return token;
+    }
+
+    /// <summary>
+    /// Shared validity check for a token-bearing request (password reset / email change): returns a
+    /// Skip result if it has been used, has expired, or has been superseded by a newer credential
+    /// change (security stamp rotated), otherwise null.
+    /// </summary>
+    private static EmailDispatchResult? ValidatePending(string what, DateTime? usedAt, DateTime createdAt, TimeSpan lifetime, Guid stampAtCreate, Guid currentStamp)
+    {
+        if (usedAt is not null) return EmailDispatchResult.Skip($"{what} already used");
+        if (createdAt < DateTime.UtcNow - lifetime) return EmailDispatchResult.Skip($"{what} expired");
+        if (stampAtCreate != currentStamp) return EmailDispatchResult.Skip($"{what} superseded by a newer credential change");
+        return null;
     }
 
     private static EmailDispatchResult FromSend(EmailSendResult result) => result switch

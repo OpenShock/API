@@ -63,6 +63,10 @@ public class OpenShockContext : DbContext, IDataProtectionKeyContext
     {
         optionsBuilder.UseNpgsql(connectionString, npgsqlBuilder =>
         {
+            // Required so Npgsql can serialize the email outbox's Dictionary<string,string> payload
+            // to its jsonb column. Without dynamic JSON, Npgsql maps Dictionary<string,string> to
+            // hstore by default and writing it to a jsonb column fails at runtime.
+            npgsqlBuilder.ConfigureDataSource(dataSourceBuilder => dataSourceBuilder.EnableDynamicJson());
             npgsqlBuilder.MapEnum<RoleType>();
             npgsqlBuilder.MapEnum<ControlType>();
             npgsqlBuilder.MapEnum<ControlLimitMode>();
@@ -155,7 +159,7 @@ public class OpenShockContext : DbContext, IDataProtectionKeyContext
             .HasPostgresEnum("shocker_model_type", ["caiXianlin", "petTrainer", "petrainer998DR", "wellturnT330"])
             .HasPostgresEnum("match_type_enum", ["exact", "contains"])
             .HasPostgresEnum("configuration_value_type", ["string", "bool", "int", "float", "json"])
-            .HasPostgresEnum("email_type", ["accountActivation", "passwordReset", "emailVerification", "emailChangeNotice"])
+            .HasPostgresEnum("email_type", ["account_activation", "password_reset", "email_verification", "email_change_notice"])
             .HasPostgresEnum("email_status", ["sending", "sent", "failed"])
             .HasCollation("public", "ndcoll", "und-u-ks-level2", "icu", false); // Add case-insensitive, accent-sensitive comparison collation
 
