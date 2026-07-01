@@ -6,7 +6,6 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
-using OpenShock.Common.Models;
 using OpenShock.Common.OpenShockDb;
 
 #nullable disable
@@ -21,19 +20,21 @@ namespace OpenShock.Common.Migrations
 #pragma warning disable 612, 618
             modelBuilder
                 .HasAnnotation("Npgsql:CollationDefinition:public.ndcoll", "und-u-ks-level2,und-u-ks-level2,icu,False")
-                .HasAnnotation("ProductVersion", "10.0.8")
+                .HasAnnotation("ProductVersion", "10.0.9")
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "audit_action", new[] { "login", "logout", "password_changed", "email_change_requested", "email_changed", "username_changed", "api_token_created", "api_token_deleted", "oauth_connected", "oauth_disconnected", "account_deactivated", "account_reactivated", "account_deleted" });
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "configuration_value_type", new[] { "string", "bool", "int", "float", "json" });
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "control_limit_mode", new[] { "clamp", "lerp" });
-            NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "control_type", new[] { "sound", "vibrate", "shock", "stop" });
+            NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "control_type", new[] { "stop", "shock", "vibrate", "sound" });
+            NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "email_status", new[] { "pending", "sending", "sent", "failed", "skipped" });
+            NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "email_type", new[] { "account_activation", "password_reset", "email_verification", "email_change_notice" });
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "match_type_enum", new[] { "exact", "contains" });
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "ota_update_status", new[] { "started", "running", "finished", "error", "timeout" });
-            NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "password_encryption_type", new[] { "pbkdf2", "bcrypt_enhanced" });
+            NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "password_encryption_type", new[] { "bcrypt_enhanced", "pbkdf2" });
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "permission_type", new[] { "shockers.use", "shockers.edit", "shockers.pause", "devices.edit", "devices.auth" });
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "role_type", new[] { "support", "staff", "admin", "system" });
-            NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "shocker_model_type", new[] { "caiXianlin", "petTrainer", "petrainer998DR", "wellturnT330" });
+            NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "shocker_model_type", new[] { "cai_xianlin", "petrainer", "petrainer_998dr", "wellturn_t330" });
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
             modelBuilder.Entity("Microsoft.AspNetCore.DataProtection.EntityFrameworkCore.DataProtectionKey", b =>
@@ -427,6 +428,85 @@ namespace OpenShock.Common.Migrations
                     b.ToTable("discord_webhooks", (string)null);
                 });
 
+            modelBuilder.Entity("OpenShock.Common.OpenShockDb.EmailOutboxMessage", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<int>("AttemptCount")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(0)
+                        .HasColumnName("attempt_count");
+
+                    b.Property<string>("CoalesceKey")
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)")
+                        .HasColumnName("coalesce_key");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                    b.Property<DateTime?>("FailedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("failed_at");
+
+                    b.Property<string>("LastError")
+                        .HasMaxLength(1024)
+                        .HasColumnType("character varying(1024)")
+                        .HasColumnName("last_error");
+
+                    b.Property<DateTime>("NextAttemptAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("next_attempt_at")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                    b.Property<Dictionary<string, string>>("Payload")
+                        .IsRequired()
+                        .HasColumnType("jsonb")
+                        .HasColumnName("payload");
+
+                    b.Property<string>("Recipient")
+                        .IsRequired()
+                        .HasMaxLength(320)
+                        .HasColumnType("character varying(320)")
+                        .HasColumnName("recipient");
+
+                    b.Property<string>("RecipientName")
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)")
+                        .HasColumnName("recipient_name");
+
+                    b.Property<DateTime?>("SentAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("sent_at");
+
+                    b.Property<EmailStatus>("Status")
+                        .HasColumnType("email_status")
+                        .HasColumnName("status");
+
+                    b.Property<EmailType>("Type")
+                        .HasColumnType("email_type")
+                        .HasColumnName("type");
+
+                    b.HasKey("Id")
+                        .HasName("email_outbox_pkey");
+
+                    b.HasIndex("CoalesceKey");
+
+                    b.HasIndex("Recipient");
+
+                    b.HasIndex("Status", "NextAttemptAt");
+
+                    b.ToTable("email_outbox", (string)null);
+                });
+
             modelBuilder.Entity("OpenShock.Common.OpenShockDb.EmailProviderBlacklist", b =>
                 {
                     b.Property<Guid>("Id")
@@ -808,7 +888,7 @@ namespace OpenShock.Common.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("id");
 
-                    b.Property<int>("Action")
+                    b.Property<AuditAction>("Action")
                         .HasColumnType("audit_action")
                         .HasColumnName("action");
 

@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using OpenShock.API.Services.Token;
 using OpenShock.Common.Authentication;
+using OpenShock.Common.OpenShockDb;
 using OpenShock.Common.Authentication.ControllerBase;
 using OpenShock.Common.Errors;
 using OpenShock.Common.Extensions;

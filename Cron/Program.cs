@@ -3,6 +3,7 @@ using Hangfire.PostgreSql;
 using OpenShock.Common;
 using OpenShock.Common.Extensions;
 using OpenShock.Cron;
+using OpenShock.Cron.Services.Email;
 using OpenShock.Cron.Utils;
 using OpenShock.Common.Swagger;
 
@@ -11,21 +12,44 @@ var builder = OpenShockApplication.CreateDefaultBuilder<Program>(args);
 var redisOptions = builder.RegisterRedisOptions();
 var databaseOptions = builder.RegisterDatabaseOptions();
 builder.RegisterMetricsOptions();
+// The outbox dispatcher builds activation/reset links, so it needs the frontend base URL.
+builder.RegisterFrontendOptions();
 
 builder.Services.AddOpenShockMemDB(redisOptions);
 builder.Services.AddOpenShockDB(databaseOptions);
 builder.Services.AddOpenShockServices();
 
+// Hangfire workers fetch enqueued jobs by polling the queue table. The default interval (15s) is
+// left as-is in production - email delivery within that window is fine and it adds no DB load. Only
+// the integration test overrides it (via OpenShock:Hangfire:QueuePollInterval) to run fast.
+var hangfireStorageOptions = new PostgreSqlStorageOptions();
+if (builder.Configuration.GetValue<TimeSpan?>("OpenShock:Hangfire:QueuePollInterval") is { } queuePollInterval)
+    hangfireStorageOptions.QueuePollInterval = queuePollInterval;
+
 builder.Services.AddHangfire(hangfire =>
-    hangfire.UsePostgreSqlStorage(c =>
-        c.UseNpgsqlConnection(databaseOptions.Conn)));
+    hangfire.UsePostgreSqlStorage(
+        c => c.UseNpgsqlConnection(databaseOptions.Conn),
+        hangfireStorageOptions));
 builder.Services.AddHangfireServer();
+
+// Registers the email providers, the outbox dispatcher, and the Redis notification listener. Delivery
+// is the EmailOutboxDeliveryJob, driven through Hangfire (recurring every-minute sweep auto-registered
+// via [CronJob], plus on-demand enqueue from the listener); all retry/lease/state lives on the
+// email_outbox row, not in Hangfire. The API host only writes outbox rows; all sending happens here.
+await builder.AddEmailService();
 
 builder.AddSwaggerExt<Program>();
 
 var app = builder.Build();
 
 await app.UseCommonOpenShockMiddleware();
+
+// The Cron host does not own migrations (the API is the sole migrator). Its OpenShockContext binds
+// Postgres enum types by name at the pooled data source's first connection and caches them for the
+// process's life, so it must not open that context before a newly-added enum exists - otherwise every
+// claim query fails permanently ("data type name 'email_status' could not be found"). Block until the
+// migrator has applied all pending migrations, which happens before Hangfire or any job runs below.
+await app.WaitForOpenShockSchemaReady(databaseOptions);
 
 var hangfireOptions = new DashboardOptions();
 if (app.Environment.IsProduction() || Environment.GetEnvironmentVariable("DOTNET_RUNNING_IN_CONTAINER") == "true")
@@ -43,3 +67,6 @@ foreach (var cronJob in CronJobCollector.GetAllCronJobs())
 }
 
 await app.RunAsync();
+
+// Expose Program for integration tests (so the test host can boot the Cron pipeline in-process).
+public partial class Program;

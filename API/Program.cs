@@ -4,7 +4,6 @@ using OpenShock.API.Options.OAuth;
 using OpenShock.API.Realtime;
 using OpenShock.API.Services.Account;
 using OpenShock.API.Services.DeviceUpdate;
-using OpenShock.API.Services.Email;
 using OpenShock.API.Services.LCGNodeProvisioner;
 using OpenShock.API.Services.OAuthConnection;
 using OpenShock.API.Services.Token;
@@ -26,6 +25,7 @@ var redisOptions = builder.RegisterRedisOptions();
 var databaseOptions = builder.RegisterDatabaseOptions();
 builder.RegisterMetricsOptions();
 builder.RegisterFrontendOptions();
+builder.RegisterAccountOptions();
 
 builder.Services
     .AddOpenShockMemDB(redisOptions)
@@ -108,7 +108,6 @@ builder.Services.AddScoped<ILCGNodeProvisioner, LCGNodeProvisioner>();
 builder.AddSwaggerExt<Program>();
 
 builder.AddCloudflareTurnstileService();
-await builder.AddEmailService();
 
 //services.AddHealthChecks().AddCheck<DatabaseHealthCheck>("database");
 

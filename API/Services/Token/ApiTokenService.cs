@@ -6,6 +6,7 @@ using OpenShock.API.Models.Requests;
 using OpenShock.API.Models.Response;
 using OpenShock.Common.Constants;
 using OpenShock.Common.OpenShockDb;
+using OpenShock.Common.Services.RedisPubSub;
 using OpenShock.Common.Utils;
 
 namespace OpenShock.API.Services.Token;
@@ -16,14 +17,17 @@ namespace OpenShock.API.Services.Token;
 public sealed class ApiTokenService : IApiTokenService
 {
     private readonly OpenShockContext _db;
+    private readonly IRedisPubService _redisPubService;
 
     /// <summary>
     /// DI Constructor
     /// </summary>
     /// <param name="db"></param>
-    public ApiTokenService(OpenShockContext db)
+    /// <param name="redisPubService"></param>
+    public ApiTokenService(OpenShockContext db, IRedisPubService redisPubService)
     {
         _db = db;
+        _redisPubService = redisPubService;
     }
 
     private static readonly Expression<Func<ApiToken, TokenResponse>> ToTokenResponse = x => new TokenResponse
@@ -173,6 +177,8 @@ public sealed class ApiTokenService : IApiTokenService
         token.Permissions = body.Permissions.Distinct().ToList();
         await _db.SaveChangesAsync();
 
+        await _redisPubService.SendApiTokenUpdate(tokenId);
+
         return true;
     }
 
@@ -187,6 +193,8 @@ public sealed class ApiTokenService : IApiTokenService
         body.ShockerControl.ApplyTo(token);
         await _db.SaveChangesAsync();
 
+        await _redisPubService.SendApiTokenUpdate(tokenId);
+
         return true;
     }
 
@@ -196,14 +204,23 @@ public sealed class ApiTokenService : IApiTokenService
         var nUpdated = await Tokens(ownerId)
             .Where(x => x.Id == tokenId)
             .ExecuteUpdateAsync(setters => setters.SetProperty(x => x.ShockerControlPaused, paused));
-        return nUpdated > 0 ? paused : null;
+        if (nUpdated <= 0) return null;
+
+        await _redisPubService.SendApiTokenUpdate(tokenId);
+
+        return paused;
     }
 
     /// <inheritdoc />
     public async Task<bool> DeleteToken(Guid tokenId, Guid? ownerId = null, CancellationToken cancellationToken = default)
     {
         var nDeleted = await Tokens(ownerId).Where(x => x.Id == tokenId).ExecuteDeleteAsync(cancellationToken);
-        return nDeleted > 0;
+        if (nDeleted <= 0) return false;
+
+        // Revoked tokens must stop controlling any open live control connection.
+        await _redisPubService.SendApiTokenUpdate(tokenId);
+
+        return true;
     }
 
     /// <inheritdoc />

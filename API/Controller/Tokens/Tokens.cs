@@ -5,6 +5,7 @@ using OpenShock.API.Models.Requests;
 using OpenShock.API.Models.Response;
 using OpenShock.API.Services.Token;
 using OpenShock.Common.Errors;
+using OpenShock.Common.OpenShockDb;
 using OpenShock.Common.Extensions;
 using OpenShock.Common.Models;
 using OpenShock.Common.Problems;
@@ -96,7 +97,7 @@ public sealed partial class TokensController
             AuditAction.ApiTokenCreated,
             ipAddress: HttpContext.GetRemoteIP(),
             userAgent: HttpContext.GetUserAgent(),
-            metadata: new ApiTokenCreatedMetadata(result.Id, result.Name, result.Permissions.Select(p => p.ToString()).ToList()));
+            metadata: new ApiTokenCreatedMetadata(result.Id, result.Name, result.Permissions.Select(p => PermissionTypeBindings.PermissionTypeToName[p].Name).ToList()));
         return result;
     }
 
@@ -141,7 +142,7 @@ public sealed partial class TokensController
             AuditAction.ApiTokenCreated,
             ipAddress: HttpContext.GetRemoteIP(),
             userAgent: HttpContext.GetUserAgent(),
-            metadata: new ApiTokenCreatedMetadata(result.Id, result.Name, result.Permissions.Select(p => p.ToString()).ToList()));
+            metadata: new ApiTokenCreatedMetadata(result.Id, result.Name, result.Permissions.Select(p => PermissionTypeBindings.PermissionTypeToName[p].Name).ToList()));
         return result;
     }
 

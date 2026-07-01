@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using System.Net.Mime;
 using OpenShock.Common.Errors;
+using OpenShock.Common.OpenShockDb;
 using OpenShock.Common.Extensions;
 using OpenShock.Common.Utils;
 using OpenShock.Common.Models;
