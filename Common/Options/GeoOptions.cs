@@ -2,7 +2,7 @@ namespace OpenShock.Common.Options;
 
 public sealed class GeoOptions
 {
-    public const string SectionName = "Geo";
+    public const string SectionName = "OpenShock:Geo";
 
     /// <summary>
     /// Path to the MaxMind GeoLite2-ASN.mmdb file.

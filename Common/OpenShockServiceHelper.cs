@@ -200,6 +200,10 @@ public static class OpenShockServiceHelper
 
         services.AddScoped<IConfigurationService, ConfigurationService>();
         services.AddScoped<ISessionService, SessionService>();
+        // Ensure GeoOptions is always resolvable so IpEnrichmentService can activate even in hosts
+        // (Cron, LiveControlGateway, SeedE2E) that don't call RegisterGeoOptions(). TryAdd leaves the
+        // API's config-bound instance untouched; other hosts get a disabled default (no DB paths).
+        services.TryAddSingleton(new GeoOptions());
         services.AddSingleton<IIpEnrichmentService, IpEnrichmentService>();
         services.AddHttpClient<IWebhookService, WebhookService>(client =>
         {

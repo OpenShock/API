@@ -62,7 +62,8 @@ public sealed class IpEnrichmentService : IIpEnrichmentService, IDisposable
         if (_asnReader is null && _cityReader is null) return null;
 
         string? asnOrg = null;
-        bool isVpn = false;
+        // Null means "unknown" (no ASN DB, lookup miss, or failure); only a resolved ASN org yields a verdict.
+        bool? isVpn = null;
 
         if (_asnReader is not null)
         {
