@@ -19,17 +19,18 @@ public static class EmailOutboxQueries
     /// capped at <paramref name="batchSize"/>, locked with <c>FOR UPDATE SKIP LOCKED</c> so concurrent
     /// runs take disjoint batches. Run it inside an explicit transaction to hold the locks for the claim.
     /// </summary>
-public static IQueryable<EmailOutboxMessage> DueForDelivery(this DbSet<EmailOutboxMessage> outbox, int batchSize)
-{
-    if (batchSize <= 0) throw new ArgumentOutOfRangeException(nameof(batchSize));
+    public static IQueryable<EmailOutboxMessage> DueForDelivery(this DbSet<EmailOutboxMessage> outbox, int batchSize)
+    {
+        if (batchSize <= 0) throw new ArgumentOutOfRangeException(nameof(batchSize));
 
-    return outbox.FromSql(
-        $"""
-         SELECT * FROM email_outbox
-         WHERE next_attempt_at <= now()
-           AND (status = {EmailStatus.Pending} OR status = {EmailStatus.Sending})
-         ORDER BY next_attempt_at
-         LIMIT {batchSize}
-         FOR UPDATE SKIP LOCKED
-         """);
+        return outbox.FromSql(
+            $"""
+             SELECT * FROM email_outbox
+             WHERE next_attempt_at <= now()
+               AND (status = {EmailStatus.Pending} OR status = {EmailStatus.Sending})
+             ORDER BY next_attempt_at
+             LIMIT {batchSize}
+             FOR UPDATE SKIP LOCKED
+             """);
+    }
 }
