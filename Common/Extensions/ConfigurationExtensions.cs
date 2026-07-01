@@ -87,6 +87,15 @@ public static class ConfigurationExtensions
         return options;
     }
 
+    public static AccountOptions RegisterAccountOptions(this WebApplicationBuilder builder)
+    {
+        var options = builder.Configuration.GetSection("OpenShock:Account").Get<AccountOptions>()
+                      ?? new AccountOptions();
+
+        builder.Services.AddSingleton(options);
+        return options;
+    }
+
     public static FrontendOptions RegisterFrontendOptions(this WebApplicationBuilder builder)
     {
         var section = builder.Configuration.GetRequiredSection("OpenShock:Frontend");

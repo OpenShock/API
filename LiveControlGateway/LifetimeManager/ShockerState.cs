@@ -1,6 +1,6 @@
 ﻿using System.ComponentModel.DataAnnotations;
 using OpenShock.Common.Constants;
-using OpenShock.Common.Models;
+using OpenShock.Common.OpenShockDb;
 
 namespace OpenShock.LiveControlGateway.LifetimeManager;
 
