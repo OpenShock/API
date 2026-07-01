@@ -77,7 +77,7 @@ public sealed class ControlLogRetentionTests
 
         // Resolve the pooled OpenShockContext exactly as the Cron cleanup job does (DI-injected) so this
         // covers the same registration path that runs in production.
-        using var scope = Factory.Services.CreateScope();
+        await using var scope = Factory.Services.CreateAsyncScope();
         var db2 = scope.ServiceProvider.GetRequiredService<OpenShockContext>();
 
         var deleted = await db2.DeleteControlLogsBeyondPerUserLimitAsync(keep);
