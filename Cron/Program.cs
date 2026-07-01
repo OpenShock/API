@@ -44,6 +44,13 @@ var app = builder.Build();
 
 await app.UseCommonOpenShockMiddleware();
 
+// The Cron host does not own migrations (the API is the sole migrator). Its OpenShockContext binds
+// Postgres enum types by name at the pooled data source's first connection and caches them for the
+// process's life, so it must not open that context before a newly-added enum exists - otherwise every
+// claim query fails permanently ("data type name 'email_status' could not be found"). Block until the
+// migrator has applied all pending migrations, which happens before Hangfire or any job runs below.
+await app.WaitForOpenShockSchemaReady(databaseOptions);
+
 var hangfireOptions = new DashboardOptions();
 if (app.Environment.IsProduction() || Environment.GetEnvironmentVariable("DOTNET_RUNNING_IN_CONTAINER") == "true")
 {

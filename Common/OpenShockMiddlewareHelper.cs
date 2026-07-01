@@ -118,4 +118,59 @@ public static class OpenShockMiddlewareHelper
 
         return app;
     }
+
+    /// <summary>
+    /// Blocks startup until the database schema is up to date (no pending migrations), for hosts that do
+    /// <em>not</em> own migrations (e.g. the Cron worker - the API is the sole migrator). This is not just
+    /// tidiness: <see cref="OpenShockContext"/> binds Postgres enum types (<c>email_status</c>,
+    /// <c>email_type</c>, ...) to CLR enums <em>by name</em>, and Npgsql resolves those names against the
+    /// type catalog it loads on the data source's first connection and caches for the life of the process.
+    /// If that first connection happens before the migrator has created a newly-added enum, every query
+    /// using it fails permanently ("data type name '...' could not be found") until the process restarts.
+    /// Waiting here guarantees the schema - and its enum types - exists before anything opens the pooled
+    /// context, closing the deploy-time race without this host performing any schema writes of its own.
+    /// </summary>
+    public static async Task<IApplicationBuilder> WaitForOpenShockSchemaReady(this IApplicationBuilder app,
+        DatabaseOptions options, TimeSpan? timeout = null)
+    {
+        using var scope = app.ApplicationServices.CreateScope();
+        var loggerFactory = scope.ServiceProvider.GetRequiredService<ILoggerFactory>();
+        var logger = loggerFactory.CreateLogger("SchemaReadyGate");
+
+        logger.LogInformation("Waiting for database schema to be up to date (migrations owned by another host)...");
+
+        var deadline = DateTime.UtcNow + (timeout ?? TimeSpan.FromMinutes(5));
+        var delay = TimeSpan.FromSeconds(1);
+        var maxDelay = TimeSpan.FromSeconds(15);
+
+        while (true)
+        {
+            try
+            {
+                await using var migrationContext = new MigrationOpenShockContext(options.Conn, options.Debug, loggerFactory);
+                var pending = (await migrationContext.Database.GetPendingMigrationsAsync()).ToArray();
+                if (pending.Length == 0)
+                {
+                    logger.LogInformation("Database schema is up to date; proceeding with startup");
+                    return app;
+                }
+
+                logger.LogWarning("Schema not ready: {Count} pending migration(s) [{Migrations}] not yet applied by the migrator",
+                    pending.Length, string.Join(", ", pending));
+            }
+            catch (Exception ex)
+            {
+                // Database not reachable yet, or the migrator is mid-run. Keep waiting rather than crash-looping.
+                logger.LogWarning(ex, "Could not determine migration state; will retry");
+            }
+
+            if (DateTime.UtcNow >= deadline)
+                throw new TimeoutException(
+                    "Timed out waiting for the database schema to be brought up to date by the migrator. " +
+                    "Ensure the API host (the sole migrator) is running and reachable.");
+
+            await Task.Delay(delay);
+            delay = TimeSpan.FromSeconds(Math.Min(maxDelay.TotalSeconds, delay.TotalSeconds * 2));
+        }
+    }
 }
