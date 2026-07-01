@@ -2,6 +2,7 @@ using System.Collections.Concurrent;
 using System.Net;
 using System.Text;
 using System.Text.Json;
+using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.DependencyInjection;
 using OpenShock.Common.Constants;
 using OpenShock.Common.OpenShockDb;
@@ -50,7 +51,7 @@ public static class TestHelper
     /// </summary>
     public static HttpClient CreateAuthenticatedClient(WebApplicationFactory factory, string sessionToken)
     {
-        var client = factory.CreateClient(new Microsoft.AspNetCore.Mvc.Testing.WebApplicationFactoryClientOptions
+        var client = factory.CreateClient(new WebApplicationFactoryClientOptions
         {
             AllowAutoRedirect = false,
             HandleCookies = false
@@ -64,7 +65,7 @@ public static class TestHelper
     /// </summary>
     public static HttpClient CreateApiTokenClient(WebApplicationFactory factory, string apiToken)
     {
-        var client = factory.CreateClient(new Microsoft.AspNetCore.Mvc.Testing.WebApplicationFactoryClientOptions
+        var client = factory.CreateClient(new WebApplicationFactoryClientOptions
         {
             AllowAutoRedirect = false,
             HandleCookies = false
@@ -78,7 +79,7 @@ public static class TestHelper
     /// </summary>
     public static HttpClient CreateHubTokenClient(WebApplicationFactory factory, string hubToken)
     {
-        var client = factory.CreateClient(new Microsoft.AspNetCore.Mvc.Testing.WebApplicationFactoryClientOptions
+        var client = factory.CreateClient(new WebApplicationFactoryClientOptions
         {
             AllowAutoRedirect = false,
             HandleCookies = false

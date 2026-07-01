@@ -1,4 +1,5 @@
-﻿using Asp.Versioning;
+﻿using System.Diagnostics;
+using Asp.Versioning;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.SignalR;
@@ -6,14 +7,13 @@ using OpenShock.Common.Authentication;
 using OpenShock.Common.Constants;
 using OpenShock.Common.Hubs;
 using OpenShock.Common.Models;
+using OpenShock.Common.OpenShockDb;
 using OpenShock.Common.Services.Ota;
 using OpenShock.LiveControlGateway.LifetimeManager;
 using OpenShock.LiveControlGateway.Options;
 using OpenShock.Serialization.Gateway;
 using OpenShock.Serialization.Types;
 using Serilog;
-using System.Diagnostics;
-using OpenShock.Common.OpenShockDb;
 
 namespace OpenShock.LiveControlGateway.Controllers;
 //TODO: Implement new keep alive ping pong mechanism

@@ -1,6 +1,7 @@
 using System.Net;
 using System.Text.Json;
 using OpenShock.API.IntegrationTests.Helpers;
+using OpenShock.Common.OpenShockDb;
 
 namespace OpenShock.API.IntegrationTests.Tests;
 
@@ -348,7 +349,7 @@ public sealed class TokensTests
     {
         var userId = await TestHelper.CreateUserInDb(WebApplicationFactory, "tokauth", "tokauth@test.org", "SecurePassword123#");
         var (_, rawToken) = await TestHelper.CreateApiTokenInDb(WebApplicationFactory, userId, "AuthToken",
-            [Common.OpenShockDb.PermissionType.Shockers_Use, Common.OpenShockDb.PermissionType.Devices_Edit]);
+            [PermissionType.Shockers_Use, PermissionType.Devices_Edit]);
         using var client = TestHelper.CreateApiTokenClient(WebApplicationFactory, rawToken);
 
         var response = await client.GetAsync("/1/devices");

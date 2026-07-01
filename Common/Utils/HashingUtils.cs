@@ -1,9 +1,7 @@
-﻿using System.Buffers;
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using System.Security.Cryptography;
 using System.Text;
 using BCrypt.Net;
-using OpenShock.Common.Models;
 using OpenShock.Common.OpenShockDb;
 
 namespace OpenShock.Common.Utils;

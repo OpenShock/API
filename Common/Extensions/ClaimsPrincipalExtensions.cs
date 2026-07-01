@@ -1,6 +1,5 @@
 ﻿using System.Security.Claims;
 using OpenShock.Common.Authentication;
-using OpenShock.Common.Models;
 using OpenShock.Common.OpenShockDb;
 
 namespace OpenShock.Common.Extensions;

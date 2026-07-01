@@ -1,5 +1,3 @@
-using OpenShock.API.Models;
-using OpenShock.Common.Models;
 using OpenShock.Common.OpenShockDb;
 
 namespace OpenShock.API.Models.Response;

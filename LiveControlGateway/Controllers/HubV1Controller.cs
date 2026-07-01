@@ -12,6 +12,8 @@ using OpenShock.LiveControlGateway.Options;
 using OpenShock.Serialization.Deprecated.DoNotUse.V1;
 using OpenShock.Serialization.Types;
 using Serilog;
+using ShockerCommand = OpenShock.Serialization.Gateway.ShockerCommand;
+using ShockerModelType = OpenShock.Serialization.Types.ShockerModelType;
 
 namespace OpenShock.LiveControlGateway.Controllers;
 
@@ -164,16 +166,16 @@ public sealed class HubV1Controller : HubControllerBase<HubToGatewayMessage, Gat
 
     /// <inheritdoc />
     [NonAction]
-    public override ValueTask Control(IList<OpenShock.Serialization.Gateway.ShockerCommand> controlCommands)
+    public override ValueTask Control(IList<ShockerCommand> controlCommands)
         => QueueMessage(new GatewayToHubMessage
         {
             Payload = new GatewayToHubMessagePayload(new ShockerCommandList
             {
-                Commands = [.. controlCommands.Select(x => new ShockerCommand()
+                Commands = [.. controlCommands.Select(x => new Serialization.Deprecated.DoNotUse.V1.ShockerCommand()
                 {
                     Duration = x.Duration,
                     Type = x.Type,
-                    Id = x.Model == Serialization.Types.ShockerModelType.Petrainer998DR ? (ushort)(x.Id >> 1) : x.Id, // Fix for old hubs, their ids was serialized wrongly in the RFTransmitter, the V1 endpoint is being phased out, so this wont stay here forever
+                    Id = x.Model == ShockerModelType.Petrainer998DR ? (ushort)(x.Id >> 1) : x.Id, // Fix for old hubs, their ids was serialized wrongly in the RFTransmitter, the V1 endpoint is being phased out, so this wont stay here forever
                     Intensity = x.Intensity,
                     Model = x.Model
                 })]
