@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using OpenShock.Common.Models;
+using OpenShock.Common.OpenShockDb;
 
 namespace OpenShock.Common.Authentication.Requirements;
 

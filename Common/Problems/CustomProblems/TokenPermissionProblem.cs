@@ -1,5 +1,6 @@
 ﻿using System.Net;
 using OpenShock.Common.Models;
+using OpenShock.Common.OpenShockDb;
 
 namespace OpenShock.Common.Problems.CustomProblems;
 

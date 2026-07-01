@@ -1,5 +1,4 @@
 using Microsoft.EntityFrameworkCore;
-using OpenShock.Common.Models;
 
 namespace OpenShock.Common.OpenShockDb;
 

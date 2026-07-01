@@ -13,6 +13,7 @@ using OpenShock.Common.Utils;
 using System.Net.Mime;
 using System.Security.Cryptography;
 using OpenShock.API.Services.DeviceUpdate;
+using OpenShock.Common.OpenShockDb;
 using Redis.OM;
 
 namespace OpenShock.API.Controller.Devices;

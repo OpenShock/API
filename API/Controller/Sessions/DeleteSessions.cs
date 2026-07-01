@@ -4,6 +4,7 @@ using OpenShock.Common.Extensions;
 using OpenShock.Common.Models;
 using OpenShock.Common.Problems;
 using System.Net.Mime;
+using OpenShock.Common.OpenShockDb;
 
 namespace OpenShock.API.Controller.Sessions;
 

@@ -1,3 +1,4 @@
+
 namespace OpenShock.Common.OpenShockDb;
 
 /// <summary>
@@ -9,15 +10,15 @@ namespace OpenShock.Common.OpenShockDb;
 /// </summary>
 public static class EmailOutboxPayloadKeys
 {
-    /// <summary>Target user id. Used by <see cref="Models.EmailType.AccountActivation"/>.</summary>
+    /// <summary>Target user id. Used by <see cref="EmailType.AccountActivation"/>.</summary>
     public const string UserId = "userId";
 
-    /// <summary><see cref="UserPasswordReset"/> id. Used by <see cref="Models.EmailType.PasswordReset"/>.</summary>
+    /// <summary><see cref="UserPasswordReset"/> id. Used by <see cref="EmailType.PasswordReset"/>.</summary>
     public const string PasswordResetId = "passwordResetId";
 
-    /// <summary><see cref="UserEmailChange"/> id. Used by <see cref="Models.EmailType.EmailVerification"/>.</summary>
+    /// <summary><see cref="UserEmailChange"/> id. Used by <see cref="EmailType.EmailVerification"/>.</summary>
     public const string EmailChangeId = "emailChangeId";
 
-    /// <summary>The newly requested address. Used by <see cref="Models.EmailType.EmailChangeNotice"/>.</summary>
+    /// <summary>The newly requested address. Used by <see cref="EmailType.EmailChangeNotice"/>.</summary>
     public const string NewEmail = "newEmail";
 }

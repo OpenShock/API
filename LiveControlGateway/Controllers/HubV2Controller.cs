@@ -13,6 +13,7 @@ using OpenShock.Serialization.Gateway;
 using OpenShock.Serialization.Types;
 using Serilog;
 using System.Diagnostics;
+using OpenShock.Common.OpenShockDb;
 
 namespace OpenShock.LiveControlGateway.Controllers;
 //TODO: Implement new keep alive ping pong mechanism

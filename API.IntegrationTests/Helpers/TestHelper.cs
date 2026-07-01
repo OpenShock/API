@@ -146,7 +146,7 @@ public static class TestHelper
         WebApplicationFactory factory,
         Guid userId,
         string name = "TestToken",
-        List<Common.Models.PermissionType>? permissions = null)
+        List<PermissionType>? permissions = null)
     {
         await using var scope = factory.Services.CreateAsyncScope();
         var db = scope.ServiceProvider.GetRequiredService<OpenShockContext>();
@@ -160,7 +160,7 @@ public static class TestHelper
             Name = name,
             TokenHash = HashingUtils.HashToken(rawToken),
             CreatedByIp = IPAddress.Loopback,
-            Permissions = permissions ?? [Common.Models.PermissionType.Shockers_Use]
+            Permissions = permissions ?? [PermissionType.Shockers_Use]
         });
         await db.SaveChangesAsync();
         return (tokenId, rawToken);

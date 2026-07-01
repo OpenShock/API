@@ -4,13 +4,12 @@ namespace OpenShock.Common.Utils;
 /// Marks an enum as a Postgres native enum type so it is automatically registered
 /// with the EF Core model via <see cref="OpenShockDb.NpgsqlEnumExtensions.RegisterPgEnums"/>.
 /// </summary>
-/// <param name="name">
-/// Explicit Postgres type name. When omitted, the C# type name is converted to snake_case.
-/// </param>
-/// <param name="schema">Postgres schema; defaults to the model's default schema when null.</param>
 [AttributeUsage(AttributeTargets.Enum)]
-public sealed class PgEnumAttribute(string? name = null, string? schema = null) : Attribute
+public sealed class PgEnumAttribute : Attribute
 {
-    public string? Name { get; } = name;
-    public string? Schema { get; } = schema;
+    /// <summary>The Postgres type name. Always specified explicitly, e.g. <c>[PgEnum(Name = "control_type")]</c>.</summary>
+    public required string Name { get; init; }
+
+    /// <summary>Postgres schema; defaults to the model's default schema when null.</summary>
+    public string? Schema { get; init; }
 }

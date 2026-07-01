@@ -1,14 +1,4 @@
-﻿using NpgsqlTypes;
-using OpenShock.Common.Utils;
-
 namespace OpenShock.Common.OpenShockDb;
-
-[PgEnum]
-public enum MatchTypeEnum
-{
-    [PgName("exact")] Exact,
-    [PgName("contains")] Contains,
-}
 
 public sealed class UserNameBlacklist
 {

@@ -1,17 +1,4 @@
-﻿using NpgsqlTypes;
-using OpenShock.Common.Utils;
-
 namespace OpenShock.Common.OpenShockDb;
-
-[PgEnum]
-public enum ConfigurationValueType
-{
-    [PgName("string")] String,
-    [PgName("bool")] Bool,
-    [PgName("int")] Int,
-    [PgName("float")] Float,
-    [PgName("json")] Json,
-}
 
 public sealed class ConfigurationItem
 {

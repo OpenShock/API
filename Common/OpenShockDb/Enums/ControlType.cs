@@ -1,13 +1,13 @@
 using NpgsqlTypes;
 using OpenShock.Common.Utils;
 
-namespace OpenShock.Common.Models;
+namespace OpenShock.Common.OpenShockDb;
 
-[PgEnum]
+[PgEnum(Name = "control_type")]
 public enum ControlType
 {
     [PgName("stop")] Stop = 0,
     [PgName("shock")] Shock = 1,
     [PgName("vibrate")] Vibrate = 2,
-    [PgName("sound")] Sound = 3,
+    [PgName("sound")] Sound = 3
 }

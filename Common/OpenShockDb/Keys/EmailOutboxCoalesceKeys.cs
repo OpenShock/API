@@ -11,7 +11,7 @@ namespace OpenShock.Common.OpenShockDb;
 /// The kind prefix is baked into the key so different email kinds for the same user never coalesce
 /// into each other (a pending reset must not suppress a pending activation). Scope is per user: only
 /// the newest activation / reset / verification for a given user is delivered.
-/// <see cref="Models.EmailType.EmailChangeNotice"/> intentionally has no builder - it is an
+/// <see cref="EmailType.EmailChangeNotice"/> intentionally has no builder - it is an
 /// always-deliver type, so it carries a <c>null</c> key.
 /// </remarks>
 public static class EmailOutboxCoalesceKeys

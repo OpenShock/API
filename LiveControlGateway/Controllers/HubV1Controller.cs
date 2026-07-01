@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.SignalR;
 using OpenShock.Common.Authentication;
 using OpenShock.Common.Hubs;
 using OpenShock.Common.Models;
+using OpenShock.Common.OpenShockDb;
 using OpenShock.Common.Services.Ota;
 using OpenShock.LiveControlGateway.LifetimeManager;
 using OpenShock.LiveControlGateway.Options;

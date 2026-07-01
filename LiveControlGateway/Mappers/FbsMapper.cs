@@ -1,4 +1,5 @@
 ﻿using OpenShock.Common.Models;
+using OpenShock.Common.OpenShockDb;
 using OpenShock.Common.Redis.PubSub;
 using OpenShock.Serialization.Gateway;
 using OpenShock.Serialization.Types;
@@ -7,14 +8,14 @@ namespace OpenShock.LiveControlGateway.Mappers;
 
 public static class FbsMapper
 {
-    public static Serialization.Types.ShockerModelType ToFbsModelType(Common.Models.ShockerModelType type)
+    public static Serialization.Types.ShockerModelType ToFbsModelType(Common.OpenShockDb.ShockerModelType type)
     {
         return type switch
         {
-            Common.Models.ShockerModelType.CaiXianlin => Serialization.Types.ShockerModelType.CaiXianlin,
-            Common.Models.ShockerModelType.PetTrainer => Serialization.Types.ShockerModelType.Petrainer,
-            Common.Models.ShockerModelType.Petrainer998DR => Serialization.Types.ShockerModelType.Petrainer998DR,
-            Common.Models.ShockerModelType.WellturnT330 => Serialization.Types.ShockerModelType.WellturnT330,
+            Common.OpenShockDb.ShockerModelType.CaiXianlin => Serialization.Types.ShockerModelType.CaiXianlin,
+            Common.OpenShockDb.ShockerModelType.PetTrainer => Serialization.Types.ShockerModelType.Petrainer,
+            Common.OpenShockDb.ShockerModelType.Petrainer998DR => Serialization.Types.ShockerModelType.Petrainer998DR,
+            Common.OpenShockDb.ShockerModelType.WellturnT330 => Serialization.Types.ShockerModelType.WellturnT330,
             _ => throw new NotImplementedException(),
         };
     }

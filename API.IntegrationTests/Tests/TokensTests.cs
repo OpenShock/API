@@ -348,7 +348,7 @@ public sealed class TokensTests
     {
         var userId = await TestHelper.CreateUserInDb(WebApplicationFactory, "tokauth", "tokauth@test.org", "SecurePassword123#");
         var (_, rawToken) = await TestHelper.CreateApiTokenInDb(WebApplicationFactory, userId, "AuthToken",
-            [Common.Models.PermissionType.Shockers_Use, Common.Models.PermissionType.Devices_Edit]);
+            [Common.OpenShockDb.PermissionType.Shockers_Use, Common.OpenShockDb.PermissionType.Devices_Edit]);
         using var client = TestHelper.CreateApiTokenClient(WebApplicationFactory, rawToken);
 
         var response = await client.GetAsync("/1/devices");

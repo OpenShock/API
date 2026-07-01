@@ -1,21 +1,13 @@
 using System.Reflection;
-using System.Text.RegularExpressions;
 using Microsoft.EntityFrameworkCore;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Infrastructure;
 using NpgsqlTypes;
-using OpenShock.Common.Models;
 using OpenShock.Common.Utils;
 
 namespace OpenShock.Common.OpenShockDb;
 
-public static partial class NpgsqlEnumExtensions
+public static class NpgsqlEnumExtensions
 {
-    [GeneratedRegex("([a-z])([A-Z0-9])")]
-    private static partial Regex SnakeCaseRegex();
-
-    private static string ToSnakeCase(string name) =>
-        SnakeCaseRegex().Replace(name, "$1_$2").ToLowerInvariant();
-
     private readonly record struct PgEnumInfo(
         Action<NpgsqlDbContextOptionsBuilder> Map,
         Action<ModelBuilder> Register);
@@ -26,7 +18,7 @@ public static partial class NpgsqlEnumExtensions
         var attr = type.GetCustomAttribute<PgEnumAttribute>()
             ?? throw new InvalidOperationException($"{type.Name} is missing [PgEnum]");
 
-        var pgTypeName = attr.Name ?? ToSnakeCase(type.Name);
+        var pgTypeName = attr.Name;
 
         var members = type
             .GetFields(BindingFlags.Public | BindingFlags.Static)
