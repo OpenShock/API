@@ -85,6 +85,29 @@ public sealed class EmailOutboxPersistenceTests
         await Assert.That(claimed.Count).IsEqualTo(2);
     }
 
+    [Test]
+    public async Task DueForDelivery_RunsTheJobsRawSql_AgainstTheRealSchema()
+    {
+        var factory = WebApplicationFactory.Services.GetRequiredService<IDbContextFactory<OpenShockContext>>();
+        var recipient = TestHelper.UniqueEmail("outbox-claim-sql");
+
+        // Dated well into the past so it sorts first and the global LIMIT can never exclude it.
+        var id = await SeedAsync(factory, recipient, EmailStatus.Pending, DateTime.UtcNow - TimeSpan.FromDays(1));
+
+        // Resolve the pooled OpenShockContext exactly as the Cron delivery job does (DI-injected, not the
+        // factory) so this covers the same registration + enum-mapping path that runs in production.
+        using var scope = WebApplicationFactory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<OpenShockContext>();
+
+        // Runs the delivery job's *actual* claim query (EmailOutboxQueries.DueForDelivery, the single source
+        // of truth the job uses) against real Postgres: the email_outbox table name, its column names, the
+        // email_status enum, LIMIT, FOR UPDATE SKIP LOCKED, and SELECT * -> full entity materialization
+        // (jsonb payload included). A schema rename breaks this test rather than only the Cron host at runtime.
+        var claimed = await db.EmailOutbox.DueForDelivery(EmailOutboxQueries.ClaimBatchSize).ToListAsync();
+
+        await Assert.That(claimed.Any(m => m.Id == id)).IsTrue();
+    }
+
     private static async Task<Guid> SeedAsync(IDbContextFactory<OpenShockContext> factory, string recipient, EmailStatus status, DateTime nextAttemptAt)
     {
         await using var db = await factory.CreateDbContextAsync();
