@@ -103,7 +103,7 @@ public sealed class EmailOutboxPersistenceTests
         // of truth the job uses) against real Postgres: the email_outbox table name, its column names, the
         // email_status enum, LIMIT, FOR UPDATE SKIP LOCKED, and SELECT * -> full entity materialization
         // (jsonb payload included). A schema rename breaks this test rather than only the Cron host at runtime.
-        var claimed = await db.EmailOutbox.DueForDelivery(EmailOutboxQueries.ClaimBatchSize).ToListAsync();
+        var claimed = await db.EmailOutbox.DueForDelivery(1).ToListAsync();
 
         await Assert.That(claimed.Any(m => m.Id == id)).IsTrue();
     }
