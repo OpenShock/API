@@ -28,7 +28,7 @@ public static class NpgsqlEnumExtensions
             .ToArray();
 
         return new PgEnumInfo(
-            Map: b => b.MapEnum<TEnum>(pgTypeName),
+            Map: b => b.MapEnum<TEnum>(pgTypeName, attr.Schema),
             Register: m => m.HasPostgresEnum(attr.Schema, pgTypeName, members));
     }
 

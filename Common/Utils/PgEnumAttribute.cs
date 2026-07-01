@@ -2,7 +2,7 @@ namespace OpenShock.Common.Utils;
 
 /// <summary>
 /// Marks an enum as a Postgres native enum type so it is automatically registered
-/// with the EF Core model via <see cref="OpenShockDb.NpgsqlEnumExtensions.RegisterPgEnums"/>.
+/// with the EF Core model via <see cref="OpenShock.Common.OpenShockDb.NpgsqlEnumExtensions.RegisterPgEnums"/>.
 /// </summary>
 [AttributeUsage(AttributeTargets.Enum)]
 public sealed class PgEnumAttribute : Attribute
