@@ -1,25 +1,10 @@
-﻿using System.Reflection;
-using System.Text.Json.Serialization;
+using System.Reflection;
 using NpgsqlTypes;
-using OpenShock.Common.JsonSerialization;
+using OpenShock.Common.OpenShockDb;
 
 // ReSharper disable InconsistentNaming
 
 namespace OpenShock.Common.Models;
-
-[JsonConverter(typeof(PermissionTypeConverter))]
-public enum PermissionType
-{
-    [PgName("shockers.use")] Shockers_Use,
-
-    [PgName("shockers.edit")] Shockers_Edit,
-
-    [PgName("shockers.pause")] Shockers_Pause,
-
-    [PgName("devices.edit")] Devices_Edit,
-    
-    [PgName("devices.auth")] Devices_Auth
-}
 
 public static class PermissionTypeExtensions
 {

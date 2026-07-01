@@ -1,6 +1,5 @@
 ﻿using System.Net;
 using OpenShock.Common.Constants;
-using OpenShock.Common.Models;
 
 namespace OpenShock.Common.OpenShockDb;
 

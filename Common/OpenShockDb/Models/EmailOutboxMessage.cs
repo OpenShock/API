@@ -1,5 +1,3 @@
-using OpenShock.Common.Models;
-
 namespace OpenShock.Common.OpenShockDb;
 
 /// <summary>

@@ -1,6 +1,4 @@
-﻿using OpenShock.Common.Models;
-
-namespace OpenShock.Common.OpenShockDb;
+﻿namespace OpenShock.Common.OpenShockDb;
 
 public sealed class ShockerControlLog
 {

@@ -1,5 +1,4 @@
-﻿using OpenShock.Common.Models;
-// We are in a view, no need to restrict lengths lol
+﻿// We are in a view, no need to restrict lengths lol
 // ReSharper disable EntityFramework.ModelValidation.UnlimitedStringLength
 
 namespace OpenShock.Common.OpenShockDb;

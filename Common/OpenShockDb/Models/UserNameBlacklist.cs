@@ -1,10 +1,4 @@
-﻿namespace OpenShock.Common.OpenShockDb;
-
-public enum MatchTypeEnum
-{
-    Exact,
-    Contains,
-}
+namespace OpenShock.Common.OpenShockDb;
 
 public sealed class UserNameBlacklist
 {

@@ -67,16 +67,7 @@ public class OpenShockContext : DbContext, IDataProtectionKeyContext
             // to its jsonb column. Without dynamic JSON, Npgsql maps Dictionary<string,string> to
             // hstore by default and writing it to a jsonb column fails at runtime.
             npgsqlBuilder.ConfigureDataSource(dataSourceBuilder => dataSourceBuilder.EnableDynamicJson());
-            npgsqlBuilder.MapEnum<RoleType>();
-            npgsqlBuilder.MapEnum<ControlType>();
-            npgsqlBuilder.MapEnum<ControlLimitMode>();
-            npgsqlBuilder.MapEnum<PermissionType>();
-            npgsqlBuilder.MapEnum<ShockerModelType>();
-            npgsqlBuilder.MapEnum<OtaUpdateStatus>();
-            npgsqlBuilder.MapEnum<MatchTypeEnum>();
-            npgsqlBuilder.MapEnum<ConfigurationValueType>();
-            npgsqlBuilder.MapEnum<EmailType>();
-            npgsqlBuilder.MapEnum<EmailStatus>();
+            npgsqlBuilder.MapPgEnums();
         });
 
         if (debug)
@@ -149,18 +140,7 @@ public class OpenShockContext : DbContext, IDataProtectionKeyContext
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder
-            .HasPostgresEnum("control_type", ["sound", "vibrate", "shock", "stop"])
-            .HasPostgresEnum("control_limit_mode", ["clamp", "lerp"])
-            .HasPostgresEnum("ota_update_status", ["started", "running", "finished", "error", "timeout"])
-            .HasPostgresEnum("password_encryption_type", ["pbkdf2", "bcrypt_enhanced"])
-            .HasPostgresEnum("permission_type",
-                ["shockers.use", "shockers.edit", "shockers.pause", "devices.edit", "devices.auth"])
-            .HasPostgresEnum("role_type", ["support", "staff", "admin", "system"])
-            .HasPostgresEnum("shocker_model_type", ["caiXianlin", "petTrainer", "petrainer998DR", "wellturnT330"])
-            .HasPostgresEnum("match_type_enum", ["exact", "contains"])
-            .HasPostgresEnum("configuration_value_type", ["string", "bool", "int", "float", "json"])
-            .HasPostgresEnum("email_type", ["account_activation", "password_reset", "email_verification", "email_change_notice"])
-            .HasPostgresEnum("email_status", ["pending", "sending", "sent", "failed", "skipped"])
+            .RegisterPgEnums()
             .HasCollation("public", "ndcoll", "und-u-ks-level2", "icu", false); // Add case-insensitive, accent-sensitive comparison collation
 
         modelBuilder.Entity<ApiToken>(entity =>

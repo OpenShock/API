@@ -1,13 +1,4 @@
-﻿namespace OpenShock.Common.OpenShockDb;
-
-public enum ConfigurationValueType
-{
-    String,
-    Bool,
-    Int,
-    Float,
-    Json
-}
+namespace OpenShock.Common.OpenShockDb;
 
 public sealed class ConfigurationItem
 {
