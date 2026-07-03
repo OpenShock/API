@@ -45,8 +45,10 @@ public sealed class OAuthConnectionService : IOAuthConnectionService
         return await _db.UserOAuthConnections.AnyAsync(c => c.UserId == userId && c.ProviderKey == p, cancellationToken);
     }
 
-    public async Task<bool> TryAddConnectionAsync(Guid userId, string provider, string providerAccountId, string? providerAccountName, CancellationToken cancellationToken)
+    public async Task<bool> TryAddConnectionAsync(Guid userId, string provider, string providerAccountId, string? providerAccountName, Guid? actorId, CancellationToken cancellationToken)
     {
+        await using var transaction = await _db.Database.BeginTransactionAsync(cancellationToken);
+
         try
         {
             _db.UserOAuthConnections.Add(new UserOAuthConnection
@@ -57,7 +59,6 @@ public sealed class OAuthConnectionService : IOAuthConnectionService
                 DisplayName = providerAccountName
             });
             await _db.SaveChangesAsync(cancellationToken);
-            return true;
         }
         catch (DbUpdateException ex) when (ex.InnerException is PostgresException { SqlState: "23505" })
         {
@@ -65,6 +66,18 @@ public sealed class OAuthConnectionService : IOAuthConnectionService
             _logger.LogDebug(ex, "Duplicate OAuth link for {Provider}:{ExternalId}", provider, providerAccountId);
             return false;
         }
+
+        await _auditService.LogAsync(
+            userId,
+            action: AuditAction.OAuthConnected,
+            metadata: new OAuthConnectedMetadata(provider),
+            actorId,
+            cancellationToken
+        );
+
+        await transaction.CommitAsync(cancellationToken);
+
+        return true;
     }
 
     public async Task<bool> TryRemoveConnectionAsync(Guid userId, string provider, Guid? actorId, CancellationToken cancellationToken)

@@ -20,7 +20,7 @@ public sealed partial class AdminController
     {
         if (body.Name is not null)
         {
-            await accountService.ChangeUsernameAsync(userId, body.Name, ignoreLimit: true, ct);
+            await accountService.ChangeUsernameAsync(userId, body.Name, actorId: CurrentUser.Id, ignoreLimit: true, cancellationToken: ct);
         }
 
         return Ok();

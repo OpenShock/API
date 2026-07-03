@@ -99,18 +99,20 @@ public interface IAccountService
     /// </summary>
     /// <param name="userId"></param>
     /// <param name="username"></param>
+    /// <param name="actorId">User that performed this change</param>
     /// <param name="ignoreLimit">Ignore the username change limit, set this to true when an admin is changing the username</param>
     /// <param name="cancellationToken"></param>
     /// <returns><see cref="Error{UsernameCheckResult}"/> only returns when the result is != Available</returns>
-    public Task<OneOf<Success, UsernameTaken, UsernameError, RecentlyChanged, AccountDeactivated, NotFound>> ChangeUsernameAsync(Guid userId, string username, bool ignoreLimit = false, CancellationToken cancellationToken = default);
-    
+    public Task<OneOf<Success, UsernameTaken, UsernameError, RecentlyChanged, AccountDeactivated, NotFound>> ChangeUsernameAsync(Guid userId, string username, Guid? actorId, bool ignoreLimit = false, CancellationToken cancellationToken = default);
+
     /// <summary>
     /// Change the password of a user
     /// </summary>
     /// <param name="userId"></param>
     /// <param name="newPassword"></param>
+    /// <param name="actorId">User that performed this change</param>
     /// <returns></returns>
-    public Task<OneOf<Success, AccountNotActivated, AccountDeactivated, NotFound>> ChangePasswordAsync(Guid userId, string newPassword);
+    public Task<OneOf<Success, AccountNotActivated, AccountDeactivated, NotFound>> ChangePasswordAsync(Guid userId, string newPassword, Guid? actorId);
 
     /// <summary>
     /// Creates a new email change request and sends a verification email to the new address.

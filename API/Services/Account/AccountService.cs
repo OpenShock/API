@@ -280,14 +280,26 @@ public sealed class AccountService : IAccountService
             return new AccountDeactivationAlreadyInProgress();
         }
 
-        user.UserDeactivation = new UserDeactivation
+        await using (var transaction = await _db.Database.BeginTransactionAsync())
         {
-            DeactivatedUserId = userId,
-            DeactivatedByUserId = executingUserId,
-            DeleteLater = deleteLater,
-        };
+            user.UserDeactivation = new UserDeactivation
+            {
+                DeactivatedUserId = userId,
+                DeactivatedByUserId = executingUserId,
+                DeleteLater = deleteLater,
+            };
+            
+            await _db.SaveChangesAsync();
 
-        await _db.SaveChangesAsync();
+            await _auditService.LogAsync(
+                userId,
+                action: AuditAction.AccountDeactivated,
+                metadata: new AccountDeactivatedMetadata(deleteLater),
+                actorId: executingUserId
+            );
+
+            await transaction.CommitAsync();
+        }
 
         // Remove all login sessions
         await _sessionService.DeleteSessionsByUserIdAsync(userId);
@@ -321,8 +333,19 @@ public sealed class AccountService : IAccountService
             }
         }
 
+        await using var transaction = await _db.Database.BeginTransactionAsync();
+
         _db.Remove(deactivation);
+
         await _db.SaveChangesAsync();
+
+        await _auditService.LogAsync(
+            userId,
+            action: AuditAction.AccountReactivated,
+            actorId: executingUserId
+        );
+
+        await transaction.CommitAsync();
 
         return new Success();
     }
@@ -352,8 +375,19 @@ public sealed class AccountService : IAccountService
 
         // TODO: Do more checks?
 
+        await using var transaction = await _db.Database.BeginTransactionAsync();
+
         _db.Users.Remove(user);
+
         await _db.SaveChangesAsync();
+
+        await _auditService.LogAsync(
+            userId,
+            action: AuditAction.AccountDeleted,
+            actorId: executingUserId
+        );
+
+        await transaction.CommitAsync();
 
         return new Success();
     }
@@ -512,7 +546,7 @@ public sealed class AccountService : IAccountService
     }
 
     /// <inheritdoc />
-    public async Task<OneOf<Success, UsernameTaken, UsernameError, RecentlyChanged, AccountDeactivated, NotFound>> ChangeUsernameAsync(Guid userId, string username, bool ignoreLimit = false, CancellationToken cancellationToken = default)
+    public async Task<OneOf<Success, UsernameTaken, UsernameError, RecentlyChanged, AccountDeactivated, NotFound>> ChangeUsernameAsync(Guid userId, string username, Guid? actorId, bool ignoreLimit = false, CancellationToken cancellationToken = default)
     {
         if (!ignoreLimit)
         {
@@ -547,6 +581,14 @@ public sealed class AccountService : IAccountService
 
         await _db.SaveChangesAsync(cancellationToken);
 
+        await _auditService.LogAsync(
+            userId,
+            action: AuditAction.UsernameChanged,
+            metadata: new UsernameChangedMetadata(oldName, username),
+            actorId,
+            cancellationToken
+        );
+
         await transaction.CommitAsync(cancellationToken);
 
         return new Success();
@@ -554,17 +596,27 @@ public sealed class AccountService : IAccountService
 
 
     /// <inheritdoc />
-    public async Task<OneOf<Success, AccountNotActivated, AccountDeactivated, NotFound>> ChangePasswordAsync(Guid userId, string newPassword)
+    public async Task<OneOf<Success, AccountNotActivated, AccountDeactivated, NotFound>> ChangePasswordAsync(Guid userId, string newPassword, Guid? actorId)
     {
         var user = await _db.Users.Include(u => u.UserDeactivation).FirstOrDefaultAsync(x => x.Id == userId);
         if (user is null) return new NotFound();
         if (user.ActivatedAt is null) return new AccountNotActivated();
         if (user.UserDeactivation is not null) return new AccountDeactivated();
 
+        await using var transaction = await _db.Database.BeginTransactionAsync();
+
         user.PasswordHash = HashingUtils.HashPassword(newPassword);
         user.SecurityStamp = Guid.CreateVersion7(); // Any outstanding reset/email-change row for this user has a stale SecurityStampAtCreate after this; predicate handles invalidation.
 
         await _db.SaveChangesAsync();
+
+        await _auditService.LogAsync(
+            userId,
+            action: AuditAction.PasswordChanged,
+            actorId: actorId
+        );
+
+        await transaction.CommitAsync();
 
         return new Success();
     }
@@ -660,6 +712,8 @@ public sealed class AccountService : IAccountService
 
         if (change is null) return new NotFound();
 
+        await using var transaction = await _db.Database.BeginTransactionAsync(cancellationToken);
+
         // Race-safe consume + apply: only updates if SecurityStamp still matches the snapshot, so
         // sibling email changes / password resets that completed since the read above cleanly lose.
         var newStamp = Guid.CreateVersion7();
@@ -683,6 +737,16 @@ public sealed class AccountService : IAccountService
         await _db.UserEmailChanges
             .Where(c => c.Id == change.ChangeId && c.UsedAt == null)
             .ExecuteUpdateAsync(s => s.SetProperty(c => c.UsedAt, now), cancellationToken);
+
+        await _auditService.LogAsync(
+            change.UserId,
+            action: AuditAction.EmailChanged,
+            metadata: new EmailChangedMetadata(change.OldEmail, change.NewEmail),
+            actorId: null,
+            cancellationToken
+        );
+
+        await transaction.CommitAsync(cancellationToken);
 
         return new Success<(Guid, string, string)>((change.UserId, change.OldEmail, change.NewEmail));
     }

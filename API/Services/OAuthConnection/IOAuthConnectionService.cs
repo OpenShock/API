@@ -11,6 +11,6 @@ public interface IOAuthConnectionService
     Task<UserOAuthConnection?> GetByProviderExternalIdAsync(string provider, string providerAccountId, CancellationToken cancellationToken = default);
     Task<bool> ConnectionExistsAsync(string provider, string providerAccountId, CancellationToken cancellationToken = default);
     Task<bool> HasConnectionAsync(Guid userId, string provider, CancellationToken cancellationToken = default);
-    Task<bool> TryAddConnectionAsync(Guid userId, string provider, string providerAccountId, string? providerAccountName, CancellationToken cancellationToken = default);
+    Task<bool> TryAddConnectionAsync(Guid userId, string provider, string providerAccountId, string? providerAccountName, Guid? actorId, CancellationToken cancellationToken = default);
     Task<bool> TryRemoveConnectionAsync(Guid userId, string provider, Guid? actorId, CancellationToken cancellationToken = default);
 }

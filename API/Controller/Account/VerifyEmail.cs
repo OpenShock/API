@@ -1,14 +1,9 @@
-﻿using System;
+using System;
 using System.Net.Mime;
 using Microsoft.AspNetCore.Mvc;
 using Asp.Versioning;
 using OpenShock.Common.Errors;
-using OpenShock.Common.OpenShockDb;
-using OpenShock.Common.Extensions;
-using OpenShock.Common.Utils;
-using OpenShock.Common.Models;
 using OpenShock.Common.Problems;
-using OpenShock.Common.Services.Audit;
 
 namespace OpenShock.API.Controller.Account;
 
@@ -25,8 +20,8 @@ public sealed partial class AccountController
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status400BadRequest, MediaTypeNames.Application.ProblemJson)]
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status409Conflict, MediaTypeNames.Application.ProblemJson)]
     [MapToApiVersion("1")]
-    public Task<IActionResult> EmailVerify([FromQuery(Name = "token")] string token, [FromServices] IAuditService auditService, CancellationToken cancellationToken)
-        => VerifyPendingEmailChange(token, auditService, cancellationToken);
+    public Task<IActionResult> EmailVerify([FromQuery(Name = "token")] string token, CancellationToken cancellationToken)
+        => VerifyPendingEmailChange(token, cancellationToken);
 
     /// <summary>
     /// Verify a pending email change. Deprecated: use POST /email-change/verify instead.
@@ -40,25 +35,16 @@ public sealed partial class AccountController
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status400BadRequest, MediaTypeNames.Application.ProblemJson)]
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status409Conflict, MediaTypeNames.Application.ProblemJson)]
     [MapToApiVersion("1")]
-    public Task<IActionResult> EmailVerifyLegacy([FromQuery(Name = "token")] string token, [FromServices] IAuditService auditService, CancellationToken cancellationToken)
-        => VerifyPendingEmailChange(token, auditService, cancellationToken);
+    public Task<IActionResult> EmailVerifyLegacy([FromQuery(Name = "token")] string token, CancellationToken cancellationToken)
+        => VerifyPendingEmailChange(token, cancellationToken);
 
-    private async Task<IActionResult> VerifyPendingEmailChange(string token, IAuditService auditService, CancellationToken cancellationToken)
+    private async Task<IActionResult> VerifyPendingEmailChange(string token, CancellationToken cancellationToken)
     {
         var result = await _accountService.TryVerifyEmailAsync(token, cancellationToken);
 
-        return await result.Match<Task<IActionResult>>(
-            async success =>
-            {
-                await auditService.LogAsync(
-                    success.Value.UserId,
-                    AuditAction.EmailChanged,
-                    ipAddress: HttpContext.GetRemoteIP(),
-                    userAgent: HttpContext.GetUserAgent(),
-                    metadata: new EmailChangedMetadata(success.Value.OldEmail, success.Value.NewEmail));
-                return Ok();
-            },
-            notFound => Task.FromResult<IActionResult>(Problem(AccountError.EmailChangeNotFound)),
-            emailTaken => Task.FromResult<IActionResult>(Problem(AccountError.EmailChangeAlreadyInUse)));
+        return result.Match<IActionResult>(
+            success => Ok(),
+            notFound => Problem(AccountError.EmailChangeNotFound),
+            emailTaken => Problem(AccountError.EmailChangeAlreadyInUse));
     }
 }

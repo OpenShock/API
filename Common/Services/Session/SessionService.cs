@@ -1,6 +1,9 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using OpenShock.Common.Constants;
+using OpenShock.Common.Models;
+using OpenShock.Common.OpenShockDb;
 using OpenShock.Common.Redis;
+using OpenShock.Common.Services.Audit;
 using OpenShock.Common.Utils;
 using Redis.OM;
 using Redis.OM.Contracts;
@@ -14,17 +17,20 @@ namespace OpenShock.Common.Services.Session;
 public sealed class SessionService : ISessionService
 {
     private readonly IRedisCollection<LoginSession> _loginSessions;
+    private readonly IAuditService _auditService;
 
     /// <summary>
     /// DI constructor
     /// </summary>
     /// <param name="redisConnectionProvider"></param>
-    public SessionService(IRedisConnectionProvider redisConnectionProvider)
+    /// <param name="auditService"></param>
+    public SessionService(IRedisConnectionProvider redisConnectionProvider, IAuditService auditService)
     {
         _loginSessions = redisConnectionProvider.RedisCollection<LoginSession>(false);
+        _auditService = auditService;
     }
 
-    public async Task<CreateSessionResult> CreateSessionAsync(Guid userId, string userAgent, string ipAddress)
+    public async Task<CreateSessionResult> CreateSessionAsync(Guid userId, string userAgent, string ipAddress, Guid? actorId)
     {
         Guid id = Guid.CreateVersion7();
         string token = CryptoUtils.RandomAlphaNumericString(AuthConstants.GeneratedTokenLength);
@@ -39,6 +45,13 @@ public sealed class SessionService : ISessionService
             Created = DateTime.UtcNow,
             Expires = DateTime.UtcNow.Add(Duration.LoginSessionLifetime),
         }, Duration.LoginSessionLifetime);
+
+        await _auditService.LogAsync(
+            userId,
+            action: AuditAction.Login,
+            metadata: new LoginMetadata(id),
+            actorId
+        );
 
         return new CreateSessionResult(id, token);
     }
@@ -105,5 +118,15 @@ public sealed class SessionService : ISessionService
     public async Task DeleteSessionAsync(LoginSession loginSession)
     {
         await _loginSessions.DeleteAsync(loginSession);
+    }
+
+    public async Task LogoutSessionAsync(LoginSession loginSession)
+    {
+        await _loginSessions.DeleteAsync(loginSession);
+
+        await _auditService.LogAsync(
+            loginSession.UserId,
+            action: AuditAction.Logout
+        );
     }
 }

@@ -5,7 +5,9 @@ using OpenShock.API.Models;
 using OpenShock.API.Models.Requests;
 using OpenShock.API.Models.Response;
 using OpenShock.Common.Constants;
+using OpenShock.Common.Models;
 using OpenShock.Common.OpenShockDb;
+using OpenShock.Common.Services.Audit;
 using OpenShock.Common.Services.RedisPubSub;
 using OpenShock.Common.Utils;
 
@@ -18,16 +20,19 @@ public sealed class ApiTokenService : IApiTokenService
 {
     private readonly OpenShockContext _db;
     private readonly IRedisPubService _redisPubService;
+    private readonly IAuditService _auditService;
 
     /// <summary>
     /// DI Constructor
     /// </summary>
     /// <param name="db"></param>
     /// <param name="redisPubService"></param>
-    public ApiTokenService(OpenShockContext db, IRedisPubService redisPubService)
+    /// <param name="auditService"></param>
+    public ApiTokenService(OpenShockContext db, IRedisPubService redisPubService, IAuditService auditService)
     {
         _db = db;
         _redisPubService = redisPubService;
+        _auditService = auditService;
     }
 
     private static readonly Expression<Func<ApiToken, TokenResponse>> ToTokenResponse = x => new TokenResponse
@@ -119,8 +124,20 @@ public sealed class ApiTokenService : IApiTokenService
             Permissions = body.Permissions.Distinct().ToList(),
             ValidUntil = body.ValidUntil?.ToUniversalTime()
         };
-        _db.ApiTokens.Add(tokenDto);
-        await _db.SaveChangesAsync();
+
+        await using (var transaction = await _db.Database.BeginTransactionAsync())
+        {
+            _db.ApiTokens.Add(tokenDto);
+            await _db.SaveChangesAsync();
+
+            await _auditService.LogAsync(
+                userId,
+                action: AuditAction.ApiTokenCreated,
+                metadata: new ApiTokenCreatedMetadata(tokenDto.Id, tokenDto.Name, tokenDto.Permissions.Select(p => PermissionTypeBindings.PermissionTypeToName[p].Name).ToList())
+            );
+
+            await transaction.CommitAsync();
+        }
 
         return new TokenCreatedResponse
         {
@@ -151,8 +168,19 @@ public sealed class ApiTokenService : IApiTokenService
         };
         body.ShockerControl.ApplyTo(tokenDto);
 
-        _db.ApiTokens.Add(tokenDto);
-        await _db.SaveChangesAsync();
+        await using (var transaction = await _db.Database.BeginTransactionAsync())
+        {
+            _db.ApiTokens.Add(tokenDto);
+            await _db.SaveChangesAsync();
+
+            await _auditService.LogAsync(
+                userId,
+                action: AuditAction.ApiTokenCreated,
+                metadata: new ApiTokenCreatedMetadata(tokenDto.Id, tokenDto.Name, tokenDto.Permissions.Select(p => PermissionTypeBindings.PermissionTypeToName[p].Name).ToList())
+            );
+
+            await transaction.CommitAsync();
+        }
 
         return new TokenCreatedResponseV2
         {
@@ -212,25 +240,34 @@ public sealed class ApiTokenService : IApiTokenService
     }
 
     /// <inheritdoc />
-    public async Task<bool> DeleteToken(Guid tokenId, Guid? ownerId = null, CancellationToken cancellationToken = default)
+    public async Task<bool> DeleteToken(Guid tokenId, Guid? actorId, Guid? ownerId = null, CancellationToken cancellationToken = default)
     {
-        var nDeleted = await Tokens(ownerId).Where(x => x.Id == tokenId).ExecuteDeleteAsync(cancellationToken);
-        if (nDeleted <= 0) return false;
+        // Capture the owner and name before deletion so the audit entry can record what was revoked.
+        var info = await Tokens(ownerId)
+            .Where(x => x.Id == tokenId)
+            .Select(x => new { x.UserId, x.Name })
+            .FirstOrDefaultAsync(cancellationToken);
+        if (info is null) return false;
+
+        await using (var transaction = await _db.Database.BeginTransactionAsync(cancellationToken))
+        {
+            var nDeleted = await Tokens(ownerId).Where(x => x.Id == tokenId).ExecuteDeleteAsync(cancellationToken);
+            if (nDeleted <= 0) return false;
+
+            await _auditService.LogAsync(
+                info.UserId,
+                action: AuditAction.ApiTokenDeleted,
+                metadata: new ApiTokenDeletedMetadata(tokenId, info.Name),
+                actorId,
+                cancellationToken
+            );
+
+            await transaction.CommitAsync(cancellationToken);
+        }
 
         // Revoked tokens must stop controlling any open live control connection.
         await _redisPubService.SendApiTokenUpdate(tokenId);
 
         return true;
-    }
-
-    /// <inheritdoc />
-    public async Task<(Guid OwnerId, string Name)?> GetTokenAuditInfoAsync(Guid tokenId, Guid? ownerId = null, CancellationToken cancellationToken = default)
-    {
-        var result = await Tokens(ownerId)
-            .Where(x => x.Id == tokenId)
-            .Select(x => new { x.UserId, x.Name })
-            .FirstOrDefaultAsync(cancellationToken);
-
-        return result is null ? null : (result.UserId, result.Name);
     }
 }

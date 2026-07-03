@@ -1,13 +1,9 @@
-﻿using System.Net.Mime;
+using System.Net.Mime;
 using Microsoft.AspNetCore.Mvc;
 using OpenShock.API.Models.Requests;
 using OpenShock.Common.Errors;
-using OpenShock.Common.Extensions;
-using OpenShock.Common.Models;
 using OpenShock.Common.OpenShockDb;
 using OpenShock.Common.Problems;
-using OpenShock.Common.Services.Audit;
-using OpenShock.Common.Utils;
 
 namespace OpenShock.API.Controller.Account.Authenticated;
 
@@ -17,7 +13,6 @@ public sealed partial class AuthenticatedAccountController
     /// Change the username of the current user
     /// </summary>
     /// <param name="body"></param>
-    /// <param name="auditService"></param>
     /// <returns></returns>
     /// <exception cref="Exception"></exception>
     [HttpPost("username")]
@@ -26,29 +21,17 @@ public sealed partial class AuthenticatedAccountController
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status409Conflict, MediaTypeNames.Application.ProblemJson)] // UsernameTaken
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status400BadRequest, MediaTypeNames.Application.ProblemJson)] // UsernameInvalid
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status403Forbidden, MediaTypeNames.Application.ProblemJson)] // UsernameRecentlyChanged
-    public async Task<IActionResult> ChangeUsername(
-        [FromBody] ChangeUsernameRequest body,
-        [FromServices] IAuditService auditService)
+    public async Task<IActionResult> ChangeUsername([FromBody] ChangeUsernameRequest body)
     {
-        var oldUsername = CurrentUser.Name;
-        var result = await _accountService.ChangeUsernameAsync(CurrentUser.Id, body.Username,
-            CurrentUser.Roles.Any(r => r is RoleType.Staff or RoleType.Admin or RoleType.System));
+        var result = await _accountService.ChangeUsernameAsync(CurrentUser.Id, body.Username, actorId: CurrentUser.Id,
+            ignoreLimit: CurrentUser.Roles.Any(r => r is RoleType.Staff or RoleType.Admin or RoleType.System));
 
-        return await result.Match<Task<IActionResult>>(
-            async success =>
-            {
-                await auditService.LogAsync(
-                    CurrentUser.Id,
-                    AuditAction.UsernameChanged,
-                    ipAddress: HttpContext.GetRemoteIP(),
-                    userAgent: HttpContext.GetUserAgent(),
-                    metadata: new UsernameChangedMetadata(oldUsername, body.Username));
-                return Ok();
-            },
-            usernametaken => Task.FromResult<IActionResult>(Problem(AccountError.UsernameTaken)),
-            usernameerror => Task.FromResult<IActionResult>(Problem(AccountError.UsernameInvalid(usernameerror))),
-            recentlychanged => Task.FromResult<IActionResult>(Problem(AccountError.UsernameRecentlyChanged)),
-            accountdeactivated => Task.FromResult<IActionResult>(Problem(AccountError.AccountDeactivated)),
+        return result.Match<IActionResult>(
+            success => Ok(),
+            usernametaken => Problem(AccountError.UsernameTaken),
+            usernameerror => Problem(AccountError.UsernameInvalid(usernameerror)),
+            recentlychanged => Problem(AccountError.UsernameRecentlyChanged),
+            accountdeactivated => Problem(AccountError.AccountDeactivated),
             notfound => throw new Exception("Unexpected result, apparently our current user does not exist..."));
     }
 }
