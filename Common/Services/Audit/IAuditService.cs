@@ -13,8 +13,6 @@ public interface IAuditService
     Task LogAsync(
         Guid userId,
         AuditAction action,
-        IPAddress? ipAddress = null,
-        string? userAgent = null,
         AuditMetadata? metadata = null,
         Guid? actorId = null,
         CancellationToken cancellationToken = default);

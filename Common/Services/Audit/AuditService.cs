@@ -17,29 +17,31 @@ public sealed class AuditService : IAuditService
     private const string DefaultSort = "createdAt";
 
     private readonly OpenShockContext _db;
+    private readonly IHttpContextAccessor _httpContextAccessor;
 
-    public AuditService(OpenShockContext db)
+    public AuditService(OpenShockContext db, IHttpContextAccessor httpContextAccessor)
     {
         _db = db;
+        _httpContextAccessor = httpContextAccessor;
     }
 
     public async Task LogAsync(
         Guid userId,
         AuditAction action,
-        IPAddress? ipAddress = null,
-        string? userAgent = null,
-        AuditMetadata? metadata = null,
-        Guid? actorId = null,
-        CancellationToken cancellationToken = default)
+        AuditMetadata? metadata,
+        Guid? actorId,
+        CancellationToken cancellationToken)
     {
+        var httpContext = _httpContextAccessor.HttpContext;
+        
         _db.UserAuditLogs.Add(new UserAuditLog
         {
             Id = Guid.CreateVersion7(),
             UserId = userId,
             ActorId = actorId ?? userId,
             Action = action,
-            IpAddress = ipAddress?.ToString(),
-            UserAgent = userAgent,
+            IpAddress = httpContext?.Connection.RemoteIpAddress?.ToString(),
+            UserAgent = httpContext?.Request.Headers.UserAgent,
             Metadata = metadata,
             CreatedAt = DateTime.UtcNow,
         });
@@ -50,7 +52,7 @@ public sealed class AuditService : IAuditService
     public Task<PagedResult<UserAuditLog>> GetPagedForUserAsync(
         Guid userId,
         PaginationQuery pagination,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken)
     {
         return _db.UserAuditLogs
             .Where(x => x.UserId == userId)
@@ -63,7 +65,7 @@ public sealed class AuditService : IAuditService
         Guid? userId,
         Guid? actorId,
         PaginationQuery pagination,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken)
     {
         var query = _db.UserAuditLogs.AsQueryable();
 
