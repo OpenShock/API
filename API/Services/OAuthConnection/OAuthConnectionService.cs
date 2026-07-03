@@ -1,17 +1,21 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Npgsql;
+using OpenShock.Common.Models;
 using OpenShock.Common.OpenShockDb;
+using OpenShock.Common.Services.Audit;
 
 namespace OpenShock.API.Services.OAuthConnection;
 
 public sealed class OAuthConnectionService : IOAuthConnectionService
 {
     private readonly OpenShockContext _db;
+    private readonly IAuditService _auditService;
     private readonly ILogger<OAuthConnectionService> _logger;
 
-    public OAuthConnectionService(OpenShockContext db, ILogger<OAuthConnectionService> logger)
+    public OAuthConnectionService(OpenShockContext db, IAuditService auditService, ILogger<OAuthConnectionService> logger)
     {
         _db = db;
+        _auditService = auditService;
         _logger = logger;
     }
 
@@ -63,12 +67,25 @@ public sealed class OAuthConnectionService : IOAuthConnectionService
         }
     }
 
-    public async Task<bool> TryRemoveConnectionAsync(Guid userId, string provider, CancellationToken cancellationToken)
+    public async Task<bool> TryRemoveConnectionAsync(Guid userId, string provider, Guid? actorId, CancellationToken cancellationToken)
     {
         var p = provider.ToLowerInvariant();
+        
+        await using var transaction = await _db.Database.BeginTransactionAsync(cancellationToken);
+        
         var nDeleted = await _db.UserOAuthConnections
             .Where(c => c.UserId == userId && c.ProviderKey == p)
             .ExecuteDeleteAsync(cancellationToken);
+        
+        await _auditService.LogAsync(
+            userId,
+            action: AuditAction.OAuthDisconnected,
+            metadata: new OAuthDisconnectedMetadata(provider),
+            actorId,
+            cancellationToken
+        );
+        
+        await transaction.CommitAsync(cancellationToken);
 
         return nDeleted > 0;
     }

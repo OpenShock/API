@@ -1,10 +1,5 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using OpenShock.API.Services.OAuthConnection;
-using OpenShock.Common.Extensions;
-using OpenShock.Common.OpenShockDb;
-using OpenShock.Common.Utils;
-using OpenShock.Common.Models;
-using OpenShock.Common.Services.Audit;
 
 namespace OpenShock.API.Controller.Account.Authenticated;
 
@@ -22,23 +17,12 @@ public sealed partial class AuthenticatedAccountController
     [HttpDelete("connections/{provider}")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> RemoveOAuthConnection(
-        [FromRoute] string provider,
-        [FromServices] IOAuthConnectionService connectionService,
-        [FromServices] IAuditService auditService,
-        CancellationToken cancellationToken)
+    public async Task<IActionResult> RemoveOAuthConnection([FromRoute] string provider, [FromServices] IOAuthConnectionService connectionService, CancellationToken cancellationToken)
     {
-        var deleted = await connectionService.TryRemoveConnectionAsync(CurrentUser.Id, provider, cancellationToken);
+        var deleted = await connectionService.TryRemoveConnectionAsync(CurrentUser.Id, provider, actorId: CurrentUser.Id, cancellationToken);
 
         if (!deleted)
             return NotFound();
-
-        await auditService.LogAsync(
-            CurrentUser.Id,
-            AuditAction.OAuthDisconnected,
-            ipAddress: HttpContext.GetRemoteIP(),
-            userAgent: HttpContext.GetUserAgent(),
-            metadata: new OAuthDisconnectedMetadata(provider));
 
         return NoContent();
     }
