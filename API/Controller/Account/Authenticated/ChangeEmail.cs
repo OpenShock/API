@@ -15,7 +15,6 @@ public sealed partial class AuthenticatedAccountController
     /// address; the change is not applied until that link is opened.
     /// </summary>
     /// <param name="body"></param>
-    /// <param name="auditService"></param>
     [HttpPost("email-change")]
     [Consumes(MediaTypeNames.Application.Json)]
     [ProducesResponseType(StatusCodes.Status200OK)]

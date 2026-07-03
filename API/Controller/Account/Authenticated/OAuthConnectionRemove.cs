@@ -10,7 +10,6 @@ public sealed partial class AuthenticatedAccountController
     /// </summary>
     /// <param name="provider">Provider key (e.g. <c>discord</c>).</param>
     /// <param name="connectionService"></param>
-    /// <param name="auditService"></param>
     /// <param name="cancellationToken"></param>
     /// <response code="204">Connection removed.</response>
     /// <response code="404">No connection found for this provider.</response>
