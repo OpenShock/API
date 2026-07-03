@@ -6,6 +6,7 @@ using OneOf.Types;
 using OpenShock.Common.Constants;
 using OpenShock.Common.Models;
 using OpenShock.Common.OpenShockDb;
+using OpenShock.Common.Services.Audit;
 using OpenShock.Common.Services.RedisPubSub;
 using OpenShock.Common.Services.Session;
 using OpenShock.Common.Utils;
@@ -21,6 +22,7 @@ public sealed class AccountService : IAccountService
     private readonly OpenShockContext _db;
     private readonly IRedisPubService _redisPubService;
     private readonly ISessionService _sessionService;
+    private readonly IAuditService _auditService;
     private readonly ILogger<AccountService> _logger;
 
     /// <summary>
@@ -29,14 +31,15 @@ public sealed class AccountService : IAccountService
     /// <param name="db"></param>
     /// <param name="redisPubService">Used to notify the email outbox delivery job that mail was enqueued.</param>
     /// <param name="sessionService"></param>
+    /// <param name="auditService"></param>
     /// <param name="logger"></param>
-    public AccountService(OpenShockContext db, IRedisPubService redisPubService,
-        ISessionService sessionService, ILogger<AccountService> logger)
+    public AccountService(OpenShockContext db, IRedisPubService redisPubService, ISessionService sessionService, IAuditService auditService, ILogger<AccountService> logger)
     {
         _db = db;
         _redisPubService = redisPubService;
-        _logger = logger;
         _sessionService = sessionService;
+        _auditService =  auditService;
+        _logger = logger;
     }
 
     /// <summary>
@@ -567,7 +570,7 @@ public sealed class AccountService : IAccountService
     }
 
     /// <inheritdoc />
-    public async Task<OneOf<Success, EmailAlreadyInUse, EmailUnchanged, TooManyEmailChanges, AccountNotActivated, AccountDeactivated, NotFound>> CreateEmailChangeFlowAsync(Guid userId, string newEmail)
+    public async Task<OneOf<Success, EmailAlreadyInUse, EmailUnchanged, TooManyEmailChanges, AccountNotActivated, AccountDeactivated, NotFound>> CreateEmailChangeFlowAsync(Guid userId, string newEmail, Guid? actorId)
     {
         var validSince = DateTime.UtcNow - Duration.EmailChangeRequestLifetime;
 
@@ -604,17 +607,31 @@ public sealed class AccountService : IAccountService
             TokenHash = SeedTokenHash(),
             SecurityStampAtCreate = data.User.SecurityStamp
         };
-        _db.UserEmailChanges.Add(emailChange);
+        
+        await using (var transaction = await _db.Database.BeginTransactionAsync())
+        {
+            _db.UserEmailChanges.Add(emailChange);
 
-        // Durably enqueue both emails: the verification link to the new address, and an informational
-        // notice to the previous address so the legitimate owner sees the change request even if the
-        // session/password used to start it was compromised. The outbox guarantees delivery with
-        // retries; this replaces the previous best-effort inline sends. Committing the row even if
-        // mail later fails is intentional - the request is durable and the delivery job keeps retrying.
-        _db.EmailOutbox.Add(EmailOutboxMessage.ForEmailVerification(emailChange.Id, data.User.Id, lowerCaseEmail, data.User.Name));
-        _db.EmailOutbox.Add(EmailOutboxMessage.ForEmailChangeNotice(lowerCaseEmail, data.User.Email, data.User.Name));
+            // Durably enqueue both emails: the verification link to the new address, and an informational
+            // notice to the previous address so the legitimate owner sees the change request even if the
+            // session/password used to start it was compromised. The outbox guarantees delivery with
+            // retries; this replaces the previous best-effort inline sends. Committing the row even if
+            // mail later fails is intentional - the request is durable and the delivery job keeps retrying.
+            _db.EmailOutbox.Add(EmailOutboxMessage.ForEmailVerification(emailChange.Id, data.User.Id, lowerCaseEmail, data.User.Name));
+            _db.EmailOutbox.Add(EmailOutboxMessage.ForEmailChangeNotice(lowerCaseEmail, data.User.Email, data.User.Name));
 
-        await _db.SaveChangesAsync();
+            await _db.SaveChangesAsync();
+
+            await _auditService.LogAsync(
+                userId,
+                action: AuditAction.EmailChangeRequested,
+                metadata: new EmailChangeRequestedMetadata(newEmail),
+                actorId
+            );
+
+            await transaction.CommitAsync();
+        }
+        
         await NotifyEmailOutboxAsync();
 
         return new Success();

@@ -3,11 +3,7 @@ using System.Net.Mime;
 using Microsoft.AspNetCore.Mvc;
 using OpenShock.API.Models.Requests;
 using OpenShock.Common.Errors;
-using OpenShock.Common.OpenShockDb;
-using OpenShock.Common.Extensions;
-using OpenShock.Common.Models;
 using OpenShock.Common.Problems;
-using OpenShock.Common.Services.Audit;
 using OpenShock.Common.Utils;
 
 namespace OpenShock.API.Controller.Account.Authenticated;
@@ -29,9 +25,7 @@ public sealed partial class AuthenticatedAccountController
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status409Conflict, MediaTypeNames.Application.ProblemJson)] // EmailChangeAlreadyInUse
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status429TooManyRequests, MediaTypeNames.Application.ProblemJson)] // EmailChangeTooMany
     // notActivated / deactivated / notFound are blocked by UserSessionAuthentication before reaching this controller.
-    public async Task<IActionResult> ChangeEmail(
-        [FromBody] ChangeEmailRequest body,
-        [FromServices] IAuditService auditService)
+    public async Task<IActionResult> ChangeEmail([FromBody] ChangeEmailRequest body)
     {
         if (string.IsNullOrEmpty(CurrentUser.PasswordHash))
         {
@@ -43,22 +37,13 @@ public sealed partial class AuthenticatedAccountController
             return Problem(AccountError.PasswordChangeInvalidPassword);
         }
 
-        var result = await _accountService.CreateEmailChangeFlowAsync(CurrentUser.Id, body.Email);
+        var result = await _accountService.CreateEmailChangeFlowAsync(CurrentUser.Id, body.Email, actorId: CurrentUser.Id);
 
-        return await result.Match<Task<IActionResult>>(
-            async success =>
-            {
-                await auditService.LogAsync(
-                    CurrentUser.Id,
-                    AuditAction.EmailChangeRequested,
-                    ipAddress: HttpContext.GetRemoteIP(),
-                    userAgent: HttpContext.GetUserAgent(),
-                    metadata: new EmailChangeRequestedMetadata(body.Email));
-                return Ok();
-            },
-            alreadyInUse => Task.FromResult<IActionResult>(Problem(AccountError.EmailChangeAlreadyInUse)),
-            unchanged => Task.FromResult<IActionResult>(Problem(AccountError.EmailChangeUnchanged)),
-            tooMany => Task.FromResult<IActionResult>(Problem(AccountError.EmailChangeTooMany)),
+        return result.Match<IActionResult>(
+            success => Ok(),
+            alreadyInUse => Problem(AccountError.EmailChangeAlreadyInUse),
+            unchanged => Problem(AccountError.EmailChangeUnchanged),
+            tooMany => Problem(AccountError.EmailChangeTooMany),
             notActivated => throw new UnreachableException("Authenticated user is not activated"),
             deactivated => throw new UnreachableException("Authenticated user is deactivated"),
             notFound => throw new UnreachableException("Authenticated user not found in database"));
