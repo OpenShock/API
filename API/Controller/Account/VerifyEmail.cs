@@ -1,4 +1,5 @@
-﻿using System.Net.Mime;
+﻿using System;
+using System.Net.Mime;
 using Microsoft.AspNetCore.Mvc;
 using Asp.Versioning;
 using OpenShock.Common.Errors;
