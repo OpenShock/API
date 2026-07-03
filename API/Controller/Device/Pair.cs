@@ -54,9 +54,11 @@ public sealed partial class DeviceController
         if (pair is null) return Problem(PairError.PairCodeNotFound);
         await devicePairs.DeleteAsync(pair);
 
-        var deviceToken = await _db.Devices.Where(x => x.Id == pair.Id).Select(x => x.Token).FirstOrDefaultAsync();
-        if (deviceToken is null) throw new Exception("Device not found for pair code");
+        var device = await _db.Devices.Where(x => x.Id == pair.Id).Select(x => new { x.Token, x.OwnerId }).FirstOrDefaultAsync();
+        if (device is null) throw new Exception("Device not found for pair code");
 
-        return LegacyDataOk(deviceToken);
+        await _deviceUpdateService.UpdateDevice(device.OwnerId, pair.Id, DeviceUpdateType.Paired);
+
+        return LegacyDataOk(device.Token);
     }
 }
