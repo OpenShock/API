@@ -10,9 +10,9 @@ public sealed partial class AccountController
     [HttpPost("logout")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [MapToApiVersion("1")]
-    public async Task<IActionResult> Logout(
-        [FromServices] ISessionService sessionService)
+    public async Task<IActionResult> Logout([FromServices] ISessionService sessionService)
     {
+        // Remove session if valid
         if (HttpContext.TryGetUserSessionToken(out var sessionToken))
         {
             var session = await sessionService.GetSessionByTokenAsync(sessionToken);
