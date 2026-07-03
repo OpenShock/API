@@ -81,6 +81,7 @@ public sealed partial class TokensController
     /// </summary>
     /// <param name="body"></param>
     /// <param name="tokenService"></param>
+    /// <param name="auditService"></param>
     /// <response code="200">The created token</response>
     [HttpPost]
     [Consumes(MediaTypeNames.Application.Json)]
@@ -126,6 +127,7 @@ public sealed partial class TokensController
     /// </summary>
     /// <param name="body"></param>
     /// <param name="tokenService"></param>
+    /// <param name="auditService"></param>
     /// <response code="200">The created token</response>
     [HttpPost]
     [Consumes(MediaTypeNames.Application.Json)]

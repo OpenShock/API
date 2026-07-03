@@ -17,6 +17,7 @@ public sealed partial class AuthenticatedAccountController
     /// Change the username of the current user
     /// </summary>
     /// <param name="body"></param>
+    /// <param name="auditService"></param>
     /// <returns></returns>
     /// <exception cref="Exception"></exception>
     [HttpPost("username")]

@@ -34,6 +34,7 @@ public sealed class TokenDeleteController : AuthenticatedSessionControllerBase
     /// Revoke a token
     /// </summary>
     /// <param name="tokenId"></param>
+    /// <param name="auditService"></param>
     /// <param name="cancellationToken"></param>
     /// <response code="200">Successfully deleted token</response>
     /// <response code="403">Api Token is not allowed to delete other Api Tokens</response>
