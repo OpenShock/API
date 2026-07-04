@@ -17,7 +17,7 @@ public sealed class LcgKeepAlive : IHostedService
     
     private uint _errorsInRow;
     
-    private static readonly TimeSpan KeepAliveKeyTTL = TimeSpan.FromSeconds(35); // 35 seconds
+    private static readonly TimeSpan KeepAliveKeyTtl = TimeSpan.FromSeconds(35); // 35 seconds
     private static readonly TimeSpan KeepAliveInterval = TimeSpan.FromSeconds(15); // 15 seconds
 
     /// <summary>
@@ -53,20 +53,30 @@ public sealed class LcgKeepAlive : IHostedService
                 Country = _options.CountryCode,
                 Load = 0,
                 Environment = _env.EnvironmentName
-            }, KeepAliveKeyTTL);
+            }, KeepAliveKeyTtl);
             return;
         }
 
         // TODO: Load reporting
-        if (online.Country != _options.CountryCode || online.Environment != _env.EnvironmentName)
+        // Refresh whenever any advertised field drifted. This also backfills nodes written by an
+        // older build: a default gateway keeps the same (bare-host) key across the upgrade, so the
+        // pre-existing JSON is found here and would otherwise keep Host/Port/PathPrefix missing.
+        if (online.Country != _options.CountryCode
+            || online.Environment != _env.EnvironmentName
+            || online.Host != _options.Fqdn
+            || online.Port != _options.PublicPort
+            || online.PathPrefix != _options.NormalizedPublicPath)
         {
             var changeTracker = _redisConnectionProvider.RedisCollection<LcgNode>();
             var tracked = await changeTracker.FindByIdAsync(nodeId);
             if (tracked is not null)
             {
+                tracked.Host = _options.Fqdn;
+                tracked.Port = _options.PublicPort;
+                tracked.PathPrefix = _options.NormalizedPublicPath;
                 tracked.Country = _options.CountryCode;
                 tracked.Environment = _env.EnvironmentName;
-                
+
                 await changeTracker.SaveAsync();
                 _logger.LogInformation("Updated keep alive key in redis {@NewKey}", tracked);
             }
@@ -76,7 +86,7 @@ public sealed class LcgKeepAlive : IHostedService
         }
 
         await _redisConnectionProvider.Connection.ExecuteAsync("EXPIRE",
-            $"{typeof(LcgNode).FullName}:{nodeId}", (int)KeepAliveKeyTTL.TotalSeconds);
+            $"{typeof(LcgNode).FullName}:{nodeId}", (int)KeepAliveKeyTtl.TotalSeconds);
     }
 
     private async Task Loop()
