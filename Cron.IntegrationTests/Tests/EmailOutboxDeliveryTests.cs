@@ -12,6 +12,9 @@ namespace OpenShock.Cron.IntegrationTests.Tests;
 /// mints the token lazily and renders the template, and the SMTP provider hands it to Mailpit. These are
 /// the behaviours that used to live (wrongly) in the API integration tests.
 /// </summary>
+// Serialized with EmailOutboxQueryTests: this class's delivery job claims due rows under FOR UPDATE,
+// whose held locks would otherwise make the query test's FOR UPDATE SKIP LOCKED read skip its row.
+[NotInParallel("email-outbox")]
 public sealed partial class EmailOutboxDeliveryTests
 {
     [ClassDataSource<CronApplicationFactory>(Shared = SharedType.PerTestSession)]
