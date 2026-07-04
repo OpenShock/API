@@ -98,7 +98,7 @@ services:
 
   api:
     <<: *openshock-svc
-    image: ghcr.io/openshock/api:latest
+    image: ghcr.io/openshock/api:${OPENSHOCK_TAG:-latest}
     environment:
       <<: *openshock-env
       # Path prefix the API is served under. Must match the PathPrefix router below.
@@ -112,7 +112,7 @@ services:
       - "traefik.http.services.openshock-api.loadbalancer.server.port=80"
 
   frontend:
-    image: ghcr.io/openshock/frontend:latest
+    image: ghcr.io/openshock/frontend:${OPENSHOCK_FRONTEND_TAG:-latest}
     restart: unless-stopped
     networks:
       - openshock
@@ -134,7 +134,7 @@ services:
 
   lcg:
     <<: *openshock-svc
-    image: ghcr.io/openshock/live-control-gateway:latest
+    image: ghcr.io/openshock/live-control-gateway:${OPENSHOCK_TAG:-latest}
     environment:
       <<: *openshock-env
       OPENSHOCK__LCG__COUNTRYCODE: ${OPENSHOCK_LCG_COUNTRYCODE:-DE}
@@ -153,7 +153,7 @@ services:
 
   cron:
     <<: *openshock-svc
-    image: ghcr.io/openshock/cron:latest
+    image: ghcr.io/openshock/cron:${OPENSHOCK_TAG:-latest}
     environment:
       <<: *openshock-env
     labels:
