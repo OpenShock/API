@@ -38,13 +38,18 @@ public sealed class LcgKeepAlive : IHostedService
     private async Task SelfOnline()
     {
         var lcgNodes = _redisConnectionProvider.RedisCollection<LcgNode>(false);
-        
-        var online = await lcgNodes.FindByIdAsync(_options.Fqdn);
+
+        var nodeId = _options.GetPublicNodeId();
+
+        var online = await lcgNodes.FindByIdAsync(nodeId);
         if (online is null)
         {
             await lcgNodes.InsertAsync(new LcgNode
             {
-                Fqdn = _options.Fqdn,
+                Id = nodeId,
+                Host = _options.Fqdn,
+                Port = _options.PublicPort,
+                PathPrefix = _options.NormalizedPublicPath,
                 Country = _options.CountryCode,
                 Load = 0,
                 Environment = _env.EnvironmentName
@@ -56,7 +61,7 @@ public sealed class LcgKeepAlive : IHostedService
         if (online.Country != _options.CountryCode || online.Environment != _env.EnvironmentName)
         {
             var changeTracker = _redisConnectionProvider.RedisCollection<LcgNode>();
-            var tracked = await changeTracker.FindByIdAsync(_options.Fqdn);
+            var tracked = await changeTracker.FindByIdAsync(nodeId);
             if (tracked is not null)
             {
                 tracked.Country = _options.CountryCode;
@@ -71,7 +76,7 @@ public sealed class LcgKeepAlive : IHostedService
         }
 
         await _redisConnectionProvider.Connection.ExecuteAsync("EXPIRE",
-            $"{typeof(LcgNode).FullName}:{_options.Fqdn}", (int)KeepAliveKeyTTL.TotalSeconds);
+            $"{typeof(LcgNode).FullName}:{nodeId}", (int)KeepAliveKeyTTL.TotalSeconds);
     }
 
     private async Task Loop()

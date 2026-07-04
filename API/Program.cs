@@ -115,7 +115,11 @@ builder.Services.AddHostedService<RedisSubscriberService>();
 
 var app = builder.Build();
 
-await app.UseCommonOpenShockMiddleware();
+// Optional path prefix the API is served under (e.g. "/api" when reverse-proxied on a
+// shared host). Empty by default -> served at root, unchanged behavior.
+var apiPathBase = builder.Configuration.GetValue<string>("OpenShock:Api:PathBase");
+
+await app.UseCommonOpenShockMiddleware(apiPathBase);
 
 if (!databaseOptions.SkipMigration)
 {
