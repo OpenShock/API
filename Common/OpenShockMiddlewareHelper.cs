@@ -22,10 +22,19 @@ public static class OpenShockMiddlewareHelper
         ForwardedForHeaderName = "CF-Connecting-IP"
     };
     
-    public static async Task<IApplicationBuilder> UseCommonOpenShockMiddleware(this WebApplication app)
+    public static async Task<IApplicationBuilder> UseCommonOpenShockMiddleware(this WebApplication app, string? pathBase = null)
     {
         var metricsOptions = app.Services.GetRequiredService<MetricsOptions>();
         var metricsAllowedIpNetworks = metricsOptions.AllowedNetworks.Select(IPNetwork.Parse).ToArray();
+
+        // Mount the whole app under a path prefix (e.g. "/api" or "/gateway") when configured.
+        // This must run before routing so controllers still match at their root-relative routes,
+        // and it records Request.PathBase so generated URLs (OAuth redirect_uri, Scalar, ...)
+        // include the prefix. The proxy forwards the full path unchanged (no StripPrefix).
+        if (!string.IsNullOrWhiteSpace(pathBase))
+        {
+            app.UsePathBase(NormalizePathBase(pathBase));
+        }
 
         foreach (var proxy in await TrustedProxiesFetcher.GetTrustedNetworksAsync())
         {
@@ -91,6 +100,16 @@ public static class OpenShockMiddlewareHelper
         app.MapControllers();
 
         return app;
+    }
+
+    /// <summary>
+    /// Normalizes a configured path base into a valid <see cref="PathString"/>: ensures a single
+    /// leading slash and strips any trailing slash (so "api", "/api", "/api/" all become "/api").
+    /// </summary>
+    private static string NormalizePathBase(string pathBase)
+    {
+        var trimmed = pathBase.Trim().Trim('/');
+        return trimmed.Length == 0 ? "/" : "/" + trimmed;
     }
 
     public static async Task<IApplicationBuilder> ApplyPendingOpenShockMigrations(this IApplicationBuilder app, DatabaseOptions options)

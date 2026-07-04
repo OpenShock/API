@@ -12,6 +12,10 @@ namespace OpenShock.Cron.IntegrationTests.Tests;
 /// email_status enum, LIMIT, FOR UPDATE SKIP LOCKED, SELECT * materialization) so a schema rename breaks
 /// this test rather than only surfacing in the Cron host at runtime.
 /// </summary>
+// Serialized with EmailOutboxDeliveryTests: both share the session Postgres, and the delivery job
+// claims due rows under FOR UPDATE (oldest-first). Running concurrently, that lock makes this test's
+// FOR UPDATE SKIP LOCKED read skip its own (oldest) row. The shared key removes that window.
+[NotInParallel("email-outbox")]
 public sealed class EmailOutboxQueryTests
 {
     [ClassDataSource<CronApplicationFactory>(Shared = SharedType.PerTestSession)]
