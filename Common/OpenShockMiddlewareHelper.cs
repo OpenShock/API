@@ -129,6 +129,14 @@ public static class OpenShockMiddlewareHelper
             logger.LogInformation("Found pending migrations, applying [{@Migrations}]", string.Join(", ", pendingMigrations));
             await migrationContext.Database.MigrateAsync();
             logger.LogInformation("Applied database migrations... proceeding with startup");
+
+            // A migration may have introduced new Postgres types (e.g. a new enum, or a new value on an
+            // existing one). Npgsql snapshots the type catalog (OID -> type) on the runtime data source's
+            // first connection and caches it for the process lifetime. Since this pooled data source is
+            // distinct from the throwaway migration context above, it can hold a catalog from before the
+            // migration ran and fail reading the new type with "DataTypeName '-.-'". Reload it now that the
+            // new types exist so this process does not need a restart to see them.
+            await ReloadRuntimeTypeCatalogAsync(scope.ServiceProvider, logger);
         }
         else
         {
@@ -136,6 +144,32 @@ public static class OpenShockMiddlewareHelper
         }
 
         return app;
+    }
+
+    /// <summary>
+    /// Forces the runtime pooled <see cref="OpenShockContext"/>'s Npgsql data source to reload its Postgres
+    /// type catalog. Called after migrations are applied so newly-added types (enums) are visible without a
+    /// process restart. Best-effort: a failure here is logged but not fatal, since a restart also clears it.
+    /// </summary>
+    private static async Task ReloadRuntimeTypeCatalogAsync(IServiceProvider services, Microsoft.Extensions.Logging.ILogger logger)
+    {
+        try
+        {
+            await using var context = services.GetRequiredService<OpenShockContext>();
+            // The connection is owned by the DbContext and disposed with it; do not dispose it here.
+#pragma warning disable IDISP001
+            var connection = (Npgsql.NpgsqlConnection)context.Database.GetDbConnection();
+#pragma warning restore IDISP001
+            await connection.OpenAsync();
+            await connection.ReloadTypesAsync();
+            logger.LogInformation("Reloaded Npgsql type catalog after applying migrations");
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex,
+                "Failed to reload Npgsql type catalog after migrations; if a migration added a new Postgres " +
+                "type, a restart of this process may be required for it to be readable");
+        }
     }
 
     /// <summary>

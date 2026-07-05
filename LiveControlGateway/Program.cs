@@ -48,4 +48,6 @@ var app = builder.Build();
 
 await app.UseCommonOpenShockMiddleware(lcgOptions.PublicPath);
 
+await app.WaitForOpenShockSchemaReady(databaseOptions);
+
 await app.RunAsync();
