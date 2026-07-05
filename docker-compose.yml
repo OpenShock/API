@@ -130,7 +130,7 @@ services:
       - "traefik.http.routers.openshock-frontend.entrypoints=https"
       - "traefik.http.routers.openshock-frontend.tls=true"
       - "traefik.http.routers.openshock-frontend.service=openshock-frontend"
-      - "traefik.http.services.openshock-frontend.loadbalancer.server.port=80"
+      - "traefik.http.services.openshock-frontend.loadbalancer.server.port=3000"
 
   lcg:
     <<: *openshock-svc
