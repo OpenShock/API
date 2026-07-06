@@ -77,6 +77,23 @@ public sealed class AccountLoginTests
     }
 
     [Test]
+    public async Task V2Login_ExpiredOrDuplicateTurnstile_Returns403()
+    {
+        await TestHelper.CreateUserInDb(WebApplicationFactory, "loginv2tsexp", "loginv2tsexp@test.org", "SecurePassword123#");
+
+        using var client = WebApplicationFactory.CreateClient();
+
+        var response = await client.PostAsync("/2/account/login", TestHelper.JsonContent(new
+        {
+            usernameOrEmail = "loginv2tsexp@test.org",
+            password = "SecurePassword123#",
+            turnstileResponse = "expired-token"
+        }));
+
+        await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.Forbidden);
+    }
+
+    [Test]
     public async Task V2Login_InvalidCredentials_Returns401()
     {
         await TestHelper.CreateUserInDb(WebApplicationFactory, "loginv2bad", "loginv2bad@test.org", "SecurePassword123#");

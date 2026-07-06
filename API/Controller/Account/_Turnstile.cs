@@ -19,7 +19,7 @@ public sealed partial class AccountController
         if (turnStile.IsT0) return null;
 
         var cfErrors = turnStile.AsT1.Value;
-        if (cfErrors.All(err => err == CloudflareTurnstileError.InvalidResponse))
+        if (cfErrors.All(err => err.IsClientError()))
             return Problem(TurnstileError.InvalidTurnstile);
 
         return Problem(new OpenShockProblem("InternalServerError", "Internal Server Error", HttpStatusCode.InternalServerError));
