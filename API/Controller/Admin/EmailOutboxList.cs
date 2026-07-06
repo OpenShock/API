@@ -8,7 +8,6 @@ using OpenShock.Common.OpenShockDb;
 using OpenShock.Common.Query;
 using System.ComponentModel.DataAnnotations;
 using System.Net.Mime;
-using Z.EntityFramework.Plus;
 
 namespace OpenShock.API.Controller.Admin;
 
@@ -63,21 +62,25 @@ public sealed partial class AdminController
             return Problem(ExpressionError.ExpressionExceptionError(e.Message));
         }
 
-        var deferredCount = query.DeferredLongCount().FutureValue();
+        // NOTE: unlike the users listing we do NOT batch these with Z.EntityFramework.Plus .Future():
+        // its custom data reader can't apply Npgsql's jsonb -> Dictionary<string,string> conversion for
+        // the Payload column and blindly casts the raw jsonb string to the dictionary, throwing
+        // InvalidCastException. Plain async queries let Npgsql materialize Payload correctly.
+        var total = await query.LongCountAsync();
 
         if (offset != 0)
         {
             query = query.Skip(offset);
         }
 
-        var deferredMessages = query.Take(limit).Future();
+        var messages = await query.Take(limit).ToArrayAsync();
 
         return Ok(new Paginated<EmailOutboxMessageDto>
         {
-            Data = (await deferredMessages.ToArrayAsync()).Select(EmailOutboxMessageDto.FromModel).ToArray(),
+            Data = messages.Select(EmailOutboxMessageDto.FromModel).ToArray(),
             Offset = offset,
             Limit = limit,
-            Total = await deferredCount.ValueAsync(),
+            Total = total,
         });
     }
 }
