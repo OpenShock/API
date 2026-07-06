@@ -35,4 +35,17 @@ public class EmailOutboxMessageTests
         await Assert.That(message.RecipientName).IsNull();
         await Assert.That(message.Payload[EmailOutboxPayloadKeys.NewEmail]).IsEqualTo("new@example.com");
     }
+
+    [Test]
+    public async Task ForPreview_FlagsPreviewAndNeverCoalesces()
+    {
+        var message = EmailOutboxMessage.ForPreview(EmailType.PasswordReset, "admin@example.com", "Admin");
+
+        await Assert.That(message.Status).IsEqualTo(EmailStatus.Pending);
+        await Assert.That(message.Type).IsEqualTo(EmailType.PasswordReset);
+        await Assert.That(message.Recipient).IsEqualTo("admin@example.com");
+        // Never coalesced, so every test send is delivered on its own.
+        await Assert.That(message.CoalesceKey).IsNull();
+        await Assert.That(message.Payload[EmailOutboxPayloadKeys.Preview]).IsEqualTo("true");
+    }
 }

@@ -21,4 +21,12 @@ public static class EmailOutboxPayloadKeys
 
     /// <summary>The newly requested address. Used by <see cref="EmailType.EmailChangeNotice"/>.</summary>
     public const string NewEmail = "newEmail";
+
+    /// <summary>
+    /// Present (value <c>"true"</c>) on a preview/test message enqueued by an admin. It marks the row so
+    /// the delivery dispatcher renders the chosen <see cref="EmailType"/>'s template with placeholder
+    /// data and a dummy link instead of looking up a real request row or minting a token. Never set on
+    /// a real transactional email.
+    /// </summary>
+    public const string Preview = "preview";
 }
