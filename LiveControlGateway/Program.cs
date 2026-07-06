@@ -46,6 +46,8 @@ builder.Services.AddSingleton<ApiTokenUpdateSubscriber>();
 
 var app = builder.Build();
 
-await app.UseCommonOpenShockMiddleware();
+await app.UseCommonOpenShockMiddleware(lcgOptions.PublicPath);
+
+await app.WaitForOpenShockSchemaReady(databaseOptions);
 
 await app.RunAsync();

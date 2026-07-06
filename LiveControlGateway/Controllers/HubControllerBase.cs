@@ -235,7 +235,7 @@ public abstract class HubControllerBase<TIn, TOut> : FlatbuffersWebsocketBaseCon
         await HubLifetime.Online(CurrentHubId, new SelfOnlineData()
         {
             Owner = CurrentHubOwnerId,
-            Gateway = _options.Fqdn,
+            Gateway = _options.GetPublicNodeId(),
             FirmwareVersion = _firmwareVersion!,
             ConnectedAt = _connected,
             UserAgent = _userAgent,

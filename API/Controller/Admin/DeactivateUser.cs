@@ -18,6 +18,8 @@ public sealed partial class AdminController
         [FromQuery(Name = "deleteLater")] bool deleteLater,
         [FromServices] IAccountService accountService)
     {
+        PedanticallyEnsureAdmin();
+
         var deactivationResult = await accountService.DeactivateAccountAsync(CurrentUser.Id, userId, deleteLater);
         return deactivationResult.Match<IActionResult>(
             success => Ok("Account deactivated"),

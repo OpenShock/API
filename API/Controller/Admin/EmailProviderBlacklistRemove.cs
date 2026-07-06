@@ -10,6 +10,8 @@ public sealed partial class AdminController
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> RemoveEmailProviderBlacklist([FromRoute] Guid id, CancellationToken ct)
     {
+        PedanticallyEnsureAdmin();
+
         var nDeleted = await _db.EmailProviderBlacklists.Where(x => x.Id == id).ExecuteDeleteAsync(ct);
 
         return nDeleted == 0 ? NotFound() : Ok();

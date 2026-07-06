@@ -156,4 +156,15 @@ public sealed class EmailOutboxMessage
     public static EmailOutboxMessage ForEmailChangeNotice(string newEmail, string recipient, string? recipientName) =>
         Create(EmailType.EmailChangeNotice, recipient, recipientName,
             new Dictionary<string, string> { [EmailOutboxPayloadKeys.NewEmail] = newEmail });
+
+    /// <summary>
+    /// A preview/test email of the given <paramref name="type"/>, enqueued by an admin to verify the
+    /// provider end to end. Carries only the <see cref="EmailOutboxPayloadKeys.Preview"/> flag: the
+    /// delivery dispatcher renders that type's template with placeholder data and a dummy link rather
+    /// than touching any request row or minting a token. Always delivered (no coalesce key), so every
+    /// test send goes out on its own.
+    /// </summary>
+    public static EmailOutboxMessage ForPreview(EmailType type, string recipient, string? recipientName) =>
+        Create(type, recipient, recipientName,
+            new Dictionary<string, string> { [EmailOutboxPayloadKeys.Preview] = "true" });
 }

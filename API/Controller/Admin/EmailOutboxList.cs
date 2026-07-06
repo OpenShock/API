@@ -1,5 +1,6 @@
-﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using OpenShock.API.Controller.Admin.DTOs;
 using OpenShock.Common.Errors;
 using OpenShock.Common.Extensions;
 using OpenShock.Common.Models;
@@ -7,20 +8,21 @@ using OpenShock.Common.OpenShockDb;
 using OpenShock.Common.Query;
 using System.ComponentModel.DataAnnotations;
 using System.Net.Mime;
-using Z.EntityFramework.Plus;
 
 namespace OpenShock.API.Controller.Admin;
 
 public sealed partial class AdminController
 {
     /// <summary>
-    /// Gets all users, paginated
+    /// Lists email outbox messages, paginated. Supports the same OData-style
+    /// <c>$filter</c>/<c>$orderby</c> as the users listing (e.g. <c>status eq 'failed'</c>,
+    /// <c>recipient ilike '%@example.com'</c>). Defaults to newest first.
     /// </summary>
-    /// <response code="200">Paginated users</response>
+    /// <response code="200">Paginated email outbox messages</response>
     /// <response code="401">Unauthorized</response>
-    [HttpGet("users")]
-    [ProducesResponseType<Paginated<AdminUsersView>>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
-    public async Task<IActionResult> GetUsers(
+    [HttpGet("email/outbox")]
+    [ProducesResponseType<Paginated<EmailOutboxMessageDto>>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
+    public async Task<IActionResult> GetEmailOutbox(
         [FromQuery(Name = "$filter")] string filterQuery = "",
         [FromQuery(Name = "$orderby")] string orderbyQuery = "",
         [FromQuery(Name = "$offset")][Range(0, int.MaxValue)] int offset = 0,
@@ -29,7 +31,7 @@ public sealed partial class AdminController
     {
         PedanticallyEnsureAdmin();
 
-        var query = _db.AdminUsersViews.AsNoTracking();
+        var query = _db.EmailOutbox.AsNoTracking();
 
         try
         {
@@ -44,7 +46,7 @@ public sealed partial class AdminController
             }
             else
             {
-                query = query.OrderBy(u => u.CreatedAt);
+                query = query.OrderByDescending(m => m.CreatedAt);
             }
         }
         catch (QueryStringTokenizerException e)
@@ -60,21 +62,25 @@ public sealed partial class AdminController
             return Problem(ExpressionError.ExpressionExceptionError(e.Message));
         }
 
-        var deferredCount = query.DeferredLongCount().FutureValue();
+        // NOTE: unlike the users listing we do NOT batch these with Z.EntityFramework.Plus .Future():
+        // its custom data reader can't apply Npgsql's jsonb -> Dictionary<string,string> conversion for
+        // the Payload column and blindly casts the raw jsonb string to the dictionary, throwing
+        // InvalidCastException. Plain async queries let Npgsql materialize Payload correctly.
+        var total = await query.LongCountAsync();
 
         if (offset != 0)
         {
             query = query.Skip(offset);
         }
 
-        var deferredUsers = query.Take(limit).Future();
+        var messages = await query.Take(limit).ToArrayAsync();
 
-        return Ok(new Paginated<AdminUsersView>
+        return Ok(new Paginated<EmailOutboxMessageDto>
         {
-            Data = await deferredUsers.ToArrayAsync(),
+            Data = messages.Select(EmailOutboxMessageDto.FromModel).ToArray(),
             Offset = offset,
             Limit = limit,
-            Total = await deferredCount.ValueAsync(),
+            Total = total,
         });
     }
 }

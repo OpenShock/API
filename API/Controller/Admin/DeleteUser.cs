@@ -17,6 +17,8 @@ public sealed partial class AdminController
         [FromRoute] Guid userId,
         [FromServices] IAccountService accountService)
     {
+        PedanticallyEnsureAdmin();
+
         var result = await accountService.DeleteAccountAsync(CurrentUser.Id, userId);
         return result.Match<IActionResult>(
             success => Ok("Account deleted"),
