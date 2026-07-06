@@ -15,6 +15,8 @@ public sealed partial class AdminController
     [ProducesResponseType(StatusCodes.Status200OK)]
     public async Task<IActionResult> ReactivateUser([FromRoute] Guid userId, [FromServices] IAccountService accountService)
     {
+        PedanticallyEnsureAdmin();
+
         var reactivationResult = await accountService.ReactivateAccountAsync(CurrentUser.Id, userId);
         return reactivationResult.Match(
             success => Ok("Account reactivated"),

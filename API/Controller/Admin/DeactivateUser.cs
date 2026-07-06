@@ -15,6 +15,8 @@ public sealed partial class AdminController
     [ProducesResponseType(StatusCodes.Status200OK)]
     public async Task<IActionResult> DeactivateUser([FromRoute] Guid userId, [FromQuery(Name="deleteLater")] bool deleteLater, [FromServices] IAccountService accountService)
     {
+        PedanticallyEnsureAdmin();
+
         var deactivationResult = await accountService.DeactivateAccountAsync(CurrentUser.Id, userId, deleteLater);
         return deactivationResult.Match(
             success => Ok("Account deactivated"),

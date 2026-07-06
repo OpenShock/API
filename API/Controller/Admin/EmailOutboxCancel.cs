@@ -20,6 +20,8 @@ public sealed partial class AdminController
     [ProducesResponseType(StatusCodes.Status409Conflict)]
     public async Task<IActionResult> CancelEmailOutbox([FromRoute] Guid id, CancellationToken ct)
     {
+        PedanticallyEnsureAdmin();
+
         var updated = await _db.EmailOutbox
             .Where(m => m.Id == id && m.Status == EmailStatus.Pending)
             .ExecuteUpdateAsync(s => s

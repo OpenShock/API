@@ -17,6 +17,8 @@ public sealed partial class AdminController
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> DeleteEmailOutbox([FromRoute] Guid id, CancellationToken ct)
     {
+        PedanticallyEnsureAdmin();
+
         var nDeleted = await _db.EmailOutbox.Where(m => m.Id == id).ExecuteDeleteAsync(ct);
 
         return nDeleted == 0 ? NotFound() : Ok();

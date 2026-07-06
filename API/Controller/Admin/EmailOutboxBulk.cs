@@ -21,6 +21,8 @@ public sealed partial class AdminController
     [ProducesResponseType<EmailOutboxBulkResultDto>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
     public async Task<EmailOutboxBulkResultDto> BulkRequeueEmailOutbox([FromBody] EmailOutboxBulkRequest body, [FromServices] IRedisPubService redisPubService, CancellationToken ct)
     {
+        PedanticallyEnsureAdmin();
+
         var nowUtc = DateTime.UtcNow;
 
         var affected = await _db.EmailOutbox
@@ -53,6 +55,8 @@ public sealed partial class AdminController
     [ProducesResponseType<EmailOutboxBulkResultDto>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
     public async Task<EmailOutboxBulkResultDto> BulkCancelEmailOutbox([FromBody] EmailOutboxBulkRequest body, CancellationToken ct)
     {
+        PedanticallyEnsureAdmin();
+
         var affected = await _db.EmailOutbox
             .Where(m => body.Ids.Contains(m.Id) && m.Status == EmailStatus.Pending)
             .ExecuteUpdateAsync(s => s
@@ -73,6 +77,8 @@ public sealed partial class AdminController
     [ProducesResponseType<EmailOutboxBulkResultDto>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
     public async Task<EmailOutboxBulkResultDto> BulkDeleteEmailOutbox([FromBody] EmailOutboxBulkRequest body, CancellationToken ct)
     {
+        PedanticallyEnsureAdmin();
+
         var affected = await _db.EmailOutbox
             .Where(m => body.Ids.Contains(m.Id))
             .ExecuteDeleteAsync(ct);

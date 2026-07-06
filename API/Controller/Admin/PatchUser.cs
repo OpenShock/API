@@ -18,6 +18,8 @@ public sealed partial class AdminController
     [ProducesResponseType(StatusCodes.Status200OK)]
     public async Task<IActionResult> ModifyUser([FromRoute] Guid userId, [FromBody] UserPatchDto body, [FromServices] IAccountService accountService, CancellationToken ct)
     {
+        PedanticallyEnsureAdmin();
+
         if (body.Name is not null)
         {
             await accountService.ChangeUsernameAsync(userId, body.Name, ignoreLimit: true, ct);

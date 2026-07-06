@@ -21,6 +21,8 @@ public sealed partial class AdminController
     [ProducesResponseType(StatusCodes.Status409Conflict)]
     public async Task<IActionResult> RequeueEmailOutbox([FromRoute] Guid id, [FromServices] IRedisPubService redisPubService, CancellationToken ct)
     {
+        PedanticallyEnsureAdmin();
+
         var nowUtc = DateTime.UtcNow;
 
         // Guard on a terminal status so a concurrent Cron send (Sending) or an already-queued row

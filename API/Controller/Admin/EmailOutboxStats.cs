@@ -17,6 +17,8 @@ public sealed partial class AdminController
     [ProducesResponseType<EmailOutboxStatsDto>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
     public async Task<EmailOutboxStatsDto> GetEmailOutboxStats()
     {
+        PedanticallyEnsureAdmin();
+
         var counts = await _db.EmailOutbox
             .AsNoTracking()
             .GroupBy(m => m.Status)

@@ -27,6 +27,8 @@ public sealed partial class AdminController
         [FromQuery(Name = "$limit")][Range(1, 1000)] int limit = 100
         )
     {
+        PedanticallyEnsureAdmin();
+
         var query = _db.AdminUsersViews.AsNoTracking();
 
         try

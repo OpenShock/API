@@ -22,6 +22,8 @@ public sealed partial class AdminController
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> SendTestEmail([FromBody] SendTestEmailDto body, [FromServices] IRedisPubService redisPubService, CancellationToken ct)
     {
+        PedanticallyEnsureAdmin();
+
         // CreatedAt / NextAttemptAt / AttemptCount are filled by their DB defaults (see the context
         // mapping) and read back after insert, so the returned DTO carries the real values.
         var message = EmailOutboxMessage.ForPreview(body.Type, body.Recipient, body.RecipientName);
