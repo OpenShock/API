@@ -49,8 +49,8 @@ public sealed class SessionService : ISessionService
         await _auditService.LogAsync(
             userId,
             action: AuditAction.Login,
-            metadata: new LoginMetadata(id),
-            actorId
+            actorId: actorId ?? userId,
+            metadata: new LoginMetadata(id)
         );
 
         return new CreateSessionResult(id, token);
@@ -127,7 +127,8 @@ public sealed class SessionService : ISessionService
         // the caller sees a failure and no audit trail.
         await _auditService.LogAsync(
             loginSession.UserId,
-            action: AuditAction.Logout
+            action: AuditAction.Logout,
+            actorId: loginSession.UserId
         );
 
         await _loginSessions.DeleteAsync(loginSession);

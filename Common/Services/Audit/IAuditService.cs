@@ -8,13 +8,16 @@ namespace OpenShock.Common.Services.Audit;
 public interface IAuditService
 {
     /// <summary>
-    /// Appends an audit log entry. ActorId defaults to UserId (self-service action).
+    /// Appends an audit log entry for <paramref name="userId"/> (the affected account).
+    /// <paramref name="actorId"/> is who performed it: null for the system, equal to <paramref name="userId"/>
+    /// for self-service, or another user's id for a moderator action.
     /// </summary>
     Task LogAsync(
         Guid userId,
         AuditAction action,
+        Guid? actorId,
         AuditMetadata? metadata = null,
-        Guid? actorId = null,
+        string? reason = null,
         CancellationToken cancellationToken = default);
 
     Task<PagedResult<UserAuditLog>> GetPagedForUserAsync(

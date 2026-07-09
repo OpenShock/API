@@ -989,6 +989,9 @@ public class OpenShockContext : DbContext, IDataProtectionKeyContext
             entity.Property(e => e.Action)
                 .HasColumnType("audit_action")
                 .HasColumnName("action");
+            entity.Property(e => e.Reason)
+                .VarCharWithLength(HardLimits.AuditReasonMaxLength)
+                .HasColumnName("reason");
             entity.Property(e => e.IpAddress)
                 .VarCharWithLength(HardLimits.IpAddressMaxLength)
                 .HasColumnName("ip_address");
@@ -1012,7 +1015,7 @@ public class OpenShockContext : DbContext, IDataProtectionKeyContext
 
             entity.HasOne(e => e.Actor).WithMany(u => u.ActorAuditLogs)
                 .HasForeignKey(e => e.ActorId)
-                .OnDelete(DeleteBehavior.Cascade)
+                .OnDelete(DeleteBehavior.SetNull)
                 .HasConstraintName("fk_user_audit_logs_actor_id");
         });
     }

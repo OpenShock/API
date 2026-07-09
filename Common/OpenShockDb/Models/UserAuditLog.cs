@@ -9,10 +9,16 @@ public sealed class UserAuditLog
     /// <summary>The account being affected.</summary>
     public required Guid UserId { get; set; }
 
-    /// <summary>Who performed the action. Equal to UserId for self-service actions; an admin's Id for admin-initiated actions.</summary>
-    public required Guid ActorId { get; set; }
+    /// <summary>
+    /// Who performed the action: null for the system (automated/no human), equal to <see cref="UserId"/>
+    /// for self-service actions, or another user's id for moderator-initiated actions.
+    /// </summary>
+    public Guid? ActorId { get; set; }
 
     public required AuditAction Action { get; set; }
+
+    /// <summary>Optional free-text justification, primarily for moderator actions.</summary>
+    public string? Reason { get; set; }
 
     public string? IpAddress { get; set; }
 
@@ -24,5 +30,5 @@ public sealed class UserAuditLog
 
     // Navigations
     public User User { get; set; } = null!;
-    public User Actor { get; set; } = null!;
+    public User? Actor { get; set; }
 }

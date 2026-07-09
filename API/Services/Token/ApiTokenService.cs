@@ -133,8 +133,8 @@ public sealed class ApiTokenService : IApiTokenService
             await _auditService.LogAsync(
                 userId,
                 action: AuditAction.ApiTokenCreated,
-                metadata: new ApiTokenCreatedMetadata(tokenDto.Id, tokenDto.Name, tokenDto.Permissions.Select(p => PermissionTypeBindings.PermissionTypeToName[p].Name).ToList()),
-                actorId: userId
+                actorId: userId,
+                metadata: new ApiTokenCreatedMetadata(tokenDto.Id, tokenDto.Name, tokenDto.Permissions.Select(p => PermissionTypeBindings.PermissionTypeToName[p].Name).ToList())
             );
 
             await transaction.CommitAsync();
@@ -177,8 +177,8 @@ public sealed class ApiTokenService : IApiTokenService
             await _auditService.LogAsync(
                 userId,
                 action: AuditAction.ApiTokenCreated,
-                metadata: new ApiTokenCreatedMetadata(tokenDto.Id, tokenDto.Name, tokenDto.Permissions.Select(p => PermissionTypeBindings.PermissionTypeToName[p].Name).ToList()),
-                actorId: userId
+                actorId: userId,
+                metadata: new ApiTokenCreatedMetadata(tokenDto.Id, tokenDto.Name, tokenDto.Permissions.Select(p => PermissionTypeBindings.PermissionTypeToName[p].Name).ToList())
             );
 
             await transaction.CommitAsync();
@@ -242,7 +242,7 @@ public sealed class ApiTokenService : IApiTokenService
     }
 
     /// <inheritdoc />
-    public async Task<bool> DeleteToken(Guid tokenId, Guid? actorId, Guid? ownerId = null, CancellationToken cancellationToken = default)
+    public async Task<bool> DeleteToken(Guid tokenId, Guid? actorId, Guid? ownerId = null, string? reason = null, CancellationToken cancellationToken = default)
     {
         // Capture the owner and name before deletion so the audit entry can record what was revoked.
         var info = await Tokens(ownerId)
@@ -259,9 +259,10 @@ public sealed class ApiTokenService : IApiTokenService
             await _auditService.LogAsync(
                 info.UserId,
                 action: AuditAction.ApiTokenDeleted,
+                actorId: actorId ?? info.UserId,
                 metadata: new ApiTokenDeletedMetadata(tokenId, info.Name),
-                actorId,
-                cancellationToken
+                reason: reason,
+                cancellationToken: cancellationToken
             );
 
             await transaction.CommitAsync(cancellationToken);

@@ -41,6 +41,7 @@ public sealed partial class AuthenticatedAccountController
         UserId = x.UserId,
         ActorId = x.ActorId,
         Action = x.Action,
+        Reason = x.Reason,
         IpAddress = x.IpAddress,
         UserAgent = x.UserAgent,
         Metadata = x.Metadata,

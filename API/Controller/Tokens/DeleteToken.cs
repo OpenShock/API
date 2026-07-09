@@ -66,7 +66,7 @@ public sealed class TokenDeleteController : AuthenticatedSessionControllerBase
 
         // A normal user is trying to delete the token, delete it if they own it
         var userId = userIdentity.GetClaimValueAsGuid(ClaimTypes.NameIdentifier);
-        if (await _tokenService.DeleteToken(tokenId, actorId: userId, ownerId: userId, cancellationToken))
+        if (await _tokenService.DeleteToken(tokenId, actorId: userId, ownerId: userId, cancellationToken: cancellationToken))
             return Ok();
 
         return Problem(ApiTokenError.ApiTokenNotFound);

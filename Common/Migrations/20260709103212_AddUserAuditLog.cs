@@ -45,8 +45,9 @@ namespace OpenShock.Common.Migrations
                 {
                     id = table.Column<Guid>(type: "uuid", nullable: false),
                     user_id = table.Column<Guid>(type: "uuid", nullable: false),
-                    actor_id = table.Column<Guid>(type: "uuid", nullable: false),
+                    actor_id = table.Column<Guid>(type: "uuid", nullable: true),
                     action = table.Column<AuditAction>(type: "audit_action", nullable: false),
+                    reason = table.Column<string>(type: "character varying(512)", maxLength: 512, nullable: true),
                     ip_address = table.Column<string>(type: "character varying(40)", maxLength: 40, nullable: true),
                     user_agent = table.Column<string>(type: "character varying(1024)", maxLength: 1024, nullable: true),
                     metadata = table.Column<string>(type: "jsonb", nullable: true),
@@ -60,7 +61,7 @@ namespace OpenShock.Common.Migrations
                         column: x => x.actor_id,
                         principalTable: "users",
                         principalColumn: "id",
-                        onDelete: ReferentialAction.Cascade);
+                        onDelete: ReferentialAction.SetNull);
                     table.ForeignKey(
                         name: "fk_user_audit_logs_user_id",
                         column: x => x.user_id,

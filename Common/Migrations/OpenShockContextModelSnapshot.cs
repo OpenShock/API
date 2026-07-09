@@ -892,7 +892,7 @@ namespace OpenShock.Common.Migrations
                         .HasColumnType("audit_action")
                         .HasColumnName("action");
 
-                    b.Property<Guid>("ActorId")
+                    b.Property<Guid?>("ActorId")
                         .HasColumnType("uuid")
                         .HasColumnName("actor_id");
 
@@ -910,6 +910,11 @@ namespace OpenShock.Common.Migrations
                     b.Property<string>("Metadata")
                         .HasColumnType("jsonb")
                         .HasColumnName("metadata");
+
+                    b.Property<string>("Reason")
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)")
+                        .HasColumnName("reason");
 
                     b.Property<string>("UserAgent")
                         .HasMaxLength(1024)
@@ -1454,8 +1459,7 @@ namespace OpenShock.Common.Migrations
                     b.HasOne("OpenShock.Common.OpenShockDb.User", "Actor")
                         .WithMany("ActorAuditLogs")
                         .HasForeignKey("ActorId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired()
+                        .OnDelete(DeleteBehavior.SetNull)
                         .HasConstraintName("fk_user_audit_logs_actor_id");
 
                     b.HasOne("OpenShock.Common.OpenShockDb.User", "User")

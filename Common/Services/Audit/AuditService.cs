@@ -28,18 +28,20 @@ public sealed class AuditService : IAuditService
     public async Task LogAsync(
         Guid userId,
         AuditAction action,
-        AuditMetadata? metadata,
         Guid? actorId,
+        AuditMetadata? metadata,
+        string? reason,
         CancellationToken cancellationToken)
     {
         var httpContext = _httpContextAccessor.HttpContext;
-        
+
         _db.UserAuditLogs.Add(new UserAuditLog
         {
             Id = Guid.CreateVersion7(),
             UserId = userId,
-            ActorId = actorId ?? userId,
+            ActorId = actorId,
             Action = action,
+            Reason = reason,
             IpAddress = httpContext?.Connection.RemoteIpAddress?.ToString(),
             UserAgent = httpContext?.Request.Headers.UserAgent,
             Metadata = metadata,
@@ -70,6 +72,8 @@ public sealed class AuditService : IAuditService
         var query = _db.UserAuditLogs.AsQueryable();
 
         if (userId.HasValue) query = query.Where(x => x.UserId == userId.Value);
+        // Self-service actions store ActorId == UserId, so this matches both a user's own actions and
+        // any moderator actions they performed. System actions (null ActorId) are excluded.
         if (actorId.HasValue) query = query.Where(x => x.ActorId == actorId.Value);
 
         return query

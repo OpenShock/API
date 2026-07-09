@@ -250,7 +250,7 @@ public sealed class AccountService : IAccountService
     }
 
     /// <inheritdoc />
-    public async Task<OneOf<Success, CannotDeactivatePrivilegedAccount, AccountDeactivationAlreadyInProgress, Unauthorized, NotFound>> DeactivateAccountAsync(Guid executingUserId, Guid userId, bool deleteLater)
+    public async Task<OneOf<Success, CannotDeactivatePrivilegedAccount, AccountDeactivationAlreadyInProgress, Unauthorized, NotFound>> DeactivateAccountAsync(Guid executingUserId, Guid userId, bool deleteLater, string? reason = null)
     {
         if (executingUserId != userId)
         {
@@ -294,8 +294,9 @@ public sealed class AccountService : IAccountService
             await _auditService.LogAsync(
                 userId,
                 action: AuditAction.AccountDeactivated,
+                actorId: executingUserId,
                 metadata: new AccountDeactivatedMetadata(deleteLater),
-                actorId: executingUserId
+                reason: reason
             );
 
             await transaction.CommitAsync();
@@ -308,7 +309,7 @@ public sealed class AccountService : IAccountService
     }
 
     /// <inheritdoc />
-    public async Task<OneOf<Success, Unauthorized, NotFound>> ReactivateAccountAsync(Guid executingUserId, Guid userId)
+    public async Task<OneOf<Success, Unauthorized, NotFound>> ReactivateAccountAsync(Guid executingUserId, Guid userId, string? reason = null)
     {
         var user = await _db.Users.Include(u => u.UserDeactivation).FirstOrDefaultAsync(u => u.Id == userId && u.UserDeactivation != null);
         if (user is null) return new NotFound();
@@ -342,7 +343,8 @@ public sealed class AccountService : IAccountService
         await _auditService.LogAsync(
             userId,
             action: AuditAction.AccountReactivated,
-            actorId: executingUserId
+            actorId: executingUserId,
+            reason: reason
         );
 
         await transaction.CommitAsync();
@@ -351,7 +353,7 @@ public sealed class AccountService : IAccountService
     }
 
     /// <inheritdoc />
-    public async Task<OneOf<Success, CannotDeletePrivilegedAccount, Unauthorized, NotFound>> DeleteAccountAsync(Guid executingUserId, Guid userId)
+    public async Task<OneOf<Success, CannotDeletePrivilegedAccount, Unauthorized, NotFound>> DeleteAccountAsync(Guid executingUserId, Guid userId, string? reason = null)
     {
         var isPrivileged = await _db.Users
                         .Where(u => u.Id == executingUserId)
@@ -384,7 +386,8 @@ public sealed class AccountService : IAccountService
         await _auditService.LogAsync(
             userId,
             action: AuditAction.AccountDeleted,
-            actorId: executingUserId
+            actorId: executingUserId,
+            reason: reason
         );
 
         await transaction.CommitAsync();
@@ -527,11 +530,11 @@ public sealed class AccountService : IAccountService
             .Where(r => r.Id == reset.Reset.Id && r.UsedAt == null)
             .ExecuteUpdateAsync(s => s.SetProperty(r => r.UsedAt, now));
 
-        // Unauthenticated email-token flow, so the actor is the account itself (defaults to the subject).
+        // Unauthenticated email-token flow proving control of the account, so the actor is the account itself.
         await _auditService.LogAsync(
             reset.Reset.UserId,
             action: AuditAction.PasswordChanged,
-            actorId: null
+            actorId: reset.Reset.UserId
         );
 
         await transaction.CommitAsync();
@@ -595,9 +598,9 @@ public sealed class AccountService : IAccountService
         await _auditService.LogAsync(
             userId,
             action: AuditAction.UsernameChanged,
+            actorId: actorId ?? userId,
             metadata: new UsernameChangedMetadata(oldName, username),
-            actorId,
-            cancellationToken
+            cancellationToken: cancellationToken
         );
 
         await transaction.CommitAsync(cancellationToken);
@@ -624,7 +627,7 @@ public sealed class AccountService : IAccountService
         await _auditService.LogAsync(
             userId,
             action: AuditAction.PasswordChanged,
-            actorId: actorId
+            actorId: actorId ?? userId
         );
 
         await transaction.CommitAsync();
@@ -688,8 +691,8 @@ public sealed class AccountService : IAccountService
             await _auditService.LogAsync(
                 userId,
                 action: AuditAction.EmailChangeRequested,
-                metadata: new EmailChangeRequestedMetadata(newEmail),
-                actorId
+                actorId: actorId ?? userId,
+                metadata: new EmailChangeRequestedMetadata(newEmail)
             );
 
             await transaction.CommitAsync();
@@ -752,9 +755,9 @@ public sealed class AccountService : IAccountService
         await _auditService.LogAsync(
             change.UserId,
             action: AuditAction.EmailChanged,
+            actorId: change.UserId,
             metadata: new EmailChangedMetadata(change.OldEmail, change.NewEmail),
-            actorId: null,
-            cancellationToken
+            cancellationToken: cancellationToken
         );
 
         await transaction.CommitAsync(cancellationToken);

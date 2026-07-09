@@ -70,9 +70,9 @@ public sealed class OAuthConnectionService : IOAuthConnectionService
         await _auditService.LogAsync(
             userId,
             action: AuditAction.OAuthConnected,
+            actorId: actorId ?? userId,
             metadata: new OAuthConnectedMetadata(provider),
-            actorId,
-            cancellationToken
+            cancellationToken: cancellationToken
         );
 
         await transaction.CommitAsync(cancellationToken);
@@ -97,9 +97,9 @@ public sealed class OAuthConnectionService : IOAuthConnectionService
         await _auditService.LogAsync(
             userId,
             action: AuditAction.OAuthDisconnected,
+            actorId: actorId ?? userId,
             metadata: new OAuthDisconnectedMetadata(provider),
-            actorId,
-            cancellationToken
+            cancellationToken: cancellationToken
         );
         
         await transaction.CommitAsync(cancellationToken);
