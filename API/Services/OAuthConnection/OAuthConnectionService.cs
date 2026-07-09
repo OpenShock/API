@@ -90,6 +90,10 @@ public sealed class OAuthConnectionService : IOAuthConnectionService
             .Where(c => c.UserId == userId && c.ProviderKey == p)
             .ExecuteDeleteAsync(cancellationToken);
         
+        // Nothing was linked, so don't record a disconnection that never happened.
+        // Disposing the transaction without committing rolls back the (no-op) delete.
+        if (nDeleted <= 0) return false;
+
         await _auditService.LogAsync(
             userId,
             action: AuditAction.OAuthDisconnected,
@@ -100,6 +104,6 @@ public sealed class OAuthConnectionService : IOAuthConnectionService
         
         await transaction.CommitAsync(cancellationToken);
 
-        return nDeleted > 0;
+        return true;
     }
 }

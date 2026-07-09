@@ -122,11 +122,14 @@ public sealed class SessionService : ISessionService
 
     public async Task LogoutSessionAsync(LoginSession loginSession)
     {
-        await _loginSessions.DeleteAsync(loginSession);
-
+        // Record the logout before destroying the session. The session delete is idempotent, so if
+        // this throws the caller can safely retry; deleting first would leave the session gone while
+        // the caller sees a failure and no audit trail.
         await _auditService.LogAsync(
             loginSession.UserId,
             action: AuditAction.Logout
         );
+
+        await _loginSessions.DeleteAsync(loginSession);
     }
 }
