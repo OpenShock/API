@@ -508,6 +508,8 @@ public sealed class AccountService : IAccountService
         var result = HashingUtils.VerifyToken(secret, reset.Reset.TokenHash);
         if (!result.Verified) return new SecretInvalid();
 
+        await using var transaction = await _db.Database.BeginTransactionAsync();
+
         // Race-safe consume + apply: only updates if SecurityStamp still matches the snapshot.
         // If a sibling reset (or a separate password/email change) completed since the read above,
         // the stamp has rotated and the predicate matches zero rows.
@@ -524,6 +526,15 @@ public sealed class AccountService : IAccountService
         await _db.UserPasswordResets
             .Where(r => r.Id == reset.Reset.Id && r.UsedAt == null)
             .ExecuteUpdateAsync(s => s.SetProperty(r => r.UsedAt, now));
+
+        // Unauthenticated email-token flow, so the actor is the account itself (defaults to the subject).
+        await _auditService.LogAsync(
+            reset.Reset.UserId,
+            action: AuditAction.PasswordChanged,
+            actorId: null
+        );
+
+        await transaction.CommitAsync();
 
         return new Success();
     }

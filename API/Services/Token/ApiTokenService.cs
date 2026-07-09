@@ -133,7 +133,8 @@ public sealed class ApiTokenService : IApiTokenService
             await _auditService.LogAsync(
                 userId,
                 action: AuditAction.ApiTokenCreated,
-                metadata: new ApiTokenCreatedMetadata(tokenDto.Id, tokenDto.Name, tokenDto.Permissions.Select(p => PermissionTypeBindings.PermissionTypeToName[p].Name).ToList())
+                metadata: new ApiTokenCreatedMetadata(tokenDto.Id, tokenDto.Name, tokenDto.Permissions.Select(p => PermissionTypeBindings.PermissionTypeToName[p].Name).ToList()),
+                actorId: userId
             );
 
             await transaction.CommitAsync();
@@ -176,7 +177,8 @@ public sealed class ApiTokenService : IApiTokenService
             await _auditService.LogAsync(
                 userId,
                 action: AuditAction.ApiTokenCreated,
-                metadata: new ApiTokenCreatedMetadata(tokenDto.Id, tokenDto.Name, tokenDto.Permissions.Select(p => PermissionTypeBindings.PermissionTypeToName[p].Name).ToList())
+                metadata: new ApiTokenCreatedMetadata(tokenDto.Id, tokenDto.Name, tokenDto.Permissions.Select(p => PermissionTypeBindings.PermissionTypeToName[p].Name).ToList()),
+                actorId: userId
             );
 
             await transaction.CommitAsync();
