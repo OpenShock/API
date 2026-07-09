@@ -6,6 +6,7 @@ using OneOf.Types;
 using OpenShock.Common.Constants;
 using OpenShock.Common.Models;
 using OpenShock.Common.OpenShockDb;
+using OpenShock.Common.Services.Audit;
 using OpenShock.Common.Services.RedisPubSub;
 using OpenShock.Common.Services.Session;
 using OpenShock.Common.Utils;
@@ -21,6 +22,7 @@ public sealed class AccountService : IAccountService
     private readonly OpenShockContext _db;
     private readonly IRedisPubService _redisPubService;
     private readonly ISessionService _sessionService;
+    private readonly IAuditService _auditService;
     private readonly ILogger<AccountService> _logger;
 
     /// <summary>
@@ -29,14 +31,15 @@ public sealed class AccountService : IAccountService
     /// <param name="db"></param>
     /// <param name="redisPubService">Used to notify the email outbox delivery job that mail was enqueued.</param>
     /// <param name="sessionService"></param>
+    /// <param name="auditService"></param>
     /// <param name="logger"></param>
-    public AccountService(OpenShockContext db, IRedisPubService redisPubService,
-        ISessionService sessionService, ILogger<AccountService> logger)
+    public AccountService(OpenShockContext db, IRedisPubService redisPubService, ISessionService sessionService, IAuditService auditService, ILogger<AccountService> logger)
     {
         _db = db;
         _redisPubService = redisPubService;
-        _logger = logger;
         _sessionService = sessionService;
+        _auditService =  auditService;
+        _logger = logger;
     }
 
     /// <summary>
@@ -247,7 +250,7 @@ public sealed class AccountService : IAccountService
     }
 
     /// <inheritdoc />
-    public async Task<OneOf<Success, CannotDeactivatePrivilegedAccount, AccountDeactivationAlreadyInProgress, Unauthorized, NotFound>> DeactivateAccountAsync(Guid executingUserId, Guid userId, bool deleteLater)
+    public async Task<OneOf<Success, CannotDeactivatePrivilegedAccount, AccountDeactivationAlreadyInProgress, Unauthorized, NotFound>> DeactivateAccountAsync(Guid executingUserId, Guid userId, bool deleteLater, string? reason = null)
     {
         if (executingUserId != userId)
         {
@@ -277,14 +280,27 @@ public sealed class AccountService : IAccountService
             return new AccountDeactivationAlreadyInProgress();
         }
 
-        user.UserDeactivation = new UserDeactivation
+        await using (var transaction = await _db.Database.BeginTransactionAsync())
         {
-            DeactivatedUserId = userId,
-            DeactivatedByUserId = executingUserId,
-            DeleteLater = deleteLater,
-        };
+            user.UserDeactivation = new UserDeactivation
+            {
+                DeactivatedUserId = userId,
+                DeactivatedByUserId = executingUserId,
+                DeleteLater = deleteLater,
+            };
+            
+            await _db.SaveChangesAsync();
 
-        await _db.SaveChangesAsync();
+            await _auditService.LogAsync(
+                userId,
+                action: AuditAction.AccountDeactivated,
+                actorId: executingUserId,
+                metadata: new AccountDeactivatedMetadata(deleteLater),
+                reason: reason
+            );
+
+            await transaction.CommitAsync();
+        }
 
         // Remove all login sessions
         await _sessionService.DeleteSessionsByUserIdAsync(userId);
@@ -293,7 +309,7 @@ public sealed class AccountService : IAccountService
     }
 
     /// <inheritdoc />
-    public async Task<OneOf<Success, Unauthorized, NotFound>> ReactivateAccountAsync(Guid executingUserId, Guid userId)
+    public async Task<OneOf<Success, Unauthorized, NotFound>> ReactivateAccountAsync(Guid executingUserId, Guid userId, string? reason = null)
     {
         var user = await _db.Users.Include(u => u.UserDeactivation).FirstOrDefaultAsync(u => u.Id == userId && u.UserDeactivation != null);
         if (user is null) return new NotFound();
@@ -318,14 +334,26 @@ public sealed class AccountService : IAccountService
             }
         }
 
+        await using var transaction = await _db.Database.BeginTransactionAsync();
+
         _db.Remove(deactivation);
+
         await _db.SaveChangesAsync();
+
+        await _auditService.LogAsync(
+            userId,
+            action: AuditAction.AccountReactivated,
+            actorId: executingUserId,
+            reason: reason
+        );
+
+        await transaction.CommitAsync();
 
         return new Success();
     }
 
     /// <inheritdoc />
-    public async Task<OneOf<Success, CannotDeletePrivilegedAccount, Unauthorized, NotFound>> DeleteAccountAsync(Guid executingUserId, Guid userId)
+    public async Task<OneOf<Success, CannotDeletePrivilegedAccount, Unauthorized, NotFound>> DeleteAccountAsync(Guid executingUserId, Guid userId, string? reason = null)
     {
         var isPrivileged = await _db.Users
                         .Where(u => u.Id == executingUserId)
@@ -349,8 +377,20 @@ public sealed class AccountService : IAccountService
 
         // TODO: Do more checks?
 
+        await using var transaction = await _db.Database.BeginTransactionAsync();
+
         _db.Users.Remove(user);
+
         await _db.SaveChangesAsync();
+
+        await _auditService.LogAsync(
+            userId,
+            action: AuditAction.AccountDeleted,
+            actorId: executingUserId,
+            reason: reason
+        );
+
+        await transaction.CommitAsync();
 
         return new Success();
     }
@@ -471,6 +511,8 @@ public sealed class AccountService : IAccountService
         var result = HashingUtils.VerifyToken(secret, reset.Reset.TokenHash);
         if (!result.Verified) return new SecretInvalid();
 
+        await using var transaction = await _db.Database.BeginTransactionAsync();
+
         // Race-safe consume + apply: only updates if SecurityStamp still matches the snapshot.
         // If a sibling reset (or a separate password/email change) completed since the read above,
         // the stamp has rotated and the predicate matches zero rows.
@@ -487,6 +529,15 @@ public sealed class AccountService : IAccountService
         await _db.UserPasswordResets
             .Where(r => r.Id == reset.Reset.Id && r.UsedAt == null)
             .ExecuteUpdateAsync(s => s.SetProperty(r => r.UsedAt, now));
+
+        // Unauthenticated email-token flow proving control of the account, so the actor is the account itself.
+        await _auditService.LogAsync(
+            reset.Reset.UserId,
+            action: AuditAction.PasswordChanged,
+            actorId: reset.Reset.UserId
+        );
+
+        await transaction.CommitAsync();
 
         return new Success();
     }
@@ -509,7 +560,7 @@ public sealed class AccountService : IAccountService
     }
 
     /// <inheritdoc />
-    public async Task<OneOf<Success, UsernameTaken, UsernameError, RecentlyChanged, AccountDeactivated, NotFound>> ChangeUsernameAsync(Guid userId, string username, bool ignoreLimit = false, CancellationToken cancellationToken = default)
+    public async Task<OneOf<Success, UsernameTaken, UsernameError, RecentlyChanged, AccountDeactivated, NotFound>> ChangeUsernameAsync(Guid userId, string username, Guid? actorId, bool ignoreLimit = false, CancellationToken cancellationToken = default)
     {
         if (!ignoreLimit)
         {
@@ -544,6 +595,14 @@ public sealed class AccountService : IAccountService
 
         await _db.SaveChangesAsync(cancellationToken);
 
+        await _auditService.LogAsync(
+            userId,
+            action: AuditAction.UsernameChanged,
+            actorId: actorId ?? userId,
+            metadata: new UsernameChangedMetadata(oldName, username),
+            cancellationToken: cancellationToken
+        );
+
         await transaction.CommitAsync(cancellationToken);
 
         return new Success();
@@ -551,23 +610,33 @@ public sealed class AccountService : IAccountService
 
 
     /// <inheritdoc />
-    public async Task<OneOf<Success, AccountNotActivated, AccountDeactivated, NotFound>> ChangePasswordAsync(Guid userId, string newPassword)
+    public async Task<OneOf<Success, AccountNotActivated, AccountDeactivated, NotFound>> ChangePasswordAsync(Guid userId, string newPassword, Guid? actorId)
     {
         var user = await _db.Users.Include(u => u.UserDeactivation).FirstOrDefaultAsync(x => x.Id == userId);
         if (user is null) return new NotFound();
         if (user.ActivatedAt is null) return new AccountNotActivated();
         if (user.UserDeactivation is not null) return new AccountDeactivated();
 
+        await using var transaction = await _db.Database.BeginTransactionAsync();
+
         user.PasswordHash = HashingUtils.HashPassword(newPassword);
         user.SecurityStamp = Guid.CreateVersion7(); // Any outstanding reset/email-change row for this user has a stale SecurityStampAtCreate after this; predicate handles invalidation.
 
         await _db.SaveChangesAsync();
 
+        await _auditService.LogAsync(
+            userId,
+            action: AuditAction.PasswordChanged,
+            actorId: actorId ?? userId
+        );
+
+        await transaction.CommitAsync();
+
         return new Success();
     }
 
     /// <inheritdoc />
-    public async Task<OneOf<Success, EmailAlreadyInUse, EmailUnchanged, TooManyEmailChanges, AccountNotActivated, AccountDeactivated, NotFound>> CreateEmailChangeFlowAsync(Guid userId, string newEmail)
+    public async Task<OneOf<Success, EmailAlreadyInUse, EmailUnchanged, TooManyEmailChanges, AccountNotActivated, AccountDeactivated, NotFound>> CreateEmailChangeFlowAsync(Guid userId, string newEmail, Guid? actorId)
     {
         var validSince = DateTime.UtcNow - Duration.EmailChangeRequestLifetime;
 
@@ -604,23 +673,37 @@ public sealed class AccountService : IAccountService
             TokenHash = SeedTokenHash(),
             SecurityStampAtCreate = data.User.SecurityStamp
         };
-        _db.UserEmailChanges.Add(emailChange);
+        
+        await using (var transaction = await _db.Database.BeginTransactionAsync())
+        {
+            _db.UserEmailChanges.Add(emailChange);
 
-        // Durably enqueue both emails: the verification link to the new address, and an informational
-        // notice to the previous address so the legitimate owner sees the change request even if the
-        // session/password used to start it was compromised. The outbox guarantees delivery with
-        // retries; this replaces the previous best-effort inline sends. Committing the row even if
-        // mail later fails is intentional - the request is durable and the delivery job keeps retrying.
-        _db.EmailOutbox.Add(EmailOutboxMessage.ForEmailVerification(emailChange.Id, data.User.Id, lowerCaseEmail, data.User.Name));
-        _db.EmailOutbox.Add(EmailOutboxMessage.ForEmailChangeNotice(lowerCaseEmail, data.User.Email, data.User.Name));
+            // Durably enqueue both emails: the verification link to the new address, and an informational
+            // notice to the previous address so the legitimate owner sees the change request even if the
+            // session/password used to start it was compromised. The outbox guarantees delivery with
+            // retries; this replaces the previous best-effort inline sends. Committing the row even if
+            // mail later fails is intentional - the request is durable and the delivery job keeps retrying.
+            _db.EmailOutbox.Add(EmailOutboxMessage.ForEmailVerification(emailChange.Id, data.User.Id, lowerCaseEmail, data.User.Name));
+            _db.EmailOutbox.Add(EmailOutboxMessage.ForEmailChangeNotice(lowerCaseEmail, data.User.Email, data.User.Name));
 
-        await _db.SaveChangesAsync();
+            await _db.SaveChangesAsync();
+
+            await _auditService.LogAsync(
+                userId,
+                action: AuditAction.EmailChangeRequested,
+                actorId: actorId ?? userId,
+                metadata: new EmailChangeRequestedMetadata(newEmail)
+            );
+
+            await transaction.CommitAsync();
+        }
+        
         await NotifyEmailOutboxAsync();
 
         return new Success();
     }
 
-    public async Task<OneOf<Success, NotFound, EmailAlreadyInUse>> TryVerifyEmailAsync(string token, CancellationToken cancellationToken = default)
+    public async Task<OneOf<Success<(Guid UserId, string OldEmail, string NewEmail)>, NotFound, EmailAlreadyInUse>> TryVerifyEmailAsync(string token, CancellationToken cancellationToken = default)
     {
         var hash = HashingUtils.HashToken(token);
         var validSince = DateTime.UtcNow - Duration.EmailChangeRequestLifetime;
@@ -633,12 +716,17 @@ public sealed class AccountService : IAccountService
             {
                 ChangeId = x.Id,
                 UserId = x.UserId,
+                // Use the email captured when the change was requested, not the user's current email,
+                // which may have changed via another flow between request creation and verification.
+                OldEmail = x.OldEmail,
                 x.NewEmail,
                 x.SecurityStampAtCreate
             })
             .FirstOrDefaultAsync(cancellationToken);
 
         if (change is null) return new NotFound();
+
+        await using var transaction = await _db.Database.BeginTransactionAsync(cancellationToken);
 
         // Race-safe consume + apply: only updates if SecurityStamp still matches the snapshot, so
         // sibling email changes / password resets that completed since the read above cleanly lose.
@@ -664,7 +752,17 @@ public sealed class AccountService : IAccountService
             .Where(c => c.Id == change.ChangeId && c.UsedAt == null)
             .ExecuteUpdateAsync(s => s.SetProperty(c => c.UsedAt, now), cancellationToken);
 
-        return new Success();
+        await _auditService.LogAsync(
+            change.UserId,
+            action: AuditAction.EmailChanged,
+            actorId: change.UserId,
+            metadata: new EmailChangedMetadata(change.OldEmail, change.NewEmail),
+            cancellationToken: cancellationToken
+        );
+
+        await transaction.CommitAsync(cancellationToken);
+
+        return new Success<(Guid, string, string)>((change.UserId, change.OldEmail, change.NewEmail));
     }
 
     private async Task<bool> CheckPassword(string password, User user)

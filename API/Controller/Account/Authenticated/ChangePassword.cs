@@ -36,13 +36,12 @@ public sealed partial class AuthenticatedAccountController
             return Problem(AccountError.PasswordChangeInvalidPassword);
         }
         
-        var result = await _accountService.ChangePasswordAsync(CurrentUser.Id, body.NewPassword);
+        var result = await _accountService.ChangePasswordAsync(CurrentUser.Id, body.NewPassword, actorId: CurrentUser.Id);
 
         return result.Match<IActionResult>(
             success => Ok(),
             notActivated => throw new UnreachableException("Authenticated user is not activated"),
             deactivated => throw new UnreachableException("Authenticated user is deactivated"),
             notFound => throw new UnreachableException("Authenticated user not found in database"));
-
     }
 }

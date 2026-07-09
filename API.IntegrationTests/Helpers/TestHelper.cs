@@ -41,7 +41,7 @@ public static class TestHelper
         // 2. Create session via ISessionService (stored in Redis)
         await using var scope = factory.Services.CreateAsyncScope();
         var sessionService = scope.ServiceProvider.GetRequiredService<ISessionService>();
-        var session = await sessionService.CreateSessionAsync(userId, "IntegrationTest", "127.0.0.1");
+        var session = await sessionService.CreateSessionAsync(userId, "IntegrationTest", "127.0.0.1", actorId: userId);
 
         return new AuthenticatedUser(userId, username, email, session.Token);
     }

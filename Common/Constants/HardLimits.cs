@@ -48,6 +48,7 @@ public static class HardLimits
     public const int UserActivationRequestSecretMaxLength = 128;
     public const int PasswordResetSecretMaxLength = 100;
     public const int ShockerControlLogCustomNameMaxLength = 64;
+    public const int AuditReasonMaxLength = 512;
     
     public const int CreateShareRequestMaxShockers = 128;
 

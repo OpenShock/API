@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using OpenShock.Common.Constants;
 using OpenShock.Common.Models;
+using OpenShock.Common.OpenShockDb;
 using OpenShock.Common.Options;
 using OpenShock.Common.Problems;
 using OpenShock.Common.Services.Session;
@@ -42,9 +43,12 @@ public class OpenShockControllerBase : ControllerBase
     protected async Task CreateSession(Guid accountId, string domain)
     {
         var sessionService = HttpContext.RequestServices.GetRequiredService<ISessionService>();
-        
-        var session = await sessionService.CreateSessionAsync(accountId, HttpContext.GetUserAgent(), HttpContext.GetRemoteIP().ToString());
-        
+
+        var remoteIp = HttpContext.GetRemoteIP();
+        var userAgent = HttpContext.GetUserAgent();
+
+        var session = await sessionService.CreateSessionAsync(accountId, userAgent, remoteIp.ToString(), actorId: accountId);
+
         HttpContext.Response.Cookies.Append(AuthConstants.UserSessionCookieName, session.Token, new CookieOptions
         {
             Expires = DateTimeOffset.UtcNow.Add(Duration.LoginSessionLifetime),

@@ -45,6 +45,7 @@ public static class NpgsqlEnumExtensions
         BuildInfo<ConfigurationValueType>(),
         BuildInfo<EmailType>(),
         BuildInfo<EmailStatus>(),
+        BuildInfo<AuditAction>(),
     ];
 
     public static NpgsqlDbContextOptionsBuilder MapPgEnums(this NpgsqlDbContextOptionsBuilder builder)

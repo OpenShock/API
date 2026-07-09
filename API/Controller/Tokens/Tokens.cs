@@ -5,6 +5,7 @@ using OpenShock.API.Models.Requests;
 using OpenShock.API.Models.Response;
 using OpenShock.API.Services.Token;
 using OpenShock.Common.Errors;
+using OpenShock.Common.Extensions;
 using OpenShock.Common.Problems;
 using OpenShock.Common.Utils;
 
@@ -82,7 +83,9 @@ public sealed partial class TokensController
     [Consumes(MediaTypeNames.Application.Json)]
     [Produces(MediaTypeNames.Application.Json)]
     [MapToApiVersion("1")]
-    public Task<TokenCreatedResponse> CreateToken([FromBody] CreateTokenRequest body, [FromServices] IApiTokenService tokenService)
+    public Task<TokenCreatedResponse> CreateToken(
+        [FromBody] CreateTokenRequest body,
+        [FromServices] IApiTokenService tokenService)
     {
         return tokenService.CreateTokenV1(CurrentUser.Id, HttpContext.GetRemoteIP(), body);
     }
@@ -117,7 +120,9 @@ public sealed partial class TokensController
     [Consumes(MediaTypeNames.Application.Json)]
     [Produces(MediaTypeNames.Application.Json)]
     [MapToApiVersion("2")]
-    public Task<TokenCreatedResponseV2> CreateTokenV2([FromBody] CreateTokenRequestV2 body, [FromServices] IApiTokenService tokenService)
+    public Task<TokenCreatedResponseV2> CreateTokenV2(
+        [FromBody] CreateTokenRequestV2 body,
+        [FromServices] IApiTokenService tokenService)
     {
         return tokenService.CreateTokenV2(CurrentUser.Id, HttpContext.GetRemoteIP(), body);
     }

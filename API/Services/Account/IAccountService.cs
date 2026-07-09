@@ -46,11 +46,11 @@ public interface IAccountService
     /// <returns></returns>
     Task<bool> TryActivateAccountAsync(string token, CancellationToken cancellationToken = default);
 
-    public Task<OneOf<Success, CannotDeactivatePrivilegedAccount, AccountDeactivationAlreadyInProgress, Unauthorized, NotFound>> DeactivateAccountAsync(Guid executingUserId, Guid userId, bool deleteLater = true);
-    
-    public Task<OneOf<Success, Unauthorized, NotFound>> ReactivateAccountAsync(Guid executingUserId, Guid userId);
+    public Task<OneOf<Success, CannotDeactivatePrivilegedAccount, AccountDeactivationAlreadyInProgress, Unauthorized, NotFound>> DeactivateAccountAsync(Guid executingUserId, Guid userId, bool deleteLater = true, string? reason = null);
 
-    public Task<OneOf<Success, CannotDeletePrivilegedAccount, Unauthorized, NotFound>> DeleteAccountAsync(Guid executingUserId, Guid userId);
+    public Task<OneOf<Success, Unauthorized, NotFound>> ReactivateAccountAsync(Guid executingUserId, Guid userId, string? reason = null);
+
+    public Task<OneOf<Success, CannotDeletePrivilegedAccount, Unauthorized, NotFound>> DeleteAccountAsync(Guid executingUserId, Guid userId, string? reason = null);
 
     /// <summary>
     /// Get a user by credentials
@@ -99,18 +99,20 @@ public interface IAccountService
     /// </summary>
     /// <param name="userId"></param>
     /// <param name="username"></param>
+    /// <param name="actorId">User that performed this change</param>
     /// <param name="ignoreLimit">Ignore the username change limit, set this to true when an admin is changing the username</param>
     /// <param name="cancellationToken"></param>
     /// <returns><see cref="Error{UsernameCheckResult}"/> only returns when the result is != Available</returns>
-    public Task<OneOf<Success, UsernameTaken, UsernameError, RecentlyChanged, AccountDeactivated, NotFound>> ChangeUsernameAsync(Guid userId, string username, bool ignoreLimit = false, CancellationToken cancellationToken = default);
-    
+    public Task<OneOf<Success, UsernameTaken, UsernameError, RecentlyChanged, AccountDeactivated, NotFound>> ChangeUsernameAsync(Guid userId, string username, Guid? actorId, bool ignoreLimit = false, CancellationToken cancellationToken = default);
+
     /// <summary>
     /// Change the password of a user
     /// </summary>
     /// <param name="userId"></param>
     /// <param name="newPassword"></param>
+    /// <param name="actorId">User that performed this change</param>
     /// <returns></returns>
-    public Task<OneOf<Success, AccountNotActivated, AccountDeactivated, NotFound>> ChangePasswordAsync(Guid userId, string newPassword);
+    public Task<OneOf<Success, AccountNotActivated, AccountDeactivated, NotFound>> ChangePasswordAsync(Guid userId, string newPassword, Guid? actorId);
 
     /// <summary>
     /// Creates a new email change request and sends a verification email to the new address.
@@ -118,8 +120,9 @@ public interface IAccountService
     /// </summary>
     /// <param name="userId">Id of the user whose email is being changed.</param>
     /// <param name="newEmail">Requested new email address.</param>
+    /// <param name="actorId">User that called this</param>
     /// <returns></returns>
-    public Task<OneOf<Success, EmailAlreadyInUse, EmailUnchanged, TooManyEmailChanges, AccountNotActivated, AccountDeactivated, NotFound>> CreateEmailChangeFlowAsync(Guid userId, string newEmail);
+    public Task<OneOf<Success, EmailAlreadyInUse, EmailUnchanged, TooManyEmailChanges, AccountNotActivated, AccountDeactivated, NotFound>> CreateEmailChangeFlowAsync(Guid userId, string newEmail, Guid? actorId);
 
     /// <summary>
     /// Verifies a pending email change using the supplied token. On success the user's email is updated.
@@ -130,7 +133,7 @@ public interface IAccountService
     /// <param name="token"></param>
     /// <param name="cancellationToken"></param>
     /// <returns></returns>
-    Task<OneOf<Success, NotFound, EmailAlreadyInUse>> TryVerifyEmailAsync(string token, CancellationToken cancellationToken = default);
+    Task<OneOf<Success<(Guid UserId, string OldEmail, string NewEmail)>, NotFound, EmailAlreadyInUse>> TryVerifyEmailAsync(string token, CancellationToken cancellationToken = default);
 }
 
 public readonly struct AccountIsOAuthOnly;

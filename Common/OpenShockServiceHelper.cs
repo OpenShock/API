@@ -16,6 +16,7 @@ using OpenShock.Common.JsonSerialization;
 using OpenShock.Common.OpenShockDb;
 using OpenShock.Common.Options;
 using OpenShock.Common.Problems;
+using OpenShock.Common.Services.Audit;
 using OpenShock.Common.Services.BatchUpdate;
 using OpenShock.Common.Services.Configuration;
 using OpenShock.Common.Services.RedisPubSub;
@@ -199,6 +200,7 @@ public static class OpenShockServiceHelper
 
         services.AddScoped<IConfigurationService, ConfigurationService>();
         services.AddScoped<ISessionService, SessionService>();
+        services.AddScoped<IAuditService, AuditService>();
         services.AddHttpClient<IWebhookService, WebhookService>(client =>
         {
             client.Timeout = TimeSpan.FromSeconds(30);
