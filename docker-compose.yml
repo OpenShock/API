@@ -123,6 +123,7 @@ services:
       PUBLIC_BACKEND_API_URL: https://${OPENSHOCK_HOST:-openshock.local}${OPENSHOCK_PORT:+:${OPENSHOCK_PORT}}${OPENSHOCK_API_PATH:-/api}
       # CSP connect-src allow-list for the gateway; the browser opens wss://host[:port].
       PUBLIC_GATEWAY_CSP_WILDCARD: https://${OPENSHOCK_HOST:-openshock.local}${OPENSHOCK_PORT:+:${OPENSHOCK_PORT}}
+      PRIVATE_BACKEND_TLS_INSECURE: ${OPENSHOCK_FRONTEND_TLS_INSECURE:-false}
     labels:
       - "traefik.enable=true"
       # Catch-all for the host; the api/gateway/cron PathPrefix routers are more specific and win.

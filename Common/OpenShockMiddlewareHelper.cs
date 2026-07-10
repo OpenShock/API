@@ -190,6 +190,15 @@ public static class OpenShockMiddlewareHelper
         var loggerFactory = scope.ServiceProvider.GetRequiredService<ILoggerFactory>();
         var logger = loggerFactory.CreateLogger("SchemaReadyGate");
 
+        // If migrations are skipped (schema is managed out-of-band), there is no migrator to wait for -
+        // blocking here would just stall startup until the timeout. Skip the gate, same as the API skips
+        // applying migrations under this flag.
+        if (options.SkipMigration)
+        {
+            logger.LogWarning("SkipMigration is set; not waiting for database schema readiness");
+            return app;
+        }
+
         logger.LogInformation("Waiting for database schema to be up to date (migrations owned by another host)...");
 
         var deadline = DateTime.UtcNow + (timeout ?? TimeSpan.FromMinutes(5));
