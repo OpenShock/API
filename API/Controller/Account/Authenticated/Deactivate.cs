@@ -1,7 +1,12 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using System.Diagnostics;
 using System.Net.Mime;
+using OpenShock.API.Services.Account;
 using OpenShock.Common.Errors;
 using OpenShock.Common.Problems;
+using OpenShock.Common.Results;
+using AccountSvc = OpenShock.API.Services.Account;
+using Results = OpenShock.Common.Results;
 
 namespace OpenShock.API.Controller.Account.Authenticated;
 
@@ -17,12 +22,14 @@ public sealed partial class AuthenticatedAccountController
     public async Task<IActionResult> Deactivate()
     {
         var deactivationResult = await _accountService.DeactivateAccountAsync(CurrentUser.Id, CurrentUser.Id, deleteLater: true);
-        return deactivationResult.Match<IActionResult>(
-            success => NoContent(),
-            cannotDeactivatePrivledged => Problem(AccountActivationError.CannotDeactivateOrDeletePrivledgedAccount),
-            alreadyDeactivated => Problem(AccountActivationError.AlreadyDeactivated),
-            unauthorized => Problem(AccountActivationError.Unauthorized),
-            notFound => throw new Exception("This is not supposed to happen, wtf?")
-        );
+        return deactivationResult switch
+        {
+            Success => NoContent(),
+            CannotDeactivatePrivilegedAccount => Problem(AccountActivationError.CannotDeactivateOrDeletePrivledgedAccount),
+            AccountDeactivationAlreadyInProgress => Problem(AccountActivationError.AlreadyDeactivated),
+            AccountSvc.Unauthorized => Problem(AccountActivationError.Unauthorized),
+            Results.NotFound => throw new Exception("This is not supposed to happen, wtf?"),
+            _ => throw new UnreachableException()
+        };
     }
 }

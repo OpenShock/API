@@ -2,9 +2,12 @@
 using System.Net.Mime;
 using Microsoft.AspNetCore.Mvc;
 using OpenShock.API.Models.Requests;
+using OpenShock.API.Services.Account;
 using OpenShock.Common.Errors;
 using OpenShock.Common.Problems;
+using OpenShock.Common.Results;
 using OpenShock.Common.Utils;
+using Results = OpenShock.Common.Results;
 
 namespace OpenShock.API.Controller.Account.Authenticated;
 
@@ -38,10 +41,13 @@ public sealed partial class AuthenticatedAccountController
         
         var result = await _accountService.ChangePasswordAsync(CurrentUser.Id, body.NewPassword, actorId: CurrentUser.Id);
 
-        return result.Match<IActionResult>(
-            success => Ok(),
-            notActivated => throw new UnreachableException("Authenticated user is not activated"),
-            deactivated => throw new UnreachableException("Authenticated user is deactivated"),
-            notFound => throw new UnreachableException("Authenticated user not found in database"));
+        return result switch
+        {
+            Success => Ok(),
+            AccountNotActivated => throw new UnreachableException("Authenticated user is not activated"),
+            AccountDeactivated => throw new UnreachableException("Authenticated user is deactivated"),
+            Results.NotFound => throw new UnreachableException("Authenticated user not found in database"),
+            _ => throw new UnreachableException()
+        };
     }
 }

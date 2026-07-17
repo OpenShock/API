@@ -1,8 +1,12 @@
 ﻿using System.ComponentModel.DataAnnotations;
+using System.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
 using OpenShock.API.Services.Account;
 using OpenShock.Common.Constants;
 using OpenShock.Common.Errors;
+using OpenShock.Common.Results;
+using AccountSvc = OpenShock.API.Services.Account;
+using Results = OpenShock.Common.Results;
 
 namespace OpenShock.API.Controller.Admin;
 
@@ -24,12 +28,14 @@ public sealed partial class AdminController
         PedanticallyEnsureAdmin();
 
         var deactivationResult = await accountService.DeactivateAccountAsync(CurrentUser.Id, userId, deleteLater, reason);
-        return deactivationResult.Match<IActionResult>(
-            success => Ok("Account deactivated"),
-            cannotDeactivatePrivledged => Problem(AccountActivationError.CannotDeactivateOrDeletePrivledgedAccount),
-            alreadyDeactivated => Problem(AccountActivationError.AlreadyDeactivated),
-            unauthorized => Problem(AccountActivationError.Unauthorized),
-            notFound => NotFound("User not found")
-        );
+        return deactivationResult switch
+        {
+            Success => Ok("Account deactivated"),
+            CannotDeactivatePrivilegedAccount => Problem(AccountActivationError.CannotDeactivateOrDeletePrivledgedAccount),
+            AccountDeactivationAlreadyInProgress => Problem(AccountActivationError.AlreadyDeactivated),
+            AccountSvc.Unauthorized => Problem(AccountActivationError.Unauthorized),
+            Results.NotFound => NotFound("User not found"),
+            _ => throw new UnreachableException()
+        };
     }
 }

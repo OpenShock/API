@@ -1,12 +1,16 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using OpenShock.API.Models.Requests;
+using System.Diagnostics;
 using System.Net.Mime;
 using Asp.Versioning;
 using Microsoft.AspNetCore.RateLimiting;
+using OpenShock.API.Services.Account;
 using OpenShock.Common.Errors;
+using OpenShock.Common.OpenShockDb;
 using OpenShock.Common.Problems;
 using OpenShock.API.Models.Response;
 using OpenShock.API.Services.Turnstile;
+using Results = OpenShock.Common.Results;
 
 namespace OpenShock.API.Controller.Account;
 
@@ -36,14 +40,16 @@ public sealed partial class AccountController
         if (turnstileError is not null) return turnstileError;
 
         var getAccountResult = await _accountService.GetAccountByCredentialsAsync(body.UsernameOrEmail, body.Password, cancellationToken);
-        if (!getAccountResult.TryPickT0(out var account, out var errors))
+        if (getAccountResult is not User account)
         {
-            return errors.Match(
-                notFound => Problem(LoginError.InvalidCredentials),
-                deactivated => Problem(AccountError.AccountDeactivated),
-                notActivated => Problem(AccountError.AccountNotActivated),
-                oauthOnly => Problem(AccountError.AccountOAuthOnly)
-            );
+            return getAccountResult switch
+            {
+                Results.NotFound => Problem(LoginError.InvalidCredentials),
+                AccountDeactivated => Problem(AccountError.AccountDeactivated),
+                AccountNotActivated => Problem(AccountError.AccountNotActivated),
+                AccountIsOAuthOnly => Problem(AccountError.AccountOAuthOnly),
+                _ => throw new UnreachableException()
+            };
         }
         
         await CreateSession(account.Id, cookieDomain);

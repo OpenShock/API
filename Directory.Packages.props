@@ -26,7 +26,6 @@
     <PackageVersion Include="Microsoft.IO.RecyclableMemoryStream" Version="3.0.1" />
     <PackageVersion Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.3" />
     <PackageVersion Include="NRedisStack" Version="1.6.0" />
-    <PackageVersion Include="OneOf" Version="3.0.271" />
     <PackageVersion Include="OpenShock.Serialization.Flatbuffers" Version="2.1.0" />
     <PackageVersion Include="OpenTelemetry.Exporter.Prometheus.AspNetCore" Version="1.12.0-beta.1" />
     <PackageVersion Include="OpenTelemetry.Extensions.Hosting" Version="1.16.0" />

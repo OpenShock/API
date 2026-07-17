@@ -3,8 +3,10 @@ using Microsoft.EntityFrameworkCore;
 using OpenShock.API.Controller.Admin.DTOs;
 using OpenShock.Common.Errors;
 using OpenShock.Common.Problems;
+using OpenShock.Common.Results;
 using OpenShock.Common.Services.Configuration;
 using System.Net.Mime;
+using Results = OpenShock.Common.Results;
 
 namespace OpenShock.API.Controller.Admin;
 
@@ -58,12 +60,13 @@ public sealed partial class AdminController
             body.Value
         );
 
-        return result.Match<IActionResult>(
-            success => Ok(),
-            alreadyExists => Problem(ConfigurationError.AlreadyExists(body.Name)),
-            invalidName => Problem(ConfigurationError.InvalidNameFormat(body.Name)),
-            invalidValue => Problem(ConfigurationError.InvalidValueFormat(body.Value))
-        );
+        return result switch
+        {
+            Success => Ok(),
+            AlreadyExists => Problem(ConfigurationError.AlreadyExists(body.Name)),
+            InvalidNameFormat => Problem(ConfigurationError.InvalidNameFormat(body.Name)),
+            InvalidValueFormat => Problem(ConfigurationError.InvalidValueFormat(body.Value))
+        };
     }
 
     /// <summary>
@@ -89,12 +92,13 @@ public sealed partial class AdminController
             body.Value
         );
 
-        return result.Match<IActionResult>(
-            success => Ok(),
-            notFound => Problem(ConfigurationError.NotFound(body.Name)),
-            invalidName => Problem(ConfigurationError.InvalidNameFormat(body.Name)),
-            invalidValue => Problem(ConfigurationError.InvalidValueFormat(body.Value!))
-        );
+        return result switch
+        {
+            Success => Ok(),
+            Results.NotFound => Problem(ConfigurationError.NotFound(body.Name)),
+            InvalidNameFormat => Problem(ConfigurationError.InvalidNameFormat(body.Name)),
+            InvalidValueFormat => Problem(ConfigurationError.InvalidValueFormat(body.Value!))
+        };
     }
 
     /// <summary>
@@ -114,10 +118,11 @@ public sealed partial class AdminController
 
         var result = await configurationService.TryDeleteItemAsync(name);
 
-        return result.Match<IActionResult>(
-            success => Ok(),
-            notFound => Problem(ConfigurationError.NotFound(name)),
-            invalidName => Problem(ConfigurationError.InvalidNameFormat(name))
-        );
+        return result switch
+        {
+            Success => Ok(),
+            Results.NotFound => Problem(ConfigurationError.NotFound(name)),
+            InvalidNameFormat => Problem(ConfigurationError.InvalidNameFormat(name))
+        };
     }
 }

@@ -1,11 +1,15 @@
 ﻿using System;
+using System.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
 using System.Net.Mime;
 using Asp.Versioning;
 using Microsoft.AspNetCore.RateLimiting;
+using OpenShock.API.Services.Account;
 using OpenShock.Common.Errors;
 using OpenShock.Common.Problems;
 using OpenShock.Common.Models;
+using OpenShock.Common.Results;
+using Results = OpenShock.Common.Results;
 
 namespace OpenShock.API.Controller.Account;
 
@@ -42,13 +46,15 @@ public sealed partial class AccountController
     {
         var passwordResetComplete = await _accountService.CompletePasswordResetFlowAsync(passwordResetId, secret, body.Password);
 
-        return passwordResetComplete.Match(
-            success => LegacyEmptyOk("Password successfully changed"),
-            notFound => Problem(PasswordResetError.PasswordResetNotFound),
-            notActivated => Problem(AccountError.AccountNotActivated),
-            deactivated => Problem(AccountError.AccountDeactivated),
-            invalid => Problem(PasswordResetError.PasswordResetNotFound)
-                );
+        return passwordResetComplete switch
+        {
+            Success => LegacyEmptyOk("Password successfully changed"),
+            Results.NotFound => Problem(PasswordResetError.PasswordResetNotFound),
+            AccountNotActivated => Problem(AccountError.AccountNotActivated),
+            AccountDeactivated => Problem(AccountError.AccountDeactivated),
+            SecretInvalid => Problem(PasswordResetError.PasswordResetNotFound),
+            _ => throw new UnreachableException()
+        };
     }
     
 

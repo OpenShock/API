@@ -7,7 +7,9 @@ using OpenShock.API.OAuth;
 using OpenShock.API.Services.OAuthConnection;
 using OpenShock.Common.Errors;
 using OpenShock.Common.Extensions;
+using OpenShock.Common.OpenShockDb;
 using OpenShock.Common.Options;
+using OpenShock.Common.Results;
 using System.Security.Claims;
 
 namespace OpenShock.API.Controller.OAuth;
@@ -48,8 +50,9 @@ public sealed partial class OAuthController
         }
         
         var result = await ValidateOAuthFlowAsync();
-        if (!result.TryPickT0(out var auth, out var error))
+        if (result is not ValidatedFlowContext auth)
         {
+            var error = (OAuthValidationError)result.Value!;
             return error switch
             {
                 OAuthValidationError.FlowStateMissing => Problem(OAuthError.FlowNotFound),
@@ -99,7 +102,7 @@ public sealed partial class OAuthController
             isEmailTrusted
         );
 
-        if (!created.TryPickT0(out var newUser, out _))
+        if (created is not Success<User> newUser)
         {
             // Username or email already exists — conflict.
             // Do NOT clear the flow cookie so the frontend can retry with a different username.

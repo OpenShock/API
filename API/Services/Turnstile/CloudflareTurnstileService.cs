@@ -1,7 +1,6 @@
 ﻿using System.Net;
-using OneOf;
-using OneOf.Types;
 using OpenShock.API.Options;
+using OpenShock.Common.Results;
 
 namespace OpenShock.API.Services.Turnstile;
 
@@ -43,7 +42,7 @@ public sealed class CloudflareTurnstileService : ICloudflareTurnstileService
     }
 
     /// <inheritdoc />
-    public async Task<OneOf<Success, Error<CloudflareTurnstileError[]>>> VerifyUserResponseTokenAsync(
+    public async Task<Union2<Success, Error<CloudflareTurnstileError[]>>> VerifyUserResponseTokenAsync(
         string responseToken, IPAddress? remoteIpAddress, CancellationToken cancellationToken = default)
     {
         if (!_options.Enabled) return new Success();

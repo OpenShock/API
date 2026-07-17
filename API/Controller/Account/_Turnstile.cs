@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using OpenShock.API.Errors;
 using OpenShock.API.Services.Turnstile;
 using OpenShock.Common.Problems;
+using OpenShock.Common.Results;
 using OpenShock.Common.Utils;
 
 namespace OpenShock.API.Controller.Account;
@@ -16,9 +17,9 @@ public sealed partial class AccountController
     private async Task<IActionResult?> VerifyTurnstileAsync(ICloudflareTurnstileService turnstileService, string turnstileResponse, CancellationToken cancellationToken)
     {
         var turnStile = await turnstileService.VerifyUserResponseTokenAsync(turnstileResponse, HttpContext.GetRemoteIP(), cancellationToken);
-        if (turnStile.IsT0) return null;
+        if (turnStile is not Error<CloudflareTurnstileError[]> error) return null;
 
-        var cfErrors = turnStile.AsT1.Value;
+        var cfErrors = error.Value;
         if (cfErrors.All(err => err.IsClientError()))
             return Problem(TurnstileError.InvalidTurnstile);
 

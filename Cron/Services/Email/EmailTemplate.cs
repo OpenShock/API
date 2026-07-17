@@ -1,5 +1,6 @@
 using System.Text.Encodings.Web;
 using Fluid;
+using OpenShock.Common.Results;
 using OpenShock.Cron.Services.Email.Mailjet.Mail;
 
 namespace OpenShock.Cron.Services.Email;
@@ -30,13 +31,13 @@ public sealed class EmailTemplate
     public static async Task<EmailTemplate> ParseFromFileThrow(string filePath)
     {
         var result = await ParseFromFile(filePath);
-        return result.IsT0 ? result.AsT0 : throw new InvalidDataException(result.AsT1);
+        return result is EmailTemplate template ? template : throw new InvalidDataException((string)result.Value!);
     }
 
-    private static Task<OneOf.OneOf<EmailTemplate, string>> ParseFromFile(string filePath) =>
+    private static Task<Union2<EmailTemplate, string>> ParseFromFile(string filePath) =>
         ParseFromFile(File.OpenRead(filePath));
 
-    private static async Task<OneOf.OneOf<EmailTemplate, string>> ParseFromFile(FileStream fileStream)
+    private static async Task<Union2<EmailTemplate, string>> ParseFromFile(FileStream fileStream)
     {
         using var streamReader = new StreamReader(fileStream);
         var subject = await streamReader.ReadLineAsync();

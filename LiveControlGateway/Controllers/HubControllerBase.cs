@@ -2,11 +2,10 @@
 using FlatSharp;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
-using OneOf;
-using OneOf.Types;
 using OpenShock.Common.Constants;
 using OpenShock.Common.Errors;
 using OpenShock.Common.Problems;
+using OpenShock.Common.Results;
 using OpenShock.Common.Utils;
 using OpenShock.LiveControlGateway.LifetimeManager;
 using OpenShock.LiveControlGateway.Options;
@@ -123,7 +122,7 @@ public abstract class HubControllerBase<TIn, TOut> : FlatbuffersWebsocketBaseCon
     private SemVersion? _firmwareVersion;
 
     /// <inheritdoc />
-    protected override async Task<OneOf<Success, Error<OpenShockProblem>>> ConnectionPrecondition()
+    protected override async Task<Union2<Success, Error<OpenShockProblem>>> ConnectionPrecondition()
     {
         _connected = DateTimeOffset.UtcNow;
 
@@ -141,20 +140,19 @@ public abstract class HubControllerBase<TIn, TOut> : FlatbuffersWebsocketBaseCon
         _userAgent = HttpContext.Request.Headers.UserAgent.ToString().Truncate(256);
         var hubLifetimeResult = await _hubLifetimeManager.TryAddDeviceConnection(5, this, LinkedToken);
 
-        if (hubLifetimeResult.IsT1)
+        switch (hubLifetimeResult)
         {
-            Logger.LogWarning("Hub lifetime busy, closing connection");
-            return new Error<OpenShockProblem>(WebsocketError.WebsocketHubLifetimeBusy);
+            case HubLifetimeManager.Busy:
+                Logger.LogWarning("Hub lifetime busy, closing connection");
+                return new Error<OpenShockProblem>(WebsocketError.WebsocketHubLifetimeBusy);
+            case Error:
+                Logger.LogError("Hub lifetime error, closing connection");
+                return new Error<OpenShockProblem>(ExceptionError.Exception);
+            case LifetimeManager.HubLifetime hubLifetime:
+                HubLifetime = hubLifetime;
+                break;
         }
-        
-        if (hubLifetimeResult.IsT2)
-        {
-            Logger.LogError("Hub lifetime error, closing connection");
-            return new Error<OpenShockProblem>(ExceptionError.Exception);
-        }
-        
-        HubLifetime = hubLifetimeResult.AsT0;
-        
+
         return new Success();
     }
     

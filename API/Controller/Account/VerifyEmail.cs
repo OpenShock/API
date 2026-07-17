@@ -1,9 +1,13 @@
 ﻿using System;
+using System.Diagnostics;
 using System.Net.Mime;
 using Microsoft.AspNetCore.Mvc;
 using Asp.Versioning;
+using OpenShock.API.Services.Account;
 using OpenShock.Common.Errors;
 using OpenShock.Common.Problems;
+using OpenShock.Common.Results;
+using Results = OpenShock.Common.Results;
 
 namespace OpenShock.API.Controller.Account;
 
@@ -42,9 +46,12 @@ public sealed partial class AccountController
     {
         var result = await _accountService.TryVerifyEmailAsync(token, cancellationToken);
 
-        return result.Match<IActionResult>(
-            success => Ok(),
-            notFound => Problem(AccountError.EmailChangeNotFound),
-            emailTaken => Problem(AccountError.EmailChangeAlreadyInUse));
+        return result switch
+        {
+            Success<(Guid UserId, string OldEmail, string NewEmail)> => Ok(),
+            Results.NotFound => Problem(AccountError.EmailChangeNotFound),
+            EmailAlreadyInUse => Problem(AccountError.EmailChangeAlreadyInUse),
+            _ => throw new UnreachableException()
+        };
     }
 }

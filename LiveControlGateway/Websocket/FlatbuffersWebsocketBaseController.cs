@@ -53,20 +53,19 @@ public abstract class FlatbuffersWebsocketBaseController<TIn, TOut> : WebsocketB
         var message =
             await FlatbufferWebSocketUtils.ReceiveFullMessageAsyncNonAlloc(WebSocket!,
                 _incomingSerializer, cancellationToken);
-        
-        var continueLoop = await message.Match(
-            Handle,
-            async _ =>
-            {
+
+        switch (message)
+        {
+            case DeserializeFailed:
                 await ForceClose(WebSocketCloseStatus.InvalidPayloadData, "Invalid flatbuffers message");
                 return false;
-            },
-            _ =>
-            {
+            case WebsocketClosure:
                 Logger.LogTrace("Client sent closure");
-                return Task.FromResult(false);
-            });
-
-        return continueLoop;
+                return false;
+            case TIn data:
+                return await Handle(data);
+            default:
+                return false;
+        }
     }
 }

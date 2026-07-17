@@ -2,10 +2,9 @@
 using System.Text.Json;
 using System.Threading.Channels;
 using Microsoft.AspNetCore.Mvc;
-using OneOf;
-using OneOf.Types;
 using OpenShock.Common.Errors;
 using OpenShock.Common.Problems;
+using OpenShock.Common.Results;
 using OpenShock.Common.Utils;
 
 namespace OpenShock.Common.Websocket;
@@ -120,9 +119,9 @@ public abstract class WebsocketBaseController<T> : OpenShockControllerBase, IAsy
         }
 
         var connectionPrecondition = await ConnectionPrecondition();
-        if (connectionPrecondition.IsT1)
+        if (connectionPrecondition.Value is Error<OpenShockProblem> connectionError)
         {
-            await connectionPrecondition.AsT1.Value.WriteAsJsonAsync(HttpContext, LinkedToken);
+            await connectionError.Value.WriteAsJsonAsync(HttpContext, LinkedToken);
             return;
         }
 
@@ -292,6 +291,6 @@ public abstract class WebsocketBaseController<T> : OpenShockControllerBase, IAsy
     /// Action when the websocket connection is destroyed to unregister the connection to a websocket manager
     /// </summary>
     [NonAction]
-    protected virtual Task<OneOf<Success, Error<OpenShockProblem>>> ConnectionPrecondition() =>
-        Task.FromResult(OneOf<Success, Error<OpenShockProblem>>.FromT0(new Success()));
+    protected virtual Task<Union2<Success, Error<OpenShockProblem>>> ConnectionPrecondition() =>
+        Task.FromResult<Union2<Success, Error<OpenShockProblem>>>(new Success());
 }

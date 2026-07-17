@@ -1,4 +1,5 @@
- ﻿using System.Net.Mime;
+ ﻿using System.Diagnostics;
+using System.Net.Mime;
 using Asp.Versioning;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.SignalR;
@@ -10,6 +11,7 @@ using OpenShock.Common.Hubs;
 using OpenShock.Common.Models;
 using OpenShock.Common.OpenShockDb;
 using OpenShock.Common.Problems;
+using OpenShock.Common.Results;
 using OpenShock.Common.Services;
 
 namespace OpenShock.API.Controller.Shockers;
@@ -45,7 +47,7 @@ public sealed partial class ShockerController
         };
 
         ApiTokenControlLimits? tokenLimits = null;
-        if (userReferenceService.AuthReference.TryPickT1(out ApiToken? apiToken, out _))
+        if (userReferenceService.AuthReference is ApiToken apiToken)
         {
             // A paused token may not control shockers.
             if (apiToken.ShockerControlPaused) return Problem(ApiTokenError.ApiTokenPaused);
@@ -54,11 +56,14 @@ public sealed partial class ShockerController
         }
 
         var controlAction = await controlSender.ControlByUser(body.Shocks, sender, userHub.Clients, tokenLimits);
-        return controlAction.Match(
-            success => LegacyEmptyOk("Successfully sent control messages"),
-            notFound => Problem(ShockerControlError.ShockerControlNotFound(notFound.Value)),
-            paused => Problem(ShockerControlError.ShockerControlPaused(paused.Value)),
-            noPermission => Problem(ShockerControlError.ShockerControlNoPermission(noPermission.Value)));
+        return controlAction switch
+        {
+            Success => LegacyEmptyOk("Successfully sent control messages"),
+            ShockerNotFoundOrNoAccess notFound => Problem(ShockerControlError.ShockerControlNotFound(notFound.Value)),
+            ShockerPaused paused => Problem(ShockerControlError.ShockerControlPaused(paused.Value)),
+            ShockerNoPermission noPermission => Problem(ShockerControlError.ShockerControlNoPermission(noPermission.Value)),
+            _ => throw new UnreachableException()
+        };
     }
 
     /// <summary>

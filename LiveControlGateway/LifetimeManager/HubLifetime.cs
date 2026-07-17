@@ -1,13 +1,12 @@
 ﻿using MessagePack;
 using Microsoft.EntityFrameworkCore;
-using OneOf;
-using OneOf.Types;
 using OpenShock.Common.Constants;
 using OpenShock.Common.Extensions;
 using OpenShock.Common.Models;
 using OpenShock.Common.OpenShockDb;
 using OpenShock.Common.Redis;
 using OpenShock.Common.Redis.PubSub;
+using OpenShock.Common.Results;
 using OpenShock.Common.Services.RedisPubSub;
 using OpenShock.Common.Utils;
 using OpenShock.LiveControlGateway.Controllers;
@@ -392,7 +391,7 @@ public sealed class HubLifetime : IAsyncDisposable
     /// <param name="intensity"></param>
     /// <param name="tps"></param>
     /// <returns></returns>
-    public OneOf<Success, NotFound, ShockerExclusive> ReceiveFrame(Guid shocker, ControlType type, byte intensity,
+    public Union3<Success, NotFound, ShockerExclusive> ReceiveFrame(Guid shocker, ControlType type, byte intensity,
         byte tps)
     {
         if (!_shockerStates.TryGetValue(shocker, out var state)) return new NotFound();
@@ -465,7 +464,7 @@ public sealed class HubLifetime : IAsyncDisposable
     /// <param name="device"></param>
     /// <param name="data"></param>
     /// <returns></returns>
-    public async Task<OneOf<Success, OnlineStateUpdated>> Online(Guid device, SelfOnlineData data)
+    public async Task<Union2<Success, OnlineStateUpdated>> Online(Guid device, SelfOnlineData data)
     {
         var deviceOnline = _redisConnectionProvider.RedisCollection<DeviceOnline>();
         var deviceId = device.ToString();
