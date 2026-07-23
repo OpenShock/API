@@ -1,4 +1,6 @@
-﻿using OpenShock.Cron.Options;
+﻿using OpenShock.Common.Extensions;
+using OpenShock.Common.Options;
+using OpenShock.Cron.Options;
 using OpenShock.Cron.Services.Email.Mailjet;
 using OpenShock.Cron.Services.Email.Outbox;
 using OpenShock.Cron.Services.Email.Smtp;
@@ -9,7 +11,7 @@ public static class EmailServiceExtension
 {
     public static async Task<WebApplicationBuilder> AddEmailService(this WebApplicationBuilder builder)
     {
-        var mailOptions = builder.Configuration.GetRequiredSection(MailOptions.SectionName).Get<MailOptions>() ?? throw new NullReferenceException();
+        var mailOptions = builder.RegisterMailOptions();
 
         // The outbox dispatcher delivers all transactional email regardless of provider; even with mail
         // disabled the delivery job still runs and marks messages terminal (no-op provider). Delivery is
@@ -45,7 +47,7 @@ public static class EmailServiceExtension
 
     private static WebApplicationBuilder AddSenderContactConfiguration(this WebApplicationBuilder builder)
     {
-        builder.Services.AddSingleton(builder.Configuration.GetRequiredSection(MailOptions.SenderSectionName).Get<MailOptions.MailSenderContact>() ?? throw new NullReferenceException());
+        builder.Services.AddSingleton(builder.Configuration.GetRequiredSection(MailOptions.SenderSectionName).Get<MailSenderContact>() ?? throw new NullReferenceException());
         return builder;
     }
 

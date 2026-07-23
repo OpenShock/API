@@ -43,7 +43,8 @@ public sealed partial class VersionController : OpenShockControllerBase
     public async Task<IActionResult> GetBackendInfo(
         [FromServices] IAuthenticationSchemeProvider schemeProvider,
         [FromServices] FrontendOptions frontendOptions,
-        [FromServices] TurnstileOptions turnstileOptions
+        [FromServices] TurnstileOptions turnstileOptions,
+        [FromServices] MailOptions mailOptions
         )
     {
         var providers = await schemeProvider.GetAllOAuthSchemesAsync();
@@ -58,6 +59,7 @@ public sealed partial class VersionController : OpenShockControllerBase
                 ShortLinkUrl = frontendOptions.ShortUrl,
                 TurnstileSiteKey = turnstileOptions.SiteKey,
                 OAuthProviders = providers,
+                IsMailEnabled = mailOptions.IsEnabled,
                 IsUserAuthenticated = User.HasOpenShockUserIdentity()
             },
             "OpenShock"
@@ -73,6 +75,14 @@ public sealed partial class VersionController : OpenShockControllerBase
         public required Uri ShortLinkUrl { get; init; }
         public required string? TurnstileSiteKey { get; init; }
         public required string[] OAuthProviders { get; init; }
+
+        /// <summary>
+        /// False when the instance has no mail provider configured. Accounts are then activated on
+        /// creation, and no flow that relies on an emailed link (activation, password reset, email
+        /// change) can complete.
+        /// </summary>
+        public required bool IsMailEnabled { get; init; }
+
         public required bool IsUserAuthenticated { get; init; }
     }
 }
