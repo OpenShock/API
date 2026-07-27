@@ -89,6 +89,16 @@ public static class ConfigurationExtensions
         return options;
     }
 
+    public static MailOptions RegisterMailOptions(this WebApplicationBuilder builder)
+    {
+        var options = builder.Configuration.GetRequiredSection(MailOptions.SectionName).Get<MailOptions>();
+        if (options is null)
+            throw new InvalidOperationException($"Missing or invalid configuration for {MailOptions.SectionName}.");
+
+        builder.Services.AddSingleton(options);
+        return options;
+    }
+
     public static FrontendOptions RegisterFrontendOptions(this WebApplicationBuilder builder)
     {
         var section = builder.Configuration.GetRequiredSection("OpenShock:Frontend");

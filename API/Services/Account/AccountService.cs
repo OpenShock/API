@@ -4,6 +4,7 @@ using Npgsql;
 using OpenShock.Common.Constants;
 using OpenShock.Common.Models;
 using OpenShock.Common.OpenShockDb;
+using OpenShock.Common.Options;
 using OpenShock.Common.Results;
 using OpenShock.Common.Services.Audit;
 using OpenShock.Common.Services.RedisPubSub;
@@ -22,6 +23,7 @@ public sealed class AccountService : IAccountService
     private readonly IRedisPubService _redisPubService;
     private readonly ISessionService _sessionService;
     private readonly IAuditService _auditService;
+    private readonly MailOptions _mailOptions;
     private readonly ILogger<AccountService> _logger;
 
     /// <summary>
@@ -31,13 +33,15 @@ public sealed class AccountService : IAccountService
     /// <param name="redisPubService">Used to notify the email outbox delivery job that mail was enqueued.</param>
     /// <param name="sessionService"></param>
     /// <param name="auditService"></param>
+    /// <param name="mailOptions">Decides whether an activation link can ever reach the user.</param>
     /// <param name="logger"></param>
-    public AccountService(OpenShockContext db, IRedisPubService redisPubService, ISessionService sessionService, IAuditService auditService, ILogger<AccountService> logger)
+    public AccountService(OpenShockContext db, IRedisPubService redisPubService, ISessionService sessionService, IAuditService auditService, MailOptions mailOptions, ILogger<AccountService> logger)
     {
         _db = db;
         _redisPubService = redisPubService;
         _sessionService = sessionService;
         _auditService =  auditService;
+        _mailOptions = mailOptions;
         _logger = logger;
     }
 
@@ -119,8 +123,12 @@ public sealed class AccountService : IAccountService
     /// <inheritdoc />
     public async Task<Union2<Success<User>, AccountWithEmailOrUsernameExists>> CreateAccountWithActivationFlowAsync(string email, string username, string password)
     {
-        var accountCreate = await CreateAccount(email, username, password, false);
-        if (accountCreate.Value is not Success<User> created) return accountCreate;
+        // With mail disabled the activation email is never delivered, so an activation flow would leave
+        // the account permanently unusable. Activate on creation instead.
+        var mailEnabled = _mailOptions.IsEnabled;
+
+        var accountCreate = await CreateAccount(email, username, password, !mailEnabled);
+        if (accountCreate.Value is not Success<User> created || !mailEnabled) return accountCreate;
 
         var user = created.Value;
 
@@ -156,6 +164,10 @@ public sealed class AccountService : IAccountService
     {
         email = email.ToLowerInvariant();
         provider = provider.ToLowerInvariant();
+
+        // With mail disabled no activation link can reach the user, so an untrusted email cannot be
+        // verified by any means; activate on creation rather than create a dead account.
+        isEmailTrusted |= !_mailOptions.IsEnabled;
 
         // Reuse your existing guards
         if (await IsUserNameBlacklisted(username) || await IsEmailProviderBlacklisted(email))

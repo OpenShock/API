@@ -60,6 +60,11 @@ public class WebApplicationFactory : WebApplicationFactory<Program>
             { "OPENSHOCK__FRONTEND__SHORTURL", "https://openshock.app" },
             { "OPENSHOCK__FRONTEND__COOKIEDOMAIN", "openshock.app,localhost" },
 
+            // The API never sends mail; it only reads the type to decide whether accounts wait for an
+            // activation email. Any non-None value keeps the normal activation flow under test.
+            // MailDisabledWebApplicationFactory covers the None behavior.
+            { "OPENSHOCK__MAIL__TYPE", "Smtp" },
+
             { "OPENSHOCK__TURNSTILE__ENABLED", "true" },
             { "OPENSHOCK__TURNSTILE__SECRETKEY", "turnstile-secret-key" },
             { "OPENSHOCK__TURNSTILE__SITEKEY", "turnstile-site-key" },

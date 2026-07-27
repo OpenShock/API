@@ -16,7 +16,7 @@ public sealed class SmtpEmailService : IEmailService
     public SmtpEmailService(
             EmailServiceTemplates templates,
             SmtpOptions options,
-            MailOptions.MailSenderContact sender,
+            MailSenderContact sender,
             ILogger<SmtpEmailService> logger
         )
     {

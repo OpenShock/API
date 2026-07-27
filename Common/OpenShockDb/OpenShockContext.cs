@@ -12,17 +12,11 @@ namespace OpenShock.Common.OpenShockDb;
 /// </summary>
 public sealed class MigrationOpenShockContext : OpenShockContext
 {
-    private readonly string? _connectionString;
+    private readonly string _connectionString;
     private readonly bool _debug;
-    private readonly bool _migrationTool;
     private readonly ILoggerFactory? _loggerFactory;
-    
-    public MigrationOpenShockContext()
-    {
-        _migrationTool = true;
-    }
-    
-    public MigrationOpenShockContext(string connectionString, bool debug, ILoggerFactory loggerFactory)
+
+    public MigrationOpenShockContext(string connectionString, bool debug, ILoggerFactory? loggerFactory = null)
     {
         _connectionString = connectionString;
         _debug = debug;
@@ -31,15 +25,8 @@ public sealed class MigrationOpenShockContext : OpenShockContext
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {
-        if (_migrationTool)
-        {
-            ConfigureOptionsBuilder(optionsBuilder, "Host=localhost;Database=openshock;Username=openshock;Password=openshock", true);
-            return;
-        }
-        if(string.IsNullOrWhiteSpace(_connectionString))
-            throw new InvalidOperationException("Connection string is not set.");
         ConfigureOptionsBuilder(optionsBuilder, _connectionString, _debug);
-        
+
         if (_loggerFactory is not null)
             optionsBuilder.UseLoggerFactory(_loggerFactory);
     }
@@ -50,7 +37,7 @@ public sealed class MigrationOpenShockContext : OpenShockContext
 /// </summary>
 public class OpenShockContext : DbContext, IDataProtectionKeyContext
 {
-    public OpenShockContext()
+    protected OpenShockContext()
     {
     }
 
