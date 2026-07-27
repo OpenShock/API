@@ -44,4 +44,10 @@
     <PackageVersion Include="Microsoft.Testing.Extensions.CodeCoverage" Version="18.9.0" />
     <PackageVersion Include="Z.EntityFramework.Plus.EFCore" Version="10.105.6" />
   </ItemGroup>
+  <ItemGroup Condition="'$(UsingMicrosoftNETSdkWeb)' != 'true'">
+    <!-- Transitive from Microsoft.AspNetCore.DataProtection.EntityFrameworkCore@10.0.9; 10.0.9 has known CVEs, force the patched version.
+         Scoped to non-Web-SDK projects: Sdk.Web projects already get the patched assembly via the ASP.NET Core shared framework and NuGet
+         prunes an explicit reference there (NU1510). -->
+    <GlobalPackageReference Include="System.Security.Cryptography.Xml" Version="10.0.10" />
+  </ItemGroup>
 </Project>
