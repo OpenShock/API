@@ -47,7 +47,7 @@ public sealed partial class AccountController
 
         return result switch
         {
-            Results.Success<(Guid UserId, string OldEmail, string NewEmail)> => Ok(),
+            VerifyEmailSuccess => Ok(),
             Results.NotFound => Problem(AccountError.EmailChangeNotFound),
             EmailAlreadyInUse => Problem(AccountError.EmailChangeAlreadyInUse),
             _ => throw new UnreachableException()
