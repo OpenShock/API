@@ -1,4 +1,4 @@
-FROM mcr.microsoft.com/dotnet/sdk:11.0-alpine AS build-common
+FROM mcr.microsoft.com/dotnet/sdk:11.0.100-preview.6-alpine3.24 AS build-common
 WORKDIR /src
 
 COPY --link Common/*.csproj Common/
