@@ -66,7 +66,7 @@ public sealed class HubLifetimeManager
     /// <summary>
     /// When the hub lifetime is busy, we cannot add a new device connection
     /// </summary>
-    public readonly struct Busy;
+    public sealed class Busy;
 
     /// <summary>
     /// Add device to lifetime manager, called on successful connect of device
@@ -225,9 +225,9 @@ public sealed class HubLifetimeManager
     /// </summary>
     /// <param name="device"></param>
     /// <returns></returns>
-    public async Task<Union2<Success, DeviceNotFound>> UpdateDevice(Guid device)
+    public async Task<SuccessOrNotFound> UpdateDevice(Guid device)
     {
-        if (!_lifetimes.TryGetValue(device, out var deviceLifetime)) return new DeviceNotFound();
+        if (!_lifetimes.TryGetValue(device, out var deviceLifetime)) return new NotFound();
         await deviceLifetime.UpdateDevice();
         return new Success();
     }
@@ -238,9 +238,9 @@ public sealed class HubLifetimeManager
     /// <param name="device"></param>
     /// <param name="shocks"></param>
     /// <returns></returns>
-    public async Task<Union2<Success, DeviceNotFound>> Control(Guid device, IReadOnlyList<ShockerControlCommand> shocks)
+    public async Task<SuccessOrNotFound> Control(Guid device, IReadOnlyList<ShockerControlCommand> shocks)
     {
-        if (!_lifetimes.TryGetValue(device, out var deviceLifetime)) return new DeviceNotFound();
+        if (!_lifetimes.TryGetValue(device, out var deviceLifetime)) return new NotFound();
         await deviceLifetime.Control(shocks);
         return new Success();
     }
@@ -251,9 +251,9 @@ public sealed class HubLifetimeManager
     /// <param name="device"></param>
     /// <param name="enabled"></param>
     /// <returns></returns>
-    public async Task<Union2<Success, DeviceNotFound>> ControlCaptive(Guid device, bool enabled)
+    public async Task<SuccessOrNotFound> ControlCaptive(Guid device, bool enabled)
     {
-        if (!_lifetimes.TryGetValue(device, out var deviceLifetime)) return new DeviceNotFound();
+        if (!_lifetimes.TryGetValue(device, out var deviceLifetime)) return new NotFound();
         await deviceLifetime.ControlCaptive(enabled);
         return new Success();
     }
@@ -263,9 +263,9 @@ public sealed class HubLifetimeManager
     /// </summary>
     /// <param name="device"></param>
     /// <returns></returns>
-    public async Task<Union3<Success, DeviceMissingFeature, DeviceNotFound>> EmergencyStop(Guid device)
+    public async Task<Union3<Success, DeviceMissingFeature, NotFound>> EmergencyStop(Guid device)
     {
-        if (!_lifetimes.TryGetValue(device, out var deviceLifetime)) return new DeviceNotFound();
+        if (!_lifetimes.TryGetValue(device, out var deviceLifetime)) return new NotFound();
         bool ok = await deviceLifetime.EmergencyStop();
         return ok ? new Success() : new DeviceMissingFeature();
     }
@@ -276,9 +276,9 @@ public sealed class HubLifetimeManager
     /// <param name="device"></param>
     /// <param name="version"></param>
     /// <returns></returns>
-    public async Task<Union2<Success, DeviceNotFound>> OtaInstall(Guid device, SemVersion version)
+    public async Task<SuccessOrNotFound> OtaInstall(Guid device, SemVersion version)
     {
-        if (!_lifetimes.TryGetValue(device, out var deviceLifetime)) return new DeviceNotFound();
+        if (!_lifetimes.TryGetValue(device, out var deviceLifetime)) return new NotFound();
         await deviceLifetime.OtaInstall(version);
         return new Success();
     }
@@ -288,9 +288,9 @@ public sealed class HubLifetimeManager
     /// </summary>
     /// <param name="device"></param>
     /// <returns></returns>
-    public async Task<Union3<Success, DeviceMissingFeature, DeviceNotFound>> Reboot(Guid device)
+    public async Task<Union3<Success, DeviceMissingFeature, NotFound>> Reboot(Guid device)
     {
-        if (!_lifetimes.TryGetValue(device, out var deviceLifetime)) return new DeviceNotFound();
+        if (!_lifetimes.TryGetValue(device, out var deviceLifetime)) return new NotFound();
         bool ok = await deviceLifetime.Reboot();
         return ok ? new Success() : new DeviceMissingFeature();
     }
@@ -300,18 +300,13 @@ public sealed class HubLifetimeManager
     /// </summary>
     /// <param name="device"></param>
     /// <param name="data"></param>
-    public async Task<Union2<Success, DeviceNotFound>> DeviceOnline(Guid device, SelfOnlineData data)
+    public async Task<SuccessOrNotFound> DeviceOnline(Guid device, SelfOnlineData data)
     {
-        if (!_lifetimes.TryGetValue(device, out var deviceLifetime)) return new DeviceNotFound();
+        if (!_lifetimes.TryGetValue(device, out var deviceLifetime)) return new NotFound();
         await deviceLifetime.Online(device, data);
         return new Success();
     }
 }
-
-/// <summary>
-/// Union case
-/// </summary>
-public readonly struct DeviceNotFound;
 
 /// <summary>
 /// Union case
@@ -321,4 +316,4 @@ public readonly record struct ShockerExclusive(DateTimeOffset Until);
 /// <summary>
 /// This hub is too outdated to use this command
 /// </summary>
-public readonly struct DeviceMissingFeature;
+public sealed class DeviceMissingFeature;

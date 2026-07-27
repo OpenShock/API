@@ -47,7 +47,7 @@ public sealed partial class AccountController
         var creationAction = await _accountService.CreateAccountWithActivationFlowAsync(body.Email, body.Username, body.Password);
         return creationAction switch
         {
-            Success<User> => Ok(),
+            User _ => Ok(),
             AccountWithEmailOrUsernameExists => Problem(SignupError.UsernameOrEmailExists),
             _ => throw new UnreachableException()
         };

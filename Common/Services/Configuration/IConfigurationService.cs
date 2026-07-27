@@ -11,23 +11,59 @@ public interface IConfigurationService
     Task<Union4<Success, NotFound, InvalidNameFormat, InvalidValueFormat>> TryUpdateItemAsync(string name, string? description, string? value);
     Task<Union3<Success, NotFound, InvalidNameFormat>> TryDeleteItemAsync(string name);
 
-    Task<Union3<string, NotFound, InvalidValueType>> TryGetStringAsync(string name);
+    Task<ConfigGetResult<string>> TryGetStringAsync(string name);
     Task<bool> TrySetStringAsync(string name, string value);
 
-    Task<Union4<bool, NotFound, InvalidValueType, InvalidValueFormat>> TryGetBoolAsync(string name);
+    Task<ConfigGetResult<bool>> TryGetBoolAsync(string name);
     Task<bool> TrySetBoolAsync(string name, bool value);
 
-    Task<Union4<int, NotFound, InvalidValueType, InvalidValueFormat>> TryGetIntAsync(string name);
+    Task<ConfigGetResult<int>> TryGetIntAsync(string name);
     Task<bool> TrySetIntAsync(string name, int value);
 
-    Task<Union4<float, NotFound, InvalidValueType, InvalidValueFormat>> TryGetFloatAsync(string name);
+    Task<ConfigGetResult<float>> TryGetFloatAsync(string name);
     Task<bool> TrySetFloatAsync(string name, float value);
 
-    Task<Union4<T, NotFound, InvalidValueType, InvalidValueFormat>> TryGetJsonAsync<T>(string name);
+    Task<ConfigGetResult<T>> TryGetJsonAsync<T>(string name);
     Task<bool> TrySetJsonAsync<T>(string name, T value);
 }
 
-public readonly struct AlreadyExists;
-public readonly struct InvalidNameFormat;
-public readonly struct InvalidValueType;
-public readonly struct InvalidValueFormat;
+public enum ConfigGetOutcome : byte
+{
+    Value,
+    NotFound,
+    InvalidValueType,
+    InvalidValueFormat
+}
+
+/// <summary>
+/// Result of reading a typed configuration value: the value, or why it couldn't be read.
+/// Stores the payload directly (tag + typed field) instead of boxing through <c>object?</c>
+/// </summary>
+public readonly record struct ConfigGetResult<T>
+{
+    public ConfigGetOutcome Outcome { get; }
+    public T Value { get; }
+
+    private ConfigGetResult(ConfigGetOutcome outcome)
+    {
+        Outcome = outcome;
+        Value = default!;
+    }
+
+    public ConfigGetResult(T value)
+    {
+        Outcome = ConfigGetOutcome.Value;
+        Value = value;
+    }
+
+    public static implicit operator ConfigGetResult<T>(T value) => new(value);
+
+    public static ConfigGetResult<T> NotFound() => new(ConfigGetOutcome.NotFound);
+    public static ConfigGetResult<T> InvalidValueType() => new(ConfigGetOutcome.InvalidValueType);
+    public static ConfigGetResult<T> InvalidValueFormat() => new(ConfigGetOutcome.InvalidValueFormat);
+}
+
+public sealed class AlreadyExists;
+public sealed class InvalidNameFormat;
+public sealed class InvalidValueType;
+public sealed class InvalidValueFormat;

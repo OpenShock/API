@@ -72,8 +72,3 @@ public static class JsonWebSocketUtils
 /// When json deserialization fails
 /// </summary>
 public readonly record struct DeserializeFailed(Exception Exception);
-
-/// <summary>
-/// When the websocket sent a close frame
-/// </summary>
-public readonly struct WebsocketClosure;

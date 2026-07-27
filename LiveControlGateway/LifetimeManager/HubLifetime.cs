@@ -559,7 +559,7 @@ public sealed class HubLifetime : IAsyncDisposable
 /// <summary>
 /// Online state updated
 /// </summary>
-public readonly struct OnlineStateUpdated;
+public sealed class OnlineStateUpdated;
 
 /// <summary>
 /// Self online data struct

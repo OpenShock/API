@@ -1,5 +1,6 @@
 ﻿using System.Net.WebSockets;
 using FlatSharp;
+using OpenShock.Common.Results;
 using OpenShock.Common.Websocket;
 
 namespace OpenShock.LiveControlGateway.Websocket;

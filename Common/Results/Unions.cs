@@ -1,3 +1,5 @@
+using OpenShock.Common.Problems;
+
 namespace OpenShock.Common.Results;
 
 // Generic structural unions used throughout the codebase in place of OneOf<T0, T1, ...>.
@@ -17,3 +19,9 @@ public union Union6<T0, T1, T2, T3, T4, T5>(T0, T1, T2, T3, T4, T5);
 public union Union7<T0, T1, T2, T3, T4, T5, T6>(T0, T1, T2, T3, T4, T5, T6);
 
 public union Union8<T0, T1, T2, T3, T4, T5, T6, T7>(T0, T1, T2, T3, T4, T5, T6, T7);
+
+public union SuccessOrError<T>(Success, T);
+public union SuccessOrProblem(Success, OpenShockProblem);
+public union SuccessOrNotFound(Success, NotFound);
+
+public union ValueOrProblem<T>(T, OpenShockProblem);

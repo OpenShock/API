@@ -102,7 +102,7 @@ public sealed partial class OAuthController
             isEmailTrusted
         );
 
-        if (created is not Success<User> newUser)
+        if (created is not User newUser)
         {
             // Username or email already exists — conflict.
             // Do NOT clear the flow cookie so the frontend can retry with a different username.
@@ -110,15 +110,15 @@ public sealed partial class OAuthController
         }
 
         // Authenticate the client if its activated (create session and set session cookie)
-        if (newUser.Value.ActivatedAt is not null)
+        if (newUser.ActivatedAt is not null)
         {
-            await CreateSession(newUser.Value.Id, domain);
+            await CreateSession(newUser.Id, domain);
         }
 
         // Clear the temporary OAuth flow cookie.
         await HttpContext.SignOutAsync(OAuthConstants.FlowScheme);
 
-        return Ok(LoginV2OkResponse.FromUser(newUser.Value));
+        return Ok(LoginV2OkResponse.FromUser(newUser));
 
         static bool IsTruthy(string? value)
         {

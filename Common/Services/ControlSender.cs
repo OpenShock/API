@@ -25,7 +25,7 @@ public sealed class ControlSender : IControlSender
         _publisher = publisher;
     }
 
-    public async Task<Union4<Success, ShockerNotFoundOrNoAccess, ShockerPaused, ShockerNoPermission>> ControlByUser(IReadOnlyList<Control> controls,ControlLogSender sender, IHubClients<IUserHub> hubClients, ApiTokenControlLimits? tokenLimits = null)
+    public async Task<ShockerControlResult> ControlByUser(IReadOnlyList<Control> controls,ControlLogSender sender, IHubClients<IUserHub> hubClients, ApiTokenControlLimits? tokenLimits = null)
     {
         var shockers = await _db.Shockers
             .AsNoTracking()
@@ -60,7 +60,7 @@ public sealed class ControlSender : IControlSender
         return await ControlInternal(controls, sender, hubClients, shockers, tokenLimits);
     }
 
-    public async Task<Union4<Success, ShockerNotFoundOrNoAccess, ShockerPaused, ShockerNoPermission>> ControlPublicShare(IReadOnlyList<Control> controls, ControlLogSender sender, IHubClients<IUserHub> hubClients, Guid publicShareId)
+    public async Task<ShockerControlResult> ControlPublicShare(IReadOnlyList<Control> controls, ControlLogSender sender, IHubClients<IUserHub> hubClients, Guid publicShareId)
     {
         var publicShareShockers = await _db.PublicShareShockerMappings
             .AsNoTracking()
@@ -98,7 +98,7 @@ public sealed class ControlSender : IControlSender
         control.Duration = Math.Clamp(control.Duration, HardLimits.MinControlDuration, durationMax);
     }
 
-    private async Task<Union4<Success, ShockerNotFoundOrNoAccess, ShockerPaused, ShockerNoPermission>> ControlInternal(IReadOnlyList<Control> controls, ControlLogSender sender, IHubClients<IUserHub> hubClients, ControlShockerObj[] allowedShockers, ApiTokenControlLimits? tokenLimits = null)
+    private async Task<ShockerControlResult> ControlInternal(IReadOnlyList<Control> controls, ControlLogSender sender, IHubClients<IUserHub> hubClients, ControlShockerObj[] allowedShockers, ApiTokenControlLimits? tokenLimits = null)
     {
         var shockersById = allowedShockers.ToDictionary(s => s.ShockerId, s => s);
 
@@ -110,7 +110,7 @@ public sealed class ControlSender : IControlSender
         foreach (var control in controls.DistinctBy(x => x.Id))
         {
             if (!shockersById.TryGetValue(control.Id, out var shocker))
-                return new ShockerNotFoundOrNoAccess(control.Id);
+                return new NotFound<Guid>(control.Id);
 
             if (shocker.Paused)
                 return new ShockerPaused(control.Id);

@@ -32,7 +32,7 @@ public sealed partial class AuthenticatedAccountController
 
         return result switch
         {
-            Success => Ok(),
+            Results.Success => Ok(),
             UsernameTaken => Problem(AccountError.UsernameTaken),
             UsernameError usernameError => Problem(AccountError.UsernameInvalid(usernameError)),
             RecentlyChanged => Problem(AccountError.UsernameRecentlyChanged),

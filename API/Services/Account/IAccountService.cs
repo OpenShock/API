@@ -16,7 +16,7 @@ public interface IAccountService
     /// <param name="username"></param>
     /// <param name="password"></param>
     /// <returns></returns>
-    public Task<Union2<Success<User>, AccountWithEmailOrUsernameExists>> CreateAccountWithActivationFlowAsync(string email, string username, string password);
+    public Task<AccountCreationResult> CreateAccountWithActivationFlowAsync(string email, string username, string password);
 
     /// <summary>
     /// Creates an OAuth-only (passwordless) account and links the external identity in a single transaction.
@@ -30,7 +30,7 @@ public interface IAccountService
     /// <param name="providerAccountName">display name from provider</param>
     /// <param name="isEmailTrusted"></param>
     /// <returns>Success with the created user, or AccountWithEmailOrUsernameExists when taken/blocked.</returns>
-    Task<Union2<Success<User>, AccountWithEmailOrUsernameExists>> CreateOAuthOnlyAccountAsync(string email, string username, string provider, string providerAccountId, string? providerAccountName, bool isEmailTrusted);
+    Task<AccountCreationResult> CreateOAuthOnlyAccountAsync(string email, string username, string provider, string providerAccountId, string? providerAccountName, bool isEmailTrusted);
 
     /// <summary>
     /// Returns true if the given email is already associated with an existing user account.
@@ -101,7 +101,7 @@ public interface IAccountService
     /// <param name="actorId">User that performed this change</param>
     /// <param name="ignoreLimit">Ignore the username change limit, set this to true when an admin is changing the username</param>
     /// <param name="cancellationToken"></param>
-    /// <returns><see cref="Error{UsernameCheckResult}"/> only returns when the result is != Available</returns>
+    /// <returns>Success, or the reason the username couldn't be changed (taken, invalid, changed too recently, account deactivated, or user not found)</returns>
     public Task<Union6<Success, UsernameTaken, UsernameError, RecentlyChanged, AccountDeactivated, NotFound>> ChangeUsernameAsync(Guid userId, string username, Guid? actorId, bool ignoreLimit = false, CancellationToken cancellationToken = default);
 
     /// <summary>
@@ -132,24 +132,28 @@ public interface IAccountService
     /// <param name="token"></param>
     /// <param name="cancellationToken"></param>
     /// <returns></returns>
-    Task<Union3<Success<(Guid UserId, string OldEmail, string NewEmail)>, NotFound, EmailAlreadyInUse>> TryVerifyEmailAsync(string token, CancellationToken cancellationToken = default);
+    Task<Union3<VerifyEmailSuccess, NotFound, EmailAlreadyInUse>> TryVerifyEmailAsync(string token, CancellationToken cancellationToken = default);
 }
 
-public readonly struct AccountIsOAuthOnly;
-public readonly struct AccountNotActivated;
-public readonly struct AccountDeactivated;
-public readonly struct AccountWithEmailOrUsernameExists;
-public readonly struct CannotDeactivatePrivilegedAccount;
-public readonly struct AccountDeactivationAlreadyInProgress;
-public readonly struct CannotDeletePrivilegedAccount;
-public readonly struct TooManyPasswordResets;
-public readonly struct SecretInvalid;
-public readonly struct Unauthorized;
+public union AccountCreationResult(User, AccountWithEmailOrUsernameExists);
 
-public readonly struct UsernameTaken;
+public sealed record VerifyEmailSuccess(Guid UserId, string OldEmail, string NewEmail);
 
-public readonly struct RecentlyChanged;
+public sealed class AccountIsOAuthOnly;
+public sealed class AccountNotActivated;
+public sealed class AccountDeactivated;
+public sealed class AccountWithEmailOrUsernameExists;
+public sealed class CannotDeactivatePrivilegedAccount;
+public sealed class AccountDeactivationAlreadyInProgress;
+public sealed class CannotDeletePrivilegedAccount;
+public sealed class TooManyPasswordResets;
+public sealed class SecretInvalid;
+public sealed class Unauthorized;
 
-public readonly struct EmailAlreadyInUse;
-public readonly struct EmailUnchanged;
-public readonly struct TooManyEmailChanges;
+public sealed class UsernameTaken;
+
+public sealed class RecentlyChanged;
+
+public sealed class EmailAlreadyInUse;
+public sealed class EmailUnchanged;
+public sealed class TooManyEmailChanges;

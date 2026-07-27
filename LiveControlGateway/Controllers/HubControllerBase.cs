@@ -7,6 +7,7 @@ using OpenShock.Common.Errors;
 using OpenShock.Common.Problems;
 using OpenShock.Common.Results;
 using OpenShock.Common.Utils;
+using OpenShock.Common.Websocket;
 using OpenShock.LiveControlGateway.LifetimeManager;
 using OpenShock.LiveControlGateway.Options;
 using OpenShock.LiveControlGateway.Websocket;
@@ -122,7 +123,7 @@ public abstract class HubControllerBase<TIn, TOut> : FlatbuffersWebsocketBaseCon
     private SemVersion? _firmwareVersion;
 
     /// <inheritdoc />
-    protected override async Task<Union2<Success, Error<OpenShockProblem>>> ConnectionPrecondition()
+    protected override async Task<SuccessOrProblem> ConnectionPrecondition()
     {
         _connected = DateTimeOffset.UtcNow;
 
@@ -133,8 +134,7 @@ public abstract class HubControllerBase<TIn, TOut> : FlatbuffersWebsocketBaseCon
         }
         else
         {
-            var err = new Error<OpenShockProblem>(WebsocketError.WebsocketHubFirmwareVersionInvalid);
-            return err;
+            return WebsocketError.WebsocketHubFirmwareVersionInvalid;
         }
         
         _userAgent = HttpContext.Request.Headers.UserAgent.ToString().Truncate(256);
@@ -144,10 +144,10 @@ public abstract class HubControllerBase<TIn, TOut> : FlatbuffersWebsocketBaseCon
         {
             case HubLifetimeManager.Busy:
                 Logger.LogWarning("Hub lifetime busy, closing connection");
-                return new Error<OpenShockProblem>(WebsocketError.WebsocketHubLifetimeBusy);
+                return WebsocketError.WebsocketHubLifetimeBusy;
             case Error:
                 Logger.LogError("Hub lifetime error, closing connection");
-                return new Error<OpenShockProblem>(ExceptionError.Exception);
+                return ExceptionError.Exception;
             case LifetimeManager.HubLifetime hubLifetime:
                 HubLifetime = hubLifetime;
                 break;

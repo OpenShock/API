@@ -222,26 +222,26 @@ public sealed class ConfigurationService : IConfigurationService
         return true;
     }
 
-    public async Task<Union3<string, NotFound, InvalidValueType>> TryGetStringAsync(string name)
+    public async Task<ConfigGetResult<string>> TryGetStringAsync(string name)
     {
         var pair = await TryGetTypeValuePair(name);
-        if (pair is null) return new NotFound();
-        if (pair.Type != ConfigurationValueType.String) return new InvalidValueType();
+        if (pair is null) return ConfigGetResult<string>.NotFound();
+        if (pair.Type != ConfigurationValueType.String) return ConfigGetResult<string>.InvalidValueType();
         return pair.Value;
     }
 
     public Task<bool> TrySetStringAsync(string name, string value) =>
         SetValueAsync(name, value, ConfigurationValueType.String);
 
-    public async Task<Union4<bool, NotFound, InvalidValueType, InvalidValueFormat>> TryGetBoolAsync(string name)
+    public async Task<ConfigGetResult<bool>> TryGetBoolAsync(string name)
     {
         var pair = await TryGetTypeValuePair(name);
-        if (pair is null) return new NotFound();
-        if (pair.Type != ConfigurationValueType.Bool) return new InvalidValueType();
+        if (pair is null) return ConfigGetResult<bool>.NotFound();
+        if (pair.Type != ConfigurationValueType.Bool) return ConfigGetResult<bool>.InvalidValueType();
         if (!bool.TryParse(pair.Value, out var value))
         {
             _logger.LogWarning("Failed to parse bool for '{Name}': Value='{Value}'", name, pair.Value);
-            return new InvalidValueFormat();
+            return ConfigGetResult<bool>.InvalidValueFormat();
         }
         return value;
     }
@@ -249,15 +249,15 @@ public sealed class ConfigurationService : IConfigurationService
     public Task<bool> TrySetBoolAsync(string name, bool value) =>
         SetValueAsync(name, value.ToString(), ConfigurationValueType.Bool);
 
-    public async Task<Union4<int, NotFound, InvalidValueType, InvalidValueFormat>> TryGetIntAsync(string name)
+    public async Task<ConfigGetResult<int>> TryGetIntAsync(string name)
     {
         var pair = await TryGetTypeValuePair(name);
-        if (pair is null) return new NotFound();
-        if (pair.Type != ConfigurationValueType.Int) return new InvalidValueType();
+        if (pair is null) return ConfigGetResult<int>.NotFound();
+        if (pair.Type != ConfigurationValueType.Int) return ConfigGetResult<int>.InvalidValueType();
         if (!int.TryParse(pair.Value, out var value))
         {
             _logger.LogWarning("Failed to parse int for '{Name}': Value='{Value}'", name, pair.Value);
-            return new InvalidValueFormat();
+            return ConfigGetResult<int>.InvalidValueFormat();
         }
         return value;
     }
@@ -265,15 +265,15 @@ public sealed class ConfigurationService : IConfigurationService
     public Task<bool> TrySetIntAsync(string name, int value) =>
         SetValueAsync(name, value.ToString(), ConfigurationValueType.Int);
 
-    public async Task<Union4<float, NotFound, InvalidValueType, InvalidValueFormat>> TryGetFloatAsync(string name)
+    public async Task<ConfigGetResult<float>> TryGetFloatAsync(string name)
     {
         var pair = await TryGetTypeValuePair(name);
-        if (pair is null) return new NotFound();
-        if (pair.Type != ConfigurationValueType.Float) return new InvalidValueType();
+        if (pair is null) return ConfigGetResult<float>.NotFound();
+        if (pair.Type != ConfigurationValueType.Float) return ConfigGetResult<float>.InvalidValueType();
         if (!float.TryParse(pair.Value, out var value))
         {
             _logger.LogWarning("Failed to parse float for '{Name}': Value='{Value}'", name, pair.Value);
-            return new InvalidValueFormat();
+            return ConfigGetResult<float>.InvalidValueFormat();
         }
         return value;
     }
@@ -281,21 +281,21 @@ public sealed class ConfigurationService : IConfigurationService
     public Task<bool> TrySetFloatAsync(string name, float value) =>
         SetValueAsync(name, value.ToString("R"), ConfigurationValueType.Float);
 
-    public async Task<Union4<T, NotFound, InvalidValueType, InvalidValueFormat>> TryGetJsonAsync<T>(string name)
+    public async Task<ConfigGetResult<T>> TryGetJsonAsync<T>(string name)
     {
         var pair = await TryGetTypeValuePair(name);
-        if (pair is null) return new NotFound();
-        if (pair.Type != ConfigurationValueType.Json) return new InvalidValueType();
+        if (pair is null) return ConfigGetResult<T>.NotFound();
+        if (pair.Type != ConfigurationValueType.Json) return ConfigGetResult<T>.InvalidValueType();
 
         try
         {
             var obj = JsonSerializer.Deserialize<T>(pair.Value, JsonOptions.Default);
-            return obj is not null ? obj : new InvalidValueFormat();
+            return obj is not null ? obj : ConfigGetResult<T>.InvalidValueFormat();
         }
         catch (JsonException ex)
         {
             _logger.LogWarning(ex, "Failed to deserialize JSON for '{Name}'", name);
-            return new InvalidValueFormat();
+            return ConfigGetResult<T>.InvalidValueFormat();
         }
     }
 

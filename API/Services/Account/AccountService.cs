@@ -88,7 +88,7 @@ public sealed class AccountService : IAccountService
         return await _db.EmailProviderBlacklists.AnyAsync(e => e.Domain == domain);
     }
 
-    private async Task<Union2<Success<User>, AccountWithEmailOrUsernameExists>> CreateAccount(string email, string username, string password, bool verifyOnCreation)
+    private async Task<AccountCreationResult> CreateAccount(string email, string username, string password, bool verifyOnCreation)
     {
         email = email.ToLowerInvariant();
 
@@ -117,20 +117,18 @@ public sealed class AccountService : IAccountService
                 .ExecuteUpdateAsync(spc => spc.SetProperty(u => u.ActivatedAt, u => u.CreatedAt));
         }
 
-        return new Success<User>(user);
+        return user;
     }
 
     /// <inheritdoc />
-    public async Task<Union2<Success<User>, AccountWithEmailOrUsernameExists>> CreateAccountWithActivationFlowAsync(string email, string username, string password)
+    public async Task<AccountCreationResult> CreateAccountWithActivationFlowAsync(string email, string username, string password)
     {
         // With mail disabled the activation email is never delivered, so an activation flow would leave
         // the account permanently unusable. Activate on creation instead.
         var mailEnabled = _mailOptions.IsEnabled;
 
         var accountCreate = await CreateAccount(email, username, password, !mailEnabled);
-        if (accountCreate.Value is not Success<User> created || !mailEnabled) return accountCreate;
-
-        var user = created.Value;
+        if (accountCreate.Value is not User user || !mailEnabled) return accountCreate;
 
         // The real activation token is minted by the outbox delivery job at send time; here we record the
         // request (with a seeded hash) and durably enqueue the email.
@@ -145,7 +143,7 @@ public sealed class AccountService : IAccountService
         await _db.SaveChangesAsync();
         await NotifyEmailOutboxAsync();
 
-        return new Success<User>(user);
+        return user;
     }
 
     public Task<bool> IsEmailRegisteredAsync(string email, CancellationToken cancellationToken = default)
@@ -154,7 +152,7 @@ public sealed class AccountService : IAccountService
         return _db.Users.AnyAsync(u => u.Email == email, cancellationToken);
     }
 
-    public async Task<Union2<Success<User>, AccountWithEmailOrUsernameExists>> CreateOAuthOnlyAccountAsync(
+    public async Task<AccountCreationResult> CreateOAuthOnlyAccountAsync(
         string email,
         string username,
         string provider,
@@ -232,7 +230,7 @@ public sealed class AccountService : IAccountService
                 await NotifyEmailOutboxAsync();
             }
 
-            return new Success<User>(user);
+            return user;
         }
         catch (DbUpdateException ex) when (ex.InnerException is PostgresException { SqlState: "23505" })
         {
@@ -717,7 +715,7 @@ public sealed class AccountService : IAccountService
         return new Success();
     }
 
-    public async Task<Union3<Success<(Guid UserId, string OldEmail, string NewEmail)>, NotFound, EmailAlreadyInUse>> TryVerifyEmailAsync(string token, CancellationToken cancellationToken = default)
+    public async Task<Union3<VerifyEmailSuccess, NotFound, EmailAlreadyInUse>> TryVerifyEmailAsync(string token, CancellationToken cancellationToken = default)
     {
         var hash = HashingUtils.HashToken(token);
         var validSince = DateTime.UtcNow - Duration.EmailChangeRequestLifetime;
@@ -776,7 +774,7 @@ public sealed class AccountService : IAccountService
 
         await transaction.CommitAsync(cancellationToken);
 
-        return new Success<(Guid, string, string)>((change.UserId, change.OldEmail, change.NewEmail));
+        return new VerifyEmailSuccess(change.UserId, change.OldEmail, change.NewEmail);
     }
 
     private async Task<bool> CheckPassword(string password, User user)

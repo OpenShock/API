@@ -8,13 +8,17 @@ namespace OpenShock.Common.Services;
 
 public interface IControlSender
 {
-    public Task<Union4<Success, ShockerNotFoundOrNoAccess, ShockerPaused, ShockerNoPermission>> ControlByUser(IReadOnlyList<Control> controls, ControlLogSender sender, IHubClients<IUserHub> hubClients, ApiTokenControlLimits? tokenLimits = null);
+    public Task<ShockerControlResult> ControlByUser(IReadOnlyList<Control> controls, ControlLogSender sender, IHubClients<IUserHub> hubClients, ApiTokenControlLimits? tokenLimits = null);
 
-    public Task<Union4<Success, ShockerNotFoundOrNoAccess, ShockerPaused, ShockerNoPermission>> ControlPublicShare(IReadOnlyList<Control> controls, ControlLogSender sender, IHubClients<IUserHub> hubClients, Guid publicShareId);
+    public Task<ShockerControlResult> ControlPublicShare(IReadOnlyList<Control> controls, ControlLogSender sender, IHubClients<IUserHub> hubClients, Guid publicShareId);
 }
 
-public readonly record struct ShockerNotFoundOrNoAccess(Guid Value);
+/// <summary>
+/// Result of a shocker control attempt. The error cases are reference types, so storing them in
+/// the union's internal <c>object?</c> slot is a plain reference assignment, not a boxing conversion.
+/// </summary>
+public union ShockerControlResult(Success, NotFound<Guid>, ShockerPaused, ShockerNoPermission);
 
-public readonly record struct ShockerPaused(Guid Value);
+public sealed record ShockerPaused(Guid Value);
 
-public readonly record struct ShockerNoPermission(Guid Value);
+public sealed record ShockerNoPermission(Guid Value);

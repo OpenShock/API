@@ -119,9 +119,9 @@ public abstract class WebsocketBaseController<T> : OpenShockControllerBase, IAsy
         }
 
         var connectionPrecondition = await ConnectionPrecondition();
-        if (connectionPrecondition.Value is Error<OpenShockProblem> connectionError)
+        if (connectionPrecondition.Value is OpenShockProblem connectionError)
         {
-            await connectionError.Value.WriteAsJsonAsync(HttpContext, LinkedToken);
+            await connectionError.WriteAsJsonAsync(HttpContext, LinkedToken);
             return;
         }
 
@@ -291,6 +291,6 @@ public abstract class WebsocketBaseController<T> : OpenShockControllerBase, IAsy
     /// Action when the websocket connection is destroyed to unregister the connection to a websocket manager
     /// </summary>
     [NonAction]
-    protected virtual Task<Union2<Success, Error<OpenShockProblem>>> ConnectionPrecondition() =>
-        Task.FromResult<Union2<Success, Error<OpenShockProblem>>>(new Success());
+    protected virtual Task<SuccessOrProblem> ConnectionPrecondition() =>
+        Task.FromResult<SuccessOrProblem>(new Success());
 }

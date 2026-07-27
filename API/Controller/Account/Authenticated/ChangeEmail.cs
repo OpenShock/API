@@ -42,7 +42,7 @@ public sealed partial class AuthenticatedAccountController
 
         return result switch
         {
-            Success => Ok(),
+            Results.Success => Ok(),
             EmailAlreadyInUse => Problem(AccountError.EmailChangeAlreadyInUse),
             EmailUnchanged => Problem(AccountError.EmailChangeUnchanged),
             TooManyEmailChanges => Problem(AccountError.EmailChangeTooMany),

@@ -176,11 +176,11 @@ public sealed class LiveControlController : WebsocketBaseController<LiveControlR
     /// We get the id from the route, check if its valid, check if the user has access to the shocker / hub
     /// </summary>
     /// <returns></returns>
-    protected override async Task<Union2<Results.Success, Results.Error<OpenShockProblem>>> ConnectionPrecondition()
+    protected override async Task<Results.SuccessOrProblem> ConnectionPrecondition()
     {
         if (HttpContext.GetRouteValue("hubId") is not string param || !Guid.TryParse(param, out var id))
         {
-            return new Results.Error<OpenShockProblem>(WebsocketError.WebsocketLiveControlHubIdInvalid);
+            return WebsocketError.WebsocketLiveControlHubIdInvalid;
         }
 
         HubId = id;
@@ -193,7 +193,7 @@ public sealed class LiveControlController : WebsocketBaseController<LiveControlR
 
             if (!hubExistsAndYouHaveAccess)
             {
-                return new Results.Error<OpenShockProblem>(WebsocketError.WebsocketLiveControlHubNotFound);
+                return WebsocketError.WebsocketLiveControlHubNotFound;
             }
 
             _device = await db.Devices.FirstOrDefaultAsync(x => x.Id == HubId);
@@ -219,10 +219,10 @@ public sealed class LiveControlController : WebsocketBaseController<LiveControlR
         {
             case Results.NotFound:
                 _logger.LogDebug("No such hub with id [{HubId}] connected", HubId);
-                return new Results.Error<OpenShockProblem>(WebsocketError.WebsocketLiveControlHubNotConnected);
+                return WebsocketError.WebsocketLiveControlHubNotConnected;
             case LifetimeManager.HubLifetimeManager.Busy:
                 _logger.LogDebug("Hub is busy, cannot connect [{HubId}]", HubId);
-                return new Results.Error<OpenShockProblem>(WebsocketError.WebsocketLiveControlHubLifetimeBusy);
+                return WebsocketError.WebsocketLiveControlHubLifetimeBusy;
             case LifetimeManager.HubLifetime hubLifetime:
                 _hubLifetime = hubLifetime;
                 break;
@@ -315,7 +315,7 @@ public sealed class LiveControlController : WebsocketBaseController<LiveControlR
                 Logger.LogWarning(failed.Exception, "Deserialization failed for websocket message");
                 await ForceClose(WebSocketCloseStatus.InvalidPayloadData, "Invalid json message received");
                 return false;
-            case WebsocketClosure:
+            case Results.WebsocketClosure:
                 Logger.LogTrace("Client sent closure");
                 return false;
             default:
@@ -518,7 +518,7 @@ public sealed class LiveControlController : WebsocketBaseController<LiveControlR
         }
     }
 
-    private Union5<SharePermsAndLimits, Results.NotFound, LiveNotEnabled, NoPermission, ShockerPaused> CheckFramePermissions(Guid shocker, ControlType controlType)
+    private Results.Union5<SharePermsAndLimits, Results.NotFound, LiveNotEnabled, NoPermission, ShockerPaused> CheckFramePermissions(Guid shocker, ControlType controlType)
     {
         if (!_sharedShockers.TryGetValue(shocker, out var shockerShare)) return new Results.NotFound();
 
@@ -606,14 +606,14 @@ public sealed class LiveControlController : WebsocketBaseController<LiveControlR
 /// <summary>
 /// Union case
 /// </summary>
-public readonly struct LiveNotEnabled;
+public sealed class LiveNotEnabled;
 
 /// <summary>
 /// Union case
 /// </summary>
-public readonly struct NoPermission;
+public sealed class NoPermission;
 
 /// <summary>
 /// Union case
 /// </summary>
-public readonly struct ShockerPaused;
+public sealed class ShockerPaused;

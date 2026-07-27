@@ -275,7 +275,7 @@ public sealed partial class DevicesController
     /// <see cref="OpenShockProblem"/> when the caller lacks access, the hub is offline, or it has
     /// no gateway.
     /// </summary>
-    private async Task<Union2<LcgNode, OpenShockProblem>> ResolveDeviceGatewayAsync(Guid deviceId)
+    private async Task<ValueOrProblem<LcgNode>> ResolveDeviceGatewayAsync(Guid deviceId)
     {
         // Check if user owns device or has a share
         var deviceExistsAndYouHaveAccess = await _db.Devices.AnyAsync(x =>

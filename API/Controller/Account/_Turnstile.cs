@@ -17,9 +17,8 @@ public sealed partial class AccountController
     private async Task<IActionResult?> VerifyTurnstileAsync(ICloudflareTurnstileService turnstileService, string turnstileResponse, CancellationToken cancellationToken)
     {
         var turnStile = await turnstileService.VerifyUserResponseTokenAsync(turnstileResponse, HttpContext.GetRemoteIP(), cancellationToken);
-        if (turnStile is not Error<CloudflareTurnstileError[]> error) return null;
+        if (turnStile is not CloudflareTurnstileError[] cfErrors) return null;
 
-        var cfErrors = error.Value;
         if (cfErrors.All(err => err.IsClientError()))
             return Problem(TurnstileError.InvalidTurnstile);
 

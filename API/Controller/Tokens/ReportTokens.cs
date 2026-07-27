@@ -37,9 +37,8 @@ public sealed partial class TokensController
         var remoteIP = HttpContext.GetRemoteIP();
 
         var turnStile = await turnstileService.VerifyUserResponseTokenAsync(body.TurnstileResponse, remoteIP, cancellationToken);
-        if (turnStile is Error<CloudflareTurnstileError[]> turnStileError)
+        if (turnStile is CloudflareTurnstileError[] cfErrors)
         {
-            var cfErrors = turnStileError.Value;
             if (cfErrors.All(err => err == CloudflareTurnstileError.InvalidResponse))
                 return Problem(TurnstileError.InvalidTurnstile);
 

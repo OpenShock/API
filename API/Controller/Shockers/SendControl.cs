@@ -59,7 +59,7 @@ public sealed partial class ShockerController
         return controlAction switch
         {
             Success => LegacyEmptyOk("Successfully sent control messages"),
-            ShockerNotFoundOrNoAccess notFound => Problem(ShockerControlError.ShockerControlNotFound(notFound.Value)),
+            NotFound<Guid> notFound => Problem(ShockerControlError.ShockerControlNotFound(notFound.Value)),
             ShockerPaused paused => Problem(ShockerControlError.ShockerControlPaused(paused.Value)),
             ShockerNoPermission noPermission => Problem(ShockerControlError.ShockerControlNoPermission(noPermission.Value)),
             _ => throw new UnreachableException()
