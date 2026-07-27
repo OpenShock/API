@@ -42,7 +42,6 @@
     <PackageVersion Include="Testcontainers.PostgreSql" Version="4.13.0" />
     <PackageVersion Include="Testcontainers.Redis" Version="4.13.0" />
     <PackageVersion Include="TUnit" Version="1.61.38" />
-    <PackageVersion Include="Microsoft.Testing.Extensions.CodeCoverage" Version="18.9.0" />
     <PackageVersion Include="Z.EntityFramework.Plus.EFCore" Version="10.105.7" />
   </ItemGroup>
 </Project>
