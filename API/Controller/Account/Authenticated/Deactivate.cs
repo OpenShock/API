@@ -4,7 +4,6 @@ using System.Net.Mime;
 using OpenShock.API.Services.Account;
 using OpenShock.Common.Errors;
 using OpenShock.Common.Problems;
-using OpenShock.Common.Results;
 using AccountSvc = OpenShock.API.Services.Account;
 using Results = OpenShock.Common.Results;
 

@@ -5,7 +5,6 @@ using OpenShock.API.Models.Requests;
 using OpenShock.API.Services.Account;
 using OpenShock.Common.Errors;
 using OpenShock.Common.Problems;
-using OpenShock.Common.Results;
 using OpenShock.Common.Utils;
 using Results = OpenShock.Common.Results;
 

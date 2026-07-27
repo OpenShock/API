@@ -4,7 +4,6 @@ using Microsoft.AspNetCore.Mvc;
 using OpenShock.API.Services.Account;
 using OpenShock.Common.Constants;
 using OpenShock.Common.Errors;
-using OpenShock.Common.Results;
 using AccountSvc = OpenShock.API.Services.Account;
 using Results = OpenShock.Common.Results;
 
@@ -30,7 +29,7 @@ public sealed partial class AdminController
         var deactivationResult = await accountService.DeactivateAccountAsync(CurrentUser.Id, userId, deleteLater, reason);
         return deactivationResult switch
         {
-            Success => Ok("Account deactivated"),
+            Results.Success => Ok("Account deactivated"),
             CannotDeactivatePrivilegedAccount => Problem(AccountActivationError.CannotDeactivateOrDeletePrivledgedAccount),
             AccountDeactivationAlreadyInProgress => Problem(AccountActivationError.AlreadyDeactivated),
             AccountSvc.Unauthorized => Problem(AccountActivationError.Unauthorized),

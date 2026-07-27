@@ -5,7 +5,6 @@ using OpenShock.API.Models.Requests;
 using OpenShock.API.Services.Account;
 using OpenShock.Common.Errors;
 using OpenShock.Common.Problems;
-using OpenShock.Common.Results;
 using OpenShock.Common.Utils;
 using Results = OpenShock.Common.Results;
 
@@ -43,7 +42,7 @@ public sealed partial class AuthenticatedAccountController
 
         return result switch
         {
-            Success => Ok(),
+            Results.Success => Ok(),
             AccountNotActivated => throw new UnreachableException("Authenticated user is not activated"),
             AccountDeactivated => throw new UnreachableException("Authenticated user is deactivated"),
             Results.NotFound => throw new UnreachableException("Authenticated user not found in database"),

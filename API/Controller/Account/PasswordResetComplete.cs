@@ -8,7 +8,6 @@ using OpenShock.API.Services.Account;
 using OpenShock.Common.Errors;
 using OpenShock.Common.Problems;
 using OpenShock.Common.Models;
-using OpenShock.Common.Results;
 using Results = OpenShock.Common.Results;
 
 namespace OpenShock.API.Controller.Account;
@@ -48,7 +47,7 @@ public sealed partial class AccountController
 
         return passwordResetComplete switch
         {
-            Success => LegacyEmptyOk("Password successfully changed"),
+            Results.Success => LegacyEmptyOk("Password successfully changed"),
             Results.NotFound => Problem(PasswordResetError.PasswordResetNotFound),
             AccountNotActivated => Problem(AccountError.AccountNotActivated),
             AccountDeactivated => Problem(AccountError.AccountDeactivated),

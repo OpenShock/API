@@ -4,7 +4,6 @@ using Microsoft.AspNetCore.Mvc;
 using OpenShock.API.Services.Account;
 using OpenShock.Common.Constants;
 using OpenShock.Common.Errors;
-using OpenShock.Common.Results;
 using AccountSvc = OpenShock.API.Services.Account;
 using Results = OpenShock.Common.Results;
 
@@ -29,7 +28,7 @@ public sealed partial class AdminController
         var reactivationResult = await accountService.ReactivateAccountAsync(CurrentUser.Id, userId, reason);
         return reactivationResult switch
         {
-            Success => Ok("Account reactivated"),
+            Results.Success => Ok("Account reactivated"),
             AccountSvc.Unauthorized => Problem(AccountActivationError.Unauthorized),
             Results.NotFound => NotFound("User not found"),
             _ => throw new UnreachableException()

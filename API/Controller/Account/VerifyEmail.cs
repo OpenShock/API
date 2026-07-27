@@ -6,7 +6,6 @@ using Asp.Versioning;
 using OpenShock.API.Services.Account;
 using OpenShock.Common.Errors;
 using OpenShock.Common.Problems;
-using OpenShock.Common.Results;
 using Results = OpenShock.Common.Results;
 
 namespace OpenShock.API.Controller.Account;
@@ -48,7 +47,7 @@ public sealed partial class AccountController
 
         return result switch
         {
-            Success<(Guid UserId, string OldEmail, string NewEmail)> => Ok(),
+            Results.Success<(Guid UserId, string OldEmail, string NewEmail)> => Ok(),
             Results.NotFound => Problem(AccountError.EmailChangeNotFound),
             EmailAlreadyInUse => Problem(AccountError.EmailChangeAlreadyInUse),
             _ => throw new UnreachableException()

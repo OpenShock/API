@@ -15,7 +15,6 @@ using OpenShock.Common.Models.WebSocket;
 using OpenShock.Common.Models.WebSocket.LCG;
 using OpenShock.Common.OpenShockDb;
 using OpenShock.Common.Problems;
-using OpenShock.Common.Results;
 using OpenShock.Common.Utils;
 using OpenShock.Common.Websocket;
 using OpenShock.LiveControlGateway.LifetimeManager;
@@ -177,7 +176,7 @@ public sealed class LiveControlController : WebsocketBaseController<LiveControlR
     /// We get the id from the route, check if its valid, check if the user has access to the shocker / hub
     /// </summary>
     /// <returns></returns>
-    protected override async Task<Union2<Success, Results.Error<OpenShockProblem>>> ConnectionPrecondition()
+    protected override async Task<Union2<Results.Success, Results.Error<OpenShockProblem>>> ConnectionPrecondition()
     {
         if (HttpContext.GetRouteValue("hubId") is not string param || !Guid.TryParse(param, out var id))
         {
@@ -229,7 +228,7 @@ public sealed class LiveControlController : WebsocketBaseController<LiveControlR
                 break;
         }
 
-        return new Success();
+        return new Results.Success();
     }
 
     /// <summary>
@@ -500,7 +499,7 @@ public sealed class LiveControlController : WebsocketBaseController<LiveControlR
 
         switch (result)
         {
-            case Success:
+            case Results.Success:
                 Logger.LogTrace("Successfully received frame");
                 break;
             case Results.NotFound:
@@ -519,9 +518,9 @@ public sealed class LiveControlController : WebsocketBaseController<LiveControlR
         }
     }
 
-    private Union5<SharePermsAndLimits, NotFound, LiveNotEnabled, NoPermission, ShockerPaused> CheckFramePermissions(Guid shocker, ControlType controlType)
+    private Union5<SharePermsAndLimits, Results.NotFound, LiveNotEnabled, NoPermission, ShockerPaused> CheckFramePermissions(Guid shocker, ControlType controlType)
     {
-        if (!_sharedShockers.TryGetValue(shocker, out var shockerShare)) return new NotFound();
+        if (!_sharedShockers.TryGetValue(shocker, out var shockerShare)) return new Results.NotFound();
 
         if (shockerShare.Paused) return new ShockerPaused();
         if (!PermissionUtils.IsAllowed(controlType, true, shockerShare.PermsAndLimits)) return new NoPermission();

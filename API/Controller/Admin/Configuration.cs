@@ -3,7 +3,6 @@ using Microsoft.EntityFrameworkCore;
 using OpenShock.API.Controller.Admin.DTOs;
 using OpenShock.Common.Errors;
 using OpenShock.Common.Problems;
-using OpenShock.Common.Results;
 using OpenShock.Common.Services.Configuration;
 using System.Net.Mime;
 using Results = OpenShock.Common.Results;
@@ -62,7 +61,7 @@ public sealed partial class AdminController
 
         return result switch
         {
-            Success => Ok(),
+            Results.Success => Ok(),
             AlreadyExists => Problem(ConfigurationError.AlreadyExists(body.Name)),
             InvalidNameFormat => Problem(ConfigurationError.InvalidNameFormat(body.Name)),
             InvalidValueFormat => Problem(ConfigurationError.InvalidValueFormat(body.Value))
@@ -94,7 +93,7 @@ public sealed partial class AdminController
 
         return result switch
         {
-            Success => Ok(),
+            Results.Success => Ok(),
             Results.NotFound => Problem(ConfigurationError.NotFound(body.Name)),
             InvalidNameFormat => Problem(ConfigurationError.InvalidNameFormat(body.Name)),
             InvalidValueFormat => Problem(ConfigurationError.InvalidValueFormat(body.Value!))
@@ -120,7 +119,7 @@ public sealed partial class AdminController
 
         return result switch
         {
-            Success => Ok(),
+            Results.Success => Ok(),
             Results.NotFound => Problem(ConfigurationError.NotFound(name)),
             InvalidNameFormat => Problem(ConfigurationError.InvalidNameFormat(name))
         };
