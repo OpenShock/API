@@ -12,7 +12,7 @@ updates:
     schedule:
       interval: weekly
       day: monday
-      time: '06:00'
+      time: '08:00'
     groups:
       nuget-dependencies:
         patterns:
@@ -24,7 +24,7 @@ updates:
     schedule:
       interval: weekly
       day: monday
-      time: '06:00'
+      time: '08:00'
     groups:
       github-actions:
         patterns:
