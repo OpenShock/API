@@ -14,7 +14,7 @@ updates:
       day: monday
       time: '08:00'
     groups:
-      nuget-dependencies:
+      nuget:
         patterns:
           - '*' # Group all updates together
   
