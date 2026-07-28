@@ -1,10 +1,12 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System.Net.Mime;
+using OpenShock.Common.Authentication.Attributes;
 using OpenShock.Common.Errors;
 using OpenShock.Common.Problems;
 using OpenShock.Common.Models;
 using OpenShock.Common.Extensions;
+using OpenShock.Common.OpenShockDb;
 
 namespace OpenShock.API.Controller.Shares.Links;
 
@@ -17,6 +19,7 @@ public sealed partial class ShareLinksController
     /// <response code="200">Deleted public share</response>
     /// <response code="404">Public share not found or does not belong to you</response>
     [HttpDelete("{publicShareId}")]
+    [TokenPermission(PermissionType.Publicshares_Edit)]
     [ProducesResponseType<LegacyEmptyResponse>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status404NotFound, MediaTypeNames.Application.ProblemJson)] // PublicShareNotFound
     public async Task<IActionResult> DeletePublicShare([FromRoute] Guid publicShareId)
