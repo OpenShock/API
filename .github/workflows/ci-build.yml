@@ -140,15 +140,12 @@ jobs:
     environment: production
     steps:
       - name: Send repository dispatch
-        uses: peter-evans/repository-dispatch@28959ce8df70de7be546dd1250a005dd32156697 # v4.0.1
-        with:
-          token: ${{ secrets.GITOPS_PAT }}
-          repository: openshock/kubernetes-cluster-gitops
-          event-type: update-backend-prod
-          client-payload: |
-            {
-              "tag": "${{ inputs.tag-prefix  || 'rn' }}-${{ github.run_number }}-a${{ github.run_attempt }}"
-            }
+        env:
+          GH_TOKEN: ${{ secrets.GITOPS_PAT }}
+        run: |
+          gh api repos/openshock/kubernetes-cluster-gitops/dispatches \
+            -f event_type=update-backend-prod \
+            -F "client_payload[tag]=${{ inputs.tag-prefix  || 'rn' }}-${{ github.run_number }}-a${{ github.run_attempt }}"
             
   deploy-staging:
     runs-on: ubuntu-latest
@@ -158,15 +155,12 @@ jobs:
 
     steps:
       - name: Send repository dispatch
-        uses: peter-evans/repository-dispatch@28959ce8df70de7be546dd1250a005dd32156697 # v4.0.1
-        with:
-          token: ${{ secrets.GITOPS_PAT }}
-          repository: openshock/kubernetes-cluster-gitops
-          event-type: update-backend-staging
-          client-payload: |
-            {
-              "tag": "${{ inputs.tag-prefix  || 'rn' }}-${{ github.run_number }}-a${{ github.run_attempt }}"
-            }
+        env:
+          GH_TOKEN: ${{ secrets.GITOPS_PAT }}
+        run: |
+          gh api repos/openshock/kubernetes-cluster-gitops/dispatches \
+            -f event_type=update-backend-staging \
+            -F "client_payload[tag]=${{ inputs.tag-prefix  || 'rn' }}-${{ github.run_number }}-a${{ github.run_attempt }}"
 
   deploy-dev:
     runs-on: ubuntu-latest
