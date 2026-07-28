@@ -29,3 +29,15 @@ updates:
       github-actions:
         patterns:
           - '*' # Group all updates together
+
+  # Check for Docker base image updates
+  - package-ecosystem: docker
+    directory: /docker
+    schedule:
+      interval: weekly
+      day: monday
+      time: '08:00'
+    groups:
+      docker:
+        patterns:
+          - '*' # Group all updates together
