@@ -21,12 +21,9 @@ jobs:
     steps:
       - name: Find latest tag
         id: latest-tag
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          tag=$(gh api "repos/${{ github.repository }}/tags" --paginate --jq '.[].name' \
-            | grep -E '^[0-9]+\.[0-9]+\.[0-9]+$' | sort -V | tail -1)
-          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+        uses: OpenShock/actions/find-latest-tag@7e9cf5cd05af3d97a363d80adad50cfe50a273d0 # v1.0.0
+        with:
+          regex: '^[0-9]+\.[0-9]+\.[0-9]+$'
 
   # Delegate building and containerizing to a single workflow.
   build-and-containerize:
