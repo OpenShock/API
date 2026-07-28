@@ -140,7 +140,7 @@ jobs:
     environment: production
     steps:
       - name: Send repository dispatch
-        uses: OpenShock/actions/repository-dispatch@7e9cf5cd05af3d97a363d80adad50cfe50a273d0 # v1.0.0
+        uses: OpenShock/actions/repository-dispatch@d8af907a3bbfcb1d4eb1dc6272501524d7c465d6 # v1.0.0
         with:
           repo: openshock/kubernetes-cluster-gitops
           event-type: update-backend-prod
@@ -156,7 +156,7 @@ jobs:
 
     steps:
       - name: Send repository dispatch
-        uses: OpenShock/actions/repository-dispatch@7e9cf5cd05af3d97a363d80adad50cfe50a273d0 # v1.0.0
+        uses: OpenShock/actions/repository-dispatch@d8af907a3bbfcb1d4eb1dc6272501524d7c465d6 # v1.0.0
         with:
           repo: openshock/kubernetes-cluster-gitops
           event-type: update-backend-staging

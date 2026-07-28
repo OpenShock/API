@@ -21,7 +21,7 @@ jobs:
     steps:
       - name: Find latest tag
         id: latest-tag
-        uses: OpenShock/actions/find-latest-tag@7e9cf5cd05af3d97a363d80adad50cfe50a273d0 # v1.0.0
+        uses: OpenShock/actions/find-latest-tag@d8af907a3bbfcb1d4eb1dc6272501524d7c465d6 # v1.0.0
         with:
           regex: '^[0-9]+\.[0-9]+\.[0-9]+$'
 
