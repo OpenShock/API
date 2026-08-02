@@ -8,12 +8,13 @@ namespace OpenShock.LiveControlGateway;
 /// <summary>
 /// Lcg keep alive task, to report to redis
 /// </summary>
-public sealed class LcgKeepAlive : IHostedService
+public sealed class LcgKeepAlive : BackgroundService
 {
     private readonly IRedisConnectionProvider _redisConnectionProvider;
     private readonly IWebHostEnvironment _env;
     private readonly LcgOptions _options;
     private readonly ILogger<LcgKeepAlive> _logger;
+    private readonly PeriodicTimer _periodicTimer = new(KeepAliveInterval);
     
     private uint _errorsInRow;
     
@@ -89,9 +90,9 @@ public sealed class LcgKeepAlive : IHostedService
             $"{typeof(LcgNode).FullName}:{nodeId}", (int)KeepAliveKeyTtl.TotalSeconds);
     }
 
-    private async Task Loop()
+    protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        while (true)
+        while (await _periodicTimer.WaitForNextTickAsync(stoppingToken))
         {
             try
             {
@@ -99,7 +100,6 @@ public sealed class LcgKeepAlive : IHostedService
                 await SelfOnline();
                 _logger.LogDebug("Sent keep alive!");
                 _errorsInRow = 0;
-                await Task.Delay(KeepAliveInterval);
             }
             catch (Exception e)
             {
@@ -110,24 +110,7 @@ public sealed class LcgKeepAlive : IHostedService
                     _logger.LogCritical("Too many errors in a row sending keep alive, terminating process");
                     Environment.Exit(1001);
                 }
-                
-                await Task.Delay(KeepAliveInterval);
             }
         }
-        // ReSharper disable once FunctionNeverReturns
-    }
-
-    /// <inheritdoc />
-    public Task StartAsync(CancellationToken cancellationToken)
-    {
-        OsTask.Run(Loop);
-
-        return Task.CompletedTask;
-    }
-
-    /// <inheritdoc />
-    public Task StopAsync(CancellationToken cancellationToken)
-    {
-        return Task.CompletedTask;
     }
 }

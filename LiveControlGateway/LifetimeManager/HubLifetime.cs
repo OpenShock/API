@@ -57,6 +57,13 @@ public sealed class HubLifetime : IAsyncDisposable
     private readonly SemaphoreSlim _liveControlClientsLock = new(1);
 
     private ChannelMessageQueue? _deviceMsgQueue;
+    private bool _disposed;
+
+    /// <summary>
+    /// Rate limit for the "update loop behind" warning, a hub that is persistently
+    /// behind would otherwise log one warning per tick
+    /// </summary>
+    private static readonly TimeSpan BehindWarningInterval = TimeSpan.FromSeconds(5);
 
     /// <summary>
     /// DI Constructor
@@ -307,9 +314,27 @@ public sealed class HubLifetime : IAsyncDisposable
 
     private async Task UpdateLoop()
     {
-        while (!_cancellationSource.IsCancellationRequested)
+        using var timer = new PeriodicTimer(_waitBetweenTicks);
+        var lastTick = Stopwatch.GetTimestamp();
+        long? lastBehindWarning = null;
+
+        while (await timer.WaitForNextTickAsync(_cancellationSource.Token))
         {
-            var startingTime = Stopwatch.GetTimestamp();
+            var now = Stopwatch.GetTimestamp();
+            var sinceLastTick = Stopwatch.GetElapsedTime(lastTick, now);
+            lastTick = now;
+
+            // PeriodicTimer drops missed ticks, so a gap of two or more periods
+            // means Update() couldn't keep up and tick(s) were skipped.
+            var dropped = (int)(sinceLastTick.Ticks / _waitBetweenTicks.Ticks) - 1;
+            if (dropped >= 1 && (lastBehindWarning is null ||
+                                 Stopwatch.GetElapsedTime(lastBehindWarning.Value, now) >= BehindWarningInterval))
+            {
+                lastBehindWarning = now;
+                _logger.LogWarning(
+                    "Update loop behind for device [{DeviceId}]: ~{Dropped} tick(s) dropped, {LateMs:F1}ms late",
+                    HubController.Id, dropped, (sinceLastTick - _waitBetweenTicks).TotalMilliseconds);
+            }
 
             try
             {
@@ -319,17 +344,6 @@ public sealed class HubLifetime : IAsyncDisposable
             {
                 _logger.LogError(e, "Error in Update()");
             }
-
-
-            var elapsed = Stopwatch.GetElapsedTime(startingTime);
-            var waitTime = _waitBetweenTicks - elapsed;
-            if (waitTime.TotalMilliseconds < 1)
-            {
-                _logger.LogWarning("Update loop running behind for device [{DeviceId}]", HubController.Id);
-                continue;
-            }
-
-            await Task.Delay(waitTime, _cancellationSource.Token);
         }
     }
 
@@ -538,14 +552,13 @@ public sealed class HubLifetime : IAsyncDisposable
         }
     }
 
-    private bool _disposed;
-
     /// <inheritdoc />
     public async ValueTask DisposeAsync()
     {
         if (_disposed) return;
         _disposed = true;
 
+        // Cancelling ends UpdateLoop, which disposes its own timer on the way out
         await _cancellationSource.CancelAsync();
 
         if (_deviceMsgQueue is not null)
