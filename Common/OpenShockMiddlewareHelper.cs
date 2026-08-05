@@ -1,5 +1,8 @@
-﻿using Microsoft.AspNetCore.HttpOverrides;
+﻿using Microsoft.AspNetCore.Diagnostics.HealthChecks;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
+using OpenShock.Common.HealthChecks;
 using OpenShock.Common.OpenShockDb;
 using OpenShock.Common.Options;
 using OpenShock.Common.Redis;
@@ -8,6 +11,7 @@ using Redis.OM;
 using Redis.OM.Contracts;
 using Scalar.AspNetCore;
 using Serilog;
+using Serilog.Events;
 using IPNetwork = System.Net.IPNetwork;
 
 namespace OpenShock.Common;
@@ -24,8 +28,10 @@ public static class OpenShockMiddlewareHelper
     
     public static async Task<IApplicationBuilder> UseCommonOpenShockMiddleware(this WebApplication app, string? pathBase = null)
     {
+        // Networks allowed to reach the operational endpoints (metrics, health). Defaults to the
+        // private ranges, so in-cluster scrapers and container probes work without configuration.
         var metricsOptions = app.Services.GetRequiredService<MetricsOptions>();
-        var metricsAllowedIpNetworks = metricsOptions.AllowedNetworks.Select(IPNetwork.Parse).ToArray();
+        var internalAllowedIpNetworks = metricsOptions.AllowedNetworks.Select(IPNetwork.Parse).ToArray();
 
         // Mount the whole app under a path prefix (e.g. "/api" or "/gateway") when configured.
         // This must run before routing so controllers still match at their root-relative routes,
@@ -42,8 +48,35 @@ public static class OpenShockMiddlewareHelper
         }
 
         app.UseForwardedHeaders(ForwardedSettings);
-        
-        app.UseSerilogRequestLogging();
+
+        // Health is operational data, gated by the same allow-list as /metrics. This runs after
+        // UseForwardedHeaders, so a proxied request is judged on its real client IP, and before routing,
+        // so a rejected caller cannot even tell the endpoints exist.
+        app.Use(async (HttpContext context, RequestDelegate next) =>
+        {
+            if (context.Request.Path.StartsWithSegments(HealthCheckPaths.Health)
+                && !IsAllowed(context.Connection.RemoteIpAddress, internalAllowedIpNetworks))
+            {
+                context.Response.StatusCode = StatusCodes.Status404NotFound;
+                return;
+            }
+
+            await next(context);
+        });
+
+        app.UseSerilogRequestLogging(options =>
+        {
+            // Probes hit the health endpoint every few seconds and would drown the request log, so drop
+            // *successful* ones to Verbose. A failing probe is the thing we actually want to see, so it
+            // - and every other request - keeps Serilog's own level policy instead of a hand-rolled copy.
+            var defaultGetLevel = options.GetLevel;
+            options.GetLevel = (context, elapsed, exception) =>
+                exception is null
+                && context.Response.StatusCode < 400
+                && context.Request.Path.StartsWithSegments(HealthCheckPaths.Health)
+                    ? LogEventLevel.Verbose
+                    : defaultGetLevel(context, elapsed, exception);
+        });
 
         // We will only log request body in development
         if (app.Environment.IsDevelopment())
@@ -83,9 +116,8 @@ public static class OpenShockMiddlewareHelper
         app.UseOpenTelemetryPrometheusScrapingEndpoint(context =>
         {
             if(context.Request.Path != "/metrics") return false;
-            
-            var remoteIp = context.Connection.RemoteIpAddress;
-            return remoteIp is not null && metricsAllowedIpNetworks.Any(x => x.Contains(remoteIp));
+
+            return IsAllowed(context.Connection.RemoteIpAddress, internalAllowedIpNetworks);
         });
         
         app.UseSwagger();
@@ -97,9 +129,31 @@ public static class OpenShockMiddlewareHelper
                     .AddDocument("2", "Version 2")
                 );
         
+        // Reports whether every dependency this host needs to serve is reachable. The LCG gates its
+        // self-onlining on the same set, so a probe sees exactly what the gateway acts on.
+        app.MapHealthChecks(HealthCheckPaths.Health, new HealthCheckOptions
+        {
+            Predicate = registration => registration.Tags.Contains(HealthCheckTags.Ready),
+            ResponseWriter = WriteHealthReportAsync
+        });
+
         app.MapControllers();
 
         return app;
+    }
+
+    private static bool IsAllowed(System.Net.IPAddress? remoteIp, IPNetwork[] allowedNetworks) =>
+        remoteIp is not null && allowedNetworks.Any(network => network.Contains(remoteIp));
+
+    /// <summary>
+    /// Writes the per-check breakdown instead of the default bare status word, so a failing probe says
+    /// which dependency is down. Safe to be this detailed: the endpoint is allow-list gated.
+    /// </summary>
+    private static Task WriteHealthReportAsync(HttpContext context, HealthReport report)
+    {
+        context.Response.ContentType = "application/json";
+
+        return context.Response.WriteAsJsonAsync(HealthReportResponse.From(report));
     }
 
     /// <summary>

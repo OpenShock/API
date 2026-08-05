@@ -112,8 +112,6 @@ builder.AddSwaggerExt<Program>();
 
 builder.AddCloudflareTurnstileService();
 
-//services.AddHealthChecks().AddCheck<DatabaseHealthCheck>("database");
-
 builder.Services.AddHostedService<RedisSubscriberService>();
 
 var app = builder.Build();
