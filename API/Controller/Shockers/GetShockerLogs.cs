@@ -13,6 +13,8 @@ using OpenShock.Common.Problems;
 using OpenShock.Common.Utils;
 using OpenShock.Common.Utils.Pagination;
 
+using OpenShock.Internal.Common.Problems;
+
 namespace OpenShock.API.Controller.Shockers;
 
 public sealed partial class ShockerController

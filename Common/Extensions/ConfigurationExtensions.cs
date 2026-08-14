@@ -2,6 +2,8 @@
 using OpenShock.Common.Utils;
 using StackExchange.Redis;
 
+using OpenShock.Internal.Common.Utils;
+
 namespace OpenShock.Common.Extensions;
 
 file sealed class RedisSection
@@ -84,6 +86,16 @@ public static class ConfigurationExtensions
     {
         var options = builder.Configuration.GetSection("OpenShock:Account").Get<AccountOptions>()
                       ?? new AccountOptions();
+
+        builder.Services.AddSingleton(options);
+        return options;
+    }
+
+    public static MailOptions RegisterMailOptions(this WebApplicationBuilder builder)
+    {
+        var options = builder.Configuration.GetRequiredSection(MailOptions.SectionName).Get<MailOptions>();
+        if (options is null)
+            throw new InvalidOperationException($"Missing or invalid configuration for {MailOptions.SectionName}.");
 
         builder.Services.AddSingleton(options);
         return options;

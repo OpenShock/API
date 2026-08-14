@@ -1,7 +1,8 @@
-﻿using Microsoft.EntityFrameworkCore;
-using OpenShock.Common.Constants;
+﻿using OpenShock.Common.Constants;
 using OpenShock.Common.OpenShockDb;
 using OpenShock.Cron.Attributes;
+
+using OpenShock.Internal.Common.Constants;
 
 namespace OpenShock.Cron.Jobs;
 
@@ -27,21 +28,8 @@ public sealed class ClearOldShockerControlLogs
 
     public async Task<int> Execute()
     {
-        var deletedUserLimits = await _db.Database.ExecuteSqlAsync(
-            $"""
-             WITH ranked_logs AS (
-               SELECT
-                 l.id,
-                 ROW_NUMBER() OVER (PARTITION BY d.owner_id ORDER BY l.created_at DESC) AS rn
-               FROM shocker_control_logs l
-               JOIN shockers s ON s.id = l.shocker_id
-               JOIN devices d ON d.id = s.device_id
-             )
-             DELETE FROM shocker_control_logs l
-             USING ranked_logs rl
-             WHERE l.id = rl.id
-               AND rl.rn > {HardLimits.MaxShockerControlLogsPerUser}
-             """);
+        var deletedUserLimits =
+            await _db.DeleteControlLogsBeyondPerUserLimitAsync(HardLimits.MaxShockerControlLogsPerUser);
 
         _logger.LogInformation("Deleted {deletedUserLimits} shocker control logs exceeding the per-user limit",
             deletedUserLimits);

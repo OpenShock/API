@@ -1,8 +1,11 @@
-﻿using Microsoft.AspNetCore.DataProtection.EntityFrameworkCore;
+﻿using System.Text.Json;
+using Microsoft.AspNetCore.DataProtection.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using OpenShock.Common.Constants;
 using OpenShock.Common.Extensions;
 using OpenShock.Common.Models;
+
+using OpenShock.Internal.Common.Constants;
 
 namespace OpenShock.Common.OpenShockDb;
 
@@ -11,17 +14,11 @@ namespace OpenShock.Common.OpenShockDb;
 /// </summary>
 public sealed class MigrationOpenShockContext : OpenShockContext
 {
-    private readonly string? _connectionString;
+    private readonly string _connectionString;
     private readonly bool _debug;
-    private readonly bool _migrationTool;
     private readonly ILoggerFactory? _loggerFactory;
-    
-    public MigrationOpenShockContext()
-    {
-        _migrationTool = true;
-    }
-    
-    public MigrationOpenShockContext(string connectionString, bool debug, ILoggerFactory loggerFactory)
+
+    public MigrationOpenShockContext(string connectionString, bool debug, ILoggerFactory? loggerFactory = null)
     {
         _connectionString = connectionString;
         _debug = debug;
@@ -30,15 +27,8 @@ public sealed class MigrationOpenShockContext : OpenShockContext
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {
-        if (_migrationTool)
-        {
-            ConfigureOptionsBuilder(optionsBuilder, "Host=localhost;Database=openshock;Username=openshock;Password=openshock", true);
-            return;
-        }
-        if(string.IsNullOrWhiteSpace(_connectionString))
-            throw new InvalidOperationException("Connection string is not set.");
         ConfigureOptionsBuilder(optionsBuilder, _connectionString, _debug);
-        
+
         if (_loggerFactory is not null)
             optionsBuilder.UseLoggerFactory(_loggerFactory);
     }
@@ -49,7 +39,7 @@ public sealed class MigrationOpenShockContext : OpenShockContext
 /// </summary>
 public class OpenShockContext : DbContext, IDataProtectionKeyContext
 {
-    public OpenShockContext()
+    protected OpenShockContext()
     {
     }
 
@@ -63,14 +53,11 @@ public class OpenShockContext : DbContext, IDataProtectionKeyContext
     {
         optionsBuilder.UseNpgsql(connectionString, npgsqlBuilder =>
         {
-            npgsqlBuilder.MapEnum<RoleType>();
-            npgsqlBuilder.MapEnum<ControlType>();
-            npgsqlBuilder.MapEnum<ControlLimitMode>();
-            npgsqlBuilder.MapEnum<PermissionType>();
-            npgsqlBuilder.MapEnum<ShockerModelType>();
-            npgsqlBuilder.MapEnum<OtaUpdateStatus>();
-            npgsqlBuilder.MapEnum<MatchTypeEnum>();
-            npgsqlBuilder.MapEnum<ConfigurationValueType>();
+            // Required so Npgsql can serialize the email outbox's Dictionary<string,string> payload
+            // to its jsonb column. Without dynamic JSON, Npgsql maps Dictionary<string,string> to
+            // hstore by default and writing it to a jsonb column fails at runtime.
+            npgsqlBuilder.ConfigureDataSource(dataSourceBuilder => dataSourceBuilder.EnableDynamicJson());
+            npgsqlBuilder.MapPgEnums();
         });
 
         if (debug)
@@ -127,8 +114,12 @@ public class OpenShockContext : DbContext, IDataProtectionKeyContext
     public DbSet<UserNameBlacklist> UserNameBlacklists { get; set; }
 
     public DbSet<EmailProviderBlacklist> EmailProviderBlacklists { get; set; }
+
+    public DbSet<EmailOutboxMessage> EmailOutbox { get; set; }
     
     public DbSet<DataProtectionKey> DataProtectionKeys { get; set; }
+
+    public DbSet<UserAuditLog> UserAuditLogs { get; set; }
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {
@@ -141,16 +132,7 @@ public class OpenShockContext : DbContext, IDataProtectionKeyContext
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder
-            .HasPostgresEnum("control_type", ["sound", "vibrate", "shock", "stop"])
-            .HasPostgresEnum("control_limit_mode", ["clamp", "lerp"])
-            .HasPostgresEnum("ota_update_status", ["started", "running", "finished", "error", "timeout"])
-            .HasPostgresEnum("password_encryption_type", ["pbkdf2", "bcrypt_enhanced"])
-            .HasPostgresEnum("permission_type",
-                ["shockers.use", "shockers.edit", "shockers.pause", "devices.edit", "devices.auth"])
-            .HasPostgresEnum("role_type", ["support", "staff", "admin", "system"])
-            .HasPostgresEnum("shocker_model_type", ["caiXianlin", "petTrainer", "petrainer998DR", "wellturnT330"])
-            .HasPostgresEnum("match_type_enum", ["exact", "contains"])
-            .HasPostgresEnum("configuration_value_type", ["string", "bool", "int", "float", "json"])
+            .RegisterPgEnums()
             .HasCollation("public", "ndcoll", "und-u-ks-level2", "icu", false); // Add case-insensitive, accent-sensitive comparison collation
 
         modelBuilder.Entity<ApiToken>(entity =>
@@ -174,7 +156,7 @@ public class OpenShockContext : DbContext, IDataProtectionKeyContext
             entity.Property(e => e.LastUsed)
                 .HasColumnName("last_used");
             entity.Property(e => e.Name)
-                .HasMaxLength(HardLimits.ApiKeyNameMaxLength)
+                .HasMaxLength(ApiHardLimits.ApiKeyNameMaxLength)
                 .HasColumnName("name");
             entity.Property(e => e.TokenHash)
                 .UseCollation("C")
@@ -274,7 +256,7 @@ public class OpenShockContext : DbContext, IDataProtectionKeyContext
             entity.Property(e => e.OwnerId).HasColumnName("owner_id");
             entity.Property(e => e.Token)
                 .UseCollation("C")
-                .HasMaxLength(HardLimits.HubTokenMaxLength)
+                .HasMaxLength(ApiHardLimits.HubTokenMaxLength)
                 .HasColumnName("token");
 
             entity.HasOne(d => d.Owner).WithMany(p => p.Devices)
@@ -296,7 +278,7 @@ public class OpenShockContext : DbContext, IDataProtectionKeyContext
                 .HasDefaultValueSql("CURRENT_TIMESTAMP")
                 .HasColumnName("created_at");
             entity.Property(e => e.Message)
-                .VarCharWithLength(HardLimits.OtaUpdateMessageMaxLength)
+                .VarCharWithLength(ApiHardLimits.OtaUpdateMessageMaxLength)
                 .HasColumnName("message");
             entity.Property(e => e.Version)
                 .VarCharWithLength(HardLimits.SemVerMaxLength)
@@ -326,7 +308,7 @@ public class OpenShockContext : DbContext, IDataProtectionKeyContext
                 .HasColumnName("created_at");
             entity.Property(e => e.TokenHash)
                 .UseCollation("C")
-                .VarCharWithLength(HardLimits.PasswordResetSecretMaxLength)
+                .VarCharWithLength(ApiHardLimits.PasswordResetSecretMaxLength)
                 .HasColumnName("token_hash");
             entity.Property(e => e.SecurityStampAtCreate)
                 .HasColumnName("security_stamp_at_create");
@@ -631,7 +613,7 @@ public class OpenShockContext : DbContext, IDataProtectionKeyContext
                 .HasColumnName("email");
             entity.Property(e => e.PasswordHash)
                 .UseCollation("C")
-                .VarCharWithLength(HardLimits.PasswordHashMaxLength)
+                .VarCharWithLength(ApiHardLimits.PasswordHashMaxLength)
                 .HasColumnName("password_hash");
             entity.Property(e => e.SecurityStamp)
                 .HasDefaultValueSql("gen_random_uuid()")
@@ -684,7 +666,7 @@ public class OpenShockContext : DbContext, IDataProtectionKeyContext
                 .HasColumnName("user_id");
             entity.Property(e => e.TokenHash)
                 .UseCollation("C")
-                .VarCharWithLength(HardLimits.UserActivationRequestSecretMaxLength)
+                .VarCharWithLength(ApiHardLimits.UserActivationRequestSecretMaxLength)
                 .HasColumnName("token_hash");
             entity.Property(e => e.EmailSendAttempts)
                 .HasColumnName("email_send_attempts");
@@ -747,7 +729,7 @@ public class OpenShockContext : DbContext, IDataProtectionKeyContext
                 .HasColumnName("email_new");
             entity.Property(e => e.TokenHash)
                 .UseCollation("C")
-                .VarCharWithLength(HardLimits.UserEmailChangeSecretMaxLength)
+                .VarCharWithLength(ApiHardLimits.UserEmailChangeSecretMaxLength)
                 .HasColumnName("token_hash");
             entity.Property(e => e.SecurityStampAtCreate)
                 .HasColumnName("security_stamp_at_create");
@@ -865,11 +847,68 @@ public class OpenShockContext : DbContext, IDataProtectionKeyContext
                 .HasColumnName("id");
             entity.Property(e => e.Domain)
                 .UseCollation("ndcoll")
-                .VarCharWithLength(HardLimits.EmailProviderDomainMaxLength)
+                .VarCharWithLength(ApiHardLimits.EmailProviderDomainMaxLength)
                 .HasColumnName("domain");
             entity.Property(e => e.CreatedAt)
                 .HasDefaultValueSql("CURRENT_TIMESTAMP")
                 .HasColumnName("created_at");
+        });
+
+        modelBuilder.Entity<EmailOutboxMessage>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("email_outbox_pkey");
+
+            entity.ToTable("email_outbox");
+
+            // The consumer claims due rows ordered by next_attempt_at; (status, next_attempt_at) serves
+            // both the status filter and the ordering for the FOR UPDATE SKIP LOCKED claim query.
+            entity.HasIndex(e => new { e.Status, e.NextAttemptAt });
+            entity.HasIndex(e => e.Recipient);
+            // The delivery job resolves newest-wins coalescing by looking up siblings that share a
+            // coalesce key, so index it.
+            entity.HasIndex(e => e.CoalesceKey);
+
+            entity.Property(e => e.Id)
+                .ValueGeneratedNever()
+                .HasColumnName("id");
+            entity.Property(e => e.Type)
+                .HasColumnName("type");
+            entity.Property(e => e.Recipient)
+                .VarCharWithLength(HardLimits.EmailAddressMaxLength)
+                .HasColumnName("recipient");
+            entity.Property(e => e.RecipientName)
+                .VarCharWithLength(HardLimits.UsernameMaxLength)
+                .HasColumnName("recipient_name");
+            entity.Property(e => e.Payload)
+                .HasColumnType("jsonb")
+                .HasColumnName("payload");
+            entity.Property(e => e.CoalesceKey)
+                .VarCharWithLength(ApiHardLimits.EmailOutboxCoalesceKeyMaxLength)
+                .HasColumnName("coalesce_key");
+            entity.Property(e => e.Status)
+                .HasColumnName("status");
+            // attempt_count doubles as the delivery lease's fencing token: every claim increments it, and
+            // the deferred terminal write is guarded by it (IsConcurrencyToken). If a lapsed lease lets
+            // another run reclaim a Sending row mid-batch (bumping attempt_count), the original run's
+            // UPDATE matches no row and throws DbUpdateConcurrencyException instead of clobbering the
+            // reclaimer's claim / terminal state.
+            entity.Property(e => e.AttemptCount)
+                .HasDefaultValue(0)
+                .IsConcurrencyToken()
+                .HasColumnName("attempt_count");
+            entity.Property(e => e.NextAttemptAt)
+                .HasDefaultValueSql("CURRENT_TIMESTAMP")
+                .HasColumnName("next_attempt_at");
+            entity.Property(e => e.LastError)
+                .VarCharWithLength(ApiHardLimits.EmailOutboxLastErrorMaxLength)
+                .HasColumnName("last_error");
+            entity.Property(e => e.CreatedAt)
+                .HasDefaultValueSql("CURRENT_TIMESTAMP")
+                .HasColumnName("created_at");
+            entity.Property(e => e.SentAt)
+                .HasColumnName("sent_at");
+            entity.Property(e => e.FailedAt)
+                .HasColumnName("failed_at");
         });
 
         modelBuilder.Entity<AdminUsersView>(entity =>
@@ -919,6 +958,54 @@ public class OpenShockContext : DbContext, IDataProtectionKeyContext
                 .HasColumnName("shocker_count");
             entity.Property(e => e.ShockerControlLogCount)
                 .HasColumnName("shocker_control_log_count");
+        });
+
+        modelBuilder.Entity<UserAuditLog>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("user_audit_logs_pkey");
+
+            entity.ToTable("user_audit_logs");
+
+            entity.HasIndex(e => e.UserId);
+            entity.HasIndex(e => e.ActorId);
+            entity.HasIndex(e => e.CreatedAt);
+
+            entity.Property(e => e.Id)
+                .ValueGeneratedNever()
+                .HasColumnName("id");
+            entity.Property(e => e.UserId).HasColumnName("user_id");
+            entity.Property(e => e.ActorId).HasColumnName("actor_id");
+            entity.Property(e => e.Action)
+                .HasColumnType("audit_action")
+                .HasColumnName("action");
+            entity.Property(e => e.Reason)
+                .VarCharWithLength(ApiHardLimits.AuditReasonMaxLength)
+                .HasColumnName("reason");
+            entity.Property(e => e.IpAddress)
+                .VarCharWithLength(HardLimits.IpAddressMaxLength)
+                .HasColumnName("ip_address");
+            entity.Property(e => e.UserAgent)
+                .VarCharWithLength(HardLimits.UserAgentMaxLength)
+                .HasColumnName("user_agent");
+            entity.Property(e => e.Metadata)
+                .HasColumnType("jsonb")
+                .HasColumnName("metadata")
+                .HasConversion(
+                    v => JsonSerializer.Serialize(v, (JsonSerializerOptions?)null),
+                    v => JsonSerializer.Deserialize<AuditMetadata>(v, (JsonSerializerOptions?)null));
+            entity.Property(e => e.CreatedAt)
+                .HasDefaultValueSql("CURRENT_TIMESTAMP")
+                .HasColumnName("created_at");
+
+            entity.HasOne(e => e.User).WithMany(u => u.AuditLogs)
+                .HasForeignKey(e => e.UserId)
+                .OnDelete(DeleteBehavior.Cascade)
+                .HasConstraintName("fk_user_audit_logs_user_id");
+
+            entity.HasOne(e => e.Actor).WithMany(u => u.ActorAuditLogs)
+                .HasForeignKey(e => e.ActorId)
+                .OnDelete(DeleteBehavior.SetNull)
+                .HasConstraintName("fk_user_audit_logs_actor_id");
         });
     }
 }

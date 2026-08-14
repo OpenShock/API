@@ -1,12 +1,12 @@
-﻿using System.Timers;
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using NRedisStack.RedisStackCommands;
 using OpenShock.Common.Constants;
 using OpenShock.Common.OpenShockDb;
 using OpenShock.Common.Redis;
 using OpenShock.Common.Utils;
 using StackExchange.Redis;
-using Timer = System.Timers.Timer;
+
+using OpenShock.Internal.Common.Utils;
 
 namespace OpenShock.Common.Services.BatchUpdate;
 
@@ -34,14 +34,13 @@ internal sealed class ConcurrentUniqueBatchQueue<TKey, TValue> where TKey : notn
     }
 }
 
-public sealed class BatchUpdateService : IHostedService, IBatchUpdateService
+public sealed class BatchUpdateService : BackgroundService, IBatchUpdateService
 {
     private static readonly TimeSpan Interval = TimeSpan.FromSeconds(10);
 
     private readonly IDbContextFactory<OpenShockContext> _dbFactory;
     private readonly ILogger<BatchUpdateService> _logger;
     private readonly IConnectionMultiplexer _connectionMultiplexer;
-    private readonly Timer _updateTimer;
 
     private readonly ConcurrentUniqueBatchQueue<Guid, bool> _tokenLastUsed = new();
     private readonly ConcurrentUniqueBatchQueue<string, DateTimeOffset> _sessionLastUsed = new();
@@ -51,21 +50,6 @@ public sealed class BatchUpdateService : IHostedService, IBatchUpdateService
         _dbFactory = dbFactory;
         _logger = logger;
         _connectionMultiplexer = connectionMultiplexer;
-
-        _updateTimer = new Timer(Interval);
-        _updateTimer.Elapsed += UpdateTimerOnElapsed;
-    }
-
-    private async void UpdateTimerOnElapsed(object? sender, ElapsedEventArgs eventArgs)
-    {
-        try
-        {
-            await Task.WhenAll(UpdateTokens(), UpdateSessions());
-        }
-        catch (Exception e)
-        {
-            _logger.LogError(e, "Error in batch update loop");
-        }
     }
 
     private async Task UpdateTokens()
@@ -118,15 +102,36 @@ public sealed class BatchUpdateService : IHostedService, IBatchUpdateService
         _sessionLastUsed.Enqueue(sessionToken, lastUsed);
     }
 
-    public Task StartAsync(CancellationToken cancellationToken)
+    protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        _updateTimer.Start();
-        return Task.CompletedTask;
+        using var updateTimer = new PeriodicTimer(Interval);
+
+        try
+        {
+            while (await updateTimer.WaitForNextTickAsync(stoppingToken))
+            {
+                await Flush();
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            // Shutdown requested, fall through to the final flush
+        }
+
+        // Drain what was queued since the last tick, otherwise every shutdown
+        // silently loses up to Interval worth of last used updates
+        await Flush();
     }
 
-    public Task StopAsync(CancellationToken cancellationToken)
+    private async Task Flush()
     {
-        _updateTimer.Stop();
-        return Task.CompletedTask;
+        try
+        {
+            await Task.WhenAll(UpdateTokens(), UpdateSessions());
+        }
+        catch (Exception e)
+        {
+            _logger.LogError(e, "Error in batch update loop");
+        }
     }
 }

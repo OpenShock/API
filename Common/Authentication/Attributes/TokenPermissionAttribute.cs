@@ -7,6 +7,8 @@ using OpenShock.Common.OpenShockDb;
 using OpenShock.Common.Problems;
 using OpenShock.Common.Redis;
 
+using OpenShock.Internal.Common.Problems;
+
 namespace OpenShock.Common.Authentication.Attributes;
 
 [AttributeUsage(AttributeTargets.Class | AttributeTargets.Method, AllowMultiple = true)]

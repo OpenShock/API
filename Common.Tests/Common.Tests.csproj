@@ -9,7 +9,6 @@
     <PackageReference Include="Testcontainers.Redis" />
     <PackageReference Include="Bogus" />
     <PackageReference Include="TUnit" />
-    <PackageReference Include="Microsoft.Testing.Extensions.CodeCoverage" />
   </ItemGroup>
 
   <!-- Files to copy -->

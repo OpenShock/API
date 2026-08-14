@@ -6,6 +6,8 @@ using OpenShock.Common.Problems;
 using OpenShock.Common.Services.Configuration;
 using System.Net.Mime;
 
+using OpenShock.Internal.Common.Problems;
+
 namespace OpenShock.API.Controller.Admin;
 
 public sealed partial class AdminController
@@ -19,6 +21,8 @@ public sealed partial class AdminController
     [ProducesResponseType<ConfigurationItemDto[]>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)] // Ok
     public IAsyncEnumerable<ConfigurationItemDto> ConfigurationList([FromServices] IConfigurationService configurationService)
     {
+        PedanticallyEnsureAdmin();
+
         return configurationService
             .GetAllItemsQuery()
             .Select(ci => new ConfigurationItemDto
@@ -47,6 +51,8 @@ public sealed partial class AdminController
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status400BadRequest, MediaTypeNames.Application.ProblemJson)] // InvalidNameFormat, InvalidValueFormat
     public async Task<IActionResult> ConfigurationAdd([FromBody] ConfigurationAddItemRequest body, [FromServices] IConfigurationService configurationService, CancellationToken cancellationToken)
     {
+        PedanticallyEnsureAdmin();
+
         var result = await configurationService.TryAddItemAsync(
             body.Name,
             body.Description,
@@ -77,6 +83,8 @@ public sealed partial class AdminController
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status400BadRequest, MediaTypeNames.Application.ProblemJson)] // InvalidNameFormat, InvalidValueFormat
     public async Task<IActionResult> ConfigurationUpdate([FromBody] ConfigurationUpdateItemRequest body, [FromServices] IConfigurationService configurationService, CancellationToken cancellationToken)
     {
+        PedanticallyEnsureAdmin();
+
         var result = await configurationService.TryUpdateItemAsync(
             body.Name,
             body.Description,
@@ -104,6 +112,8 @@ public sealed partial class AdminController
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status400BadRequest, MediaTypeNames.Application.ProblemJson)] // InvalidNameFormat
     public async Task<IActionResult> ConfigurationDelete([FromRoute] string name, [FromServices] IConfigurationService configurationService, CancellationToken cancellationToken)
     {
+        PedanticallyEnsureAdmin();
+
         var result = await configurationService.TryDeleteItemAsync(name);
 
         return result.Match<IActionResult>(

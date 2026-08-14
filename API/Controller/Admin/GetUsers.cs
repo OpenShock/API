@@ -4,10 +4,12 @@ using OpenShock.Common.Errors;
 using OpenShock.Common.Extensions;
 using OpenShock.Common.Models;
 using OpenShock.Common.OpenShockDb;
-using OpenShock.Common.Query;
+using OpenShock.Internal.DynamicLinq.Query;
 using System.ComponentModel.DataAnnotations;
 using System.Net.Mime;
 using Z.EntityFramework.Plus;
+
+using OpenShock.Internal.DynamicLinq.Extensions;
 
 namespace OpenShock.API.Controller.Admin;
 
@@ -27,6 +29,8 @@ public sealed partial class AdminController
         [FromQuery(Name = "$limit")][Range(1, 1000)] int limit = 100
         )
     {
+        PedanticallyEnsureAdmin();
+
         var query = _db.AdminUsersViews.AsNoTracking();
 
         try
@@ -38,7 +42,7 @@ public sealed partial class AdminController
 
             if (!string.IsNullOrEmpty(orderbyQuery))
             {
-                query = query.ApplyOrderBy(orderbyQuery);
+                query = OpenShock.Internal.DynamicLinq.Extensions.IQueryableExtensions.ApplyOrderBy(query, orderbyQuery);
             }
             else
             {

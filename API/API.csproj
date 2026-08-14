@@ -12,8 +12,6 @@
   <!-- NuGet packages -->
   <ItemGroup>
     <PackageReference Include="AspNet.Security.OAuth.Discord" />
-    <PackageReference Include="Fluid.Core" />
-    <PackageReference Include="MailKit" />
     <PackageReference Include="Microsoft.AspNetCore.Authentication.Google" />
     <PackageReference Include="Microsoft.AspNetCore.Authentication.Twitter" />
   </ItemGroup>
@@ -24,19 +22,10 @@
     <None Include="devcert.pfx" CopyToPublishDirectory="Always" />
   </ItemGroup>
 
-  <!-- Pre-rendered Liquid email templates (committed to repo, not built at compile time).
-       Re-render with `pnpm export` in email-templates/ when you change a .tsx source. -->
-  <ItemGroup>
-    <Content Include="SmtpTemplates\*.liquid">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-      <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
-    </Content>
-  </ItemGroup>
-
   <!-- Git stuff -->
   <Target Name="SetHash" AfterTargets="InitializeSourceControlInformation">
     <ItemGroup>
-      <AssemblyAttribute Include="OpenShock.Common.Utils.GitHashAttribute">
+      <AssemblyAttribute Include="OpenShock.Internal.Common.Utils.GitHashAttribute">
         <_Parameter1>$(SourceRevisionId)</_Parameter1>
       </AssemblyAttribute>
     </ItemGroup>

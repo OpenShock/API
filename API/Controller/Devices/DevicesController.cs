@@ -1,19 +1,28 @@
-﻿using Asp.Versioning;
+﻿using System.Net.Mime;
+using System.Security.Cryptography;
+using Asp.Versioning;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using OneOf;
 using OpenShock.API.Models.Requests;
+using OpenShock.API.Models.Response;
+using OpenShock.API.Services.DeviceUpdate;
 using OpenShock.Common.Authentication.Attributes;
 using OpenShock.Common.Constants;
 using OpenShock.Common.Errors;
 using OpenShock.Common.Extensions;
 using OpenShock.Common.Models;
+using OpenShock.Common.OpenShockDb;
 using OpenShock.Common.Problems;
 using OpenShock.Common.Redis;
 using OpenShock.Common.Utils;
-using System.Net.Mime;
-using System.Security.Cryptography;
-using OpenShock.API.Services.DeviceUpdate;
 using Redis.OM;
+
+using OpenShock.Internal.Common.Utils;
+
+using OpenShock.Internal.Common.Constants;
+
+using OpenShock.Internal.Common.Problems;
 
 namespace OpenShock.API.Controller.Devices;
 
@@ -25,12 +34,12 @@ public sealed partial class DevicesController
     /// <response code="200">All devices for the current user</response>
     [HttpGet]
     [MapToApiVersion("1")]
-    [ProducesResponseType<LegacyDataResponse<Models.Response.DeviceResponse[]>>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
+    [ProducesResponseType<LegacyDataResponse<DeviceResponse[]>>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
     public IActionResult ListDevices()
     {
         var devices = _db.Devices
             .Where(x => x.OwnerId == CurrentUser.Id)
-            .Select(x => new Models.Response.DeviceResponse
+            .Select(x => new DeviceResponse
             {
                 Id = x.Id,
                 Name = x.Name,
@@ -47,7 +56,7 @@ public sealed partial class DevicesController
     /// <param name="deviceId"></param>
     /// <response code="200">The device</response>
     [HttpGet("{deviceId}")]
-    [ProducesResponseType<LegacyDataResponse<Models.Response.DeviceWithTokenResponse>>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
+    [ProducesResponseType<LegacyDataResponse<DeviceWithTokenResponse>>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status404NotFound, MediaTypeNames.Application.ProblemJson)] // DeviceNotFound
     [MapToApiVersion("1")]
     public async Task<IActionResult> GetDeviceById([FromRoute] Guid deviceId)
@@ -56,7 +65,7 @@ public sealed partial class DevicesController
         
         
         var device = await _db.Devices.Where(x => x.OwnerId == CurrentUser.Id && x.Id == deviceId)
-            .Select(x => new Models.Response.DeviceWithTokenResponse
+            .Select(x => new DeviceWithTokenResponse
             {
                 Id = x.Id,
                 Name = x.Name,
@@ -112,7 +121,7 @@ public sealed partial class DevicesController
         var device = await _db.Devices.FirstOrDefaultAsync(x => x.OwnerId == CurrentUser.Id && x.Id == deviceId);
         if (device is null) return Problem(HubError.HubNotFound);
 
-        device.Token = CryptoUtils.RandomAlphaNumericString(256);
+        device.Token = CryptoUtils.RandomString(256);
 
         var affected = await _db.SaveChangesAsync();
         if (affected <= 0) throw new Exception("Failed to save regenerated token");
@@ -179,7 +188,7 @@ public sealed partial class DevicesController
             Id = Guid.CreateVersion7(),
             OwnerId = CurrentUser.Id,
             Name = body.Name,
-            Token = CryptoUtils.RandomAlphaNumericString(256)
+            Token = CryptoUtils.RandomString(256)
         };
         _db.Devices.Add(device);
         await _db.SaveChangesAsync();
@@ -227,35 +236,69 @@ public sealed partial class DevicesController
     /// <response code="200">LCG node was found and device is online</response>
     /// <response code="404">Device does not exist or does not belong to you</response>
     /// <response code="404">Device is not online</response>
-    /// <response code="412">Device is online but not connected to a LCG node, you might need to upgrade your firmware to use this feature</response>
-    /// <response code="500">Internal server error, lcg node could not be found</response>
     [HttpGet("{deviceId}/lcg")]
     [ProducesResponseType<LegacyDataResponse<LcgResponse>>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status404NotFound, MediaTypeNames.Application.ProblemJson)] // DeviceNotFound, DeviceIsNotOnline
-    [ProducesResponseType<OpenShockProblem>(StatusCodes.Status412PreconditionFailed, MediaTypeNames.Application.ProblemJson)] // DeviceNotConnectedToGateway
     [MapToApiVersion("1")]
     public async Task<IActionResult> GetLiveControlGatewayInfo([FromRoute] Guid deviceId)
+    {
+        var result = await ResolveDeviceGatewayAsync(deviceId);
+        if (result.TryPickT1(out var problem, out var gateway)) return Problem(problem);
+
+        return LegacyDataOk(new LcgResponse
+        {
+            Gateway = gateway.Host,
+            Country = gateway.Country
+        });
+    }
+
+    /// <summary>
+    /// Gets the live control gateway a hub is connected to, including its public port and the full
+    /// live-control WebSocket path (honoring the gateway's configured path prefix).
+    /// </summary>
+    /// <response code="200">Successfully retrieved live control gateway info</response>
+    /// <response code="404">Device does not exist or is not online</response>
+    [HttpGet("{deviceId}/lcg")]
+    [ProducesResponseType<LcgResponseV2>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
+    [ProducesResponseType<OpenShockProblem>(StatusCodes.Status404NotFound, MediaTypeNames.Application.ProblemJson)] // DeviceNotFound, DeviceIsNotOnline
+    [MapToApiVersion("2")]
+    public async Task<IActionResult> GetLiveControlGatewayInfoV2([FromRoute] Guid deviceId)
+    {
+        var result = await ResolveDeviceGatewayAsync(deviceId);
+        if (result.TryPickT1(out var problem, out var gateway)) return Problem(problem);
+
+        return Ok(new LcgResponseV2
+        {
+            Host = gateway.Host,
+            Port = gateway.Port,
+            PathPrefix = gateway.PathPrefix,
+            Country = gateway.Country
+        });
+    }
+
+    /// <summary>
+    /// Shared lookup for the LCG node a hub is currently connected to. Returns the node, or an
+    /// <see cref="OpenShockProblem"/> when the caller lacks access, the hub is offline, or it has
+    /// no gateway.
+    /// </summary>
+    private async Task<OneOf<LcgNode, OpenShockProblem>> ResolveDeviceGatewayAsync(Guid deviceId)
     {
         // Check if user owns device or has a share
         var deviceExistsAndYouHaveAccess = await _db.Devices.AnyAsync(x =>
             x.Id == deviceId && (x.OwnerId == CurrentUser.Id || x.Shockers.Any(y => y.UserShares.Any(
                 z => z.SharedWithUserId == CurrentUser.Id))));
-        if (!deviceExistsAndYouHaveAccess) return Problem(HubError.HubNotFound);
+        if (!deviceExistsAndYouHaveAccess) return HubError.HubNotFound;
 
         // Check if device is online
         var devicesOnline = _redis.RedisCollection<DeviceOnline>();
         var online = await devicesOnline.FindByIdAsync(deviceId.ToString());
-        if (online is null) return Problem(HubError.HubIsNotOnline);
+        if (online is null) return HubError.HubIsNotOnline;
 
         // Get LCG node info
         var lcgNodes = _redis.RedisCollection<LcgNode>();
         var gateway = await lcgNodes.FindByIdAsync(online.Gateway);
         if (gateway is null) throw new Exception("Internal server error, lcg node could not be found");
 
-        return LegacyDataOk(new LcgResponse
-        {
-            Gateway = gateway.Fqdn,
-            Country = gateway.Country
-        });
+        return gateway;
     }
 }
