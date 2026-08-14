@@ -1,8 +1,6 @@
 ﻿// We are in a view, no need to restrict lengths lol
 // ReSharper disable EntityFramework.ModelValidation.UnlimitedStringLength
 
-using OpenShock.Internal.Common.Enums;
-
 namespace OpenShock.Common.OpenShockDb;
 
 public sealed class AdminUsersView
