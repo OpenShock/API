@@ -28,7 +28,7 @@ public static class EmailOutboxStateMachine
         {
             message.Status = EmailStatus.Failed;
             message.FailedAt = nowUtc;
-            message.LastError = $"Exhausted after {message.AttemptCount - 1} attempt(s) (delivery did not complete)".Truncate(HardLimits.EmailOutboxLastErrorMaxLength);
+            message.LastError = $"Exhausted after {message.AttemptCount - 1} attempt(s) (delivery did not complete)".Truncate(ApiHardLimits.EmailOutboxLastErrorMaxLength);
             return false;
         }
 
@@ -58,17 +58,17 @@ public static class EmailOutboxStateMachine
                 // A successful no-op (request used/expired/superseded/gone). Distinct from Failed so it
                 // is never mistaken for a delivery problem or requeued.
                 message.Status = EmailStatus.Skipped;
-                message.LastError = result.Detail?.Truncate(HardLimits.EmailOutboxLastErrorMaxLength);
+                message.LastError = result.Detail?.Truncate(ApiHardLimits.EmailOutboxLastErrorMaxLength);
                 break;
 
             case EmailDispatchOutcome.PermanentFailure:
                 message.Status = EmailStatus.Failed;
                 message.FailedAt = nowUtc;
-                message.LastError = result.Detail?.Truncate(HardLimits.EmailOutboxLastErrorMaxLength);
+                message.LastError = result.Detail?.Truncate(ApiHardLimits.EmailOutboxLastErrorMaxLength);
                 break;
 
             case EmailDispatchOutcome.TransientFailure:
-                message.LastError = result.Detail?.Truncate(HardLimits.EmailOutboxLastErrorMaxLength);
+                message.LastError = result.Detail?.Truncate(ApiHardLimits.EmailOutboxLastErrorMaxLength);
                 if (message.AttemptCount >= EmailOutboxRetryPolicy.MaxAttempts)
                 {
                     message.Status = EmailStatus.Failed;

@@ -12,6 +12,8 @@ using OpenShock.API.Models.Response;
 using OpenShock.API.Services.Turnstile;
 using Results = OpenShock.Common.Results;
 
+using OpenShock.Internal.Common.Problems;
+
 namespace OpenShock.API.Controller.Account;
 
 public sealed partial class AccountController

@@ -12,6 +12,8 @@ using OpenShock.Common.Services.Session;
 using OpenShock.Common.Utils;
 using OpenShock.Common.Validation;
 
+using OpenShock.Internal.Common.Utils;
+
 namespace OpenShock.API.Services.Account;
 
 /// <summary>
@@ -51,7 +53,7 @@ public sealed class AccountService : IAccountService
     /// sends, so this value is never the one delivered. It exists only to keep the column populated.
     /// </summary>
     private static string SeedTokenHash()
-        => HashingUtils.HashToken(CryptoUtils.RandomAlphaNumericString(AuthConstants.GeneratedTokenLength));
+        => HashingUtils.HashToken(CryptoUtils.RandomString(AuthConstants.GeneratedTokenLength));
 
     /// <summary>
     /// Best-effort nudge to the email outbox delivery job that a message was enqueued. Deliberately

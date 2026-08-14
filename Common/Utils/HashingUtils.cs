@@ -4,6 +4,10 @@ using System.Text;
 using BCrypt.Net;
 using OpenShock.Common.OpenShockDb;
 
+// LatencyEmulator and PBKDF2PasswordHasher stay in OpenShock.Internal.Common; only the password
+// hashing policy itself is kept local.
+using OpenShock.Internal.Common.Utils;
+
 namespace OpenShock.Common.Utils;
 
 public static class HashingUtils

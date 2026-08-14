@@ -64,6 +64,16 @@ x-openshock-svc: &openshock-svc
   depends_on:
     - db
     - dragonfly
+  # /1/health reports whether Postgres and Dragonfly are reachable. Like /metrics it is limited to
+  # OPENSHOCK__METRICS__ALLOWEDNETWORKS (private ranges by default), so it is probed from inside the
+  # container; the cert is the self-signed one the entrypoint generates, hence no verification.
+  # start_period covers the schema-ready wait on boot.
+  healthcheck:
+    test: ["CMD-SHELL", "wget --no-check-certificate -q -O /dev/null https://localhost/1/health"]
+    start_period: 60s
+    interval: 15s
+    retries: 5
+    timeout: 10s
 
 services:
 
@@ -163,7 +173,7 @@ services:
       - "traefik.http.routers.openshock-cron.entrypoints=https"
       - "traefik.http.routers.openshock-cron.tls=true"
       - "traefik.http.routers.openshock-cron.service=openshock-cron"
-      - "traefik.http.services.openshock-cron.loadbalancer.server.port=780"
+      - "traefik.http.services.openshock-cron.loadbalancer.server.port=80"
 
   traefik:
     image: traefik:latest

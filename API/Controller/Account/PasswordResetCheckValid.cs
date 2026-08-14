@@ -10,6 +10,8 @@ using OpenShock.Common.Problems;
 using OpenShock.Common.Models;
 using Results = OpenShock.Common.Results;
 
+using OpenShock.Internal.Common.Problems;
+
 namespace OpenShock.API.Controller.Account;
 
 public sealed partial class AccountController

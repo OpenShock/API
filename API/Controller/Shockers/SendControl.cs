@@ -14,6 +14,8 @@ using OpenShock.Common.Problems;
 using OpenShock.Common.Results;
 using OpenShock.Common.Services;
 
+using OpenShock.Internal.Common.Problems;
+
 namespace OpenShock.API.Controller.Shockers;
 
 public sealed partial class ShockerController

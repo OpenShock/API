@@ -19,6 +19,10 @@ using OpenShock.Common.Extensions;
 using SemVersion = OpenShock.Common.Models.SemVersion;
 using Timer = System.Timers.Timer;
 
+using OpenShock.Internal.Common.Problems;
+
+using OpenShock.Internal.Common.Errors;
+
 namespace OpenShock.LiveControlGateway.Controllers;
 
 /// <summary>
@@ -207,7 +211,7 @@ public abstract class HubControllerBase<TIn, TOut> : FlatbuffersWebsocketBaseCon
         
         var uptimeMsFp = (double)uptimeMs;
         
-        var maxUptimeMs = HardLimits.FirmwareMaxUptime.TotalMilliseconds;
+        var maxUptimeMs = ApiHardLimits.FirmwareMaxUptime.TotalMilliseconds;
         if (uptimeMsFp > maxUptimeMs) return null; // Yeah, ok bro.
 
         return DateTimeOffset.UtcNow.Subtract(TimeSpan.FromMilliseconds(uptimeMsFp));

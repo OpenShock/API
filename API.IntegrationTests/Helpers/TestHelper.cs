@@ -9,6 +9,8 @@ using OpenShock.Common.OpenShockDb;
 using OpenShock.Common.Services.Session;
 using OpenShock.Common.Utils;
 
+using OpenShock.Internal.Common.Utils;
+
 namespace OpenShock.API.IntegrationTests.Helpers;
 
 public static class TestHelper
@@ -127,7 +129,7 @@ public static class TestHelper
         var db = scope.ServiceProvider.GetRequiredService<OpenShockContext>();
 
         var deviceId = Guid.CreateVersion7();
-        var token = CryptoUtils.RandomAlphaNumericString(256);
+        var token = CryptoUtils.RandomString(256);
         db.Devices.Add(new Device
         {
             Id = deviceId,
@@ -152,7 +154,7 @@ public static class TestHelper
         await using var scope = factory.Services.CreateAsyncScope();
         var db = scope.ServiceProvider.GetRequiredService<OpenShockContext>();
 
-        var rawToken = CryptoUtils.RandomAlphaNumericString(AuthConstants.ApiTokenLength);
+        var rawToken = CryptoUtils.RandomString(AuthConstants.ApiTokenLength);
         var tokenId = Guid.CreateVersion7();
         db.ApiTokens.Add(new ApiToken
         {

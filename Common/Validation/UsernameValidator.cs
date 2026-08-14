@@ -2,6 +2,10 @@ using System.Diagnostics.CodeAnalysis;
 using OpenShock.Common.Constants;
 using OpenShock.Common.Results;
 
+using OpenShock.Internal.Common.Constants;
+
+using OpenShock.Internal.Common.Validation;
+
 namespace OpenShock.Common.Validation;
 
 public static class UsernameValidator

@@ -4,6 +4,7 @@ using OpenShock.Common.Constants;
 using OpenShock.Common.Models;
 using OpenShock.Common.OpenShockDb;
 using OpenShock.Common.Utils;
+using OpenShock.Internal.Common.Utils;
 
 namespace OpenShock.Cron.IntegrationTests.Tests;
 
@@ -132,7 +133,7 @@ public sealed partial class EmailOutboxDeliveryTests
     {
         Id = Guid.CreateVersion7(),
         UserId = userId,
-        TokenHash = HashingUtils.HashToken(CryptoUtils.RandomAlphaNumericString(AuthConstants.GeneratedTokenLength)),
+        TokenHash = HashingUtils.HashToken(CryptoUtils.RandomString(AuthConstants.GeneratedTokenLength)),
         SecurityStampAtCreate = stamp,
         CreatedAt = DateTime.UtcNow
     };

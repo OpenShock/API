@@ -7,6 +7,12 @@ using OpenShock.Common.Problems;
 using OpenShock.Common.Results;
 using OpenShock.Common.Utils;
 
+using JsonOptions = OpenShock.Common.JsonSerialization.JsonOptions;
+
+using OpenShock.Internal.Common.Utils;
+
+using OpenShock.Internal.Common.Problems;
+
 namespace OpenShock.Common.Websocket;
 
 /// <summary>
@@ -114,14 +120,14 @@ public abstract class WebsocketBaseController<T> : OpenShockControllerBase, IAsy
         
         if (!HttpContext.WebSockets.IsWebSocketRequest)
         {
-            await WebsocketError.NonWebsocketRequest.WriteAsJsonAsync(HttpContext, LinkedToken);
+            await WebsocketError.NonWebsocketRequest.WriteAsJsonAsync(HttpContext, JsonOptions.Default, LinkedToken);
             return;
         }
 
         var connectionPrecondition = await ConnectionPrecondition();
         if (connectionPrecondition.Value is OpenShockProblem connectionError)
         {
-            await connectionError.WriteAsJsonAsync(HttpContext, LinkedToken);
+            await connectionError.WriteAsJsonAsync(HttpContext, JsonOptions.Default, LinkedToken);
             return;
         }
 

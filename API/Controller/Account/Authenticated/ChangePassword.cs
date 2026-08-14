@@ -8,6 +8,10 @@ using OpenShock.Common.Problems;
 using OpenShock.Common.Utils;
 using Results = OpenShock.Common.Results;
 
+using OpenShock.Internal.Common.Utils;
+
+using OpenShock.Internal.Common.Problems;
+
 namespace OpenShock.API.Controller.Account.Authenticated;
 
 public sealed partial class AuthenticatedAccountController

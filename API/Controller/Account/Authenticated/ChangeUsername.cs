@@ -9,6 +9,8 @@ using OpenShock.Common.Problems;
 using OpenShock.Common.Validation;
 using Results = OpenShock.Common.Results;
 
+using OpenShock.Internal.Common.Problems;
+
 namespace OpenShock.API.Controller.Account.Authenticated;
 
 public sealed partial class AuthenticatedAccountController

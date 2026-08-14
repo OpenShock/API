@@ -1,4 +1,4 @@
-using OpenShock.Common.Problems;
+using OpenShock.Internal.Common.Problems;
 
 namespace OpenShock.Common.Results;
 

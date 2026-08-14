@@ -5,6 +5,7 @@ using OpenShock.Common.Models;
 using OpenShock.Common.OpenShockDb;
 using OpenShock.Common.Options;
 using OpenShock.Common.Utils;
+using OpenShock.Internal.Common.Utils;
 
 namespace OpenShock.Cron.Services.Email.Outbox;
 
@@ -146,7 +147,7 @@ public sealed class EmailOutboxDispatcher : IEmailOutboxDispatcher
     /// </summary>
     private static async Task<string> MintTokenAsync(OpenShockContext db, Action<string> applyHash, CancellationToken ct)
     {
-        var token = CryptoUtils.RandomAlphaNumericString(AuthConstants.GeneratedTokenLength);
+        var token = CryptoUtils.RandomString(AuthConstants.GeneratedTokenLength);
         applyHash(HashingUtils.HashToken(token));
         await db.SaveChangesAsync(ct);
         return token;

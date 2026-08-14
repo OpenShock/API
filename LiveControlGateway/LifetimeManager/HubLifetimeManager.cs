@@ -10,6 +10,8 @@ using OpenShock.LiveControlGateway.Controllers;
 using Redis.OM.Contracts;
 using StackExchange.Redis;
 
+using OpenShock.Internal.Common.Extensions;
+
 namespace OpenShock.LiveControlGateway.LifetimeManager;
 
 /// <summary>

@@ -8,6 +8,8 @@ using OpenShock.Common.Problems;
 using OpenShock.Common.Utils;
 using OpenShock.Common.Models;
 
+using OpenShock.Internal.Common.Problems;
+
 namespace OpenShock.API.Controller.Device;
 
 public sealed partial class DeviceController

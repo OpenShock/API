@@ -5,7 +5,8 @@ using OpenShock.Common.Errors;
 using OpenShock.Common.Extensions;
 using OpenShock.Common.Models;
 using OpenShock.Common.OpenShockDb;
-using OpenShock.Common.Query;
+using OpenShock.Internal.DynamicLinq.Extensions;
+using OpenShock.Internal.DynamicLinq.Query;
 using System.ComponentModel.DataAnnotations;
 using System.Net.Mime;
 

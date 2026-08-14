@@ -37,8 +37,6 @@ builder.Services.AddKeyedSingleton("OpenShock.Gateway.Meter", new Meter("OpenSho
 
 builder.AddSwaggerExt<Program>();
 
-//services.AddHealthChecks().AddCheck<DatabaseHealthCheck>("database");
-
 builder.Services.AddHostedService<LcgKeepAlive>();
 
 builder.Services.AddSingleton<HubLifetimeManager>();

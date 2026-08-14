@@ -2,9 +2,8 @@ using System.Net;
 using Microsoft.AspNetCore.Mvc;
 using OpenShock.API.Errors;
 using OpenShock.API.Services.Turnstile;
-using OpenShock.Common.Problems;
-using OpenShock.Common.Results;
 using OpenShock.Common.Utils;
+using OpenShock.Internal.Common.Problems;
 
 namespace OpenShock.API.Controller.Account;
 
