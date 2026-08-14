@@ -28,6 +28,8 @@
     <PackageVersion Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.10" />
     <PackageVersion Include="Microsoft.EntityFrameworkCore.Tools" Version="10.0.10" />
     <PackageVersion Include="Microsoft.Extensions.Caching.Hybrid" Version="10.8.0" />
+    <!-- Transitive via Microsoft.AspNetCore.OpenApi; 2.0.0 is affected by GHSA-v5pm-xwqc-g5wc. -->
+    <PackageVersion Include="Microsoft.OpenApi" Version="2.12.0" />
     <PackageVersion Include="Microsoft.IO.RecyclableMemoryStream" Version="3.0.1" />
     <PackageVersion Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.3" />
     <PackageVersion Include="NRedisStack" Version="1.7.2" />
