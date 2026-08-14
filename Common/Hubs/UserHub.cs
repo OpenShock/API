@@ -39,7 +39,7 @@ public sealed class UserHub : Hub<IUserHub>
 
     public override async Task OnConnectedAsync()
     {
-        _tokenPermissions = _userReferenceService.AuthReference is not { IsT1: true } ? null : _userReferenceService.AuthReference.Value.AsT1.Permissions;
+        _tokenPermissions = _userReferenceService.AuthReference.TryPickT1(out ApiToken? apiToken, out _) ? apiToken.Permissions : null;
 
         await Clients.Caller.Welcome(Context.ConnectionId);
         var devicesOnline = _provider.RedisCollection<DeviceOnline>(false);
@@ -92,7 +92,16 @@ public sealed class UserHub : Hub<IUserHub>
             CustomName = customName
         }).FirstAsync();
 
-        await _controlSender.ControlByUser(shocks, sender, Clients);
+        ApiTokenControlLimits? tokenLimits = null;
+        if (_userReferenceService.AuthReference.TryPickT1(out ApiToken? apiToken, out _))
+        {
+            // A paused token may not control shockers.
+            if (apiToken.ShockerControlPaused) return;
+
+            tokenLimits = ApiTokenControlLimits.FromToken(apiToken);
+        }
+
+        await _controlSender.ControlByUser(shocks, sender, Clients, tokenLimits);
     }
 
     public async Task CaptivePortal(Guid deviceId, bool enabled)

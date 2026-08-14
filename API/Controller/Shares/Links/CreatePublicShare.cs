@@ -1,6 +1,8 @@
 ﻿using System.Net.Mime;
 using Microsoft.AspNetCore.Mvc;
 using OpenShock.API.Models.Requests;
+using OpenShock.Common.Authentication.Attributes;
+using OpenShock.Common.Errors;
 using OpenShock.Common.Models;
 using OpenShock.Common.OpenShockDb;
 
@@ -13,10 +15,17 @@ public sealed partial class ShareLinksController
     /// </summary>
     /// <response code="200">The created public share</response>
     [HttpPost(Name = "CreatePublicShare")]
+    [TokenPermission(PermissionType.Publicshares_Edit)]
     [Consumes(MediaTypeNames.Application.Json)]
     [ProducesResponseType<LegacyDataResponse<Guid>>(StatusCodes.Status200OK,  MediaTypeNames.Application.Json)]
     public async Task<IActionResult> CreatePublicShare([FromBody] PublicShareCreate body)
     {
+        // Expiry date in the past is not allowed, but null (no expiry) is allowed
+        if (body.ExpiresOn <= DateTime.UtcNow)
+        {
+            return Problem(PublicShareError.PublicShareExpiryDateInPast);
+        }
+        
         var entity = new PublicShare
         {
             Id = Guid.CreateVersion7(),

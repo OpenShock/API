@@ -11,6 +11,10 @@ using OpenShock.Common.Models;
 using OpenShock.Common.OpenShockDb;
 using OpenShock.Common.Problems;
 
+using OpenShock.Internal.Common.Constants;
+
+using OpenShock.Internal.Common.Problems;
+
 namespace OpenShock.API.Controller.Shockers;
 
 public sealed partial class ShockerController

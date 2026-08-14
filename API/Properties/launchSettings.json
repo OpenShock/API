@@ -6,6 +6,14 @@
       "environmentVariables": {
         "ASPNETCORE_ENVIRONMENT": "Development"
       }
+    },
+    "APITest": {
+      "commandName": "Project",
+      "dotnetRunMessages": true,
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Development",
+        "OPENSHOCK_DISABLE_RATE_LIMITING": "1"
+      }
     }
   }
 }

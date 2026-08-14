@@ -9,3 +9,5 @@ Dev/postgres
 
 # Claude Code
 .claude/
+
+TestResults/

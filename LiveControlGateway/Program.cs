@@ -9,6 +9,7 @@ using OpenShock.Common.Services.Ota;
 using OpenShock.LiveControlGateway;
 using OpenShock.LiveControlGateway.LifetimeManager;
 using OpenShock.LiveControlGateway.Options;
+using OpenShock.LiveControlGateway.PubSub;
 
 var builder = OpenShockApplication.CreateDefaultBuilder<Program>(args);
 
@@ -36,14 +37,15 @@ builder.Services.AddKeyedSingleton("OpenShock.Gateway.Meter", new Meter("OpenSho
 
 builder.AddOpenApiExt<Program>();
 
-//services.AddHealthChecks().AddCheck<DatabaseHealthCheck>("database");
-
 builder.Services.AddHostedService<LcgKeepAlive>();
 
 builder.Services.AddSingleton<HubLifetimeManager>();
+builder.Services.AddSingleton<ApiTokenUpdateSubscriber>();
 
 var app = builder.Build();
 
-await app.UseCommonOpenShockMiddleware();
+await app.UseCommonOpenShockMiddleware(lcgOptions.PublicPath);
+
+await app.WaitForOpenShockSchemaReady(databaseOptions);
 
 await app.RunAsync();

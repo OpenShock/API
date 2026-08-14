@@ -1,11 +1,7 @@
 ﻿using OpenShock.Common.Models;
+using OpenShock.Common.OpenShockDb;
 
 namespace OpenShock.API.Models.Response;
-
-public sealed class ShockerLogsResponse
-{
-    public required ICollection<LogEntryWithHub> Logs { get; init; }
-}
 
 public sealed class LogEntryWithHub
 {

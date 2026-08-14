@@ -8,23 +8,16 @@
     <!-- Expose API internals to IntegrationTest project -->
     <InternalsVisibleTo Include="$(AssemblyName).Tests.Integration" />
   </ItemGroup>
-  
+
   <!-- NuGet packages -->
   <ItemGroup>
     <PackageReference Include="AspNet.Security.OAuth.Discord" />
-    <PackageReference Include="Fluid.Core" />
-    <PackageReference Include="MailKit" />
     <PackageReference Include="Microsoft.AspNetCore.Authentication.Google" />
     <PackageReference Include="Microsoft.AspNetCore.Authentication.Twitter" />
   </ItemGroup>
 
   <!-- Files to copy -->
   <ItemGroup>
-    <!-- Copy all Liquid templates (recursively) to build and publish outputs -->
-    <None Update="SmtpTemplates\**\*.liquid">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
-
     <!-- Dev cert included on publish -->
     <None Include="devcert.pfx" CopyToPublishDirectory="Always" />
   </ItemGroup>
@@ -32,7 +25,7 @@
   <!-- Git stuff -->
   <Target Name="SetHash" AfterTargets="InitializeSourceControlInformation">
     <ItemGroup>
-      <AssemblyAttribute Include="OpenShock.Common.Utils.GitHashAttribute">
+      <AssemblyAttribute Include="OpenShock.Internal.Common.Utils.GitHashAttribute">
         <_Parameter1>$(SourceRevisionId)</_Parameter1>
       </AssemblyAttribute>
     </ItemGroup>

@@ -1,0 +1,27 @@
+using System.Net;
+using Microsoft.AspNetCore.Mvc;
+using OpenShock.API.Errors;
+using OpenShock.API.Services.Turnstile;
+using OpenShock.Common.Utils;
+using OpenShock.Internal.Common.Problems;
+
+namespace OpenShock.API.Controller.Account;
+
+public sealed partial class AccountController
+{
+    /// <summary>
+    /// Verifies a Cloudflare Turnstile response token for the current request.
+    /// Returns <c>null</c> when verification succeeds, otherwise the <see cref="IActionResult"/> to return to the caller.
+    /// </summary>
+    private async Task<IActionResult?> VerifyTurnstileAsync(ICloudflareTurnstileService turnstileService, string turnstileResponse, CancellationToken cancellationToken)
+    {
+        var turnStile = await turnstileService.VerifyUserResponseTokenAsync(turnstileResponse, HttpContext.GetRemoteIP(), cancellationToken);
+        if (turnStile.IsT0) return null;
+
+        var cfErrors = turnStile.AsT1.Value;
+        if (cfErrors.All(err => err.IsClientError()))
+            return Problem(TurnstileError.InvalidTurnstile);
+
+        return Problem(new OpenShockProblem("InternalServerError", "Internal Server Error", HttpStatusCode.InternalServerError));
+    }
+}

@@ -7,6 +7,7 @@ using OpenShock.API.OAuth;
 using OpenShock.API.Services.OAuthConnection;
 using OpenShock.Common.Errors;
 using OpenShock.Common.Extensions;
+using OpenShock.Common.Options;
 using System.Security.Claims;
 
 namespace OpenShock.API.Controller.OAuth;
@@ -23,6 +24,7 @@ public sealed partial class OAuthController
     /// <param name="provider">Provider key (e.g. <c>discord</c>).</param>
     /// <param name="body">Request body containing optional <c>Email</c> and <c>Username</c> overrides.</param>
     /// <param name="connectionService"></param>
+    /// <param name="accountOptions"></param>
     /// <param name="cancellationToken"></param>
     [EnableRateLimiting("auth")]
     [HttpPost("{provider}/signup-finalize")]
@@ -30,8 +32,12 @@ public sealed partial class OAuthController
         [FromRoute] string provider,
         [FromBody] OAuthFinalizeRequest body,
         [FromServices] IOAuthConnectionService connectionService,
+        [FromServices] AccountOptions accountOptions,
         CancellationToken cancellationToken)
     {
+        if (!accountOptions.RegistrationEnabled)
+            return Problem(SignupError.RegistrationDisabled);
+
         // If domain is not supported for cookies, cancel the flow
         var domain = GetCurrentCookieDomain();
         if (string.IsNullOrEmpty(domain))

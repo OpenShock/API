@@ -19,6 +19,10 @@ using OpenShock.Common.Extensions;
 using SemVersion = OpenShock.Common.Models.SemVersion;
 using Timer = System.Timers.Timer;
 
+using OpenShock.Internal.Common.Problems;
+
+using OpenShock.Internal.Common.Errors;
+
 namespace OpenShock.LiveControlGateway.Controllers;
 
 /// <summary>
@@ -204,10 +208,15 @@ public abstract class HubControllerBase<TIn, TOut> : FlatbuffersWebsocketBaseCon
 
     private static DateTimeOffset? GetBootedAtFromUptimeMs(ulong uptimeMs)
     {
-        var uptime = TimeSpan.FromMilliseconds(uptimeMs);
-        if (uptime > HardLimits.FirmwareMaxUptime) return null; // Yeah, ok bro.
+        const ulong hundredYears = 100UL * 365UL * 24UL * 60UL * 60UL * 1000UL;
+        if (uptimeMs > hundredYears) return null; // Sure, dude...
+        
+        var uptimeMsFp = (double)uptimeMs;
+        
+        var maxUptimeMs = ApiHardLimits.FirmwareMaxUptime.TotalMilliseconds;
+        if (uptimeMsFp > maxUptimeMs) return null; // Yeah, ok bro.
 
-        return DateTimeOffset.UtcNow.Subtract(uptime);
+        return DateTimeOffset.UtcNow.Subtract(TimeSpan.FromMilliseconds(uptimeMsFp));
     }
     
     /// <summary>
@@ -230,7 +239,7 @@ public abstract class HubControllerBase<TIn, TOut> : FlatbuffersWebsocketBaseCon
         await HubLifetime.Online(CurrentHubId, new SelfOnlineData()
         {
             Owner = CurrentHubOwnerId,
-            Gateway = _options.Fqdn,
+            Gateway = _options.GetPublicNodeId(),
             FirmwareVersion = _firmwareVersion!,
             ConnectedAt = _connected,
             UserAgent = _userAgent,

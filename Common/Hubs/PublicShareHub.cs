@@ -9,6 +9,8 @@ using OpenShock.Common.Services;
 using OpenShock.Common.Services.Session;
 using OpenShock.Common.Utils;
 
+using OpenShock.Internal.Common.Constants;
+
 namespace OpenShock.Common.Hubs;
 
 public sealed class PublicShareHub : Hub<IPublicShareHub>
@@ -53,8 +55,8 @@ public sealed class PublicShareHub : Hub<IPublicShareHub>
                 return;
             }
         }
-        
-        _tokenPermissions = _userReferenceService.AuthReference is not { IsT1: true } ? null : _userReferenceService.AuthReference.Value.AsT1.Permissions;
+
+        _tokenPermissions = _userReferenceService.AuthReference.TryPickT1(out ApiToken? apiToken, out _) ? apiToken.Permissions : null;
 
         var exists = await _db.PublicShares.AnyAsync(x => x.Id == id && (x.ExpiresAt == null || x.ExpiresAt > DateTime.UtcNow));
         if (!exists)

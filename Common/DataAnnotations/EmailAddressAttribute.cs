@@ -2,6 +2,8 @@
 using System.Net.Mail;
 using OpenShock.Common.Constants;
 
+using OpenShock.Internal.Common.Constants;
+
 namespace OpenShock.Common.DataAnnotations;
 
 /// <summary>

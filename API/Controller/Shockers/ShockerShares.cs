@@ -12,6 +12,8 @@ using OpenShock.Common.Authentication.Attributes;
 using OpenShock.Common.Errors;
 using OpenShock.Common.Problems;
 
+using OpenShock.Internal.Common.Problems;
+
 namespace OpenShock.API.Controller.Shockers;
 
 public sealed partial class ShockerController

@@ -1,4 +1,5 @@
 ﻿using System.Net;
+using System.Net.Http.Json;
 using System.Text;
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
@@ -17,16 +18,16 @@ public class AccountTests
     {
         using var client = WebApplicationFactory.CreateClient();
 
-        var requestBody = JsonSerializer.Serialize(new
+        var requestBody = new
         {
             username = "Bob",
             password = "SecurePassword123#",
             email = "bob@example.com",
             turnstileresponse = "valid-token"
-        });
+        };
 
 
-        var response = await client.PostAsync("/2/account/signup", new StringContent(requestBody, Encoding.UTF8, "application/json"));
+        var response = await client.PostAsJsonAsync("/2/account/signup", requestBody);
 
         await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.OK);
 
@@ -43,9 +44,9 @@ public class AccountTests
     {
         using var client = WebApplicationFactory.CreateClient();
         
-        var requestBody = JsonSerializer.Serialize(new { username = "Bob" });
+        var requestBody = new { username = "Bob" };
         
-        var response = await client.PostAsync("/1/account/username/check", new StringContent(requestBody, Encoding.UTF8, "application/json"));
+        var response = await client.PostAsJsonAsync("/1/account/username/check", requestBody);
         
         await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.OK);
 
