@@ -11,11 +11,12 @@ using Microsoft.Extensions.DependencyInjection.Extensions;
 using OpenShock.Common.Authentication;
 using OpenShock.Common.Authentication.AuthenticationHandlers;
 using OpenShock.Common.Authentication.Services;
-using OpenShock.Internal.Common.ExceptionHandling;
+using OpenShock.Common.HealthChecks;
 using OpenShock.Common.JsonSerialization;
 using OpenShock.Common.OpenShockDb;
 using OpenShock.Common.Options;
 using OpenShock.Common.Problems;
+using OpenShock.Common.Services.Audit;
 using OpenShock.Common.Services.BatchUpdate;
 using OpenShock.Common.Services.Configuration;
 using OpenShock.Common.Services.RedisPubSub;
@@ -28,12 +29,26 @@ using StackExchange.Redis;
 using System.Threading.RateLimiting;
 using OpenShock.Common.Extensions;
 using OpenShock.Common.Utils;
+using OpenShock.Internal.Common.ExceptionHandling;
 using JsonOptions = OpenShock.Common.JsonSerialization.JsonOptions;
 
 namespace OpenShock.Common;
 
 public static class OpenShockServiceHelper
 {
+    /// <summary>
+    /// Cap on a single dependency probe. Generous enough not to trip on a slow-but-alive dependency,
+    /// short enough that the LCG's 15s keep alive tick is never blocked by a hung one.
+    /// </summary>
+    private static readonly TimeSpan HealthCheckTimeout = TimeSpan.FromSeconds(5);
+
+    /// <summary>
+    /// How long a health report is served before the dependencies are probed again. Matched to the LCG's
+    /// keep alive interval, so the gateway still gets a fresh answer on every tick while the far more
+    /// frequent container/load balancer probes in between ride along on that same result.
+    /// </summary>
+    private static readonly TimeSpan HealthCheckCacheTtl = TimeSpan.FromSeconds(15);
+
     public static IServiceCollection AddOpenShockMemDB(this IServiceCollection services, ConfigurationOptions options)
     {
         // <---- Redis ---->
@@ -41,6 +56,15 @@ public static class OpenShockServiceHelper
         services.AddSingleton<IRedisConnectionProvider, RedisConnectionProvider>(serviceProvider =>
             new RedisConnectionProvider(serviceProvider.GetRequiredService<IConnectionMultiplexer>()));
         services.AddSingleton<IRedisPubService, RedisPubService>();
+
+        // Readiness for the store we just registered. IsConnected alone flips late while the
+        // multiplexer reconnects, so the check round-trips a PING against the live connection.
+        services.AddHealthChecks()
+            .AddRedis(
+                sp => sp.GetRequiredService<IConnectionMultiplexer>(),
+                name: HealthCheckNames.Redis,
+                tags: [HealthCheckTags.Ready],
+                timeout: HealthCheckTimeout);
 
         return services;
     }
@@ -59,6 +83,15 @@ public static class OpenShockServiceHelper
                 builder.EnableDetailedErrors();
             }
         });
+
+        // Readiness for the database we just registered. Deliberately its own connection rather than
+        // the pooled EF context: this must answer "is Postgres up", not "is EF's pool warm".
+        services.AddHealthChecks()
+            .AddNpgSql(
+                options.Conn,
+                name: HealthCheckNames.Database,
+                tags: [HealthCheckTags.Ready],
+                timeout: HealthCheckTimeout);
 
         return services;
     }
@@ -103,6 +136,8 @@ public static class OpenShockServiceHelper
         // OpenShockExceptionHandler (OpenShock.Internal.AspNet) takes JsonSerializerOptions via ctor injection.
         services.AddSingleton(JsonOptions.Default);
         services.AddExceptionHandler<OpenShockExceptionHandler>();
+
+        services.AddCachedHealthChecks(HealthCheckCacheTtl);
 
         services.AddHybridCache(options =>
         {
@@ -201,6 +236,7 @@ public static class OpenShockServiceHelper
 
         services.AddScoped<IConfigurationService, ConfigurationService>();
         services.AddScoped<ISessionService, SessionService>();
+        services.AddScoped<IAuditService, AuditService>();
         services.AddHttpClient<IWebhookService, WebhookService>(client =>
         {
             client.Timeout = TimeSpan.FromSeconds(30);

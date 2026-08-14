@@ -48,9 +48,9 @@ public sealed partial class DeviceController
 
         return Ok(new LcgNodeResponseV2
         {
-            Host = closestNode.Fqdn,
-            Port = 443,
-            Path = path,
+            Host = closestNode.Host,
+            Port = closestNode.Port,
+            Path = closestNode.PathPrefix + path,
             Country = closestNode.Country
         });
     }

@@ -6,6 +6,7 @@ using OpenShock.API.Models.Requests;
 using OpenShock.API.Models.Response;
 using OpenShock.API.Services.DeviceUpdate;
 using OpenShock.API.Utils;
+using OpenShock.Common.Authentication.Attributes;
 using OpenShock.Common.Errors;
 using OpenShock.Common.Extensions;
 using OpenShock.Common.Models;
@@ -60,6 +61,7 @@ file static class QueryHelper
 public sealed partial class UserSharesController
 {
     [HttpGet("invites/outgoing")]
+    [TokenPermission(PermissionType.Usershares_Edit)]
     [MapToApiVersion("2")]
     public IAsyncEnumerable<ShareInviteBaseDetails> GetOutgoingInvitesList()
     {
@@ -70,6 +72,7 @@ public sealed partial class UserSharesController
     }
     
     [HttpGet("invites/incoming")]
+    [TokenPermission(PermissionType.Usershares_Edit)]
     [MapToApiVersion("2")]
     public IAsyncEnumerable<ShareInviteBaseDetails> GetIncomingInvitesList()
     {
@@ -82,6 +85,7 @@ public sealed partial class UserSharesController
     [HttpDelete("invites/outgoing/{inviteId}")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status404NotFound, MediaTypeNames.Application.ProblemJson)] // ShareRequestNotFound
+    [TokenPermission(PermissionType.Usershares_Edit)]
     [MapToApiVersion("2")]
     public async Task<IActionResult> DeleteOutgoingInvite([FromRoute] Guid inviteId)
     {
@@ -96,6 +100,7 @@ public sealed partial class UserSharesController
     [HttpDelete("invites/incoming/{inviteId}")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status404NotFound, MediaTypeNames.Application.ProblemJson)] // ShareRequestNotFound
+    [TokenPermission(PermissionType.Usershares_Edit)]
     [MapToApiVersion("2")]
     public async Task<IActionResult> DenyIncomingInvite([FromRoute] Guid inviteId)
     {
@@ -116,6 +121,7 @@ public sealed partial class UserSharesController
     [HttpPost("invites/incoming/{inviteId}")]
     [ProducesResponseType<V2UserSharesListItem>(StatusCodes.Status200OK)]
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status404NotFound, MediaTypeNames.Application.ProblemJson)] // ShareRequestNotFound
+    [TokenPermission(PermissionType.Usershares_Edit)]
     [MapToApiVersion("2")]
     public async Task<IActionResult> RedeemInvite([FromRoute] Guid inviteId, [FromServices] IDeviceUpdateService deviceUpdateService)
     {

@@ -40,7 +40,7 @@ public sealed partial class AuthenticatedAccountController
             return Problem(AccountError.PasswordChangeInvalidPassword);
         }
 
-        var result = await _accountService.CreateEmailChangeFlowAsync(CurrentUser.Id, body.Email);
+        var result = await _accountService.CreateEmailChangeFlowAsync(CurrentUser.Id, body.Email, actorId: CurrentUser.Id);
 
         return result.Match<IActionResult>(
             success => Ok(),

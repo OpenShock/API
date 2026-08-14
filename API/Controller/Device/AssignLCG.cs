@@ -36,7 +36,7 @@ public sealed partial class DeviceController
 
         return LegacyDataOk(new LcgNodeResponse
         {
-            Fqdn = closestNode.Fqdn,
+            Fqdn = closestNode.Host,
             Country = closestNode.Country
         });
         }

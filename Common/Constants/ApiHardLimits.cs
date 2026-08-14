@@ -19,9 +19,13 @@ public static class ApiHardLimits
 
     public const int PasswordHashMaxLength = 100;
 
+    public const int EmailOutboxLastErrorMaxLength = 1024;
+    public const int EmailOutboxCoalesceKeyMaxLength = 128;
+
     public const int UserEmailChangeSecretMaxLength = 128;
     public const int UserActivationRequestSecretMaxLength = 128;
     public const int PasswordResetSecretMaxLength = 100;
+    public const int AuditReasonMaxLength = 512;
 
     public const int MaxTurnstileResponseTokenLength = 2048; // https://developers.cloudflare.com/turnstile/get-started/server-side-validation/
 

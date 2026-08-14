@@ -4,7 +4,6 @@ using OpenShock.API.Options.OAuth;
 using OpenShock.API.Realtime;
 using OpenShock.API.Services.Account;
 using OpenShock.API.Services.DeviceUpdate;
-using OpenShock.API.Services.Email;
 using OpenShock.API.Services.LCGNodeProvisioner;
 using OpenShock.API.Services.OAuthConnection;
 using OpenShock.API.Services.Token;
@@ -27,6 +26,9 @@ var databaseOptions = builder.RegisterDatabaseOptions();
 builder.RegisterMetricsOptions();
 builder.RegisterFrontendOptions();
 builder.RegisterAccountOptions();
+// The API never sends mail, but it must know whether anything ever will: with mail disabled there is
+// no activation link, so accounts are activated on creation instead of waiting for one.
+builder.RegisterMailOptions();
 
 builder.Services
     .AddOpenShockMemDB(redisOptions)
@@ -109,15 +111,16 @@ builder.Services.AddScoped<ILCGNodeProvisioner, LCGNodeProvisioner>();
 builder.AddSwaggerExt<Program>();
 
 builder.AddCloudflareTurnstileService();
-await builder.AddEmailService();
-
-//services.AddHealthChecks().AddCheck<DatabaseHealthCheck>("database");
 
 builder.Services.AddHostedService<RedisSubscriberService>();
 
 var app = builder.Build();
 
-await app.UseCommonOpenShockMiddleware();
+// Optional path prefix the API is served under (e.g. "/api" when reverse-proxied on a
+// shared host). Empty by default -> served at root, unchanged behavior.
+var apiPathBase = builder.Configuration.GetValue<string>("OpenShock:Api:PathBase");
+
+await app.UseCommonOpenShockMiddleware(apiPathBase);
 
 if (!databaseOptions.SkipMigration)
 {

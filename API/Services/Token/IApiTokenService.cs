@@ -53,7 +53,8 @@ public interface IApiTokenService
     Task<bool?> SetTokenPaused(Guid tokenId, bool paused, Guid? ownerId = null);
 
     /// <summary>
-    /// Delete a token by id (optionally restricted to an owner). Returns <c>false</c> if no token was deleted.
+    /// Delete a token by id (optionally restricted to an owner) and write the deletion audit log entry.
+    /// Returns <c>false</c> if no token was deleted.
     /// </summary>
-    Task<bool> DeleteToken(Guid tokenId, Guid? ownerId = null, CancellationToken cancellationToken = default);
+    Task<bool> DeleteToken(Guid tokenId, Guid? actorId, Guid? ownerId = null, string? reason = null, CancellationToken cancellationToken = default);
 }

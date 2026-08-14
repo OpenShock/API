@@ -1,17 +1,33 @@
 # OpenShock API
 
-[![Coverage](https://openshock.github.io/API/coverage/badge_linecoverage.svg)](https://openshock.github.io/API/coverage/)
+[![Documentation](https://img.shields.io/badge/docs-mkdocs-blue.svg)](https://openshock.org)
+[![GitHub license](https://img.shields.io/github/license/openshock/frontend.svg)](https://raw.githubusercontent.com/openshock/frontend/master/LICENSE)
+[![GitHub Sponsors](https://img.shields.io/badge/GitHub-Sponsors-ff69b4)](https://github.com/sponsors/openshock)
+[![Discord](https://img.shields.io/discord/1078124408775901204)](https://discord.gg/openshock)
 
-OpenShock backend
+<table>
+  <tr>
+    <td>master</td>
+    <td><a href="https://github.com/OpenShock/API/actions/workflows/ci-build.yml"><img src="https://github.com/OpenShock/API/actions/workflows/ci-build.yml/badge.svg?branch=master" alt="Build Status" /></a></td>
+    <td><a href="https://github.com/OpenShock/API/actions/workflows/codeql.yml"><img src="https://github.com/OpenShock/API/actions/workflows/codeql.yml/badge.svg?branch=master" alt="CodeQL Status" /></a></td>
+  </tr>
+  <tr>
+    <td>develop</td>
+    <td><a href="https://github.com/OpenShock/API/actions/workflows/ci-build.yml"><img src="https://github.com/OpenShock/API/actions/workflows/ci-build.yml/badge.svg?branch=develop" alt="Build Status" /></a></td>
+    <td><a href="https://github.com/OpenShock/API/actions/workflows/codeql.yml"><img src="https://github.com/OpenShock/API/actions/workflows/codeql.yml/badge.svg?branch=develop" alt="CodeQL Status" /></a></td>
+  </tr>
+</table>
 
-### API Documentation 
+### API Documentation
+
 You can access our Open API Doc here:
 
 https://api.openshock.app/scalar/viewer
 
 # Configuration
 
-The API can be configured using the following environment variables:
+The API can be configured using the following environment variables.
+These variables should be available to all containers in the stack.
 Preferred way is a .env file.
 
 | Variable                                  | Required | Default value | Allowed / Example value                                                                                  |
@@ -27,19 +43,19 @@ Preferred way is a .env file.
 | `OPENSHOCK__MAIL__SENDER__EMAIL`          | x        |               | `system@my-openshock-instance.net`                                                                       |
 | `OPENSHOCK__MAIL__SENDER__NAME`           | x        |               | `MyOpenShockInstance System`                                                                             |
 | `OPENSHOCK__MAIL__TYPE`                   | x        |               | `MAILJET`, `SMTP`                                                                                        |
-| `OPENSHOCK__TURNSTILE__ENABLE`            | x        |               | `true`, `false`                                                                                          |
-| `OPENSHOCK__LCG__FQDN`                    | x        |               | `de1-gateway.my-openshock-instance.net` `de1-gateway.shocklink.net`                                      |
-| `OPENSHOCK__LCG__COUNTRYCODE`             | x        |               | `DE` or `XX` as a placeholder / unknown                                                                  |
+| `OPENSHOCK__TURNSTILE__ENABLE`            | x        |               | `true`, `false`                                                                                          | |
 
-Refer to the [Npgsql Connection String](https://www.npgsql.org/doc/connection-string-parameters.html) documentation page for details about `OPENSHOCK__DB_CONN`.
-Refer to [StackExchange.Redis Configuration](https://stackexchange.github.io/StackExchange.Redis/Configuration.html) documentation page for details about `OPENSHOCK__REDIS__CONN`.
+Refer to the [Npgsql Connection String](https://www.npgsql.org/doc/connection-string-parameters.html) documentation page
+for details about `OPENSHOCK__DB_CONN`.
+Refer to [StackExchange.Redis Configuration](https://stackexchange.github.io/StackExchange.Redis/Configuration.html)
+documentation page for details about `OPENSHOCK__REDIS__CONN`.
 
 ## Turnstile
 
 When Turnstile enable is set to `true`, the following environment variable is required:
 
 | Variable                          | Required | Default value | Allowed / Example value |
-| --------------------------------- | -------- | ------------- | ----------------------- |
+|-----------------------------------|----------|---------------|-------------------------|
 | `OPENSHOCK__TURNSTILE__SITEKEY`   | x        |               |                         |
 | `OPENSHOCK__TURNSTILE__SECRETKEY` | x        |               |                         |
 
@@ -49,18 +65,17 @@ When Turnstile enable is set to `true`, the following environment variable is re
 
 You need these environment variables to use [Mailjet](https://www.mailjet.com/):
 
-| Variable                                            | Required | Default value | Allowed / Example value |
-| --------------------------------------------------- | -------- | ------------- | ----------------------- |
-| `OPENSHOCK__MAIL__MAILJET__KEY`                     | x        |               |                         |
-| `OPENSHOCK__MAIL__MAILJET__SECRET`                  | x        |               |                         |
-| `OPENSHOCK__MAIL__MAILJET__TEMPLATE__PASSWORDRESET` | x        |               |                         |
+| Variable                           | Required | Default value | Allowed / Example value |
+|------------------------------------|----------|---------------|-------------------------|
+| `OPENSHOCK__MAIL__MAILJET__KEY`    | x        |               |                         |
+| `OPENSHOCK__MAIL__MAILJET__SECRET` | x        |               |                         |
 
 ### SMTP
 
 You need these environment variables to use SMTP:
 
 | Variable                                   | Required | Default value | Allowed / Example value            |
-| ------------------------------------------ | -------- | ------------- | ---------------------------------- |
+|--------------------------------------------|----------|---------------|------------------------------------|
 | `OPENSHOCK__MAIL__SMTP__HOST`              | x        |               | `mail.my-openshock-instance.net`   |
 | `OPENSHOCK__MAIL__SMTP__PORT`              |          | `587`         | `587`                              |
 | `OPENSHOCK__MAIL__SMTP__USERNAME`          | x        |               | `system@my-openshock-instance.net` |
@@ -68,25 +83,37 @@ You need these environment variables to use SMTP:
 | `OPENSHOCK__MAIL__SMTP__ENABLESSL`         |          | `true`        | `true` or `false`                  |
 | `OPENSHOCK__MAIL__SMTP__VERIFYCERTIFICATE` |          | `true`        | `true` or `false`                  |
 
+## (Live Control) Gateway
+These are the environment variables for the live control gateway.
+They are only required on the gateway container and are configuration local to the gateway.
+
+| Variable                      | Required | Default value | Allowed / Example value                                             |
+|-------------------------------|----------|---------------|---------------------------------------------------------------------|
+| `OPENSHOCK__LCG__FQDN`        | x        |               | `de1-gateway.my-openshock-instance.net` `de1-gateway.shocklink.net` |
+| `OPENSHOCK__LCG__COUNTRYCODE` | x        |               | `DE` or `XX` as a placeholder / unknown                             |
+
+
 # Deployment / Self Hosting
 
 The OpenShock stack consists of the following components:
 
 - Postgres as database
-- Redis-Stack (with keyspace events KEA)
-- The API (container, API)
+- Redis-Stack (with keyspace events KEA) (preferably [DragonflyDB](https://github.com/dragonflydb/dragonfly))
+- One or multiple APIs (container, API)
 - One or multiple gateways (container, LCG)
 - One or multiple cron daemons (container, CRON)
-- [The WebUI](https://github.com/OpenShock/WebUI)
+- [Frontend](https://github.com/OpenShock/Frontend) - stateless, can run on edge
 
 ## Requirements
 
 OpenShock instance needs to be under the same domain name to work correctly. This is due to cookie limitations in
 browsers.
-E.g.
-Fontend: https://openshock.app
-API: https://api.openshock.app
-LCG: https://de1-gateway.openshock.app
+
+Frontend: `https://openshock.app`
+API: `https://api.openshock.app`
+LCG: `https://de1-gateway.openshock.app`
+
+In this case your cookie domain would be `openshock.app`, even if the frontend would be hosted under e.g. `https://frontend.openshock.app`
 
 ## Using Docker (provided docker-compose.yml)
 
