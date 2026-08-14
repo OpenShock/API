@@ -1,19 +1,20 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using OpenShock.Common.Constants;
 using OpenShock.Common.Models;
+using OpenShock.Common.OpenShockDb;
 using OpenShock.Common.Options;
-using OpenShock.Common.Problems;
 using OpenShock.Common.Services.Geo;
 using OpenShock.Common.Services.Session;
 using OpenShock.Common.Utils;
 
+using OpenShock.Internal.Common.Problems;
+
 namespace OpenShock.Common;
 
-public class OpenShockControllerBase : ControllerBase
+// Inherits Problem(OpenShockProblem) from OpenShock.Internal.Common.OpenShockControllerBase;
+// the members below are OpenShock-API-specific and stay local.
+public class OpenShockControllerBase : OpenShock.Internal.Common.OpenShockControllerBase
 {
-    [NonAction]
-    protected ObjectResult Problem(OpenShockProblem problem) => problem.ToObjectResult(HttpContext);
-    
     [NonAction]
     protected OkObjectResult LegacyDataOk<T>(T data, string message = "")
     {
@@ -46,10 +47,12 @@ public class OpenShockControllerBase : ControllerBase
         var enrichmentService = HttpContext.RequestServices.GetRequiredService<IIpEnrichmentService>();
 
         var remoteIp = HttpContext.GetRemoteIP();
+        var userAgent = HttpContext.GetUserAgent();
         var enrichment = enrichmentService.Enrich(remoteIp);
 
-        var session = await sessionService.CreateSessionAsync(accountId, HttpContext.GetUserAgent(), remoteIp.ToString(), enrichment);
-        
+        var session = await sessionService.CreateSessionAsync(accountId, userAgent, remoteIp.ToString(), actorId: accountId, enrichment: enrichment);
+
+
         HttpContext.Response.Cookies.Append(AuthConstants.UserSessionCookieName, session.Token, new CookieOptions
         {
             Expires = DateTimeOffset.UtcNow.Add(Duration.LoginSessionLifetime),

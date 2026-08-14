@@ -1,11 +1,16 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using OpenShock.Common.Constants;
+using OpenShock.Common.Models;
+using OpenShock.Common.OpenShockDb;
 using OpenShock.Common.Redis;
+using OpenShock.Common.Services.Audit;
 using OpenShock.Common.Services.Geo;
 using OpenShock.Common.Utils;
 using Redis.OM;
 using Redis.OM.Contracts;
 using Redis.OM.Searching;
+
+using OpenShock.Internal.Common.Utils;
 
 namespace OpenShock.Common.Services.Session;
 
@@ -15,20 +20,23 @@ namespace OpenShock.Common.Services.Session;
 public sealed class SessionService : ISessionService
 {
     private readonly IRedisCollection<LoginSession> _loginSessions;
+    private readonly IAuditService _auditService;
 
     /// <summary>
     /// DI constructor
     /// </summary>
     /// <param name="redisConnectionProvider"></param>
-    public SessionService(IRedisConnectionProvider redisConnectionProvider)
+    /// <param name="auditService"></param>
+    public SessionService(IRedisConnectionProvider redisConnectionProvider, IAuditService auditService)
     {
         _loginSessions = redisConnectionProvider.RedisCollection<LoginSession>(false);
+        _auditService = auditService;
     }
 
-    public async Task<CreateSessionResult> CreateSessionAsync(Guid userId, string userAgent, string ipAddress, IpEnrichmentData? enrichment = null)
+    public async Task<CreateSessionResult> CreateSessionAsync(Guid userId, string userAgent, string ipAddress, Guid? actorId, IpEnrichmentData? enrichment = null)
     {
         Guid id = Guid.CreateVersion7();
-        string token = CryptoUtils.RandomAlphaNumericString(AuthConstants.GeneratedTokenLength);
+        string token = CryptoUtils.RandomString(AuthConstants.GeneratedTokenLength);
 
         await _loginSessions.InsertAsync(new LoginSession
         {
@@ -44,6 +52,13 @@ public sealed class SessionService : ISessionService
             CountryCode = enrichment?.CountryCode,
             City = enrichment?.City,
         }, Duration.LoginSessionLifetime);
+
+        await _auditService.LogAsync(
+            userId,
+            action: AuditAction.Login,
+            actorId: actorId ?? userId,
+            metadata: new LoginMetadata(id)
+        );
 
         return new CreateSessionResult(id, token);
     }
@@ -109,6 +124,20 @@ public sealed class SessionService : ISessionService
 
     public async Task DeleteSessionAsync(LoginSession loginSession)
     {
+        await _loginSessions.DeleteAsync(loginSession);
+    }
+
+    public async Task LogoutSessionAsync(LoginSession loginSession)
+    {
+        // Record the logout before destroying the session. The session delete is idempotent, so if
+        // this throws the caller can safely retry; deleting first would leave the session gone while
+        // the caller sees a failure and no audit trail.
+        await _auditService.LogAsync(
+            loginSession.UserId,
+            action: AuditAction.Logout,
+            actorId: loginSession.UserId
+        );
+
         await _loginSessions.DeleteAsync(loginSession);
     }
 }

@@ -1,6 +1,8 @@
 ﻿using OpenShock.Common.Utils;
 using StackExchange.Redis;
 
+using OpenShock.Internal.Common.Utils;
+
 namespace OpenShock.Common.Redis;
 
 public static class QueueHelper

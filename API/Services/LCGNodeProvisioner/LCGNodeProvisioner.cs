@@ -1,10 +1,12 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using OpenShock.Common.Constants;
-using OpenShock.Common.Geo;
+using OpenShock.Internal.Common.Geo;
 using OpenShock.Common.Redis;
 using Redis.OM;
 using Redis.OM.Contracts;
 using Redis.OM.Searching;
+
+using OpenShock.Internal.Common.Constants;
 
 namespace OpenShock.API.Services.LCGNodeProvisioner;
 

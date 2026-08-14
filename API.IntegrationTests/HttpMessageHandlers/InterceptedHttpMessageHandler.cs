@@ -32,6 +32,15 @@ sealed class InterceptedHttpMessageHandler : DelegatingHandler
                 Action = "invalidaction",
                 Cdata = ""
             },
+            "expired-token" => new CloudflareTurnstileVerifyResponseDto
+            {
+                Success = false,
+                ErrorCodes = ["timeout-or-duplicate"],
+                ChallengeTs = DateTime.UtcNow,
+                Hostname = "expiredhost",
+                Action = "expiredaction",
+                Cdata = ""
+            },
             _ => new CloudflareTurnstileVerifyResponseDto
             {
                 Success = false,

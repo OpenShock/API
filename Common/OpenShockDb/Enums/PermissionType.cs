@@ -19,5 +19,11 @@ public enum PermissionType
 
     [PgName("devices.edit")] Devices_Edit = 3,
 
-    [PgName("devices.auth")] Devices_Auth = 4
+    [PgName("devices.auth")] Devices_Auth = 4,
+        
+    [PgName("usershares.edit")] Usershares_Edit = 5,
+    
+    [PgName("usershares.pause")] Usershares_Pause = 6,
+    [PgName("publicshares.pause")] Publicshares_Pause = 7,
+    [PgName("publicshares.edit")] Publicshares_Edit = 8,
 }

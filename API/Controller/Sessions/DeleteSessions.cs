@@ -5,6 +5,8 @@ using OpenShock.Common.Extensions;
 using OpenShock.Common.OpenShockDb;
 using OpenShock.Common.Problems;
 
+using OpenShock.Internal.Common.Problems;
+
 namespace OpenShock.API.Controller.Sessions;
 
 public sealed partial class SessionsController
