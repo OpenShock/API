@@ -55,7 +55,9 @@ public abstract class FlatbuffersWebsocketBaseController<TIn, TOut> : WebsocketB
             await FlatbufferWebSocketUtils.ReceiveFullMessageAsyncNonAlloc(WebSocket!,
                 _incomingSerializer, cancellationToken);
 
-        switch (message)
+        // Switch on the underlying value: matching a union directly against the type parameter
+        // TIn is ambiguous (union instance vs. underlying value) and rejected by the compiler.
+        switch (message.Value)
         {
             case DeserializeFailed:
                 await ForceClose(WebSocketCloseStatus.InvalidPayloadData, "Invalid flatbuffers message");
