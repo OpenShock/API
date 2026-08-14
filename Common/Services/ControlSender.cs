@@ -13,6 +13,10 @@ using OpenShock.Common.Redis.PubSub;
 using OpenShock.Common.Services.RedisPubSub;
 using OpenShock.Common.Utils;
 
+using OpenShock.Internal.Common.Constants;
+
+using OpenShock.Internal.Common.Extensions;
+
 namespace OpenShock.Common.Services;
 
 public sealed class ControlSender : IControlSender
@@ -26,7 +30,7 @@ public sealed class ControlSender : IControlSender
         _publisher = publisher;
     }
 
-    public async Task<OneOf<Success, ShockerNotFoundOrNoAccess, ShockerPaused, ShockerNoPermission>> ControlByUser(IReadOnlyList<Control> controls,ControlLogSender sender, IHubClients<IUserHub> hubClients)
+    public async Task<OneOf<Success, ShockerNotFoundOrNoAccess, ShockerPaused, ShockerNoPermission>> ControlByUser(IReadOnlyList<Control> controls,ControlLogSender sender, IHubClients<IUserHub> hubClients, ApiTokenControlLimits? tokenLimits = null)
     {
         var shockers = await _db.Shockers
             .AsNoTracking()
@@ -58,7 +62,7 @@ public sealed class ControlSender : IControlSender
             })
             .ToArrayAsync();
 
-        return await ControlInternal(controls, sender, hubClients, shockers);
+        return await ControlInternal(controls, sender, hubClients, shockers, tokenLimits);
     }
 
     public async Task<OneOf<Success, ShockerNotFoundOrNoAccess, ShockerPaused, ShockerNoPermission>> ControlPublicShare(IReadOnlyList<Control> controls, ControlLogSender sender, IHubClients<IUserHub> hubClients, Guid publicShareId)
@@ -99,12 +103,12 @@ public sealed class ControlSender : IControlSender
         control.Duration = Math.Clamp(control.Duration, HardLimits.MinControlDuration, durationMax);
     }
 
-    private async Task<OneOf<Success, ShockerNotFoundOrNoAccess, ShockerPaused, ShockerNoPermission>> ControlInternal(IReadOnlyList<Control> controls, ControlLogSender sender, IHubClients<IUserHub> hubClients, ControlShockerObj[] allowedShockers)
+    private async Task<OneOf<Success, ShockerNotFoundOrNoAccess, ShockerPaused, ShockerNoPermission>> ControlInternal(IReadOnlyList<Control> controls, ControlLogSender sender, IHubClients<IUserHub> hubClients, ControlShockerObj[] allowedShockers, ApiTokenControlLimits? tokenLimits = null)
     {
         var shockersById = allowedShockers.ToDictionary(s => s.ShockerId, s => s);
 
         var now = DateTime.UtcNow;
-        
+
         var messagesByDevice = new Dictionary<Guid, List<ShockerControlCommand>>();
         var logsByOwner = new Dictionary<Guid, List<ControlLog>>();
 
@@ -118,6 +122,13 @@ public sealed class ControlSender : IControlSender
 
             if (!PermissionUtils.IsAllowed(control.Type, false, shocker.PermsAndLimits))
                 return new ShockerNoPermission(control.Id);
+
+            // The token may scope intensity/duration into its own range.
+            if (tokenLimits is { } limits)
+            {
+                control.Intensity = limits.ApplyIntensity(control.Intensity);
+                control.Duration = limits.ApplyDuration(control.Duration);
+            }
 
             Clamp(control, shocker.PermsAndLimits);
 

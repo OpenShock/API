@@ -2,11 +2,14 @@ using System.Collections.Concurrent;
 using System.Net;
 using System.Text;
 using System.Text.Json;
+using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.DependencyInjection;
 using OpenShock.Common.Constants;
 using OpenShock.Common.OpenShockDb;
 using OpenShock.Common.Services.Session;
 using OpenShock.Common.Utils;
+
+using OpenShock.Internal.Common.Utils;
 
 namespace OpenShock.API.IntegrationTests.Helpers;
 
@@ -40,7 +43,7 @@ public static class TestHelper
         // 2. Create session via ISessionService (stored in Redis)
         await using var scope = factory.Services.CreateAsyncScope();
         var sessionService = scope.ServiceProvider.GetRequiredService<ISessionService>();
-        var session = await sessionService.CreateSessionAsync(userId, "IntegrationTest", "127.0.0.1");
+        var session = await sessionService.CreateSessionAsync(userId, "IntegrationTest", "127.0.0.1", actorId: userId);
 
         return new AuthenticatedUser(userId, username, email, session.Token);
     }
@@ -50,7 +53,7 @@ public static class TestHelper
     /// </summary>
     public static HttpClient CreateAuthenticatedClient(WebApplicationFactory factory, string sessionToken)
     {
-        var client = factory.CreateClient(new Microsoft.AspNetCore.Mvc.Testing.WebApplicationFactoryClientOptions
+        var client = factory.CreateClient(new WebApplicationFactoryClientOptions
         {
             AllowAutoRedirect = false,
             HandleCookies = false
@@ -64,7 +67,7 @@ public static class TestHelper
     /// </summary>
     public static HttpClient CreateApiTokenClient(WebApplicationFactory factory, string apiToken)
     {
-        var client = factory.CreateClient(new Microsoft.AspNetCore.Mvc.Testing.WebApplicationFactoryClientOptions
+        var client = factory.CreateClient(new WebApplicationFactoryClientOptions
         {
             AllowAutoRedirect = false,
             HandleCookies = false
@@ -78,7 +81,7 @@ public static class TestHelper
     /// </summary>
     public static HttpClient CreateHubTokenClient(WebApplicationFactory factory, string hubToken)
     {
-        var client = factory.CreateClient(new Microsoft.AspNetCore.Mvc.Testing.WebApplicationFactoryClientOptions
+        var client = factory.CreateClient(new WebApplicationFactoryClientOptions
         {
             AllowAutoRedirect = false,
             HandleCookies = false
@@ -126,7 +129,7 @@ public static class TestHelper
         var db = scope.ServiceProvider.GetRequiredService<OpenShockContext>();
 
         var deviceId = Guid.CreateVersion7();
-        var token = CryptoUtils.RandomAlphaNumericString(256);
+        var token = CryptoUtils.RandomString(256);
         db.Devices.Add(new Device
         {
             Id = deviceId,
@@ -146,12 +149,12 @@ public static class TestHelper
         WebApplicationFactory factory,
         Guid userId,
         string name = "TestToken",
-        List<Common.Models.PermissionType>? permissions = null)
+        List<PermissionType>? permissions = null)
     {
         await using var scope = factory.Services.CreateAsyncScope();
         var db = scope.ServiceProvider.GetRequiredService<OpenShockContext>();
 
-        var rawToken = CryptoUtils.RandomAlphaNumericString(AuthConstants.ApiTokenLength);
+        var rawToken = CryptoUtils.RandomString(AuthConstants.ApiTokenLength);
         var tokenId = Guid.CreateVersion7();
         db.ApiTokens.Add(new ApiToken
         {
@@ -160,7 +163,7 @@ public static class TestHelper
             Name = name,
             TokenHash = HashingUtils.HashToken(rawToken),
             CreatedByIp = IPAddress.Loopback,
-            Permissions = permissions ?? [Common.Models.PermissionType.Shockers_Use]
+            Permissions = permissions ?? [PermissionType.Shockers_Use]
         });
         await db.SaveChangesAsync();
         return (tokenId, rawToken);

@@ -9,7 +9,7 @@ namespace OpenShock.Common.Services;
 
 public interface IControlSender
 {
-    public Task<OneOf<Success, ShockerNotFoundOrNoAccess, ShockerPaused, ShockerNoPermission>> ControlByUser(IReadOnlyList<Control> controls, ControlLogSender sender, IHubClients<IUserHub> hubClients);
+    public Task<OneOf<Success, ShockerNotFoundOrNoAccess, ShockerPaused, ShockerNoPermission>> ControlByUser(IReadOnlyList<Control> controls, ControlLogSender sender, IHubClients<IUserHub> hubClients, ApiTokenControlLimits? tokenLimits = null);
 
     public Task<OneOf<Success, ShockerNotFoundOrNoAccess, ShockerPaused, ShockerNoPermission>> ControlPublicShare(IReadOnlyList<Control> controls, ControlLogSender sender, IHubClients<IUserHub> hubClients, Guid publicShareId);
 }

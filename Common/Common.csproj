@@ -6,6 +6,8 @@
 
   <!-- NuGet packages -->
   <ItemGroup>
+    <PackageReference Include="AspNetCore.HealthChecks.NpgSql" />
+    <PackageReference Include="AspNetCore.HealthChecks.Redis" />
     <PackageReference Include="BCrypt.Net-Next" />
     <PackageReference Include="IDisposableAnalyzers">
       <PrivateAssets>all</PrivateAssets>
@@ -17,6 +19,9 @@
     <PackageReference Include="Microsoft.IO.RecyclableMemoryStream" />
     <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" />
     <PackageReference Include="NRedisStack" />
+    <PackageReference Include="OpenShock.Internal.Common" />
+    <PackageReference Include="OpenShock.Internal.AspNet" />
+    <PackageReference Include="OpenShock.Internal.DynamicLinq" />
     <PackageReference Include="OpenShock.Serialization.Flatbuffers" />
     <PackageReference Include="OpenTelemetry.Exporter.Prometheus.AspNetCore" />
     <PackageReference Include="OpenTelemetry.Extensions.Hosting" />
@@ -25,6 +30,7 @@
     <PackageReference Include="OpenTelemetry.Instrumentation.Runtime" />
     <PackageReference Include="Redis.OM" />
     <PackageReference Include="Scalar.AspNetCore" />
+    <PackageReference Include="Scrutor" />
     <PackageReference Include="Serilog.Sinks.Grafana.Loki" />
     <PackageReference Include="Asp.Versioning.Mvc.ApiExplorer" />
     <PackageReference Include="Microsoft.AspNetCore.SignalR.StackExchangeRedis" />
@@ -34,8 +40,6 @@
     <PackageReference Include="Swashbuckle.AspNetCore.SwaggerGen" />
     <PackageReference Include="Z.EntityFramework.Plus.EFCore" />
   </ItemGroup>
-
-  <Import Project="CloudflareIPs.targets" />
 
   <!-- Capture git commit only if we're in a git repo; pipe output back to MSBuild -->
   <Target Name="SetSourceRevisionId" BeforeTargets="InitializeSourceControlInformation">

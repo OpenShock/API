@@ -23,7 +23,7 @@ runs:
   steps:
     - name: Extract metadata (tags, labels) for Docker
       id: meta
-      uses: docker/metadata-action@030e881283bb7a6894de51c315a6bfe6a94e05cf # v6.0.0
+      uses: docker/metadata-action@dc802804100637a589fabce1cb79ff13a1411302 # v6.2.0
       with:
         images: ${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ inputs.image }}
         flavor: |
@@ -32,7 +32,7 @@ runs:
           type=raw,value=${{ inputs.tag-prefix }}-${{ github.run_number }}-a${{ github.run_attempt }}
 
     - name: Build and push
-      uses: docker/build-push-action@bcafcacb16a39f128d818304e6c9c0c18556b85f # v7.1.0
+      uses: docker/build-push-action@53b7df96c91f9c12dcc8a07bcb9ccacbed38856a # v7.3.0
       with:
         context: .
         file: ${{ inputs.dockerfile }}

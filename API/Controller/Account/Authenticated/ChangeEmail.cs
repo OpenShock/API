@@ -6,6 +6,10 @@ using OpenShock.Common.Errors;
 using OpenShock.Common.Problems;
 using OpenShock.Common.Utils;
 
+using OpenShock.Internal.Common.Utils;
+
+using OpenShock.Internal.Common.Problems;
+
 namespace OpenShock.API.Controller.Account.Authenticated;
 
 public sealed partial class AuthenticatedAccountController
@@ -36,7 +40,7 @@ public sealed partial class AuthenticatedAccountController
             return Problem(AccountError.PasswordChangeInvalidPassword);
         }
 
-        var result = await _accountService.CreateEmailChangeFlowAsync(CurrentUser.Id, body.Email);
+        var result = await _accountService.CreateEmailChangeFlowAsync(CurrentUser.Id, body.Email, actorId: CurrentUser.Id);
 
         return result.Match<IActionResult>(
             success => Ok(),

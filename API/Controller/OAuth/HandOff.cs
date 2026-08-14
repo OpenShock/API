@@ -108,7 +108,7 @@ public sealed partial class OAuthController
                     return RedirectFrontendConnections(connection.UserId == userId ? "alreadyLinked" : "linkedToAnotherAccount");
                 } 
                 
-                var ok = await connectionService.TryAddConnectionAsync(userId, provider, auth.ExternalAccountId, auth.ExternalAccountDisplayName ?? auth.ExternalAccountName, cancellationToken);
+                var ok = await connectionService.TryAddConnectionAsync(userId, provider, auth.ExternalAccountId, auth.ExternalAccountDisplayName ?? auth.ExternalAccountName, actorId: userId, cancellationToken);
                 if (!ok)
                 {
                     await HttpContext.SignOutAsync(OAuthConstants.FlowScheme);

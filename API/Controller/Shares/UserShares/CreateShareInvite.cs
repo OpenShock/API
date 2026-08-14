@@ -3,10 +3,13 @@ using Asp.Versioning;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using OpenShock.API.Models.Requests;
+using OpenShock.Common.Authentication.Attributes;
 using OpenShock.Common.Errors;
 using OpenShock.Common.OpenShockDb;
 using OpenShock.Common.Problems;
 using Z.EntityFramework.Plus;
+
+using OpenShock.Internal.Common.Problems;
 
 namespace OpenShock.API.Controller.Shares.UserShares;
 
@@ -15,6 +18,7 @@ public sealed partial class UserSharesController
     [HttpPost("invites")]
     [Consumes(MediaTypeNames.Application.Json)]
     [ProducesResponseType<Guid>(StatusCodes.Status200OK, MediaTypeNames.Text.Plain)]
+    [TokenPermission(PermissionType.Usershares_Edit)]
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status404NotFound, MediaTypeNames.Application.ProblemJson)] // UserNotFound, ShareCreateShockerNotFound
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status400BadRequest, MediaTypeNames.Application.ProblemJson)] // ShareCreateCannotShareWithSelf
     [MapToApiVersion("2")]

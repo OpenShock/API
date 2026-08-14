@@ -1,6 +1,7 @@
 ﻿using Asp.Versioning;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using OpenShock.API.Services.DeviceUpdate;
 using OpenShock.Common;
 using OpenShock.Common.Authentication;
 using OpenShock.Common.OpenShockDb;
@@ -21,12 +22,14 @@ public sealed partial class DeviceController : OpenShockControllerBase
 {
     private readonly OpenShockContext _db;
     private readonly IRedisConnectionProvider _redis;
+    private readonly IDeviceUpdateService _deviceUpdateService;
     private readonly ILogger<DeviceController> _logger;
 
-    public DeviceController(OpenShockContext db, IRedisConnectionProvider redis, ILogger<DeviceController> logger)
+    public DeviceController(OpenShockContext db, IRedisConnectionProvider redis, IDeviceUpdateService deviceUpdateService, ILogger<DeviceController> logger)
     {
         _db = db;
         _redis = redis;
+        _deviceUpdateService = deviceUpdateService;
         _logger = logger;
     }
 }

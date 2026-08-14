@@ -1,6 +1,5 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using OpenShock.API.Models.Requests;
-using System.Net;
 using System.Net.Mime;
 using Asp.Versioning;
 using Microsoft.AspNetCore.RateLimiting;
@@ -8,10 +7,10 @@ using OpenShock.Common.Errors;
 using OpenShock.Common.Extensions;
 using OpenShock.Common.Models;
 using OpenShock.Common.Problems;
-using OpenShock.Common.Utils;
-using OpenShock.API.Errors;
 using OpenShock.API.Models.Response;
 using OpenShock.API.Services.Turnstile;
+
+using OpenShock.Internal.Common.Problems;
 
 namespace OpenShock.API.Controller.Account;
 
@@ -37,17 +36,9 @@ public sealed partial class AccountController
         var cookieDomain = GetCurrentCookieDomain();
         if (cookieDomain is null) return Problem(LoginError.InvalidDomain);
 
-        var remoteIp = HttpContext.GetRemoteIP();
+        var turnstileError = await VerifyTurnstileAsync(turnstileService, body.TurnstileResponse, cancellationToken);
+        if (turnstileError is not null) return turnstileError;
 
-        var turnStile = await turnstileService.VerifyUserResponseTokenAsync(body.TurnstileResponse, remoteIp, cancellationToken);
-        if (!turnStile.TryPickT0(out _, out var cfErrors))
-        {
-            if (cfErrors.Value.All(err => err == CloudflareTurnstileError.InvalidResponse))
-                return Problem(TurnstileError.InvalidTurnstile);
-
-            return Problem(new OpenShockProblem("InternalServerError", "Internal Server Error", HttpStatusCode.InternalServerError));
-        }
-        
         var getAccountResult = await _accountService.GetAccountByCredentialsAsync(body.UsernameOrEmail, body.Password, cancellationToken);
         if (!getAccountResult.TryPickT0(out var account, out var errors))
         {

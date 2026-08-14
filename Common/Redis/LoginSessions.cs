@@ -2,6 +2,8 @@
 using OpenShock.Common.JsonSerialization;
 using Redis.OM.Modeling;
 
+using OpenShock.Internal.Common.JsonSerialization;
+
 namespace OpenShock.Common.Redis;
 
 [Document(StorageType = StorageType.Json, IndexName = "login-session-v2")]

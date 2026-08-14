@@ -5,6 +5,10 @@ using OpenShock.Common.Models;
 using OpenShock.Common.OpenShockDb;
 using OpenShock.Common.Utils;
 
+using OpenShock.Internal.Common.Utils;
+
+using OpenShock.Internal.Common.Constants;
+
 namespace OpenShock.SeedE2E.Seeders;
 
 public static class UserSeeder

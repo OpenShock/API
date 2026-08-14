@@ -9,6 +9,7 @@ using OneOf;
 using OneOf.Types;
 using OpenShock.Common.Authentication;
 using OpenShock.Common.Authentication.Attributes;
+using OpenShock.Common.Authentication.Services;
 using OpenShock.Common.Constants;
 using OpenShock.Common.Errors;
 using OpenShock.Common.Models;
@@ -20,8 +21,15 @@ using OpenShock.Common.Utils;
 using OpenShock.Common.Websocket;
 using OpenShock.LiveControlGateway.LifetimeManager;
 using OpenShock.LiveControlGateway.Models;
+using OpenShock.LiveControlGateway.PubSub;
 using JsonOptions = OpenShock.Common.JsonSerialization.JsonOptions;
 using Timer = System.Timers.Timer;
+
+using OpenShock.Internal.Common.Utils;
+
+using OpenShock.Internal.Common.Constants;
+
+using OpenShock.Internal.Common.Problems;
 
 namespace OpenShock.LiveControlGateway.Controllers;
 
@@ -37,6 +45,8 @@ public sealed class LiveControlController : WebsocketBaseController<LiveControlR
 {
     private readonly HubLifetimeManager _hubLifetimeManager;
     private readonly IDbContextFactory<OpenShockContext> _dbContextFactory;
+    private readonly IUserReferenceService _userReferenceService;
+    private readonly ApiTokenUpdateSubscriber _tokenUpdateSubscriber;
     private readonly ILogger<LiveControlController> _logger;
 
     private static readonly TimeSpan PingInterval = TimeSpan.FromSeconds(5);
@@ -52,6 +62,22 @@ public sealed class LiveControlController : WebsocketBaseController<LiveControlR
     };
 
     private User _currentUser = null!;
+
+    /// <summary>
+    /// Id of the API token used to authenticate, if any. Null when authenticated via a user session.
+    /// </summary>
+    private Guid? _tokenId;
+
+    /// <summary>
+    /// Shocker control scoping carried by the API token used to authenticate, if any.
+    /// Null when authenticated via a user session (no token limits apply).
+    /// </summary>
+    private ApiTokenControlLimits? _tokenLimits;
+
+    /// <summary>
+    /// When true, the authenticating API token is paused (or was revoked) and may not send any control frames.
+    /// </summary>
+    private bool _tokenPaused;
 
     /// <summary>
     /// ID of the connected hub
@@ -80,11 +106,15 @@ public sealed class LiveControlController : WebsocketBaseController<LiveControlR
     /// </summary>
     /// <param name="logger"></param>
     /// <param name="dbContextFactory"></param>
+    /// <param name="userReferenceService"></param>
+    /// <param name="tokenUpdateSubscriber"></param>
     /// <param name="hubLifetimeManager"></param>
-    public LiveControlController(HubLifetimeManager hubLifetimeManager, IDbContextFactory<OpenShockContext> dbContextFactory, ILogger<LiveControlController> logger) : base(logger)
+    public LiveControlController(HubLifetimeManager hubLifetimeManager, IDbContextFactory<OpenShockContext> dbContextFactory, IUserReferenceService userReferenceService, ApiTokenUpdateSubscriber tokenUpdateSubscriber, ILogger<LiveControlController> logger) : base(logger)
     {
         _hubLifetimeManager = hubLifetimeManager;
         _dbContextFactory = dbContextFactory;
+        _userReferenceService = userReferenceService;
+        _tokenUpdateSubscriber = tokenUpdateSubscriber;
         _logger = logger;
         
         _pingTimer.Elapsed += (_, _) => OsTask.Run(SendPing);
@@ -218,6 +248,28 @@ public sealed class LiveControlController : WebsocketBaseController<LiveControlR
     public void OnActionExecuting(ActionExecutingContext context)
     {
         _currentUser = HttpContext.Items["User"] as User ?? throw new Exception("User not found");
+
+        // When authenticated via an API token, the token may scope/pause shocker control.
+        // Session auth carries no such limits.
+        if (_userReferenceService.AuthReference.TryPickT1(out var apiToken, out _))
+        {
+            _tokenId = apiToken.Id;
+            _tokenPaused = apiToken.ShockerControlPaused;
+            _tokenLimits = ApiTokenControlLimits.FromToken(apiToken);
+        }
+    }
+
+    /// <summary>
+    /// Apply refreshed API token limits to this connection, pushed by the <see cref="ApiTokenUpdateSubscriber"/>
+    /// when the token changed or was revoked. A revoked/expired token arrives as paused with no limits.
+    /// </summary>
+    /// <param name="paused"></param>
+    /// <param name="limits"></param>
+    [NonAction]
+    public void ApplyTokenLimits(bool paused, ApiTokenControlLimits? limits)
+    {
+        _tokenPaused = paused;
+        _tokenLimits = limits;
     }
 
     /// <summary>
@@ -237,6 +289,11 @@ public sealed class LiveControlController : WebsocketBaseController<LiveControlR
     {
         Logger.LogDebug("Starting ping timer...");
         _pingTimer.Start();
+
+        // When authenticated via an API token, register for live updates to its limits/pause state (or revocation)
+        // so changes take effect on this connection without reconnecting.
+        if (_tokenId is { } tokenId)
+            await _tokenUpdateSubscriber.Register(this, tokenId);
 
         await QueueMessage(new LiveControlResponse<LiveResponseType>
         {
@@ -416,6 +473,17 @@ public sealed class LiveControlController : WebsocketBaseController<LiveControlR
 
     private async Task ProcessFrameInternal(ClientLiveFrame frame)
     {
+        // A paused API token may not send any control, mirroring the /shockers/control endpoint.
+        if (_tokenPaused)
+        {
+            await QueueMessage(new LiveControlResponse<LiveResponseType>
+            {
+                ResponseType = LiveResponseType.TokenPaused
+            });
+
+            return;
+        }
+
         var permCheck = CheckFramePermissions(frame.Shocker, frame.Type);
         if (!permCheck.TryPickT0(out var perms, out var error))
         {
@@ -432,8 +500,9 @@ public sealed class LiveControlController : WebsocketBaseController<LiveControlR
             return;
         }
 
-        // Clamp to limits
-        var intensity = Math.Clamp(frame.Intensity, HardLimits.MinControlIntensity,
+        // Apply the token's intensity scoping first (if any), then clamp to the share limits.
+        var scopedIntensity = _tokenLimits?.ApplyIntensity(frame.Intensity) ?? frame.Intensity;
+        var intensity = Math.Clamp(scopedIntensity, HardLimits.MinControlIntensity,
             perms.Intensity ?? HardLimits.MaxControlIntensity);
 
         var result = HubLifetime.ReceiveFrame(frame.Shocker, frame.Type, intensity, _tps);
@@ -524,6 +593,19 @@ public sealed class LiveControlController : WebsocketBaseController<LiveControlR
     {
         Logger.LogTrace("Disposing controller timer");
         _pingTimer.Dispose();
+
+        if (_tokenId is { } tokenId)
+        {
+            try
+            {
+                await _tokenUpdateSubscriber.Unregister(this, tokenId);
+            }
+            catch (Exception e)
+            {
+                Logger.LogDebug(e, "Error unregistering from api token updates");
+            }
+        }
+
         await base.DisposeControllerAsync();
     }
 }

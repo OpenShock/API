@@ -1,6 +1,7 @@
 using System.Net;
 using System.Text.Json;
 using OpenShock.API.IntegrationTests.Helpers;
+using OpenShock.Common.OpenShockDb;
 
 namespace OpenShock.API.IntegrationTests.Tests;
 
@@ -31,6 +32,150 @@ public sealed class TokensTests
         await Assert.That(root.GetProperty("token").GetString()).IsNotNullOrWhiteSpace();
         await Assert.That(root.GetProperty("name").GetString()).IsEqualTo("MyToken");
         await Assert.That(root.TryGetProperty("id", out _)).IsTrue();
+    }
+
+    // --- Create Token V2 (shocker control) ---
+
+    private static object ShockerControlBody(bool paused = false) => new
+    {
+        paused,
+        intensity = new { min = 0, max = 100, mode = "Clamp" },
+        duration = new { min = 300, max = 65535, mode = "Clamp" }
+    };
+
+    [Test]
+    public async Task CreateTokenV2_MissingShockerControl_Returns400()
+    {
+        var user = await TestHelper.CreateAndLoginUser(WebApplicationFactory, "tokv2def", "tokv2def@test.org", "SecurePassword123#");
+        using var client = TestHelper.CreateAuthenticatedClient(WebApplicationFactory, user.SessionToken);
+
+        // shockerControl is required on v2 create.
+        var response = await client.PostAsync("/2/tokens", TestHelper.JsonContent(new
+        {
+            name = "NoShockerControl",
+            permissions = new[] { "shockers.use" }
+        }));
+
+        await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.BadRequest);
+    }
+
+    [Test]
+    public async Task CreateTokenV2_CustomShockerControl_RoundTrips()
+    {
+        var user = await TestHelper.CreateAndLoginUser(WebApplicationFactory, "tokv2custom", "tokv2custom@test.org", "SecurePassword123#");
+        using var client = TestHelper.CreateAuthenticatedClient(WebApplicationFactory, user.SessionToken);
+
+        var createResponse = await client.PostAsync("/2/tokens", TestHelper.JsonContent(new
+        {
+            name = "CustomToken",
+            permissions = new[] { "shockers.use" },
+            shockerControl = new
+            {
+                paused = true,
+                intensity = new { min = 10, max = 50, mode = "Lerp" },
+                duration = new { min = 500, max = 2000, mode = "Clamp" }
+            }
+        }));
+
+        await Assert.That(createResponse.StatusCode).IsEqualTo(HttpStatusCode.OK);
+        var createJson = await createResponse.Content.ReadAsStringAsync();
+        using var createDoc = JsonDocument.Parse(createJson);
+        var tokenId = createDoc.RootElement.GetProperty("id").GetString();
+
+        // Read it back via v2 GET and confirm the configuration persisted.
+        var getResponse = await client.GetAsync($"/2/tokens/{tokenId}");
+        var json = await getResponse.Content.ReadAsStringAsync();
+        using var doc = JsonDocument.Parse(json);
+        var sc = doc.RootElement.GetProperty("shockerControl");
+        await Assert.That(sc.GetProperty("paused").GetBoolean()).IsTrue();
+        await Assert.That(sc.GetProperty("intensity").GetProperty("min").GetInt32()).IsEqualTo(10);
+        await Assert.That(sc.GetProperty("intensity").GetProperty("max").GetInt32()).IsEqualTo(50);
+        await Assert.That(sc.GetProperty("intensity").GetProperty("mode").GetString()).IsEqualTo("Lerp");
+        await Assert.That(sc.GetProperty("duration").GetProperty("min").GetInt32()).IsEqualTo(500);
+        await Assert.That(sc.GetProperty("duration").GetProperty("max").GetInt32()).IsEqualTo(2000);
+    }
+
+    [Test]
+    public async Task CreateTokenV2_MinGreaterThanMax_Returns400()
+    {
+        var user = await TestHelper.CreateAndLoginUser(WebApplicationFactory, "tokv2minmax", "tokv2minmax@test.org", "SecurePassword123#");
+        using var client = TestHelper.CreateAuthenticatedClient(WebApplicationFactory, user.SessionToken);
+
+        var response = await client.PostAsync("/2/tokens", TestHelper.JsonContent(new
+        {
+            name = "BadToken",
+            permissions = new[] { "shockers.use" },
+            shockerControl = new
+            {
+                paused = false,
+                intensity = new { min = 80, max = 20, mode = "Clamp" },
+                duration = new { min = 300, max = 65535, mode = "Clamp" }
+            }
+        }));
+
+        await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.BadRequest);
+    }
+
+    [Test]
+    public async Task CreateTokenV2_IntensityOutOfRange_Returns400()
+    {
+        var user = await TestHelper.CreateAndLoginUser(WebApplicationFactory, "tokv2range", "tokv2range@test.org", "SecurePassword123#");
+        using var client = TestHelper.CreateAuthenticatedClient(WebApplicationFactory, user.SessionToken);
+
+        var response = await client.PostAsync("/2/tokens", TestHelper.JsonContent(new
+        {
+            name = "OutOfRange",
+            permissions = new[] { "shockers.use" },
+            shockerControl = new
+            {
+                paused = false,
+                intensity = new { min = 0, max = 200, mode = "Clamp" },
+                duration = new { min = 300, max = 65535, mode = "Clamp" }
+            }
+        }));
+
+        await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.BadRequest);
+    }
+
+    [Test]
+    public async Task SetTokenPaused_TogglesAndReturnsState()
+    {
+        var user = await TestHelper.CreateAndLoginUser(WebApplicationFactory, "tokv2pause", "tokv2pause@test.org", "SecurePassword123#");
+        using var client = TestHelper.CreateAuthenticatedClient(WebApplicationFactory, user.SessionToken);
+
+        var createResponse = await client.PostAsync("/2/tokens", TestHelper.JsonContent(new
+        {
+            name = "PauseMe",
+            permissions = new[] { "shockers.use" },
+            shockerControl = ShockerControlBody(paused: false)
+        }));
+        var createJson = await createResponse.Content.ReadAsStringAsync();
+        using var createDoc = JsonDocument.Parse(createJson);
+        var tokenId = createDoc.RootElement.GetProperty("id").GetString();
+
+        // Pause it; the endpoint returns the now-set state.
+        var pauseResponse = await client.PatchAsync($"/2/tokens/{tokenId}/paused", TestHelper.JsonContent(new { paused = true }));
+        await Assert.That(pauseResponse.StatusCode).IsEqualTo(HttpStatusCode.OK);
+        using (var pauseDoc = JsonDocument.Parse(await pauseResponse.Content.ReadAsStringAsync()))
+        {
+            await Assert.That(pauseDoc.RootElement.GetProperty("paused").GetBoolean()).IsTrue();
+        }
+
+        // Confirm it persisted.
+        var getResponse = await client.GetAsync($"/2/tokens/{tokenId}");
+        using var getDoc = JsonDocument.Parse(await getResponse.Content.ReadAsStringAsync());
+        await Assert.That(getDoc.RootElement.GetProperty("shockerControl").GetProperty("paused").GetBoolean()).IsTrue();
+    }
+
+    [Test]
+    public async Task SetTokenPaused_Nonexistent_Returns404()
+    {
+        var user = await TestHelper.CreateAndLoginUser(WebApplicationFactory, "tokv2pause404", "tokv2pause404@test.org", "SecurePassword123#");
+        using var client = TestHelper.CreateAuthenticatedClient(WebApplicationFactory, user.SessionToken);
+
+        var response = await client.PatchAsync($"/2/tokens/{Guid.CreateVersion7()}/paused", TestHelper.JsonContent(new { paused = true }));
+
+        await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.NotFound);
     }
 
     // --- List Tokens ---
@@ -204,7 +349,7 @@ public sealed class TokensTests
     {
         var userId = await TestHelper.CreateUserInDb(WebApplicationFactory, "tokauth", "tokauth@test.org", "SecurePassword123#");
         var (_, rawToken) = await TestHelper.CreateApiTokenInDb(WebApplicationFactory, userId, "AuthToken",
-            [Common.Models.PermissionType.Shockers_Use, Common.Models.PermissionType.Devices_Edit]);
+            [PermissionType.Shockers_Use, PermissionType.Devices_Edit]);
         using var client = TestHelper.CreateApiTokenClient(WebApplicationFactory, rawToken);
 
         var response = await client.GetAsync("/1/devices");

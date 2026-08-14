@@ -3,6 +3,8 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using OpenShock.API.Models.Response;
 using OpenShock.API.Utils;
+using OpenShock.Common.Authentication.Attributes;
+using OpenShock.Common.OpenShockDb;
 using OpenShock.Common.Utils;
 using Z.EntityFramework.Plus;
 
@@ -29,6 +31,7 @@ public sealed partial class UserSharesController
 {
     [HttpGet]
     [MapToApiVersion("2")]
+    [TokenPermission(PermissionType.Usershares_Edit)]
     public async Task<V2UserShares> GetSharesByUsers(CancellationToken cancellationToken)
     {
         var outgoingSharesFuture = _db.UserShares

@@ -18,6 +18,7 @@ public enum LiveResponseType
     ShockerMissingPermission = 152,
     ShockerPaused = 153,
     ShockerExclusive = 154,
+    TokenPaused = 155,
     
     InvalidData = 200,
     RequestTypeNotFound = 201,

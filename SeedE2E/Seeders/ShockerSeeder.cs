@@ -6,6 +6,8 @@ using OpenShock.Common.OpenShockDb;
 using OpenShock.Common.Utils;
 using Microsoft.Extensions.Logging;
 
+using OpenShock.Internal.Common.Constants;
+
 namespace OpenShock.SeedE2E.Seeders;
 
 public static class ShockerSeeder
