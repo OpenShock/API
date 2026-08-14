@@ -7,8 +7,10 @@ using OpenShock.Common.Errors;
 using OpenShock.Common.Extensions;
 using OpenShock.Common.Models;
 using OpenShock.Common.Problems;
+using OpenShock.API.Errors;
 using OpenShock.API.Models.Response;
 using OpenShock.API.Services.Turnstile;
+using OpenShock.Common.OpenShockDb;
 
 using OpenShock.Internal.Common.Problems;
 

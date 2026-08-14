@@ -11,6 +11,7 @@ using OpenShock.API.Errors;
 using OpenShock.API.Services.Turnstile;
 using OpenShock.Common.Extensions;
 using OpenShock.Common.Models;
+using OpenShock.Common.OpenShockDb;
 using OpenShock.Common.Services.Webhook;
 
 using OpenShock.Internal.Common.Utils;
