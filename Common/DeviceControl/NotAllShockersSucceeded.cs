@@ -1,3 +1,3 @@
 ﻿namespace OpenShock.Common.DeviceControl;
 
-public readonly struct NotAllShockersSucceeded;
+public sealed class NotAllShockersSucceeded;

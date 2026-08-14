@@ -1,7 +1,9 @@
 ﻿using System.ComponentModel.DataAnnotations;
+using System.Diagnostics;
 using Microsoft.OpenApi.Any;
 using Microsoft.OpenApi.Models;
 using OpenShock.Common.DataAnnotations.Interfaces;
+using OpenShock.Common.Results;
 using OpenShock.Common.Validation;
 
 namespace OpenShock.Common.DataAnnotations;
@@ -44,11 +46,13 @@ public sealed class UsernameAttribute : ValidationAttribute, IParameterAttribute
         if (value is not string displayName) return new ValidationResult(ErrMsgMustBeString);
 
         var result = UsernameValidator.Validate(displayName);
-        
-        return result.Match(
-            _ => ValidationResult.Success,
-            error => new ValidationResult($"{error.Type} - {error.Message}")
-        );
+
+        return result switch
+        {
+            Success => ValidationResult.Success,
+            UsernameError error => new ValidationResult($"{error.Type} - {error.Message}"),
+            _ => throw new UnreachableException()
+        };
     }
 
     /// <inheritdoc/>

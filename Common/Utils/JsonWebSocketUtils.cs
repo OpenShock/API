@@ -4,16 +4,17 @@ using System.Text.Json;
 using Microsoft.IO;
 using OpenShock.Common.JsonSerialization;
 using OpenShock.Common.Models.WebSocket;
+using OpenShock.Common.Results;
 
 namespace OpenShock.Common.Utils;
 
 public static class JsonWebSocketUtils
 {
     private const uint MaxMessageSize = 512_000; // 512 000 bytes
-    
+
     public static readonly RecyclableMemoryStreamManager RecyclableMemory = new();
 
-    public static async Task<OneOf.OneOf<T?, DeserializeFailed, WebsocketClosure>> ReceiveFullMessageAsyncNonAlloc<T>(WebSocket socket, CancellationToken cancellationToken = default)
+    public static async Task<Union3<T?, DeserializeFailed, WebsocketClosure>> ReceiveFullMessageAsyncNonAlloc<T>(WebSocket socket, CancellationToken cancellationToken = default)
     {
         var buffer = ArrayPool<byte>.Shared.Rent(4096);
         try
@@ -71,8 +72,3 @@ public static class JsonWebSocketUtils
 /// When json deserialization fails
 /// </summary>
 public readonly record struct DeserializeFailed(Exception Exception);
-
-/// <summary>
-/// When the websocket sent a close frame
-/// </summary>
-public readonly struct WebsocketClosure;

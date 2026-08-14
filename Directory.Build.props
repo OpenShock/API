@@ -22,12 +22,12 @@
   </ItemGroup>
     
   <PropertyGroup>
-    <TargetFramework>net10.0</TargetFramework>
+    <TargetFramework>net11.0</TargetFramework>
   </PropertyGroup>
 
   <PropertyGroup>
     <ImplicitUsings>enable</ImplicitUsings>
-    <LangVersion>Latest</LangVersion>
+    <LangVersion>preview</LangVersion>
     <Nullable>enable</Nullable>
     <AssemblyName>$(Product)</AssemblyName>
     <RootNamespace>$(Product.Replace(" ", "_"))</RootNamespace>
@@ -35,6 +35,9 @@
     <FileVersion>$(Version)</FileVersion>
     <UserSecretsId>a2109c1e-fb11-44d7-8127-346ef60cb9a5</UserSecretsId>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <!-- Runtime-native async: async methods suspend/resume via the runtime instead of
+         compiler-generated state machines, giving cleaner stack traces and lower overhead. -->
+    <Features>$(Features);runtime-async=on</Features>
   </PropertyGroup>
   
   <PropertyGroup>

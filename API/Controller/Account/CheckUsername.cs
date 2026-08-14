@@ -1,7 +1,10 @@
-﻿using System.Diagnostics.CodeAnalysis;
+﻿using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Net.Mime;
 using Microsoft.AspNetCore.Mvc;
 using OpenShock.API.Models.Requests;
+using OpenShock.API.Services.Account;
+using OpenShock.Common.Results;
 using OpenShock.Common.Validation;
 
 namespace OpenShock.API.Controller.Account;
@@ -20,11 +23,13 @@ public sealed partial class AccountController
     {
         var result = await _accountService.CheckUsernameAvailabilityAsync(body.Username, cancellationToken);
 
-        return result.Match(
-            success => new UsernameCheckResponse(UsernameAvailability.Available),
-            taken => new UsernameCheckResponse(UsernameAvailability.Taken),
-            invalid => new UsernameCheckResponse(UsernameAvailability.Invalid, invalid)
-        );
+        return result switch
+        {
+            Success => new UsernameCheckResponse(UsernameAvailability.Available),
+            UsernameTaken => new UsernameCheckResponse(UsernameAvailability.Taken),
+            UsernameError invalid => new UsernameCheckResponse(UsernameAvailability.Invalid, invalid),
+            _ => throw new UnreachableException()
+        };
     }
 }
 

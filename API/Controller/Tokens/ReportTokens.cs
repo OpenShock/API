@@ -9,6 +9,7 @@ using System.Net.Mime;
 using Microsoft.AspNetCore.RateLimiting;
 using OpenShock.API.Errors;
 using OpenShock.API.Services.Turnstile;
+using OpenShock.Common.Results;
 using OpenShock.Common.Services.Webhook;
 
 using OpenShock.Internal.Common.Utils;
@@ -40,9 +41,8 @@ public sealed partial class TokensController
         var remoteIP = HttpContext.GetRemoteIP();
 
         var turnStile = await turnstileService.VerifyUserResponseTokenAsync(body.TurnstileResponse, remoteIP, cancellationToken);
-        if (!turnStile.IsT0)
+        if (turnStile is CloudflareTurnstileError[] cfErrors)
         {
-            var cfErrors = turnStile.AsT1.Value;
             if (cfErrors.All(err => err == CloudflareTurnstileError.InvalidResponse))
                 return Problem(TurnstileError.InvalidTurnstile);
 

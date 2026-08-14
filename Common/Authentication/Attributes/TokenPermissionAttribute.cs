@@ -1,11 +1,11 @@
 ﻿using Microsoft.AspNetCore.Mvc.Filters;
-using OneOf.Types;
 using OpenShock.Common.Authentication.Services;
 using OpenShock.Common.Errors;
 using OpenShock.Common.Models;
 using OpenShock.Common.OpenShockDb;
 using OpenShock.Common.Problems;
 using OpenShock.Common.Redis;
+using OpenShock.Common.Results;
 
 using OpenShock.Internal.Common.Problems;
 
@@ -45,7 +45,12 @@ public sealed class TokenPermissionAttribute : Attribute, IAuthorizationFilter
     {
         var userReference = context.HttpContext.RequestServices.GetRequiredService<IUserReferenceService>();
 
-        var problem = userReference.AuthReference.Match(LoginSessionMatch, ApiTokenMatch, NoneMatch);
+        var problem = userReference.AuthReference switch
+        {
+            LoginSession loginSession => LoginSessionMatch(loginSession),
+            ApiToken apiToken => ApiTokenMatch(apiToken),
+            None none => NoneMatch(none)
+        };
 
         if (problem is not null)
         {
