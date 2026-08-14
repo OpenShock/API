@@ -45,6 +45,9 @@
     <PackageVersion Include="Serilog.AspNetCore" Version="10.0.0" />
     <PackageVersion Include="Serilog.Sinks.Grafana.Loki" Version="9.0.1" />
     <PackageVersion Include="Serilog.Sinks.OpenTelemetry" Version="4.2.0" />
+    <!-- Transitive via NRedisStack; 3.0.25 reflects over MulticastDelegate._invocationList, which no longer
+         exists on .NET 11 and aborts the process (MissingFieldException on the connection-failed handler). -->
+    <PackageVersion Include="StackExchange.Redis" Version="3.1.13" />
     <!-- Transitive via Testcontainers; pinned to lift it off GHSA-q939-rpr3-3284 (fixed in 2026.0.0) -->
     <PackageVersion Include="SSH.NET" Version="2026.0.0" />
     <PackageVersion Include="Swashbuckle.AspNetCore.SwaggerGen" Version="9.0.6" />
