@@ -4,6 +4,8 @@ using OpenShock.Common.Redis;
 using OpenShock.LiveControlGateway.Options;
 using Redis.OM.Contracts;
 
+using OpenShock.Internal.Common.Utils;
+
 namespace OpenShock.LiveControlGateway;
 
 /// <summary>

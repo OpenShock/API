@@ -11,6 +11,8 @@ using OpenShock.Common.Services.Audit;
 using OpenShock.Common.Services.RedisPubSub;
 using OpenShock.Common.Utils;
 
+using OpenShock.Internal.Common.Utils;
+
 namespace OpenShock.API.Services.Token;
 
 /// <summary>
@@ -112,7 +114,7 @@ public sealed class ApiTokenService : IApiTokenService
     /// <inheritdoc />
     public async Task<TokenCreatedResponse> CreateTokenV1(Guid userId, IPAddress createdByIp, CreateTokenRequest body)
     {
-        var secret = CryptoUtils.RandomAlphaNumericString(AuthConstants.ApiTokenLength);
+        var secret = CryptoUtils.RandomString(AuthConstants.ApiTokenLength);
 
         var tokenDto = new ApiToken
         {
@@ -155,7 +157,7 @@ public sealed class ApiTokenService : IApiTokenService
     /// <inheritdoc />
     public async Task<TokenCreatedResponseV2> CreateTokenV2(Guid userId, IPAddress createdByIp, CreateTokenRequestV2 body)
     {
-        var secret = CryptoUtils.RandomAlphaNumericString(AuthConstants.ApiTokenLength);
+        var secret = CryptoUtils.RandomString(AuthConstants.ApiTokenLength);
 
         var tokenDto = new ApiToken
         {

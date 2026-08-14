@@ -14,6 +14,8 @@ using Serilog;
 using Serilog.Events;
 using IPNetwork = System.Net.IPNetwork;
 
+using OpenShock.Internal.Common.Utils;
+
 namespace OpenShock.Common;
 
 public static class OpenShockMiddlewareHelper

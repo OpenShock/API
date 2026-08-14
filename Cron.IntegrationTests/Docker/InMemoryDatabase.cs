@@ -1,4 +1,5 @@
 using OpenShock.Common.Utils;
+using OpenShock.Internal.Common.Utils;
 using Testcontainers.PostgreSql;
 using TUnit.Core.Interfaces;
 
@@ -19,7 +20,7 @@ public sealed class InMemoryDatabase : IAsyncInitializer, IAsyncDisposable
                 .WithName($"tunit-cron-postgresql-{Guid.CreateVersion7()}")
                 .WithDatabase("openshock")
                 .WithUsername("openshock")
-                .WithPassword(CryptoUtils.RandomAlphaNumericString(32))
+                .WithPassword(CryptoUtils.RandomString(32))
                 .Build();
 
             return _container;

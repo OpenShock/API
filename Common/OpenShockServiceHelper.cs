@@ -11,7 +11,6 @@ using Microsoft.Extensions.DependencyInjection.Extensions;
 using OpenShock.Common.Authentication;
 using OpenShock.Common.Authentication.AuthenticationHandlers;
 using OpenShock.Common.Authentication.Services;
-using OpenShock.Common.ExceptionHandle;
 using OpenShock.Common.HealthChecks;
 using OpenShock.Common.JsonSerialization;
 using OpenShock.Common.OpenShockDb;
@@ -30,6 +29,7 @@ using StackExchange.Redis;
 using System.Threading.RateLimiting;
 using OpenShock.Common.Extensions;
 using OpenShock.Common.Utils;
+using OpenShock.Internal.Common.ExceptionHandling;
 using JsonOptions = OpenShock.Common.JsonSerialization.JsonOptions;
 
 namespace OpenShock.Common;
@@ -133,6 +133,8 @@ public static class OpenShockServiceHelper
         Action<AuthenticationBuilder>? configureAuth = null, Action<MeterProviderBuilder>? configureMetrics = null)
     {
         // <---- ASP.NET ---->
+        // OpenShockExceptionHandler (OpenShock.Internal.AspNet) takes JsonSerializerOptions via ctor injection.
+        services.AddSingleton(JsonOptions.Default);
         services.AddExceptionHandler<OpenShockExceptionHandler>();
 
         services.AddCachedHealthChecks(HealthCheckCacheTtl);

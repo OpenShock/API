@@ -9,6 +9,8 @@ using OpenShock.Common.OpenShockDb;
 using OpenShock.Common.Problems;
 using Z.EntityFramework.Plus;
 
+using OpenShock.Internal.Common.Problems;
+
 namespace OpenShock.API.Controller.Shares.UserShares;
 
 public sealed partial class UserSharesController

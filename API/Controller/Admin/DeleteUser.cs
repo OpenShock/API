@@ -17,7 +17,7 @@ public sealed partial class AdminController
     [ProducesResponseType(StatusCodes.Status200OK)]
     public async Task<IActionResult> DeleteUser(
         [FromRoute] Guid userId,
-        [FromQuery][MaxLength(HardLimits.AuditReasonMaxLength)] string? reason,
+        [FromQuery][MaxLength(ApiHardLimits.AuditReasonMaxLength)] string? reason,
         [FromServices] IAccountService accountService)
     {
         PedanticallyEnsureAdmin();

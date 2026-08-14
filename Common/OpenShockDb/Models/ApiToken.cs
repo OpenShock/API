@@ -1,6 +1,8 @@
 ﻿using System.Net;
 using OpenShock.Common.Constants;
 
+using OpenShock.Internal.Common.Constants;
+
 namespace OpenShock.Common.OpenShockDb;
 
 public sealed class ApiToken

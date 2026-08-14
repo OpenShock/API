@@ -18,7 +18,7 @@ public sealed partial class AdminController
     public async Task<IActionResult> DeactivateUser(
         [FromRoute] Guid userId,
         [FromQuery(Name = "deleteLater")] bool deleteLater,
-        [FromQuery][MaxLength(HardLimits.AuditReasonMaxLength)] string? reason,
+        [FromQuery][MaxLength(ApiHardLimits.AuditReasonMaxLength)] string? reason,
         [FromServices] IAccountService accountService)
     {
         PedanticallyEnsureAdmin();

@@ -7,6 +7,8 @@ using OpenShock.Common.Errors;
 using OpenShock.Common.OpenShockDb;
 using OpenShock.Common.Problems;
 
+using OpenShock.Internal.Common.Problems;
+
 namespace OpenShock.API.Controller.Shares.Links;
 
 public sealed partial class ShareLinksController

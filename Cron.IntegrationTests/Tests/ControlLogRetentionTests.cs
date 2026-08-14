@@ -3,6 +3,7 @@ using Microsoft.Extensions.DependencyInjection;
 using OpenShock.Common.Models;
 using OpenShock.Common.OpenShockDb;
 using OpenShock.Common.Utils;
+using OpenShock.Internal.Common.Utils;
 
 namespace OpenShock.Cron.IntegrationTests.Tests;
 
@@ -114,7 +115,7 @@ public sealed class ControlLogRetentionTests
         db.Devices.Add(new Device
         {
             Id = deviceId, OwnerId = ownerId, Name = "LogTrimHub",
-            Token = CryptoUtils.RandomAlphaNumericString(256), CreatedAt = DateTime.UtcNow
+            Token = CryptoUtils.RandomString(256), CreatedAt = DateTime.UtcNow
         });
         db.Shockers.Add(new Shocker
         {

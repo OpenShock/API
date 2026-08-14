@@ -19,6 +19,9 @@
     <PackageReference Include="Microsoft.IO.RecyclableMemoryStream" />
     <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" />
     <PackageReference Include="NRedisStack" />
+    <PackageReference Include="OpenShock.Internal.Common" />
+    <PackageReference Include="OpenShock.Internal.AspNet" />
+    <PackageReference Include="OpenShock.Internal.DynamicLinq" />
     <PackageReference Include="OpenShock.Serialization.Flatbuffers" />
     <PackageReference Include="OpenTelemetry.Exporter.Prometheus.AspNetCore" />
     <PackageReference Include="OpenTelemetry.Extensions.Hosting" />
@@ -37,8 +40,6 @@
     <PackageReference Include="Swashbuckle.AspNetCore.SwaggerGen" />
     <PackageReference Include="Z.EntityFramework.Plus.EFCore" />
   </ItemGroup>
-
-  <Import Project="CloudflareIPs.targets" />
 
   <!-- Capture git commit only if we're in a git repo; pipe output back to MSBuild -->
   <Target Name="SetSourceRevisionId" BeforeTargets="InitializeSourceControlInformation">

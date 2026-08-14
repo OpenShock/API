@@ -4,6 +4,8 @@ using Microsoft.OpenApi.Models;
 using OpenShock.Common.Constants;
 using OpenShock.Common.DataAnnotations.Interfaces;
 
+using OpenShock.Internal.Common.Constants;
+
 namespace OpenShock.Common.DataAnnotations;
 
 /// <summary>

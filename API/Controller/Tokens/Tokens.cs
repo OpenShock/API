@@ -9,6 +9,8 @@ using OpenShock.Common.Extensions;
 using OpenShock.Common.Problems;
 using OpenShock.Common.Utils;
 
+using OpenShock.Internal.Common.Problems;
+
 namespace OpenShock.API.Controller.Tokens;
 
 public sealed partial class TokensController

@@ -2,13 +2,15 @@
   <PropertyGroup>
     <!-- Enable central package management, https://learn.microsoft.com/en-us/nuget/consume-packages/Central-Package-Management -->
     <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
+    <!-- Lets us pin transitive dependencies (e.g. to pick up a security fix) from here -->
+    <CentralPackageTransitivePinningEnabled>true</CentralPackageTransitivePinningEnabled>
   </PropertyGroup>
   <ItemGroup>
     <PackageVersion Include="Asp.Versioning.Mvc.ApiExplorer" Version="10.0.1" />
     <PackageVersion Include="AspNet.Security.OAuth.Discord" Version="10.0.0" />
     <PackageVersion Include="AspNetCore.HealthChecks.NpgSql" Version="9.0.0" />
     <PackageVersion Include="AspNetCore.HealthChecks.Redis" Version="9.0.0" />
-    <PackageVersion Include="BCrypt.Net-Next" Version="4.2.0" />
+    <PackageVersion Include="BCrypt.Net-Next" Version="4.2.1" />
     <PackageVersion Include="Bogus" Version="35.6.5" />
     <PackageVersion Include="Fluid.Core" Version="2.31.0" />
     <PackageVersion Include="Hangfire.AspNetCore" Version="1.8.24" />
@@ -29,6 +31,9 @@
     <PackageVersion Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.3" />
     <PackageVersion Include="NRedisStack" Version="1.7.2" />
     <PackageVersion Include="OneOf" Version="3.0.271" />
+    <PackageVersion Include="OpenShock.Internal.Common" Version="0.1.1" />
+    <PackageVersion Include="OpenShock.Internal.AspNet" Version="0.1.1" />
+    <PackageVersion Include="OpenShock.Internal.DynamicLinq" Version="0.1.1" />
     <PackageVersion Include="OpenShock.Serialization.Flatbuffers" Version="2.1.0" />
     <PackageVersion Include="OpenTelemetry.Exporter.Prometheus.AspNetCore" Version="1.12.0-beta.1" />
     <PackageVersion Include="OpenTelemetry.Extensions.Hosting" Version="1.17.0" />
@@ -41,6 +46,8 @@
     <PackageVersion Include="Serilog.AspNetCore" Version="10.0.0" />
     <PackageVersion Include="Serilog.Sinks.Grafana.Loki" Version="9.0.1" />
     <PackageVersion Include="Serilog.Sinks.OpenTelemetry" Version="4.2.0" />
+    <!-- Transitive via Testcontainers; pinned to lift it off GHSA-q939-rpr3-3284 (fixed in 2026.0.0) -->
+    <PackageVersion Include="SSH.NET" Version="2026.0.0" />
     <PackageVersion Include="Swashbuckle.AspNetCore.SwaggerGen" Version="9.0.6" />
     <PackageVersion Include="Testcontainers.PostgreSql" Version="4.13.0" />
     <PackageVersion Include="Testcontainers.Redis" Version="4.13.0" />

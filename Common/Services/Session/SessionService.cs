@@ -9,6 +9,8 @@ using Redis.OM;
 using Redis.OM.Contracts;
 using Redis.OM.Searching;
 
+using OpenShock.Internal.Common.Utils;
+
 namespace OpenShock.Common.Services.Session;
 
 /// <summary>
@@ -33,7 +35,7 @@ public sealed class SessionService : ISessionService
     public async Task<CreateSessionResult> CreateSessionAsync(Guid userId, string userAgent, string ipAddress, Guid? actorId)
     {
         Guid id = Guid.CreateVersion7();
-        string token = CryptoUtils.RandomAlphaNumericString(AuthConstants.GeneratedTokenLength);
+        string token = CryptoUtils.RandomString(AuthConstants.GeneratedTokenLength);
 
         await _loginSessions.InsertAsync(new LoginSession
         {
