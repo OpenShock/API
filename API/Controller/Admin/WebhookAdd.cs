@@ -19,6 +19,8 @@ public sealed partial class AdminController
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> AddWebhook([FromBody] AddWebhookDto body, [FromServices] IWebhookService webhookService)
     {
+        PedanticallyEnsureAdmin();
+
         var result = await webhookService.AddWebhookAsync(body.Name, body.Url);
         return result.Match<IActionResult>(
             success => Ok(success.Value),

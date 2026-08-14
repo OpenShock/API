@@ -9,6 +9,8 @@ using OpenShock.Common.Services;
 using OpenShock.Common.Services.Session;
 using OpenShock.Common.Utils;
 
+using OpenShock.Internal.Common.Constants;
+
 namespace OpenShock.Common.Hubs;
 
 public sealed class PublicShareHub : Hub<IPublicShareHub>

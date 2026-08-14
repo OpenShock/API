@@ -15,13 +15,12 @@
     <PackageReference Include="Testcontainers.PostgreSql" />
     <PackageReference Include="Testcontainers.Redis" />
     <PackageReference Include="TUnit" />
-    <PackageReference Include="Microsoft.Testing.Extensions.CodeCoverage" />
   </ItemGroup>
 
   <!-- Git stuff -->
   <Target Name="SetHash" AfterTargets="InitializeSourceControlInformation">
     <ItemGroup>
-      <AssemblyAttribute Include="OpenShock.Common.Utils.GitHashAttribute">
+      <AssemblyAttribute Include="OpenShock.Internal.Common.Utils.GitHashAttribute">
         <_Parameter1>$(SourceRevisionId)</_Parameter1>
       </AssemblyAttribute>
     </ItemGroup>

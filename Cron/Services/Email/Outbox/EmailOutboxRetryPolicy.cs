@@ -10,7 +10,7 @@ public static class EmailOutboxRetryPolicy
 {
     /// <summary>
     /// Maximum number of delivery attempts before a transiently-failing message is given up as
-    /// <see cref="OpenShock.Common.Models.EmailStatus.Failed"/>. An attempt is counted when the row is
+    /// <see cref="OpenShock.Common.OpenShockDb.EmailStatus.Failed"/>. An attempt is counted when the row is
     /// claimed, so this also bounds crash/lease-expiry reclaim loops. Matches the prior Hangfire policy
     /// (one initial run plus ten retries).
     /// </summary>

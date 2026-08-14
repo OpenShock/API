@@ -7,6 +7,8 @@ using OpenShock.API.Services.Turnstile;
 using OpenShock.Common.Errors;
 using OpenShock.Common.Problems;
 
+using OpenShock.Internal.Common.Problems;
+
 namespace OpenShock.API.Controller.Account;
 
 public sealed partial class AccountController

@@ -37,8 +37,6 @@ builder.Services.AddKeyedSingleton("OpenShock.Gateway.Meter", new Meter("OpenSho
 
 builder.AddSwaggerExt<Program>();
 
-//services.AddHealthChecks().AddCheck<DatabaseHealthCheck>("database");
-
 builder.Services.AddHostedService<LcgKeepAlive>();
 
 builder.Services.AddSingleton<HubLifetimeManager>();
@@ -46,6 +44,8 @@ builder.Services.AddSingleton<ApiTokenUpdateSubscriber>();
 
 var app = builder.Build();
 
-await app.UseCommonOpenShockMiddleware();
+await app.UseCommonOpenShockMiddleware(lcgOptions.PublicPath);
+
+await app.WaitForOpenShockSchemaReady(databaseOptions);
 
 await app.RunAsync();

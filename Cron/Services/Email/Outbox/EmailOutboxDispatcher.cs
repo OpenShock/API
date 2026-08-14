@@ -5,6 +5,7 @@ using OpenShock.Common.Models;
 using OpenShock.Common.OpenShockDb;
 using OpenShock.Common.Options;
 using OpenShock.Common.Utils;
+using OpenShock.Internal.Common.Utils;
 
 namespace OpenShock.Cron.Services.Email.Outbox;
 
@@ -28,6 +29,14 @@ public sealed class EmailOutboxDispatcher : IEmailOutboxDispatcher
     {
         try
         {
+            // Admin preview/test send: render the chosen type's template with placeholder data and a
+            // dummy link, bypassing the request-row lookup and token minting entirely. Kept in front of
+            // the normal switch so a preview can never touch or mutate a real request row.
+            if (message.Payload.ContainsKey(EmailOutboxPayloadKeys.Preview))
+            {
+                return await SendPreview(message, cancellationToken);
+            }
+
             return message.Type switch
             {
                 EmailType.AccountActivation => await SendAccountActivation(message, db, cancellationToken),
@@ -111,13 +120,34 @@ public sealed class EmailOutboxDispatcher : IEmailOutboxDispatcher
     }
 
     /// <summary>
+    /// Delivers an admin preview/test message (see <see cref="EmailOutboxMessage.ForPreview"/>): renders
+    /// the chosen type's real template so an operator can confirm the provider works and see the actual
+    /// layout, but with a placeholder link/address instead of a real, working secret. Touches no request
+    /// row and mints no token, so it is safe to send to any address.
+    /// </summary>
+    private async Task<EmailDispatchResult> SendPreview(EmailOutboxMessage message, CancellationToken ct)
+    {
+        var to = ToContact(message);
+        var link = new Uri(_frontendOptions.BaseUrl, "/preview/example-link");
+
+        return message.Type switch
+        {
+            EmailType.AccountActivation => FromSend(await _emailService.ActivateAccount(to, link, ct)),
+            EmailType.PasswordReset => FromSend(await _emailService.PasswordReset(to, link, ct)),
+            EmailType.EmailVerification => FromSend(await _emailService.VerifyEmail(to, link, ct)),
+            EmailType.EmailChangeNotice => FromSend(await _emailService.EmailChangeNotice(to, "new-address@example.com", ct)),
+            _ => EmailDispatchResult.Permanent($"Unknown email type {message.Type}")
+        };
+    }
+
+    /// <summary>
     /// Mints a fresh secret token, applies its hash to the request row via <paramref name="applyHash"/>,
     /// and persists it before the email is sent so the emailed link always matches a stored hash.
     /// Returns the plaintext token to embed in the link (never stored).
     /// </summary>
     private static async Task<string> MintTokenAsync(OpenShockContext db, Action<string> applyHash, CancellationToken ct)
     {
-        var token = CryptoUtils.RandomAlphaNumericString(AuthConstants.GeneratedTokenLength);
+        var token = CryptoUtils.RandomString(AuthConstants.GeneratedTokenLength);
         applyHash(HashingUtils.HashToken(token));
         await db.SaveChangesAsync(ct);
         return token;

@@ -9,6 +9,8 @@ using OpenShock.Common.Errors;
 using OpenShock.Common.Extensions;
 using OpenShock.Common.Problems;
 
+using OpenShock.Internal.Common.Problems;
+
 namespace OpenShock.API.Controller.Tokens;
 
 [ApiController]
@@ -37,37 +39,37 @@ public sealed class TokenDeleteController : AuthenticatedSessionControllerBase
     [HttpDelete("{tokenId}")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
-    [ProducesResponseType<OpenShockProblem>(StatusCodes.Status404NotFound, MediaTypeNames.Application.ProblemJson)] // ApiTokenNotFound    
-    public async Task<IActionResult> DeleteToken([FromRoute] Guid tokenId, CancellationToken cancellationToken)
+    [ProducesResponseType<OpenShockProblem>(StatusCodes.Status404NotFound, MediaTypeNames.Application.ProblemJson)] // ApiTokenNotFound
+    public async Task<IActionResult> DeleteToken(
+        [FromRoute] Guid tokenId,
+        CancellationToken cancellationToken)
     {
         // If a token tries to delete itself, let it
         if (User.TryGetClaimValueAsGuid(OpenShockAuthClaims.ApiTokenId, out var currentApiTokenId) && currentApiTokenId == tokenId)
         {
-            if (await _tokenService.DeleteToken(tokenId, cancellationToken: cancellationToken)) return Ok();
+            if (await _tokenService.DeleteToken(tokenId, actorId: CurrentUser.Id, cancellationToken: cancellationToken))
+                return Ok();
 
-            // If we get here, it's a race-condition or something weird!
             _logger.LogWarning("Token {TokenId} attempted self-deletion but no record was found (possible race-condition).", tokenId);
-
             return Problem(ApiTokenError.ApiTokenNotFound);
         }
 
         var userIdentity = User.TryGetOpenShockUserIdentity();
-        if (userIdentity is null) return Problem(ApiTokenError.ApiTokenCanOnlyDeleteSelf); // If user is null then ApiToken must have been here, and it cant delete others
+        if (userIdentity is null) return Problem(ApiTokenError.ApiTokenCanOnlyDeleteSelf);
 
-        // If a privileged user is trying to delete the token, let them
+        // If a privileged user is trying to delete the token, let them (any owner)
         if (userIdentity.IsAdminOrSystem())
         {
-            if (await _tokenService.DeleteToken(tokenId, cancellationToken: cancellationToken)) return Ok();
+            if (await _tokenService.DeleteToken(tokenId, actorId: CurrentUser.Id, cancellationToken: cancellationToken))
+                return Ok();
 
             return Problem(ApiTokenError.ApiTokenNotFound);
         }
 
         // A normal user is trying to delete the token, delete it if they own it
         var userId = userIdentity.GetClaimValueAsGuid(ClaimTypes.NameIdentifier);
-        if (await _tokenService.DeleteToken(tokenId, userId, cancellationToken))
-        {
+        if (await _tokenService.DeleteToken(tokenId, actorId: userId, ownerId: userId, cancellationToken: cancellationToken))
             return Ok();
-        }
 
         return Problem(ApiTokenError.ApiTokenNotFound);
     }

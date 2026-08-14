@@ -79,9 +79,9 @@ public sealed class CloudflareTurnstileService : ICloudflareTurnstileService
         
         var errors = response.ErrorCodes.Select(MapCfError).ToArray();
 
-        if (errors.All(err => err != CloudflareTurnstileError.InvalidResponse))
+        if (!errors.All(err => err.IsClientError()))
         {
-            _logger.LogError("Turnstile error: {StatusCode} {ReasonPhrase}", httpResponse.StatusCode, string.Join(" ", errors.Select(err => err.ToString())));
+            _logger.LogError("Turnstile verification failed: {Errors}", string.Join(" ", errors.Select(err => err.ToString())));
         }
 
         return CreateError(errors);

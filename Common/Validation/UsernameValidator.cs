@@ -3,6 +3,10 @@ using OneOf;
 using OneOf.Types;
 using OpenShock.Common.Constants;
 
+using OpenShock.Internal.Common.Constants;
+
+using OpenShock.Internal.Common.Validation;
+
 namespace OpenShock.Common.Validation;
 
 public static class UsernameValidator

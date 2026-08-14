@@ -25,7 +25,7 @@ namespace OpenShock.Cron.Jobs;
 [CronJob("* * * * *")] // Every minute (https://crontab.guru/)
 public sealed class EmailOutboxDeliveryJob
 {
-    private const int BatchSize = 50;
+    private const int BatchSize = EmailOutboxQueries.ClaimBatchSize;
 
     private readonly OpenShockContext _db;
     private readonly IEmailOutboxDispatcher _dispatcher;
@@ -88,15 +88,7 @@ public sealed class EmailOutboxDeliveryJob
 
         await using var transaction = await _db.Database.BeginTransactionAsync();
 
-        var due = await _db.EmailOutbox.FromSql(
-            $"""
-             SELECT * FROM email_outbox
-             WHERE next_attempt_at <= now()
-               AND (status = {EmailStatus.Pending} OR status = {EmailStatus.Sending})
-             ORDER BY next_attempt_at
-             LIMIT {BatchSize}
-             FOR UPDATE SKIP LOCKED
-             """).ToListAsync();
+        var due = await _db.EmailOutbox.DueForDelivery(BatchSize).ToListAsync();
 
         if (due.Count == 0)
         {

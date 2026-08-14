@@ -15,7 +15,6 @@
     <PackageReference Include="Testcontainers.PostgreSql" />
     <PackageReference Include="Testcontainers.Redis" />
     <PackageReference Include="TUnit" />
-    <PackageReference Include="Microsoft.Testing.Extensions.CodeCoverage" />
   </ItemGroup>
 
   <!-- The dispatcher loads these Liquid templates by relative path; copy them next to the test
@@ -29,7 +28,7 @@
   <!-- Git stuff -->
   <Target Name="SetHash" AfterTargets="InitializeSourceControlInformation">
     <ItemGroup>
-      <AssemblyAttribute Include="OpenShock.Common.Utils.GitHashAttribute">
+      <AssemblyAttribute Include="OpenShock.Internal.Common.Utils.GitHashAttribute">
         <_Parameter1>$(SourceRevisionId)</_Parameter1>
       </AssemblyAttribute>
     </ItemGroup>

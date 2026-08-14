@@ -26,6 +26,9 @@ var databaseOptions = builder.RegisterDatabaseOptions();
 builder.RegisterMetricsOptions();
 builder.RegisterFrontendOptions();
 builder.RegisterAccountOptions();
+// The API never sends mail, but it must know whether anything ever will: with mail disabled there is
+// no activation link, so accounts are activated on creation instead of waiting for one.
+builder.RegisterMailOptions();
 
 builder.Services
     .AddOpenShockMemDB(redisOptions)
@@ -109,13 +112,15 @@ builder.AddSwaggerExt<Program>();
 
 builder.AddCloudflareTurnstileService();
 
-//services.AddHealthChecks().AddCheck<DatabaseHealthCheck>("database");
-
 builder.Services.AddHostedService<RedisSubscriberService>();
 
 var app = builder.Build();
 
-await app.UseCommonOpenShockMiddleware();
+// Optional path prefix the API is served under (e.g. "/api" when reverse-proxied on a
+// shared host). Empty by default -> served at root, unchanged behavior.
+var apiPathBase = builder.Configuration.GetValue<string>("OpenShock:Api:PathBase");
+
+await app.UseCommonOpenShockMiddleware(apiPathBase);
 
 if (!databaseOptions.SkipMigration)
 {

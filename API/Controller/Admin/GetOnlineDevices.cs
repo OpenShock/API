@@ -20,6 +20,8 @@ public sealed partial class AdminController
     [ProducesResponseType<LegacyDataResponse<AdminOnlineDeviceResponse[]>>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
     public async Task<IActionResult> GetOnlineDevices()
     {
+        PedanticallyEnsureAdmin();
+
         var devicesOnline = _redis.RedisCollection<DeviceOnline>(false);
 
         var allOnlineDevices = await devicesOnline.ToListAsync();

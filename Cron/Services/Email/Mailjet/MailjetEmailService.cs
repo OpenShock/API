@@ -11,13 +11,13 @@ public sealed class MailjetEmailService : IEmailService, IDisposable
 {
     private readonly HttpClient _httpClient;
     private readonly EmailServiceTemplates _templates;
-    private readonly MailOptions.MailSenderContact _sender;
+    private readonly MailSenderContact _sender;
     private readonly ILogger<MailjetEmailService> _logger;
 
     public MailjetEmailService(
             HttpClient httpClient,
             EmailServiceTemplates templates,
-            MailOptions.MailSenderContact sender,
+            MailSenderContact sender,
             ILogger<MailjetEmailService> logger
         )
     {

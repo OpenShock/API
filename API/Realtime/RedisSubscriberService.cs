@@ -11,6 +11,8 @@ using OpenShock.Common.Utils;
 using Redis.OM.Contracts;
 using StackExchange.Redis;
 
+using OpenShock.Internal.Common.Utils;
+
 namespace OpenShock.API.Realtime;
 
 /// <summary>

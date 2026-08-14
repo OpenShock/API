@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using Microsoft.EntityFrameworkCore.Migrations;
 using OpenShock.Common.Models;
+using OpenShock.Common.OpenShockDb;
 
 #nullable disable
 

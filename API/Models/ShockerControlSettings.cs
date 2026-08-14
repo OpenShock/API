@@ -3,6 +3,8 @@ using OpenShock.Common.Constants;
 using OpenShock.Common.Models;
 using OpenShock.Common.OpenShockDb;
 
+using OpenShock.Internal.Common.Constants;
+
 namespace OpenShock.API.Models;
 
 /// <summary>

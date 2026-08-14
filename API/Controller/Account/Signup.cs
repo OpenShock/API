@@ -2,6 +2,8 @@ using Asp.Versioning;
 using Microsoft.AspNetCore.Mvc;
 using OpenShock.Common.Errors;
 
+using OpenShock.Internal.Common.Problems;
+
 namespace OpenShock.API.Controller.Account;
 
 public sealed partial class AccountController
