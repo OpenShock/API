@@ -9,7 +9,7 @@ using OpenShock.Common.Redis;
 
 namespace OpenShock.Common.Authentication.ControllerBase;
 
-public class AuthenticatedSessionControllerBase : OpenShockControllerBase, IActionFilter
+public abstract class AuthenticatedSessionControllerBase : OpenShockControllerBase, IActionFilter
 {
     protected User CurrentUser = null!;
 

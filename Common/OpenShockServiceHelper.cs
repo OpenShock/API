@@ -180,7 +180,9 @@ public static class OpenShockServiceHelper
         {
             options.DefaultApiVersion = new ApiVersion(1, 0);
             options.AssumeDefaultVersionWhenUnspecified = true;
-        });
+            // All routes are versioned via the /{version:apiVersion}/ segment
+            options.ApiVersionReader = new UrlSegmentApiVersionReader();
+        }).AddMvc();
 
         apiVersioningBuilder.AddApiExplorer(setup =>
         {
