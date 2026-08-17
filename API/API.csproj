@@ -13,7 +13,7 @@
   <ItemGroup>
     <PackageReference Include="AspNet.Security.OAuth.Discord" />
     <PackageReference Include="Microsoft.AspNetCore.Authentication.Google" />
-    <PackageReference Include="Microsoft.AspNetCore.Authentication.Twitter" />
+    <PackageReference Include="AspNet.Security.OAuth.Twitter" />
   </ItemGroup>
 
   <!-- Files to copy -->

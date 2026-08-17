@@ -1,3 +1,5 @@
+using System.Security.Claims;
+using System.Text.Json;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Http.Connections;
 using OpenShock.API.Options.OAuth;
@@ -77,8 +79,22 @@ builder.Services
         {
             auth.AddTwitter(OAuthConstants.TwitterScheme, options => {
                 DefaultOptions(options, "twitter");
-                options.ConsumerKey = twitterOptions.ConsumerKey;
-                options.ConsumerSecret = twitterOptions.ConsumerSecret;
+                options.ClientId = twitterOptions.ClientId;
+                options.ClientSecret = twitterOptions.ClientSecret;
+
+                // The package default of tweet.read + users.read covers id/username/name. tweet.read looks
+                // redundant for a login, but X's spec requires both for /2/users/me, so it stays.
+                // Email needs its own scope and field, and the X app must have "Request email from users"
+                // enabled in the developer dashboard - without that the field is silently absent.
+                options.Scope.Add("users.email");
+                options.UserFields.Add("confirmed_email");
+
+                // The user info payload is wrapped in a "data" object, so these need custom resolvers.
+                options.ClaimActions.MapCustomJson(OAuthConstants.ClaimDisplayName, user => GetUserField(user, "name"));
+                options.ClaimActions.MapCustomJson(ClaimTypes.Email, user => GetUserField(user, "confirmed_email"));
+                // X only ever returns an address it has confirmed itself, so its presence is the verification signal.
+                options.ClaimActions.MapCustomJson(OAuthConstants.ClaimEmailVerified, user =>
+                    GetUserField(user, "confirmed_email") is null ? null : "true");
 
                 options.Validate();
             });
@@ -95,6 +111,11 @@ builder.Services
                 
             options.SaveTokens = false;
         }
+
+        static string? GetUserField(JsonElement user, string field) =>
+            user.TryGetProperty("data", out var data) && data.TryGetProperty(field, out var value)
+                ? value.GetString()
+                : null;
     })
     .AddOpenShockSignalR(redisOptions);
 
