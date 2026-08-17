@@ -9,10 +9,10 @@ public sealed class OpenShockExceptionHandler : IExceptionHandler
     private readonly IHostEnvironment _env;
     private readonly ILogger _logger;
     
-    public OpenShockExceptionHandler(IHostEnvironment env, ILoggerFactory loggerFactory)
+    public OpenShockExceptionHandler(IHostEnvironment env, ILoggerFactory loggerFactory, ILogger<OpenShockExceptionHandler> logger)
     {
         _env = env;
-        _logger = loggerFactory.CreateLogger("RequestInfo");
+        _logger = logger;
     }
     
     public async ValueTask<bool> TryHandleAsync(HttpContext context, Exception exception, CancellationToken cancellationToken)
@@ -24,6 +24,7 @@ public sealed class OpenShockExceptionHandler : IExceptionHandler
         }
 
         await ExceptionError.Exception.WriteAsJsonAsync(context, cancellationToken);
+        _logger.LogError(exception, "An exception occurred while handling the request");
         return context.Response.HasStarted;
     }
     
