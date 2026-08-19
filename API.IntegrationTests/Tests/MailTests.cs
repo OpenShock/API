@@ -48,6 +48,102 @@ public sealed class MailTests
         await Assert.That(row.Payload[EmailOutboxPayloadKeys.UserId]).IsEqualTo(user.Id.ToString());
     }
 
+    // --- Resend Activation ---
+
+    [Test]
+    public async Task ResendActivation_UnactivatedUser_EnqueuesActivationOutbox()
+    {
+        var email = TestHelper.UniqueEmail("mail-resend-activate");
+        var username = TestHelper.UniqueUsername("mailresendactivate");
+
+        // Unactivated user with no existing activation request — exercises the create-request path.
+        var userId = await TestHelper.CreateUserInDb(WebApplicationFactory, username, email, "SecurePassword123#", activated: false);
+
+        using var client = WebApplicationFactory.CreateClient();
+        var response = await client.PostAsync("/1/account/activate/resend", TestHelper.JsonContent(new { email }));
+        await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.OK);
+
+        await using var scope = WebApplicationFactory.Services.CreateAsyncScope();
+        var db = scope.ServiceProvider.GetRequiredService<OpenShockContext>();
+
+        // The missing activation request was created, and a fresh activation email was enqueued.
+        var hasRequest = await db.UserActivationRequests.AsNoTracking().AnyAsync(r => r.UserId == userId);
+        await Assert.That(hasRequest).IsTrue();
+
+        var row = await db.EmailOutbox.AsNoTracking().SingleAsync(m => m.Recipient == email);
+        await Assert.That(row.Type).IsEqualTo(EmailType.AccountActivation);
+        await Assert.That(row.Status).IsEqualTo(EmailStatus.Pending);
+        await Assert.That(row.CoalesceKey).IsEqualTo(EmailOutboxCoalesceKeys.AccountActivation(userId));
+    }
+
+    [Test]
+    public async Task ResendActivation_WithExistingRequest_EnqueuesAnotherActivationOutbox()
+    {
+        var email = TestHelper.UniqueEmail("mail-resend-rotate");
+        var username = TestHelper.UniqueUsername("mailresendrotate");
+        using var client = WebApplicationFactory.CreateClient();
+
+        // Sign up (V2) — creates an unactivated user, its activation request, and the first enqueue.
+        var signupResponse = await client.PostAsync("/2/account/signup", TestHelper.JsonContent(new
+        {
+            username,
+            password = "SecurePassword123#",
+            email,
+            turnstileResponse = "valid-token"
+        }));
+        await Assert.That(signupResponse.StatusCode).IsEqualTo(HttpStatusCode.OK);
+
+        // Resend enqueues another activation email. The delivery job re-mints the token and supersedes the
+        // older row at send time (coalesce key) - that token rotation is covered in Cron.IntegrationTests.
+        var resendResponse = await client.PostAsync("/1/account/activate/resend", TestHelper.JsonContent(new { email }));
+        await Assert.That(resendResponse.StatusCode).IsEqualTo(HttpStatusCode.OK);
+
+        await using var scope = WebApplicationFactory.Services.CreateAsyncScope();
+        var db = scope.ServiceProvider.GetRequiredService<OpenShockContext>();
+        var user = await db.Users.AsNoTracking().FirstAsync(u => u.Email == email);
+
+        var rows = await db.EmailOutbox.AsNoTracking().Where(m => m.Recipient == email).ToListAsync();
+        await Assert.That(rows.Count).IsEqualTo(2);
+        await Assert.That(rows.All(r => r.Type == EmailType.AccountActivation)).IsTrue();
+        await Assert.That(rows.All(r => r.CoalesceKey == EmailOutboxCoalesceKeys.AccountActivation(user.Id))).IsTrue();
+    }
+
+    [Test]
+    public async Task ResendActivation_AlreadyActivatedUser_Returns200_AndEnqueuesNothing()
+    {
+        var email = TestHelper.UniqueEmail("mail-resend-activated");
+        var username = TestHelper.UniqueUsername("mailresendactivated");
+
+        await TestHelper.CreateUserInDb(WebApplicationFactory, username, email, "SecurePassword123#", activated: true);
+
+        using var client = WebApplicationFactory.CreateClient();
+        var response = await client.PostAsync("/1/account/activate/resend", TestHelper.JsonContent(new { email }));
+
+        // Generic 200 (no account-state leak), but nothing is enqueued for an already-activated account.
+        await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.OK);
+
+        await using var scope = WebApplicationFactory.Services.CreateAsyncScope();
+        var db = scope.ServiceProvider.GetRequiredService<OpenShockContext>();
+        var enqueued = await db.EmailOutbox.AsNoTracking().CountAsync(m => m.Recipient == email);
+        await Assert.That(enqueued).IsEqualTo(0);
+    }
+
+    [Test]
+    public async Task ResendActivation_UnknownEmail_Returns200_AndEnqueuesNothing()
+    {
+        var email = TestHelper.UniqueEmail("mail-resend-unknown");
+
+        using var client = WebApplicationFactory.CreateClient();
+        var response = await client.PostAsync("/1/account/activate/resend", TestHelper.JsonContent(new { email }));
+
+        await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.OK);
+
+        await using var scope = WebApplicationFactory.Services.CreateAsyncScope();
+        var db = scope.ServiceProvider.GetRequiredService<OpenShockContext>();
+        var enqueued = await db.EmailOutbox.AsNoTracking().CountAsync(m => m.Recipient == email);
+        await Assert.That(enqueued).IsEqualTo(0);
+    }
+
     // --- Password Reset ---
 
     [Test]
