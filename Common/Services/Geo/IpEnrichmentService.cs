@@ -1,4 +1,4 @@
-using System.Net;
+﻿using System.Net;
 using MaxMind.GeoIP2;
 using Microsoft.Extensions.Logging;
 using OpenShock.Common.Options;
@@ -7,17 +7,21 @@ namespace OpenShock.Common.Services.Geo;
 
 public sealed class IpEnrichmentService : IIpEnrichmentService, IDisposable
 {
-    private static readonly string[] VpnKeywords =
+    // Consumer VPN providers only. Datacenter and hosting ASNs are deliberately NOT listed here:
+    // AWS, Google, Microsoft, Akamai, OVH and friends carry an enormous amount of ordinary traffic
+    // (corporate egress, mobile carrier NAT, CDN-fronted clients), so treating them as VPN evidence
+    // flags a large share of legitimate users. That signal is worth surfacing one day, but as its own
+    // "hosting provider" field rather than folded into a flag the UI presents as "VPN".
+    //
+    // Matched against whole tokens, not raw substrings, so "pia" cannot match "Olympia". Multi-word
+    // vendors are listed in both spaced and concatenated form because ASN org names use both.
+    private static readonly string[] VpnProviderKeywords =
     [
         "mullvad", "nordvpn", "expressvpn", "protonvpn", "ipvanish", "surfshark",
-        "privateinternetaccess", "pia", "hidemyass", "purevpn", "cyberghost",
-        "windscribe", "tunnelbear", "hotspot shield", "vyprvpn", "airvpn",
-        "perfect privacy", "ivpn", "ovpn",
-        // Datacenter / hosting ASNs that VPN exit nodes overwhelmingly use
-        "digitalocean", "linode", "akamai", "hetzner", "vultr", "ovh",
-        "amazon", "google", "microsoft", "choopa", "m247", "datacamp",
-        "frantech", "quadranet", "leaseweb", "serverius", "hostwinds",
-        "psychz", "tzulo", "nexeon", "misaka",
+        "privateinternetaccess", "private internet access", "pia",
+        "hidemyass", "hide my ass", "purevpn", "cyberghost",
+        "windscribe", "tunnelbear", "hotspot shield", "hotspotshield",
+        "vyprvpn", "airvpn", "perfect privacy", "perfectprivacy", "ivpn", "ovpn",
     ];
 
     private readonly DatabaseReader? _asnReader;
@@ -30,6 +34,27 @@ public sealed class IpEnrichmentService : IIpEnrichmentService, IDisposable
 
         _asnReader = TryOpen(options.AsnDbPath, "ASN");
         _cityReader = TryOpen(options.CityDbPath, "City");
+    }
+
+    /// <summary>
+    /// Whole-token match of an ASN organisation name against <see cref="VpnProviderKeywords"/>.
+    /// Punctuation becomes whitespace so "Amazon.com, Inc." tokenises the way a reader expects, and
+    /// the padded haystack lets a single Contains express a word-boundary match for phrases too.
+    /// </summary>
+    public static bool MatchesVpnProvider(string asnOrg)
+    {
+        var normalized = string.Create(asnOrg.Length, asnOrg, static (span, source) =>
+        {
+            for (var i = 0; i < source.Length; i++)
+            {
+                var c = char.ToLowerInvariant(source[i]);
+                span[i] = char.IsLetterOrDigit(c) ? c : ' ';
+            }
+        });
+
+        var haystack = $" {string.Join(' ', normalized.Split(' ', StringSplitOptions.RemoveEmptyEntries))} ";
+
+        return Array.Exists(VpnProviderKeywords, k => haystack.Contains($" {k} ", StringComparison.Ordinal));
     }
 
     private DatabaseReader? TryOpen(string? path, string dbName)
@@ -74,8 +99,7 @@ public sealed class IpEnrichmentService : IIpEnrichmentService, IDisposable
                     asnOrg = asn.AutonomousSystemOrganization;
                     if (asnOrg is not null)
                     {
-                        var lower = asnOrg.ToLowerInvariant();
-                        isVpn = Array.Exists(VpnKeywords, k => lower.Contains(k));
+                        isVpn = MatchesVpnProvider(asnOrg);
                     }
                 }
             }
