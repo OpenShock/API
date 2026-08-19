@@ -1,9 +1,10 @@
-using System.Security.Cryptography;
+﻿using System.Security.Cryptography;
 using System.Text;
 using OneOf.Types;
 using OpenShock.Common.Extensions;
 using OpenShock.Common.Models;
 using OpenShock.Common.Services.Configuration;
+using Microsoft.Extensions.Logging;
 
 namespace OpenShock.Common.Middleware;
 
@@ -27,7 +28,7 @@ public sealed class BypassTokenMiddleware
         _next = next;
     }
 
-    public async Task InvokeAsync(HttpContext context, IConfigurationService config)
+    public async Task InvokeAsync(HttpContext context, IConfigurationService config, ILogger<BypassTokenMiddleware> logger)
     {
         if (!context.TryGetBypassTokenFromHeader(out var presented))
         {
@@ -40,7 +41,24 @@ public sealed class BypassTokenMiddleware
         if (await MatchesAsync(config, TurnstileConfigKey, presented)) matched |= BypassTokenType.Turnstile;
         if (await MatchesAsync(config, RateLimitConfigKey, presented)) matched |= BypassTokenType.RateLimit;
 
-        if (matched != BypassTokenType.None) context.SetBypassedTypes(matched);
+        if (matched != BypassTokenType.None)
+        {
+            context.SetBypassedTypes(matched);
+
+            // A credential that switches off Turnstile and rate limiting should never be used without
+            // leaving a trace. Logged at warning so it stands out in a production log, and the token
+            // itself is never written - only which protections it disabled, and for what.
+            logger.LogWarning(
+                "Bypass token accepted for {Matched} on {Method} {Path} from {RemoteIp}",
+                matched, context.Request.Method, context.Request.Path, context.Connection.RemoteIpAddress);
+        }
+        else
+        {
+            // A presented-but-unmatched token is either a stale secret or someone probing for one.
+            logger.LogWarning(
+                "Bypass token presented but matched nothing on {Method} {Path} from {RemoteIp}",
+                context.Request.Method, context.Request.Path, context.Connection.RemoteIpAddress);
+        }
 
         await _next(context);
     }
