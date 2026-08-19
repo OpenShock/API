@@ -266,6 +266,14 @@ public static class OpenShockServiceHelper
                 return;
             }
 
+            // If the request presented the configured RATE_LIMIT_BYPASS_TOKEN, skip every limiter on it.
+            // BypassTokenMiddleware (which runs before UseRateLimiter) has already set HttpContext.Items;
+            // selectors are sync and this is just a dictionary lookup.
+            static RateLimitPartition<string>? TryBypass(HttpContext ctx)
+                => ctx.IsBypassed(Models.BypassTokenType.RateLimit)
+                    ? RateLimitPartition.GetNoLimiter("bypass-ratelimit")
+                    : null;
+
             options.OnRejected = async (context, cancellationToken) =>
             {
                 var logger = context.HttpContext.RequestServices.GetRequiredService<ILoggerFactory>()
@@ -294,6 +302,8 @@ public static class OpenShockServiceHelper
             // Fixed window at 10k requests allows 20k bursts if burst occurs at window boundary
             options.GlobalLimiter = PartitionedRateLimiter.Create<HttpContext, string>(context =>
             {
+                if (TryBypass(context) is { } bypassPartition) return bypassPartition;
+
                 var user = context.User;
                 var userId = user.FindFirstValue(ClaimTypes.NameIdentifier);
                 if (string.IsNullOrEmpty(userId))
@@ -329,7 +339,9 @@ public static class OpenShockServiceHelper
             // Authentication endpoints limiter
             options.AddPolicy("auth", context =>
             {
-                var ip = context.GetRemoteIP();
+                if (TryBypass(context) is { } bypassPartition) return bypassPartition;
+
+                var ip = context.GetRemoteIP().ToString();
                 return RateLimitPartition.GetFixedWindowLimiter(ip, _ => new FixedWindowRateLimiterOptions
                 {
                     PermitLimit = 10,
@@ -338,7 +350,8 @@ public static class OpenShockServiceHelper
             });
 
             // Token reporting endpoint concurrency limiter
-            options.AddPolicy("token-reporting", _ =>
+            options.AddPolicy("token-reporting", context =>
+                TryBypass(context) ??
                 RateLimitPartition.GetConcurrencyLimiter("token-reporting", _ => new ConcurrencyLimiterOptions
                 {
                     PermitLimit = 5,
@@ -347,7 +360,8 @@ public static class OpenShockServiceHelper
                 }));
 
             // Log fetching endpoint concurrency limiter
-            options.AddPolicy("shocker-logs", _ =>
+            options.AddPolicy("shocker-logs", context =>
+                TryBypass(context) ??
                 RateLimitPartition.GetConcurrencyLimiter("shocker-logs", _ => new ConcurrencyLimiterOptions
                 {
                     PermitLimit = 10,

@@ -2,6 +2,8 @@
 using OneOf;
 using OneOf.Types;
 using OpenShock.API.Options;
+using OpenShock.Common.Extensions;
+using BypassTokenType = OpenShock.Common.Models.BypassTokenType;
 
 namespace OpenShock.API.Services.Turnstile;
 
@@ -12,13 +14,20 @@ public sealed class CloudflareTurnstileService : ICloudflareTurnstileService
     private readonly HttpClient _httpClient;
     private readonly TurnstileOptions _options;
     private readonly IHostEnvironment _environment;
+    private readonly IHttpContextAccessor _httpContextAccessor;
     private readonly ILogger<CloudflareTurnstileService> _logger;
 
-    public CloudflareTurnstileService(HttpClient httpClient, TurnstileOptions options, IHostEnvironment environment, ILogger<CloudflareTurnstileService> logger)
+    public CloudflareTurnstileService(
+        HttpClient httpClient,
+        TurnstileOptions options,
+        IHostEnvironment environment,
+        IHttpContextAccessor httpContextAccessor,
+        ILogger<CloudflareTurnstileService> logger)
     {
         _httpClient = httpClient;
         _options = options;
         _environment = environment;
+        _httpContextAccessor = httpContextAccessor;
         _logger = logger;
     }
 
@@ -48,6 +57,11 @@ public sealed class CloudflareTurnstileService : ICloudflareTurnstileService
     {
         if (!_options.Enabled) return new Success();
         
+        // An admin-set bypass secret (matched against the TURNSTILE_BYPASS_TOKEN configuration property)
+        // counts as a Turnstile pass. The match was resolved upstream by BypassTokenMiddleware.
+        if (_httpContextAccessor.HttpContext?.IsBypassed(BypassTokenType.Turnstile) == true)
+            return new Success();
+
         if (string.IsNullOrEmpty(responseToken)) return CreateError(CloudflareTurnstileError.MissingResponse);
 
         if (_environment.IsDevelopment() && responseToken == "dev-bypass")
