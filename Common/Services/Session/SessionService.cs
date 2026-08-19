@@ -4,6 +4,7 @@ using OpenShock.Common.Models;
 using OpenShock.Common.OpenShockDb;
 using OpenShock.Common.Redis;
 using OpenShock.Common.Services.Audit;
+using OpenShock.Common.Services.Geo;
 using OpenShock.Common.Utils;
 using Redis.OM;
 using Redis.OM.Contracts;
@@ -32,7 +33,7 @@ public sealed class SessionService : ISessionService
         _auditService = auditService;
     }
 
-    public async Task<CreateSessionResult> CreateSessionAsync(Guid userId, string userAgent, string ipAddress, Guid? actorId)
+    public async Task<CreateSessionResult> CreateSessionAsync(Guid userId, string userAgent, string ipAddress, Guid? actorId, IpEnrichmentData? enrichment = null)
     {
         Guid id = Guid.CreateVersion7();
         string token = CryptoUtils.RandomString(AuthConstants.GeneratedTokenLength);
@@ -46,6 +47,10 @@ public sealed class SessionService : ISessionService
             PublicId = id,
             Created = DateTime.UtcNow,
             Expires = DateTime.UtcNow.Add(Duration.LoginSessionLifetime),
+            AsnOrg = enrichment?.AsnOrg,
+            IsVpn = enrichment?.IsVpn,
+            CountryCode = enrichment?.CountryCode,
+            City = enrichment?.City,
         }, Duration.LoginSessionLifetime);
 
         await _auditService.LogAsync(

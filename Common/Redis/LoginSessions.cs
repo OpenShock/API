@@ -20,4 +20,8 @@ public sealed class LoginSession
     public DateTimeOffset? Expires { get; set; }
     [JsonConverter(typeof(UnixMillisecondsDateTimeOffsetConverter))]
     public DateTimeOffset? LastUsed { get; set; }
+    public string? AsnOrg { get; set; }
+    public bool? IsVpn { get; set; }
+    public string? CountryCode { get; set; }
+    public string? City { get; set; }
 }

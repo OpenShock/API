@@ -27,6 +27,7 @@ var redisOptions = builder.RegisterRedisOptions();
 var databaseOptions = builder.RegisterDatabaseOptions();
 builder.RegisterMetricsOptions();
 builder.RegisterFrontendOptions();
+builder.RegisterGeoOptions();
 builder.RegisterAccountOptions();
 // The API never sends mail, but it must know whether anything ever will: with mail disabled there is
 // no activation link, so accounts are activated on creation instead of waiting for one.

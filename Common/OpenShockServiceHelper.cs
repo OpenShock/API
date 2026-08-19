@@ -20,6 +20,7 @@ using OpenShock.Common.Services.Audit;
 using OpenShock.Common.Services.BatchUpdate;
 using OpenShock.Common.Services.Configuration;
 using OpenShock.Common.Services.RedisPubSub;
+using OpenShock.Common.Services.Geo;
 using OpenShock.Common.Services.Session;
 using OpenShock.Common.Services.Webhook;
 using OpenTelemetry.Metrics;
@@ -237,6 +238,12 @@ public static class OpenShockServiceHelper
         services.AddScoped<IConfigurationService, ConfigurationService>();
         services.AddScoped<ISessionService, SessionService>();
         services.AddScoped<IAuditService, AuditService>();
+
+        // Ensure GeoOptions is always resolvable so IpEnrichmentService can activate even in hosts
+        // (Cron, LiveControlGateway, SeedE2E) that don't call RegisterGeoOptions(). TryAdd leaves the
+        // API's config-bound instance untouched; other hosts get a disabled default (no DB paths).
+        services.TryAddSingleton(new GeoOptions());
+        services.AddSingleton<IIpEnrichmentService, IpEnrichmentService>();
         services.AddHttpClient<IWebhookService, WebhookService>(client =>
         {
             client.Timeout = TimeSpan.FromSeconds(30);
