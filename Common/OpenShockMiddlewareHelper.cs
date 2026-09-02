@@ -99,7 +99,9 @@ public static class OpenShockMiddlewareHelper
         
         app.UseWebSockets(new WebSocketOptions
         {
-            KeepAliveInterval = TimeSpan.FromMinutes(1)
+            // RFC 6455 ping frames. Firmware 1.6.0-rc.1 ignores these for its 90s
+            // application timer, but they keep NAT / reverse-proxy idle timers alive.
+            KeepAliveInterval = TimeSpan.FromSeconds(15)
         });
         app.UseRouting();
         app.UseAuthentication();

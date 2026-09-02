@@ -46,6 +46,10 @@ public static class OpenShockApplication
         builder.WebHost.ConfigureKestrel(serverOptions =>
         {
             serverOptions.Limits.RequestHeadersTimeout = TimeSpan.FromMilliseconds(3000);
+            // Hub / live-control sockets are mostly idle on the receive side between
+            // pongs. The default 240 B/s body rate would abort them.
+            serverOptions.Limits.MinRequestBodyDataRate = null;
+            serverOptions.Limits.MinResponseDataRate = null;
         });
 
         builder.Host.UseSerilog((context, _, config) => config.ReadFrom.Configuration(context.Configuration));

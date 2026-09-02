@@ -362,13 +362,22 @@ public static class OpenShockServiceHelper
     public static IServiceCollection AddOpenShockSignalR(this IServiceCollection services,
         ConfigurationOptions redisConfig)
     {
-        services.AddSignalR()
-            .AddOpenShockStackExchangeRedis(options => { options.Configuration = redisConfig; })
-            .AddJsonProtocol(options =>
-            {
-                options.PayloadSerializerOptions.PropertyNameCaseInsensitive = true;
-                options.PayloadSerializerOptions.Converters.Add(new SemVersionJsonConverter());
-            });
+        services.AddSignalR(options =>
+        {
+            // Browser UserHub only. Hub firmware uses a raw WebSocket at /2/ws/hub
+            // and application-level FlatBuffer Ping — these options do not apply there.
+            options.KeepAliveInterval = TimeSpan.FromSeconds(15);
+            options.ClientTimeoutInterval = TimeSpan.FromSeconds(120);
+        })
+        .AddOpenShockStackExchangeRedis(options => 
+        { 
+            options.Configuration = redisConfig; 
+        })
+        .AddJsonProtocol(options =>
+        {
+            options.PayloadSerializerOptions.PropertyNameCaseInsensitive = true;
+            options.PayloadSerializerOptions.Converters.Add(new SemVersionJsonConverter());
+        });
 
         return services;
     }

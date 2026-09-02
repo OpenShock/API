@@ -16,7 +16,8 @@ using OpenShock.Serialization.Types;
 using Serilog;
 
 namespace OpenShock.LiveControlGateway.Controllers;
-//TODO: Implement new keep alive ping pong mechanism
+// Hub keep-alive is application-level FlatBuffer Ping/Pong (see SendInitialData),
+// not RFC 6455 ping frames and not SignalR.
 /// <summary>
 /// Communication with the hubs aka ESP-32 microcontrollers
 /// </summary>
@@ -49,7 +50,18 @@ public sealed class HubV2Controller : HubControllerBase<HubToGatewayMessage, Gat
         : base(HubToGatewayMessage.Serializer, GatewayToHubMessage.Serializer, hubLifetimeManager, serviceProvider, options, logger)
     {
         _userHubContext = userHubContext;
-        _pingTimer = new Timer(PingTimerElapsed, null, Duration.DevicePingInitialDelay, Duration.DevicePingPeriod);
+        // Do not start until the socket is accepted — see SendInitialData.
+        _pingTimer = new Timer(PingTimerElapsed, null, Timeout.InfiniteTimeSpan, Timeout.InfiniteTimeSpan);
+    }
+
+    /// <inheritdoc />
+    protected override Task SendInitialData()
+    {
+        // Firmware 1.6.0-rc.1 starts a 90s timer on the first application Ping and
+        // disconnects if another Ping does not arrive in time. RFC 6455 ping frames
+        // do not reset that timer. Kick the first Ping as soon as the socket is up.
+        _pingTimer.Change(TimeSpan.Zero, Duration.DevicePingPeriod);
+        return Task.CompletedTask;
     }
 
     private async void PingTimerElapsed(object? state)
@@ -57,6 +69,7 @@ public sealed class HubV2Controller : HubControllerBase<HubToGatewayMessage, Gat
         try
         {
             _pingTimestamp = Stopwatch.GetTimestamp();
+            Logger.LogDebug("Sending ping to hub [{HubId}]", CurrentHubId);
             await QueueMessage(new GatewayToHubMessage
             {
                 Payload = new GatewayToHubMessagePayload(new Ping
