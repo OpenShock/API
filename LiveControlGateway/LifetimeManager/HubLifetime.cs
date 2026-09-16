@@ -500,13 +500,9 @@ public sealed class HubLifetime : IAsyncDisposable
         online.BootedAt = data.BootedAt;
         online.LatencyMs = data.LatencyMs;
         online.Rssi = data.Rssi;
-        online.Gateway = data.Gateway;
-        online.FirmwareVersion = data.FirmwareVersion;
-        online.ConnectedAt = data.ConnectedAt;
-        online.UserAgent = data.UserAgent;
         online.Country = data.Country;
-        online.Ip = data.Ip;
-        
+        online.Ip = data.Ip?.ToString();
+
         var sendOnlineStatusUpdate = false;
 
         // Do we need to send a update to the clients?
@@ -515,6 +511,11 @@ public sealed class HubLifetime : IAsyncDisposable
             online.ConnectedAt != data.ConnectedAt ||
             online.UserAgent != data.UserAgent)
         {
+            online.Gateway = data.Gateway;
+            online.FirmwareVersion = data.FirmwareVersion;
+            online.ConnectedAt = data.ConnectedAt;
+            online.UserAgent = data.UserAgent;
+
             sendOnlineStatusUpdate = true;
         }
 
@@ -554,6 +555,8 @@ public sealed class HubLifetime : IAsyncDisposable
                 BootedAt = data.BootedAt,
                 LatencyMs = data.LatencyMs,
                 Rssi = data.Rssi,
+                Country = data.Country,
+                Ip = data.Ip?.ToString(),
             }, Duration.DeviceKeepAliveTimeout);
         }
     }

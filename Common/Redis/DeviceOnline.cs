@@ -1,5 +1,4 @@
-﻿using System.Net;
-using System.Text.Json.Serialization;
+﻿using System.Text.Json.Serialization;
 using OpenShock.Common.JsonSerialization;
 using OpenShock.Common.Models;
 using Redis.OM.Modeling;
@@ -23,5 +22,5 @@ public sealed class DeviceOnline
     public ushort? LatencyMs { get; set; }
     public int? Rssi { get; set; }
     public string? Country { get; set; }
-    public IPAddress? Ip { get; set; }
+    public string? Ip { get; set; }
 }
