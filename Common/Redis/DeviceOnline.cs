@@ -1,4 +1,5 @@
-﻿using System.Text.Json.Serialization;
+﻿using System.Net;
+using System.Text.Json.Serialization;
 using OpenShock.Common.JsonSerialization;
 using OpenShock.Common.Models;
 using Redis.OM.Modeling;
@@ -16,9 +17,11 @@ public sealed class DeviceOnline
     public required SemVersion FirmwareVersion { get; set; }
     public required string Gateway { get; set; }
     public required DateTimeOffset ConnectedAt { get; set; }
-    public string? UserAgent { get; set; } = null;
+    public string? UserAgent { get; set; }
     
     public DateTimeOffset BootedAt { get; set; }
     public ushort? LatencyMs { get; set; }
     public int? Rssi { get; set; }
+    public string? Country { get; set; }
+    public IPAddress? Ip { get; set; }
 }

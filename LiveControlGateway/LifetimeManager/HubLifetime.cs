@@ -18,7 +18,7 @@ using StackExchange.Redis;
 using System.Collections.Immutable;
 using System.ComponentModel.DataAnnotations;
 using System.Diagnostics;
-
+using System.Net;
 using OpenShock.Internal.Common.Utils;
 
 using OpenShock.Internal.Common.Extensions;
@@ -500,19 +500,21 @@ public sealed class HubLifetime : IAsyncDisposable
         online.BootedAt = data.BootedAt;
         online.LatencyMs = data.LatencyMs;
         online.Rssi = data.Rssi;
-
+        online.Gateway = data.Gateway;
+        online.FirmwareVersion = data.FirmwareVersion;
+        online.ConnectedAt = data.ConnectedAt;
+        online.UserAgent = data.UserAgent;
+        online.Country = data.Country;
+        online.Ip = data.Ip;
+        
         var sendOnlineStatusUpdate = false;
 
+        // Do we need to send a update to the clients?
         if (online.FirmwareVersion != data.FirmwareVersion ||
             online.Gateway != data.Gateway ||
             online.ConnectedAt != data.ConnectedAt ||
             online.UserAgent != data.UserAgent)
         {
-            online.Gateway = data.Gateway;
-            online.FirmwareVersion = data.FirmwareVersion;
-            online.ConnectedAt = data.ConnectedAt;
-            online.UserAgent = data.UserAgent;
-
             sendOnlineStatusUpdate = true;
         }
 
@@ -654,4 +656,14 @@ public readonly struct SelfOnlineData
     /// Wifi rssi
     /// </summary>
     public int? Rssi { get; init; } = null;
+    
+    /// <summary>
+    /// Country code if available
+    /// </summary>
+    public string? Country { get; init; } = null;
+    
+    /// <summary>
+    /// Remote ip address
+    /// </summary>
+    public IPAddress? Ip { get; init; } = null;
 }
