@@ -1,5 +1,5 @@
 ﻿using Microsoft.AspNetCore.Authorization;
-using Microsoft.OpenApi.Models;
+using Microsoft.OpenApi;
 using OpenShock.Common.Authentication;
 using OpenShock.Common.DataAnnotations.Interfaces;
 using Swashbuckle.AspNetCore.SwaggerGen;
@@ -8,27 +8,33 @@ namespace OpenShock.Common.Swagger;
 
 public sealed class AttributeFilter : ISchemaFilter, IParameterFilter, IOperationFilter
 {
-    public void Apply(OpenApiParameter parameter, ParameterFilterContext context)
+    // Microsoft.OpenApi v2 hands the filters the read-only IOpenApi* views; only the concrete
+    // types are mutable, so anything we cannot write to is left untouched.
+    public void Apply(IOpenApiParameter parameter, ParameterFilterContext context)
     {
+        if (parameter is not OpenApiParameter openApiParameter) return;
+
         // Apply OpenShock Parameter Attributes
         foreach (var attribute in context.ParameterInfo?.GetCustomAttributes(true).OfType<IParameterAttribute>() ?? [])
         {
-            attribute.Apply(parameter);
+            attribute.Apply(openApiParameter);
         }
 
         // Apply OpenShock Parameter Attributes
         foreach (var attribute in context.PropertyInfo?.GetCustomAttributes(true).OfType<IParameterAttribute>() ?? [])
         {
-            attribute.Apply(parameter);
+            attribute.Apply(openApiParameter);
         }
     }
 
-    public void Apply(OpenApiSchema schema, SchemaFilterContext context)
+    public void Apply(IOpenApiSchema schema, SchemaFilterContext context)
     {
+        if (schema is not OpenApiSchema openApiSchema) return;
+
         // Apply OpenShock Parameter Attributes
         foreach (var attribute in context.MemberInfo?.GetCustomAttributes(true).OfType<IParameterAttribute>() ?? [])
         {
-            attribute.Apply(schema);
+            attribute.Apply(openApiSchema);
         }
     }
 
@@ -67,40 +73,19 @@ public sealed class AttributeFilter : ISchemaFilter, IParameterFilter, IOperatio
                 {
                     OpenShockAuthSchemes.UserSessionCookie => [
                         new OpenApiSecurityRequirement {{
-                            new OpenApiSecurityScheme
-                            {
-                                Reference = new OpenApiReference
-                                {
-                                    Id = OpenShockAuthSchemes.UserSessionCookie,
-                                    Type = ReferenceType.SecurityScheme,
-                                }
-                            },
+                            new OpenApiSecuritySchemeReference(OpenShockAuthSchemes.UserSessionCookie, context.Document),
                             securityInfos
                         }}
                     ],
                     OpenShockAuthSchemes.ApiToken => [
                         new OpenApiSecurityRequirement {{
-                            new OpenApiSecurityScheme
-                            {
-                                Reference = new OpenApiReference
-                                {
-                                    Id = OpenShockAuthSchemes.ApiToken,
-                                    Type = ReferenceType.SecurityScheme,
-                                }
-                            },
+                            new OpenApiSecuritySchemeReference(OpenShockAuthSchemes.ApiToken, context.Document),
                             securityInfos
                         }}
                     ],
                     OpenShockAuthSchemes.HubToken => [
                         new OpenApiSecurityRequirement {{
-                            new OpenApiSecurityScheme
-                            {
-                                Reference = new OpenApiReference
-                                {
-                                    Id = OpenShockAuthSchemes.HubToken,
-                                    Type = ReferenceType.SecurityScheme
-                                }
-                            },
+                            new OpenApiSecuritySchemeReference(OpenShockAuthSchemes.HubToken, context.Document),
                             securityInfos
                         }}
                     ],
@@ -112,7 +97,7 @@ public sealed class AttributeFilter : ISchemaFilter, IParameterFilter, IOperatio
         }
         else
         {
-            operation.Security.Clear();
+            operation.Security?.Clear();
         }
     }
 }
