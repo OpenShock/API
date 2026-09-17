@@ -10,7 +10,7 @@ COPY --link LiveControlGateway/. LiveControlGateway/
 RUN dotnet publish --no-restore -c Release LiveControlGateway/LiveControlGateway.csproj -o /app
 
 # final is the final runtime stage for running the app
-FROM mcr.microsoft.com/dotnet/aspnet:10.0-alpine AS final-gateway
+FROM mcr.microsoft.com/dotnet/aspnet:11.0.0-preview.7-alpine3.24 AS final-gateway
 WORKDIR /app
 
 COPY docker/entrypoint.sh /entrypoint.sh

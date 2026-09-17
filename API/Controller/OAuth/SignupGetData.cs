@@ -31,8 +31,9 @@ public sealed partial class OAuthController
         }
         
         var result = await ValidateOAuthFlowAsync();
-        if (!result.TryPickT0(out var auth, out var error))
+        if (result is not ValidatedFlowContext auth)
         {
+            var error = (OAuthValidationError)result.Value!;
             return error switch
             {
                 OAuthValidationError.FlowStateMissing => Problem(OAuthError.FlowNotFound),

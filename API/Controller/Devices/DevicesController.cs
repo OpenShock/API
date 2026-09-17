@@ -3,7 +3,6 @@ using System.Security.Cryptography;
 using Asp.Versioning;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using OneOf;
 using OpenShock.API.Models.Requests;
 using OpenShock.API.Models.Response;
 using OpenShock.API.Services.DeviceUpdate;
@@ -15,6 +14,7 @@ using OpenShock.Common.Models;
 using OpenShock.Common.OpenShockDb;
 using OpenShock.Common.Problems;
 using OpenShock.Common.Redis;
+using OpenShock.Common.Results;
 using OpenShock.Common.Utils;
 using Redis.OM;
 
@@ -243,7 +243,7 @@ public sealed partial class DevicesController
     public async Task<IActionResult> GetLiveControlGatewayInfo([FromRoute] Guid deviceId)
     {
         var result = await ResolveDeviceGatewayAsync(deviceId);
-        if (result.TryPickT1(out var problem, out var gateway)) return Problem(problem);
+        if (result is not LcgNode gateway) return Problem((OpenShockProblem)result.Value!);
 
         return LegacyDataOk(new LcgResponse
         {
@@ -265,7 +265,7 @@ public sealed partial class DevicesController
     public async Task<IActionResult> GetLiveControlGatewayInfoV2([FromRoute] Guid deviceId)
     {
         var result = await ResolveDeviceGatewayAsync(deviceId);
-        if (result.TryPickT1(out var problem, out var gateway)) return Problem(problem);
+        if (result is not LcgNode gateway) return Problem((OpenShockProblem)result.Value!);
 
         return Ok(new LcgResponseV2
         {
@@ -281,7 +281,7 @@ public sealed partial class DevicesController
     /// <see cref="OpenShockProblem"/> when the caller lacks access, the hub is offline, or it has
     /// no gateway.
     /// </summary>
-    private async Task<OneOf<LcgNode, OpenShockProblem>> ResolveDeviceGatewayAsync(Guid deviceId)
+    private async Task<ValueOrProblem<LcgNode>> ResolveDeviceGatewayAsync(Guid deviceId)
     {
         // Check if user owns device or has a share
         var deviceExistsAndYouHaveAccess = await _db.Devices.AnyAsync(x =>

@@ -1,16 +1,15 @@
 ﻿using OpenShock.Common.OpenShockDb;
 using OpenShock.Common.Redis;
-using OneOf;
-using OneOf.Types;
+using OpenShock.Common.Results;
 
 namespace OpenShock.Common.Authentication.Services;
 
 public interface IUserReferenceService
 {
-    public OneOf<LoginSession, ApiToken, None> AuthReference { get; set; }
+    public Union3<LoginSession, ApiToken, None> AuthReference { get; set; }
 }
 
 public sealed class UserReferenceService : IUserReferenceService
 {
-    public OneOf<LoginSession, ApiToken, None> AuthReference { get; set; } = new None();
+    public Union3<LoginSession, ApiToken, None> AuthReference { get; set; } = new None();
 }

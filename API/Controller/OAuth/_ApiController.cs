@@ -2,10 +2,10 @@
 using Asp.Versioning;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Mvc;
-using OneOf;
 using OpenShock.API.OAuth;
 using OpenShock.API.Services.Account;
 using OpenShock.Common;
+using OpenShock.Common.Results;
 
 namespace OpenShock.API.Controller.OAuth;
 
@@ -39,7 +39,7 @@ public sealed partial class OAuthController : OpenShockControllerBase
     /// Validates: provider exists, temp cookie auth present, scheme matches, flow parsable.
     /// On success returns ValidatedFlowContext; on failure returns IActionResult with proper problem details.
     /// </summary>
-    private async Task<OneOf<ValidatedFlowContext, OAuthValidationError>> ValidateOAuthFlowAsync()
+    private async Task<Union2<ValidatedFlowContext, OAuthValidationError>> ValidateOAuthFlowAsync()
     {
         // 1) authenticate temp cookie
         var auth = await HttpContext.AuthenticateAsync(OAuthConstants.FlowScheme);

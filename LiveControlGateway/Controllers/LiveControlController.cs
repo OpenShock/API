@@ -5,8 +5,6 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
 using Microsoft.EntityFrameworkCore;
-using OneOf;
-using OneOf.Types;
 using OpenShock.Common.Authentication;
 using OpenShock.Common.Authentication.Attributes;
 using OpenShock.Common.Authentication.Services;
@@ -23,6 +21,7 @@ using OpenShock.LiveControlGateway.LifetimeManager;
 using OpenShock.LiveControlGateway.Models;
 using OpenShock.LiveControlGateway.PubSub;
 using JsonOptions = OpenShock.Common.JsonSerialization.JsonOptions;
+using Results = OpenShock.Common.Results;
 using Timer = System.Timers.Timer;
 
 using OpenShock.Internal.Common.Utils;
@@ -183,11 +182,11 @@ public sealed class LiveControlController : WebsocketBaseController<LiveControlR
     /// We get the id from the route, check if its valid, check if the user has access to the shocker / hub
     /// </summary>
     /// <returns></returns>
-    protected override async Task<OneOf<Success, OneOf.Types.Error<OpenShockProblem>>> ConnectionPrecondition()
+    protected override async Task<Results.SuccessOrProblem> ConnectionPrecondition()
     {
         if (HttpContext.GetRouteValue("hubId") is not string param || !Guid.TryParse(param, out var id))
         {
-            return new OneOf.Types.Error<OpenShockProblem>(WebsocketError.WebsocketLiveControlHubIdInvalid);
+            return WebsocketError.WebsocketLiveControlHubIdInvalid;
         }
 
         HubId = id;
@@ -200,7 +199,7 @@ public sealed class LiveControlController : WebsocketBaseController<LiveControlR
 
             if (!hubExistsAndYouHaveAccess)
             {
-                return new OneOf.Types.Error<OpenShockProblem>(WebsocketError.WebsocketLiveControlHubNotFound);
+                return WebsocketError.WebsocketLiveControlHubNotFound;
             }
 
             _device = await db.Devices.FirstOrDefaultAsync(x => x.Id == HubId);
@@ -222,22 +221,20 @@ public sealed class LiveControlController : WebsocketBaseController<LiveControlR
 
         var hubLifetimeResult = await _hubLifetimeManager.AddLiveControlConnection(this);
 
-        if (hubLifetimeResult.IsT1)
+        switch (hubLifetimeResult)
         {
-            _logger.LogDebug("No such hub with id [{HubId}] connected", HubId);
-            return new OneOf.Types.Error<OpenShockProblem>(WebsocketError.WebsocketLiveControlHubNotConnected);
+            case Results.NotFound:
+                _logger.LogDebug("No such hub with id [{HubId}] connected", HubId);
+                return WebsocketError.WebsocketLiveControlHubNotConnected;
+            case LifetimeManager.HubLifetimeManager.Busy:
+                _logger.LogDebug("Hub is busy, cannot connect [{HubId}]", HubId);
+                return WebsocketError.WebsocketLiveControlHubLifetimeBusy;
+            case LifetimeManager.HubLifetime hubLifetime:
+                _hubLifetime = hubLifetime;
+                break;
         }
 
-        if (hubLifetimeResult.IsT2)
-        {
-            _logger.LogDebug("Hub is busy, cannot connect [{HubId}]", HubId);
-            return new OneOf.Types.Error<OpenShockProblem>(WebsocketError.WebsocketLiveControlHubLifetimeBusy);
-        }
-
-        _hubLifetime = hubLifetimeResult.AsT0;
-
-
-        return new Success();
+        return new Results.Success();
     }
 
     /// <summary>
@@ -251,7 +248,7 @@ public sealed class LiveControlController : WebsocketBaseController<LiveControlR
 
         // When authenticated via an API token, the token may scope/pause shocker control.
         // Session auth carries no such limits.
-        if (_userReferenceService.AuthReference.TryPickT1(out var apiToken, out _))
+        if (_userReferenceService.AuthReference is ApiToken apiToken)
         {
             _tokenId = apiToken.Id;
             _tokenPaused = apiToken.ShockerControlPaused;
@@ -318,8 +315,17 @@ public sealed class LiveControlController : WebsocketBaseController<LiveControlR
             LinkedToken
             );
 
-        var continueLoop = await message.Match(async request =>
-            {
+        switch (message)
+        {
+            case DeserializeFailed failed:
+                Logger.LogWarning(failed.Exception, "Deserialization failed for websocket message");
+                await ForceClose(WebSocketCloseStatus.InvalidPayloadData, "Invalid json message received");
+                return false;
+            case Results.WebsocketClosure:
+                Logger.LogTrace("Client sent closure");
+                return false;
+            default:
+                var request = (BaseRequest<LiveRequestType>?)message.Value;
                 if (request?.Data is null)
                 {
                     Logger.LogWarning("Received null data from client");
@@ -330,19 +336,7 @@ public sealed class LiveControlController : WebsocketBaseController<LiveControlR
                 await ProcessResult(request);
 
                 return true;
-            },
-            async failed =>
-            {
-                Logger.LogWarning(failed.Exception, "Deserialization failed for websocket message");
-                await ForceClose(WebSocketCloseStatus.InvalidPayloadData, "Invalid json message received");
-                return false;
-            }, closure =>
-            {
-                Logger.LogTrace("Client sent closure");
-                return Task.FromResult(false);
-            });
-
-        return continueLoop;
+        }
     }
 
     private Task ProcessResult(BaseRequest<LiveRequestType> request)
@@ -485,18 +479,20 @@ public sealed class LiveControlController : WebsocketBaseController<LiveControlR
         }
 
         var permCheck = CheckFramePermissions(frame.Shocker, frame.Type);
-        if (!permCheck.TryPickT0(out var perms, out var error))
+        if (permCheck is not SharePermsAndLimits perms)
         {
             await QueueMessage(new LiveControlResponse<LiveResponseType>
             {
-                ResponseType = error.Match(
-                    notFound => LiveResponseType.ShockerNotFound,
-                    liveNotEnabled => LiveResponseType.ShockerMissingLivePermission,
-                    noPermission => LiveResponseType.ShockerMissingPermission,
-                    shockerPaused => LiveResponseType.ShockerPaused
-                )
+                ResponseType = permCheck switch
+                {
+                    Results.NotFound => LiveResponseType.ShockerNotFound,
+                    LiveNotEnabled => LiveResponseType.ShockerMissingLivePermission,
+                    NoPermission => LiveResponseType.ShockerMissingPermission,
+                    ShockerPaused => LiveResponseType.ShockerPaused,
+                    _ => throw new UnreachableException()
+                }
             });
-            
+
             return;
         }
 
@@ -507,27 +503,30 @@ public sealed class LiveControlController : WebsocketBaseController<LiveControlR
 
         var result = HubLifetime.ReceiveFrame(frame.Shocker, frame.Type, intensity, _tps);
 
-        await result.Match(
-            _ =>
-            {
+        switch (result)
+        {
+            case Results.Success:
                 Logger.LogTrace("Successfully received frame");
-                return ValueTask.CompletedTask;
-            },
-            _ => QueueMessage(new LiveControlResponse<LiveResponseType>
-            {
-                ResponseType = LiveResponseType.ShockerNotFound
-            }),
-            shockerExclusive => QueueMessage(new LiveControlResponse<LiveResponseType>
-            {
-                ResponseType = LiveResponseType.ShockerExclusive,
-                Data = shockerExclusive.Until
-            })
-        );
+                break;
+            case Results.NotFound:
+                await QueueMessage(new LiveControlResponse<LiveResponseType>
+                {
+                    ResponseType = LiveResponseType.ShockerNotFound
+                });
+                break;
+            case ShockerExclusive shockerExclusive:
+                await QueueMessage(new LiveControlResponse<LiveResponseType>
+                {
+                    ResponseType = LiveResponseType.ShockerExclusive,
+                    Data = shockerExclusive.Until
+                });
+                break;
+        }
     }
 
-    private OneOf<SharePermsAndLimits, NotFound, LiveNotEnabled, NoPermission, ShockerPaused> CheckFramePermissions(Guid shocker, ControlType controlType)
+    private Results.Union5<SharePermsAndLimits, Results.NotFound, LiveNotEnabled, NoPermission, ShockerPaused> CheckFramePermissions(Guid shocker, ControlType controlType)
     {
-        if (!_sharedShockers.TryGetValue(shocker, out var shockerShare)) return new NotFound();
+        if (!_sharedShockers.TryGetValue(shocker, out var shockerShare)) return new Results.NotFound();
 
         if (shockerShare.Paused) return new ShockerPaused();
         if (!PermissionUtils.IsAllowed(controlType, true, shockerShare.PermsAndLimits)) return new NoPermission();
@@ -611,16 +610,16 @@ public sealed class LiveControlController : WebsocketBaseController<LiveControlR
 }
 
 /// <summary>
-/// OneOf
+/// Union case
 /// </summary>
-public readonly struct LiveNotEnabled;
+public sealed class LiveNotEnabled;
 
 /// <summary>
-/// OneOf
+/// Union case
 /// </summary>
-public readonly struct NoPermission;
+public sealed class NoPermission;
 
 /// <summary>
-/// OneOf
+/// Union case
 /// </summary>
-public readonly struct ShockerPaused;
+public sealed class ShockerPaused;

@@ -1,12 +1,16 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using OpenShock.API.Models.Requests;
+using OpenShock.API.Services.Account;
+using System.Diagnostics;
 using System.Net.Mime;
 using Asp.Versioning;
 using Microsoft.AspNetCore.RateLimiting;
 using OpenShock.API.Services.Turnstile;
 using OpenShock.Common.Errors;
+using OpenShock.Common.OpenShockDb;
 using OpenShock.Common.Options;
 using OpenShock.Common.Problems;
+using OpenShock.Common.Results;
 
 using OpenShock.Internal.Common.Problems;
 
@@ -43,9 +47,11 @@ public sealed partial class AccountController
         if (turnstileError is not null) return turnstileError;
 
         var creationAction = await _accountService.CreateAccountWithActivationFlowAsync(body.Email, body.Username, body.Password);
-        return creationAction.Match<IActionResult>(
-            _ => Ok(),
-            _ => Problem(SignupError.UsernameOrEmailExists)
-        );
+        return creationAction switch
+        {
+            User _ => Ok(),
+            AccountWithEmailOrUsernameExists => Problem(SignupError.UsernameOrEmailExists),
+            _ => throw new UnreachableException()
+        };
     }
 }
