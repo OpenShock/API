@@ -225,7 +225,7 @@ public abstract class HubControllerBase<TIn, TOut> : FlatbuffersWebsocketBaseCon
         var bootedAt = GetBootedAtFromUptimeMs(uptimeMs);
         if (!bootedAt.HasValue)
         {
-            Logger.LogDebug("Client attempted to abuse reported boot time, uptime indicated that hub [{HubId}] booted prior to 2024", CurrentHubId);
+            Logger.LogWarning("Client attempted to abuse reported boot time, uptime indicated that hub [{HubId}] booted prior to 2024", CurrentHubId);
             return false;
         }
         
@@ -233,7 +233,7 @@ public abstract class HubControllerBase<TIn, TOut> : FlatbuffersWebsocketBaseCon
 
         // Reset the keep alive timeout
         _keepAliveTimeoutTimer.Interval = Duration.DeviceKeepAliveTimeout.TotalMilliseconds;
-
+        
         await HubLifetime.Online(CurrentHubId, new SelfOnlineData()
         {
             Owner = CurrentHubOwnerId,
@@ -243,7 +243,9 @@ public abstract class HubControllerBase<TIn, TOut> : FlatbuffersWebsocketBaseCon
             UserAgent = _userAgent,
             BootedAt = bootedAt.Value,
             LatencyMs = latency,
-            Rssi = rssi
+            Rssi = rssi,
+            Country = HttpContext.GetCFIPCountry(),
+            Ip = HttpContext.GetRemoteIP()
         });
 
         return true;

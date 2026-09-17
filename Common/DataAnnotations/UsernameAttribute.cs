@@ -1,7 +1,7 @@
 ﻿using System.ComponentModel.DataAnnotations;
 using System.Diagnostics;
-using Microsoft.OpenApi.Any;
-using Microsoft.OpenApi.Models;
+using System.Text.Json.Nodes;
+using Microsoft.OpenApi;
 using OpenShock.Common.DataAnnotations.Interfaces;
 using OpenShock.Common.Results;
 using OpenShock.Common.Validation;
@@ -60,9 +60,12 @@ public sealed class UsernameAttribute : ValidationAttribute, IParameterAttribute
     {
         //if (ShouldValidate) schema.Pattern = ???;
         
-        schema.Example = new OpenApiString(ExampleValue);
+        schema.Example = JsonValue.Create(ExampleValue);
     }
 
     /// <inheritdoc/>
-    public void Apply(OpenApiParameter parameter) => Apply(parameter.Schema);
+    public void Apply(OpenApiParameter parameter)
+    {
+        if (parameter.Schema is OpenApiSchema schema) Apply(schema);
+    }
 }
