@@ -63,7 +63,7 @@ public sealed class EmailAddressAttribute : ValidationAttribute, IParameterAttri
     {
         //if (ShouldValidate) schema.Pattern = ???;
         
-        schema.Example = JsonValue.Create(ExampleValue);
+        schema.Examples = [JsonValue.Create(ExampleValue)];
     }
 
     /// <inheritdoc/>
