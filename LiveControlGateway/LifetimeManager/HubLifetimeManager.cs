@@ -7,6 +7,7 @@ using OpenShock.Common.OpenShockDb;
 using OpenShock.Common.Redis.PubSub;
 using OpenShock.Common.Services.RedisPubSub;
 using OpenShock.LiveControlGateway.Controllers;
+using OpenShock.LiveControlGateway.Options;
 using Redis.OM.Contracts;
 using StackExchange.Redis;
 
@@ -37,6 +38,7 @@ public sealed class HubLifetimeManager
     /// <param name="redisConnectionProvider"></param>
     /// <param name="redisPubService"></param>
     /// <param name="loggerFactory"></param>
+    /// <param name="lcgOptions"></param>
     /// <param name="meter"></param>
     public HubLifetimeManager(
         IDbContextFactory<OpenShockContext> dbContextFactory,
@@ -44,6 +46,7 @@ public sealed class HubLifetimeManager
         IRedisConnectionProvider redisConnectionProvider,
         IRedisPubService redisPubService,
         ILoggerFactory loggerFactory,
+        LcgOptions lcgOptions,
         [FromKeyedServices("OpenShock.Gateway.Meter")] Meter meter
     )
     {
@@ -56,11 +59,13 @@ public sealed class HubLifetimeManager
         _logger = _loggerFactory.CreateLogger<HubLifetimeManager>();
         
         
+        var gatewayFqdn = new KeyValuePair<string, object?>("gateway_fqdn", lcgOptions.Fqdn);
+
         meter.CreateObservableUpDownCounter("openshock_hub_connections", () =>
         {
             return new[]
             {
-                new Measurement<int>(_lifetimes.Count)
+                new Measurement<int>(_lifetimes.Count, gatewayFqdn)
             };
         }, "connections", "Current number of connected hubs");
     }

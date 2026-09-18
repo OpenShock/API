@@ -33,7 +33,9 @@ builder.Services
 builder.Services.AddScoped<IDeviceService, DeviceService>();
 builder.Services.AddScoped<IControlSender, ControlSender>();
 builder.Services.AddScoped<IOtaService, OtaService>();
-builder.Services.AddKeyedSingleton("OpenShock.Gateway.Meter", new Meter("OpenShock.Gateway", "1.0.0", [new KeyValuePair<string, object?>("gateway_fqdn", lcgOptions.Fqdn)]));
+// The fqdn rides on the individual measurements, not on the Meter: a tag set here is a *scope*
+// attribute, which the Prometheus exporter emits prefixed as otel_scope_gateway_fqdn.
+builder.Services.AddKeyedSingleton("OpenShock.Gateway.Meter", new Meter("OpenShock.Gateway", "1.0.0"));
 
 builder.AddSwaggerExt<Program>();
 
