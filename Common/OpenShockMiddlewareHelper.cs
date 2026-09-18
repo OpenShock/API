@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.AspNetCore.HttpOverrides;
+using Microsoft.AspNetCore.OpenApi;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using OpenShock.Common.HealthChecks;
@@ -122,11 +123,11 @@ public static class OpenShockMiddlewareHelper
             return IsAllowed(context.Connection.RemoteIpAddress, internalAllowedIpNetworks);
         });
         
-        app.UseSwagger();
+        app.MapOpenApi("/openapi/{documentName}.json").WithDocumentPerVersion();
 
-        app.MapScalarApiReference("/scalar/viewer", options => 
+        app.MapScalarApiReference("/scalar/viewer", options =>
                 options
-                    .WithOpenApiRoutePattern("/swagger/{documentName}/swagger.json")
+                    .WithOpenApiRoutePattern("/openapi/{documentName}.json")
                     .AddDocument("1", "Version 1")
                     .AddDocument("2", "Version 2")
                 );

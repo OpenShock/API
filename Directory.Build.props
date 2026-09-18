@@ -39,7 +39,10 @@
   
   <PropertyGroup>
     <!-- Disable Missing XML comment warning -->
-    <NoWarn>1591</NoWarn>
+    <!-- AV0013/AV0014/AV0015: Asp.Versioning's OpenAPI-aware analyzer recommendations (AddMvc() registration
+         style, [ApiController] on shared base classes, switching to query-string version reading) don't fit
+         this app's URL-segment versioning scheme and would be behavior changes, not just OpenAPI wiring. -->
+    <NoWarn>1591;AV0013;AV0014;AV0015</NoWarn>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
