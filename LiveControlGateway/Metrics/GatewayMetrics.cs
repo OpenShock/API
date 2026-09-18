@@ -1,4 +1,6 @@
 using System.Diagnostics.Metrics;
+using OpenShock.Common.Metrics;
+using OpenShock.Common.OpenShockDb;
 using OpenShock.LiveControlGateway.Options;
 
 namespace OpenShock.LiveControlGateway.Metrics;
@@ -104,8 +106,11 @@ public sealed class GatewayMetrics
                 HistogramBucketBoundaries = [5, 10, 20, 30, 50, 75, 100, 150, 200, 300, 500, 1000, 2000]
             });
 
+        // Tagged by control type so live control shows up next to the API's command counter, but the
+        // two do not mean the same thing: a live session streams frames at the hub's tick rate, so
+        // these count ticks of a held control, not discrete presses.
         _frames = meter.CreateCounter<long>("openshock_live_frames", "frames",
-            "Live control frames processed by outcome, counted per frame (a bulk frame counts once per frame it carries).");
+            "Live control frames processed by outcome and control type, counted per frame (a bulk frame counts once per frame it carries).");
     }
 
     /// <summary>
@@ -139,6 +144,9 @@ public sealed class GatewayMetrics
     /// Record a processed live control frame.
     /// </summary>
     /// <param name="outcome">One of <see cref="FrameOutcome"/></param>
-    public void Frame(string outcome) =>
-        _frames.Add(1, _gatewayFqdn, new KeyValuePair<string, object?>("outcome", outcome));
+    /// <param name="type">The control type the frame carried</param>
+    public void Frame(string outcome, ControlType type) =>
+        _frames.Add(1, _gatewayFqdn,
+            new KeyValuePair<string, object?>("outcome", outcome),
+            new KeyValuePair<string, object?>("type", ControlTypeTag.Of(type)));
 }

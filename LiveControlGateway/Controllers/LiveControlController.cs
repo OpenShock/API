@@ -486,7 +486,7 @@ public sealed class LiveControlController : WebsocketBaseController<LiveControlR
         // A paused API token may not send any control, mirroring the /shockers/control endpoint.
         if (_tokenPaused)
         {
-            _metrics.Frame(GatewayMetrics.FrameOutcome.TokenPaused);
+            _metrics.Frame(GatewayMetrics.FrameOutcome.TokenPaused, frame.Type);
             await QueueMessage(new LiveControlResponse<LiveResponseType>
             {
                 ResponseType = LiveResponseType.TokenPaused
@@ -503,7 +503,7 @@ public sealed class LiveControlController : WebsocketBaseController<LiveControlR
                 liveNotEnabled => GatewayMetrics.FrameOutcome.LiveNotEnabled,
                 noPermission => GatewayMetrics.FrameOutcome.NoPermission,
                 shockerPaused => GatewayMetrics.FrameOutcome.ShockerPaused
-            ));
+            ), frame.Type);
 
             await QueueMessage(new LiveControlResponse<LiveResponseType>
             {
@@ -528,13 +528,13 @@ public sealed class LiveControlController : WebsocketBaseController<LiveControlR
         await result.Match(
             _ =>
             {
-                _metrics.Frame(GatewayMetrics.FrameOutcome.Accepted);
+                _metrics.Frame(GatewayMetrics.FrameOutcome.Accepted, frame.Type);
                 Logger.LogTrace("Successfully received frame");
                 return ValueTask.CompletedTask;
             },
             _ =>
             {
-                _metrics.Frame(GatewayMetrics.FrameOutcome.ShockerNotFound);
+                _metrics.Frame(GatewayMetrics.FrameOutcome.ShockerNotFound, frame.Type);
                 return QueueMessage(new LiveControlResponse<LiveResponseType>
                 {
                     ResponseType = LiveResponseType.ShockerNotFound
@@ -542,7 +542,7 @@ public sealed class LiveControlController : WebsocketBaseController<LiveControlR
             },
             shockerExclusive =>
             {
-                _metrics.Frame(GatewayMetrics.FrameOutcome.ShockerExclusive);
+                _metrics.Frame(GatewayMetrics.FrameOutcome.ShockerExclusive, frame.Type);
                 return QueueMessage(new LiveControlResponse<LiveResponseType>
                 {
                     ResponseType = LiveResponseType.ShockerExclusive,

@@ -189,7 +189,14 @@ public sealed class ControlSender : IControlSender
             ..logsByOwner.Select(x => hubClients.User(x.Key.ToString()).Log(sender, x.Value))
             ]);
 
-        _metrics.Dispatched(source, messagesByDevice.Sum(kvp => kvp.Value.Count));
+        var dispatched = 0;
+        foreach (var (_, commands) in messagesByDevice)
+        {
+            dispatched += commands.Count;
+            foreach (var command in commands) _metrics.Command(source, command.Type);
+        }
+
+        _metrics.Dispatched(source, dispatched);
 
         return new Success();
     }

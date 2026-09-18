@@ -1,4 +1,5 @@
 ﻿using System.Diagnostics.Metrics;
+using OpenShock.Common.OpenShockDb;
 
 namespace OpenShock.Common.Metrics;
 
@@ -41,6 +42,7 @@ public sealed class ControlMetrics
     }
 
     private readonly Counter<long> _requests;
+    private readonly Counter<long> _commands;
     private readonly Histogram<int> _shockersPerRequest;
 
     /// <summary>
@@ -57,6 +59,12 @@ public sealed class ControlMetrics
 
         _requests = meter.CreateCounter<long>("openshock_control_requests", "requests",
             "Shocker control requests by source and outcome.");
+
+        // Counted per command rather than per request, because a request carrying five shocks is five
+        // shocks. Only dispatched commands are counted: a request is rejected on its first bad shocker,
+        // so the ones built before that point never reach a hub.
+        _commands = meter.CreateCounter<long>("openshock_control_commands", "commands",
+            "Individual shocker commands dispatched, by control type.");
 
         // A request is rejected on its first bad shocker, so this only records dispatched requests -
         // it is the fan-out of a successful control, not the size of what was asked for.
@@ -88,6 +96,16 @@ public sealed class ControlMetrics
         Record(source, Outcome.Success);
         _shockersPerRequest.Record(shockerCount, new KeyValuePair<string, object?>("source", source));
     }
+
+    /// <summary>
+    /// Record a single dispatched shocker command.
+    /// </summary>
+    /// <param name="source">One of <see cref="Source"/></param>
+    /// <param name="type">The control type that was sent</param>
+    public void Command(string source, ControlType type) =>
+        _commands.Add(1,
+            new KeyValuePair<string, object?>("source", source),
+            new KeyValuePair<string, object?>("type", ControlTypeTag.Of(type)));
 
     private void Record(string source, string outcome) =>
         _requests.Add(1,
