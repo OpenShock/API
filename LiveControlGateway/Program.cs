@@ -8,6 +8,7 @@ using OpenShock.Common.Services.Ota;
 using OpenShock.Common.Swagger;
 using OpenShock.LiveControlGateway;
 using OpenShock.LiveControlGateway.LifetimeManager;
+using OpenShock.LiveControlGateway.Metrics;
 using OpenShock.LiveControlGateway.Options;
 using OpenShock.LiveControlGateway.PubSub;
 
@@ -41,6 +42,7 @@ builder.AddSwaggerExt<Program>();
 
 builder.Services.AddHostedService<LcgKeepAlive>();
 
+builder.Services.AddSingleton<GatewayMetrics>();
 builder.Services.AddSingleton<HubLifetimeManager>();
 builder.Services.AddSingleton<ApiTokenUpdateSubscriber>();
 

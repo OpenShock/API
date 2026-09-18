@@ -1,4 +1,5 @@
-﻿using System.Diagnostics.Metrics;
+﻿using System.Collections.Immutable;
+using System.Diagnostics.Metrics;
 using Microsoft.EntityFrameworkCore;
 using OneOf.Types;
 using OpenShock.Common.Extensions;
@@ -7,6 +8,7 @@ using OpenShock.Common.OpenShockDb;
 using OpenShock.Common.Redis.PubSub;
 using OpenShock.Common.Services.RedisPubSub;
 using OpenShock.LiveControlGateway.Controllers;
+using OpenShock.LiveControlGateway.Metrics;
 using OpenShock.LiveControlGateway.Options;
 using Redis.OM.Contracts;
 using StackExchange.Redis;
@@ -25,9 +27,16 @@ public sealed class HubLifetimeManager
     private readonly IRedisConnectionProvider _redisConnectionProvider;
     private readonly IRedisPubService _redisPubService;
     private readonly ILoggerFactory _loggerFactory;
+    private readonly GatewayMetrics _metrics;
     private readonly ILogger<HubLifetimeManager> _logger;
     
-    private readonly Dictionary<Guid, HubLifetime> _lifetimes = new();
+    /// <summary>
+    /// Immutable so that readers that do not hold <see cref="_lifetimesLock"/> - the observable
+    /// instruments below, whose callbacks are synchronous and cannot await it - always see one
+    /// consistent version. Mutation is still a read-modify-write of the field, so writers take the
+    /// lock, which also keeps the multi-step swap and removal sequences atomic.
+    /// </summary>
+    private volatile ImmutableDictionary<Guid, HubLifetime> _lifetimes = ImmutableDictionary<Guid, HubLifetime>.Empty;
     private readonly SemaphoreSlim _lifetimesLock = new(1);
 
     /// <summary>
@@ -39,6 +48,7 @@ public sealed class HubLifetimeManager
     /// <param name="redisPubService"></param>
     /// <param name="loggerFactory"></param>
     /// <param name="lcgOptions"></param>
+    /// <param name="metrics"></param>
     /// <param name="meter"></param>
     public HubLifetimeManager(
         IDbContextFactory<OpenShockContext> dbContextFactory,
@@ -47,6 +57,7 @@ public sealed class HubLifetimeManager
         IRedisPubService redisPubService,
         ILoggerFactory loggerFactory,
         LcgOptions lcgOptions,
+        GatewayMetrics metrics,
         [FromKeyedServices("OpenShock.Gateway.Meter")] Meter meter
     )
     {
@@ -55,6 +66,7 @@ public sealed class HubLifetimeManager
         _redisConnectionProvider = redisConnectionProvider;
         _redisPubService = redisPubService;
         _loggerFactory = loggerFactory;
+        _metrics = metrics;
 
         _logger = _loggerFactory.CreateLogger<HubLifetimeManager>();
         
@@ -68,6 +80,23 @@ public sealed class HubLifetimeManager
                 new Measurement<int>(_lifetimes.Count, gatewayFqdn)
             };
         }, "connections", "Current number of connected hubs");
+
+        // Derived from the hubs themselves rather than tracked alongside them: a separately
+        // maintained counter drifts from the truth the moment a teardown path misses a decrement.
+        meter.CreateObservableUpDownCounter("openshock_live_control_connections", () =>
+        {
+            var lifetimes = _lifetimes;
+
+            // Enumerate the dictionary itself, not .Values: the former uses ImmutableDictionary's
+            // struct enumerator, the latter allocates one.
+            var count = 0;
+            foreach (var (_, lifetime) in lifetimes) count += lifetime.LiveControlClientCount;
+
+            return new[]
+            {
+                new Measurement<int>(count, gatewayFqdn)
+            };
+        }, "connections", "Current number of live control sessions across all connected hubs");
     }
 
     /// <summary>
@@ -96,6 +125,7 @@ public sealed class HubLifetimeManager
                 // There already is a hub lifetime, lets swap!
                 if (!hubLifetime.TryMarkSwapping())
                 {
+                    _metrics.HubConnectAttempt(GatewayMetrics.HubConnectOutcome.Busy);
                     return new Busy(); 
                 }
 
@@ -105,7 +135,7 @@ public sealed class HubLifetimeManager
             {
                 // This is a fresh connection with no existing lifetime, create one!
                 hubLifetime = CreateNewLifetime(tps, hubController);
-                _lifetimes[hubController.Id] = hubLifetime;
+                _lifetimes = _lifetimes.SetItem(hubController.Id, hubLifetime);
             }
         }
 
@@ -114,6 +144,7 @@ public sealed class HubLifetimeManager
         {
             _logger.LogTrace("Swapping hub lifetime [{HubId}]", hubController.Id);
             await hubLifetime.Swap(hubController);
+            _metrics.HubConnectAttempt(GatewayMetrics.HubConnectOutcome.Swapped);
         }
         else
         {
@@ -123,8 +154,11 @@ public sealed class HubLifetimeManager
                 // If we fail to initialize, the hub must be removed
                 await RemoveDeviceConnection(hubController); // Here be dragons?
                 _logger.LogError("Failed to initialize hub lifetime [{HubId}]", hubController.Id);
+                _metrics.HubConnectAttempt(GatewayMetrics.HubConnectOutcome.InitFailed);
                 return new Error();
             }
+
+            _metrics.HubConnectAttempt(GatewayMetrics.HubConnectOutcome.Connected);
         }
 
         return hubLifetime;
@@ -188,9 +222,17 @@ public sealed class HubLifetimeManager
 
         using (await _lifetimesLock.LockAsyncScoped())
         {
-            if (!_lifetimes.Remove(hubController.Id))
+            // Remove hands back the same instance when the key was not there, which is the only
+            // signal that nothing was removed.
+            var withoutHub = _lifetimes.Remove(hubController.Id);
+            if (ReferenceEquals(withoutHub, _lifetimes))
             {
                 _logger.LogError("Failed to remove hub lifetime [{HubId}], this shouldnt happen WTF?!", hubController.Id);
+            }
+            else
+            {
+                _lifetimes = withoutHub;
+                _metrics.HubDisconnected();
             }
         }
     }

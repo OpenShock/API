@@ -6,6 +6,7 @@ using OpenShock.Common.Constants;
 using OpenShock.Common.DeviceControl;
 using OpenShock.Common.Extensions;
 using OpenShock.Common.Hubs;
+using OpenShock.Common.Metrics;
 using OpenShock.Common.Models;
 using OpenShock.Common.Models.WebSocket.User;
 using OpenShock.Common.OpenShockDb;
@@ -23,11 +24,13 @@ public sealed class ControlSender : IControlSender
 {
     private readonly OpenShockContext _db;
     private readonly IRedisPubService _publisher;
+    private readonly ControlMetrics _metrics;
 
-    public ControlSender(OpenShockContext db, IRedisPubService publisher)
+    public ControlSender(OpenShockContext db, IRedisPubService publisher, ControlMetrics metrics)
     {
         _db = db;
         _publisher = publisher;
+        _metrics = metrics;
     }
 
     public async Task<OneOf<Success, ShockerNotFoundOrNoAccess, ShockerPaused, ShockerNoPermission>> ControlByUser(IReadOnlyList<Control> controls,ControlLogSender sender, IHubClients<IUserHub> hubClients, ApiTokenControlLimits? tokenLimits = null)
@@ -62,7 +65,7 @@ public sealed class ControlSender : IControlSender
             })
             .ToArrayAsync();
 
-        return await ControlInternal(controls, sender, hubClients, shockers, tokenLimits);
+        return await ControlInternal(controls, sender, hubClients, shockers, ControlMetrics.Source.User, tokenLimits);
     }
 
     public async Task<OneOf<Success, ShockerNotFoundOrNoAccess, ShockerPaused, ShockerNoPermission>> ControlPublicShare(IReadOnlyList<Control> controls, ControlLogSender sender, IHubClients<IUserHub> hubClients, Guid publicShareId)
@@ -91,7 +94,7 @@ public sealed class ControlSender : IControlSender
             })
             .ToArrayAsync();
         
-        return await ControlInternal(controls, sender, hubClients, publicShareShockers);
+        return await ControlInternal(controls, sender, hubClients, publicShareShockers, ControlMetrics.Source.PublicShare);
     }
     
     private static void Clamp(Control control, SharePermsAndLimits? limits)
@@ -103,7 +106,7 @@ public sealed class ControlSender : IControlSender
         control.Duration = Math.Clamp(control.Duration, HardLimits.MinControlDuration, durationMax);
     }
 
-    private async Task<OneOf<Success, ShockerNotFoundOrNoAccess, ShockerPaused, ShockerNoPermission>> ControlInternal(IReadOnlyList<Control> controls, ControlLogSender sender, IHubClients<IUserHub> hubClients, ControlShockerObj[] allowedShockers, ApiTokenControlLimits? tokenLimits = null)
+    private async Task<OneOf<Success, ShockerNotFoundOrNoAccess, ShockerPaused, ShockerNoPermission>> ControlInternal(IReadOnlyList<Control> controls, ControlLogSender sender, IHubClients<IUserHub> hubClients, ControlShockerObj[] allowedShockers, string source, ApiTokenControlLimits? tokenLimits = null)
     {
         var shockersById = allowedShockers.ToDictionary(s => s.ShockerId, s => s);
 
@@ -115,13 +118,22 @@ public sealed class ControlSender : IControlSender
         foreach (var control in controls.DistinctBy(x => x.Id))
         {
             if (!shockersById.TryGetValue(control.Id, out var shocker))
+            {
+                _metrics.Rejected(source, ControlMetrics.Outcome.ShockerNotFound);
                 return new ShockerNotFoundOrNoAccess(control.Id);
+            }
 
             if (shocker.Paused)
+            {
+                _metrics.Rejected(source, ControlMetrics.Outcome.ShockerPaused);
                 return new ShockerPaused(control.Id);
+            }
 
             if (!PermissionUtils.IsAllowed(control.Type, false, shocker.PermsAndLimits))
+            {
+                _metrics.Rejected(source, ControlMetrics.Outcome.NoPermission);
                 return new ShockerNoPermission(control.Id);
+            }
 
             // The token may scope intensity/duration into its own range.
             if (tokenLimits is { } limits)
@@ -176,6 +188,8 @@ public sealed class ControlSender : IControlSender
             ..messagesByDevice.Select(kvp => _publisher.SendDeviceControl(kvp.Key, kvp.Value)),
             ..logsByOwner.Select(x => hubClients.User(x.Key.ToString()).Log(sender, x.Value))
             ]);
+
+        _metrics.Dispatched(source, messagesByDevice.Sum(kvp => kvp.Value.Count));
 
         return new Success();
     }

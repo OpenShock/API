@@ -20,6 +20,7 @@ using OpenShock.Common.Problems;
 using OpenShock.Common.Utils;
 using OpenShock.Common.Websocket;
 using OpenShock.LiveControlGateway.LifetimeManager;
+using OpenShock.LiveControlGateway.Metrics;
 using OpenShock.LiveControlGateway.Models;
 using OpenShock.LiveControlGateway.PubSub;
 using JsonOptions = OpenShock.Common.JsonSerialization.JsonOptions;
@@ -48,6 +49,7 @@ public sealed class LiveControlController : WebsocketBaseController<LiveControlR
     private readonly IUserReferenceService _userReferenceService;
     private readonly ApiTokenUpdateSubscriber _tokenUpdateSubscriber;
     private readonly ILogger<LiveControlController> _logger;
+    private readonly GatewayMetrics _metrics;
 
     private static readonly TimeSpan PingInterval = TimeSpan.FromSeconds(5);
 
@@ -109,12 +111,14 @@ public sealed class LiveControlController : WebsocketBaseController<LiveControlR
     /// <param name="userReferenceService"></param>
     /// <param name="tokenUpdateSubscriber"></param>
     /// <param name="hubLifetimeManager"></param>
-    public LiveControlController(HubLifetimeManager hubLifetimeManager, IDbContextFactory<OpenShockContext> dbContextFactory, IUserReferenceService userReferenceService, ApiTokenUpdateSubscriber tokenUpdateSubscriber, ILogger<LiveControlController> logger) : base(logger)
+    /// <param name="metrics"></param>
+    public LiveControlController(HubLifetimeManager hubLifetimeManager, IDbContextFactory<OpenShockContext> dbContextFactory, IUserReferenceService userReferenceService, ApiTokenUpdateSubscriber tokenUpdateSubscriber, GatewayMetrics metrics, ILogger<LiveControlController> logger) : base(logger)
     {
         _hubLifetimeManager = hubLifetimeManager;
         _dbContextFactory = dbContextFactory;
         _userReferenceService = userReferenceService;
         _tokenUpdateSubscriber = tokenUpdateSubscriber;
+        _metrics = metrics;
         _logger = logger;
         
         _pingTimer.Elapsed += (_, _) => OsTask.Run(SendPing);
@@ -225,16 +229,20 @@ public sealed class LiveControlController : WebsocketBaseController<LiveControlR
         if (hubLifetimeResult.IsT1)
         {
             _logger.LogDebug("No such hub with id [{HubId}] connected", HubId);
+            _metrics.LiveControlAttempt(GatewayMetrics.LiveControlOutcome.HubNotFound);
             return new OneOf.Types.Error<OpenShockProblem>(WebsocketError.WebsocketLiveControlHubNotConnected);
         }
 
         if (hubLifetimeResult.IsT2)
         {
             _logger.LogDebug("Hub is busy, cannot connect [{HubId}]", HubId);
+            _metrics.LiveControlAttempt(GatewayMetrics.LiveControlOutcome.HubBusy);
             return new OneOf.Types.Error<OpenShockProblem>(WebsocketError.WebsocketLiveControlHubLifetimeBusy);
         }
 
         _hubLifetime = hubLifetimeResult.AsT0;
+
+        _metrics.LiveControlAttempt(GatewayMetrics.LiveControlOutcome.Connected);
 
 
         return new Success();
@@ -376,6 +384,8 @@ public sealed class LiveControlController : WebsocketBaseController<LiveControlR
                 ushort.MaxValue); // If someone has a ping higher than 65 seconds, they are messing with us. Cap it to 65 seconds
         _pingTimestamp = 0;
 
+        _metrics.LiveControlLatency(_latencyMs);
+
         if (Logger.IsEnabled(LogLevel.Trace))
             Logger.LogTrace("Latency: {Latency}ms", _latencyMs);
 
@@ -476,6 +486,7 @@ public sealed class LiveControlController : WebsocketBaseController<LiveControlR
         // A paused API token may not send any control, mirroring the /shockers/control endpoint.
         if (_tokenPaused)
         {
+            _metrics.Frame(GatewayMetrics.FrameOutcome.TokenPaused);
             await QueueMessage(new LiveControlResponse<LiveResponseType>
             {
                 ResponseType = LiveResponseType.TokenPaused
@@ -487,6 +498,13 @@ public sealed class LiveControlController : WebsocketBaseController<LiveControlR
         var permCheck = CheckFramePermissions(frame.Shocker, frame.Type);
         if (!permCheck.TryPickT0(out var perms, out var error))
         {
+            _metrics.Frame(error.Match(
+                notFound => GatewayMetrics.FrameOutcome.ShockerNotFound,
+                liveNotEnabled => GatewayMetrics.FrameOutcome.LiveNotEnabled,
+                noPermission => GatewayMetrics.FrameOutcome.NoPermission,
+                shockerPaused => GatewayMetrics.FrameOutcome.ShockerPaused
+            ));
+
             await QueueMessage(new LiveControlResponse<LiveResponseType>
             {
                 ResponseType = error.Match(
@@ -510,18 +528,27 @@ public sealed class LiveControlController : WebsocketBaseController<LiveControlR
         await result.Match(
             _ =>
             {
+                _metrics.Frame(GatewayMetrics.FrameOutcome.Accepted);
                 Logger.LogTrace("Successfully received frame");
                 return ValueTask.CompletedTask;
             },
-            _ => QueueMessage(new LiveControlResponse<LiveResponseType>
+            _ =>
             {
-                ResponseType = LiveResponseType.ShockerNotFound
-            }),
-            shockerExclusive => QueueMessage(new LiveControlResponse<LiveResponseType>
+                _metrics.Frame(GatewayMetrics.FrameOutcome.ShockerNotFound);
+                return QueueMessage(new LiveControlResponse<LiveResponseType>
+                {
+                    ResponseType = LiveResponseType.ShockerNotFound
+                });
+            },
+            shockerExclusive =>
             {
-                ResponseType = LiveResponseType.ShockerExclusive,
-                Data = shockerExclusive.Until
-            })
+                _metrics.Frame(GatewayMetrics.FrameOutcome.ShockerExclusive);
+                return QueueMessage(new LiveControlResponse<LiveResponseType>
+                {
+                    ResponseType = LiveResponseType.ShockerExclusive,
+                    Data = shockerExclusive.Until
+                });
+            }
         );
     }
 

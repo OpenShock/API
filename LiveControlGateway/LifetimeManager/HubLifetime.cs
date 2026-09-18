@@ -60,6 +60,12 @@ public sealed class HubLifetime : IAsyncDisposable
     private ImmutableArray<LiveControlController> _liveControlClients = ImmutableArray<LiveControlController>.Empty;
     private readonly SemaphoreSlim _liveControlClientsLock = new(1);
 
+    /// <summary>
+    /// Live control clients currently attached to this hub. Lock free: the field is a single
+    /// reference to an immutable snapshot, so a reader always sees one consistent version of it.
+    /// </summary>
+    public int LiveControlClientCount => _liveControlClients.Length;
+
     private ChannelMessageQueue? _deviceMsgQueue;
     private bool _disposed;
 

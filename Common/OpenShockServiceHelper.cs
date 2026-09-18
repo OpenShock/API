@@ -22,6 +22,7 @@ using OpenShock.Common.Services.Configuration;
 using OpenShock.Common.Services.RedisPubSub;
 using OpenShock.Common.Services.Session;
 using OpenShock.Common.Services.Webhook;
+using OpenShock.Common.Metrics;
 using OpenTelemetry.Metrics;
 using Redis.OM;
 using Redis.OM.Contracts;
@@ -227,6 +228,7 @@ public static class OpenShockServiceHelper
                     .AddRuntimeInstrumentation()
                     .AddAspNetCoreInstrumentation()
                     .AddHttpClientInstrumentation()
+                    .AddMeter(ControlMetrics.MeterName)
                     .AddPrometheusExporter();
 
                 configureMetrics?.Invoke(metrics);
@@ -234,6 +236,7 @@ public static class OpenShockServiceHelper
 
         // <---- OpenShock Services ---->
 
+        services.AddSingleton<ControlMetrics>();
         services.AddScoped<IConfigurationService, ConfigurationService>();
         services.AddScoped<ISessionService, SessionService>();
         services.AddScoped<IAuditService, AuditService>();
