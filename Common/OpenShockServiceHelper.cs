@@ -254,8 +254,14 @@ public static class OpenShockServiceHelper
                 return Task.CompletedTask;
             });
 
+            // .NET 10 defaults to OpenAPI 3.1; keep 3.0 so existing clients/tooling see the same dialect as with Swashbuckle.
+            options.Document.OpenApiVersion = OpenApiSpecVersion.OpenApi3_0;
+            options.Document.CreateSchemaReferenceId = OpenShockSchemaIds.Create;
+
             options.Document.AddOperationTransformer<OpenShockOperationTransformer>();
             options.Document.AddSchemaTransformer<OpenShockSchemaTransformer>();
+            options.Document.AddDocumentTransformer<EnumSchemaTransformer>();
+            options.Document.AddDocumentTransformer<NullableReferenceTransformer>();
 
             // Picks up XML doc comments (<summary>, <param>, ...) from whichever host process is running
             // (API/Cron/LiveControlGateway), mirroring what Swashbuckle's IncludeXmlComments used to do.
@@ -265,6 +271,8 @@ public static class OpenShockServiceHelper
             {
                 var xmlCommentsTransformer = new XmlCommentsTransformer(xmlPath);
                 options.Document.AddDocumentTransformer(xmlCommentsTransformer);
+                options.Document.AddDocumentTransformer(new ControllerTagDescriptionTransformer(xmlPath));
+                options.Document.AddOperationTransformer(new DocumentedResponsesTransformer(xmlPath));
                 options.Document.AddOperationTransformer(xmlCommentsTransformer);
                 options.Document.AddSchemaTransformer(xmlCommentsTransformer);
             }
