@@ -2661,7 +2661,7 @@
                     "kind": "DataQuery",
                     "spec": {
                       "editorMode": "code",
-                      "expr": "sum by(outcome) (rate(openshock_hub_connect_attempts_total{app_kubernetes_io_stage=\"prod\"}[$__rate_interval]))",
+                      "expr": "sum by(outcome) (rate(openshock_hub_connect_attempts_total{app_kubernetes_io_stage=\"prod\"}[$__rate_interval])) * 60",
                       "format": "time_series",
                       "legendFormat": "connect: {{outcome}}",
                       "range": true
@@ -2683,7 +2683,7 @@
                     "kind": "DataQuery",
                     "spec": {
                       "editorMode": "code",
-                      "expr": "sum (rate(openshock_hub_disconnections_total{app_kubernetes_io_stage=\"prod\"}[$__rate_interval]))",
+                      "expr": "sum (rate(openshock_hub_disconnections_total{app_kubernetes_io_stage=\"prod\"}[$__rate_interval])) * 60",
                       "format": "time_series",
                       "legendFormat": "disconnect",
                       "range": true
@@ -2757,7 +2757,7 @@
                     }
                   ]
                 },
-                "unit": "cps"
+                "unit": "cpm"
               },
               "overrides": []
             },
@@ -2802,7 +2802,7 @@
                     "kind": "DataQuery",
                     "spec": {
                       "editorMode": "code",
-                      "expr": "sum by(outcome) (rate(openshock_live_control_attempts_total{app_kubernetes_io_stage=\"prod\"}[$__rate_interval]))",
+                      "expr": "sum by(outcome) (rate(openshock_live_control_attempts_total{app_kubernetes_io_stage=\"prod\"}[$__rate_interval])) * 60",
                       "format": "time_series",
                       "legendFormat": "{{outcome}}",
                       "range": true
@@ -2876,7 +2876,7 @@
                     }
                   ]
                 },
-                "unit": "cps"
+                "unit": "cpm"
               },
               "overrides": []
             },
@@ -3085,7 +3085,7 @@
                     "kind": "DataQuery",
                     "spec": {
                       "editorMode": "code",
-                      "expr": "sum by(outcome) (rate(openshock_live_frames_total{app_kubernetes_io_stage=\"prod\"}[$__rate_interval]))",
+                      "expr": "sum by(outcome) (rate(openshock_live_frames_total{app_kubernetes_io_stage=\"prod\"}[$__rate_interval])) * 60",
                       "format": "time_series",
                       "legendFormat": "{{outcome}}",
                       "range": true
@@ -3159,7 +3159,7 @@
                     }
                   ]
                 },
-                "unit": "cps"
+                "unit": "cpm"
               },
               "overrides": []
             },
@@ -3325,7 +3325,7 @@
                     "kind": "DataQuery",
                     "spec": {
                       "editorMode": "code",
-                      "expr": "sum by(source, outcome) (rate(openshock_control_requests_total{app_kubernetes_io_stage=\"prod\"}[$__rate_interval]))",
+                      "expr": "sum by(source, outcome) (rate(openshock_control_requests_total{app_kubernetes_io_stage=\"prod\"}[$__rate_interval])) * 60",
                       "format": "time_series",
                       "legendFormat": "{{source}} / {{outcome}}",
                       "range": true
@@ -3399,7 +3399,7 @@
                     }
                   ]
                 },
-                "unit": "reqps"
+                "unit": "cpm"
               },
               "overrides": []
             },
@@ -3693,7 +3693,7 @@
                     "kind": "DataQuery",
                     "spec": {
                       "editorMode": "code",
-                      "expr": "sum by(type) (rate(openshock_control_commands_total{app_kubernetes_io_stage=\"prod\"}[$__rate_interval]))",
+                      "expr": "sum by(type) (rate(openshock_control_commands_total{app_kubernetes_io_stage=\"prod\"}[$__rate_interval])) * 60",
                       "format": "time_series",
                       "legendFormat": "{{type}}",
                       "range": true
@@ -3767,7 +3767,7 @@
                     }
                   ]
                 },
-                "unit": "cps"
+                "unit": "cpm"
               },
               "overrides": []
             },
@@ -3812,7 +3812,7 @@
                     "kind": "DataQuery",
                     "spec": {
                       "editorMode": "code",
-                      "expr": "sum by(type) (rate(openshock_live_frames_total{app_kubernetes_io_stage=\"prod\",outcome=\"accepted\"}[$__rate_interval]))",
+                      "expr": "sum by(type) (rate(openshock_live_frames_total{app_kubernetes_io_stage=\"prod\",outcome=\"accepted\"}[$__rate_interval])) * 60",
                       "format": "time_series",
                       "legendFormat": "{{type}}",
                       "range": true
@@ -3886,7 +3886,7 @@
                     }
                   ]
                 },
-                "unit": "cps"
+                "unit": "cpm"
               },
               "overrides": []
             },
