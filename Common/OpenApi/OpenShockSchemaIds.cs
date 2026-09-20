@@ -1,7 +1,6 @@
 using System.Text.Json.Serialization.Metadata;
 using Microsoft.AspNetCore.OpenApi;
 using OpenShock.Common.Models;
-using OpenShock.Common.OpenShockDb;
 
 namespace OpenShock.Common.OpenApi;
 
@@ -26,12 +25,19 @@ public static class OpenShockSchemaIds
 
     private static string GetName(Type type)
     {
-        // T? shares T's schema; nullability is not part of the id
-        if (Nullable.GetUnderlyingType(type) is { } underlying) return GetName(underlying);
-        if (type.IsArray) return GetName(type.GetElementType()!) + "Array";
-        if (!type.IsGenericType) return type.Name;
+        while (true)
+        {
+            // T? shares T's schema; nullability is not part of the id
+            if (Nullable.GetUnderlyingType(type) is not { } underlying)
+            {
+                if (type.IsArray) return GetName(type.GetElementType()!) + "Array";
+                if (!type.IsGenericType) return type.Name;
 
-        var name = type.Name;
-        return string.Concat(type.GetGenericArguments().Select(GetName)) + name[..name.IndexOf('`')];
+                var name = type.Name;
+                return string.Concat(type.GetGenericArguments().Select(GetName)) + name[..name.IndexOf('`')];
+            }
+
+            type = underlying;
+        }
     }
 }

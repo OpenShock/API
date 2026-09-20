@@ -201,7 +201,7 @@ public static class OpenShockServiceHelper
             var version = options.Description.ApiVersion.ToString();
             var isDeprecated = options.Description.IsDeprecated;
 
-            options.Document.AddDocumentTransformer((document, context, cancellationToken) =>
+            options.Document.AddDocumentTransformer((document, context, _) =>
             {
                 document.Info.Title = "OpenShock.API";
                 document.Info.Version = version;
@@ -264,15 +264,32 @@ public static class OpenShockServiceHelper
             options.Document.AddDocumentTransformer<NullableReferenceTransformer>();
 
             // Picks up XML doc comments (<summary>, <param>, ...) from whichever host process is running
-            // (API/Cron/LiveControlGateway), mirroring what Swashbuckle's IncludeXmlComments used to do.
+            // (API/Cron/LiveControlGateway) and from Common, mirroring what Swashbuckle's IncludeXmlComments used to do.
             var entryAssemblyName = Assembly.GetEntryAssembly()?.GetName().Name;
-            var xmlPath = entryAssemblyName is null ? null : Path.Combine(AppContext.BaseDirectory, entryAssemblyName + ".xml");
-            if (xmlPath is not null && File.Exists(xmlPath))
+            var xmlPaths = new[] { entryAssemblyName, typeof(OpenShockServiceHelper).Assembly.GetName().Name }
+                .OfType<string>()
+                .Distinct()
+                .Select(name => Path.Combine(AppContext.BaseDirectory, name + ".xml"))
+                .Where(File.Exists)
+                .ToArray();
+            if (xmlPaths.Length > 0)
             {
-                var xmlCommentsTransformer = new XmlCommentsTransformer(xmlPath);
+                var filledPath = XmlCrefText.CreateFilledCopy(xmlPaths);
+                DocumentedXmlComments comments;
+                XmlCommentsTransformer xmlCommentsTransformer;
+                try
+                {
+                    comments = new DocumentedXmlComments(filledPath);
+                    xmlCommentsTransformer = new XmlCommentsTransformer(filledPath);
+                }
+                finally
+                {
+                    File.Delete(filledPath);
+                }
+
                 options.Document.AddDocumentTransformer(xmlCommentsTransformer);
-                options.Document.AddDocumentTransformer(new ControllerTagDescriptionTransformer(xmlPath));
-                options.Document.AddOperationTransformer(new DocumentedResponsesTransformer(xmlPath));
+                options.Document.AddDocumentTransformer(new ControllerTagDescriptionTransformer(comments));
+                options.Document.AddOperationTransformer(new DocumentedResponsesTransformer(comments));
                 options.Document.AddOperationTransformer(xmlCommentsTransformer);
                 options.Document.AddSchemaTransformer(xmlCommentsTransformer);
             }
@@ -288,7 +305,7 @@ public static class OpenShockServiceHelper
         {
             options.AddDefaultPolicy(builder =>
             {
-                builder.SetIsOriginAllowed(s => true);
+                builder.SetIsOriginAllowed(_ => true);
                 builder.AllowAnyHeader();
                 builder.AllowCredentials();
                 builder.AllowAnyMethod();

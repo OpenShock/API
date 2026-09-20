@@ -4,7 +4,7 @@ using OpenShock.Common.Utils;
 namespace OpenShock.Common.OpenShockDb;
 
 /// <summary>
-/// The kind of email an <see cref="EmailOutboxMessage"/> represents. The outbox stores
+/// The kind of email an outbox message represents. The outbox stores
 /// only the <em>intent</em> to send one of these, never a rendered body or a usable secret, the
 /// consumer maps the type to the matching template and (for token-bearing types) mints a fresh
 /// secret at send time.

@@ -1,9 +1,7 @@
-using System.Xml.Linq;
-using Microsoft.AspNetCore.Http.Metadata;
+﻿using Microsoft.AspNetCore.Http.Metadata;
 using Microsoft.AspNetCore.Mvc.Controllers;
 using Microsoft.AspNetCore.OpenApi;
 using Microsoft.OpenApi;
-using OpenShock.Common.Utils;
 
 namespace OpenShock.Common.OpenApi;
 
@@ -11,32 +9,8 @@ namespace OpenShock.Common.OpenApi;
 /// Restores controller class &lt;summary&gt; text as top-level tag descriptions,
 /// which Swashbuckle's IncludeXmlComments(..., includeControllerXmlComments: true) used to do.
 /// </summary>
-public sealed class ControllerTagDescriptionTransformer : IOpenApiDocumentTransformer
+public sealed class ControllerTagDescriptionTransformer(DocumentedXmlComments comments) : IOpenApiDocumentTransformer
 {
-    private readonly Dictionary<string, string> _summaries;
-
-    public ControllerTagDescriptionTransformer(string xmlPath)
-    {
-        if (!File.Exists(xmlPath)) throw new FileNotFoundException(xmlPath);
-        
-        var members = XElement.Load(xmlPath).Element("members")?.Elements("member") ?? [];
-
-        var summaries = new Dictionary<string, string>();
-
-        foreach (var member in members)
-        {
-            var name = member.Attribute("name")?.Value;
-            if (name is null || !name.StartsWith("T:", StringComparison.Ordinal)) continue;
-
-            var summary = member.Element("summary")?.Value.Trim();
-            if (string.IsNullOrEmpty(summary)) continue;
-
-            summaries.TryAdd(name, StringUtils.RemoveConsecutiveSpaces(summary));
-        }
-        
-        _summaries = summaries;
-    }
-
     public Task TransformAsync(OpenApiDocument document, OpenApiDocumentTransformerContext context, CancellationToken cancellationToken)
     {
         var descriptions = new Dictionary<string, string>();
@@ -45,9 +19,8 @@ public sealed class ControllerTagDescriptionTransformer : IOpenApiDocumentTransf
         {
             if (description.ActionDescriptor is not ControllerActionDescriptor controller) continue;
 
-            // Nested/generic types use '+' in reflection but '.' in XML doc IDs
-            var key = "T:" + controller.ControllerTypeInfo.FullName?.Replace('+', '.');
-            if (!_summaries.TryGetValue(key, out var summary)) continue;
+            var summary = comments.GetSummary(controller.ControllerTypeInfo);
+            if (summary.Length == 0) continue;
 
             // Operations are tagged by [Tags] when present, otherwise by controller name
             var tagNames = controller.EndpointMetadata.OfType<ITagsMetadata>().SelectMany(t => t.Tags).ToArray();

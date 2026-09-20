@@ -1,4 +1,4 @@
-using System.Text.Json.Nodes;
+﻿using System.Text.Json.Nodes;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc.Controllers;
 using Microsoft.AspNetCore.OpenApi;
@@ -80,11 +80,8 @@ public sealed class OpenShockOperationTransformer : IOpenApiOperationTransformer
 
             if (securityInfos.Count > 0)
             {
-                var infos = new JsonArray();
-                foreach (var info in securityInfos) infos.Add(info);
-
                 operation.Extensions ??= new Dictionary<string, IOpenApiExtension>();
-                operation.Extensions["x-authorization"] = new JsonNodeExtension(infos);
+                operation.Extensions["x-authorization"] = new JsonNodeExtension(new JsonArray(securityInfos.Select(info => (JsonNode)info).ToArray()));
             }
         }
         else
