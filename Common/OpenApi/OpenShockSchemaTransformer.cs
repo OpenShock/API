@@ -1,6 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using System.Reflection;
-using System.Text.Json;
+using System.Text.Json.Nodes;
 using System.Text.Json.Serialization;
 using System.Text.Json.Serialization.Metadata;
 using Microsoft.AspNetCore.Mvc.Controllers;
@@ -9,7 +9,7 @@ using Microsoft.OpenApi;
 using OpenShock.Common.DataAnnotations;
 using OpenShock.Common.DataAnnotations.Interfaces;
 using OpenShock.Common.Models;
-using OpenShock.Common.OpenShockDb;
+using OpenShock.Internal.Common.Problems;
 
 namespace OpenShock.Common.OpenApi;
 
@@ -27,6 +27,12 @@ public sealed class OpenShockSchemaTransformer : IOpenApiSchemaTransformer
         {
             ReplaceWith(schema, OpenApiSchemas.PauseReasonEnumSchema);
             return Task.CompletedTask;
+        }
+
+        // OpenShockProblem.message is always populated (it mirrors the title), even though the shared type annotates it as nullable
+        if (context.JsonPropertyInfo is { Name: "message", DeclaringType: var declaringType } && declaringType == typeof(OpenShockProblem) && schema.Type is { } messageType)
+        {
+            schema.Type = messageType & ~JsonSchemaType.Null;
         }
 
         StripValueTypeNullability(schema, context);
@@ -55,7 +61,7 @@ public sealed class OpenShockSchemaTransformer : IOpenApiSchemaTransformer
         if (schema.Enum is null && (schema.Type is not { } objectType || (objectType & ~JsonSchemaType.Null) != JsonSchemaType.Object)) return;
 
         if (schema.Type is { } type) schema.Type = type & ~JsonSchemaType.Null;
-        if (schema.Enum is { } values) schema.Enum = values.Where(v => v is not null).ToList();
+        if (schema.Enum is { } values) schema.Enum = values.Where(v => (JsonNode?)v is not null).ToList();
     }
 
     /// <summary>
