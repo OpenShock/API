@@ -56,7 +56,7 @@ public sealed class UsernameAttribute : ValidationAttribute, IParameterAttribute
     {
         //if (ShouldValidate) schema.Pattern = ???;
         
-        schema.Example = JsonValue.Create(ExampleValue);
+        schema.Examples = [JsonValue.Create(ExampleValue)];
     }
 
     /// <inheritdoc/>

@@ -1,6 +1,8 @@
 ﻿using System.Net;
+using System.Reflection;
 using System.Security.Claims;
 using Asp.Versioning;
+using Asp.Versioning.OpenApi.Transformers;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Authorization;
@@ -8,11 +10,15 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Hybrid;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Hosting;
+using Microsoft.OpenApi;
 using OpenShock.Common.Authentication;
 using OpenShock.Common.Authentication.AuthenticationHandlers;
 using OpenShock.Common.Authentication.Services;
+using OpenShock.Common.Constants;
 using OpenShock.Common.HealthChecks;
 using OpenShock.Common.JsonSerialization;
+using OpenShock.Common.OpenApi;
 using OpenShock.Common.OpenShockDb;
 using OpenShock.Common.Options;
 using OpenShock.Common.Problems;
@@ -191,6 +197,105 @@ public static class OpenShockServiceHelper
             setup.AssumeDefaultVersionWhenUnspecified = true;
         });
 
+        apiVersioningBuilder.AddOpenApi(options =>
+        {
+            var version = options.Description.ApiVersion.ToString();
+            var isDeprecated = options.Description.IsDeprecated;
+
+            options.Document.AddDocumentTransformer((document, context, _) =>
+            {
+                document.Info.Title = "OpenShock.API";
+                document.Info.Version = version;
+                if (isDeprecated)
+                {
+                    document.Info.Description = (document.Info.Description ?? "") + " This API version has been deprecated.";
+                }
+
+                var isDevelopment = context.ApplicationServices.GetRequiredService<IHostEnvironment>().IsDevelopment();
+                var servers = new List<OpenApiServer>
+                {
+                    new() { Url = "https://api.openshock.app" },
+                    new() { Url = "https://api.openshock.dev" }
+                };
+                if (isDevelopment)
+                {
+                    servers.Add(new OpenApiServer { Url = "https://localhost" });
+                }
+                document.Servers = servers;
+
+                document.Components ??= new OpenApiComponents();
+                document.Components.SecuritySchemes = new Dictionary<string, IOpenApiSecurityScheme>
+                {
+                    [OpenShockAuthSchemes.UserSessionCookie] = new OpenApiSecurityScheme
+                    {
+                        Name = AuthConstants.UserSessionCookieName,
+                        Description = "Enter user session cookie",
+                        In = ParameterLocation.Cookie,
+                        Type = SecuritySchemeType.ApiKey,
+                        Scheme = OpenShockAuthSchemes.UserSessionCookie
+                    },
+                    [OpenShockAuthSchemes.ApiToken] = new OpenApiSecurityScheme
+                    {
+                        Name = AuthConstants.ApiTokenHeaderName,
+                        Description = "Enter API Token",
+                        In = ParameterLocation.Header,
+                        Type = SecuritySchemeType.ApiKey,
+                        Scheme = OpenShockAuthSchemes.ApiToken
+                    },
+                    [OpenShockAuthSchemes.HubToken] = new OpenApiSecurityScheme
+                    {
+                        Name = AuthConstants.HubTokenHeaderName,
+                        Description = "Enter hub token",
+                        In = ParameterLocation.Header,
+                        Type = SecuritySchemeType.ApiKey,
+                        Scheme = OpenShockAuthSchemes.HubToken
+                    }
+                };
+
+                return Task.CompletedTask;
+            });
+
+            // .NET 10 defaults to OpenAPI 3.1; keep 3.0 so existing clients/tooling see the same dialect as with Swashbuckle.
+            options.Document.OpenApiVersion = OpenApiSpecVersion.OpenApi3_0;
+            options.Document.CreateSchemaReferenceId = OpenShockSchemaIds.Create;
+
+            options.Document.AddOperationTransformer<OpenShockOperationTransformer>();
+            options.Document.AddSchemaTransformer<OpenShockSchemaTransformer>();
+            options.Document.AddDocumentTransformer<EnumSchemaTransformer>();
+            options.Document.AddDocumentTransformer<NullableReferenceTransformer>();
+
+            // Picks up XML doc comments (<summary>, <param>, ...) from whichever host process is running
+            // (API/Cron/LiveControlGateway) and from Common, mirroring what Swashbuckle's IncludeXmlComments used to do.
+            var entryAssemblyName = Assembly.GetEntryAssembly()?.GetName().Name;
+            var xmlPaths = new[] { entryAssemblyName, typeof(OpenShockServiceHelper).Assembly.GetName().Name }
+                .OfType<string>()
+                .Distinct()
+                .Select(name => Path.Combine(AppContext.BaseDirectory, name + ".xml"))
+                .Where(File.Exists)
+                .ToArray();
+            if (xmlPaths.Length > 0)
+            {
+                var filledPath = XmlCrefText.CreateFilledCopy(xmlPaths);
+                DocumentedXmlComments comments;
+                XmlCommentsTransformer xmlCommentsTransformer;
+                try
+                {
+                    comments = new DocumentedXmlComments(filledPath);
+                    xmlCommentsTransformer = new XmlCommentsTransformer(filledPath);
+                }
+                finally
+                {
+                    File.Delete(filledPath);
+                }
+
+                options.Document.AddDocumentTransformer(xmlCommentsTransformer);
+                options.Document.AddDocumentTransformer(new ControllerTagDescriptionTransformer(comments));
+                options.Document.AddOperationTransformer(new DocumentedResponsesTransformer(comments));
+                options.Document.AddOperationTransformer(xmlCommentsTransformer);
+                options.Document.AddSchemaTransformer(xmlCommentsTransformer);
+            }
+        });
+
         // generic ASP.NET stuff
         services.AddMemoryCache();
         services.AddHttpContextAccessor();
@@ -201,7 +306,7 @@ public static class OpenShockServiceHelper
         {
             options.AddDefaultPolicy(builder =>
             {
-                builder.SetIsOriginAllowed(s => true);
+                builder.SetIsOriginAllowed(_ => true);
                 builder.AllowAnyHeader();
                 builder.AllowCredentials();
                 builder.AllowAnyMethod();

@@ -5,7 +5,6 @@ using OpenShock.Common.Extensions;
 using OpenShock.Common.Services;
 using OpenShock.Common.Services.Device;
 using OpenShock.Common.Services.Ota;
-using OpenShock.Common.Swagger;
 using OpenShock.LiveControlGateway;
 using OpenShock.LiveControlGateway.LifetimeManager;
 using OpenShock.LiveControlGateway.Metrics;
@@ -37,8 +36,6 @@ builder.Services.AddScoped<IOtaService, OtaService>();
 // The fqdn rides on the individual measurements, not on the Meter: a tag set here is a *scope*
 // attribute, which the Prometheus exporter emits prefixed as otel_scope_gateway_fqdn.
 builder.Services.AddKeyedSingleton("OpenShock.Gateway.Meter", new Meter("OpenShock.Gateway", "1.0.0"));
-
-builder.AddSwaggerExt<Program>();
 
 builder.Services.AddHostedService<LcgKeepAlive>();
 
