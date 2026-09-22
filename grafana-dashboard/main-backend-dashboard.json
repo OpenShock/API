@@ -676,7 +676,7 @@
                     "kind": "DataQuery",
                     "spec": {
                       "editorMode": "code",
-                      "expr": "{organization.name=~\"$org\", environment.name=~\"$env\", service.name=~\"$service\"} | severity:~\"Error|Warning\" | format if (gateway.region:*) \" <gateway.region>\" as gateway_ext | format \"<service.name><gateway_ext> ➜ <_msg>\"",
+                      "expr": "{organization.name=~\"$org\", environment.name=~\"$env\", service.name=~\"$service\"} | severity_text:~\"Error|Warning\" | format if (gateway.region:*) \" <gateway.region>\" as gateway_ext | format \"<service.name><gateway_ext> ➜ <_msg>\"",
                       "queryType": "instant"
                     },
                     "version": "v0"
