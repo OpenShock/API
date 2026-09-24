@@ -264,6 +264,40 @@ public sealed class AccountService : IAccountService
     }
 
     /// <inheritdoc />
+    public async Task ResendActivationEmailAsync(string email, CancellationToken cancellationToken = default)
+    {
+        var lowerCaseEmail = email.ToLowerInvariant();
+
+        var user = await _db.Users
+            .Include(u => u.UserDeactivation)
+            .Include(u => u.UserActivationRequest)
+            .FirstOrDefaultAsync(u => u.Email == lowerCaseEmail, cancellationToken);
+
+        // Silently no-op when there is nothing to send, so this endpoint can't be used to probe
+        // which emails are registered, already activated, or deactivated.
+        if (user is null || user.ActivatedAt is not null || user.UserDeactivation is not null) return;
+
+        // Ensure an activation request exists (legacy data or a failed initial send may lack one). The
+        // real token is minted lazily by the outbox delivery job at send time, so we only seed the hash
+        // here; the seed is overwritten on send.
+        if (user.UserActivationRequest is null)
+        {
+            user.UserActivationRequest = new UserActivationRequest
+            {
+                UserId = user.Id,
+                TokenHash = SeedTokenHash()
+            };
+        }
+
+        // Durably enqueue a fresh activation email. Its coalesce key supersedes any still-pending
+        // activation for this user, and the delivery job re-mints the token on send - invalidating any
+        // previously emailed link.
+        _db.EmailOutbox.Add(EmailOutboxMessage.ForAccountActivation(user.Id, user.Email, user.Name));
+        await _db.SaveChangesAsync(cancellationToken);
+        await NotifyEmailOutboxAsync();
+    }
+
+    /// <inheritdoc />
     public async Task<OneOf<Success, CannotDeactivatePrivilegedAccount, AccountDeactivationAlreadyInProgress, Unauthorized, NotFound>> DeactivateAccountAsync(Guid executingUserId, Guid userId, bool deleteLater, string? reason = null)
     {
         if (executingUserId != userId)
