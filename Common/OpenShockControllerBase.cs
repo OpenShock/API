@@ -42,6 +42,7 @@ public class OpenShockControllerBase : OpenShock.Internal.Common.OpenShockContro
     [NonAction]
     protected async Task CreateSession(Guid accountId, string domain)
     {
+        var frontendOptions = HttpContext.RequestServices.GetRequiredService<FrontendOptions>();
         var sessionService = HttpContext.RequestServices.GetRequiredService<ISessionService>();
 
         var remoteIp = HttpContext.GetRemoteIP();
@@ -52,7 +53,7 @@ public class OpenShockControllerBase : OpenShock.Internal.Common.OpenShockContro
         HttpContext.Response.Cookies.Append(AuthConstants.UserSessionCookieName, session.Token, new CookieOptions
         {
             Expires = DateTimeOffset.UtcNow.Add(Duration.LoginSessionLifetime),
-            Secure = true,
+            Secure = frontendOptions.CookieSecure,
             HttpOnly = true,
             SameSite = SameSiteMode.Lax,
             Domain = domain
