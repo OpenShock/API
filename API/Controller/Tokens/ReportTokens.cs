@@ -9,6 +9,9 @@ using System.Net.Mime;
 using Microsoft.AspNetCore.RateLimiting;
 using OpenShock.API.Errors;
 using OpenShock.API.Services.Turnstile;
+using OpenShock.Common.Extensions;
+using OpenShock.Common.Models;
+using OpenShock.Common.OpenShockDb;
 using OpenShock.Common.Services.Webhook;
 
 using OpenShock.Internal.Common.Utils;
@@ -48,6 +51,10 @@ public sealed partial class TokensController
 
             return Problem(new OpenShockProblem("InternalServerError", "Internal Server Error", HttpStatusCode.InternalServerError));
         }
+
+        // Admin accounts must never authenticate through a bypassed flow.
+        if (HttpContext.IsBypassed(BypassTokenType.Turnstile) && CurrentUser.Roles.Contains(RoleType.Admin))
+            return Problem(TurnstileError.InvalidTurnstile);
 
         var reportId = Guid.CreateVersion7();
 

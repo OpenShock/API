@@ -4,9 +4,13 @@ using System.Net.Mime;
 using Asp.Versioning;
 using Microsoft.AspNetCore.RateLimiting;
 using OpenShock.Common.Errors;
+using OpenShock.Common.Extensions;
+using OpenShock.Common.Models;
 using OpenShock.Common.Problems;
+using OpenShock.API.Errors;
 using OpenShock.API.Models.Response;
 using OpenShock.API.Services.Turnstile;
+using OpenShock.Common.OpenShockDb;
 
 using OpenShock.Internal.Common.Problems;
 
@@ -47,6 +51,11 @@ public sealed partial class AccountController
                 oauthOnly => Problem(AccountError.AccountOAuthOnly)
             );
         }
+
+        // Admin accounts must never be authenticated through a bypassed flow — the bypass exists for
+        // automated tests, not as a credential-less back door to a privileged account.
+        if (HttpContext.IsBypassed(BypassTokenType.Turnstile) && account.Roles.Contains(RoleType.Admin))
+            return Problem(TurnstileError.InvalidTurnstile);
         
         await CreateSession(account.Id, cookieDomain);
         

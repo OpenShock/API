@@ -39,6 +39,12 @@ public interface IAccountService
     Task<bool> IsEmailRegisteredAsync(string email, CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// True when the email belongs to an account holding a privileged role.
+    /// Used to keep bypassed flows away from admin accounts, not for authorization decisions.
+    /// </summary>
+    Task<bool> IsPrivilegedEmailAsync(string email, CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// 
     /// </summary>
     /// <param name="token"></param>
