@@ -57,6 +57,8 @@ public sealed partial class AdminController
                         BootedAt = x.BootedAt,
                         LatencyMs = x.LatencyMs,
                         Rssi = x.Rssi,
+                        Country = x.Country,
+                        Ip = x.Ip
                     };
                 })
         );
@@ -78,5 +80,7 @@ public sealed partial class AdminController
         public required DateTimeOffset BootedAt { get; init; }
         public required ushort? LatencyMs { get; init; }
         public required int? Rssi { get; init; }
+        public required string? Country { get; set; }
+        public required string? Ip { get; set; }
     }
 }

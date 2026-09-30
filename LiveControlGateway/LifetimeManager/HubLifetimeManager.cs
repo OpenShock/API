@@ -1,12 +1,15 @@
-﻿using System.Diagnostics.Metrics;
+﻿using System.Collections.Immutable;
+using System.Diagnostics.Metrics;
 using Microsoft.EntityFrameworkCore;
-using OneOf.Types;
 using OpenShock.Common.Extensions;
 using OpenShock.Common.Models;
 using OpenShock.Common.OpenShockDb;
 using OpenShock.Common.Redis.PubSub;
+using OpenShock.Common.Results;
 using OpenShock.Common.Services.RedisPubSub;
 using OpenShock.LiveControlGateway.Controllers;
+using OpenShock.LiveControlGateway.Metrics;
+using OpenShock.LiveControlGateway.Options;
 using Redis.OM.Contracts;
 using StackExchange.Redis;
 
@@ -24,9 +27,16 @@ public sealed class HubLifetimeManager
     private readonly IRedisConnectionProvider _redisConnectionProvider;
     private readonly IRedisPubService _redisPubService;
     private readonly ILoggerFactory _loggerFactory;
+    private readonly GatewayMetrics _metrics;
     private readonly ILogger<HubLifetimeManager> _logger;
     
-    private readonly Dictionary<Guid, HubLifetime> _lifetimes = new();
+    /// <summary>
+    /// Immutable so that readers that do not hold <see cref="_lifetimesLock"/> - the observable
+    /// instruments below, whose callbacks are synchronous and cannot await it - always see one
+    /// consistent version. Mutation is still a read-modify-write of the field, so writers take the
+    /// lock, which also keeps the multi-step swap and removal sequences atomic.
+    /// </summary>
+    private volatile ImmutableDictionary<Guid, HubLifetime> _lifetimes = ImmutableDictionary<Guid, HubLifetime>.Empty;
     private readonly SemaphoreSlim _lifetimesLock = new(1);
 
     /// <summary>
@@ -37,6 +47,8 @@ public sealed class HubLifetimeManager
     /// <param name="redisConnectionProvider"></param>
     /// <param name="redisPubService"></param>
     /// <param name="loggerFactory"></param>
+    /// <param name="lcgOptions"></param>
+    /// <param name="metrics"></param>
     /// <param name="meter"></param>
     public HubLifetimeManager(
         IDbContextFactory<OpenShockContext> dbContextFactory,
@@ -44,6 +56,8 @@ public sealed class HubLifetimeManager
         IRedisConnectionProvider redisConnectionProvider,
         IRedisPubService redisPubService,
         ILoggerFactory loggerFactory,
+        LcgOptions lcgOptions,
+        GatewayMetrics metrics,
         [FromKeyedServices("OpenShock.Gateway.Meter")] Meter meter
     )
     {
@@ -52,23 +66,43 @@ public sealed class HubLifetimeManager
         _redisConnectionProvider = redisConnectionProvider;
         _redisPubService = redisPubService;
         _loggerFactory = loggerFactory;
+        _metrics = metrics;
 
         _logger = _loggerFactory.CreateLogger<HubLifetimeManager>();
         
         
+        var gatewayFqdn = new KeyValuePair<string, object?>("gateway_fqdn", lcgOptions.Fqdn);
+
         meter.CreateObservableUpDownCounter("openshock_hub_connections", () =>
         {
             return new[]
             {
-                new Measurement<int>(_lifetimes.Count)
+                new Measurement<int>(_lifetimes.Count, gatewayFqdn)
             };
         }, "connections", "Current number of connected hubs");
+
+        // Derived from the hubs themselves rather than tracked alongside them: a separately
+        // maintained counter drifts from the truth the moment a teardown path misses a decrement.
+        meter.CreateObservableUpDownCounter("openshock_live_control_connections", () =>
+        {
+            var lifetimes = _lifetimes;
+
+            // Enumerate the dictionary itself, not .Values: the former uses ImmutableDictionary's
+            // struct enumerator, the latter allocates one.
+            var count = 0;
+            foreach (var (_, lifetime) in lifetimes) count += lifetime.LiveControlClientCount;
+
+            return new[]
+            {
+                new Measurement<int>(count, gatewayFqdn)
+            };
+        }, "connections", "Current number of live control sessions across all connected hubs");
     }
 
     /// <summary>
     /// When the hub lifetime is busy, we cannot add a new device connection
     /// </summary>
-    public readonly struct Busy;
+    public sealed class Busy;
 
     /// <summary>
     /// Add device to lifetime manager, called on successful connect of device
@@ -77,7 +111,7 @@ public sealed class HubLifetimeManager
     /// <param name="hubController"></param>
     /// <param name="cancellationToken"></param>
     /// <returns></returns>
-    public async Task<OneOf.OneOf<HubLifetime, Busy, Error>> TryAddDeviceConnection(byte tps, IHubController hubController,
+    public async Task<Union3<HubLifetime, Busy, Error>> TryAddDeviceConnection(byte tps, IHubController hubController,
         CancellationToken cancellationToken)
     {
         _logger.LogDebug("Adding hub lifetime [{HubId}]", hubController.Id);
@@ -91,6 +125,7 @@ public sealed class HubLifetimeManager
                 // There already is a hub lifetime, lets swap!
                 if (!hubLifetime.TryMarkSwapping())
                 {
+                    _metrics.HubConnectAttempt(GatewayMetrics.HubConnectOutcome.Busy);
                     return new Busy(); 
                 }
 
@@ -100,7 +135,7 @@ public sealed class HubLifetimeManager
             {
                 // This is a fresh connection with no existing lifetime, create one!
                 hubLifetime = CreateNewLifetime(tps, hubController);
-                _lifetimes[hubController.Id] = hubLifetime;
+                _lifetimes = _lifetimes.SetItem(hubController.Id, hubLifetime);
             }
         }
 
@@ -109,6 +144,7 @@ public sealed class HubLifetimeManager
         {
             _logger.LogTrace("Swapping hub lifetime [{HubId}]", hubController.Id);
             await hubLifetime.Swap(hubController);
+            _metrics.HubConnectAttempt(GatewayMetrics.HubConnectOutcome.Swapped);
         }
         else
         {
@@ -118,8 +154,11 @@ public sealed class HubLifetimeManager
                 // If we fail to initialize, the hub must be removed
                 await RemoveDeviceConnection(hubController); // Here be dragons?
                 _logger.LogError("Failed to initialize hub lifetime [{HubId}]", hubController.Id);
+                _metrics.HubConnectAttempt(GatewayMetrics.HubConnectOutcome.InitFailed);
                 return new Error();
             }
+
+            _metrics.HubConnectAttempt(GatewayMetrics.HubConnectOutcome.Connected);
         }
 
         return hubLifetime;
@@ -183,9 +222,17 @@ public sealed class HubLifetimeManager
 
         using (await _lifetimesLock.LockAsyncScoped())
         {
-            if (!_lifetimes.Remove(hubController.Id))
+            // Remove hands back the same instance when the key was not there, which is the only
+            // signal that nothing was removed.
+            var withoutHub = _lifetimes.Remove(hubController.Id);
+            if (ReferenceEquals(withoutHub, _lifetimes))
             {
                 _logger.LogError("Failed to remove hub lifetime [{HubId}], this shouldnt happen WTF?!", hubController.Id);
+            }
+            else
+            {
+                _lifetimes = withoutHub;
+                _metrics.HubDisconnected();
             }
         }
     }
@@ -203,7 +250,7 @@ public sealed class HubLifetimeManager
     /// <param name="liveControlController"></param>
     /// <returns></returns>
     /// <exception cref="ArgumentNullException"></exception>
-    public async Task<OneOf.OneOf<HubLifetime, NotFound, Busy>> AddLiveControlConnection(LiveControlController liveControlController)
+    public async Task<Union3<HubLifetime, NotFound, Busy>> AddLiveControlConnection(LiveControlController liveControlController)
     {
         if (!liveControlController.HubId.HasValue) throw new ArgumentException("LiveControlController does not have a hubId", nameof(liveControlController));
         
@@ -227,9 +274,9 @@ public sealed class HubLifetimeManager
     /// </summary>
     /// <param name="device"></param>
     /// <returns></returns>
-    public async Task<OneOf.OneOf<Success, DeviceNotFound>> UpdateDevice(Guid device)
+    public async Task<SuccessOrNotFound> UpdateDevice(Guid device)
     {
-        if (!_lifetimes.TryGetValue(device, out var deviceLifetime)) return new DeviceNotFound();
+        if (!_lifetimes.TryGetValue(device, out var deviceLifetime)) return new NotFound();
         await deviceLifetime.UpdateDevice();
         return new Success();
     }
@@ -240,9 +287,9 @@ public sealed class HubLifetimeManager
     /// <param name="device"></param>
     /// <param name="shocks"></param>
     /// <returns></returns>
-    public async Task<OneOf.OneOf<Success, DeviceNotFound>> Control(Guid device, IReadOnlyList<ShockerControlCommand> shocks)
+    public async Task<SuccessOrNotFound> Control(Guid device, IReadOnlyList<ShockerControlCommand> shocks)
     {
-        if (!_lifetimes.TryGetValue(device, out var deviceLifetime)) return new DeviceNotFound();
+        if (!_lifetimes.TryGetValue(device, out var deviceLifetime)) return new NotFound();
         await deviceLifetime.Control(shocks);
         return new Success();
     }
@@ -253,9 +300,9 @@ public sealed class HubLifetimeManager
     /// <param name="device"></param>
     /// <param name="enabled"></param>
     /// <returns></returns>
-    public async Task<OneOf.OneOf<Success, DeviceNotFound>> ControlCaptive(Guid device, bool enabled)
+    public async Task<SuccessOrNotFound> ControlCaptive(Guid device, bool enabled)
     {
-        if (!_lifetimes.TryGetValue(device, out var deviceLifetime)) return new DeviceNotFound();
+        if (!_lifetimes.TryGetValue(device, out var deviceLifetime)) return new NotFound();
         await deviceLifetime.ControlCaptive(enabled);
         return new Success();
     }
@@ -265,9 +312,9 @@ public sealed class HubLifetimeManager
     /// </summary>
     /// <param name="device"></param>
     /// <returns></returns>
-    public async Task<OneOf.OneOf<Success, DeviceMissingFeature, DeviceNotFound>> EmergencyStop(Guid device)
+    public async Task<Union3<Success, DeviceMissingFeature, NotFound>> EmergencyStop(Guid device)
     {
-        if (!_lifetimes.TryGetValue(device, out var deviceLifetime)) return new DeviceNotFound();
+        if (!_lifetimes.TryGetValue(device, out var deviceLifetime)) return new NotFound();
         bool ok = await deviceLifetime.EmergencyStop();
         return ok ? new Success() : new DeviceMissingFeature();
     }
@@ -278,9 +325,9 @@ public sealed class HubLifetimeManager
     /// <param name="device"></param>
     /// <param name="version"></param>
     /// <returns></returns>
-    public async Task<OneOf.OneOf<Success, DeviceNotFound>> OtaInstall(Guid device, SemVersion version)
+    public async Task<SuccessOrNotFound> OtaInstall(Guid device, SemVersion version)
     {
-        if (!_lifetimes.TryGetValue(device, out var deviceLifetime)) return new DeviceNotFound();
+        if (!_lifetimes.TryGetValue(device, out var deviceLifetime)) return new NotFound();
         await deviceLifetime.OtaInstall(version);
         return new Success();
     }
@@ -290,9 +337,9 @@ public sealed class HubLifetimeManager
     /// </summary>
     /// <param name="device"></param>
     /// <returns></returns>
-    public async Task<OneOf.OneOf<Success, DeviceMissingFeature, DeviceNotFound>> Reboot(Guid device)
+    public async Task<Union3<Success, DeviceMissingFeature, NotFound>> Reboot(Guid device)
     {
-        if (!_lifetimes.TryGetValue(device, out var deviceLifetime)) return new DeviceNotFound();
+        if (!_lifetimes.TryGetValue(device, out var deviceLifetime)) return new NotFound();
         bool ok = await deviceLifetime.Reboot();
         return ok ? new Success() : new DeviceMissingFeature();
     }
@@ -302,25 +349,20 @@ public sealed class HubLifetimeManager
     /// </summary>
     /// <param name="device"></param>
     /// <param name="data"></param>
-    public async Task<OneOf.OneOf<Success, DeviceNotFound>> DeviceOnline(Guid device, SelfOnlineData data)
+    public async Task<SuccessOrNotFound> DeviceOnline(Guid device, SelfOnlineData data)
     {
-        if (!_lifetimes.TryGetValue(device, out var deviceLifetime)) return new DeviceNotFound();
+        if (!_lifetimes.TryGetValue(device, out var deviceLifetime)) return new NotFound();
         await deviceLifetime.Online(device, data);
         return new Success();
     }
 }
 
 /// <summary>
-/// OneOf
-/// </summary>
-public readonly struct DeviceNotFound;
-
-/// <summary>
-/// OneOf
+/// Union case
 /// </summary>
 public readonly record struct ShockerExclusive(DateTimeOffset Until);
 
 /// <summary>
 /// This hub is too outdated to use this command
 /// </summary>
-public readonly struct DeviceMissingFeature;
+public sealed class DeviceMissingFeature;

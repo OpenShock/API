@@ -1,13 +1,12 @@
 ﻿using MessagePack;
 using Microsoft.EntityFrameworkCore;
-using OneOf;
-using OneOf.Types;
 using OpenShock.Common.Constants;
 using OpenShock.Common.Extensions;
 using OpenShock.Common.Models;
 using OpenShock.Common.OpenShockDb;
 using OpenShock.Common.Redis;
 using OpenShock.Common.Redis.PubSub;
+using OpenShock.Common.Results;
 using OpenShock.Common.Services.RedisPubSub;
 using OpenShock.Common.Utils;
 using OpenShock.LiveControlGateway.Controllers;
@@ -18,7 +17,7 @@ using StackExchange.Redis;
 using System.Collections.Immutable;
 using System.ComponentModel.DataAnnotations;
 using System.Diagnostics;
-
+using System.Net;
 using OpenShock.Internal.Common.Utils;
 
 using OpenShock.Internal.Common.Extensions;
@@ -59,6 +58,12 @@ public sealed class HubLifetime : IAsyncDisposable
 
     private ImmutableArray<LiveControlController> _liveControlClients = ImmutableArray<LiveControlController>.Empty;
     private readonly SemaphoreSlim _liveControlClientsLock = new(1);
+
+    /// <summary>
+    /// Live control clients currently attached to this hub. Lock free: the field is a single
+    /// reference to an immutable snapshot, so a reader always sees one consistent version of it.
+    /// </summary>
+    public int LiveControlClientCount => _liveControlClients.Length;
 
     private ChannelMessageQueue? _deviceMsgQueue;
     private bool _disposed;
@@ -410,7 +415,7 @@ public sealed class HubLifetime : IAsyncDisposable
     /// <param name="intensity"></param>
     /// <param name="tps"></param>
     /// <returns></returns>
-    public OneOf<Success, NotFound, ShockerExclusive> ReceiveFrame(Guid shocker, ControlType type, byte intensity,
+    public Union3<Success, NotFound, ShockerExclusive> ReceiveFrame(Guid shocker, ControlType type, byte intensity,
         byte tps)
     {
         if (!_shockerStates.TryGetValue(shocker, out var state)) return new NotFound();
@@ -483,7 +488,7 @@ public sealed class HubLifetime : IAsyncDisposable
     /// <param name="device"></param>
     /// <param name="data"></param>
     /// <returns></returns>
-    public async Task<OneOf<Success, OnlineStateUpdated>> Online(Guid device, SelfOnlineData data)
+    public async Task<Union2<Success, OnlineStateUpdated>> Online(Guid device, SelfOnlineData data)
     {
         var deviceOnline = _redisConnectionProvider.RedisCollection<DeviceOnline>();
         var deviceId = device.ToString();
@@ -500,9 +505,12 @@ public sealed class HubLifetime : IAsyncDisposable
         online.BootedAt = data.BootedAt;
         online.LatencyMs = data.LatencyMs;
         online.Rssi = data.Rssi;
+        online.Country = data.Country;
+        online.Ip = data.Ip?.ToString();
 
         var sendOnlineStatusUpdate = false;
 
+        // Do we need to send a update to the clients?
         if (online.FirmwareVersion != data.FirmwareVersion ||
             online.Gateway != data.Gateway ||
             online.ConnectedAt != data.ConnectedAt ||
@@ -552,6 +560,8 @@ public sealed class HubLifetime : IAsyncDisposable
                 BootedAt = data.BootedAt,
                 LatencyMs = data.LatencyMs,
                 Rssi = data.Rssi,
+                Country = data.Country,
+                Ip = data.Ip?.ToString(),
             }, Duration.DeviceKeepAliveTimeout);
         }
     }
@@ -577,7 +587,7 @@ public sealed class HubLifetime : IAsyncDisposable
 /// <summary>
 /// Online state updated
 /// </summary>
-public readonly struct OnlineStateUpdated;
+public sealed class OnlineStateUpdated;
 
 /// <summary>
 /// Self online data struct
@@ -654,4 +664,14 @@ public readonly struct SelfOnlineData
     /// Wifi rssi
     /// </summary>
     public int? Rssi { get; init; } = null;
+    
+    /// <summary>
+    /// Country code if available
+    /// </summary>
+    public string? Country { get; init; } = null;
+    
+    /// <summary>
+    /// Remote ip address
+    /// </summary>
+    public IPAddress? Ip { get; init; } = null;
 }

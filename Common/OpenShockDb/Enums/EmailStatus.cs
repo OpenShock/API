@@ -4,7 +4,7 @@ using OpenShock.Common.Utils;
 namespace OpenShock.Common.OpenShockDb;
 
 /// <summary>
-/// Delivery state of an <see cref="EmailOutboxMessage"/>.
+/// Delivery state of an email outbox message.
 /// </summary>
 /// <remarks>
 /// The row is written by the API as <see cref="Pending"/> in the same transaction as the business

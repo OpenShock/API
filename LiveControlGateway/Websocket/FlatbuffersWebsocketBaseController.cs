@@ -1,5 +1,6 @@
 ﻿using System.Net.WebSockets;
 using FlatSharp;
+using OpenShock.Common.Results;
 using OpenShock.Common.Websocket;
 
 namespace OpenShock.LiveControlGateway.Websocket;
@@ -53,20 +54,21 @@ public abstract class FlatbuffersWebsocketBaseController<TIn, TOut> : WebsocketB
         var message =
             await FlatbufferWebSocketUtils.ReceiveFullMessageAsyncNonAlloc(WebSocket!,
                 _incomingSerializer, cancellationToken);
-        
-        var continueLoop = await message.Match(
-            Handle,
-            async _ =>
-            {
+
+        // Switch on the underlying value: matching a union directly against the type parameter
+        // TIn is ambiguous (union instance vs. underlying value) and rejected by the compiler.
+        switch (message.Value)
+        {
+            case DeserializeFailed:
                 await ForceClose(WebSocketCloseStatus.InvalidPayloadData, "Invalid flatbuffers message");
                 return false;
-            },
-            _ =>
-            {
+            case WebsocketClosure:
                 Logger.LogTrace("Client sent closure");
-                return Task.FromResult(false);
-            });
-
-        return continueLoop;
+                return false;
+            case TIn data:
+                return await Handle(data);
+            default:
+                return false;
+        }
     }
 }
