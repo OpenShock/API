@@ -2,17 +2,17 @@
 using Microsoft.AspNetCore.Http;
 using OpenShock.Common.OpenShockDb;
 using OpenShock.Common.Constants;
-using OpenShock.Common.Services.Bypass;
+using OpenShock.Common.Services.AutomationTokens;
 
 namespace OpenShock.Common.Extensions;
 
 public static class HttpContextExtensions
 {
-    public static bool TryGetBypassTokenFromHeader(this HttpContext context, [NotNullWhen(true)] out string? token)
+    public static bool TryGetAutomationTokenFromHeader(this HttpContext context, [NotNullWhen(true)] out string? token)
     {
         ArgumentNullException.ThrowIfNull(context);
 
-        if (context.Request.Headers.TryGetValue(AuthConstants.BypassTokenHeaderName, out var value) && !string.IsNullOrEmpty(value))
+        if (context.Request.Headers.TryGetValue(AuthConstants.AutomationTokenHeaderName, out var value) && !string.IsNullOrEmpty(value))
         {
             token = value!;
             return true;
@@ -23,29 +23,29 @@ public static class HttpContextExtensions
     }
 
     /// <summary>
-    /// Stores the result of resolving the bypass-token header. Called by the bypass middleware.
+    /// Stores the result of resolving the automation-token header. Called by the automation-token middleware.
     /// </summary>
-    public static void SetResolvedBypassToken(this HttpContext context, ResolvedBypassToken resolved)
+    public static void SetResolvedAutomationToken(this HttpContext context, ResolvedAutomationToken resolved)
     {
         ArgumentNullException.ThrowIfNull(context);
         context.SetItemByType(resolved);
     }
 
     /// <summary>
-    /// Returns the bypass token resolved earlier in the pipeline, or <c>null</c> if no header was
+    /// Returns the automation token resolved earlier in the pipeline, or <c>null</c> if no header was
     /// present (or it did not resolve to a known token).
     /// </summary>
-    public static ResolvedBypassToken? GetResolvedBypassToken(this HttpContext context)
+    public static ResolvedAutomationToken? GetResolvedAutomationToken(this HttpContext context)
     {
         ArgumentNullException.ThrowIfNull(context);
-        return context.GetItemByType<ResolvedBypassToken>();
+        return context.GetItemByType<ResolvedAutomationToken>();
     }
 
     /// <summary>
-    /// Returns true if the request presented a bypass token that grants <paramref name="type"/>.
+    /// Returns true if the request presented an automation token that grants <paramref name="type"/>.
     /// </summary>
-    public static bool IsBypassed(this HttpContext context, BypassTokenType type) =>
-        context.GetResolvedBypassToken()?.Types.Contains(type) ?? false;
+    public static bool IsBypassed(this HttpContext context, AutomationTokenType type) =>
+        context.GetResolvedAutomationToken()?.Types.Contains(type) ?? false;
 
     // FullName is only null for open generic parameters, which a closed T never is.
     private static string ItemKeyOf<T>() => typeof(T).FullName!;

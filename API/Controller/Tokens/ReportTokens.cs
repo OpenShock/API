@@ -12,7 +12,7 @@ using OpenShock.API.Services.Turnstile;
 using OpenShock.Common.Extensions;
 using OpenShock.Common.OpenShockDb;
 using OpenShock.Common.Results;
-using OpenShock.Common.Services.Bypass;
+using OpenShock.Common.Services.AutomationTokens;
 using OpenShock.Common.Services.Webhook;
 
 using OpenShock.Internal.Common.Utils;
@@ -28,7 +28,7 @@ public sealed partial class TokensController
     /// </summary>
     /// <param name="body"></param>
     /// <param name="turnstileService"></param>
-    /// <param name="bypassTokens"></param>
+    /// <param name="automationTokens"></param>
     /// <param name="webhookService"></param>
     /// <param name="cancellationToken"></param>
     /// <response code="200">The tokens were deleted if found</response>
@@ -39,7 +39,7 @@ public sealed partial class TokensController
     public async Task<IActionResult> ReportTokens(
         [FromBody] ReportTokensRequest body,
         [FromServices] ICloudflareTurnstileService turnstileService,
-        [FromServices] IBypassTokenService bypassTokens,
+        [FromServices] IAutomationTokenService automationTokens,
         [FromServices] IWebhookService webhookService,
         CancellationToken cancellationToken)
     {
@@ -54,9 +54,9 @@ public sealed partial class TokensController
             return Problem(new OpenShockProblem("InternalServerError", "Internal Server Error", HttpStatusCode.InternalServerError));
         }
 
-        // Caller is already authenticated; a privileged account on a bypass-using request is rejected.
-        if (!await bypassTokens.TryRecordUseAsync(CurrentUser.Id, cancellationToken))
-            return Problem(TurnstileError.InvalidTurnstile);
+        // The middleware only screens cookie sessions for privileged accounts; this also covers API-token callers.
+        if (!await automationTokens.TryRecordUseAsync(CurrentUser.Id, AutomationTokenFlow.ReportTokens, cancellationToken))
+            return Problem(AutomationTokenError.NotAllowedForAccount);
 
         var reportId = Guid.CreateVersion7();
 

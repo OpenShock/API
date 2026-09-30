@@ -1,6 +1,6 @@
 namespace OpenShock.Common.OpenShockDb;
 
-public sealed class BypassToken
+public sealed class AutomationToken
 {
     public required Guid Id { get; set; }
 
@@ -8,13 +8,11 @@ public sealed class BypassToken
 
     public required string TokenHash { get; set; }
 
-    public required List<BypassTokenType> Types { get; set; }
+    public required List<AutomationTokenType> Types { get; set; }
 
     public DateTime CreatedAt { get; set; }
 
     public DateTime? LastUsedAt { get; set; }
-
-    public Guid? LastUsedByUserId { get; set; }
 
     public DateTime? LastRotatedAt { get; set; }
 
@@ -22,9 +20,11 @@ public sealed class BypassToken
 
     public bool AutoCleanupUsers { get; set; }
 
+    /// <summary>
+    /// With <see cref="AutoCleanupUsers"/>, how long after creation the accounts this token created are deleted.
+    /// </summary>
     public TimeSpan? AutoCleanupAfter { get; set; }
 
     // Navigations
-    public User? LastUsedByUser { get; set; }
-    public ICollection<BypassTokenUserUse> UserUses { get; } = [];
+    public ICollection<User> CreatedUsers { get; } = [];
 }

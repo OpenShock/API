@@ -34,6 +34,30 @@ internal sealed class ConcurrentUniqueBatchQueue<TKey, TValue> where TKey : notn
     }
 }
 
+internal sealed class ConcurrentCountingBatchQueue<TKey> where TKey : notnull
+{
+    private readonly Lock _lock = new();
+    private Dictionary<TKey, long> _dictionary = new();
+
+    public void Increment(TKey key)
+    {
+        lock (_lock)
+        {
+            _dictionary[key] = _dictionary.GetValueOrDefault(key) + 1;
+        }
+    }
+
+    public Dictionary<TKey, long> DequeueAll()
+    {
+        lock (_lock)
+        {
+            var items = _dictionary;
+            _dictionary = new Dictionary<TKey, long>();
+            return items;
+        }
+    }
+}
+
 public sealed class BatchUpdateService : BackgroundService, IBatchUpdateService
 {
     private static readonly TimeSpan Interval = TimeSpan.FromSeconds(10);
@@ -44,6 +68,7 @@ public sealed class BatchUpdateService : BackgroundService, IBatchUpdateService
 
     private readonly ConcurrentUniqueBatchQueue<Guid, bool> _tokenLastUsed = new();
     private readonly ConcurrentUniqueBatchQueue<string, DateTimeOffset> _sessionLastUsed = new();
+    private readonly ConcurrentCountingBatchQueue<Guid> _automationTokenUses = new();
 
     public BatchUpdateService(IDbContextFactory<OpenShockContext> dbFactory, ILogger<BatchUpdateService> logger, IConnectionMultiplexer connectionMultiplexer)
     {
@@ -66,6 +91,25 @@ public sealed class BatchUpdateService : BackgroundService, IBatchUpdateService
         await db.SaveChangesAsync();
     }
     
+    private async Task UpdateAutomationTokens()
+    {
+        var uses = _automationTokenUses.DequeueAll();
+
+        // Skip if there is nothing
+        if (uses.Count < 1) return;
+
+        var now = DateTime.UtcNow;
+
+        await using var db = await _dbFactory.CreateDbContextAsync();
+        foreach (var (automationTokenId, count) in uses)
+        {
+            await db.AutomationTokens.Where(x => x.Id == automationTokenId)
+                .ExecuteUpdateAsync(x => x
+                    .SetProperty(y => y.LastUsedAt, now)
+                    .SetProperty(y => y.UseCount, y => y.UseCount + count));
+        }
+    }
+
     private async Task UpdateSessions()
     {
         var sessionsToUpdate = new List<Task<bool>>(); 
@@ -91,6 +135,11 @@ public sealed class BatchUpdateService : BackgroundService, IBatchUpdateService
         _tokenLastUsed.Enqueue(apiTokenId, false);
     }
     
+    public void UpdateAutomationTokenUsed(Guid automationTokenId)
+    {
+        _automationTokenUses.Increment(automationTokenId);
+    }
+
     public void UpdateSessionLastUsed(string sessionToken, DateTimeOffset lastUsed)
     {
         // Only hash new tokens, old ones are 64 chars long
@@ -127,7 +176,7 @@ public sealed class BatchUpdateService : BackgroundService, IBatchUpdateService
     {
         try
         {
-            await Task.WhenAll(UpdateTokens(), UpdateSessions());
+            await Task.WhenAll(UpdateTokens(), UpdateAutomationTokens(), UpdateSessions());
         }
         catch (Exception e)
         {

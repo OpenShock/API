@@ -10,7 +10,7 @@ using OpenShock.Common.Errors;
 using OpenShock.Common.OpenShockDb;
 using OpenShock.Common.Options;
 using OpenShock.Common.Problems;
-using OpenShock.Common.Services.Bypass;
+using OpenShock.Common.Services.AutomationTokens;
 using OpenShock.Common.Results;
 
 using OpenShock.Internal.Common.Problems;
@@ -25,7 +25,7 @@ public sealed partial class AccountController
     /// <param name="body"></param>
     /// <param name="turnstileService"></param>
     /// <param name="accountOptions"></param>
-    /// <param name="bypassTokens"></param>
+    /// <param name="automationTokens"></param>
     /// <param name="cancellationToken"></param>
     /// <response code="200">User successfully signed up</response>
     /// <response code="400">Username or email already exists</response>
@@ -40,7 +40,7 @@ public sealed partial class AccountController
         [FromBody] SignUpV2 body,
         [FromServices] ICloudflareTurnstileService turnstileService,
         [FromServices] AccountOptions accountOptions,
-        [FromServices] IBypassTokenService bypassTokens,
+        [FromServices] IAutomationTokenService automationTokens,
         CancellationToken cancellationToken)
     {
         if (!accountOptions.RegistrationEnabled)
@@ -59,8 +59,9 @@ public sealed partial class AccountController
             };
         }
 
-        // No-op when no bypass token resolved. Signups can't yield a privileged user, so the bool return is ignored.
-        await bypassTokens.TryRecordUseAsync(created.Id, cancellationToken);
+        // Links the new account to the automation token that created it, making it an automated account.
+        // No-op when no automation token resolved.
+        await automationTokens.RecordSignupAsync(created.Id, cancellationToken);
 
         return Ok();
     }

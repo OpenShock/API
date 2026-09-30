@@ -23,7 +23,7 @@ using OpenShock.Common.Options;
 using OpenShock.Common.Problems;
 using OpenShock.Common.Services.Audit;
 using OpenShock.Common.Services.BatchUpdate;
-using OpenShock.Common.Services.Bypass;
+using OpenShock.Common.Services.AutomationTokens;
 using OpenShock.Common.Services.Configuration;
 using OpenShock.Common.Services.RedisPubSub;
 using OpenShock.Common.Services.Geo;
@@ -346,7 +346,7 @@ public static class OpenShockServiceHelper
         services.AddScoped<IConfigurationService, ConfigurationService>();
         services.AddScoped<ISessionService, SessionService>();
         services.AddScoped<IAuditService, AuditService>();
-        services.AddScoped<IBypassTokenService, BypassTokenService>();
+        services.AddScoped<IAutomationTokenService, AutomationTokenService>();
 
         // Ensure GeoOptions is always resolvable so IpEnrichmentService can activate even in hosts
         // (Cron, LiveControlGateway, SeedE2E) that don't call RegisterGeoOptions(). TryAdd leaves the
@@ -382,14 +382,14 @@ public static class OpenShockServiceHelper
                 return;
             }
 
-            // If the request resolved a bypass token granting RateLimit, skip every limiter on it.
-            // Selectors are sync and the BypassTokenMiddleware (which runs before UseRateLimiter)
+            // If the request resolved an automation token granting RateLimit, skip every limiter on it.
+            // Selectors are sync and the AutomationTokenMiddleware (which runs before UseRateLimiter)
             // has already populated HttpContext.Items, so this is just a dictionary lookup.
             static RateLimitPartition<string>? TryBypass(HttpContext ctx)
             {
-                var bypass = ctx.GetResolvedBypassToken();
-                return bypass is not null && bypass.Types.Contains(BypassTokenType.RateLimit)
-                    ? RateLimitPartition.GetNoLimiter($"bypass-{bypass.Id}")
+                var bypass = ctx.GetResolvedAutomationToken();
+                return bypass is not null && bypass.Types.Contains(AutomationTokenType.RateLimit)
+                    ? RateLimitPartition.GetNoLimiter($"automation-token-{bypass.Id}")
                     : null;
             }
 

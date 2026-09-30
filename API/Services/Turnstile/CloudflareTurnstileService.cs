@@ -53,11 +53,10 @@ public sealed class CloudflareTurnstileService : ICloudflareTurnstileService
     {
         if (!_options.Enabled) return new Success();
         
-        // An admin-issued bypass token resolved earlier in the pipeline counts as a Turnstile pass
-        // if it carries the Turnstile type. The middleware already bumped use counters; controllers
-        // separately call IBypassTokenService.TryRecordUseAsync after auth so privileged-account
-        // requests can be rejected and per-user cleanup can run.
-        if (_httpContextAccessor.HttpContext?.IsBypassed(BypassTokenType.Turnstile) ?? false)
+        // An admin-issued automation token resolved earlier in the pipeline counts as a Turnstile pass
+        // if it carries the Turnstile type. Controllers separately check, through IAutomationTokenService,
+        // that the account they act on was created by that token.
+        if (_httpContextAccessor.HttpContext?.IsBypassed(AutomationTokenType.Turnstile) ?? false)
             return new Success();
 
         if (string.IsNullOrEmpty(responseToken)) return CreateError(CloudflareTurnstileError.MissingResponse);

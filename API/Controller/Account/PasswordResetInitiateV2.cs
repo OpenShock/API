@@ -5,8 +5,9 @@ using Microsoft.AspNetCore.RateLimiting;
 using OpenShock.API.Models.Requests;
 using OpenShock.API.Services.Turnstile;
 using OpenShock.Common.Errors;
+using OpenShock.Common.OpenShockDb;
 using OpenShock.Common.Problems;
-using OpenShock.Common.Services.Bypass;
+using OpenShock.Common.Services.AutomationTokens;
 
 using OpenShock.Internal.Common.Problems;
 
@@ -33,17 +34,15 @@ public sealed partial class AccountController
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status403Forbidden, MediaTypeNames.Application.ProblemJson)]
     [MapToApiVersion("2")]
-    public async Task<IActionResult> PasswordResetInitiateV2([FromBody] PasswordResetRequestV2 body, [FromServices] ICloudflareTurnstileService turnstileService, [FromServices] IBypassTokenService bypassTokens, CancellationToken cancellationToken)
+    public async Task<IActionResult> PasswordResetInitiateV2([FromBody] PasswordResetRequestV2 body, [FromServices] ICloudflareTurnstileService turnstileService, [FromServices] IAutomationTokenService automationTokens, CancellationToken cancellationToken)
     {
         var turnstileError = await VerifyTurnstileAsync(turnstileService, body.TurnstileResponse, cancellationToken);
         if (turnstileError is not null) return turnstileError;
 
-        // Privileged accounts must never be reached through a bypassed flow - the bypass exists for
-        // automated tests, not as a way to send privileged reset mail without solving Turnstile.
-        // The lookup runs only on the bypass path, so the normal path keeps its timing profile, and
-        // the response stays the generic 200 so this does not become an admin-account oracle.
-        // For every other account this links the use to the token, so auto-cleanup can find it later.
-        if (!await bypassTokens.TryRecordUseByEmailAsync(body.Email, cancellationToken))
+        // Privileged accounts must never be reached through a bypassed flow. The lookup runs only on the
+        // bypass path, so the normal path keeps its timing profile, and the response stays the generic
+        // 200 so this does not become an admin-account oracle.
+        if (!await automationTokens.TryRecordUseByEmailAsync(body.Email, AutomationTokenFlow.PasswordReset, cancellationToken))
         {
             _logger.LogWarning("Refused a bypassed password reset for a privileged account");
             return Ok();

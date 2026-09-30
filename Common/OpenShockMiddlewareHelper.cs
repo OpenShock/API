@@ -115,9 +115,9 @@ public static class OpenShockMiddlewareHelper
         await redisConnection.CreateIndexAsync(typeof(DevicePair));
         await redisConnection.CreateIndexAsync(typeof(LcgNode));
 
-        // Resolve the X-OpenShock-Bypass-Token header (if present) before rate limiting so the
+        // Resolve the X-OpenShock-Automation-Token header (if present) before rate limiting so the
         // rate limiter partition selectors can honor the bypass for this same request.
-        app.UseMiddleware<BypassTokenMiddleware>();
+        app.UseMiddleware<AutomationTokenMiddleware>();
 
         app.UseRateLimiter();
         

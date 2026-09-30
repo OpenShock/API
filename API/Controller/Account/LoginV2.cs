@@ -8,7 +8,7 @@ using OpenShock.API.Services.Account;
 using OpenShock.Common.Errors;
 using OpenShock.Common.Extensions;
 using OpenShock.Common.Problems;
-using OpenShock.Common.Services.Bypass;
+using OpenShock.Common.Services.AutomationTokens;
 using OpenShock.API.Errors;
 using OpenShock.API.Models.Response;
 using OpenShock.API.Services.Turnstile;
@@ -31,12 +31,12 @@ public sealed partial class AccountController
     [Consumes(MediaTypeNames.Application.Json)]
     [ProducesResponseType<LoginV2OkResponse>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status401Unauthorized, MediaTypeNames.Application.ProblemJson)] // InvalidCredentials
-    [ProducesResponseType<OpenShockProblem>(StatusCodes.Status403Forbidden, MediaTypeNames.Application.ProblemJson)] // InvalidDomain
+    [ProducesResponseType<OpenShockProblem>(StatusCodes.Status403Forbidden, MediaTypeNames.Application.ProblemJson)] // InvalidDomain, AutomationTokenNotAllowedForAccount
     [MapToApiVersion("2")]
     public async Task<IActionResult> LoginV2(
         [FromBody] LoginV2 body,
         [FromServices] ICloudflareTurnstileService turnstileService,
-        [FromServices] IBypassTokenService bypassTokens,
+        [FromServices] IAutomationTokenService automationTokens,
         CancellationToken cancellationToken)
     {
         var cookieDomain = GetCurrentCookieDomain();
@@ -44,6 +44,11 @@ public sealed partial class AccountController
 
         var turnstileError = await VerifyTurnstileAsync(turnstileService, body.TurnstileResponse, cancellationToken);
         if (turnstileError is not null) return turnstileError;
+
+        // Checked before the password is: with Turnstile and rate limits lifted, an automation token must not
+        // be usable to guess passwords of privileged accounts.
+        if (!await automationTokens.CanUseForLoginAsync(body.UsernameOrEmail, cancellationToken))
+            return Problem(AutomationTokenError.NotAllowedForAccount);
 
         var getAccountResult = await _accountService.GetAccountByCredentialsAsync(body.UsernameOrEmail, body.Password, cancellationToken);
         if (getAccountResult is not User account)
@@ -58,11 +63,8 @@ public sealed partial class AccountController
             };
         }
 
-        // Privileged accounts must never be authenticated through a bypassed flow; the bypass exists
-        // for automated tests, not as a credential-less back door to a privileged account. For every
-        // other account this links the use to the token, so auto-cleanup can find it later.
-        if (!await bypassTokens.TryRecordUseAsync(account.Id, cancellationToken))
-            return Problem(TurnstileError.InvalidTurnstile);
+        if (!await automationTokens.TryRecordUseAsync(account.Id, AutomationTokenFlow.Login, cancellationToken))
+            return Problem(AutomationTokenError.NotAllowedForAccount);
         
         await CreateSession(account.Id, cookieDomain);
         

@@ -19,6 +19,8 @@ public sealed class AdminUsersView
 
     public required DateTime? ActivatedAt { get; set; }
 
+    public required Guid? CreatedByAutomationTokenId { get; set; }
+
     public required DateTime? DeactivatedAt { get; set; }
 
     public required Guid? DeactivatedByUserId { get; set; }
