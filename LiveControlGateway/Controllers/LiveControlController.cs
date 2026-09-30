@@ -238,6 +238,10 @@ public sealed class LiveControlController : WebsocketBaseController<LiveControlR
             case LifetimeManager.HubLifetime hubLifetime:
                 _hubLifetime = hubLifetime;
                 break;
+            // A switch statement is not exhaustiveness-checked, so without this an unhandled case would
+            // fall through to reporting Connected with a null lifetime and only fail later on first access.
+            default:
+                throw new UnreachableException();
         }
 
         _metrics.LiveControlAttempt(GatewayMetrics.LiveControlOutcome.Connected);
