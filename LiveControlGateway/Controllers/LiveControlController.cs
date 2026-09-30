@@ -548,6 +548,9 @@ public sealed class LiveControlController : WebsocketBaseController<LiveControlR
                     Data = shockerExclusive.Until
                 });
                 break;
+            // See the note on the ConnectionPrecondition switch above.
+            default:
+                throw new UnreachableException();
         }
     }
 

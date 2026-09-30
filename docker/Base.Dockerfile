@@ -1,8 +1,11 @@
-FROM mcr.microsoft.com/dotnet/sdk:11.0.100-preview.7-alpine3.24 AS build-common
+FROM mcr.microsoft.com/dotnet/sdk:11.0.100-rc.1-alpine3.24 AS build-common
 WORKDIR /src
 
 COPY --link Common/*.csproj Common/
 COPY --link *.props .
+# Copied so the SDK pin is actually enforced in the image: without it the build silently
+# uses whatever SDK the base image ships, which can drift from the one CI validated.
+COPY --link global.json .
 RUN dotnet restore Common/Common.csproj
 
 COPY --link Common/. Common/

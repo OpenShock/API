@@ -32,7 +32,6 @@
     <PackageVersion Include="Microsoft.IO.RecyclableMemoryStream" Version="3.0.1" />
     <PackageVersion Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="11.0.0-rc.1.1" />
     <PackageVersion Include="NRedisStack" Version="1.8.0" />
-    <PackageVersion Include="OneOf" Version="3.0.271" />
     <PackageVersion Include="OpenShock.Internal.Common" Version="1.2.0" />
     <PackageVersion Include="OpenShock.Internal.AspNet" Version="1.2.0" />
     <PackageVersion Include="OpenShock.Internal.DynamicLinq" Version="1.2.0" />

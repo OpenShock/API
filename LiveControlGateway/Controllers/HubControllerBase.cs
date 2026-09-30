@@ -1,4 +1,5 @@
-﻿using System.Diagnostics.CodeAnalysis;
+﻿using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using FlatSharp;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
@@ -155,6 +156,10 @@ public abstract class HubControllerBase<TIn, TOut> : FlatbuffersWebsocketBaseCon
             case LifetimeManager.HubLifetime hubLifetime:
                 HubLifetime = hubLifetime;
                 break;
+            // A switch statement is not exhaustiveness-checked, so without this an unhandled case would
+            // fall through to returning Success with no lifetime assigned and only fail later on first access.
+            default:
+                throw new UnreachableException();
         }
 
         return new Success();
