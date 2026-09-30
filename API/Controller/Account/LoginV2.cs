@@ -6,13 +6,12 @@ using Asp.Versioning;
 using Microsoft.AspNetCore.RateLimiting;
 using OpenShock.API.Services.Account;
 using OpenShock.Common.Errors;
-using OpenShock.Common.Extensions;
+using OpenShock.Common.OpenShockDb;
 using OpenShock.Common.Problems;
 using OpenShock.Common.Services.AutomationTokens;
 using OpenShock.API.Errors;
 using OpenShock.API.Models.Response;
 using OpenShock.API.Services.Turnstile;
-using OpenShock.Common.OpenShockDb;
 using Results = OpenShock.Common.Results;
 
 using OpenShock.Internal.Common.Problems;

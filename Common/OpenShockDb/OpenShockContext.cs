@@ -118,7 +118,6 @@ public class OpenShockContext : DbContext, IDataProtectionKeyContext
     public DbSet<EmailOutboxMessage> EmailOutbox { get; set; }
 
     public DbSet<AutomationToken> AutomationTokens { get; set; }
-
     
     public DbSet<DataProtectionKey> DataProtectionKeys { get; set; }
 
@@ -636,7 +635,7 @@ public class OpenShockContext : DbContext, IDataProtectionKeyContext
 
             entity.HasOne(d => d.CreatedByAutomationToken).WithMany(p => p.CreatedUsers)
                 .HasForeignKey(d => d.CreatedByAutomationTokenId)
-                .OnDelete(DeleteBehavior.Cascade)
+                .OnDelete(DeleteBehavior.Restrict)
                 .HasConstraintName("fk_users_created_by_automation_token_id");
         });
 

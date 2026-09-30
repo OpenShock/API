@@ -8,7 +8,7 @@ using OpenShock.Common.OpenShockDb;
 namespace OpenShock.Common.Migrations;
 
 /// <inheritdoc />
-public partial class _20260930204951_AddAutomationTokens : Migration
+public partial class AddAutomationTokens : Migration
 {
     // Same as AddOAuthSupport's view, plus users.created_by_automation_token_id
     public const string Query_Create_AdminUsersView =
@@ -141,7 +141,7 @@ public partial class _20260930204951_AddAutomationTokens : Migration
             column: "created_by_automation_token_id",
             principalTable: "automation_tokens",
             principalColumn: "id",
-            onDelete: ReferentialAction.Cascade);
+            onDelete: ReferentialAction.Restrict);
 
         migrationBuilder.Sql(Query_Create_AdminUsersView);
     }

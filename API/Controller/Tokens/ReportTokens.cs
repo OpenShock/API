@@ -9,7 +9,6 @@ using System.Net.Mime;
 using Microsoft.AspNetCore.RateLimiting;
 using OpenShock.API.Errors;
 using OpenShock.API.Services.Turnstile;
-using OpenShock.Common.Extensions;
 using OpenShock.Common.OpenShockDb;
 using OpenShock.Common.Results;
 using OpenShock.Common.Services.AutomationTokens;
@@ -54,7 +53,7 @@ public sealed partial class TokensController
             return Problem(new OpenShockProblem("InternalServerError", "Internal Server Error", HttpStatusCode.InternalServerError));
         }
 
-        // The middleware only screens cookie sessions for privileged accounts; this also covers API-token callers.
+        // The middleware already refused the token for a privileged session; this audits the use.
         if (!await automationTokens.TryRecordUseAsync(CurrentUser.Id, AutomationTokenFlow.ReportTokens, cancellationToken))
             return Problem(AutomationTokenError.NotAllowedForAccount);
 

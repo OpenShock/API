@@ -26,32 +26,47 @@ public sealed class DeleteExpiredAutomatedAccountsJob
     {
         var now = DateTime.UtcNow;
 
-        // The same roles AccountService.DeleteAccountAsync treats as privileged.
-        var candidates = await _db.Users
+        var expired = await _db.Users
             .Where(u => u.CreatedByAutomationToken != null
                         && u.CreatedByAutomationToken.AutoCleanupUsers
                         && u.CreatedByAutomationToken.AutoCleanupAfter != null
-                        && u.CreatedAt + u.CreatedByAutomationToken.AutoCleanupAfter < now
-                        && !u.Roles.Any(r => r == RoleType.Staff || r == RoleType.Admin || r == RoleType.System))
-            .Select(u => new { u.Id, u.CreatedByAutomationTokenId })
+                        && u.CreatedAt + u.CreatedByAutomationToken.AutoCleanupAfter < now)
+            .Select(u => new { u.Id, u.CreatedByAutomationTokenId, u.Roles })
             .ToListAsync();
 
+        var candidates = expired.Where(u => !PrivilegedRoles.Any(u.Roles)).ToList();
         if (candidates.Count == 0)
         {
             _logger.LogDebug("No automation-token-created accounts eligible for cleanup");
             return 0;
         }
 
-        var userIds = candidates.Select(c => c.Id).ToArray();
+        var candidateIds = candidates.Select(c => c.Id).ToArray();
 
-        // Re-checked in the delete itself, in case an account was promoted since it was selected.
-        int nDeleted = await _db.Users
-            .Where(u => userIds.Contains(u.Id) && u.CreatedByAutomationTokenId != null && !u.Roles.Any(r => r == RoleType.Staff || r == RoleType.Admin || r == RoleType.System))
-            .ExecuteDeleteAsync();
+        // The roles and the token's cleanup setting are checked again as the rows are deleted, in case an account
+        // was promoted or its token's cleanup switched off since it was selected.
+        await _db.Database.ExecuteSqlAsync($"""
+            DELETE FROM users AS u
+            USING automation_tokens AS t
+            WHERE u.id = ANY({candidateIds})
+              AND t.id = u.created_by_automation_token_id
+              AND t.auto_cleanup_users
+              AND NOT (u.roles && {PrivilegedRoles.All})
+            """);
+
+        // The delete can't say which rows it removed, so read back the candidates the re-check kept.
+        var kept = await _db.Users
+            .Where(u => candidateIds.Contains(u.Id))
+            .Select(u => u.Id)
+            .ToHashSetAsync();
 
         // A user's audit log is deleted with the user, so the log line is the lasting record of what went.
+        var nDeleted = 0;
         foreach (var candidate in candidates)
         {
+            if (kept.Contains(candidate.Id)) continue;
+
+            nDeleted++;
             _logger.LogInformation(
                 "Automation-token cleanup deleted account {UserId} created by automation token {AutomationTokenId}",
                 candidate.Id, candidate.CreatedByAutomationTokenId);
@@ -60,7 +75,7 @@ public sealed class DeleteExpiredAutomatedAccountsJob
         _logger.LogInformation(
             "Automation-token cleanup: {DeletedCount}/{CandidateCount} accounts deleted",
             nDeleted,
-            userIds.Length);
+            candidates.Count);
 
         return nDeleted;
     }

@@ -55,7 +55,7 @@ public sealed class CloudflareTurnstileService : ICloudflareTurnstileService
         
         // An admin-issued automation token resolved earlier in the pipeline counts as a Turnstile pass
         // if it carries the Turnstile type. Controllers separately check, through IAutomationTokenService,
-        // that the account they act on was created by that token.
+        // that the account they act on is not privileged.
         if (_httpContextAccessor.HttpContext?.IsBypassed(AutomationTokenType.Turnstile) ?? false)
             return new Success();
 

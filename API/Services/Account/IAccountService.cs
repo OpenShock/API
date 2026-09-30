@@ -15,8 +15,9 @@ public interface IAccountService
     /// <param name="email"></param>
     /// <param name="username"></param>
     /// <param name="password"></param>
+    /// <param name="createdByAutomationTokenId">The automation token creating the account, which makes it an automated account</param>
     /// <returns></returns>
-    public Task<AccountCreationResult> CreateAccountWithActivationFlowAsync(string email, string username, string password);
+    public Task<AccountCreationResult> CreateAccountWithActivationFlowAsync(string email, string username, string password, Guid? createdByAutomationTokenId = null);
 
     /// <summary>
     /// Creates an OAuth-only (passwordless) account and links the external identity in a single transaction.

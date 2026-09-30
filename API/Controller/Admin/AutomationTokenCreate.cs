@@ -19,7 +19,6 @@ public sealed partial class AdminController
     [ProducesResponseType<CreatedAutomationTokenDto>(StatusCodes.Status200OK)]
     public async Task<CreatedAutomationTokenDto> CreateAutomationToken(
         [FromBody] CreateAutomationTokenDto body,
-        [FromServices] IAutomationTokenService automationTokens,
         [FromServices] IAuditService auditService,
         CancellationToken ct)
     {
@@ -49,8 +48,6 @@ public sealed partial class AdminController
             cancellationToken: ct);
 
         await transaction.CommitAsync(ct);
-
-        automationTokens.InvalidateCache();
 
         return new CreatedAutomationTokenDto
         {

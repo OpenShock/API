@@ -1,9 +1,9 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Npgsql;
 using OpenShock.Common.Models;
 using OpenShock.Common.OpenShockDb;
 using OpenShock.Common.Services.Audit;
-using OpenShock.Common.Services.AutomationTokens;
 
 namespace OpenShock.API.Controller.Admin;
 
@@ -11,7 +11,7 @@ public sealed partial class AdminController
 {
     /// <summary>
     /// Deletes an automation token together with every account it created. Refused while any of those
-    /// accounts holds a privileged role. Other API instances may keep honoring the token for up to 30 seconds
+    /// accounts holds a privileged role
     /// </summary>
     [HttpDelete("automationTokens/{id}")]
     [ProducesResponseType(StatusCodes.Status200OK)]
@@ -19,53 +19,61 @@ public sealed partial class AdminController
     [ProducesResponseType(StatusCodes.Status409Conflict)]
     public async Task<IActionResult> DeleteAutomationToken(
         [FromRoute] Guid id,
-        [FromServices] IAutomationTokenService automationTokens,
         [FromServices] IAuditService auditService,
         CancellationToken ct)
     {
         PedanticallyEnsureAdmin();
 
-        var token = await _db.AutomationTokens.FirstOrDefaultAsync(t => t.Id == id, ct);
+        var token = await _db.AutomationTokens.AsNoTracking().FirstOrDefaultAsync(t => t.Id == id, ct);
         if (token is null) return NotFound();
 
         await using var transaction = await _db.Database.BeginTransactionAsync(ct);
 
         var createdUsers = await _db.Users
             .Where(u => u.CreatedByAutomationTokenId == id)
-            .Select(u => new
-            {
-                u.Id,
-                IsPrivileged = u.Roles.Any(r => r == RoleType.Staff || r == RoleType.Admin || r == RoleType.System)
-            })
+            .Select(u => new { u.Id, u.Roles })
             .ToListAsync(ct);
 
-        // The accounts go through the database's cascade, which can't skip privileged ones, so refuse instead.
-        // The same roles AccountService.DeleteAccountAsync treats as privileged.
-        if (createdUsers.Any(u => u.IsPrivileged))
-            return Problem("This automation token created a privileged account; remove its privileged roles before deleting the token.", statusCode: StatusCodes.Status409Conflict);
+        if (createdUsers.Any(u => PrivilegedRoles.Any(u.Roles))) return PrivilegedAccountConflict();
 
-        _db.AutomationTokens.Remove(token);
-        await _db.SaveChangesAsync(ct);
+        var userIds = createdUsers.Select(u => u.Id).ToArray();
+
+        // The roles are checked again as the rows are deleted, so an account promoted since it was read is kept.
+        await _db.Database.ExecuteSqlAsync(
+            $"DELETE FROM users WHERE id = ANY({userIds}) AND NOT (roles && {PrivilegedRoles.All})", ct);
+
+        // The foreign key restricts, so this fails while any account still references the token: a privileged
+        // one, or one created or promoted meanwhile. On success, exactly userIds went with it.
+        try
+        {
+            await _db.AutomationTokens.Where(t => t.Id == id).ExecuteDeleteAsync(ct);
+        }
+        catch (PostgresException e) when (e.SqlState == PostgresErrorCodes.ForeignKeyViolation)
+        {
+            return PrivilegedAccountConflict();
+        }
 
         await auditService.LogAsync(
             CurrentUser.Id,
             action: AuditAction.AutomationTokenDeleted,
             actorId: CurrentUser.Id,
-            metadata: new AutomationTokenDeletedMetadata(token.Id, token.Name, createdUsers.Count),
+            metadata: new AutomationTokenDeletedMetadata(token.Id, token.Name, userIds.Length),
             cancellationToken: ct);
 
         await transaction.CommitAsync(ct);
 
-        automationTokens.InvalidateCache();
-
         // Each deleted account's own audit log goes with it, so the log line is the lasting record of what went.
-        foreach (var user in createdUsers)
+        foreach (var userId in userIds)
         {
             _logger.LogInformation(
                 "Deleted account {UserId} together with automation token {AutomationTokenId}",
-                user.Id, token.Id);
+                userId, token.Id);
         }
 
         return Ok();
+
+        IActionResult PrivilegedAccountConflict() => Problem(
+            "This automation token created a privileged account; remove its privileged roles before deleting the token.",
+            statusCode: StatusCodes.Status409Conflict);
     }
 }

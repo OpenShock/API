@@ -1526,7 +1526,7 @@ partial class OpenShockContextModelSnapshot : ModelSnapshot
                 b.HasOne("OpenShock.Common.OpenShockDb.AutomationToken", "CreatedByAutomationToken")
                     .WithMany("CreatedUsers")
                     .HasForeignKey("CreatedByAutomationTokenId")
-                    .OnDelete(DeleteBehavior.Cascade)
+                    .OnDelete(DeleteBehavior.Restrict)
                     .HasConstraintName("fk_users_created_by_automation_token_id");
 
                 b.Navigation("CreatedByAutomationToken");

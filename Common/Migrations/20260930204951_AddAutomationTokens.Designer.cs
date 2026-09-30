@@ -15,7 +15,7 @@ namespace OpenShock.Common.Migrations;
 
 [DbContext(typeof(MigrationOpenShockContext))]
 [Migration("20260930204951_AddAutomationTokens")]
-partial class _20260930204951_AddAutomationTokens
+partial class AddAutomationTokens
 {
     /// <inheritdoc />
     protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -1524,7 +1524,7 @@ partial class _20260930204951_AddAutomationTokens
                 b.HasOne("OpenShock.Common.OpenShockDb.AutomationToken", "CreatedByAutomationToken")
                     .WithMany("CreatedUsers")
                     .HasForeignKey("CreatedByAutomationTokenId")
-                    .OnDelete(DeleteBehavior.Cascade)
+                    .OnDelete(DeleteBehavior.Restrict)
                     .HasConstraintName("fk_users_created_by_automation_token_id");
 
                 b.Navigation("CreatedByAutomationToken");

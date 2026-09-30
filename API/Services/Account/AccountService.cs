@@ -91,7 +91,7 @@ public sealed class AccountService : IAccountService
         return await _db.EmailProviderBlacklists.AnyAsync(e => e.Domain == domain);
     }
 
-    private async Task<AccountCreationResult> CreateAccount(string email, string username, string password, bool verifyOnCreation)
+    private async Task<AccountCreationResult> CreateAccount(string email, string username, string password, bool verifyOnCreation, Guid? createdByAutomationTokenId)
     {
         email = email.ToLowerInvariant();
 
@@ -106,7 +106,8 @@ public sealed class AccountService : IAccountService
             Id = Guid.CreateVersion7(),
             Name = username,
             Email = email,
-            PasswordHash = HashingUtils.HashPassword(password)
+            PasswordHash = HashingUtils.HashPassword(password),
+            CreatedByAutomationTokenId = createdByAutomationTokenId
         };
         _db.Users.Add(user);
 
@@ -124,13 +125,13 @@ public sealed class AccountService : IAccountService
     }
 
     /// <inheritdoc />
-    public async Task<AccountCreationResult> CreateAccountWithActivationFlowAsync(string email, string username, string password)
+    public async Task<AccountCreationResult> CreateAccountWithActivationFlowAsync(string email, string username, string password, Guid? createdByAutomationTokenId = null)
     {
         // With mail disabled the activation email is never delivered, so an activation flow would leave
         // the account permanently unusable. Activate on creation instead.
         var mailEnabled = _mailOptions.IsEnabled;
 
-        var accountCreate = await CreateAccount(email, username, password, !mailEnabled);
+        var accountCreate = await CreateAccount(email, username, password, !mailEnabled, createdByAutomationTokenId);
         if (accountCreate.Value is not User user || !mailEnabled) return accountCreate;
 
         // The real activation token is minted by the outbox delivery job at send time; here we record the

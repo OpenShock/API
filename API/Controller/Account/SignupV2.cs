@@ -49,7 +49,9 @@ public sealed partial class AccountController
         var turnstileError = await VerifyTurnstileAsync(turnstileService, body.TurnstileResponse, cancellationToken);
         if (turnstileError is not null) return turnstileError;
 
-        var creationAction = await _accountService.CreateAccountWithActivationFlowAsync(body.Email, body.Username, body.Password);
+        // Created with an automation token, the account is linked to it on insert, which makes it an automated account.
+        var creationAction = await _accountService.CreateAccountWithActivationFlowAsync(
+            body.Email, body.Username, body.Password, automationTokens.Current?.Id);
         if (creationAction is not User created)
         {
             return creationAction switch
@@ -59,8 +61,6 @@ public sealed partial class AccountController
             };
         }
 
-        // Links the new account to the automation token that created it, making it an automated account.
-        // No-op when no automation token resolved.
         await automationTokens.RecordSignupAsync(created.Id, cancellationToken);
 
         return Ok();

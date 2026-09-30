@@ -1,5 +1,5 @@
-using System.Security.Claims;
 using OpenShock.Common.Extensions;
+using OpenShock.Common.OpenShockDb;
 using OpenShock.Common.Services.AutomationTokens;
 using Microsoft.Extensions.Logging;
 
@@ -39,16 +39,14 @@ public sealed class AutomationTokenMiddleware
             return;
         }
 
-        // Authentication already ran, so a signed-in caller is known here. An automation token never applies
-        // to a privileged account, so it is dropped for one, rate limits and Turnstile included.
-        // Flows that pick the account from the request body (login, password reset) check the same rule.
-        if (context.User.FindFirstValue(ClaimTypes.NameIdentifier) is { } userIdClaim &&
-            Guid.TryParse(userIdClaim, out var userId) &&
-            !await automationTokens.IsAllowedForUserAsync(userId, context.RequestAborted))
+        // An automation token never applies to a privileged account, so it is dropped for one, rate limits
+        // and Turnstile included. Flows that pick the account from the request body (login, password reset)
+        // check the same rule.
+        if (await IsPrivilegedCallerAsync(context, automationTokens))
         {
             logger.LogWarning(
-                "Automation token {AutomationTokenName} ({AutomationTokenId}) refused for privileged user {UserId}",
-                ForLog(resolved.Name), resolved.Id, userId);
+                "Automation token {AutomationTokenName} ({AutomationTokenId}) refused for a privileged account on {Method} {Path}",
+                ForLog(resolved.Name), resolved.Id, ForLog(context.Request.Method), ForLog(context.Request.Path.Value));
             await _next(context);
             return;
         }
@@ -65,6 +63,19 @@ public sealed class AutomationTokenMiddleware
             ForLog(context.Request.Path.Value), context.Connection.RemoteIpAddress);
 
         await _next(context);
+    }
+
+    private static async Task<bool> IsPrivilegedCallerAsync(HttpContext context, IAutomationTokenService automationTokens)
+    {
+        // Authentication already ran for the default scheme, so a cookie session's roles are on its claims.
+        if (context.User.TryGetOpenShockUserIdentity() is { } identity)
+            return PrivilegedRoles.Any(identity.GetRoles());
+
+        // API tokens are only authenticated once an endpoint asks for that scheme, which is after this runs.
+        if (context.TryGetApiTokenFromHeader(out var apiToken))
+            return await automationTokens.IsApiTokenOwnerPrivilegedAsync(apiToken, context.RequestAborted);
+
+        return false;
     }
 
     // An unmatched token needs no credential to present, so the warning it produces is volume an

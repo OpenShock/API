@@ -4,10 +4,10 @@ using OpenShock.Internal.Common.Utils;
 namespace OpenShock.Common.Services.AutomationTokens;
 
 /// <summary>
-/// An automation token may be used with any account except privileged ones (<see cref="RoleType.Staff"/>,
-/// <see cref="RoleType.Admin"/>, <see cref="RoleType.System"/>). Every use in an account flow is written to
-/// that account's audit log. Accounts the token itself created are linked to it, which is what makes them
-/// automated accounts; only those are ever eligible for auto-cleanup, and they are deleted with the token.
+/// An automation token may be used with any account except privileged ones (see <see cref="PrivilegedRoles"/>).
+/// Every use in an account flow is written to that account's audit log. Accounts the token itself created are
+/// linked to it, which is what makes them automated accounts; only those are ever eligible for auto-cleanup,
+/// and they are deleted with the token.
 /// </summary>
 public interface IAutomationTokenService
 {
@@ -24,17 +24,22 @@ public interface IAutomationTokenService
     static string GenerateSecret() => CryptoUtils.RandomString(SecretLength);
 
     /// <summary>
-    /// Hashes the supplied secret and looks it up in a short-lived in-memory snapshot of all automation
-    /// tokens, so neither valid nor bogus secrets cost a database round trip per request.
-    /// Changes made on another instance take up to the cache lifetime to be seen here.
+    /// The automation token the current request resolved, or <c>null</c> if it presented none (or one
+    /// that was refused).
+    /// </summary>
+    ResolvedAutomationToken? Current { get; }
+
+    /// <summary>
+    /// Looks up the token the supplied secret belongs to. Secrets of the wrong length are rejected
+    /// without a database round trip.
     /// </summary>
     Task<ResolvedAutomationToken?> ResolveAsync(string secret, CancellationToken ct);
 
     /// <summary>
-    /// True if <paramref name="userId"/> holds no privileged role. Cached briefly, since the middleware
-    /// asks this for every bypassed request of a signed-in user.
+    /// True if <paramref name="apiToken"/> belongs to a privileged account. Used before the API-token
+    /// scheme has authenticated the request, so the token itself is not validated here.
     /// </summary>
-    Task<bool> IsAllowedForUserAsync(Guid userId, CancellationToken ct);
+    Task<bool> IsApiTokenOwnerPrivilegedAsync(string apiToken, CancellationToken ct);
 
     /// <summary>
     /// Counts one accepted request against the token. Batched, never written per request.
@@ -42,13 +47,8 @@ public interface IAutomationTokenService
     void RecordRequest(Guid automationTokenId);
 
     /// <summary>
-    /// Drops this instance's cached token snapshot, so an admin change applies here immediately.
-    /// </summary>
-    void InvalidateCache();
-
-    /// <summary>
-    /// If the current request resolved an automation token, links the new account to it, making it an
-    /// automated account, and audits the use. Only such accounts are ever eligible for the token's auto-cleanup.
+    /// If the current request resolved an automation token, audits its use to create <paramref name="userId"/>.
+    /// The account itself is linked to the token when it is created.
     /// </summary>
     Task RecordSignupAsync(Guid userId, CancellationToken ct);
 

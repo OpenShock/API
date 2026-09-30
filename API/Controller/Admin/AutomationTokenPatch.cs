@@ -5,14 +5,13 @@ using OpenShock.API.Controller.Admin.DTOs;
 using OpenShock.Common.Models;
 using OpenShock.Common.OpenShockDb;
 using OpenShock.Common.Services.Audit;
-using OpenShock.Common.Services.AutomationTokens;
 
 namespace OpenShock.API.Controller.Admin;
 
 public sealed partial class AdminController
 {
     /// <summary>
-    /// Updates an automation token. Other API instances may keep the old settings for up to 30 seconds
+    /// Updates an automation token
     /// </summary>
     [HttpPatch("automationTokens/{id}")]
     [Consumes(MediaTypeNames.Application.Json)]
@@ -21,7 +20,6 @@ public sealed partial class AdminController
     public async Task<IActionResult> PatchAutomationToken(
         [FromRoute] Guid id,
         [FromBody] PatchAutomationTokenDto body,
-        [FromServices] IAutomationTokenService automationTokens,
         [FromServices] IAuditService auditService,
         CancellationToken ct)
     {
@@ -30,19 +28,19 @@ public sealed partial class AdminController
         var token = await _db.AutomationTokens.FirstOrDefaultAsync(t => t.Id == id, ct);
         if (token is null) return NotFound();
 
+        var autoCleanupUsers = body.AutoCleanupUsers ?? token.AutoCleanupUsers;
+
+        // Switching cleanup off without naming a delay clears the delay, so it can be unset at all.
+        var autoCleanupAfter = body.AutoCleanupAfter ??
+                               (body.AutoCleanupUsers == false ? null : token.AutoCleanupAfter);
+
+        if (autoCleanupUsers && autoCleanupAfter is null)
+            return Problem("AutoCleanupAfter is required when AutoCleanupUsers is true.", statusCode: StatusCodes.Status400BadRequest);
+
         if (body.Name is not null) token.Name = body.Name.Trim();
         if (body.Types is not null) token.Types = [.. body.Types.Distinct()];
-        if (body.AutoCleanupAfter is not null) token.AutoCleanupAfter = body.AutoCleanupAfter;
-        if (body.AutoCleanupUsers is not null)
-        {
-            token.AutoCleanupUsers = body.AutoCleanupUsers.Value;
-
-            // Switching cleanup off without naming a delay clears the delay, so it can be unset at all.
-            if (!token.AutoCleanupUsers && body.AutoCleanupAfter is null) token.AutoCleanupAfter = null;
-        }
-
-        if (token.AutoCleanupUsers && token.AutoCleanupAfter is null)
-            return Problem("AutoCleanupAfter is required when AutoCleanupUsers is true.", statusCode: StatusCodes.Status400BadRequest);
+        token.AutoCleanupUsers = autoCleanupUsers;
+        token.AutoCleanupAfter = autoCleanupAfter;
 
         await using var transaction = await _db.Database.BeginTransactionAsync(ct);
 
@@ -56,8 +54,6 @@ public sealed partial class AdminController
             cancellationToken: ct);
 
         await transaction.CommitAsync(ct);
-
-        automationTokens.InvalidateCache();
 
         return Ok(AutomationTokenDto.FromEntity(token));
     }
