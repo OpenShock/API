@@ -82,6 +82,13 @@ public static class ConfigurationExtensions
         return options;
     }
 
+    public static GeoOptions RegisterGeoOptions(this WebApplicationBuilder builder)
+    {
+        var options = builder.Configuration.GetSection(GeoOptions.SectionName).Get<GeoOptions>() ?? new GeoOptions();
+        builder.Services.AddSingleton(options);
+        return options;
+    }
+
     public static AccountOptions RegisterAccountOptions(this WebApplicationBuilder builder)
     {
         var options = builder.Configuration.GetSection("OpenShock:Account").Get<AccountOptions>()

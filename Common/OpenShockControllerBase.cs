@@ -4,6 +4,7 @@ using OpenShock.Common.Extensions;
 using OpenShock.Common.Models;
 using OpenShock.Common.OpenShockDb;
 using OpenShock.Common.Options;
+using OpenShock.Common.Services.Geo;
 using OpenShock.Common.Services.Session;
 using OpenShock.Common.Utils;
 
@@ -57,11 +58,14 @@ public abstract class OpenShockControllerBase : OpenShock.Internal.Common.OpenSh
     {
         var frontendOptions = HttpContext.RequestServices.GetRequiredService<FrontendOptions>();
         var sessionService = HttpContext.RequestServices.GetRequiredService<ISessionService>();
+        var enrichmentService = HttpContext.RequestServices.GetRequiredService<IIpEnrichmentService>();
 
         var remoteIp = HttpContext.GetRemoteIP();
         var userAgent = HttpContext.GetUserAgent();
+        var enrichment = enrichmentService.Enrich(remoteIp);
 
-        var session = await sessionService.CreateSessionAsync(accountId, userAgent, remoteIp.ToString(), actorId: accountId);
+        var session = await sessionService.CreateSessionAsync(accountId, userAgent, remoteIp.ToString(), actorId: accountId, enrichment: enrichment);
+
 
         HttpContext.Response.Cookies.Append(AuthConstants.UserSessionCookieName, session.Token, new CookieOptions
         {
