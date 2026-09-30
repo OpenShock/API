@@ -1,6 +1,8 @@
 ﻿using System.Net;
+using System.Reflection;
 using System.Security.Claims;
 using Asp.Versioning;
+using Asp.Versioning.OpenApi.Transformers;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Authorization;
@@ -8,19 +10,25 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Hybrid;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Hosting;
+using Microsoft.OpenApi;
 using OpenShock.Common.Authentication;
 using OpenShock.Common.Authentication.AuthenticationHandlers;
 using OpenShock.Common.Authentication.Services;
-using OpenShock.Common.ExceptionHandle;
+using OpenShock.Common.Constants;
+using OpenShock.Common.HealthChecks;
 using OpenShock.Common.JsonSerialization;
+using OpenShock.Common.OpenApi;
 using OpenShock.Common.OpenShockDb;
 using OpenShock.Common.Options;
 using OpenShock.Common.Problems;
+using OpenShock.Common.Services.Audit;
 using OpenShock.Common.Services.BatchUpdate;
 using OpenShock.Common.Services.Configuration;
 using OpenShock.Common.Services.RedisPubSub;
 using OpenShock.Common.Services.Session;
 using OpenShock.Common.Services.Webhook;
+using OpenShock.Common.Metrics;
 using OpenTelemetry.Metrics;
 using Redis.OM;
 using Redis.OM.Contracts;
@@ -28,12 +36,26 @@ using StackExchange.Redis;
 using System.Threading.RateLimiting;
 using OpenShock.Common.Extensions;
 using OpenShock.Common.Utils;
+using OpenShock.Internal.Common.ExceptionHandling;
 using JsonOptions = OpenShock.Common.JsonSerialization.JsonOptions;
 
 namespace OpenShock.Common;
 
 public static class OpenShockServiceHelper
 {
+    /// <summary>
+    /// Cap on a single dependency probe. Generous enough not to trip on a slow-but-alive dependency,
+    /// short enough that the LCG's 15s keep alive tick is never blocked by a hung one.
+    /// </summary>
+    private static readonly TimeSpan HealthCheckTimeout = TimeSpan.FromSeconds(5);
+
+    /// <summary>
+    /// How long a health report is served before the dependencies are probed again. Matched to the LCG's
+    /// keep alive interval, so the gateway still gets a fresh answer on every tick while the far more
+    /// frequent container/load balancer probes in between ride along on that same result.
+    /// </summary>
+    private static readonly TimeSpan HealthCheckCacheTtl = TimeSpan.FromSeconds(15);
+
     public static IServiceCollection AddOpenShockMemDB(this IServiceCollection services, ConfigurationOptions options)
     {
         // <---- Redis ---->
@@ -41,6 +63,15 @@ public static class OpenShockServiceHelper
         services.AddSingleton<IRedisConnectionProvider, RedisConnectionProvider>(serviceProvider =>
             new RedisConnectionProvider(serviceProvider.GetRequiredService<IConnectionMultiplexer>()));
         services.AddSingleton<IRedisPubService, RedisPubService>();
+
+        // Readiness for the store we just registered. IsConnected alone flips late while the
+        // multiplexer reconnects, so the check round-trips a PING against the live connection.
+        services.AddHealthChecks()
+            .AddRedis(
+                sp => sp.GetRequiredService<IConnectionMultiplexer>(),
+                name: HealthCheckNames.Redis,
+                tags: [HealthCheckTags.Ready],
+                timeout: HealthCheckTimeout);
 
         return services;
     }
@@ -59,6 +90,15 @@ public static class OpenShockServiceHelper
                 builder.EnableDetailedErrors();
             }
         });
+
+        // Readiness for the database we just registered. Deliberately its own connection rather than
+        // the pooled EF context: this must answer "is Postgres up", not "is EF's pool warm".
+        services.AddHealthChecks()
+            .AddNpgSql(
+                options.Conn,
+                name: HealthCheckNames.Database,
+                tags: [HealthCheckTags.Ready],
+                timeout: HealthCheckTimeout);
 
         return services;
     }
@@ -100,7 +140,11 @@ public static class OpenShockServiceHelper
         Action<AuthenticationBuilder>? configureAuth = null, Action<MeterProviderBuilder>? configureMetrics = null)
     {
         // <---- ASP.NET ---->
+        // OpenShockExceptionHandler (OpenShock.Internal.AspNet) takes JsonSerializerOptions via ctor injection.
+        services.AddSingleton(JsonOptions.Default);
         services.AddExceptionHandler<OpenShockExceptionHandler>();
+
+        services.AddCachedHealthChecks(HealthCheckCacheTtl);
 
         services.AddHybridCache(options =>
         {
@@ -153,6 +197,105 @@ public static class OpenShockServiceHelper
             setup.AssumeDefaultVersionWhenUnspecified = true;
         });
 
+        apiVersioningBuilder.AddOpenApi(options =>
+        {
+            var version = options.Description.ApiVersion.ToString();
+            var isDeprecated = options.Description.IsDeprecated;
+
+            options.Document.AddDocumentTransformer((document, context, _) =>
+            {
+                document.Info.Title = "OpenShock.API";
+                document.Info.Version = version;
+                if (isDeprecated)
+                {
+                    document.Info.Description = (document.Info.Description ?? "") + " This API version has been deprecated.";
+                }
+
+                var isDevelopment = context.ApplicationServices.GetRequiredService<IHostEnvironment>().IsDevelopment();
+                var servers = new List<OpenApiServer>
+                {
+                    new() { Url = "https://api.openshock.app" },
+                    new() { Url = "https://api.openshock.dev" }
+                };
+                if (isDevelopment)
+                {
+                    servers.Add(new OpenApiServer { Url = "https://localhost" });
+                }
+                document.Servers = servers;
+
+                document.Components ??= new OpenApiComponents();
+                document.Components.SecuritySchemes = new Dictionary<string, IOpenApiSecurityScheme>
+                {
+                    [OpenShockAuthSchemes.UserSessionCookie] = new OpenApiSecurityScheme
+                    {
+                        Name = AuthConstants.UserSessionCookieName,
+                        Description = "Enter user session cookie",
+                        In = ParameterLocation.Cookie,
+                        Type = SecuritySchemeType.ApiKey,
+                        Scheme = OpenShockAuthSchemes.UserSessionCookie
+                    },
+                    [OpenShockAuthSchemes.ApiToken] = new OpenApiSecurityScheme
+                    {
+                        Name = AuthConstants.ApiTokenHeaderName,
+                        Description = "Enter API Token",
+                        In = ParameterLocation.Header,
+                        Type = SecuritySchemeType.ApiKey,
+                        Scheme = OpenShockAuthSchemes.ApiToken
+                    },
+                    [OpenShockAuthSchemes.HubToken] = new OpenApiSecurityScheme
+                    {
+                        Name = AuthConstants.HubTokenHeaderName,
+                        Description = "Enter hub token",
+                        In = ParameterLocation.Header,
+                        Type = SecuritySchemeType.ApiKey,
+                        Scheme = OpenShockAuthSchemes.HubToken
+                    }
+                };
+
+                return Task.CompletedTask;
+            });
+
+            // .NET 10 defaults to OpenAPI 3.1; keep 3.0 so existing clients/tooling see the same dialect as with Swashbuckle.
+            options.Document.OpenApiVersion = OpenApiSpecVersion.OpenApi3_0;
+            options.Document.CreateSchemaReferenceId = OpenShockSchemaIds.Create;
+
+            options.Document.AddOperationTransformer<OpenShockOperationTransformer>();
+            options.Document.AddSchemaTransformer<OpenShockSchemaTransformer>();
+            options.Document.AddDocumentTransformer<EnumSchemaTransformer>();
+            options.Document.AddDocumentTransformer<NullableReferenceTransformer>();
+
+            // Picks up XML doc comments (<summary>, <param>, ...) from whichever host process is running
+            // (API/Cron/LiveControlGateway) and from Common, mirroring what Swashbuckle's IncludeXmlComments used to do.
+            var entryAssemblyName = Assembly.GetEntryAssembly()?.GetName().Name;
+            var xmlPaths = new[] { entryAssemblyName, typeof(OpenShockServiceHelper).Assembly.GetName().Name }
+                .OfType<string>()
+                .Distinct()
+                .Select(name => Path.Combine(AppContext.BaseDirectory, name + ".xml"))
+                .Where(File.Exists)
+                .ToArray();
+            if (xmlPaths.Length > 0)
+            {
+                var filledPath = XmlCrefText.CreateFilledCopy(xmlPaths);
+                DocumentedXmlComments comments;
+                XmlCommentsTransformer xmlCommentsTransformer;
+                try
+                {
+                    comments = new DocumentedXmlComments(filledPath);
+                    xmlCommentsTransformer = new XmlCommentsTransformer(filledPath);
+                }
+                finally
+                {
+                    File.Delete(filledPath);
+                }
+
+                options.Document.AddDocumentTransformer(xmlCommentsTransformer);
+                options.Document.AddDocumentTransformer(new ControllerTagDescriptionTransformer(comments));
+                options.Document.AddOperationTransformer(new DocumentedResponsesTransformer(comments));
+                options.Document.AddOperationTransformer(xmlCommentsTransformer);
+                options.Document.AddSchemaTransformer(xmlCommentsTransformer);
+            }
+        });
+
         // generic ASP.NET stuff
         services.AddMemoryCache();
         services.AddHttpContextAccessor();
@@ -163,7 +306,7 @@ public static class OpenShockServiceHelper
         {
             options.AddDefaultPolicy(builder =>
             {
-                builder.SetIsOriginAllowed(s => true);
+                builder.SetIsOriginAllowed(_ => true);
                 builder.AllowAnyHeader();
                 builder.AllowCredentials();
                 builder.AllowAnyMethod();
@@ -190,6 +333,7 @@ public static class OpenShockServiceHelper
                     .AddRuntimeInstrumentation()
                     .AddAspNetCoreInstrumentation()
                     .AddHttpClientInstrumentation()
+                    .AddMeter(ControlMetrics.MeterName)
                     .AddPrometheusExporter();
 
                 configureMetrics?.Invoke(metrics);
@@ -197,8 +341,10 @@ public static class OpenShockServiceHelper
 
         // <---- OpenShock Services ---->
 
+        services.AddSingleton<ControlMetrics>();
         services.AddScoped<IConfigurationService, ConfigurationService>();
         services.AddScoped<ISessionService, SessionService>();
+        services.AddScoped<IAuditService, AuditService>();
         services.AddHttpClient<IWebhookService, WebhookService>(client =>
         {
             client.Timeout = TimeSpan.FromSeconds(30);

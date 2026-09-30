@@ -16,6 +16,8 @@ public sealed partial class AdminController
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> RemoveWebhook([FromRoute] Guid id, [FromServices] IWebhookService webhookService)
     {
+        PedanticallyEnsureAdmin();
+
         bool removed = await webhookService.RemoveWebhookAsync(id);
         return removed ? Ok() : Problem(AdminError.WebhookNotFound);
     }

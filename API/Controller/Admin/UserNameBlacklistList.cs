@@ -9,6 +9,8 @@ public sealed partial class AdminController
     [HttpGet("blacklist/usernames")]
     public async IAsyncEnumerable<UserNameBlacklistDto> ListUsernameBlacklist([FromQuery(Name="match")] string? match)
     {
+        PedanticallyEnsureAdmin();
+
         match = string.IsNullOrWhiteSpace(match) ? null : match.Trim().ToLowerInvariant();
 
         await foreach (var item in _db.UserNameBlacklists.AsNoTracking().AsAsyncEnumerable())

@@ -2,6 +2,8 @@
 using Testcontainers.PostgreSql;
 using TUnit.Core.Interfaces;
 
+using OpenShock.Internal.Common.Utils;
+
 namespace OpenShock.API.IntegrationTests.Docker;
 
 public sealed class InMemoryDatabase : IAsyncInitializer, IAsyncDisposable
@@ -19,7 +21,7 @@ public sealed class InMemoryDatabase : IAsyncInitializer, IAsyncDisposable
                 .WithName($"tunit-postgresql-{Guid.CreateVersion7()}")
                 .WithDatabase("openshock")
                 .WithUsername("openshock")
-                .WithPassword(CryptoUtils.RandomAlphaNumericString(32))
+                .WithPassword(CryptoUtils.RandomString(32))
                 .Build();
 
             return _container;

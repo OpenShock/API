@@ -1,6 +1,8 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using System.Diagnostics;
+using Microsoft.AspNetCore.Mvc;
 using OpenShock.API.Services.Account;
 using OpenShock.Common.Errors;
+using Results = OpenShock.Common.Results;
 
 namespace OpenShock.API.Controller.Admin;
 
@@ -19,12 +21,14 @@ public sealed partial class AdminController
     {
         var result = await accountService.ChangeEmail(userId, body.Email);
 
-        return result.Match<IActionResult>(
-            success => Ok(),
-            taken => Problem(AdminError.EmailTaken),
-            taken => Problem(AdminError.EmailInvalid),
-            notfound => NotFound()
-        );
+        return result switch
+        {
+            Results.Success => Ok(),
+            EmailTaken => Problem(AdminError.EmailTaken),
+            EmailInvalid => Problem(AdminError.EmailInvalid),
+            Results.NotFound => NotFound(),
+            _ => throw new UnreachableException()
+        };
     }
 
     public sealed class SetUserEmailRequestBody

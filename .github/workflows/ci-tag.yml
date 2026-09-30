@@ -7,7 +7,7 @@ on:
 name: ci-tag
 
 env:
-  DOTNET_VERSION: 10.0.x
+  DOTNET_VERSION: 11.0.x
   REGISTRY: ghcr.io
   IMAGE_NAME: ${{ github.repository_owner }}/api
 
@@ -21,18 +21,14 @@ jobs:
     steps:
       - name: Find latest tag
         id: latest-tag
-        uses: oprypin/find-latest-tag@v1
+        uses: OpenShock/actions/find-latest-tag@21ca2d511bca92cf24fb502fa302f82700822584 # v1.1.1
         with:
-          repository: ${{ github.repository }}
-          regex: '^\d+\.\d+\.\d+$'
-          releases-only: false
+          regex: '^[0-9]+\.[0-9]+\.[0-9]+$'
 
   # Delegate building and containerizing to a single workflow.
   build-and-containerize:
     needs: get-latest-tag
     uses: ./.github/workflows/ci-build.yml
     with:
-      platforms: linux/amd64,linux/arm64
       latest: ${{ needs.get-latest-tag.outputs.latest-tag == github.ref_name }}
       push: true
-      tag-prefix: 'tag'

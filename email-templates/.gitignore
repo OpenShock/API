@@ -1,0 +1,8 @@
+node_modules
+.react-email
+.next
+out
+.env
+.env.local
+*.log
+.DS_Store

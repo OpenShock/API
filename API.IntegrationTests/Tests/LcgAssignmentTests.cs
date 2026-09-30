@@ -10,6 +10,8 @@ using OpenShock.Common.Redis;
 using OpenShock.Common.Utils;
 using Redis.OM.Contracts;
 
+using OpenShock.Internal.Common.Utils;
+
 namespace OpenShock.API.IntegrationTests.Tests;
 
 public sealed class LcgAssignmentTests
@@ -32,7 +34,7 @@ public sealed class LcgAssignmentTests
         // Set up variables
         _userId = Guid.CreateVersion7();
         _hubId = Guid.CreateVersion7();
-        _hubToken = CryptoUtils.RandomAlphaNumericString(256);
+        _hubToken = CryptoUtils.RandomString(256);
 
         // Create mock data
         db.Users.Add(new User
@@ -150,10 +152,13 @@ public sealed class LcgAssignmentTests
             if (split.Length != 2)
                 throw new ArgumentException("Invalid gateway format");
 
+            var host = split[1];
             return new LcgNode
             {
+                Id = host,
+                Host = host,
+                Port = 443,
                 Country = split[0],
-                Fqdn = split[1],
                 Load = 0,
                 Environment = environmentOverride ?? webHostEnvironment.EnvironmentName
             };
@@ -162,9 +167,67 @@ public sealed class LcgAssignmentTests
         await lcgNodesCollection.InsertAsync(testGateways);
     }
 
-    private async Task<HttpResponseMessage> SendAssignRequest(string? requesterCountry)
+    private async Task AddGatewayNode(string host, ushort port, string pathPrefix, string country)
     {
-        var httpRequest = new HttpRequestMessage(HttpMethod.Get, "/2/device/assignLCG?version=1");
+        await using var context = WebApplicationFactory.Services.CreateAsyncScope();
+        var redisConnectionProvider = context.ServiceProvider.GetRequiredService<IRedisConnectionProvider>();
+        var webHostEnvironment = context.ServiceProvider.GetRequiredService<IWebHostEnvironment>();
+        var lcgNodesCollection = redisConnectionProvider.RedisCollection<LcgNode>(false);
+
+        var id = host;
+        if (port != 443) id += ":" + port;
+        id += pathPrefix;
+
+        await lcgNodesCollection.InsertAsync(new LcgNode
+        {
+            Id = id,
+            Host = host,
+            Port = port,
+            PathPrefix = pathPrefix,
+            Country = country,
+            Load = 0,
+            Environment = webHostEnvironment.EnvironmentName
+        });
+    }
+
+    [Test]
+    [NotInParallel(ParalellGateway)]
+    public async Task CheckPathAndPortPropagation()
+    {
+        // A gateway on a custom port and path prefix must be advertised verbatim, with the
+        // firmware WS route appended to the prefix.
+        await AddGatewayNode("de1.example.com", 8080, "/gateway", "DE");
+
+        var response = await SendAssignRequest("DE", schemaVersion: 2);
+        await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.OK);
+
+        var data = await response.Content.ReadFromJsonAsync<LcgNodeResponseV2>();
+        await Assert.That(data).IsNotNull();
+        await Assert.That(data!.Host).IsEqualTo("de1.example.com");
+        await Assert.That(data.Port).IsEqualTo((ushort)8080);
+        await Assert.That(data.Path).IsEqualTo("/gateway/2/ws/hub");
+    }
+
+    [Test]
+    [NotInParallel(ParalellGateway)]
+    public async Task CheckDefaultGatewayIsBackwardCompatible()
+    {
+        // Default port/root path -> bare host, port 443, unprefixed route (unchanged wire shape).
+        await AddGateways(["DE|de1.example.com"]);
+
+        var response = await SendAssignRequest("DE", schemaVersion: 2);
+        await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.OK);
+
+        var data = await response.Content.ReadFromJsonAsync<LcgNodeResponseV2>();
+        await Assert.That(data).IsNotNull();
+        await Assert.That(data!.Host).IsEqualTo("de1.example.com");
+        await Assert.That(data.Port).IsEqualTo((ushort)443);
+        await Assert.That(data.Path).IsEqualTo("/2/ws/hub");
+    }
+
+    private async Task<HttpResponseMessage> SendAssignRequest(string? requesterCountry, uint schemaVersion = 1)
+    {
+        var httpRequest = new HttpRequestMessage(HttpMethod.Get, $"/2/device/assignLCG?version={schemaVersion}");
         httpRequest.Headers.Add("Device-Token", _hubToken);
         if (!string.IsNullOrEmpty(requesterCountry)) httpRequest.Headers.Add("CF-IPCountry", requesterCountry);
 

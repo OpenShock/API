@@ -91,7 +91,7 @@ public sealed class ShareLinksTests
         var user = await TestHelper.CreateAndLoginUser(WebApplicationFactory, "sharelinkdnf", "sharelinkdnf@test.org", "SecurePassword123#");
         using var client = TestHelper.CreateAuthenticatedClient(WebApplicationFactory, user.SessionToken);
 
-        var response = await client.DeleteAsync($"/1/shares/links/{Guid.NewGuid()}");
+        var response = await client.DeleteAsync($"/1/shares/links/{Guid.CreateVersion7()}");
         await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.NotFound);
     }
 

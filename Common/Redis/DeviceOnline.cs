@@ -16,9 +16,11 @@ public sealed class DeviceOnline
     public required SemVersion FirmwareVersion { get; set; }
     public required string Gateway { get; set; }
     public required DateTimeOffset ConnectedAt { get; set; }
-    public string? UserAgent { get; set; } = null;
+    public string? UserAgent { get; set; }
     
     public DateTimeOffset BootedAt { get; set; }
     public ushort? LatencyMs { get; set; }
     public int? Rssi { get; set; }
+    public string? Country { get; set; }
+    public string? Ip { get; set; }
 }

@@ -1,17 +1,20 @@
 using System.Net;
-using System.Text.RegularExpressions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using OpenShock.API.IntegrationTests.Helpers;
+using OpenShock.Common.Models;
 using OpenShock.Common.OpenShockDb;
 
 namespace OpenShock.API.IntegrationTests.Tests;
 
 /// <summary>
-/// Tests that verify emails are actually delivered via SMTP to Mailpit.
-/// Each test uses a unique email address so messages can be filtered by recipient.
+/// The API's responsibility for transactional email is to write the correct <see cref="EmailOutboxMessage"/>
+/// row (and its business row) atomically - it never sends mail. These tests assert exactly that: the right
+/// outbox row is enqueued (type, recipient, coalesce key, payload) or, for rejected requests, that nothing
+/// is enqueued. Actual delivery, lazy token minting, the emailed-link flows, and newest-wins coalescing are
+/// the Cron host's job and are covered by Cron.IntegrationTests.
 /// </summary>
-public sealed partial class MailTests
+public sealed class MailTests
 {
     [ClassDataSource<WebApplicationFactory>(Shared = SharedType.PerTestSession)]
     public required WebApplicationFactory WebApplicationFactory { get; init; }
@@ -19,195 +22,225 @@ public sealed partial class MailTests
     // --- Account Activation ---
 
     [Test]
-    public async Task V2Signup_SendsAccountActivationEmail()
+    public async Task V2Signup_EnqueuesActivationOutbox()
     {
-        const string email = "mail-activation@test.org";
-        using var mailpit = WebApplicationFactory.CreateMailpitHelper();
+        var email = TestHelper.UniqueEmail("mail-activation");
+        var username = TestHelper.UniqueUsername("mailactivation");
         using var client = WebApplicationFactory.CreateClient();
 
         var response = await client.PostAsync("/2/account/signup", TestHelper.JsonContent(new
         {
-            username = "mailactivationuser",
+            username,
             password = "SecurePassword123#",
             email,
             turnstileResponse = "valid-token"
         }));
-
         await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.OK);
 
-        var message = await mailpit.WaitForMessageAsync(email);
-        await Assert.That(message).IsNotNull();
-        await Assert.That(message!.To?.Select(c => c.Address)).Contains(email);
-    }
-
-    [Test]
-    public async Task ActivationFlow_ViaEmailLink_ActivatesAccount()
-    {
-        const string email = "mail-activate-flow@test.org";
-        using var mailpit = WebApplicationFactory.CreateMailpitHelper();
-        using var client = WebApplicationFactory.CreateClient();
-
-        // Sign up — this triggers an activation email
-        var signupResponse = await client.PostAsync("/2/account/signup", TestHelper.JsonContent(new
-        {
-            username = "mailactivateflowuser",
-            password = "SecurePassword123#",
-            email,
-            turnstileResponse = "valid-token"
-        }));
-        await Assert.That(signupResponse.StatusCode).IsEqualTo(HttpStatusCode.OK);
-
-        // Wait for and retrieve the activation email
-        var message = await mailpit.WaitForMessageAsync(email);
-        await Assert.That(message).IsNotNull();
-
-        var fullMessage = await mailpit.GetMessageAsync(message!.Id);
-        await Assert.That(fullMessage).IsNotNull();
-
-        // Extract the activation token from the link in the email HTML
-        var token = ExtractQueryParam(fullMessage!.Html, "token");
-        await Assert.That(token).IsNotNull().And.IsNotEmpty();
-
-        // Use the token to activate the account
-        var activateResponse = await client.PostAsync($"/1/account/activate?token={token}", null);
-        await Assert.That(activateResponse.StatusCode).IsEqualTo(HttpStatusCode.OK);
-
-        // Confirm the user is now activated in the DB
         await using var scope = WebApplicationFactory.Services.CreateAsyncScope();
         var db = scope.ServiceProvider.GetRequiredService<OpenShockContext>();
-        var user = await db.Users.FirstOrDefaultAsync(u => u.Email == email);
-        await Assert.That(user).IsNotNull();
-        await Assert.That(user!.ActivatedAt).IsNotNull();
+        var user = await db.Users.AsNoTracking().FirstAsync(u => u.Email == email);
+
+        var row = await db.EmailOutbox.AsNoTracking().SingleAsync(m => m.Recipient == email);
+        await Assert.That(row.Type).IsEqualTo(EmailType.AccountActivation);
+        await Assert.That(row.Status).IsEqualTo(EmailStatus.Pending);
+        await Assert.That(row.CoalesceKey).IsEqualTo(EmailOutboxCoalesceKeys.AccountActivation(user.Id));
+        await Assert.That(row.Payload[EmailOutboxPayloadKeys.UserId]).IsEqualTo(user.Id.ToString());
     }
 
     // --- Password Reset ---
 
     [Test]
-    public async Task V1PasswordReset_SendsPasswordResetEmail()
+    public async Task V1PasswordReset_Retired_Returns410Gone()
     {
-        const string email = "mail-pwreset@test.org";
-        using var mailpit = WebApplicationFactory.CreateMailpitHelper();
-
-        await TestHelper.CreateUserInDb(WebApplicationFactory, "mailpwresetuser", email, "OldPassword123#");
-
         using var client = WebApplicationFactory.CreateClient();
-        var response = await client.PostAsync("/1/account/reset", TestHelper.JsonContent(new
-        {
-            email
-        }));
+        var response = await client.PostAsync("/1/account/reset", TestHelper.JsonContent(new { email = "whatever@test.org" }));
 
-        await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.OK);
-
-        var message = await mailpit.WaitForMessageAsync(email);
-        await Assert.That(message).IsNotNull();
-        await Assert.That(message!.To?.Select(c => c.Address)).Contains(email);
+        await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.Gone);
     }
 
     [Test]
-    public async Task V2PasswordReset_SendsPasswordResetEmail()
+    public async Task ResetPasswordAlias_Retired_Returns410Gone()
     {
-        const string email = "mail-pwreset-v2@test.org";
-        using var mailpit = WebApplicationFactory.CreateMailpitHelper();
-
-        await TestHelper.CreateUserInDb(WebApplicationFactory, "mailpwresetv2user", email, "OldPassword123#");
-
         using var client = WebApplicationFactory.CreateClient();
         var response = await client.PostAsync("/2/account/reset-password", TestHelper.JsonContent(new
+        {
+            email = "whatever@test.org",
+            turnstileResponse = "valid-token"
+        }));
+
+        await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.Gone);
+    }
+
+    [Test]
+    public async Task V2PasswordReset_EnqueuesResetOutbox()
+    {
+        var email = TestHelper.UniqueEmail("mail-pwreset-v2");
+        var username = TestHelper.UniqueUsername("mailpwresetv2");
+        var userId = await TestHelper.CreateUserInDb(WebApplicationFactory, username, email, "OldPassword123#");
+
+        using var client = WebApplicationFactory.CreateClient();
+        var response = await client.PostAsync("/2/account/password-reset", TestHelper.JsonContent(new
         {
             email,
             turnstileResponse = "valid-token"
         }));
-
         await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.OK);
 
-        var message = await mailpit.WaitForMessageAsync(email);
-        await Assert.That(message).IsNotNull();
-        await Assert.That(message!.To?.Select(c => c.Address)).Contains(email);
+        await using var scope = WebApplicationFactory.Services.CreateAsyncScope();
+        var db = scope.ServiceProvider.GetRequiredService<OpenShockContext>();
+        var reset = await db.UserPasswordResets.AsNoTracking().SingleAsync(r => r.UserId == userId);
+
+        var row = await db.EmailOutbox.AsNoTracking().SingleAsync(m => m.Recipient == email);
+        await Assert.That(row.Type).IsEqualTo(EmailType.PasswordReset);
+        await Assert.That(row.Status).IsEqualTo(EmailStatus.Pending);
+        await Assert.That(row.CoalesceKey).IsEqualTo(EmailOutboxCoalesceKeys.PasswordReset(userId));
+        await Assert.That(row.Payload[EmailOutboxPayloadKeys.PasswordResetId]).IsEqualTo(reset.Id.ToString());
     }
 
     [Test]
-    public async Task PasswordResetFlow_ViaEmailLink_ChangesPassword()
+    public async Task PasswordResetComplete_LegacyRecoverRoute_Returns410Gone()
     {
-        const string email = "mail-pwreset-flow@test.org";
-        const string newPassword = "NewSecurePassword456#";
-        using var mailpit = WebApplicationFactory.CreateMailpitHelper();
+        using var client = WebApplicationFactory.CreateClient();
 
-        await TestHelper.CreateUserInDb(WebApplicationFactory, "mailpwresetflowuser", email, "OldPassword123#");
+        var response = await client.PostAsync(
+            $"/1/account/recover/{Guid.CreateVersion7()}/somesecret",
+            TestHelper.JsonContent(new { password = "LegacyNewPassword456#" }));
+
+        await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.Gone);
+    }
+
+    [Test]
+    public async Task PasswordResetCheck_LegacyHeadRecoverRoute_Returns410Gone()
+    {
+        using var client = WebApplicationFactory.CreateClient();
+
+        var response = await client.SendAsync(new HttpRequestMessage(
+            HttpMethod.Head, $"/1/account/recover/{Guid.CreateVersion7()}/somesecret"));
+
+        await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.Gone);
+    }
+
+    [Test]
+    public async Task PasswordResetCheck_InvalidToken_Returns404()
+    {
+        var email = TestHelper.UniqueEmail("mail-pwreset-check-invalid");
+        var username = TestHelper.UniqueUsername("mailpwresetcheckinvalid");
+        await TestHelper.CreateUserInDb(WebApplicationFactory, username, email, "OldPassword123#");
 
         using var client = WebApplicationFactory.CreateClient();
 
-        // Initiate password reset
-        var resetResponse = await client.PostAsync("/1/account/reset", TestHelper.JsonContent(new { email }));
-        await Assert.That(resetResponse.StatusCode).IsEqualTo(HttpStatusCode.OK);
+        var bogusId = Guid.CreateVersion7();
+        const string bogusSecret = "thisisnotarealtokenatallzz";
 
-        // Wait for reset email and extract the link
-        var message = await mailpit.WaitForMessageAsync(email);
-        await Assert.That(message).IsNotNull();
+        var response = await client.GetAsync($"/1/account/password-reset/{bogusId}/{bogusSecret}");
+        await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.NotFound);
+    }
 
-        var fullMessage = await mailpit.GetMessageAsync(message!.Id);
-        await Assert.That(fullMessage).IsNotNull();
+    // --- Change Email ---
 
-        // Link format: /#/account/password/recover/{id}/{secret}
-        var (resetId, secret) = ExtractPasswordResetParams(fullMessage!.Html);
-        await Assert.That(resetId).IsNotNull().And.IsNotEmpty();
-        await Assert.That(secret).IsNotNull().And.IsNotEmpty();
+    [Test]
+    public async Task ChangeEmail_EnqueuesVerificationAndNotice()
+    {
+        var oldEmail = TestHelper.UniqueEmail("mail-chgemail-notice-old");
+        var newEmail = TestHelper.UniqueEmail("mail-chgemail-notice-new");
+        var username = TestHelper.UniqueUsername("mailchgemailnotice");
+        const string password = "SecurePassword123#";
 
-        // Verify the reset token is valid
-        var checkResponse = await client.SendAsync(new HttpRequestMessage(
-            HttpMethod.Head, $"/1/account/recover/{resetId}/{secret}"));
-        await Assert.That(checkResponse.StatusCode).IsEqualTo(HttpStatusCode.OK);
+        var user = await TestHelper.CreateAndLoginUser(WebApplicationFactory, username, oldEmail, password);
+        using var client = TestHelper.CreateAuthenticatedClient(WebApplicationFactory, user.SessionToken);
 
-        // Complete the reset with a new password
-        var completeResponse = await client.PostAsync(
-            $"/1/account/recover/{resetId}/{secret}",
-            TestHelper.JsonContent(new { password = newPassword }));
-        await Assert.That(completeResponse.StatusCode).IsEqualTo(HttpStatusCode.OK);
-
-        // Confirm we can log in with the new password
-        var loginResponse = await client.PostAsync("/1/account/login", TestHelper.JsonContent(new
+        var initiateResponse = await client.PostAsync("/1/account/email-change", TestHelper.JsonContent(new
         {
-            email,
-            password = newPassword
+            currentPassword = password,
+            email = newEmail
         }));
-        await Assert.That(loginResponse.StatusCode).IsEqualTo(HttpStatusCode.OK);
+        await Assert.That(initiateResponse.StatusCode).IsEqualTo(HttpStatusCode.OK);
+
+        await using var scope = WebApplicationFactory.Services.CreateAsyncScope();
+        var db = scope.ServiceProvider.GetRequiredService<OpenShockContext>();
+        var change = await db.UserEmailChanges.AsNoTracking().SingleAsync(c => c.UserId == user.Id);
+
+        // Verification to the NEW address: coalesced per user, references the change row by id.
+        var verification = await db.EmailOutbox.AsNoTracking().SingleAsync(m => m.Recipient == newEmail);
+        await Assert.That(verification.Type).IsEqualTo(EmailType.EmailVerification);
+        await Assert.That(verification.Status).IsEqualTo(EmailStatus.Pending);
+        await Assert.That(verification.CoalesceKey).IsEqualTo(EmailOutboxCoalesceKeys.EmailVerification(user.Id));
+        await Assert.That(verification.Payload[EmailOutboxPayloadKeys.EmailChangeId]).IsEqualTo(change.Id.ToString());
+
+        // Notice to the OLD address: always delivered (no coalesce key), carries the new address as data.
+        var notice = await db.EmailOutbox.AsNoTracking().SingleAsync(m => m.Recipient == oldEmail);
+        await Assert.That(notice.Type).IsEqualTo(EmailType.EmailChangeNotice);
+        await Assert.That(notice.CoalesceKey).IsNull();
+        await Assert.That(notice.Payload[EmailOutboxPayloadKeys.NewEmail]).IsEqualTo(newEmail);
     }
 
-    // --- Helpers ---
-
-    /// <summary>
-    /// Extracts a query parameter value from a URL embedded in HTML (first &lt;a href&gt; containing the param).
-    /// </summary>
-    private static string? ExtractQueryParam(string html, string paramName)
+    [Test]
+    public async Task ChangeEmail_WrongPassword_Returns403_AndEnqueuesNothing()
     {
-        var hrefMatch = HrefRegex().Match(html);
-        while (hrefMatch.Success)
+        var oldEmail = TestHelper.UniqueEmail("mail-chgemail-badpwd-old");
+        var newEmail = TestHelper.UniqueEmail("mail-chgemail-badpwd-new");
+        var username = TestHelper.UniqueUsername("mailchgemailbadpwd");
+
+        var user = await TestHelper.CreateAndLoginUser(WebApplicationFactory, username, oldEmail, "CorrectPassword123#");
+        using var client = TestHelper.CreateAuthenticatedClient(WebApplicationFactory, user.SessionToken);
+
+        var response = await client.PostAsync("/1/account/email-change", TestHelper.JsonContent(new
         {
-            var href = hrefMatch.Groups[1].Value;
-            if (Uri.TryCreate(href, UriKind.Absolute, out var uri))
-            {
-                var query = System.Web.HttpUtility.ParseQueryString(uri.Query);
-                var value = query[paramName];
-                if (value is not null) return value;
-            }
-            hrefMatch = hrefMatch.NextMatch();
-        }
-        return null;
+            currentPassword = "WrongPassword!",
+            email = newEmail
+        }));
+        await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.Forbidden);
+
+        await using var scope = WebApplicationFactory.Services.CreateAsyncScope();
+        var db = scope.ServiceProvider.GetRequiredService<OpenShockContext>();
+        var enqueued = await db.EmailOutbox.AsNoTracking()
+            .CountAsync(m => m.Recipient == newEmail || m.Recipient == oldEmail);
+        await Assert.That(enqueued).IsEqualTo(0);
     }
 
-    /// <summary>
-    /// Extracts the (passwordResetId, secret) pair from the password-reset URL embedded in email HTML.
-    /// URL pattern: /account/password/recover/{guid}/{secret}
-    /// </summary>
-    private static (string? ResetId, string? Secret) ExtractPasswordResetParams(string html)
+    [Test]
+    public async Task ChangeEmail_Unchanged_Returns400_AndEnqueuesNothing()
     {
-        var match = PasswordResetPathRegex().Match(html);
-        if (!match.Success) return (null, null);
-        return (match.Groups[1].Value, match.Groups[2].Value);
+        var email = TestHelper.UniqueEmail("mail-chgemail-unchanged");
+        var username = TestHelper.UniqueUsername("mailchgemailunchanged");
+        const string password = "SecurePassword123#";
+
+        var user = await TestHelper.CreateAndLoginUser(WebApplicationFactory, username, email, password);
+        using var client = TestHelper.CreateAuthenticatedClient(WebApplicationFactory, user.SessionToken);
+
+        var response = await client.PostAsync("/1/account/email-change", TestHelper.JsonContent(new
+        {
+            currentPassword = password,
+            email
+        }));
+        await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.BadRequest);
+
+        await using var scope = WebApplicationFactory.Services.CreateAsyncScope();
+        var db = scope.ServiceProvider.GetRequiredService<OpenShockContext>();
+        var enqueued = await db.EmailOutbox.AsNoTracking().CountAsync(m => m.Recipient == email);
+        await Assert.That(enqueued).IsEqualTo(0);
     }
 
-    [GeneratedRegex(@"href=""([^""]+)""", RegexOptions.IgnoreCase)]
-    private static partial Regex HrefRegex();
+    [Test]
+    public async Task ChangeEmail_AlreadyInUse_Returns409()
+    {
+        var takenEmail = TestHelper.UniqueEmail("mail-chgemail-taken-existing");
+        var ownEmail = TestHelper.UniqueEmail("mail-chgemail-taken-own");
+        var takenUser = TestHelper.UniqueUsername("mailchgemailtaken1");
+        var ownUser = TestHelper.UniqueUsername("mailchgemailtaken2");
+        const string password = "SecurePassword123#";
 
-    [GeneratedRegex(@"/account/password/recover/([0-9a-fA-F\-]+)/([A-Za-z0-9]+)", RegexOptions.IgnoreCase)]
-    private static partial Regex PasswordResetPathRegex();
+        await TestHelper.CreateUserInDb(WebApplicationFactory, takenUser, takenEmail, password);
+        var user = await TestHelper.CreateAndLoginUser(WebApplicationFactory, ownUser, ownEmail, password);
+        using var client = TestHelper.CreateAuthenticatedClient(WebApplicationFactory, user.SessionToken);
+
+        var response = await client.PostAsync("/1/account/email-change", TestHelper.JsonContent(new
+        {
+            currentPassword = password,
+            email = takenEmail
+        }));
+
+        await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.Conflict);
+    }
 }

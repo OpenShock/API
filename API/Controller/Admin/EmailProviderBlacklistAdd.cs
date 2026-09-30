@@ -13,6 +13,8 @@ public sealed partial class AdminController
     [ProducesResponseType(StatusCodes.Status200OK)]
     public async Task<IActionResult> AddEmailProviderBlacklist([FromBody] AddEmailProviderBlacklistDto body, CancellationToken ct)
     {
+        PedanticallyEnsureAdmin();
+
         var existingDomains = await _db.EmailProviderBlacklists.Select(x => x.Domain.ToLowerInvariant()).ToHashSetAsync(ct);
 
         foreach (var domain in body.Domains)

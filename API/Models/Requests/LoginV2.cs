@@ -12,6 +12,6 @@ public sealed class LoginV2
     public required string UsernameOrEmail { get; set; }
     
     [Required(AllowEmptyStrings = false)]
-    [StringLength(HardLimits.MaxTurnstileResponseTokenLength)]
+    [StringLength(ApiHardLimits.MaxTurnstileResponseTokenLength)]
     public required string TurnstileResponse { get; set; }
 }

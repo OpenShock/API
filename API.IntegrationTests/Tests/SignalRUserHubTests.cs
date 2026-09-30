@@ -93,7 +93,7 @@ public sealed class SignalRUserHubTests
         // PublicShareHub doesn't require auth at the negotiate level
         using var client = WebApplicationFactory.CreateClient();
 
-        var response = await client.PostAsync($"/1/hubs/share/link/{Guid.NewGuid()}/negotiate?negotiateVersion=1", null);
+        var response = await client.PostAsync($"/1/hubs/share/link/{Guid.CreateVersion7()}/negotiate?negotiateVersion=1", null);
         // Should return OK (negotiate doesn't check auth or share existence)
         await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.OK);
     }

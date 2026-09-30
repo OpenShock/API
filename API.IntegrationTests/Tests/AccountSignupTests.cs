@@ -11,56 +11,21 @@ public sealed class AccountSignupTests
     [ClassDataSource<WebApplicationFactory>(Shared = SharedType.PerTestSession)]
     public required WebApplicationFactory WebApplicationFactory { get; init; }
 
-    // --- V1 Signup ---
+    // --- V1 Signup (retired) ---
 
     [Test]
-    public async Task V1Signup_Success_CreatesUser()
+    public async Task V1Signup_Retired_Returns410Gone()
     {
         using var client = WebApplicationFactory.CreateClient();
 
         var response = await client.PostAsync("/1/account/signup", TestHelper.JsonContent(new
         {
-            username = "v1user",
+            username = "v1retired",
             password = "SecurePassword123#",
-            email = "v1user@test.org"
+            email = "v1retired@test.org"
         }));
 
-        await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.OK);
-
-        await using var scope = WebApplicationFactory.Services.CreateAsyncScope();
-        var db = scope.ServiceProvider.GetRequiredService<OpenShockContext>();
-        var user = await db.Users.FirstOrDefaultAsync(u => u.Email == "v1user@test.org");
-        await Assert.That(user).IsNotNull();
-    }
-
-    [Test, DependsOn(nameof(V1Signup_Success_CreatesUser))]
-    public async Task V1Signup_DuplicateEmail_Returns409()
-    {
-        using var client = WebApplicationFactory.CreateClient();
-
-        var response = await client.PostAsync("/1/account/signup", TestHelper.JsonContent(new
-        {
-            username = "v1userDifferent",
-            password = "SecurePassword123#",
-            email = "v1user@test.org" // same email
-        }));
-
-        await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.Conflict);
-    }
-
-    [Test, DependsOn(nameof(V1Signup_Success_CreatesUser))]
-    public async Task V1Signup_DuplicateUsername_Returns409()
-    {
-        using var client = WebApplicationFactory.CreateClient();
-
-        var response = await client.PostAsync("/1/account/signup", TestHelper.JsonContent(new
-        {
-            username = "v1user", // same username
-            password = "SecurePassword123#",
-            email = "v1different@test.org"
-        }));
-
-        await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.Conflict);
+        await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.Gone);
     }
 
     // --- V2 Signup ---
@@ -112,6 +77,22 @@ public sealed class AccountSignupTests
             username = "v2userDifferent",
             password = "SecurePassword123#",
             email = "v2user@test.org", // same email
+            turnstileResponse = "valid-token"
+        }));
+
+        await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.Conflict);
+    }
+
+    [Test, DependsOn(nameof(V2Signup_Success_CreatesUser))]
+    public async Task V2Signup_DuplicateUsername_Returns409()
+    {
+        using var client = WebApplicationFactory.CreateClient();
+
+        var response = await client.PostAsync("/2/account/signup", TestHelper.JsonContent(new
+        {
+            username = "v2user", // same username
+            password = "SecurePassword123#",
+            email = "v2different@test.org",
             turnstileResponse = "valid-token"
         }));
 

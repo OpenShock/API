@@ -1,8 +1,11 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using System.Diagnostics;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
 using OpenShock.Common.Authentication.Services;
 using OpenShock.Common.Models;
 using OpenShock.Common.OpenShockDb;
+using OpenShock.Common.Redis;
+using OpenShock.Common.Results;
 
 namespace OpenShock.Common.Authentication.ControllerBase;
 
@@ -25,12 +28,11 @@ public class AuthenticatedSessionControllerBase : OpenShockControllerBase, IActi
     protected bool IsAllowed(PermissionType requiredType)
     {
         var userReferenceService = HttpContext.RequestServices.GetRequiredService<IUserReferenceService>();
-
-        if (userReferenceService.AuthReference is null) throw new Exception("UserReferenceService.AuthReference is null, this should not happen");
-
-        return userReferenceService.AuthReference.Value.Match(
-            loginSession => true, // We are in a session
-            apiToken => requiredType.IsAllowed(apiToken.Permissions)
-        );
+        return userReferenceService.AuthReference switch
+        {
+            LoginSession => true, // We are in a session
+            ApiToken apiToken => requiredType.IsAllowed(apiToken.Permissions),
+            None => throw new UnreachableException("User should be authenticated here")
+        };
     }
 }

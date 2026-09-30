@@ -2,9 +2,11 @@
 **/bin/
 **/obj/
 **/out/
+**/node_modules/
+API/SmtpTemplates/dist/
 
 # files
 **/appsettings.Development.json
 Dockerfile*
 **/*.md
-dev/
+Dev/

@@ -74,6 +74,10 @@ public sealed class MetadataTests
             await Assert.That(p).IsNotNullOrWhiteSpace();
         }
 
+        // Validate IsMailEnabled (bool)
+        var isMailEnabled = data.GetProperty("isMailEnabled").GetBoolean();
+        await Assert.That(isMailEnabled).IsTrue(); // The test host configures a mail type
+
         // Validate IsUserAuthenticated (bool)
         var isUserAuthenticated = data.GetProperty("isUserAuthenticated").GetBoolean();
         await Assert.That(isUserAuthenticated).IsIn(true, false);

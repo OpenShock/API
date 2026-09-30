@@ -1,4 +1,5 @@
 ﻿using System.Text.Json.Serialization;
+using OpenShock.Common.OpenShockDb;
 
 namespace OpenShock.Common.Models.WebSocket.LCG;
 

@@ -1,5 +1,7 @@
 ﻿using System.Text.Json;
 
+using OpenShock.Internal.Common.JsonSerialization;
+
 namespace OpenShock.Common.JsonSerialization;
 
 public static class JsonOptions

@@ -1,9 +1,11 @@
 ﻿using System.ComponentModel.DataAnnotations;
 using System.Net.Mail;
-using Microsoft.OpenApi.Any;
-using Microsoft.OpenApi.Models;
+using System.Text.Json.Nodes;
+using Microsoft.OpenApi;
 using OpenShock.Common.Constants;
 using OpenShock.Common.DataAnnotations.Interfaces;
+
+using OpenShock.Internal.Common.Constants;
 
 namespace OpenShock.Common.DataAnnotations;
 
@@ -61,9 +63,12 @@ public sealed class EmailAddressAttribute : ValidationAttribute, IParameterAttri
     {
         //if (ShouldValidate) schema.Pattern = ???;
         
-        schema.Example = new OpenApiString(ExampleValue);
+        schema.Examples = [JsonValue.Create(ExampleValue)];
     }
 
     /// <inheritdoc/>
-    public void Apply(OpenApiParameter parameter) => Apply(parameter.Schema);
+    public void Apply(OpenApiParameter parameter)
+    {
+        if (parameter.Schema is OpenApiSchema schema) Apply(schema);
+    }
 }

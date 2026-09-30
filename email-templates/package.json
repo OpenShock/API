@@ -1,0 +1,34 @@
+{
+  "name": "openshock-email-templates",
+  "version": "0.1.0",
+  "private": true,
+  "license": "AGPL-3.0",
+  "type": "module",
+  "packageManager": "pnpm@11.3.0",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "dev": "email dev",
+    "build": "email build",
+    "export": "tsx scripts/export-templates.ts",
+    "format": "prettier --write \"emails/**/*.{ts,tsx}\" \"scripts/**/*.ts\"",
+    "lint": "prettier --check \"emails/**/*.{ts,tsx}\" \"scripts/**/*.ts\""
+  },
+  "dependencies": {
+    "@react-email/components": "1.0.12",
+    "@react-email/render": "2.0.8",
+    "react": "19.2.6",
+    "react-dom": "19.2.6",
+    "react-email": "6.3.2"
+  },
+  "devDependencies": {
+    "@react-email/ui": "6.3.2",
+    "@types/node": "^25.9.1",
+    "@types/react": "19.2.15",
+    "@types/react-dom": "19.2.3",
+    "prettier": "3.8.3",
+    "tsx": "4.21.0",
+    "typescript": "6.0.3"
+  }
+}

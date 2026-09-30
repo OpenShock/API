@@ -1,9 +1,15 @@
-﻿using Microsoft.AspNetCore.Mvc;
-using OpenShock.API.Models.Requests;
-using OpenShock.Common.Errors;
-using OpenShock.Common.Models;
-using OpenShock.Common.Problems;
+﻿using System.Diagnostics;
 using System.Net.Mime;
+using Microsoft.AspNetCore.Mvc;
+using OpenShock.API.Models.Requests;
+using OpenShock.API.Services.Account;
+using OpenShock.Common.Errors;
+using OpenShock.Common.OpenShockDb;
+using OpenShock.Common.Problems;
+using OpenShock.Common.Validation;
+using Results = OpenShock.Common.Results;
+
+using OpenShock.Internal.Common.Problems;
 
 namespace OpenShock.API.Controller.Account.Authenticated;
 
@@ -23,15 +29,18 @@ public sealed partial class AuthenticatedAccountController
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status403Forbidden, MediaTypeNames.Application.ProblemJson)] // UsernameRecentlyChanged
     public async Task<IActionResult> ChangeUsername([FromBody] ChangeUsernameRequest body)
     {
-        var result = await _accountService.ChangeUsernameAsync(CurrentUser.Id, body.Username,
-            CurrentUser.Roles.Any(r => r is RoleType.Staff or RoleType.Admin or RoleType.System));
+        var result = await _accountService.ChangeUsernameAsync(CurrentUser.Id, body.Username, actorId: CurrentUser.Id,
+            ignoreLimit: CurrentUser.Roles.Any(r => r is RoleType.Staff or RoleType.Admin or RoleType.System));
 
-        return result.Match<IActionResult>(
-            success => Ok(),
-            usernametaken => Problem(AccountError.UsernameTaken),
-            usernameerror => Problem(AccountError.UsernameInvalid(usernameerror)),
-            recentlychanged => Problem(AccountError.UsernameRecentlyChanged),
-            accountdeactivated => Problem(AccountError.AccountDeactivated),
-            notfound => throw new Exception("Unexpected result, apparently our current user does not exist..."));
+        return result switch
+        {
+            Results.Success => Ok(),
+            UsernameTaken => Problem(AccountError.UsernameTaken),
+            UsernameError usernameError => Problem(AccountError.UsernameInvalid(usernameError)),
+            RecentlyChanged => Problem(AccountError.UsernameRecentlyChanged),
+            AccountDeactivated => Problem(AccountError.AccountDeactivated),
+            Results.NotFound => throw new Exception("Unexpected result, apparently our current user does not exist..."),
+            _ => throw new UnreachableException()
+        };
     }
 }

@@ -5,6 +5,9 @@ using OpenShock.Common.Errors;
 using OpenShock.Common.Problems;
 using OpenShock.Common.Services.Configuration;
 using System.Net.Mime;
+using Results = OpenShock.Common.Results;
+
+using OpenShock.Internal.Common.Problems;
 
 namespace OpenShock.API.Controller.Admin;
 
@@ -19,6 +22,8 @@ public sealed partial class AdminController
     [ProducesResponseType<ConfigurationItemDto[]>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)] // Ok
     public IAsyncEnumerable<ConfigurationItemDto> ConfigurationList([FromServices] IConfigurationService configurationService)
     {
+        PedanticallyEnsureAdmin();
+
         return configurationService
             .GetAllItemsQuery()
             .Select(ci => new ConfigurationItemDto
@@ -47,6 +52,8 @@ public sealed partial class AdminController
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status400BadRequest, MediaTypeNames.Application.ProblemJson)] // InvalidNameFormat, InvalidValueFormat
     public async Task<IActionResult> ConfigurationAdd([FromBody] ConfigurationAddItemRequest body, [FromServices] IConfigurationService configurationService, CancellationToken cancellationToken)
     {
+        PedanticallyEnsureAdmin();
+
         var result = await configurationService.TryAddItemAsync(
             body.Name,
             body.Description,
@@ -54,12 +61,13 @@ public sealed partial class AdminController
             body.Value
         );
 
-        return result.Match<IActionResult>(
-            success => Ok(),
-            alreadyExists => Problem(ConfigurationError.AlreadyExists(body.Name)),
-            invalidName => Problem(ConfigurationError.InvalidNameFormat(body.Name)),
-            invalidValue => Problem(ConfigurationError.InvalidValueFormat(body.Value))
-        );
+        return result switch
+        {
+            Results.Success => Ok(),
+            AlreadyExists => Problem(ConfigurationError.AlreadyExists(body.Name)),
+            InvalidNameFormat => Problem(ConfigurationError.InvalidNameFormat(body.Name)),
+            InvalidValueFormat => Problem(ConfigurationError.InvalidValueFormat(body.Value))
+        };
     }
 
     /// <summary>
@@ -77,18 +85,21 @@ public sealed partial class AdminController
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status400BadRequest, MediaTypeNames.Application.ProblemJson)] // InvalidNameFormat, InvalidValueFormat
     public async Task<IActionResult> ConfigurationUpdate([FromBody] ConfigurationUpdateItemRequest body, [FromServices] IConfigurationService configurationService, CancellationToken cancellationToken)
     {
+        PedanticallyEnsureAdmin();
+
         var result = await configurationService.TryUpdateItemAsync(
             body.Name,
             body.Description,
             body.Value
         );
 
-        return result.Match<IActionResult>(
-            success => Ok(),
-            notFound => Problem(ConfigurationError.NotFound(body.Name)),
-            invalidName => Problem(ConfigurationError.InvalidNameFormat(body.Name)),
-            invalidValue => Problem(ConfigurationError.InvalidValueFormat(body.Value!))
-        );
+        return result switch
+        {
+            Results.Success => Ok(),
+            Results.NotFound => Problem(ConfigurationError.NotFound(body.Name)),
+            InvalidNameFormat => Problem(ConfigurationError.InvalidNameFormat(body.Name)),
+            InvalidValueFormat => Problem(ConfigurationError.InvalidValueFormat(body.Value!))
+        };
     }
 
     /// <summary>
@@ -104,12 +115,15 @@ public sealed partial class AdminController
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status400BadRequest, MediaTypeNames.Application.ProblemJson)] // InvalidNameFormat
     public async Task<IActionResult> ConfigurationDelete([FromRoute] string name, [FromServices] IConfigurationService configurationService, CancellationToken cancellationToken)
     {
+        PedanticallyEnsureAdmin();
+
         var result = await configurationService.TryDeleteItemAsync(name);
 
-        return result.Match<IActionResult>(
-            success => Ok(),
-            notFound => Problem(ConfigurationError.NotFound(name)),
-            invalidName => Problem(ConfigurationError.InvalidNameFormat(name))
-        );
+        return result switch
+        {
+            Results.Success => Ok(),
+            Results.NotFound => Problem(ConfigurationError.NotFound(name)),
+            InvalidNameFormat => Problem(ConfigurationError.InvalidNameFormat(name))
+        };
     }
 }

@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Mvc;
 using OpenShock.Common.Extensions;
 using OpenShock.Common.Models;
+using OpenShock.Common.OpenShockDb;
 
 namespace OpenShock.API.Controller.Users;
 
@@ -23,7 +24,8 @@ public sealed partial class UsersController
                 Email = CurrentUser.Email,
                 Image = CurrentUser.GetImageUrl(),
                 Roles = CurrentUser.Roles,
-                Rank = CurrentUser.Roles.Count > 0 ? CurrentUser.Roles.Max().ToString() : "User"
+                Rank = CurrentUser.Roles.Count > 0 ? CurrentUser.Roles.Max().ToString() : "User",
+                HasPassword = !string.IsNullOrEmpty(CurrentUser.PasswordHash)
             }
         );
     }
@@ -36,5 +38,6 @@ public sealed partial class UsersController
         public required Uri Image { get; init; }
         public required List<RoleType> Roles { get; init; }
         public required string Rank { get; init; }
+        public required bool HasPassword { get; init; }
     }
 }

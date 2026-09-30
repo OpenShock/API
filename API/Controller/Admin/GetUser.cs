@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using OpenShock.Common.Constants;
 using OpenShock.Common.Models;
 using OpenShock.Common.OpenShockDb;
 using System.Linq.Expressions;
@@ -35,7 +36,7 @@ public sealed partial class AdminController
         public required string Name { get; init; }
         public required List<PermissionType> Permissions { get; init; }
         public required DateTimeOffset? ValidUntil { get; init; }
-        public required DateTimeOffset LastUsed { get; init; }
+        public required DateTimeOffset? LastUsed { get; init; }
         public required DateTimeOffset CreatedAt { get; init; }
         public required IPAddress CreatedByIp { get; init; }
     }
@@ -145,19 +146,27 @@ public sealed partial class AdminController
                         UsedAt = reset.UsedAt,
                     }
                 ).ToArray(),
-                UsersActivations = u.UserActivationRequest.Select(activation =>
-                    new AdminUserView_UserActivationRequest
+                ActivationRequest = u.UserActivationRequest == null
+                    ? null
+                    : new AdminUserView_UserActivationRequest
                     {
-                        Id = activation.Id,
-                        CreatedAt = activation.CreatedOn,
-                        UsedAt = activation.UsedOn,
-                    }
-                ).ToArray(),
+                        EmailSendAttempts = u.UserActivationRequest.EmailSendAttempts,
+                        CreatedAt = u.UserActivationRequest.CreatedAt,
+                    },
+                Deactivation = u.UserDeactivation == null
+                    ? null
+                    : new
+                    {
+                        DeactivatedById = u.UserDeactivation.DeactivatedByUser.Id,
+                        DeactivatedByName = u.UserDeactivation.DeactivatedByUser.Name,
+                        u.UserDeactivation.DeleteLater,
+                        u.UserDeactivation.CreatedAt,
+                    },
                 UsersEmailChanges = u.EmailChanges.Select(change =>
                     new AdminUserView_EmailChange
                     {
                         Id = change.Id,
-                        Email = change.Email,
+                        Email = change.NewEmail,
                         CreatedAt = change.CreatedAt,
                         UsedAt = change.UsedAt,
                     }
@@ -193,7 +202,23 @@ public sealed partial class AdminController
             Hubs = user.Hubs,
             ApiTokens = user.ApiTokens,
             PasswordResets = user.PasswordResets,
-            ActivationRequest = user.UsersActivations,
+            ActivationRequest = user.ActivationRequest,
+            Deactivation = user.Deactivation is null
+                ? null
+                : new AdminUserView_UserDeactivation
+                {
+                    DeactivatedBy = new AdminUserView_UserRef
+                    {
+                        Id = user.Deactivation.DeactivatedById,
+                        Name = user.Deactivation.DeactivatedByName,
+                    },
+                    // Mirrors DeleteDeactivatedAccounts: only DeleteLater rows are ever deleted,
+                    // once DeactivatedAccountRetentionTime has elapsed since deactivation.
+                    ScheduledDeletionTime = user.Deactivation.DeleteLater
+                        ? user.Deactivation.CreatedAt + Duration.DeactivatedAccountRetentionTime
+                        : null,
+                    DeactivatedAt = user.Deactivation.CreatedAt,
+                },
             UsersEmailChanges = user.UsersEmailChanges,
             UsersNameChanges = user.UsersNameChanges,
             ShockerControlLogsCount = user.ShockerControlLogsCount,

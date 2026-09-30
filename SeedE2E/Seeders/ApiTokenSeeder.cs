@@ -7,6 +7,10 @@ using OpenShock.Common.OpenShockDb;
 using OpenShock.Common.Utils;
 using OpenShock.SeedE2E.Extensions;
 
+using OpenShock.Internal.Common.Utils;
+
+using OpenShock.Internal.Common.Constants;
+
 namespace OpenShock.SeedE2E.Seeders;
 
 public static class ApiTokenSeeder
@@ -25,7 +29,7 @@ public static class ApiTokenSeeder
         var apiTokenFaker = new Faker<ApiToken>()
             .RuleFor(t => t.Id, f => f.Random.Guid())
             .RuleFor(t => t.UserId, f => f.PickRandom(allUserIds))
-            .RuleFor(t => t.Name, f => f.Lorem.Word().Truncate(HardLimits.ApiKeyNameMaxLength))
+            .RuleFor(t => t.Name, f => f.Lorem.Word().Truncate(ApiHardLimits.ApiKeyNameMaxLength))
             .RuleFor(t => t.TokenHash, f =>
             {
                 // Simulate generating a raw key and hashing it

@@ -10,6 +10,8 @@ public sealed partial class AdminController
     [HttpGet("blacklist/emailProviders")]
     public async IAsyncEnumerable<EmailProviderBlacklistDto> ListEmailProviderBlacklist([FromQuery(Name="match")] string? match)
     {
+        PedanticallyEnsureAdmin();
+
         if (string.IsNullOrWhiteSpace(match))
         {
             match = null;

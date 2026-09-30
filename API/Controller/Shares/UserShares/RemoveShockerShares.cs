@@ -3,8 +3,10 @@ using Asp.Versioning;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using OpenShock.API.Services.DeviceUpdate;
+using OpenShock.Common.Authentication.Attributes;
 using OpenShock.Common.Errors;
 using OpenShock.Common.Models;
+using OpenShock.Common.OpenShockDb;
 
 namespace OpenShock.API.Controller.Shares.UserShares;
 
@@ -12,6 +14,7 @@ public sealed partial class UserSharesController
 {
     [HttpDelete("{userId:guid}/shockers")]
     [MapToApiVersion("2")]
+    [TokenPermission(PermissionType.Shockers_Edit)]
     [ProducesResponseType<RemoveUserSharesResponse>(StatusCodes.Status200OK)]
     public async Task<IActionResult> BulkRemoveUserShareShockers([FromRoute] Guid userId , [FromBody] [MinLength(1)] Guid[] shockerIds, [FromServices] IDeviceUpdateService deviceUpdateService)
     {

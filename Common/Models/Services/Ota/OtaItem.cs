@@ -1,5 +1,6 @@
 ﻿using System.Text.Json.Serialization;
 using OpenShock.Common.JsonSerialization;
+using OpenShock.Common.OpenShockDb;
 
 namespace OpenShock.Common.Models.Services.Ota;
 

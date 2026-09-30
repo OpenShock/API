@@ -1,13 +1,14 @@
-﻿using System.Diagnostics.CodeAnalysis;
+﻿using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using FlatSharp;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
-using OneOf;
-using OneOf.Types;
 using OpenShock.Common.Constants;
 using OpenShock.Common.Errors;
 using OpenShock.Common.Problems;
+using OpenShock.Common.Results;
 using OpenShock.Common.Utils;
+using OpenShock.Common.Websocket;
 using OpenShock.LiveControlGateway.LifetimeManager;
 using OpenShock.LiveControlGateway.Options;
 using OpenShock.LiveControlGateway.Websocket;
@@ -18,6 +19,10 @@ using OpenShock.Common.Authentication;
 using OpenShock.Common.Extensions;
 using SemVersion = OpenShock.Common.Models.SemVersion;
 using Timer = System.Timers.Timer;
+
+using OpenShock.Internal.Common.Problems;
+
+using OpenShock.Internal.Common.Errors;
 
 namespace OpenShock.LiveControlGateway.Controllers;
 
@@ -123,7 +128,7 @@ public abstract class HubControllerBase<TIn, TOut> : FlatbuffersWebsocketBaseCon
     private SemVersion? _firmwareVersion;
 
     /// <inheritdoc />
-    protected override async Task<OneOf<Success, Error<OpenShockProblem>>> ConnectionPrecondition()
+    protected override async Task<SuccessOrProblem> ConnectionPrecondition()
     {
         _connected = DateTimeOffset.UtcNow;
 
@@ -134,27 +139,29 @@ public abstract class HubControllerBase<TIn, TOut> : FlatbuffersWebsocketBaseCon
         }
         else
         {
-            var err = new Error<OpenShockProblem>(WebsocketError.WebsocketHubFirmwareVersionInvalid);
-            return err;
+            return WebsocketError.WebsocketHubFirmwareVersionInvalid;
         }
         
         _userAgent = HttpContext.Request.Headers.UserAgent.ToString().Truncate(256);
         var hubLifetimeResult = await _hubLifetimeManager.TryAddDeviceConnection(5, this, LinkedToken);
 
-        if (hubLifetimeResult.IsT1)
+        switch (hubLifetimeResult)
         {
-            Logger.LogWarning("Hub lifetime busy, closing connection");
-            return new Error<OpenShockProblem>(WebsocketError.WebsocketHubLifetimeBusy);
+            case HubLifetimeManager.Busy:
+                Logger.LogWarning("Hub lifetime busy, closing connection");
+                return WebsocketError.WebsocketHubLifetimeBusy;
+            case Error:
+                Logger.LogError("Hub lifetime error, closing connection");
+                return ExceptionError.Exception;
+            case LifetimeManager.HubLifetime hubLifetime:
+                HubLifetime = hubLifetime;
+                break;
+            // A switch statement is not exhaustiveness-checked, so without this an unhandled case would
+            // fall through to returning Success with no lifetime assigned and only fail later on first access.
+            default:
+                throw new UnreachableException();
         }
-        
-        if (hubLifetimeResult.IsT2)
-        {
-            Logger.LogError("Hub lifetime error, closing connection");
-            return new Error<OpenShockProblem>(ExceptionError.Exception);
-        }
-        
-        HubLifetime = hubLifetimeResult.AsT0;
-        
+
         return new Success();
     }
     
@@ -209,7 +216,7 @@ public abstract class HubControllerBase<TIn, TOut> : FlatbuffersWebsocketBaseCon
         
         var uptimeMsFp = (double)uptimeMs;
         
-        var maxUptimeMs = HardLimits.FirmwareMaxUptime.TotalMilliseconds;
+        var maxUptimeMs = ApiHardLimits.FirmwareMaxUptime.TotalMilliseconds;
         if (uptimeMsFp > maxUptimeMs) return null; // Yeah, ok bro.
 
         return DateTimeOffset.UtcNow.Subtract(TimeSpan.FromMilliseconds(uptimeMsFp));
@@ -223,7 +230,7 @@ public abstract class HubControllerBase<TIn, TOut> : FlatbuffersWebsocketBaseCon
         var bootedAt = GetBootedAtFromUptimeMs(uptimeMs);
         if (!bootedAt.HasValue)
         {
-            Logger.LogDebug("Client attempted to abuse reported boot time, uptime indicated that hub [{HubId}] booted prior to 2024", CurrentHubId);
+            Logger.LogWarning("Client attempted to abuse reported boot time, uptime indicated that hub [{HubId}] booted prior to 2024", CurrentHubId);
             return false;
         }
         
@@ -231,17 +238,19 @@ public abstract class HubControllerBase<TIn, TOut> : FlatbuffersWebsocketBaseCon
 
         // Reset the keep alive timeout
         _keepAliveTimeoutTimer.Interval = Duration.DeviceKeepAliveTimeout.TotalMilliseconds;
-
+        
         await HubLifetime.Online(CurrentHubId, new SelfOnlineData()
         {
             Owner = CurrentHubOwnerId,
-            Gateway = _options.Fqdn,
+            Gateway = _options.GetPublicNodeId(),
             FirmwareVersion = _firmwareVersion!,
             ConnectedAt = _connected,
             UserAgent = _userAgent,
             BootedAt = bootedAt.Value,
             LatencyMs = latency,
-            Rssi = rssi
+            Rssi = rssi,
+            Country = HttpContext.GetCFIPCountry(),
+            Ip = HttpContext.GetRemoteIP()
         });
 
         return true;
