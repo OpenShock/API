@@ -1,4 +1,5 @@
-﻿using OpenShock.Common.Validation;
+﻿using OpenShock.Common.Results;
+using OpenShock.Common.Validation;
 
 using OpenShock.Internal.Common.Constants;
 
@@ -16,7 +17,7 @@ internal class UsernameValidatorTests
         var result = UsernameValidator.Validate(username);
 
         // Assert
-        await Assert.That(result.IsT0).IsTrue();
+        await Assert.That(result is Success).IsTrue();
     }
 
     [Test]
@@ -29,8 +30,8 @@ internal class UsernameValidatorTests
         var result = UsernameValidator.Validate(username);
 
         // Assert
-        await Assert.That(result.IsT1).IsTrue();
-        await Assert.That(result.AsT1.Type).IsEqualTo(UsernameErrorType.TooShort);
+        await Assert.That(result is UsernameError).IsTrue();
+        await Assert.That(((UsernameError)result.Value!).Type).IsEqualTo(UsernameErrorType.TooShort);
     }
 
     [Test]
@@ -43,8 +44,8 @@ internal class UsernameValidatorTests
         var result = UsernameValidator.Validate(username);
 
         // Assert
-        await Assert.That(result.IsT1).IsTrue();
-        await Assert.That(result.AsT1.Type).IsEqualTo(UsernameErrorType.TooLong);
+        await Assert.That(result is UsernameError).IsTrue();
+        await Assert.That(((UsernameError)result.Value!).Type).IsEqualTo(UsernameErrorType.TooLong);
     }
 
     [Test]
@@ -57,8 +58,8 @@ internal class UsernameValidatorTests
         var result = UsernameValidator.Validate(username);
 
         // Assert
-        await Assert.That(result.IsT1).IsTrue();
-        await Assert.That(result.AsT1.Type).IsEqualTo(UsernameErrorType.StartOrEndWithWhitespace);
+        await Assert.That(result is UsernameError).IsTrue();
+        await Assert.That(((UsernameError)result.Value!).Type).IsEqualTo(UsernameErrorType.StartOrEndWithWhitespace);
     }
 
     [Test]
@@ -71,8 +72,8 @@ internal class UsernameValidatorTests
         var result = UsernameValidator.Validate(username);
 
         // Assert
-        await Assert.That(result.IsT1).IsTrue();
-        await Assert.That(result.AsT1.Type).IsEqualTo(UsernameErrorType.StartOrEndWithWhitespace);
+        await Assert.That(result is UsernameError).IsTrue();
+        await Assert.That(((UsernameError)result.Value!).Type).IsEqualTo(UsernameErrorType.StartOrEndWithWhitespace);
     }
 
     [Test]
@@ -85,8 +86,8 @@ internal class UsernameValidatorTests
         var result = UsernameValidator.Validate(username);
 
         // Assert
-        await Assert.That(result.IsT1).IsTrue();
-        await Assert.That(result.AsT1.Type).IsEqualTo(UsernameErrorType.ResembleEmail);
+        await Assert.That(result is UsernameError).IsTrue();
+        await Assert.That(((UsernameError)result.Value!).Type).IsEqualTo(UsernameErrorType.ResembleEmail);
     }
 
     [Test]
@@ -99,8 +100,8 @@ internal class UsernameValidatorTests
         var result = UsernameValidator.Validate(username);
 
         // Assert
-        await Assert.That(result.IsT1).IsTrue();
-        await Assert.That(result.AsT1.Type).IsEqualTo(UsernameErrorType.ObnoxiousCharacters);
+        await Assert.That(result is UsernameError).IsTrue();
+        await Assert.That(((UsernameError)result.Value!).Type).IsEqualTo(UsernameErrorType.ObnoxiousCharacters);
     }
 
     // --- Boundary value tests ---
@@ -110,7 +111,7 @@ internal class UsernameValidatorTests
     {
         // HardLimits.UsernameMinLength = 3
         var result = UsernameValidator.Validate("abc");
-        await Assert.That(result.IsT0).IsTrue();
+        await Assert.That(result is Success).IsTrue();
     }
 
     [Test]
@@ -118,8 +119,8 @@ internal class UsernameValidatorTests
     {
         // 2 chars = below min of 3
         var result = UsernameValidator.Validate("ab");
-        await Assert.That(result.IsT1).IsTrue();
-        await Assert.That(result.AsT1.Type).IsEqualTo(UsernameErrorType.TooShort);
+        await Assert.That(result is UsernameError).IsTrue();
+        await Assert.That(((UsernameError)result.Value!).Type).IsEqualTo(UsernameErrorType.TooShort);
     }
 
     [Test]
@@ -127,7 +128,7 @@ internal class UsernameValidatorTests
     {
         // HardLimits.UsernameMaxLength = 32
         var result = UsernameValidator.Validate(new string('a', 32));
-        await Assert.That(result.IsT0).IsTrue();
+        await Assert.That(result is Success).IsTrue();
     }
 
     [Test]
@@ -135,22 +136,22 @@ internal class UsernameValidatorTests
     {
         // 33 chars = above max of 32
         var result = UsernameValidator.Validate(new string('a', 33));
-        await Assert.That(result.IsT1).IsTrue();
-        await Assert.That(result.AsT1.Type).IsEqualTo(UsernameErrorType.TooLong);
+        await Assert.That(result is UsernameError).IsTrue();
+        await Assert.That(((UsernameError)result.Value!).Type).IsEqualTo(UsernameErrorType.TooLong);
     }
 
     [Test]
     public async Task Validate_WithHyphensAndUnderscores_ReturnsSuccess()
     {
         var result = UsernameValidator.Validate("test-user_123");
-        await Assert.That(result.IsT0).IsTrue();
+        await Assert.That(result is Success).IsTrue();
     }
 
     [Test]
     public async Task Validate_WithDots_ReturnsSuccess()
     {
         var result = UsernameValidator.Validate("test.user");
-        await Assert.That(result.IsT0).IsTrue();
+        await Assert.That(result is Success).IsTrue();
     }
 
     [Test]
@@ -158,23 +159,23 @@ internal class UsernameValidatorTests
     {
         // Middle spaces are allowed, only leading/trailing are rejected
         var result = UsernameValidator.Validate("test user");
-        await Assert.That(result.IsT0).IsTrue();
+        await Assert.That(result is Success).IsTrue();
     }
 
     [Test]
     public async Task Validate_TabAtStart_ReturnsWhitespaceError()
     {
         var result = UsernameValidator.Validate("\tTestUser");
-        await Assert.That(result.IsT1).IsTrue();
-        await Assert.That(result.AsT1.Type).IsEqualTo(UsernameErrorType.StartOrEndWithWhitespace);
+        await Assert.That(result is UsernameError).IsTrue();
+        await Assert.That(((UsernameError)result.Value!).Type).IsEqualTo(UsernameErrorType.StartOrEndWithWhitespace);
     }
 
     [Test]
     public async Task Validate_AtSignInMiddle_ReturnsResembleEmail()
     {
         var result = UsernameValidator.Validate("user@name");
-        await Assert.That(result.IsT1).IsTrue();
-        await Assert.That(result.AsT1.Type).IsEqualTo(UsernameErrorType.ResembleEmail);
+        await Assert.That(result is UsernameError).IsTrue();
+        await Assert.That(((UsernameError)result.Value!).Type).IsEqualTo(UsernameErrorType.ResembleEmail);
     }
 
     [Test]
@@ -182,8 +183,8 @@ internal class UsernameValidatorTests
     {
         // Zero-width joiner U+200D
         var result = UsernameValidator.Validate("test\u200Duser");
-        await Assert.That(result.IsT1).IsTrue();
-        await Assert.That(result.AsT1.Type).IsEqualTo(UsernameErrorType.ObnoxiousCharacters);
+        await Assert.That(result is UsernameError).IsTrue();
+        await Assert.That(((UsernameError)result.Value!).Type).IsEqualTo(UsernameErrorType.ObnoxiousCharacters);
     }
 
     [Test]
@@ -191,7 +192,7 @@ internal class UsernameValidatorTests
     {
         // U+202E Right-to-left override
         var result = UsernameValidator.Validate("test\u202Euser");
-        await Assert.That(result.IsT1).IsTrue();
-        await Assert.That(result.AsT1.Type).IsEqualTo(UsernameErrorType.ObnoxiousCharacters);
+        await Assert.That(result is UsernameError).IsTrue();
+        await Assert.That(((UsernameError)result.Value!).Type).IsEqualTo(UsernameErrorType.ObnoxiousCharacters);
     }
 }

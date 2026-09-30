@@ -9,4 +9,4 @@ API/SmtpTemplates/dist/
 **/appsettings.Development.json
 Dockerfile*
 **/*.md
-dev/
+Dev/

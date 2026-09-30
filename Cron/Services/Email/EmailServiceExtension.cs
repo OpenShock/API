@@ -53,10 +53,10 @@ public static class EmailServiceExtension
 
     private static async Task<WebApplicationBuilder> AddEmailServiceTemplates(this WebApplicationBuilder builder)
     {
-        var accountActivation = EmailTemplate.ParseFromFileThrow("SmtpTemplates/AccountActivation.liquid");
-        var passwordReset = EmailTemplate.ParseFromFileThrow("SmtpTemplates/PasswordReset.liquid");
-        var emailVerification = EmailTemplate.ParseFromFileThrow("SmtpTemplates/EmailVerification.liquid");
-        var emailChangeNotice = EmailTemplate.ParseFromFileThrow("SmtpTemplates/EmailChangeNotice.liquid");
+        var accountActivation = EmailTemplate.ParseFromFileOrThrow("SmtpTemplates/AccountActivation.liquid");
+        var passwordReset = EmailTemplate.ParseFromFileOrThrow("SmtpTemplates/PasswordReset.liquid");
+        var emailVerification = EmailTemplate.ParseFromFileOrThrow("SmtpTemplates/EmailVerification.liquid");
+        var emailChangeNotice = EmailTemplate.ParseFromFileOrThrow("SmtpTemplates/EmailChangeNotice.liquid");
 
         await Task.WhenAll(accountActivation, passwordReset, emailVerification, emailChangeNotice);
 

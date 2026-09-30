@@ -5,7 +5,6 @@ using OpenShock.Common.Extensions;
 using OpenShock.Cron;
 using OpenShock.Cron.Services.Email;
 using OpenShock.Cron.Utils;
-using OpenShock.Common.Swagger;
 
 var builder = OpenShockApplication.CreateDefaultBuilder<Program>(args);
 
@@ -37,8 +36,6 @@ builder.Services.AddHangfireServer();
 // via [CronJob], plus on-demand enqueue from the listener); all retry/lease/state lives on the
 // email_outbox row, not in Hangfire. The API host only writes outbox rows; all sending happens here.
 await builder.AddEmailService();
-
-builder.AddSwaggerExt<Program>();
 
 var app = builder.Build();
 
