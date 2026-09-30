@@ -157,7 +157,7 @@ public sealed class AccountService : IAccountService
     public Task<bool> IsPrivilegedEmailAsync(string email, CancellationToken cancellationToken = default)
     {
         email = email.ToLowerInvariant();
-        return _db.Users.AnyAsync(u => u.Email == email && u.Roles.Contains(RoleType.Admin), cancellationToken);
+        return _db.Users.AnyAsync(u => u.Email == email && u.Roles.Any(r => r == RoleType.Admin || r == RoleType.System), cancellationToken);
     }
 
     public async Task<AccountCreationResult> CreateOAuthOnlyAccountAsync(

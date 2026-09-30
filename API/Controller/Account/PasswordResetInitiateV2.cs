@@ -39,7 +39,7 @@ public sealed partial class AccountController
         var turnstileError = await VerifyTurnstileAsync(turnstileService, body.TurnstileResponse, cancellationToken);
         if (turnstileError is not null) return turnstileError;
 
-        // Admin accounts must never be reached through a bypassed flow - the bypass exists for
+        // Privileged accounts must never be reached through a bypassed flow - the bypass exists for
         // automated tests, not as a way to send privileged reset mail without solving Turnstile.
         // The lookup runs only on the bypass path, so the normal path keeps its timing profile, and
         // the response stays the generic 200 so this does not become an admin-account oracle.

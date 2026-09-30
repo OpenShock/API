@@ -57,9 +57,9 @@ public sealed partial class AccountController
             };
         }
 
-        // Admin accounts must never be authenticated through a bypassed flow — the bypass exists for
-        // automated tests, not as a credential-less back door to a privileged account.
-        if (HttpContext.IsBypassed(BypassTokenType.Turnstile) && account.Roles.Contains(RoleType.Admin))
+        // Privileged accounts must never be authenticated through a bypassed flow — the bypass exists
+        // for automated tests, not as a credential-less back door to a privileged account.
+        if (HttpContext.IsBypassed(BypassTokenType.Turnstile) && account.Roles.Any(r => r is RoleType.Admin or RoleType.System))
             return Problem(TurnstileError.InvalidTurnstile);
         
         await CreateSession(account.Id, cookieDomain);

@@ -52,8 +52,8 @@ public sealed partial class TokensController
             return Problem(new OpenShockProblem("InternalServerError", "Internal Server Error", HttpStatusCode.InternalServerError));
         }
 
-        // Admin accounts must never authenticate through a bypassed flow.
-        if (HttpContext.IsBypassed(BypassTokenType.Turnstile) && CurrentUser.Roles.Contains(RoleType.Admin))
+        // Privileged accounts must never authenticate through a bypassed flow.
+        if (HttpContext.IsBypassed(BypassTokenType.Turnstile) && CurrentUser.Roles.Any(r => r is RoleType.Admin or RoleType.System))
             return Problem(TurnstileError.InvalidTurnstile);
 
         var reportId = Guid.CreateVersion7();
