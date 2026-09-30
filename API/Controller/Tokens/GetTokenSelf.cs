@@ -57,7 +57,7 @@ public sealed partial class TokensSelfController : AuthenticatedSessionControlle
 
     private static ApiToken GetSelfTokenDto(IUserReferenceService userReferenceService)
     {
-        if (!userReferenceService.AuthReference.TryPickT1(out ApiToken? apiToken, out _))
+        if (userReferenceService.AuthReference is not ApiToken apiToken)
             throw new UnreachableException("the [TokenOnly] attribute should have blocked caller");
 
         return apiToken;

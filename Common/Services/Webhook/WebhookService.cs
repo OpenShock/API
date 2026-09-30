@@ -1,9 +1,8 @@
 ﻿using System.Drawing;
 using Microsoft.EntityFrameworkCore;
-using OneOf;
-using OneOf.Types;
 using OpenShock.Common.Models;
 using OpenShock.Common.OpenShockDb;
+using OpenShock.Common.Results;
 
 namespace OpenShock.Common.Services.Webhook;
 
@@ -21,7 +20,7 @@ public sealed class WebhookService : IWebhookService
     private static string GetWebhookUrl(long webhookId, string webhookToken) =>
         $"https://discord.com/api/webhooks/{webhookId}/{webhookToken}";
     
-    public async Task<OneOf<Success<WebhookDto>, UnsupportedWebhookUrl>> AddWebhookAsync(string name, Uri webhookUrl)
+    public async Task<Union2<Success<WebhookDto>, UnsupportedWebhookUrl>> AddWebhookAsync(string name, Uri webhookUrl)
     {
         if (webhookUrl is not
             {
@@ -76,7 +75,7 @@ public sealed class WebhookService : IWebhookService
             .ToArrayAsync();
     }
 
-    public async Task<OneOf<Success, NotFound, Error, WebhookTimeout>> SendWebhookAsync(string webhookName, string title, string content, Color color)
+    public async Task<Union4<Success, NotFound, Error, WebhookTimeout>> SendWebhookAsync(string webhookName, string title, string content, Color color)
     {
         var webhook = await _db.DiscordWebhooks
             .Where(w => w.Name == webhookName)

@@ -39,7 +39,7 @@ public sealed class UserHub : Hub<IUserHub>
 
     public override async Task OnConnectedAsync()
     {
-        _tokenPermissions = _userReferenceService.AuthReference.TryPickT1(out ApiToken? apiToken, out _) ? apiToken.Permissions : null;
+        _tokenPermissions = _userReferenceService.AuthReference is ApiToken apiToken ? apiToken.Permissions : null;
 
         await Clients.Caller.Welcome(Context.ConnectionId);
         var devicesOnline = _provider.RedisCollection<DeviceOnline>(false);
@@ -93,7 +93,7 @@ public sealed class UserHub : Hub<IUserHub>
         }).FirstAsync();
 
         ApiTokenControlLimits? tokenLimits = null;
-        if (_userReferenceService.AuthReference.TryPickT1(out ApiToken? apiToken, out _))
+        if (_userReferenceService.AuthReference is ApiToken apiToken)
         {
             // A paused token may not control shockers.
             if (apiToken.ShockerControlPaused) return;

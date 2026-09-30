@@ -2,6 +2,8 @@
 using Microsoft.AspNetCore.Mvc;
 using OpenShock.API.Controller.Admin.DTOs;
 using OpenShock.Common.Errors;
+using OpenShock.Common.Models;
+using OpenShock.Common.Results;
 using OpenShock.Common.Services.Webhook;
 
 namespace OpenShock.API.Controller.Admin;
@@ -22,9 +24,10 @@ public sealed partial class AdminController
         PedanticallyEnsureAdmin();
 
         var result = await webhookService.AddWebhookAsync(body.Name, body.Url);
-        return result.Match<IActionResult>(
-            success => Ok(success.Value),
-            unsupported => Problem(AdminError.WebhookOnlyDiscord)
-        );
+        return result switch
+        {
+            Success<WebhookDto> success => Ok(success.Value),
+            UnsupportedWebhookUrl => Problem(AdminError.WebhookOnlyDiscord)
+        };
     }
 }
