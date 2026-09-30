@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using OpenShock.Common.Constants;
+using OpenShock.Common.Extensions;
 using OpenShock.Common.Models;
 using OpenShock.Common.OpenShockDb;
 using OpenShock.Common.Options;
@@ -14,6 +15,18 @@ namespace OpenShock.Common;
 // the members below are OpenShock-API-specific and stay local.
 public abstract class OpenShockControllerBase : OpenShock.Internal.Common.OpenShockControllerBase
 {
+    /// <summary>
+    /// Convenience wrapper for <see cref="OpenShock.Common.Extensions.HttpContextExtensions.GetRequiredItemByType{T}(HttpContext)"/>.
+    /// </summary>
+    [NonAction]
+    protected T GetRequiredItem<T>() where T : class => HttpContext.GetRequiredItemByType<T>();
+
+    /// <summary>
+    /// Convenience wrapper for <see cref="OpenShock.Common.Extensions.HttpContextExtensions.GetItemByType{T}(HttpContext)"/>.
+    /// </summary>
+    [NonAction]
+    protected T? GetOptionalItem<T>() where T : class => HttpContext.GetItemByType<T>();
+
     [NonAction]
     protected OkObjectResult LegacyDataOk<T>(T data, string message = "")
     {

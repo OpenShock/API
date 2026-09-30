@@ -4,7 +4,6 @@ using Asp.Versioning;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.SignalR;
 using OpenShock.Common.Authentication.Attributes;
-using OpenShock.Common.Authentication.Services;
 using OpenShock.Common.Errors;
 using OpenShock.Common.Extensions;
 using OpenShock.Common.Hubs;
@@ -35,8 +34,7 @@ public sealed partial class ShockerController
     public async Task<IActionResult> SendControl(
         [FromBody] ControlRequest body,
         [FromServices] IHubContext<UserHub, IUserHub> userHub,
-        [FromServices] IControlSender controlSender,
-        [FromServices] IUserReferenceService userReferenceService)
+        [FromServices] IControlSender controlSender)
     {
         var sender = new ControlLogSender
         {
@@ -49,7 +47,7 @@ public sealed partial class ShockerController
         };
 
         ApiTokenControlLimits? tokenLimits = null;
-        if (userReferenceService.AuthReference is ApiToken apiToken)
+        if (GetOptionalItem<ApiToken>() is { } apiToken)
         {
             // A paused token may not control shockers.
             if (apiToken.ShockerControlPaused) return Problem(ApiTokenError.ApiTokenPaused);
@@ -83,13 +81,12 @@ public sealed partial class ShockerController
     public Task<IActionResult> SendControl_DEPRECATED(
         [FromBody] IReadOnlyList<Common.Models.WebSocket.User.Control> body,
         [FromServices] IHubContext<UserHub, IUserHub> userHub,
-        [FromServices] IControlSender controlSender,
-        [FromServices] IUserReferenceService userReferenceService)
+        [FromServices] IControlSender controlSender)
     {
         return SendControl(new ControlRequest
         {
             Shocks = body,
             CustomName = null
-        }, userHub, controlSender, userReferenceService);
+        }, userHub, controlSender);
     }
 }

@@ -2,7 +2,6 @@
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using OpenShock.Common.Authentication;
-using OpenShock.Common.Authentication.Services;
 using OpenShock.Common.Extensions;
 using OpenShock.Common.Models;
 using OpenShock.Common.Models.WebSocket;
@@ -23,24 +22,27 @@ public sealed class UserHub : Hub<IUserHub>
     private readonly IRedisConnectionProvider _provider;
     private readonly IRedisPubService _redisPubService;
     private readonly IControlSender _controlSender;
-    private readonly IUserReferenceService _userReferenceService;
-    private IReadOnlyList<PermissionType>? _tokenPermissions;
+    /// <summary>
+    /// Permissions of the API token this connection authenticated with, or null for a session
+    /// connection. Derived per access: SignalR creates a hub instance per invocation, so a field
+    /// set in <see cref="OnConnectedAsync"/> would be null everywhere else.
+    /// </summary>
+    private IReadOnlyList<PermissionType>? TokenPermissions => Context.User?.HasOpenShockApiTokenIdentity() == true
+        ? Context.User.GetApiTokenPermissions()
+        : null;
 
     public UserHub(ILogger<UserHub> logger, OpenShockContext db, IRedisConnectionProvider provider,
-        IRedisPubService redisPubService, IControlSender controlSender, IUserReferenceService userReferenceService)
+        IRedisPubService redisPubService, IControlSender controlSender)
     {
         _logger = logger;
         _db = db;
         _provider = provider;
         _redisPubService = redisPubService;
         _controlSender = controlSender;
-        _userReferenceService = userReferenceService;
     }
 
     public override async Task OnConnectedAsync()
     {
-        _tokenPermissions = _userReferenceService.AuthReference is ApiToken apiToken ? apiToken.Permissions : null;
-
         await Clients.Caller.Welcome(Context.ConnectionId);
         var devicesOnline = _provider.RedisCollection<DeviceOnline>(false);
         var sharedDevices = await _db.Devices
@@ -76,7 +78,7 @@ public sealed class UserHub : Hub<IUserHub>
 
     public async Task ControlV2(IReadOnlyList<Models.WebSocket.User.Control> shocks, string? customName)
     {
-        if (!_tokenPermissions.IsAllowedAllowOnNull(PermissionType.Shockers_Use)) return;
+        if (!TokenPermissions.IsAllowedAllowOrNull(PermissionType.Shockers_Use)) return;
 
         var additionalItems = new Dictionary<string, object>();
         var apiTokenId = Context.User?.FindFirst(OpenShockAuthClaims.ApiTokenId);
@@ -93,7 +95,7 @@ public sealed class UserHub : Hub<IUserHub>
         }).FirstAsync();
 
         ApiTokenControlLimits? tokenLimits = null;
-        if (_userReferenceService.AuthReference is ApiToken apiToken)
+        if (Context.GetHttpContext()?.GetItemByType<ApiToken>() is { } apiToken)
         {
             // A paused token may not control shockers.
             if (apiToken.ShockerControlPaused) return;
@@ -107,7 +109,7 @@ public sealed class UserHub : Hub<IUserHub>
     public async Task CaptivePortal(Guid deviceId, bool enabled)
     {
         // Require a user session basically
-        if (_tokenPermissions is not null) return;
+        if (TokenPermissions is not null) return;
 
         var devices = await _db.Devices.Where(x => x.OwnerId == UserId)
             .AnyAsync(x => x.Id == deviceId);
@@ -119,7 +121,7 @@ public sealed class UserHub : Hub<IUserHub>
     public async Task EmergencyStop(Guid deviceId)
     {
         // Require a user session basically
-        if (_tokenPermissions is not null) return;
+        if (TokenPermissions is not null) return;
 
         var devices = await _db.Devices.Where(x => x.OwnerId == UserId)
             .AnyAsync(x => x.Id == deviceId);
@@ -131,7 +133,7 @@ public sealed class UserHub : Hub<IUserHub>
     public async Task OtaInstall(Guid deviceId, SemVersion version)
     {
         // Require a user session basically
-        if (_tokenPermissions is not null) return;
+        if (TokenPermissions is not null) return;
 
         var devices = await _db.Devices.Where(x => x.OwnerId == UserId)
             .AnyAsync(x => x.Id == deviceId);
@@ -143,7 +145,7 @@ public sealed class UserHub : Hub<IUserHub>
     public async Task Reboot(Guid deviceId)
     {
         // Require a user session basically
-        if (_tokenPermissions is not null) return;
+        if (TokenPermissions is not null) return;
 
         var devices = await _db.Devices.Where(x => x.OwnerId == UserId)
             .AnyAsync(x => x.Id == deviceId);

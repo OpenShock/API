@@ -1,7 +1,7 @@
 ﻿using System.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
-using OpenShock.Common.Authentication.Services;
+using OpenShock.Common.Extensions;
 using OpenShock.Common.Models;
 using OpenShock.Common.OpenShockDb;
 using OpenShock.Common.Redis;
@@ -16,7 +16,7 @@ public abstract class AuthenticatedSessionControllerBase : OpenShockControllerBa
     [NonAction]
     public void OnActionExecuting(ActionExecutingContext context)
     {
-        CurrentUser = HttpContext.Items["User"] as User ?? throw new Exception("User not found");
+        CurrentUser = GetRequiredItem<User>();
     }
 
     [NonAction]
@@ -27,12 +27,13 @@ public abstract class AuthenticatedSessionControllerBase : OpenShockControllerBa
     [NonAction]
     protected bool IsAllowed(PermissionType requiredType)
     {
-        var userReferenceService = HttpContext.RequestServices.GetRequiredService<IUserReferenceService>();
-        return userReferenceService.AuthReference switch
-        {
-            LoginSession => true, // We are in a session
-            ApiToken apiToken => requiredType.IsAllowed(apiToken.Permissions),
-            None => throw new UnreachableException("User should be authenticated here")
-        };
+        // Checked before the session for the same reason as TokenPermissionAttribute: when both
+        // credentials are on the request, the token is the one CurrentUser came from.
+        if (User.HasOpenShockApiTokenIdentity()) return requiredType.IsAllowed(User.GetApiTokenPermissions());
+
+        // Session auth on its own is not scoped by API token permissions.
+        if (User.HasOpenShockUserIdentity()) return true;
+
+        throw new UnreachableException("User should be authenticated here");
     }
 }
