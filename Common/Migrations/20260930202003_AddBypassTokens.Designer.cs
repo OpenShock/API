@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Net;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using OpenShock.Common.OpenShockDb;
@@ -13,14 +14,11 @@ using OpenShock.Common.OpenShockDb;
 namespace OpenShock.Common.Migrations;
 
 [DbContext(typeof(MigrationOpenShockContext))]
-partial class OpenShockContextModelSnapshot : ModelSnapshot
+[Migration("20260930202003_AddBypassTokens")]
+partial class _20260930202003_AddBypassTokens
 {
-    // If you encounter a merge conflict in the line below, it means you need to
-    // discard one of the migration branches and recreate its migrations on top of
-    // the other branch. See https://aka.ms/efcore-docs-migrations-conflicts for more info.
-    public override string LastMigrationId => "20260930202003_AddBypassTokens";
-
-    protected override void BuildModel(ModelBuilder modelBuilder)
+    /// <inheritdoc />
+    protected override void BuildTargetModel(ModelBuilder modelBuilder)
     {
 #pragma warning disable 612, 618
         modelBuilder

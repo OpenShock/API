@@ -116,6 +116,10 @@ public class OpenShockContext : DbContext, IDataProtectionKeyContext
     public DbSet<EmailProviderBlacklist> EmailProviderBlacklists { get; set; }
 
     public DbSet<EmailOutboxMessage> EmailOutbox { get; set; }
+
+    public DbSet<BypassToken> BypassTokens { get; set; }
+
+    public DbSet<BypassTokenUserUse> BypassTokenUserUses { get; set; }
     
     public DbSet<DataProtectionKey> DataProtectionKeys { get; set; }
 
@@ -852,6 +856,79 @@ public class OpenShockContext : DbContext, IDataProtectionKeyContext
             entity.Property(e => e.CreatedAt)
                 .HasDefaultValueSql("CURRENT_TIMESTAMP")
                 .HasColumnName("created_at");
+        });
+
+        modelBuilder.Entity<BypassToken>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("bypass_tokens_pkey");
+
+            entity.ToTable("bypass_tokens");
+
+            entity.HasIndex(e => e.TokenHash).IsUnique();
+            entity.HasIndex(e => e.LastUsedByUserId);
+
+            entity.Property(e => e.Id)
+                .ValueGeneratedNever()
+                .HasColumnName("id");
+            entity.Property(e => e.Name)
+                .VarCharWithLength(ApiHardLimits.ApiKeyNameMaxLength)
+                .HasColumnName("name");
+            entity.Property(e => e.TokenHash)
+                .UseCollation("C")
+                .VarCharWithLength(HardLimits.Sha256HashHexLength)
+                .HasColumnName("token_hash");
+            entity.Property(e => e.Types)
+                .HasColumnType("bypass_token_type[]")
+                .HasColumnName("types");
+            entity.Property(e => e.CreatedAt)
+                .HasDefaultValueSql("CURRENT_TIMESTAMP")
+                .HasColumnName("created_at");
+            entity.Property(e => e.LastUsedAt).HasColumnName("last_used_at");
+            entity.Property(e => e.LastUsedByUserId).HasColumnName("last_used_by_user_id");
+            entity.Property(e => e.LastRotatedAt).HasColumnName("last_rotated_at");
+            entity.Property(e => e.UseCount)
+                .HasDefaultValue(0L)
+                .HasColumnName("use_count");
+            entity.Property(e => e.AutoCleanupUsers)
+                .HasDefaultValue(false)
+                .HasColumnName("auto_cleanup_users");
+            entity.Property(e => e.AutoCleanupAfter).HasColumnName("auto_cleanup_after");
+
+            entity.HasOne(d => d.LastUsedByUser).WithMany()
+                .HasForeignKey(d => d.LastUsedByUserId)
+                .OnDelete(DeleteBehavior.SetNull)
+                .HasConstraintName("fk_bypass_tokens_last_used_by_user_id");
+        });
+
+        modelBuilder.Entity<BypassTokenUserUse>(entity =>
+        {
+            entity.HasKey(e => new { e.BypassTokenId, e.UserId }).HasName("bypass_token_user_uses_pkey");
+
+            entity.ToTable("bypass_token_user_uses");
+
+            entity.HasIndex(e => e.LastUsedAt);
+
+            entity.Property(e => e.BypassTokenId).HasColumnName("bypass_token_id");
+            entity.Property(e => e.UserId).HasColumnName("user_id");
+            entity.Property(e => e.FirstUsedAt)
+                .HasDefaultValueSql("CURRENT_TIMESTAMP")
+                .HasColumnName("first_used_at");
+            entity.Property(e => e.LastUsedAt)
+                .HasDefaultValueSql("CURRENT_TIMESTAMP")
+                .HasColumnName("last_used_at");
+            entity.Property(e => e.UseCount)
+                .HasDefaultValue(0L)
+                .HasColumnName("use_count");
+
+            entity.HasOne(d => d.BypassToken).WithMany(p => p.UserUses)
+                .HasForeignKey(d => d.BypassTokenId)
+                .OnDelete(DeleteBehavior.Cascade)
+                .HasConstraintName("fk_bypass_token_user_uses_bypass_token_id");
+
+            entity.HasOne(d => d.User).WithMany(p => p.BypassTokenUses)
+                .HasForeignKey(d => d.UserId)
+                .OnDelete(DeleteBehavior.Cascade)
+                .HasConstraintName("fk_bypass_token_user_uses_user_id");
         });
 
         modelBuilder.Entity<EmailOutboxMessage>(entity =>

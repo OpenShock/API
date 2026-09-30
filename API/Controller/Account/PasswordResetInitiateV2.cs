@@ -5,9 +5,8 @@ using Microsoft.AspNetCore.RateLimiting;
 using OpenShock.API.Models.Requests;
 using OpenShock.API.Services.Turnstile;
 using OpenShock.Common.Errors;
-using OpenShock.Common.Extensions;
-using OpenShock.Common.Models;
 using OpenShock.Common.Problems;
+using OpenShock.Common.Services.Bypass;
 
 using OpenShock.Internal.Common.Problems;
 
@@ -34,7 +33,7 @@ public sealed partial class AccountController
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status403Forbidden, MediaTypeNames.Application.ProblemJson)]
     [MapToApiVersion("2")]
-    public async Task<IActionResult> PasswordResetInitiateV2([FromBody] PasswordResetRequestV2 body, [FromServices] ICloudflareTurnstileService turnstileService, CancellationToken cancellationToken)
+    public async Task<IActionResult> PasswordResetInitiateV2([FromBody] PasswordResetRequestV2 body, [FromServices] ICloudflareTurnstileService turnstileService, [FromServices] IBypassTokenService bypassTokens, CancellationToken cancellationToken)
     {
         var turnstileError = await VerifyTurnstileAsync(turnstileService, body.TurnstileResponse, cancellationToken);
         if (turnstileError is not null) return turnstileError;
@@ -43,8 +42,8 @@ public sealed partial class AccountController
         // automated tests, not as a way to send privileged reset mail without solving Turnstile.
         // The lookup runs only on the bypass path, so the normal path keeps its timing profile, and
         // the response stays the generic 200 so this does not become an admin-account oracle.
-        if (HttpContext.IsBypassed(BypassTokenType.Turnstile)
-            && await _accountService.IsPrivilegedEmailAsync(body.Email, cancellationToken))
+        // For every other account this links the use to the token, so auto-cleanup can find it later.
+        if (!await bypassTokens.TryRecordUseByEmailAsync(body.Email, cancellationToken))
         {
             _logger.LogWarning("Refused a bypassed password reset for a privileged account");
             return Ok();

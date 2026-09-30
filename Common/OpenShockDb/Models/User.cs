@@ -41,4 +41,5 @@ public sealed class User
     public ICollection<UserPasswordReset> PasswordResets { get; } = [];
     public ICollection<UserAuditLog> AuditLogs { get; } = [];
     public ICollection<UserAuditLog> ActorAuditLogs { get; } = [];
+    public ICollection<BypassTokenUserUse> BypassTokenUses { get; } = [];
 }

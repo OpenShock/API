@@ -2,7 +2,7 @@
 using OpenShock.API.Options;
 using OpenShock.Common.Extensions;
 using OpenShock.Common.Results;
-using BypassTokenType = OpenShock.Common.Models.BypassTokenType;
+using OpenShock.Common.OpenShockDb;
 
 namespace OpenShock.API.Services.Turnstile;
 
@@ -53,9 +53,11 @@ public sealed class CloudflareTurnstileService : ICloudflareTurnstileService
     {
         if (!_options.Enabled) return new Success();
         
-        // An admin-set bypass secret (matched against the TURNSTILE_BYPASS_TOKEN configuration property)
-        // counts as a Turnstile pass. The match was resolved upstream by BypassTokenMiddleware.
-        if (_httpContextAccessor.HttpContext?.IsBypassed(BypassTokenType.Turnstile) == true)
+        // An admin-issued bypass token resolved earlier in the pipeline counts as a Turnstile pass
+        // if it carries the Turnstile type. The middleware already bumped use counters; controllers
+        // separately call IBypassTokenService.TryRecordUseAsync after auth so privileged-account
+        // requests can be rejected and per-user cleanup can run.
+        if (_httpContextAccessor.HttpContext?.IsBypassed(BypassTokenType.Turnstile) ?? false)
             return new Success();
 
         if (string.IsNullOrEmpty(responseToken)) return CreateError(CloudflareTurnstileError.MissingResponse);

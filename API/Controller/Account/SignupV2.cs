@@ -10,6 +10,7 @@ using OpenShock.Common.Errors;
 using OpenShock.Common.OpenShockDb;
 using OpenShock.Common.Options;
 using OpenShock.Common.Problems;
+using OpenShock.Common.Services.Bypass;
 using OpenShock.Common.Results;
 
 using OpenShock.Internal.Common.Problems;
@@ -24,6 +25,7 @@ public sealed partial class AccountController
     /// <param name="body"></param>
     /// <param name="turnstileService"></param>
     /// <param name="accountOptions"></param>
+    /// <param name="bypassTokens"></param>
     /// <param name="cancellationToken"></param>
     /// <response code="200">User successfully signed up</response>
     /// <response code="400">Username or email already exists</response>
@@ -38,6 +40,7 @@ public sealed partial class AccountController
         [FromBody] SignUpV2 body,
         [FromServices] ICloudflareTurnstileService turnstileService,
         [FromServices] AccountOptions accountOptions,
+        [FromServices] IBypassTokenService bypassTokens,
         CancellationToken cancellationToken)
     {
         if (!accountOptions.RegistrationEnabled)
@@ -47,11 +50,18 @@ public sealed partial class AccountController
         if (turnstileError is not null) return turnstileError;
 
         var creationAction = await _accountService.CreateAccountWithActivationFlowAsync(body.Email, body.Username, body.Password);
-        return creationAction switch
+        if (creationAction is not User created)
         {
-            User _ => Ok(),
-            AccountWithEmailOrUsernameExists => Problem(SignupError.UsernameOrEmailExists),
-            _ => throw new UnreachableException()
-        };
+            return creationAction switch
+            {
+                AccountWithEmailOrUsernameExists => Problem(SignupError.UsernameOrEmailExists),
+                _ => throw new UnreachableException()
+            };
+        }
+
+        // No-op when no bypass token resolved. Signups can't yield a privileged user, so the bool return is ignored.
+        await bypassTokens.TryRecordUseAsync(created.Id, cancellationToken);
+
+        return Ok();
     }
 }

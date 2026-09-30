@@ -2,14 +2,12 @@
 using Microsoft.AspNetCore.Http;
 using OpenShock.Common.OpenShockDb;
 using OpenShock.Common.Constants;
-using OpenShock.Common.Models;
+using OpenShock.Common.Services.Bypass;
 
 namespace OpenShock.Common.Extensions;
 
 public static class HttpContextExtensions
 {
-    private static readonly object BypassedTypesItemKey = new();
-
     public static bool TryGetBypassTokenFromHeader(this HttpContext context, [NotNullWhen(true)] out string? token)
     {
         ArgumentNullException.ThrowIfNull(context);
@@ -25,23 +23,29 @@ public static class HttpContextExtensions
     }
 
     /// <summary>
-    /// Stores the set of bypass types that the header matched. Called by the bypass middleware.
+    /// Stores the result of resolving the bypass-token header. Called by the bypass middleware.
     /// </summary>
-    public static void SetBypassedTypes(this HttpContext context, BypassTokenType types)
+    public static void SetResolvedBypassToken(this HttpContext context, ResolvedBypassToken resolved)
     {
         ArgumentNullException.ThrowIfNull(context);
-        context.Items[BypassedTypesItemKey] = types;
+        context.SetItemByType(resolved);
+    }
+
+    /// <summary>
+    /// Returns the bypass token resolved earlier in the pipeline, or <c>null</c> if no header was
+    /// present (or it did not resolve to a known token).
+    /// </summary>
+    public static ResolvedBypassToken? GetResolvedBypassToken(this HttpContext context)
+    {
+        ArgumentNullException.ThrowIfNull(context);
+        return context.GetItemByType<ResolvedBypassToken>();
     }
 
     /// <summary>
     /// Returns true if the request presented a bypass token that grants <paramref name="type"/>.
     /// </summary>
-    public static bool IsBypassed(this HttpContext context, BypassTokenType type)
-    {
-        ArgumentNullException.ThrowIfNull(context);
-        if (!context.Items.TryGetValue(BypassedTypesItemKey, out var v) || v is not BypassTokenType set) return false;
-        return (set & type) == type;
-    }
+    public static bool IsBypassed(this HttpContext context, BypassTokenType type) =>
+        context.GetResolvedBypassToken()?.Types.Contains(type) ?? false;
 
     // FullName is only null for open generic parameters, which a closed T never is.
     private static string ItemKeyOf<T>() => typeof(T).FullName!;

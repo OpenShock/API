@@ -46,6 +46,7 @@ public static class NpgsqlEnumExtensions
         BuildInfo<EmailType>(),
         BuildInfo<EmailStatus>(),
         BuildInfo<AuditAction>(),
+        BuildInfo<BypassTokenType>(),
     ];
 
     public static NpgsqlDbContextOptionsBuilder MapPgEnums(this NpgsqlDbContextOptionsBuilder builder)
