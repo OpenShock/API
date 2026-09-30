@@ -5,6 +5,7 @@ using Asp.Versioning;
 using OpenShock.API.Services.LCGNodeProvisioner;
 using OpenShock.Common.Errors;
 using OpenShock.Common.Problems;
+using OpenShock.Common.Services.Geo;
 using OpenShock.Common.Utils;
 using OpenShock.Common.Models;
 
@@ -23,7 +24,7 @@ public sealed partial class DeviceController
     [MapToApiVersion("1")]
     [ProducesResponseType<LegacyDataResponse<LcgNodeResponse>>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status503ServiceUnavailable, MediaTypeNames.Application.ProblemJson)] // NoLcgNodesAvailable
-    public async Task<IActionResult> GetLiveControlGateway([FromServices] ILCGNodeProvisioner geoLocation)
+    public async Task<IActionResult> GetLiveControlGateway([FromServices] ILCGNodeProvisioner geoLocation, [FromServices] IIpEnrichmentService ipEnrichment)
     {
         if (!HttpContext.TryGetCFIPCountryCode(out var countryCode))
         {
@@ -31,7 +32,7 @@ public sealed partial class DeviceController
         }
 
         try {
-        var closestNode = await geoLocation.GetOptimalNodeAsync(countryCode);
+        var closestNode = await geoLocation.GetOptimalNodeAsync(countryCode, ipEnrichment.Enrich(HttpContext.GetRemoteIP())?.Location);
         if (closestNode is null) return Problem(AssignLcgError.NoLcgNodesAvailable);
 
         return LegacyDataOk(new LcgNodeResponse

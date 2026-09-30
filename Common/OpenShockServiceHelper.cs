@@ -14,7 +14,6 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.OpenApi;
 using OpenShock.Common.Authentication;
 using OpenShock.Common.Authentication.AuthenticationHandlers;
-using OpenShock.Common.Authentication.Services;
 using OpenShock.Common.Constants;
 using OpenShock.Common.HealthChecks;
 using OpenShock.Common.JsonSerialization;
@@ -26,6 +25,7 @@ using OpenShock.Common.Services.Audit;
 using OpenShock.Common.Services.BatchUpdate;
 using OpenShock.Common.Services.Configuration;
 using OpenShock.Common.Services.RedisPubSub;
+using OpenShock.Common.Services.Geo;
 using OpenShock.Common.Services.Session;
 using OpenShock.Common.Services.Webhook;
 using OpenShock.Common.Metrics;
@@ -157,8 +157,6 @@ public static class OpenShockServiceHelper
             };
         });
 
-        services.AddScoped<IUserReferenceService, UserReferenceService>();
-
         var authBuilder = services
             .AddOpenShockAuthentication(opt =>
             {
@@ -187,7 +185,9 @@ public static class OpenShockServiceHelper
         {
             options.DefaultApiVersion = new ApiVersion(1, 0);
             options.AssumeDefaultVersionWhenUnspecified = true;
-        });
+            // All routes are versioned via the /{version:apiVersion}/ segment
+            options.ApiVersionReader = new UrlSegmentApiVersionReader();
+        }).AddMvc();
 
         apiVersioningBuilder.AddApiExplorer(setup =>
         {
@@ -345,6 +345,12 @@ public static class OpenShockServiceHelper
         services.AddScoped<IConfigurationService, ConfigurationService>();
         services.AddScoped<ISessionService, SessionService>();
         services.AddScoped<IAuditService, AuditService>();
+
+        // Ensure GeoOptions is always resolvable so IpEnrichmentService can activate even in hosts
+        // (Cron, LiveControlGateway, SeedE2E) that don't call RegisterGeoOptions(). TryAdd leaves the
+        // API's config-bound instance untouched; other hosts get a disabled default (no DB paths).
+        services.TryAddSingleton(new GeoOptions());
+        services.AddSingleton<IIpEnrichmentService, IpEnrichmentService>();
         services.AddHttpClient<IWebhookService, WebhookService>(client =>
         {
             client.Timeout = TimeSpan.FromSeconds(30);

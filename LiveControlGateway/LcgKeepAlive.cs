@@ -2,6 +2,7 @@
 using OpenShock.Common.HealthChecks;
 using OpenShock.Common.Redis;
 using OpenShock.LiveControlGateway.Options;
+using Redis.OM;
 using Redis.OM.Contracts;
 
 using OpenShock.Internal.Common.Utils;
@@ -44,56 +45,23 @@ public sealed class LcgKeepAlive : BackgroundService
 
     private async Task SelfOnline()
     {
-        var lcgNodes = _redisConnectionProvider.RedisCollection<LcgNode>(false);
-
-        var nodeId = _options.GetPublicNodeId();
-
-        var online = await lcgNodes.FindByIdAsync(nodeId);
-        if (online is null)
-        {
-            await lcgNodes.InsertAsync(new LcgNode
-            {
-                Id = nodeId,
-                Host = _options.Fqdn,
-                Port = _options.PublicPort,
-                PathPrefix = _options.NormalizedPublicPath,
-                Country = _options.CountryCode,
-                Load = 0,
-                Environment = _env.EnvironmentName
-            }, KeepAliveKeyTtl);
-            return;
-        }
-
+        // Overwrite the whole node on every beat instead of diffing it against what Redis holds: the
+        // write costs the same round trip the read did, a new advertised field can't be forgotten in a
+        // comparison, and nodes left by an older build (same bare-host key, missing fields) get fixed
+        // up for free. The TTL is set in the same call.
         // TODO: Load reporting
-        // Refresh whenever any advertised field drifted. This also backfills nodes written by an
-        // older build: a default gateway keeps the same (bare-host) key across the upgrade, so the
-        // pre-existing JSON is found here and would otherwise keep Host/Port/PathPrefix missing.
-        if (online.Country != _options.CountryCode
-            || online.Environment != _env.EnvironmentName
-            || online.Host != _options.Fqdn
-            || online.Port != _options.PublicPort
-            || online.PathPrefix != _options.NormalizedPublicPath)
+        await _redisConnectionProvider.RedisCollection<LcgNode>(false).InsertAsync(new LcgNode
         {
-            var changeTracker = _redisConnectionProvider.RedisCollection<LcgNode>();
-            var tracked = await changeTracker.FindByIdAsync(nodeId);
-            if (tracked is not null)
-            {
-                tracked.Host = _options.Fqdn;
-                tracked.Port = _options.PublicPort;
-                tracked.PathPrefix = _options.NormalizedPublicPath;
-                tracked.Country = _options.CountryCode;
-                tracked.Environment = _env.EnvironmentName;
-
-                await changeTracker.SaveAsync();
-                _logger.LogInformation("Updated keep alive key in redis {@NewKey}", tracked);
-            }
-            else
-                _logger.LogWarning(
-                    "Could not save changed firmware version to redis, device was not found in change tracker, this can only happen when our key expired between reads");
-        }
-
-        await _redisConnectionProvider.Connection.ExecuteAsync("EXPIRE",
-            $"{typeof(LcgNode).FullName}:{nodeId}", (int)KeepAliveKeyTtl.TotalSeconds);
+            Id = _options.GetPublicNodeId(),
+            Host = _options.Fqdn,
+            Port = _options.PublicPort,
+            PathPrefix = _options.NormalizedPublicPath,
+            Country = _options.CountryCode,
+            Latitude = _options.Latitude,
+            Longitude = _options.Longitude,
+            Load = 0,
+            Environment = _env.EnvironmentName
+        }, WhenKey.Always, KeepAliveKeyTtl);
     }
 
     /// <summary>

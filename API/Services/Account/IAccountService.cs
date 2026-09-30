@@ -92,6 +92,14 @@ public interface IAccountService
     public Task<Union5<Success, NotFound, AccountNotActivated, AccountDeactivated, SecretInvalid>> CompletePasswordResetFlowAsync(Guid passwordResetId, string secret, string newPassword);
     
     /// <summary>
+    /// Check the availability of a email
+    /// </summary>
+    /// <param name="email"></param>
+    /// <param name="cancellationToken"></param>
+    /// <returns></returns>
+    public Task<Union2<Success, EmailTaken>> CheckEmailAvailability(string email, CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Check the availability of a username
     /// </summary>
     /// <param name="username"></param>
@@ -109,6 +117,16 @@ public interface IAccountService
     /// <param name="cancellationToken"></param>
     /// <returns>Success, or the reason the username couldn't be changed (taken, invalid, changed too recently, account deactivated, or user not found)</returns>
     public Task<Union6<Success, UsernameTaken, UsernameError, RecentlyChanged, AccountDeactivated, NotFound>> ChangeUsernameAsync(Guid userId, string username, Guid? actorId, bool ignoreLimit = false, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Change the email of a user
+    /// </summary>
+    /// <param name="userId"></param>
+    /// <param name="email"></param>
+    /// <param name="actorId">User that performed this change</param>
+    /// <param name="cancellationToken"></param>
+    /// <returns>Success, or the reason the email couldn't be changed (already taken, not a valid address, or user not found)</returns>
+    public Task<Union4<Success, EmailTaken, EmailInvalid, NotFound>> ChangeEmail(Guid userId, string email, Guid? actorId, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Change the password of a user
@@ -159,6 +177,9 @@ public sealed class Unauthorized;
 public sealed class UsernameTaken;
 
 public sealed class RecentlyChanged;
+
+public sealed class EmailTaken;
+public sealed class EmailInvalid;
 
 public sealed class EmailAlreadyInUse;
 public sealed class EmailUnchanged;

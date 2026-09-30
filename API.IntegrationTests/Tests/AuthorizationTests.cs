@@ -1,5 +1,10 @@
 using System.Net;
+using System.Text.Json;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using OpenShock.API.IntegrationTests.Helpers;
+using OpenShock.Common.Constants;
+using OpenShock.Common.OpenShockDb;
 
 namespace OpenShock.API.IntegrationTests.Tests;
 
@@ -136,6 +141,83 @@ public sealed class AuthorizationTests
         var response = await client2.GetAsync($"/1/tokens/{tokenId}");
 
         await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.NotFound);
+    }
+
+    // --- Session cookie and API token on the same request ---
+    // The combo scheme authenticates both credentials, and the action runs as the token's owner, so the
+    // token's permissions must bind even when a valid session cookie rides along.
+
+    [Test]
+    public async Task SessionCookieAndRestrictedApiToken_TokenPermissionMissing_Returns403()
+    {
+        var owner = await TestHelper.CreateAndLoginUser(WebApplicationFactory, "combown", "combown@test.org", "SecurePassword123#");
+        var (deviceId, _) = await TestHelper.CreateDeviceInDb(WebApplicationFactory, owner.Id, "ComboHub");
+        var (_, rawToken) = await TestHelper.CreateApiTokenInDb(WebApplicationFactory, owner.Id, "NoDevicesEdit", [PermissionType.Shockers_Use]);
+        using var client = CreateSessionAndApiTokenClient(owner.SessionToken, rawToken);
+
+        var response = await client.PatchAsync($"/1/devices/{deviceId}", TestHelper.JsonContent(new { name = "Renamed" }));
+
+        await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.Forbidden);
+        await Assert.That(await GetDeviceName(deviceId)).IsEqualTo("ComboHub");
+    }
+
+    [Test]
+    public async Task OtherUsersSessionCookieAndRestrictedApiToken_TokenPermissionMissing_Returns403()
+    {
+        var owner = await TestHelper.CreateAndLoginUser(WebApplicationFactory, "combxown", "combxown@test.org", "SecurePassword123#");
+        var other = await TestHelper.CreateAndLoginUser(WebApplicationFactory, "combxoth", "combxoth@test.org", "SecurePassword123#");
+        var (deviceId, _) = await TestHelper.CreateDeviceInDb(WebApplicationFactory, owner.Id, "ComboCrossHub");
+        var (_, rawToken) = await TestHelper.CreateApiTokenInDb(WebApplicationFactory, owner.Id, "NoDevicesEdit", [PermissionType.Shockers_Use]);
+        using var client = CreateSessionAndApiTokenClient(other.SessionToken, rawToken);
+
+        var response = await client.PatchAsync($"/1/devices/{deviceId}", TestHelper.JsonContent(new { name = "Renamed" }));
+
+        await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.Forbidden);
+        await Assert.That(await GetDeviceName(deviceId)).IsEqualTo("ComboCrossHub");
+    }
+
+    [Test]
+    public async Task SessionCookieAndPermittedApiToken_Returns200()
+    {
+        var owner = await TestHelper.CreateAndLoginUser(WebApplicationFactory, "combok", "combok@test.org", "SecurePassword123#");
+        var (deviceId, _) = await TestHelper.CreateDeviceInDb(WebApplicationFactory, owner.Id, "ComboOkHub");
+        var (_, rawToken) = await TestHelper.CreateApiTokenInDb(WebApplicationFactory, owner.Id, "DevicesEdit", [PermissionType.Devices_Edit]);
+        using var client = CreateSessionAndApiTokenClient(owner.SessionToken, rawToken);
+
+        var response = await client.PatchAsync($"/1/devices/{deviceId}", TestHelper.JsonContent(new { name = "Renamed" }));
+
+        await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.OK);
+        await Assert.That(await GetDeviceName(deviceId)).IsEqualTo("Renamed");
+    }
+
+    [Test]
+    public async Task SessionCookieAndApiTokenWithoutDevicesAuth_DoesNotExposeHubToken()
+    {
+        var owner = await TestHelper.CreateAndLoginUser(WebApplicationFactory, "combauth", "combauth@test.org", "SecurePassword123#");
+        var (deviceId, _) = await TestHelper.CreateDeviceInDb(WebApplicationFactory, owner.Id, "ComboAuthHub");
+        var (_, rawToken) = await TestHelper.CreateApiTokenInDb(WebApplicationFactory, owner.Id, "NoDevicesAuth", [PermissionType.Devices_Edit]);
+        using var client = CreateSessionAndApiTokenClient(owner.SessionToken, rawToken);
+
+        var response = await client.GetAsync($"/1/devices/{deviceId}");
+
+        await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.OK);
+        using var doc = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+        var token = doc.RootElement.GetProperty("data").GetProperty("token");
+        await Assert.That(token.ValueKind).IsEqualTo(JsonValueKind.Null);
+    }
+
+    private HttpClient CreateSessionAndApiTokenClient(string sessionToken, string apiToken)
+    {
+        var client = TestHelper.CreateAuthenticatedClient(WebApplicationFactory, sessionToken);
+        client.DefaultRequestHeaders.Add(AuthConstants.ApiTokenHeaderName, apiToken);
+        return client;
+    }
+
+    private async Task<string> GetDeviceName(Guid deviceId)
+    {
+        await using var scope = WebApplicationFactory.Services.CreateAsyncScope();
+        var db = scope.ServiceProvider.GetRequiredService<OpenShockContext>();
+        return await db.Devices.Where(x => x.Id == deviceId).Select(x => x.Name).SingleAsync();
     }
 
     // --- Invalid session token ---

@@ -7,7 +7,6 @@ using Microsoft.AspNetCore.Mvc.Filters;
 using Microsoft.EntityFrameworkCore;
 using OpenShock.Common.Authentication;
 using OpenShock.Common.Authentication.Attributes;
-using OpenShock.Common.Authentication.Services;
 using OpenShock.Common.Constants;
 using OpenShock.Common.Errors;
 using OpenShock.Common.Models;
@@ -45,7 +44,6 @@ public sealed class LiveControlController : WebsocketBaseController<LiveControlR
 {
     private readonly HubLifetimeManager _hubLifetimeManager;
     private readonly IDbContextFactory<OpenShockContext> _dbContextFactory;
-    private readonly IUserReferenceService _userReferenceService;
     private readonly ApiTokenUpdateSubscriber _tokenUpdateSubscriber;
     private readonly ILogger<LiveControlController> _logger;
     private readonly GatewayMetrics _metrics;
@@ -107,15 +105,13 @@ public sealed class LiveControlController : WebsocketBaseController<LiveControlR
     /// </summary>
     /// <param name="logger"></param>
     /// <param name="dbContextFactory"></param>
-    /// <param name="userReferenceService"></param>
     /// <param name="tokenUpdateSubscriber"></param>
     /// <param name="hubLifetimeManager"></param>
     /// <param name="metrics"></param>
-    public LiveControlController(HubLifetimeManager hubLifetimeManager, IDbContextFactory<OpenShockContext> dbContextFactory, IUserReferenceService userReferenceService, ApiTokenUpdateSubscriber tokenUpdateSubscriber, GatewayMetrics metrics, ILogger<LiveControlController> logger) : base(logger)
+    public LiveControlController(HubLifetimeManager hubLifetimeManager, IDbContextFactory<OpenShockContext> dbContextFactory, ApiTokenUpdateSubscriber tokenUpdateSubscriber, GatewayMetrics metrics, ILogger<LiveControlController> logger) : base(logger)
     {
         _hubLifetimeManager = hubLifetimeManager;
         _dbContextFactory = dbContextFactory;
-        _userReferenceService = userReferenceService;
         _tokenUpdateSubscriber = tokenUpdateSubscriber;
         _metrics = metrics;
         _logger = logger;
@@ -256,17 +252,18 @@ public sealed class LiveControlController : WebsocketBaseController<LiveControlR
     [NonAction]
     public void OnActionExecuting(ActionExecutingContext context)
     {
-        _currentUser = HttpContext.Items["User"] as User ?? throw new Exception("User not found");
+        _currentUser = GetRequiredItem<User>();
 
         // When authenticated via an API token, the token may scope/pause shocker control.
         // Session auth carries no such limits.
-        if (_userReferenceService.AuthReference is ApiToken apiToken)
+        if (GetOptionalItem<ApiToken>() is { } apiToken)
         {
             _tokenId = apiToken.Id;
             _tokenPaused = apiToken.ShockerControlPaused;
             _tokenLimits = ApiTokenControlLimits.FromToken(apiToken);
         }
     }
+
 
     /// <summary>
     /// Apply refreshed API token limits to this connection, pushed by the <see cref="ApiTokenUpdateSubscriber"/>
