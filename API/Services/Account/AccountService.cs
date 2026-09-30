@@ -11,6 +11,7 @@ using OpenShock.Common.Services.RedisPubSub;
 using OpenShock.Common.Services.Session;
 using OpenShock.Common.Utils;
 using OpenShock.Common.Validation;
+using Z.EntityFramework.Plus;
 
 using OpenShock.Internal.Common.Utils;
 
@@ -554,6 +555,16 @@ public sealed class AccountService : IAccountService
     }
 
     /// <inheritdoc />
+    public async Task<Union2<Success, EmailTaken>> CheckEmailAvailability(string email,
+        CancellationToken cancellationToken = default)
+    {
+        var isTaken = await _db.Users.AnyAsync(x => x.Email == email, cancellationToken: cancellationToken);
+        if (isTaken) return new EmailTaken();
+
+        return new Success();
+    }
+
+    /// <inheritdoc />
     public async Task<Union3<Success, UsernameTaken, UsernameError>> CheckUsernameAvailabilityAsync(string username,
         CancellationToken cancellationToken = default)
     {
@@ -614,6 +625,63 @@ public sealed class AccountService : IAccountService
             action: AuditAction.UsernameChanged,
             actorId: actorId ?? userId,
             metadata: new UsernameChangedMetadata(oldName, username),
+            cancellationToken: cancellationToken
+        );
+
+        await transaction.CommitAsync(cancellationToken);
+
+        return new Success();
+    }
+
+    /// <inheritdoc />
+    public async Task<Union4<Success, EmailTaken, EmailInvalid, NotFound>>
+        ChangeEmail(Guid userId, string email, Guid? actorId, CancellationToken cancellationToken = default)
+    {
+        if (!MailAddress.TryCreate(email, out _))
+            return new EmailInvalid();
+
+        // Account creation and email verification both store addresses lowercased, and login compares
+        // exactly, so storing the caller's casing verbatim would hide the account at login and let the
+        // availability check below miss an existing row for the same address.
+        email = email.ToLowerInvariant();
+
+        var availability = await CheckEmailAvailability(email, cancellationToken);
+        if (availability is EmailTaken)
+            return new EmailTaken();
+
+        var user = await _db.Users.FirstOrDefaultAsync(x => x.Id == userId, cancellationToken);
+        if (user is null)
+            return new NotFound();
+
+        if (user.Email == email) return new Success(); // Unchanged
+
+        var oldEmail = user.Email;
+
+        await using var transaction = await _db.Database.BeginTransactionAsync(cancellationToken);
+
+        user.Email = email;
+        // Outstanding reset and email-change rows carry the stamp they were created under, so rotating
+        // it invalidates them here. Without this a pending email-change verification could later
+        // overwrite the address an admin just set.
+        user.SecurityStamp = Guid.CreateVersion7();
+
+        try
+        {
+            await _db.SaveChangesAsync(cancellationToken);
+        }
+        catch (DbUpdateException ex) when (ex.InnerException is PostgresException { SqlState: "23505" })
+        {
+            // Another account claimed the address between the availability check and this write; the
+            // unique index is the real arbiter, so report the conflict the signature declares.
+            await transaction.RollbackAsync(cancellationToken);
+            return new EmailTaken();
+        }
+
+        await _auditService.LogAsync(
+            userId,
+            action: AuditAction.EmailChanged,
+            actorId: actorId ?? userId,
+            metadata: new EmailChangedMetadata(oldEmail, email),
             cancellationToken: cancellationToken
         );
 
