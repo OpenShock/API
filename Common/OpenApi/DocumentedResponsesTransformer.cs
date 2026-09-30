@@ -24,6 +24,7 @@ public sealed class DocumentedResponsesTransformer(DocumentedXmlComments comment
             var description = comments.GetResponseDescription(method, code);
             if (description.Length == 0) continue;
 
+            // The library's XmlCommentsTransformer describes existing responses too, but cannot find methods with a nested-type parameter
             operation.Responses ??= new OpenApiResponses();
             if (operation.Responses.TryGetValue(code, out var existing))
             {

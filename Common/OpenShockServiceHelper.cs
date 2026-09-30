@@ -266,35 +266,14 @@ public static class OpenShockServiceHelper
             options.Document.AddDocumentTransformer<EnumSchemaTransformer>();
             options.Document.AddDocumentTransformer<NullableReferenceTransformer>();
 
-            // Picks up XML doc comments (<summary>, <param>, ...) from whichever host process is running
-            // (API/Cron/LiveControlGateway) and from Common, mirroring what Swashbuckle's IncludeXmlComments used to do.
-            var entryAssemblyName = Assembly.GetEntryAssembly()?.GetName().Name;
-            var xmlPaths = new[] { entryAssemblyName, typeof(OpenShockServiceHelper).Assembly.GetName().Name }
-                .OfType<string>()
-                .Distinct()
-                .Select(name => Path.Combine(AppContext.BaseDirectory, name + ".xml"))
-                .Where(File.Exists)
-                .ToArray();
-            if (xmlPaths.Length > 0)
+            // Picks up XML doc comments (<summary>, <param>, ...), mirroring what Swashbuckle's IncludeXmlComments used to do.
+            if (OpenApiXmlDocumentation.Get() is { } documentation)
             {
-                var filledPath = XmlCrefText.CreateFilledCopy(xmlPaths);
-                DocumentedXmlComments comments;
-                XmlCommentsTransformer xmlCommentsTransformer;
-                try
-                {
-                    comments = new DocumentedXmlComments(filledPath);
-                    xmlCommentsTransformer = new XmlCommentsTransformer(filledPath);
-                }
-                finally
-                {
-                    File.Delete(filledPath);
-                }
-
-                options.Document.AddDocumentTransformer(xmlCommentsTransformer);
-                options.Document.AddDocumentTransformer(new ControllerTagDescriptionTransformer(comments));
-                options.Document.AddOperationTransformer(new DocumentedResponsesTransformer(comments));
-                options.Document.AddOperationTransformer(xmlCommentsTransformer);
-                options.Document.AddSchemaTransformer(xmlCommentsTransformer);
+                options.Document.AddDocumentTransformer(documentation.Transformer);
+                options.Document.AddDocumentTransformer(new ControllerTagDescriptionTransformer(documentation.Comments));
+                options.Document.AddOperationTransformer(new DocumentedResponsesTransformer(documentation.Comments));
+                options.Document.AddOperationTransformer(documentation.Transformer);
+                options.Document.AddSchemaTransformer(documentation.Transformer);
             }
         });
 

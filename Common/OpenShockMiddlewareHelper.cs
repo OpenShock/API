@@ -21,6 +21,8 @@ namespace OpenShock.Common;
 
 public static class OpenShockMiddlewareHelper
 {
+    private static readonly SemaphoreSlim OpenApiDocumentGate = new(1, 1);
+
     private static readonly ForwardedHeadersOptions ForwardedSettings = new()
     {
         ForwardedHeaders = ForwardedHeaders.All,
@@ -123,6 +125,23 @@ public static class OpenShockMiddlewareHelper
             return IsAllowed(context.Connection.RemoteIpAddress, internalAllowedIpNetworks);
         });
         
+        // Asp.Versioning.OpenApi builds the options of each document through one shared factory that keeps its state in a field,
+        // so two documents first requested at the same time (the Scalar viewer loads both) corrupt each other: one request fails
+        // with a NullReferenceException and the other gets an unconfigured document, and both results are cached for the process.
+        // Serializing the document endpoints avoids that; they are rarely hit, so the lost concurrency does not matter.
+        app.UseWhen(context => context.Request.Path.StartsWithSegments("/openapi"), branch => branch.Use(async (context, next) =>
+        {
+            await OpenApiDocumentGate.WaitAsync(context.RequestAborted);
+            try
+            {
+                await next(context);
+            }
+            finally
+            {
+                OpenApiDocumentGate.Release();
+            }
+        }));
+
         app.MapOpenApi("/openapi/{documentName}.json").WithDocumentPerVersion();
 
         app.MapScalarApiReference("/scalar/viewer", options =>

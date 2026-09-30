@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Http.Metadata;
+﻿using Asp.Versioning.OpenApi.Transformers;
+using Microsoft.AspNetCore.Http.Metadata;
 using Microsoft.AspNetCore.Mvc.Controllers;
 using Microsoft.AspNetCore.OpenApi;
 using Microsoft.OpenApi;
@@ -9,7 +10,7 @@ namespace OpenShock.Common.OpenApi;
 /// Restores controller class &lt;summary&gt; text as top-level tag descriptions,
 /// which Swashbuckle's IncludeXmlComments(..., includeControllerXmlComments: true) used to do.
 /// </summary>
-public sealed class ControllerTagDescriptionTransformer(DocumentedXmlComments comments) : IOpenApiDocumentTransformer
+public sealed class ControllerTagDescriptionTransformer(XmlComments comments) : IOpenApiDocumentTransformer
 {
     public Task TransformAsync(OpenApiDocument document, OpenApiDocumentTransformerContext context, CancellationToken cancellationToken)
     {
