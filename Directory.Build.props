@@ -50,6 +50,13 @@
   <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
 
+    <!-- NU1608: Asp.Versioning.OpenApi 10.2.3 constrains Microsoft.OpenApi to < 3.0.0, but
+         Microsoft.AspNetCore.OpenApi 11.x requires 3.x. Verified working against 3.x - document
+         generation and the XML comment transformers are fine, and the generated document is unchanged
+         apart from 9 schemas gaining a correct "type": "object". Kept as a warning rather than
+         NoWarn'd so it stays visible; drop this once an 11.x of Asp.Versioning.OpenApi ships. -->
+    <WarningsNotAsErrors>$(WarningsNotAsErrors);NU1608</WarningsNotAsErrors>
+
     <!-- Disable Prefer framework type warning -->
     <NoWarn>$(NoWarn);IDE0049</NoWarn>
   </PropertyGroup>
