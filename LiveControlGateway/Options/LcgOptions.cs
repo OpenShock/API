@@ -39,6 +39,20 @@ public sealed class LcgOptions
     public required string CountryCode { get; set; }
 
     /// <summary>
+    /// Optional latitude of the gateway (WGS84 decimal degrees). When set together with
+    /// <see cref="Longitude"/>, the API assigns hubs by great-circle distance to their GeoIP location
+    /// instead of only by country, which matters for large countries hosting several gateways.
+    /// </summary>
+    [Range(-90d, 90d)]
+    public double? Latitude { get; set; }
+
+    /// <summary>
+    /// Optional longitude of the gateway (WGS84 decimal degrees). See <see cref="Latitude"/>.
+    /// </summary>
+    [Range(-180d, 180d)]
+    public double? Longitude { get; set; }
+
+    /// <summary>
     /// Normalized public path prefix: a single leading slash and no trailing slash, or empty for root.
     /// ("gateway", "/gateway", "/gateway/" all become "/gateway"; "" / "/" become "").
     /// </summary>

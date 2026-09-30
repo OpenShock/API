@@ -111,6 +111,8 @@ public sealed class IpEnrichmentService : IIpEnrichmentService, IDisposable
 
         string? countryCode = null;
         string? city = null;
+        GeoPoint? location = null;
+        int? accuracyRadiusKm = null;
 
         if (_cityReader is not null)
         {
@@ -120,6 +122,8 @@ public sealed class IpEnrichmentService : IIpEnrichmentService, IDisposable
                 {
                     countryCode = cityResponse.Country.IsoCode;
                     city = cityResponse.City.Name;
+                    location = GeoPoint.From(cityResponse.Location.Latitude, cityResponse.Location.Longitude);
+                    if (location is not null) accuracyRadiusKm = cityResponse.Location.AccuracyRadius;
                 }
             }
             catch (Exception ex)
@@ -128,7 +132,7 @@ public sealed class IpEnrichmentService : IIpEnrichmentService, IDisposable
             }
         }
 
-        return new IpEnrichmentData(asnOrg, isVpn, countryCode, city);
+        return new IpEnrichmentData(asnOrg, isVpn, countryCode, city, location, accuracyRadiusKm);
     }
 
     public void Dispose()

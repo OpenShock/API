@@ -21,6 +21,10 @@ var lcgOptions = builder.Configuration.GetRequiredSection(LcgOptions.SectionName
 if (lcgOptions is null)
     throw new InvalidOperationException($"Missing or invalid configuration for {LcgOptions.SectionName}.");
 
+// A lone latitude or longitude would silently fall back to country-level assignment, so fail loudly.
+if (lcgOptions.Latitude.HasValue != lcgOptions.Longitude.HasValue)
+    throw new InvalidOperationException($"{LcgOptions.SectionName}: Latitude and Longitude must be set together.");
+
 builder.Services.AddSingleton<IValidateOptions<LcgOptions>, LcgOptionsValidator>();
 builder.Services.AddSingleton(lcgOptions);
 
