@@ -56,7 +56,7 @@ public sealed class PublicShareHub : Hub<IPublicShareHub>
             }
         }
 
-        _tokenPermissions = _userReferenceService.AuthReference.TryPickT1(out ApiToken? apiToken, out _) ? apiToken.Permissions : null;
+        _tokenPermissions = _userReferenceService.AuthReference is ApiToken apiToken ? apiToken.Permissions : null;
 
         var exists = await _db.PublicShares.AnyAsync(x => x.Id == id && (x.ExpiresAt == null || x.ExpiresAt > DateTime.UtcNow));
         if (!exists)
