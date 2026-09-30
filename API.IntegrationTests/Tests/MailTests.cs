@@ -60,7 +60,7 @@ public sealed class MailTests
         var userId = await TestHelper.CreateUserInDb(WebApplicationFactory, username, email, "SecurePassword123#", activated: false);
 
         using var client = WebApplicationFactory.CreateClient();
-        var response = await client.PostAsync("/1/account/activate/resend", TestHelper.JsonContent(new { email }));
+        var response = await client.PostAsync("/1/account/activate/resend", TestHelper.JsonContent(new { email, turnstileResponse = "valid-token" }));
         await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.OK);
 
         await using var scope = WebApplicationFactory.Services.CreateAsyncScope();
@@ -95,7 +95,7 @@ public sealed class MailTests
 
         // Resend enqueues another activation email. The delivery job re-mints the token and supersedes the
         // older row at send time (coalesce key) - that token rotation is covered in Cron.IntegrationTests.
-        var resendResponse = await client.PostAsync("/1/account/activate/resend", TestHelper.JsonContent(new { email }));
+        var resendResponse = await client.PostAsync("/1/account/activate/resend", TestHelper.JsonContent(new { email, turnstileResponse = "valid-token" }));
         await Assert.That(resendResponse.StatusCode).IsEqualTo(HttpStatusCode.OK);
 
         await using var scope = WebApplicationFactory.Services.CreateAsyncScope();
@@ -117,7 +117,7 @@ public sealed class MailTests
         await TestHelper.CreateUserInDb(WebApplicationFactory, username, email, "SecurePassword123#", activated: true);
 
         using var client = WebApplicationFactory.CreateClient();
-        var response = await client.PostAsync("/1/account/activate/resend", TestHelper.JsonContent(new { email }));
+        var response = await client.PostAsync("/1/account/activate/resend", TestHelper.JsonContent(new { email, turnstileResponse = "valid-token" }));
 
         // Generic 200 (no account-state leak), but nothing is enqueued for an already-activated account.
         await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.OK);
@@ -134,9 +134,29 @@ public sealed class MailTests
         var email = TestHelper.UniqueEmail("mail-resend-unknown");
 
         using var client = WebApplicationFactory.CreateClient();
-        var response = await client.PostAsync("/1/account/activate/resend", TestHelper.JsonContent(new { email }));
+        var response = await client.PostAsync("/1/account/activate/resend", TestHelper.JsonContent(new { email, turnstileResponse = "valid-token" }));
 
         await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.OK);
+
+        await using var scope = WebApplicationFactory.Services.CreateAsyncScope();
+        var db = scope.ServiceProvider.GetRequiredService<OpenShockContext>();
+        var enqueued = await db.EmailOutbox.AsNoTracking().CountAsync(m => m.Recipient == email);
+        await Assert.That(enqueued).IsEqualTo(0);
+    }
+
+    [Test]
+    public async Task ResendActivation_InvalidTurnstile_Returns403_AndEnqueuesNothing()
+    {
+        var email = TestHelper.UniqueEmail("mail-resend-turnstile");
+        var username = TestHelper.UniqueUsername("mailresendturnstile");
+
+        await TestHelper.CreateUserInDb(WebApplicationFactory, username, email, "SecurePassword123#", activated: false);
+
+        using var client = WebApplicationFactory.CreateClient();
+        var response = await client.PostAsync("/1/account/activate/resend", TestHelper.JsonContent(new { email, turnstileResponse = "invalid-token" }));
+
+        // A failed turnstile must stop the send outright - this endpoint mails a third party.
+        await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.Forbidden);
 
         await using var scope = WebApplicationFactory.Services.CreateAsyncScope();
         var db = scope.ServiceProvider.GetRequiredService<OpenShockContext>();
