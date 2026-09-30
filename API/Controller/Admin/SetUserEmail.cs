@@ -19,7 +19,9 @@ public sealed partial class AdminController
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> SetUserEmail([FromRoute(Name = "userId")] Guid userId, [FromBody] SetUserEmailRequestBody body, [FromServices] IAccountService accountService, CancellationToken cancellationToken)
     {
-        var result = await accountService.ChangeEmail(userId, body.Email);
+        PedanticallyEnsureAdmin();
+
+        var result = await accountService.ChangeEmail(userId, body.Email, actorId: CurrentUser.Id, cancellationToken);
 
         return result switch
         {
@@ -33,6 +35,7 @@ public sealed partial class AdminController
 
     public sealed class SetUserEmailRequestBody
     {
+        [OpenShock.Common.DataAnnotations.EmailAddress(true)]
         public required string Email { get; init; }
     }
 }

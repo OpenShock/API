@@ -2,6 +2,7 @@
 using System.Net.Mime;
 using Microsoft.AspNetCore.Mvc;
 using OpenShock.API.Services.Account;
+using OpenShock.Common.DataAnnotations;
 using OpenShock.Common.Errors;
 using OpenShock.Common.Problems;
 using OpenShock.Common.Validation;
@@ -26,6 +27,8 @@ public sealed partial class AdminController
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status409Conflict, MediaTypeNames.Application.ProblemJson)]
     public async Task<IActionResult> SetUserName([FromRoute(Name = "userId")] Guid userId, [FromBody] SetUserNameRequestBody body, [FromServices] IAccountService accountService, CancellationToken cancellationToken)
     {
+        PedanticallyEnsureAdmin();
+
         var result = await accountService.ChangeUsernameAsync(userId, body.Name, actorId: CurrentUser.Id,
             ignoreLimit: true, cancellationToken);
 
@@ -43,6 +46,7 @@ public sealed partial class AdminController
 
     public sealed class SetUserNameRequestBody
     {
+        [Username(true)]
         public required string Name { get; init; }
     }
 }

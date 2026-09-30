@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using OpenShock.Common.Constants;
+using OpenShock.Common.Utils;
 using OpenShock.Common.Models;
 using OpenShock.Common.OpenShockDb;
 using System.Linq.Expressions;
@@ -185,10 +186,11 @@ public sealed partial class AdminController
             .FirstOrDefaultAsync(cancellationToken);
         if (user == null) return null;
 
-        if (string.IsNullOrEmpty(user.PasswordHash) || !Enum.TryParse(user.PasswordHash, true, out PasswordHashingAlgorithm passwordHashingAlgorithm))
-        {
-            passwordHashingAlgorithm = PasswordHashingAlgorithm.Unknown;
-        }
+        // The stored value is a prefixed hash ("bcrypt:$2..."), never a bare algorithm name, so it has
+        // to go through the prefix parser rather than Enum.TryParse.
+        var passwordHashingAlgorithm = string.IsNullOrEmpty(user.PasswordHash)
+            ? PasswordHashingAlgorithm.Unknown
+            : HashingUtils.GetPasswordHashingAlgorithm(user.PasswordHash);
 
         return new AdminUserView
         {
@@ -237,6 +239,8 @@ public sealed partial class AdminController
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetUserById([FromRoute(Name = "userId")] Guid userId, CancellationToken cancellationToken)
     {
+        PedanticallyEnsureAdmin();
+
         var user = await GetUserBySelectorAsync(u => u.Id == userId, cancellationToken);
         return user == null ? NotFound() : Ok(user);
     }

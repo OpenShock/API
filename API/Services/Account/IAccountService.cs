@@ -117,8 +117,10 @@ public interface IAccountService
     /// </summary>
     /// <param name="userId"></param>
     /// <param name="email"></param>
+    /// <param name="actorId">User that performed this change</param>
+    /// <param name="cancellationToken"></param>
     /// <returns>Success, or the reason the email couldn't be changed (already taken, not a valid address, or user not found)</returns>
-    public Task<Union4<Success, EmailTaken, EmailInvalid, NotFound>> ChangeEmail(Guid userId, string email);
+    public Task<Union4<Success, EmailTaken, EmailInvalid, NotFound>> ChangeEmail(Guid userId, string email, Guid? actorId, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Change the password of a user

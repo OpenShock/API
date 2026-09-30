@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using OpenShock.API.Services.Account;
+using OpenShock.Common.DataAnnotations;
 using OpenShock.Common.Errors;
 using OpenShock.Common.Problems;
 using OpenShock.Common.Models;
@@ -31,6 +32,8 @@ public sealed partial class AdminController
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status409Conflict, MediaTypeNames.Application.ProblemJson)]
     public async Task<IActionResult> SetUserPassword([FromRoute(Name = "userId")] Guid userId, [FromBody] SetUserPasswordRequestBody body, [FromServices] IAccountService accountService, CancellationToken cancellationToken)
     {
+        PedanticallyEnsureAdmin();
+
         var result = await accountService.ChangePasswordAsync(userId, body.Password, actorId: CurrentUser.Id);
 
         return result switch
@@ -45,6 +48,7 @@ public sealed partial class AdminController
 
     public sealed class SetUserPasswordRequestBody
     {
+        [Password(true)]
         public required string Password { get; init; }
     }
 }

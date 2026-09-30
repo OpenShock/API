@@ -1,12 +1,5 @@
-﻿using System.ComponentModel.DataAnnotations;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using OpenShock.Common.Errors;
-using OpenShock.Common.Models;
-using OpenShock.Common.Utils;
-using OpenShock.Common.OpenShockDb;
-using OpenShock.Common.Problems;
-using Z.EntityFramework.Plus;
+﻿using Microsoft.AspNetCore.Mvc;
+using OpenShock.API.Services.Token;
 
 namespace OpenShock.API.Controller.Admin;
 
@@ -19,10 +12,15 @@ public sealed partial class AdminController
     /// <response code="401">Unauthorized</response>
     [HttpDelete("apitokens/{tokenId}")]
     [ProducesResponseType(StatusCodes.Status200OK)]
-    public async Task<IActionResult> DeleteApiToken([FromRoute] Guid tokenId, CancellationToken cancellationToken)
+    public async Task<IActionResult> DeleteApiToken([FromRoute] Guid tokenId, [FromServices] IApiTokenService apiTokenService, CancellationToken cancellationToken)
     {
-        var nDeleted = await _db.ApiTokens.Where(x => x.Id == tokenId).ExecuteDeleteAsync(cancellationToken);
+        PedanticallyEnsureAdmin();
 
-        return nDeleted == 0 ? NotFound() : Ok();
+        // Deleting straight off the DbSet would skip the audit entry and, more importantly, the token
+        // update that tears down an open live control connection - the revoked token would keep
+        // controlling devices until that connection closed on its own.
+        var deleted = await apiTokenService.DeleteToken(tokenId, actorId: CurrentUser.Id, cancellationToken: cancellationToken);
+
+        return deleted ? Ok() : NotFound();
     }
 }
