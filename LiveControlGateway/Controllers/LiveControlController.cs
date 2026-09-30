@@ -18,6 +18,7 @@ using OpenShock.Common.Problems;
 using OpenShock.Common.Utils;
 using OpenShock.Common.Websocket;
 using OpenShock.LiveControlGateway.LifetimeManager;
+using OpenShock.LiveControlGateway.Metrics;
 using OpenShock.LiveControlGateway.Models;
 using OpenShock.LiveControlGateway.PubSub;
 using JsonOptions = OpenShock.Common.JsonSerialization.JsonOptions;
@@ -47,6 +48,7 @@ public sealed class LiveControlController : WebsocketBaseController<LiveControlR
     private readonly IUserReferenceService _userReferenceService;
     private readonly ApiTokenUpdateSubscriber _tokenUpdateSubscriber;
     private readonly ILogger<LiveControlController> _logger;
+    private readonly GatewayMetrics _metrics;
 
     private static readonly TimeSpan PingInterval = TimeSpan.FromSeconds(5);
 
@@ -108,12 +110,14 @@ public sealed class LiveControlController : WebsocketBaseController<LiveControlR
     /// <param name="userReferenceService"></param>
     /// <param name="tokenUpdateSubscriber"></param>
     /// <param name="hubLifetimeManager"></param>
-    public LiveControlController(HubLifetimeManager hubLifetimeManager, IDbContextFactory<OpenShockContext> dbContextFactory, IUserReferenceService userReferenceService, ApiTokenUpdateSubscriber tokenUpdateSubscriber, ILogger<LiveControlController> logger) : base(logger)
+    /// <param name="metrics"></param>
+    public LiveControlController(HubLifetimeManager hubLifetimeManager, IDbContextFactory<OpenShockContext> dbContextFactory, IUserReferenceService userReferenceService, ApiTokenUpdateSubscriber tokenUpdateSubscriber, GatewayMetrics metrics, ILogger<LiveControlController> logger) : base(logger)
     {
         _hubLifetimeManager = hubLifetimeManager;
         _dbContextFactory = dbContextFactory;
         _userReferenceService = userReferenceService;
         _tokenUpdateSubscriber = tokenUpdateSubscriber;
+        _metrics = metrics;
         _logger = logger;
         
         _pingTimer.Elapsed += (_, _) => OsTask.Run(SendPing);
@@ -225,14 +229,18 @@ public sealed class LiveControlController : WebsocketBaseController<LiveControlR
         {
             case Results.NotFound:
                 _logger.LogDebug("No such hub with id [{HubId}] connected", HubId);
+                _metrics.LiveControlAttempt(GatewayMetrics.LiveControlOutcome.HubNotFound);
                 return WebsocketError.WebsocketLiveControlHubNotConnected;
             case LifetimeManager.HubLifetimeManager.Busy:
                 _logger.LogDebug("Hub is busy, cannot connect [{HubId}]", HubId);
+                _metrics.LiveControlAttempt(GatewayMetrics.LiveControlOutcome.HubBusy);
                 return WebsocketError.WebsocketLiveControlHubLifetimeBusy;
             case LifetimeManager.HubLifetime hubLifetime:
                 _hubLifetime = hubLifetime;
                 break;
         }
+
+        _metrics.LiveControlAttempt(GatewayMetrics.LiveControlOutcome.Connected);
 
         return new Results.Success();
     }
@@ -370,6 +378,8 @@ public sealed class LiveControlController : WebsocketBaseController<LiveControlR
                 ushort.MaxValue); // If someone has a ping higher than 65 seconds, they are messing with us. Cap it to 65 seconds
         _pingTimestamp = 0;
 
+        _metrics.LiveControlLatency(_latencyMs);
+
         if (Logger.IsEnabled(LogLevel.Trace))
             Logger.LogTrace("Latency: {Latency}ms", _latencyMs);
 
@@ -470,6 +480,7 @@ public sealed class LiveControlController : WebsocketBaseController<LiveControlR
         // A paused API token may not send any control, mirroring the /shockers/control endpoint.
         if (_tokenPaused)
         {
+            _metrics.Frame(GatewayMetrics.FrameOutcome.TokenPaused, frame.Type);
             await QueueMessage(new LiveControlResponse<LiveResponseType>
             {
                 ResponseType = LiveResponseType.TokenPaused
@@ -481,6 +492,15 @@ public sealed class LiveControlController : WebsocketBaseController<LiveControlR
         var permCheck = CheckFramePermissions(frame.Shocker, frame.Type);
         if (permCheck is not SharePermsAndLimits perms)
         {
+            _metrics.Frame(permCheck switch
+            {
+                Results.NotFound => GatewayMetrics.FrameOutcome.ShockerNotFound,
+                LiveNotEnabled => GatewayMetrics.FrameOutcome.LiveNotEnabled,
+                NoPermission => GatewayMetrics.FrameOutcome.NoPermission,
+                ShockerPaused => GatewayMetrics.FrameOutcome.ShockerPaused,
+                _ => throw new UnreachableException()
+            }, frame.Type);
+
             await QueueMessage(new LiveControlResponse<LiveResponseType>
             {
                 ResponseType = permCheck switch
@@ -506,15 +526,18 @@ public sealed class LiveControlController : WebsocketBaseController<LiveControlR
         switch (result)
         {
             case Results.Success:
+                _metrics.Frame(GatewayMetrics.FrameOutcome.Accepted, frame.Type);
                 Logger.LogTrace("Successfully received frame");
                 break;
             case Results.NotFound:
+                _metrics.Frame(GatewayMetrics.FrameOutcome.ShockerNotFound, frame.Type);
                 await QueueMessage(new LiveControlResponse<LiveResponseType>
                 {
                     ResponseType = LiveResponseType.ShockerNotFound
                 });
                 break;
             case ShockerExclusive shockerExclusive:
+                _metrics.Frame(GatewayMetrics.FrameOutcome.ShockerExclusive, frame.Type);
                 await QueueMessage(new LiveControlResponse<LiveResponseType>
                 {
                     ResponseType = LiveResponseType.ShockerExclusive,

@@ -17,7 +17,6 @@ using OpenShock.Common.Hubs;
 using OpenShock.Common.Services;
 using OpenShock.Common.Services.Device;
 using OpenShock.Common.Services.Ota;
-using OpenShock.Common.Swagger;
 using Serilog;
 using OAuthConstants = OpenShock.API.OAuth.OAuthConstants;
 
@@ -128,8 +127,6 @@ builder.Services.AddScoped<IOAuthConnectionService, OAuthConnectionService>();
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IApiTokenService, ApiTokenService>();
 builder.Services.AddScoped<ILCGNodeProvisioner, LCGNodeProvisioner>();
-
-builder.AddSwaggerExt<Program>();
 
 builder.AddCloudflareTurnstileService();
 
