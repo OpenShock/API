@@ -1,6 +1,5 @@
 ﻿using System.Security.Cryptography;
 using System.Text;
-using OneOf.Types;
 using OpenShock.Common.Extensions;
 using OpenShock.Common.Models;
 using OpenShock.Common.Services.Configuration;
@@ -66,8 +65,8 @@ public sealed class BypassTokenMiddleware
     private static async Task<bool> MatchesAsync(IConfigurationService config, string key, string presented)
     {
         var result = await config.TryGetStringAsync(key);
-        return result.TryPickT0(out var configured, out _)
-               && !string.IsNullOrEmpty(configured)
+        var configured = result.Outcome == ConfigGetOutcome.Value ? result.Value : null;
+        return !string.IsNullOrEmpty(configured)
                && CryptographicOperations.FixedTimeEquals(
                    Encoding.UTF8.GetBytes(configured),
                    Encoding.UTF8.GetBytes(presented));

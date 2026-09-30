@@ -1,8 +1,7 @@
 ﻿using System.Net;
-using OneOf;
-using OneOf.Types;
 using OpenShock.API.Options;
 using OpenShock.Common.Extensions;
+using OpenShock.Common.Results;
 using BypassTokenType = OpenShock.Common.Models.BypassTokenType;
 
 namespace OpenShock.API.Services.Turnstile;
@@ -31,10 +30,7 @@ public sealed class CloudflareTurnstileService : ICloudflareTurnstileService
         _logger = logger;
     }
 
-    private static Error<CloudflareTurnstileError[]> CreateError(params ReadOnlySpan<CloudflareTurnstileError> errors)
-    {
-        return new Error<CloudflareTurnstileError[]>(errors.ToArray());
-    }
+    private static CloudflareTurnstileError[] CreateError(params CloudflareTurnstileError[] errors) => errors;
 
     private static CloudflareTurnstileError MapCfError(string error)
     {
@@ -52,7 +48,7 @@ public sealed class CloudflareTurnstileService : ICloudflareTurnstileService
     }
 
     /// <inheritdoc />
-    public async Task<OneOf<Success, Error<CloudflareTurnstileError[]>>> VerifyUserResponseTokenAsync(
+    public async Task<SuccessOrError<CloudflareTurnstileError[]>> VerifyUserResponseTokenAsync(
         string responseToken, IPAddress? remoteIpAddress, CancellationToken cancellationToken = default)
     {
         if (!_options.Enabled) return new Success();

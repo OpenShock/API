@@ -1,6 +1,6 @@
 ﻿using System.ComponentModel.DataAnnotations;
-using Microsoft.OpenApi.Any;
-using Microsoft.OpenApi.Models;
+using System.Text.Json.Nodes;
+using Microsoft.OpenApi;
 using OpenShock.Common.Constants;
 using OpenShock.Common.DataAnnotations.Interfaces;
 
@@ -20,7 +20,7 @@ public sealed class PasswordAttribute : ValidationAttribute, IParameterAttribute
     /// <summary>
     /// Example value used to generate OpenApi documentation.
     /// </summary>
-    private const string ExampleValue = "user@example.com";
+    private const string ExampleValue = "Password123!";
 
     private const string ErrMsgCannotBeNull = "Password cannot be null";
     private const string ErrMsgMustBeString = "Password must be a string";
@@ -62,9 +62,12 @@ public sealed class PasswordAttribute : ValidationAttribute, IParameterAttribute
     {
         //if (ShouldValidate) schema.Pattern = ???;
         
-        schema.Example = new OpenApiString(ExampleValue);
+        schema.Examples = [JsonValue.Create(ExampleValue)];
     }
 
     /// <inheritdoc/>
-    public void Apply(OpenApiParameter parameter) => Apply(parameter.Schema);
+    public void Apply(OpenApiParameter parameter)
+    {
+        if (parameter.Schema is OpenApiSchema schema) Apply(schema);
+    }
 }

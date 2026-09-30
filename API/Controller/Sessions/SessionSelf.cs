@@ -17,7 +17,7 @@ public sealed partial class SessionsController
     [HttpGet("self")]
     public LoginSessionResponse GetSelfSession([FromServices] IUserReferenceService userReferenceService)
     {
-        if (!userReferenceService.AuthReference.TryPickT0(out LoginSession? session, out _))
+        if (userReferenceService.AuthReference is not LoginSession session)
             throw new UnreachableException("the [UserSessionOnly] attribute should have blocked caller");
         
         return LoginSessionResponse.MapFrom(session);
