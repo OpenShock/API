@@ -7,9 +7,10 @@ public sealed class FrontendOptions
     public required IReadOnlyCollection<string> CookieDomains { get; init; }
 
     /// <summary>
-    /// Whether auth cookies should be flagged <c>Secure</c>, derived from the configured <see cref="BaseUrl"/> scheme.
-    /// An <c>http://</c> base URL (dev / integration tests over plain HTTP) yields non-secure cookies so the browser
-    /// can store and resend them; an <c>https://</c> base URL keeps cookies <c>Secure</c>-only as in production.
+    /// Whether the configured <see cref="BaseUrl"/> scheme calls for auth cookies to be flagged <c>Secure</c>.
+    /// This is one of two signals - the request scheme is the other, and either being HTTPS is enough - so an
+    /// <c>http://</c> base URL only yields non-secure cookies on a plain-HTTP request, as in dev and integration
+    /// tests, where the browser must be able to store and resend them.
     /// </summary>
     public bool CookieSecure => BaseUrl.Scheme == Uri.UriSchemeHttps;
 }

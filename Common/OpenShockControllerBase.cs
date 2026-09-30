@@ -53,7 +53,11 @@ public class OpenShockControllerBase : OpenShock.Internal.Common.OpenShockContro
         HttpContext.Response.Cookies.Append(AuthConstants.UserSessionCookieName, session.Token, new CookieOptions
         {
             Expires = DateTimeOffset.UtcNow.Add(Duration.LoginSessionLifetime),
-            Secure = frontendOptions.CookieSecure,
+            // Either signal is enough to mark the cookie Secure: the request scheme is the authoritative
+            // one (X-Forwarded-Proto is honoured for trusted proxies), and the configured frontend
+            // scheme covers a proxy that fails to forward it. Only a plain-HTTP request against a
+            // plain-HTTP frontend - dev and integration tests - yields a non-secure cookie.
+            Secure = HttpContext.Request.IsHttps || frontendOptions.CookieSecure,
             HttpOnly = true,
             SameSite = SameSiteMode.Lax,
             Domain = domain
