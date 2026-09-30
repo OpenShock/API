@@ -2,8 +2,12 @@
 using Microsoft.EntityFrameworkCore;
 using OpenShock.API.Models.Requests;
 using System.Net.Mime;
+using OpenShock.Common.Authentication.Attributes;
 using OpenShock.Common.Errors;
+using OpenShock.Common.OpenShockDb;
 using OpenShock.Common.Problems;
+
+using OpenShock.Internal.Common.Problems;
 
 namespace OpenShock.API.Controller.Shares.Links;
 
@@ -20,11 +24,12 @@ public sealed partial class ShareLinksController
     /// <response code="400">Shocker does not exist in public share</response>
     [HttpPatch("{publicShareId}/{shockerId}")]
     [Consumes(MediaTypeNames.Application.Json)]
+    [TokenPermission(PermissionType.Publicshares_Edit)]
     [ProducesResponseType<string>(StatusCodes.Status200OK, MediaTypeNames.Text.Plain)]
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status404NotFound, MediaTypeNames.Application.ProblemJson)] // PublicShareNotFound, ShockerNotInPublicShare
     public async Task<IActionResult> EditShocker([FromRoute] Guid publicShareId, [FromRoute] Guid shockerId, [FromBody] PublicShareEditShocker body)
     {
-        var exists = await _db.PublicShares.AnyAsync(x => x.OwnerId == CurrentUser.Id && x.Id == publicShareId);
+        var exists = await _db.PublicShares.AnyAsync(x => x.OwnerId == CurrentUser.Id && x.Id == publicShareId && (x.ExpiresAt == null || x.ExpiresAt > DateTime.UtcNow));
         if (!exists) return Problem(PublicShareError.PublicShareNotFound);
 
         var shocker =

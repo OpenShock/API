@@ -8,6 +8,8 @@ using OpenShock.Common.Services;
 using OpenShock.Common.Services.Session;
 using OpenShock.Common.Utils;
 
+using OpenShock.Internal.Common.Constants;
+
 namespace OpenShock.Common.Hubs;
 
 public sealed class PublicShareHub : Hub<IPublicShareHub>
@@ -17,7 +19,13 @@ public sealed class PublicShareHub : Hub<IPublicShareHub>
     private readonly ISessionService _sessionService;
     private readonly IControlSender _controlSender;
     private readonly ILogger<PublicShareHub> _logger;
-    private IReadOnlyList<PermissionType>? _tokenPermissions = null;
+    /// <summary>
+    /// Permissions of the API token this connection authenticated with, or null for a session
+    /// connection. Derived per access, as SignalR creates a hub instance per invocation.
+    /// </summary>
+    private IReadOnlyList<PermissionType>? TokenPermissions => Context.User?.HasOpenShockApiTokenIdentity() == true
+        ? Context.User.GetApiTokenPermissions()
+        : null;
 
     public PublicShareHub(OpenShockContext db, IHubContext<UserHub, IUserHub> userHub, ISessionService sessionService, IControlSender controlSender, ILogger<PublicShareHub> logger)
     {
@@ -50,8 +58,6 @@ public sealed class PublicShareHub : Hub<IPublicShareHub>
                 return;
             }
         }
-        
-        _tokenPermissions = _userReferenceService.AuthReference is not { IsT1: true } ? null : _userReferenceService.AuthReference.Value.AsT1.Permissions;
 
         var exists = await _db.PublicShares.AnyAsync(x => x.Id == id && (x.ExpiresAt == null || x.ExpiresAt > DateTime.UtcNow));
         if (!exists)
@@ -115,7 +121,7 @@ public sealed class PublicShareHub : Hub<IPublicShareHub>
 
     public Task Control(IReadOnlyList<Models.WebSocket.User.Control> shocks)
     {
-        if (!_tokenPermissions.IsAllowedAllowOrNull(PermissionType.Shockers_Use)) return Task.CompletedTask;
+        if (!TokenPermissions.IsAllowedAllowOrNull(PermissionType.Shockers_Use)) return Task.CompletedTask;
         
         return _controlSender.ControlPublicShare(shocks, CustomData.CachedControlLogSender, _userHub.Clients,
             CustomData.PublicShareId);

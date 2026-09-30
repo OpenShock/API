@@ -1,4 +1,6 @@
-﻿namespace OpenShock.Common.Models.WebSocket;
+﻿using OpenShock.Common.OpenShockDb;
+
+namespace OpenShock.Common.Models.WebSocket;
 
 public sealed class ControlResponse
 {

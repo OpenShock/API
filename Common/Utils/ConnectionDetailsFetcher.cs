@@ -1,4 +1,4 @@
-﻿using OpenShock.Common.Geo;
+﻿using OpenShock.Internal.Common.Geo;
 using System.Net;
 // ReSharper disable InconsistentNaming
 

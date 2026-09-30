@@ -14,7 +14,7 @@ namespace OpenShock.API.Controller.Shares.UserShares;
 [Tags("User Shocker Shares")]
 [ApiVersion("2")]
 [Route("/{version:apiVersion}/shares/user")]
-[Authorize(AuthenticationSchemes = OpenShockAuthSchemes.UserSessionCookie)]
+[Authorize(AuthenticationSchemes = OpenShockAuthSchemes.UserSessionApiTokenCombo)]
 public sealed partial class UserSharesController : AuthenticatedSessionControllerBase
 {
     private readonly OpenShockContext _db;

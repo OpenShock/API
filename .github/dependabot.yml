@@ -6,22 +6,38 @@
 version: 2
 updates:
 
-  # Check for Github Actions version updates (for CI/CD)
-  - package-ecosystem: "github-actions"
-    directory: "/"
-    schedule:
-      interval: 'weekly'
-      day: 'monday'
-      time: '06:00'
-
   # Check for Nuget package updates
-  - package-ecosystem: "nuget"
-    directory: "/"
+  - package-ecosystem: nuget
+    directory: /
     schedule:
-      interval: 'weekly'
-      day: 'monday'
-      time: '06:00'
+      interval: weekly
+      day: monday
+      time: '08:00'
     groups:
-      nuget-dependencies:
+      nuget:
+        patterns:
+          - '*' # Group all updates together
+  
+  # Check for Github Actions version updates (for CI/CD)
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: '08:00'
+    groups:
+      github-actions:
+        patterns:
+          - '*' # Group all updates together
+
+  # Check for Docker base image updates
+  - package-ecosystem: docker
+    directory: /docker
+    schedule:
+      interval: weekly
+      day: monday
+      time: '08:00'
+    groups:
+      docker:
         patterns:
           - '*' # Group all updates together

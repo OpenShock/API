@@ -15,6 +15,6 @@ public sealed class SignUpV2
     public required string Email { get; set; }
     
     [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = false)]
-    [System.ComponentModel.DataAnnotations.StringLength(HardLimits.MaxTurnstileResponseTokenLength)]
+    [System.ComponentModel.DataAnnotations.StringLength(ApiHardLimits.MaxTurnstileResponseTokenLength)]
     public required string TurnstileResponse { get; set; }
 }

@@ -1,14 +1,18 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using OpenShock.Common.Constants;
 using OpenShock.Common.Models;
+using OpenShock.Common.OpenShockDb;
 using OpenShock.Common.Options;
-using OpenShock.Common.Problems;
 using OpenShock.Common.Services.Session;
 using OpenShock.Common.Utils;
 
+using OpenShock.Internal.Common.Problems;
+
 namespace OpenShock.Common;
 
-public class OpenShockControllerBase : ControllerBase
+// Inherits Problem(OpenShockProblem) from OpenShock.Internal.Common.OpenShockControllerBase;
+// the members below are OpenShock-API-specific and stay local.
+public class OpenShockControllerBase : OpenShock.Internal.Common.OpenShockControllerBase
 {
     [NonAction]
     protected T GetRequiredItem<T>() where T : class
@@ -33,9 +37,14 @@ public class OpenShockControllerBase : ControllerBase
         return typed;
     }
     
+    /// <summary>
+    /// The item if present and of type <typeparamref name="T"/>, otherwise null. Use for items that
+    /// only exist for some authentication schemes, e.g. ApiToken on a session-authenticated request.
+    /// </summary>
     [NonAction]
-    protected ObjectResult Problem(OpenShockProblem problem) => problem.ToObjectResult(HttpContext);
-    
+    protected T? GetOptionalItem<T>() where T : class
+        => HttpContext.Items.TryGetValue(typeof(T).Name, out var value) ? value as T : null;
+
     [NonAction]
     protected OkObjectResult LegacyDataOk<T>(T data, string message = "")
     {
@@ -65,9 +74,12 @@ public class OpenShockControllerBase : ControllerBase
     protected async Task CreateSession(Guid accountId, string domain)
     {
         var sessionService = HttpContext.RequestServices.GetRequiredService<ISessionService>();
-        
-        var session = await sessionService.CreateSessionAsync(accountId, HttpContext.GetUserAgent(), HttpContext.GetRemoteIP().ToString());
-        
+
+        var remoteIp = HttpContext.GetRemoteIP();
+        var userAgent = HttpContext.GetUserAgent();
+
+        var session = await sessionService.CreateSessionAsync(accountId, userAgent, remoteIp.ToString(), actorId: accountId);
+
         HttpContext.Response.Cookies.Append(AuthConstants.UserSessionCookieName, session.Token, new CookieOptions
         {
             Expires = DateTimeOffset.UtcNow.Add(Duration.LoginSessionLifetime),

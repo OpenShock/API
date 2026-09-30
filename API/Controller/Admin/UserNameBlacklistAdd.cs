@@ -12,6 +12,8 @@ public sealed partial class AdminController
     [ProducesResponseType(StatusCodes.Status200OK)]
     public async Task<IActionResult> AddUsernameBlacklist([FromBody] AddUsernameBlacklistDto body)
     {
+        PedanticallyEnsureAdmin();
+
         var entry = new UserNameBlacklist
         {
             Id = Guid.CreateVersion7(),

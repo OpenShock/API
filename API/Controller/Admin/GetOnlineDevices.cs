@@ -17,12 +17,14 @@ public sealed partial class AdminController
     /// <response code="200">All online devices</response>
     /// <response code="401">Unauthorized</response>
     [HttpGet("monitoring/onlineDevices")]
-    [ProducesResponseType<LegacyDataResponse<IEnumerable<AdminOnlineDeviceResponse>>>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
+    [ProducesResponseType<LegacyDataResponse<AdminOnlineDeviceResponse[]>>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
     public async Task<IActionResult> GetOnlineDevices()
     {
+        PedanticallyEnsureAdmin();
+
         var devicesOnline = _redis.RedisCollection<DeviceOnline>(false);
 
-        var allOnlineDevices = await devicesOnline.ToArrayAsync();
+        var allOnlineDevices = await devicesOnline.ToListAsync();
         var dbLookup = await _db.Devices
             .Where(x => allOnlineDevices.Select(y => y.Id).Contains(x.Id))
             .Select(x => new
@@ -55,6 +57,8 @@ public sealed partial class AdminController
                         BootedAt = x.BootedAt,
                         LatencyMs = x.LatencyMs,
                         Rssi = x.Rssi,
+                        Country = x.Country,
+                        Ip = x.Ip
                     };
                 })
         );
@@ -76,5 +80,7 @@ public sealed partial class AdminController
         public required DateTimeOffset BootedAt { get; init; }
         public required ushort? LatencyMs { get; init; }
         public required int? Rssi { get; init; }
+        public required string? Country { get; set; }
+        public required string? Ip { get; set; }
     }
 }

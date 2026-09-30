@@ -2,11 +2,13 @@
 using OpenShock.API.Models.Response;
 using System.Net.Mime;
 using Asp.Versioning;
+using OpenShock.API.Services.LCGNodeProvisioner;
 using OpenShock.Common.Errors;
 using OpenShock.Common.Problems;
-using OpenShock.Common.Services.LCGNodeProvisioner;
 using OpenShock.Common.Utils;
 using OpenShock.Common.Models;
+
+using OpenShock.Internal.Common.Problems;
 
 namespace OpenShock.API.Controller.Device;
 
@@ -28,13 +30,20 @@ public sealed partial class DeviceController
             _logger.LogWarning("CF-IPCountry header could not be parsed into a alpha2 country code");
         }
 
+        try {
         var closestNode = await geoLocation.GetOptimalNodeAsync(countryCode);
         if (closestNode is null) return Problem(AssignLcgError.NoLcgNodesAvailable);
 
         return LegacyDataOk(new LcgNodeResponse
         {
-            Fqdn = closestNode.Fqdn,
+            Fqdn = closestNode.Host,
             Country = closestNode.Country
         });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error while assigning LCG node");
+            return Problem(AssignLcgError.NoLcgNodesAvailable);
+        }
     }
 }

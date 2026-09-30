@@ -9,6 +9,8 @@ using OpenShock.Common.Errors;
 using OpenShock.Common.Problems;
 using OpenShock.Common.Models;
 
+using OpenShock.Internal.Common.Problems;
+
 namespace OpenShock.API.Controller.Device;
 
 public sealed partial class DeviceController
@@ -22,11 +24,29 @@ public sealed partial class DeviceController
     [AllowAnonymous]
     [MapToApiVersion("1")]
     [HttpGet("pair/{pairCode}", Name = "Pair")]
-    [HttpGet("~/{version:apiVersion}/pair/{pairCode}", Name = "Pair_DEPRECATED")] // Backwards compatibility
+    [EndpointName("PairDeviceByCode")]
     [EnableRateLimiting("auth")]
     [ProducesResponseType<LegacyDataResponse<string>>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status404NotFound, MediaTypeNames.Application.ProblemJson)] // PairCodeNotFound
     public async Task<IActionResult> Pair([FromRoute] string pairCode)
+    {
+        return await PairInternal(pairCode);
+    }
+
+    /// <summary>
+    /// Pair a device with a pair code, legacy endpoint kept for backwards compatibility
+    /// </summary>
+    [AllowAnonymous]
+    [MapToApiVersion("1")]
+    [HttpGet("~/{version:apiVersion}/pair/{pairCode}")]
+    [ApiExplorerSettings(IgnoreApi = true)]
+    [EnableRateLimiting("auth")]
+    public async Task<IActionResult> PairDeprecated([FromRoute] string pairCode)
+    {
+        return await PairInternal(pairCode);
+    }
+
+    private async Task<IActionResult> PairInternal(string pairCode)
     {
         var devicePairs = _redis.RedisCollection<DevicePair>();
 
@@ -34,9 +54,18 @@ public sealed partial class DeviceController
         if (pair is null) return Problem(PairError.PairCodeNotFound);
         await devicePairs.DeleteAsync(pair);
 
-        var deviceToken = await _db.Devices.Where(x => x.Id == pair.Id).Select(x => x.Token).FirstOrDefaultAsync();
-        if (deviceToken is null) throw new Exception("Device not found for pair code");
+        var device = await _db.Devices.Where(x => x.Id == pair.Id).Select(x => new { x.Token, x.OwnerId }).FirstOrDefaultAsync();
+        if (device is null) throw new Exception("Device not found for pair code");
 
-        return LegacyDataOk(deviceToken);
+        try
+        {
+            await _deviceUpdateService.UpdateDevice(device.OwnerId, pair.Id, DeviceUpdateType.Paired);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to emit paired update for device {DeviceId}", pair.Id);
+        }
+
+        return LegacyDataOk(device.Token);
     }
 }

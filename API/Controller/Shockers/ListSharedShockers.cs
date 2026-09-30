@@ -43,7 +43,7 @@ public sealed partial class ShockerController
                 {
                     Id = x.Shocker.Id,
                     Name = x.Shocker.Name,
-                    IsPaused = x.Shocker.IsPaused,
+                    IsPaused = x.Shocker.IsPaused || x.IsPaused,
                     Permissions = new ShockerPermissions
                     {
                         Vibrate = x.AllowVibrate,

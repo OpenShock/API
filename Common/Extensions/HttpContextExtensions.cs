@@ -1,10 +1,18 @@
 ﻿using System.Diagnostics.CodeAnalysis;
+using OpenShock.Common.OpenShockDb;
 using OpenShock.Common.Constants;
 
 namespace OpenShock.Common.Extensions;
 
 public static class HttpContextExtensions
 {
+    /// <summary>
+    /// The API token this request authenticated with, as stashed by ApiTokenAuthentication,
+    /// or null for any other scheme.
+    /// </summary>
+    public static ApiToken? GetApiTokenItem(this HttpContext context) =>
+        context.Items.TryGetValue(nameof(ApiToken), out var value) ? value as ApiToken : null;
+
     private static readonly string[] TokenHeaderNames = [
         AuthConstants.ApiTokenHeaderName,
         "Open-Shock-Token",

@@ -1,10 +1,15 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using OpenShock.Common.Constants;
+using OpenShock.Common.Models;
+using OpenShock.Common.OpenShockDb;
 using OpenShock.Common.Redis;
+using OpenShock.Common.Services.Audit;
 using OpenShock.Common.Utils;
 using Redis.OM;
 using Redis.OM.Contracts;
 using Redis.OM.Searching;
+
+using OpenShock.Internal.Common.Utils;
 
 namespace OpenShock.Common.Services.Session;
 
@@ -14,20 +19,23 @@ namespace OpenShock.Common.Services.Session;
 public sealed class SessionService : ISessionService
 {
     private readonly IRedisCollection<LoginSession> _loginSessions;
+    private readonly IAuditService _auditService;
 
     /// <summary>
     /// DI constructor
     /// </summary>
     /// <param name="redisConnectionProvider"></param>
-    public SessionService(IRedisConnectionProvider redisConnectionProvider)
+    /// <param name="auditService"></param>
+    public SessionService(IRedisConnectionProvider redisConnectionProvider, IAuditService auditService)
     {
         _loginSessions = redisConnectionProvider.RedisCollection<LoginSession>(false);
+        _auditService = auditService;
     }
 
-    public async Task<CreateSessionResult> CreateSessionAsync(Guid userId, string userAgent, string ipAddress)
+    public async Task<CreateSessionResult> CreateSessionAsync(Guid userId, string userAgent, string ipAddress, Guid? actorId)
     {
         Guid id = Guid.CreateVersion7();
-        string token = CryptoUtils.RandomAlphaNumericString(AuthConstants.GeneratedTokenLength);
+        string token = CryptoUtils.RandomString(AuthConstants.GeneratedTokenLength);
 
         await _loginSessions.InsertAsync(new LoginSession
         {
@@ -40,12 +48,19 @@ public sealed class SessionService : ISessionService
             Expires = DateTime.UtcNow.Add(Duration.LoginSessionLifetime),
         }, Duration.LoginSessionLifetime);
 
+        await _auditService.LogAsync(
+            userId,
+            action: AuditAction.Login,
+            actorId: actorId ?? userId,
+            metadata: new LoginMetadata(id)
+        );
+
         return new CreateSessionResult(id, token);
     }
 
-    public async Task<IReadOnlyList<LoginSession>> ListSessionsByUserIdAsync(Guid userId)
+    public IAsyncEnumerable<LoginSession> ListSessionsByUserIdAsync(Guid userId)
     {
-        return await _loginSessions.Where(x => x.UserId == userId).ToArrayAsync();
+        return _loginSessions.Where(x => x.UserId == userId);
     }
 
     public async Task<LoginSession?> GetSessionByTokenAsync(string sessionToken)
@@ -95,15 +110,29 @@ public sealed class SessionService : ISessionService
 
     public async Task<int> DeleteSessionsByUserIdAsync(Guid userId)
     {
-        var sessions = await _loginSessions.Where(x => x.UserId == userId).ToArrayAsync();
+        var sessions = await _loginSessions.Where(x => x.UserId == userId).ToListAsync();
 
         await _loginSessions.DeleteAsync(sessions);
 
-        return sessions.Length;
+        return sessions.Count;
     }
 
     public async Task DeleteSessionAsync(LoginSession loginSession)
     {
+        await _loginSessions.DeleteAsync(loginSession);
+    }
+
+    public async Task LogoutSessionAsync(LoginSession loginSession)
+    {
+        // Record the logout before destroying the session. The session delete is idempotent, so if
+        // this throws the caller can safely retry; deleting first would leave the session gone while
+        // the caller sees a failure and no audit trail.
+        await _auditService.LogAsync(
+            loginSession.UserId,
+            action: AuditAction.Logout,
+            actorId: loginSession.UserId
+        );
+
         await _loginSessions.DeleteAsync(loginSession);
     }
 }

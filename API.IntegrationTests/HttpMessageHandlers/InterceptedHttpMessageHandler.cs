@@ -32,6 +32,15 @@ sealed class InterceptedHttpMessageHandler : DelegatingHandler
                 Action = "invalidaction",
                 Cdata = ""
             },
+            "expired-token" => new CloudflareTurnstileVerifyResponseDto
+            {
+                Success = false,
+                ErrorCodes = ["timeout-or-duplicate"],
+                ChallengeTs = DateTime.UtcNow,
+                Hostname = "expiredhost",
+                Action = "expiredaction",
+                Cdata = ""
+            },
             _ => new CloudflareTurnstileVerifyResponseDto
             {
                 Success = false,
@@ -53,28 +62,28 @@ sealed class InterceptedHttpMessageHandler : DelegatingHandler
         return responseMessage;
     }
 
-    private Task<HttpResponseMessage> HandleMailJetApiHost(HttpRequestMessage request, CancellationToken cancellationToken)
-    {
-        return Task.FromResult(new HttpResponseMessage(HttpStatusCode.NotFound));
-    }
-
     protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
     {
         return request.RequestUri switch
         {
             { Host: "challenges.cloudflare.com", AbsolutePath: "/turnstile/v0/siteverify" } => await HandleCloudflareTurnstileRequest(request, cancellationToken),
-            { Host: "api.mailjet.com" } => await HandleMailJetApiHost(request, cancellationToken),
             _ => new HttpResponseMessage(HttpStatusCode.NotFound)
         };
     }
 
     private class CloudflareTurnstileVerifyResponseDto
     {
+        [System.Text.Json.Serialization.JsonPropertyName("success")]
         public bool Success { get; init; }
+        [System.Text.Json.Serialization.JsonPropertyName("error-codes")]
         public required string[] ErrorCodes { get; init; }
+        [System.Text.Json.Serialization.JsonPropertyName("challenge_ts")]
         public DateTime ChallengeTs { get; init; }
+        [System.Text.Json.Serialization.JsonPropertyName("hostname")]
         public required string Hostname { get; init; }
+        [System.Text.Json.Serialization.JsonPropertyName("action")]
         public required string Action { get; init; }
+        [System.Text.Json.Serialization.JsonPropertyName("cdata")]
         public required string Cdata { get; init; }
     }
 }

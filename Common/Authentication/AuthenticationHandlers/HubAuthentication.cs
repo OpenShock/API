@@ -8,6 +8,10 @@ using OpenShock.Common.Extensions;
 using OpenShock.Common.OpenShockDb;
 using OpenShock.Common.Problems;
 
+using OpenShock.Common.JsonSerialization;
+
+using OpenShock.Internal.Common.Problems;
+
 namespace OpenShock.Common.Authentication.AuthenticationHandlers;
 
 /// <summary>
@@ -17,7 +21,7 @@ public sealed class HubAuthentication : AuthenticationHandler<AuthenticationSche
 {
     private readonly OpenShockContext _db;
     
-    private OpenShockProblem? _authResultError = null;
+    private OpenShockProblem? _authResultError;
 
 
     public HubAuthentication(
@@ -82,6 +86,6 @@ public sealed class HubAuthentication : AuthenticationHandler<AuthenticationSche
     {
         if (Context.Response.HasStarted) return Task.CompletedTask;
         _authResultError ??= AuthResultError.UnknownError;
-        return _authResultError.WriteAsJsonAsync(Context);
+        return _authResultError.WriteAsJsonAsync(Context, JsonOptions.Default, Context.RequestAborted);
     }
 }

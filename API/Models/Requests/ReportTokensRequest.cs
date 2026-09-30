@@ -2,12 +2,14 @@
 using OpenShock.Common.Constants;
 using OpenShock.Common.DataAnnotations;
 
+using OpenShock.Internal.Common.DataAnnotations;
+
 namespace OpenShock.API.Models.Requests;
 
 public class ReportTokensRequest
 {
     [Required(AllowEmptyStrings = false)]
-    [StringLength(HardLimits.MaxTurnstileResponseTokenLength)]
+    [StringLength(ApiHardLimits.MaxTurnstileResponseTokenLength)]
     public required string TurnstileResponse { get; set; }
     
     [MaxLength(512)]

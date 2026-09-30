@@ -21,7 +21,7 @@ public static class ControlLogSeeder
         var allUserIds = await db.Users.Select(u => u.Id).ToListAsync();
 
         var controlLogFaker = new Faker<ShockerControlLog>()
-            .RuleFor(l => l.Id, f => Guid.CreateVersion7())
+            .RuleFor(l => l.Id, f => f.Random.Guid())
             .RuleFor(l => l.ShockerId, f => f.PickRandom(allShockerIds))
             .RuleFor(l => l.ControlledByUserId, f => f.PickRandom(allUserIds))
             .RuleFor(l => l.Intensity, f => f.Random.Byte(1, 100))

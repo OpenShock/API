@@ -17,7 +17,7 @@ public static class UserShareInviteSeeder
         var allUserIds = await db.Users.Select(u => u.Id).ToListAsync();
         // Exclude self-invites
         var inviteFaker = new Faker<UserShareInvite>()
-            .RuleFor(i => i.Id, f => Guid.CreateVersion7())
+            .RuleFor(i => i.Id, f => f.Random.Guid())
             .RuleFor(i => i.OwnerId, f => f.PickRandom(allUserIds))
             .RuleFor(i => i.RecipientUserId, (f, i) =>
             {

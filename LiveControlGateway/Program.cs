@@ -1,13 +1,15 @@
+using System.Diagnostics.Metrics;
 using Microsoft.Extensions.Options;
 using OpenShock.Common;
 using OpenShock.Common.Extensions;
 using OpenShock.Common.Services;
 using OpenShock.Common.Services.Device;
 using OpenShock.Common.Services.Ota;
-using OpenShock.Common.Swagger;
 using OpenShock.LiveControlGateway;
 using OpenShock.LiveControlGateway.LifetimeManager;
+using OpenShock.LiveControlGateway.Metrics;
 using OpenShock.LiveControlGateway.Options;
+using OpenShock.LiveControlGateway.PubSub;
 
 var builder = OpenShockApplication.CreateDefaultBuilder<Program>(args);
 
@@ -15,31 +17,36 @@ var redisOptions = builder.RegisterRedisOptions();
 var databaseOptions = builder.RegisterDatabaseOptions();
 builder.RegisterMetricsOptions();
 
-// TODO Simplify this
-builder.Services.Configure<LcgOptions>(builder.Configuration.GetRequiredSection(LcgOptions.SectionName));
+var lcgOptions = builder.Configuration.GetRequiredSection(LcgOptions.SectionName).Get<LcgOptions>();
+if (lcgOptions is null)
+    throw new InvalidOperationException($"Missing or invalid configuration for {LcgOptions.SectionName}.");
+
 builder.Services.AddSingleton<IValidateOptions<LcgOptions>, LcgOptionsValidator>();
-builder.Services.AddSingleton<LcgOptions>(sp => sp.GetRequiredService<IOptions<LcgOptions>>().Value);
+builder.Services.AddSingleton(lcgOptions);
 
 builder.Services
     .AddOpenShockMemDB(redisOptions)
     .AddOpenShockDB(databaseOptions)
-    .AddOpenShockServices()
+    .AddOpenShockServices(configureMetrics: metricsBuilder => { metricsBuilder.AddMeter("OpenShock.Gateway"); })
     .AddOpenShockSignalR(redisOptions);
 
 builder.Services.AddScoped<IDeviceService, DeviceService>();
 builder.Services.AddScoped<IControlSender, ControlSender>();
 builder.Services.AddScoped<IOtaService, OtaService>();
-
-builder.AddSwaggerExt<Program>();
-
-//services.AddHealthChecks().AddCheck<DatabaseHealthCheck>("database");
+// The fqdn rides on the individual measurements, not on the Meter: a tag set here is a *scope*
+// attribute, which the Prometheus exporter emits prefixed as otel_scope_gateway_fqdn.
+builder.Services.AddKeyedSingleton("OpenShock.Gateway.Meter", new Meter("OpenShock.Gateway", "1.0.0"));
 
 builder.Services.AddHostedService<LcgKeepAlive>();
 
+builder.Services.AddSingleton<GatewayMetrics>();
 builder.Services.AddSingleton<HubLifetimeManager>();
+builder.Services.AddSingleton<ApiTokenUpdateSubscriber>();
 
 var app = builder.Build();
 
-await app.UseCommonOpenShockMiddleware();
+await app.UseCommonOpenShockMiddleware(lcgOptions.PublicPath);
+
+await app.WaitForOpenShockSchemaReady(databaseOptions);
 
 await app.RunAsync();

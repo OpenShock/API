@@ -6,6 +6,8 @@ using OpenShock.LiveControlGateway.Options;
 using System.Net.Mime;
 using System.Reflection;
 
+using OpenShock.Internal.Common.Utils;
+
 namespace OpenShock.LiveControlGateway.Controllers;
 
 /// <summary>

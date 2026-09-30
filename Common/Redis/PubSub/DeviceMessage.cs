@@ -1,5 +1,6 @@
 ﻿using MessagePack;
 using OpenShock.Common.Models;
+using OpenShock.Common.OpenShockDb;
 
 namespace OpenShock.Common.Redis.PubSub;
 

@@ -2,10 +2,12 @@
 using OpenShock.API.Models.Response;
 using System.Net.Mime;
 using Asp.Versioning;
+using OpenShock.API.Services.LCGNodeProvisioner;
 using OpenShock.Common.Errors;
 using OpenShock.Common.Problems;
-using OpenShock.Common.Services.LCGNodeProvisioner;
 using OpenShock.Common.Utils;
+
+using OpenShock.Internal.Common.Problems;
 
 namespace OpenShock.API.Controller.Device;
 
@@ -46,9 +48,9 @@ public sealed partial class DeviceController
 
         return Ok(new LcgNodeResponseV2
         {
-            Host = closestNode.Fqdn,
-            Port = 443,
-            Path = path,
+            Host = closestNode.Host,
+            Port = closestNode.Port,
+            Path = closestNode.PathPrefix + path,
             Country = closestNode.Country
         });
     }

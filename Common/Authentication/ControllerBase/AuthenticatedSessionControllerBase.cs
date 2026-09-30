@@ -1,7 +1,11 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using System.Diagnostics;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
+using OpenShock.Common.Extensions;
 using OpenShock.Common.Models;
 using OpenShock.Common.OpenShockDb;
+using OpenShock.Common.Redis;
+using OpenShock.Common.Results;
 
 namespace OpenShock.Common.Authentication.ControllerBase;
 
@@ -23,16 +27,9 @@ public class AuthenticatedSessionControllerBase : OpenShockControllerBase, IActi
     [NonAction]
     protected bool IsAllowed(PermissionType requiredType)
     {
-        if (User.Identities.Any(x => x is { Name: OpenShockAuthSchemes.UserSessionCookie, IsAuthenticated: true }))
-        {
-            return true;
-        }
+        // Session auth is not scoped by API token permissions.
+        if (User.HasOpenShockUserIdentity()) return true;
 
-        var permissions = User.Claims
-            .Where(c => c.Type == OpenShockAuthClaims.ApiTokenPermission)
-            .Select(c => Enum.Parse<PermissionType>(c.Value))
-            .ToArray();
-        
-        return requiredType.IsAllowed(permissions);
+        return requiredType.IsAllowed(User.GetApiTokenPermissions());
     }
 }

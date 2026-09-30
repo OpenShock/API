@@ -1,13 +1,12 @@
 ﻿using MessagePack;
 using Microsoft.EntityFrameworkCore;
-using OneOf;
-using OneOf.Types;
 using OpenShock.Common.Constants;
 using OpenShock.Common.Extensions;
 using OpenShock.Common.Models;
 using OpenShock.Common.OpenShockDb;
 using OpenShock.Common.Redis;
 using OpenShock.Common.Redis.PubSub;
+using OpenShock.Common.Results;
 using OpenShock.Common.Services.RedisPubSub;
 using OpenShock.Common.Utils;
 using OpenShock.LiveControlGateway.Controllers;
@@ -18,6 +17,10 @@ using StackExchange.Redis;
 using System.Collections.Immutable;
 using System.ComponentModel.DataAnnotations;
 using System.Diagnostics;
+using System.Net;
+using OpenShock.Internal.Common.Utils;
+
+using OpenShock.Internal.Common.Extensions;
 
 namespace OpenShock.LiveControlGateway.LifetimeManager;
 
@@ -56,7 +59,20 @@ public sealed class HubLifetime : IAsyncDisposable
     private ImmutableArray<LiveControlController> _liveControlClients = ImmutableArray<LiveControlController>.Empty;
     private readonly SemaphoreSlim _liveControlClientsLock = new(1);
 
+    /// <summary>
+    /// Live control clients currently attached to this hub. Lock free: the field is a single
+    /// reference to an immutable snapshot, so a reader always sees one consistent version of it.
+    /// </summary>
+    public int LiveControlClientCount => _liveControlClients.Length;
+
     private ChannelMessageQueue? _deviceMsgQueue;
+    private bool _disposed;
+
+    /// <summary>
+    /// Rate limit for the "update loop behind" warning, a hub that is persistently
+    /// behind would otherwise log one warning per tick
+    /// </summary>
+    private static readonly TimeSpan BehindWarningInterval = TimeSpan.FromSeconds(5);
 
     /// <summary>
     /// DI Constructor
@@ -103,6 +119,7 @@ public sealed class HubLifetime : IAsyncDisposable
                 _logger.LogWarning("Client already registered, not sure how this happened, probably a bug");
                 return null;
             }
+
             _liveControlClients = _liveControlClients.Add(controller);
         }
 
@@ -180,7 +197,8 @@ public sealed class HubLifetime : IAsyncDisposable
         DeviceMessage message;
         try
         {
-            message = MessagePackSerializer.Deserialize<DeviceMessage>((ReadOnlyMemory<byte>)value, cancellationToken: cancellationToken);
+            message = MessagePackSerializer.Deserialize<DeviceMessage>((ReadOnlyMemory<byte>)value,
+                cancellationToken: cancellationToken);
         }
         catch (Exception e)
         {
@@ -208,7 +226,8 @@ public sealed class HubLifetime : IAsyncDisposable
                 await OtaInstall(version);
                 break;
             default:
-                _logger.LogError("Got DeviceMessage with unknown payload type: {PayloadType}", message.Payload.GetType().Name);
+                _logger.LogError("Got DeviceMessage with unknown payload type: {PayloadType}",
+                    message.Payload.GetType().Name);
                 break;
         }
     }
@@ -304,9 +323,27 @@ public sealed class HubLifetime : IAsyncDisposable
 
     private async Task UpdateLoop()
     {
-        while (!_cancellationSource.IsCancellationRequested)
+        using var timer = new PeriodicTimer(_waitBetweenTicks);
+        var lastTick = Stopwatch.GetTimestamp();
+        long? lastBehindWarning = null;
+
+        while (await timer.WaitForNextTickAsync(_cancellationSource.Token))
         {
-            var startingTime = Stopwatch.GetTimestamp();
+            var now = Stopwatch.GetTimestamp();
+            var sinceLastTick = Stopwatch.GetElapsedTime(lastTick, now);
+            lastTick = now;
+
+            // PeriodicTimer drops missed ticks, so a gap of two or more periods
+            // means Update() couldn't keep up and tick(s) were skipped.
+            var dropped = (int)(sinceLastTick.Ticks / _waitBetweenTicks.Ticks) - 1;
+            if (dropped >= 1 && (lastBehindWarning is null ||
+                                 Stopwatch.GetElapsedTime(lastBehindWarning.Value, now) >= BehindWarningInterval))
+            {
+                lastBehindWarning = now;
+                _logger.LogWarning(
+                    "Update loop behind for device [{DeviceId}]: ~{Dropped} tick(s) dropped, {LateMs:F1}ms late",
+                    HubController.Id, dropped, (sinceLastTick - _waitBetweenTicks).TotalMilliseconds);
+            }
 
             try
             {
@@ -316,17 +353,6 @@ public sealed class HubLifetime : IAsyncDisposable
             {
                 _logger.LogError(e, "Error in Update()");
             }
-
-
-            var elapsed = Stopwatch.GetElapsedTime(startingTime);
-            var waitTime = _waitBetweenTicks - elapsed;
-            if (waitTime.TotalMilliseconds < 1)
-            {
-                _logger.LogWarning("Update loop running behind for device [{DeviceId}]", HubController.Id);
-                continue;
-            }
-
-            await Task.Delay(waitTime, _cancellationSource.Token);
         }
     }
 
@@ -338,7 +364,7 @@ public sealed class HubLifetime : IAsyncDisposable
         foreach (var state in _shockerStates.Values)
         {
             if (state.ActiveUntil < now || state.ExclusiveUntil >= now) continue;
-            
+
             commandList.Add(new ShockerCommand
             {
                 Model = FbsMapper.ToFbsModelType(state.Model),
@@ -389,7 +415,7 @@ public sealed class HubLifetime : IAsyncDisposable
     /// <param name="intensity"></param>
     /// <param name="tps"></param>
     /// <returns></returns>
-    public OneOf<Success, NotFound, ShockerExclusive> ReceiveFrame(Guid shocker, ControlType type, byte intensity,
+    public Union3<Success, NotFound, ShockerExclusive> ReceiveFrame(Guid shocker, ControlType type, byte intensity,
         byte tps)
     {
         if (!_shockerStates.TryGetValue(shocker, out var state)) return new NotFound();
@@ -416,7 +442,7 @@ public sealed class HubLifetime : IAsyncDisposable
     public ValueTask Control(IReadOnlyList<ShockerControlCommand> commands)
     {
         var shocksTransformed = new List<ShockerCommand>(commands.Count);
-        
+
         foreach (var command in commands)
         {
             if (!_shockerStates.TryGetValue(command.ShockerId, out var state)) continue;
@@ -462,27 +488,14 @@ public sealed class HubLifetime : IAsyncDisposable
     /// <param name="device"></param>
     /// <param name="data"></param>
     /// <returns></returns>
-    public async Task<OneOf<Success, OnlineStateUpdated>> Online(Guid device, SelfOnlineData data)
+    public async Task<Union2<Success, OnlineStateUpdated>> Online(Guid device, SelfOnlineData data)
     {
         var deviceOnline = _redisConnectionProvider.RedisCollection<DeviceOnline>();
         var deviceId = device.ToString();
         var online = await deviceOnline.FindByIdAsync(deviceId);
         if (online is null)
         {
-            await deviceOnline.InsertAsync(new DeviceOnline
-            {
-                Id = device,
-                Owner = data.Owner,
-                FirmwareVersion = data.FirmwareVersion,
-                Gateway = data.Gateway,
-                ConnectedAt = data.ConnectedAt,
-                UserAgent = data.UserAgent,
-                BootedAt = data.BootedAt,
-                LatencyMs = data.LatencyMs,
-                Rssi = data.Rssi,
-            }, Duration.DeviceKeepAliveTimeout);
-
-
+            await InsertNewDeviceOnline();
             await _redisPubService.SendDeviceOnlineStatus(device, true);
             return new Success();
         }
@@ -492,9 +505,12 @@ public sealed class HubLifetime : IAsyncDisposable
         online.BootedAt = data.BootedAt;
         online.LatencyMs = data.LatencyMs;
         online.Rssi = data.Rssi;
+        online.Country = data.Country;
+        online.Ip = data.Ip?.ToString();
 
         var sendOnlineStatusUpdate = false;
 
+        // Do we need to send a update to the clients?
         if (online.FirmwareVersion != data.FirmwareVersion ||
             online.Gateway != data.Gateway ||
             online.ConnectedAt != data.ConnectedAt ||
@@ -508,7 +524,20 @@ public sealed class HubLifetime : IAsyncDisposable
             sendOnlineStatusUpdate = true;
         }
 
-        await deviceOnline.UpdateAsync(online, Duration.DeviceKeepAliveTimeout);
+        try
+        {
+            // This can fail, when the key TTL expires while we are updating it, we should catch and try to insert a new one
+            await deviceOnline.UpdateAsync(online, Duration.DeviceKeepAliveTimeout);
+        }
+        catch (Exception e)
+        {
+            _logger.LogDebug(e, "Failed to update device online status for device [{DeviceId}], trying to insert new",
+                device);
+            // If this fails, then whatever honestly, we could disconnect the client here
+            // but I dont think this is relevant
+            await InsertNewDeviceOnline();
+            sendOnlineStatusUpdate = true; // In case of there was already a offline message sent to the clients
+        }
 
         if (sendOnlineStatusUpdate)
         {
@@ -517,16 +546,33 @@ public sealed class HubLifetime : IAsyncDisposable
         }
 
         return new Success();
-    }
 
-    private bool _disposed;
+        async Task InsertNewDeviceOnline()
+        {
+            await deviceOnline.InsertAsync(new DeviceOnline
+            {
+                Id = device,
+                Owner = data.Owner,
+                FirmwareVersion = data.FirmwareVersion,
+                Gateway = data.Gateway,
+                ConnectedAt = data.ConnectedAt,
+                UserAgent = data.UserAgent,
+                BootedAt = data.BootedAt,
+                LatencyMs = data.LatencyMs,
+                Rssi = data.Rssi,
+                Country = data.Country,
+                Ip = data.Ip?.ToString(),
+            }, Duration.DeviceKeepAliveTimeout);
+        }
+    }
 
     /// <inheritdoc />
     public async ValueTask DisposeAsync()
     {
         if (_disposed) return;
         _disposed = true;
-        
+
+        // Cancelling ends UpdateLoop, which disposes its own timer on the way out
         await _cancellationSource.CancelAsync();
 
         if (_deviceMsgQueue is not null)
@@ -541,7 +587,7 @@ public sealed class HubLifetime : IAsyncDisposable
 /// <summary>
 /// Online state updated
 /// </summary>
-public readonly struct OnlineStateUpdated;
+public sealed class OnlineStateUpdated;
 
 /// <summary>
 /// Self online data struct
@@ -618,4 +664,14 @@ public readonly struct SelfOnlineData
     /// Wifi rssi
     /// </summary>
     public int? Rssi { get; init; } = null;
+    
+    /// <summary>
+    /// Country code if available
+    /// </summary>
+    public string? Country { get; init; } = null;
+    
+    /// <summary>
+    /// Remote ip address
+    /// </summary>
+    public IPAddress? Ip { get; init; } = null;
 }

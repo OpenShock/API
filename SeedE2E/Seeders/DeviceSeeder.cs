@@ -5,6 +5,8 @@ using OpenShock.Common.Constants;
 using OpenShock.Common.OpenShockDb;
 using OpenShock.Common.Utils;
 
+using OpenShock.Internal.Common.Constants;
+
 namespace OpenShock.SeedE2E.Seeders;
 
 public static class DeviceSeeder
@@ -21,10 +23,10 @@ public static class DeviceSeeder
         var allUserIds = await db.Users.Select(u => u.Id).ToListAsync();
 
         var deviceFaker = new Faker<Device>()
-            .RuleFor(d => d.Id, f => Guid.CreateVersion7())
+            .RuleFor(d => d.Id, f => f.Random.Guid())
             .RuleFor(d => d.Name, f => f.Commerce.ProductName().Truncate(HardLimits.HubNameMaxLength))
             .RuleFor(d => d.OwnerId, f => f.PickRandom(allUserIds))
-            .RuleFor(d => d.Token, f => f.Random.AlphaNumeric(HardLimits.HubTokenMaxLength))
+            .RuleFor(d => d.Token, f => f.Random.AlphaNumeric(ApiHardLimits.HubTokenMaxLength))
             .RuleFor(d => d.CreatedAt, f => f.Date.RecentOffset(60).UtcDateTime);
 
         // Generate 3 fake devices per user

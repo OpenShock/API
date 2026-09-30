@@ -2,11 +2,16 @@
 using System.Text.Json;
 using System.Threading.Channels;
 using Microsoft.AspNetCore.Mvc;
-using OneOf;
-using OneOf.Types;
 using OpenShock.Common.Errors;
 using OpenShock.Common.Problems;
+using OpenShock.Common.Results;
 using OpenShock.Common.Utils;
+
+using JsonOptions = OpenShock.Common.JsonSerialization.JsonOptions;
+
+using OpenShock.Internal.Common.Utils;
+
+using OpenShock.Internal.Common.Problems;
 
 namespace OpenShock.Common.Websocket;
 
@@ -115,14 +120,14 @@ public abstract class WebsocketBaseController<T> : OpenShockControllerBase, IAsy
         
         if (!HttpContext.WebSockets.IsWebSocketRequest)
         {
-            await WebsocketError.NonWebsocketRequest.WriteAsJsonAsync(HttpContext, LinkedToken);
+            await WebsocketError.NonWebsocketRequest.WriteAsJsonAsync(HttpContext, JsonOptions.Default, LinkedToken);
             return;
         }
 
         var connectionPrecondition = await ConnectionPrecondition();
-        if (connectionPrecondition.IsT1)
+        if (connectionPrecondition.Value is OpenShockProblem connectionError)
         {
-            await connectionPrecondition.AsT1.Value.WriteAsJsonAsync(HttpContext, LinkedToken);
+            await connectionError.WriteAsJsonAsync(HttpContext, JsonOptions.Default, LinkedToken);
             return;
         }
 
@@ -292,6 +297,6 @@ public abstract class WebsocketBaseController<T> : OpenShockControllerBase, IAsy
     /// Action when the websocket connection is destroyed to unregister the connection to a websocket manager
     /// </summary>
     [NonAction]
-    protected virtual Task<OneOf<Success, Error<OpenShockProblem>>> ConnectionPrecondition() =>
-        Task.FromResult(OneOf<Success, Error<OpenShockProblem>>.FromT0(new Success()));
+    protected virtual Task<SuccessOrProblem> ConnectionPrecondition() =>
+        Task.FromResult<SuccessOrProblem>(new Success());
 }

@@ -10,13 +10,19 @@ using OpenShock.Common.Utils;
 using System.Security.Claims;
 using System.Text.Encodings.Web;
 
+using OpenShock.Common.JsonSerialization;
+
+using OpenShock.Internal.Common.Utils;
+
+using OpenShock.Internal.Common.Problems;
+
 namespace OpenShock.Common.Authentication.AuthenticationHandlers;
 
 public sealed class ApiTokenAuthentication : AuthenticationHandler<AuthenticationSchemeOptions>
 {
     private readonly IBatchUpdateService _batchUpdateService;
     private readonly OpenShockContext _db;
-    private OpenShockProblem? _authResultError = null;
+    private OpenShockProblem? _authResultError;
 
     public ApiTokenAuthentication(
         IOptionsMonitor<AuthenticationSchemeOptions> options,
@@ -84,6 +90,6 @@ public sealed class ApiTokenAuthentication : AuthenticationHandler<Authenticatio
     {
         if (Context.Response.HasStarted) return Task.CompletedTask;
         _authResultError ??= AuthResultError.UnknownError;
-        return _authResultError.WriteAsJsonAsync(Context);
+        return _authResultError.WriteAsJsonAsync(Context, JsonOptions.Default, Context.RequestAborted);
     }
 }

@@ -19,7 +19,7 @@ public static class ApiTokenReportSeeder
         var allUserIds = await db.Users.Select(u => u.Id).ToListAsync();
 
         var reportFaker = new Faker<ApiTokenReport>()
-            .RuleFor(r => r.Id, f => Guid.CreateVersion7())
+            .RuleFor(r => r.Id, f => f.Random.Guid())
             .RuleFor(r => r.UserId, f => f.PickRandom(allUserIds))
             .RuleFor(r => r.SubmittedCount, f => f.Random.Number(1, 10))
             .RuleFor(r => r.AffectedCount, (f, r) => Math.Min(r.SubmittedCount, f.Random.Number(0, r.SubmittedCount)))

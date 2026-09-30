@@ -1,6 +1,12 @@
-﻿using Microsoft.AspNetCore.Mvc.Filters;
+﻿using System.Security.Claims;
+using Microsoft.AspNetCore.Mvc.Filters;
 using OpenShock.Common.Errors;
+using OpenShock.Common.Extensions;
 using OpenShock.Common.Models;
+using OpenShock.Common.OpenShockDb;
+using OpenShock.Common.Problems;
+
+using OpenShock.Internal.Common.Problems;
 
 namespace OpenShock.Common.Authentication.Attributes;
 
@@ -16,12 +22,27 @@ public sealed class TokenPermissionAttribute : Attribute, IAuthorizationFilter
 
     public void OnAuthorization(AuthorizationFilterContext context)
     {
-        var permissions = context.HttpContext.User.Claims.Where(x => x.Type == OpenShockAuthClaims.ApiTokenPermission).Select(x => x.Value).ToArray();
-        
-        if (!permissions.Contains(_type.ToString()))
+        var user = context.HttpContext.User;
+
+        // A session is not scoped by token permissions; anything that is neither a session nor an
+        // API token has no permissions to check and should not have reached an authorized action.
+        if (user.HasOpenShockUserIdentity()) return;
+
+        var problem = GetProblem(user);
+        if (problem is not null)
         {
-            var problem = AuthorizationError.TokenPermissionMissing(_type, permissions.Select(Enum.Parse<PermissionType>).ToArray());
             context.Result = problem.ToObjectResult(context.HttpContext);
         }
+    }
+
+    private OpenShockProblem? GetProblem(ClaimsPrincipal user)
+    {
+        if (!user.HasOpenShockApiTokenIdentity()) return AuthorizationError.UnknownError;
+
+        var permissions = user.GetApiTokenPermissions();
+
+        return _type.IsAllowed(permissions)
+            ? null
+            : AuthorizationError.TokenPermissionMissing(_type, permissions);
     }
 }

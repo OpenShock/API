@@ -7,6 +7,9 @@ using OpenShock.API.OAuth;
 using OpenShock.API.Services.OAuthConnection;
 using OpenShock.Common.Errors;
 using OpenShock.Common.Extensions;
+using OpenShock.Common.OpenShockDb;
+using OpenShock.Common.Options;
+using OpenShock.Common.Results;
 using System.Security.Claims;
 
 namespace OpenShock.API.Controller.OAuth;
@@ -23,6 +26,7 @@ public sealed partial class OAuthController
     /// <param name="provider">Provider key (e.g. <c>discord</c>).</param>
     /// <param name="body">Request body containing optional <c>Email</c> and <c>Username</c> overrides.</param>
     /// <param name="connectionService"></param>
+    /// <param name="accountOptions"></param>
     /// <param name="cancellationToken"></param>
     [EnableRateLimiting("auth")]
     [HttpPost("{provider}/signup-finalize")]
@@ -31,8 +35,12 @@ public sealed partial class OAuthController
         [FromRoute] string provider,
         [FromBody] OAuthFinalizeRequest body,
         [FromServices] IOAuthConnectionService connectionService,
+        [FromServices] AccountOptions accountOptions,
         CancellationToken cancellationToken)
     {
+        if (!accountOptions.RegistrationEnabled)
+            return Problem(SignupError.RegistrationDisabled);
+
         // If domain is not supported for cookies, cancel the flow
         var domain = GetCurrentCookieDomain();
         if (string.IsNullOrEmpty(domain))
@@ -42,8 +50,9 @@ public sealed partial class OAuthController
         }
         
         var result = await ValidateOAuthFlowAsync();
-        if (!result.TryPickT0(out var auth, out var error))
+        if (result is not ValidatedFlowContext auth)
         {
+            var error = (OAuthValidationError)result.Value!;
             return error switch
             {
                 OAuthValidationError.FlowStateMissing => Problem(OAuthError.FlowNotFound),
@@ -93,7 +102,7 @@ public sealed partial class OAuthController
             isEmailTrusted
         );
 
-        if (!created.TryPickT0(out var newUser, out _))
+        if (created is not User newUser)
         {
             // Username or email already exists — conflict.
             // Do NOT clear the flow cookie so the frontend can retry with a different username.
@@ -101,15 +110,15 @@ public sealed partial class OAuthController
         }
 
         // Authenticate the client if its activated (create session and set session cookie)
-        if (newUser.Value.ActivatedAt is not null)
+        if (newUser.ActivatedAt is not null)
         {
-            await CreateSession(newUser.Value.Id, domain);
+            await CreateSession(newUser.Id, domain);
         }
 
         // Clear the temporary OAuth flow cookie.
         await HttpContext.SignOutAsync(OAuthConstants.FlowScheme);
 
-        return Ok(LoginV2OkResponse.FromUser(newUser.Value));
+        return Ok(LoginV2OkResponse.FromUser(newUser));
 
         static bool IsTruthy(string? value)
         {

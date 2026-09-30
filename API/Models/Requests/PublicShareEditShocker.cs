@@ -2,6 +2,8 @@
 using OpenShock.API.Models.Response;
 using OpenShock.Common.Constants;
 
+using OpenShock.Internal.Common.Constants;
+
 namespace OpenShock.API.Models.Requests;
 
 public sealed class PublicShareEditShocker

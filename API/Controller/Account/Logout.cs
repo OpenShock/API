@@ -15,7 +15,11 @@ public sealed partial class AccountController
         // Remove session if valid
         if (HttpContext.TryGetUserSessionToken(out var sessionToken))
         {
-            await sessionService.DeleteSessionByTokenAsync(sessionToken);
+            var session = await sessionService.GetSessionByTokenAsync(sessionToken);
+            if (session is not null)
+            {
+                await sessionService.LogoutSessionAsync(session);
+            }
         }
 
         // Make sure cookie is removed, no matter if authenticated or not
