@@ -26,7 +26,7 @@ public class OpenShockControllerBase : OpenShock.Internal.Common.OpenShockContro
 
         if (value is null)
         {
-            throw new InvalidOperationException($"HttpContext.Items contain required item but it is null (expected: {typeof(T).FullName}).");
+            throw new InvalidOperationException($"HttpContext.Items contains the required item but it is null (expected: {typeof(T).FullName}).");
         }
 
         if (value is not T typed)

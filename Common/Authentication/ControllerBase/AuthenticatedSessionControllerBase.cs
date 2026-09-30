@@ -27,9 +27,13 @@ public class AuthenticatedSessionControllerBase : OpenShockControllerBase, IActi
     [NonAction]
     protected bool IsAllowed(PermissionType requiredType)
     {
-        // Session auth is not scoped by API token permissions.
+        // Checked before the session for the same reason as TokenPermissionAttribute: when both
+        // credentials are on the request, the token is the one CurrentUser came from.
+        if (User.HasOpenShockApiTokenIdentity()) return requiredType.IsAllowed(User.GetApiTokenPermissions());
+
+        // Session auth on its own is not scoped by API token permissions.
         if (User.HasOpenShockUserIdentity()) return true;
 
-        return requiredType.IsAllowed(User.GetApiTokenPermissions());
+        throw new UnreachableException("User should be authenticated here");
     }
 }
