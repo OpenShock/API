@@ -12,7 +12,7 @@ namespace OpenShock.Common;
 
 // Inherits Problem(OpenShockProblem) from OpenShock.Internal.Common.OpenShockControllerBase;
 // the members below are OpenShock-API-specific and stay local.
-public class OpenShockControllerBase : OpenShock.Internal.Common.OpenShockControllerBase
+public abstract class OpenShockControllerBase : OpenShock.Internal.Common.OpenShockControllerBase
 {
     [NonAction]
     protected OkObjectResult LegacyDataOk<T>(T data, string message = "")
