@@ -95,7 +95,7 @@ public sealed class UserHub : Hub<IUserHub>
         }).FirstAsync();
 
         ApiTokenControlLimits? tokenLimits = null;
-        if (Context.GetHttpContext()?.GetApiTokenItem() is { } apiToken)
+        if (Context.GetHttpContext()?.GetItemByType<ApiToken>() is { } apiToken)
         {
             // A paused token may not control shockers.
             if (apiToken.ShockerControlPaused) return;

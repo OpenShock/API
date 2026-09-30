@@ -34,8 +34,8 @@ public sealed class TokenPermissionAttribute : Attribute, IAuthorizationFilter
     private OpenShockProblem? GetProblem(ClaimsPrincipal user)
     {
         // A combined scheme authenticates every credential on the request, so a session cookie and an
-        // API token can both be present. The token handler is the one that ends up setting
-        // HttpContext.Items["User"], so the token is what the action acts under and its permissions
+        // API token can both be present. The token handler is the one that ends up stashing
+        // the User item, so the token is what the action acts under and its permissions
         // bind - checking the session first here would let a cookie strip a restricted token's scope.
         if (user.HasOpenShockApiTokenIdentity())
         {

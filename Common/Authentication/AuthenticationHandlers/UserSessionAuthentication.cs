@@ -70,8 +70,8 @@ public sealed class UserSessionAuthentication : AuthenticationHandler<Authentica
             return Fail(AuthResultError.AccountDeactivated);
         }
 
-        Context.Items["LoginSession"] = session;
-        Context.Items["User"] = user;
+        Context.SetItemByType(session);
+        Context.SetItemByType(user);
 
         var claims = new List<Claim>(2 + user.Roles.Count)
         {

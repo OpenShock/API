@@ -57,8 +57,8 @@ public sealed class ApiTokenAuthentication : AuthenticationHandler<Authenticatio
         }
 
         _batchUpdateService.UpdateApiTokenLastUsed(tokenDto.Id);
-        Context.Items["ApiToken"] = tokenDto;
-        Context.Items["User"] = tokenDto.User;
+        Context.SetItemByType(tokenDto);
+        Context.SetItemByType(tokenDto.User);
 
         var claims = new List<Claim>(3 + tokenDto.Permissions.Count)
         {

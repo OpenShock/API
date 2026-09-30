@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using OpenShock.Common.Constants;
+using OpenShock.Common.Extensions;
 using OpenShock.Common.Models;
 using OpenShock.Common.OpenShockDb;
 using OpenShock.Common.Options;
@@ -14,36 +15,17 @@ namespace OpenShock.Common;
 // the members below are OpenShock-API-specific and stay local.
 public class OpenShockControllerBase : OpenShock.Internal.Common.OpenShockControllerBase
 {
-    [NonAction]
-    protected T GetRequiredItem<T>() where T : class
-    {
-        var key = typeof(T).Name;
-        
-        if (!HttpContext.Items.TryGetValue(key, out var value))
-        {
-            throw new InvalidOperationException($"HttpContext.Items does not contain a required item of type {key}");
-        }
-
-        if (value is null)
-        {
-            throw new InvalidOperationException($"HttpContext.Items contains the required item but it is null (expected: {typeof(T).FullName}).");
-        }
-
-        if (value is not T typed)
-        {
-            throw new InvalidOperationException($"HttpContext.Items[\"{key}\"] is of type {value.GetType().FullName}, but an instance of {typeof(T).FullName} was expected.");
-        }
-        
-        return typed;
-    }
-    
     /// <summary>
-    /// The item if present and of type <typeparamref name="T"/>, otherwise null. Use for items that
-    /// only exist for some authentication schemes, e.g. ApiToken on a session-authenticated request.
+    /// Convenience wrapper for <see cref="OpenShock.Common.Extensions.HttpContextExtensions.GetRequiredItemByType{T}(HttpContext)"/>.
     /// </summary>
     [NonAction]
-    protected T? GetOptionalItem<T>() where T : class
-        => HttpContext.Items.TryGetValue(typeof(T).Name, out var value) ? value as T : null;
+    protected T GetRequiredItem<T>() where T : class => HttpContext.GetRequiredItemByType<T>();
+
+    /// <summary>
+    /// Convenience wrapper for <see cref="OpenShock.Common.Extensions.HttpContextExtensions.GetItemByType{T}(HttpContext)"/>.
+    /// </summary>
+    [NonAction]
+    protected T? GetOptionalItem<T>() where T : class => HttpContext.GetItemByType<T>();
 
     [NonAction]
     protected OkObjectResult LegacyDataOk<T>(T data, string message = "")
