@@ -82,7 +82,7 @@ public sealed class GatewayLoadSampler : IDisposable
         _containerCpu = _containerMemory = _processCpu = _processMemory = null;
         _listener.RecordObservableInstruments();
 
-        var connections = ToPercent(100d * _hubLifetimeManager.HubCount / _options.MaxHubConnections);
+        var connections = ToPercent((double)_hubLifetimeManager.HubCount / _options.MaxHubConnections);
         var cpu = ToPercent(_containerCpu ?? _processCpu ?? 0);
         var memory = ToPercent(_containerMemory ?? _processMemory ?? 0);
 
@@ -91,7 +91,7 @@ public sealed class GatewayLoadSampler : IDisposable
         return load;
     }
 
-    private static byte ToPercent(double percent) => (byte)Math.Clamp(Math.Round(percent), 0, 100);
+    private static byte ToPercent(double fraction) => (byte)Math.Clamp(Math.Round(fraction * 100), 0, 100);
 
     /// <inheritdoc />
     public void Dispose() => _listener.Dispose();

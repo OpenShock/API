@@ -1,4 +1,5 @@
 using System.Diagnostics.Metrics;
+using Microsoft.Extensions.Diagnostics.ResourceMonitoring;
 using Microsoft.Extensions.Options;
 using OpenShock.Common;
 using OpenShock.Common.Extensions;
@@ -46,6 +47,14 @@ builder.Services.AddHostedService<LcgKeepAlive>();
 builder.Services.AddSingleton<GatewayMetrics>();
 builder.Services.AddSingleton<HubLifetimeManager>();
 builder.Services.AddResourceMonitoring();
+// The defaults differ per OS ([0, 1] on Linux, [0, 100] on Windows), so pin both to [0, 1].
+#pragma warning disable EXTEXP0008
+builder.Services.Configure<ResourceMonitoringOptions>(options =>
+{
+    options.UseZeroToOneRangeForLinuxMetrics = true;
+    options.UseZeroToOneRangeForMetrics = true;
+});
+#pragma warning restore EXTEXP0008
 builder.Services.AddSingleton<GatewayLoadSampler>();
 builder.Services.AddSingleton<ApiTokenUpdateSubscriber>();
 
