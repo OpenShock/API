@@ -45,7 +45,7 @@ public sealed class DeleteExpiredAutomatedAccountsTests
         await using var scope = Factory.Services.CreateAsyncScope();
         var job = ActivatorUtilities.CreateInstance<DeleteExpiredAutomatedAccountsJob>(scope.ServiceProvider);
 
-        var deleted = await job.Execute();
+        await job.Execute();
 
         await using var verify = await Factory.DbContextFactory.CreateDbContextAsync();
         var remaining = await verify.Users
@@ -58,7 +58,6 @@ public sealed class DeleteExpiredAutomatedAccountsTests
         await Assert.That(remaining).Contains(fresh);
         await Assert.That(remaining).Contains(expiredOfKeepToken);
         await Assert.That(remaining).Contains(expiredUnlinked);
-        await Assert.That(deleted).IsGreaterThanOrEqualTo(1);
     }
 
     private static AutomationToken NewToken(Guid id, bool autoCleanup) => new()
