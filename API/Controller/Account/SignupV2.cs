@@ -10,7 +10,6 @@ using OpenShock.Common.Errors;
 using OpenShock.Common.OpenShockDb;
 using OpenShock.Common.Options;
 using OpenShock.Common.Problems;
-using OpenShock.Common.Services.AutomationTokens;
 using OpenShock.Common.Results;
 
 using OpenShock.Internal.Common.Problems;
@@ -25,7 +24,6 @@ public sealed partial class AccountController
     /// <param name="body"></param>
     /// <param name="turnstileService"></param>
     /// <param name="accountOptions"></param>
-    /// <param name="automationTokens"></param>
     /// <param name="cancellationToken"></param>
     /// <response code="200">User successfully signed up</response>
     /// <response code="400">Username or email already exists</response>
@@ -40,7 +38,6 @@ public sealed partial class AccountController
         [FromBody] SignUpV2 body,
         [FromServices] ICloudflareTurnstileService turnstileService,
         [FromServices] AccountOptions accountOptions,
-        [FromServices] IAutomationTokenService automationTokens,
         CancellationToken cancellationToken)
     {
         if (!accountOptions.RegistrationEnabled)
@@ -49,10 +46,10 @@ public sealed partial class AccountController
         var turnstileError = await VerifyTurnstileAsync(turnstileService, body.TurnstileResponse, cancellationToken);
         if (turnstileError is not null) return turnstileError;
 
-        // Created with an automation token, the account is linked to it on insert, which makes it an automated account.
+        // Created with an automation token, the account is linked to it and the use audited in the same transaction.
         var creationAction = await _accountService.CreateAccountWithActivationFlowAsync(
-            body.Email, body.Username, body.Password, automationTokens.Current?.Id);
-        if (creationAction is not User created)
+            body.Email, body.Username, body.Password, cancellationToken);
+        if (creationAction is not User _)
         {
             return creationAction switch
             {
@@ -60,8 +57,6 @@ public sealed partial class AccountController
                 _ => throw new UnreachableException()
             };
         }
-
-        await automationTokens.RecordSignupAsync(created.Id, cancellationToken);
 
         return Ok();
     }

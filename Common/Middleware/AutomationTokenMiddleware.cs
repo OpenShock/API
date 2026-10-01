@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using OpenShock.Common.Extensions;
 using OpenShock.Common.OpenShockDb;
 using OpenShock.Common.Services.AutomationTokens;
@@ -52,7 +53,7 @@ public sealed class AutomationTokenMiddleware
         }
 
         context.SetResolvedAutomationToken(resolved);
-        automationTokens.RecordRequest(resolved.Id);
+        automationTokens.RecordRequest(resolved);
 
         // A credential that switches off Turnstile and rate limiting should never be used without
         // leaving a trace. Logged at warning so it stands out in a production log, and the secret
@@ -71,7 +72,14 @@ public sealed class AutomationTokenMiddleware
         if (context.User.TryGetOpenShockUserIdentity() is { } identity)
             return PrivilegedRoles.Any(identity.GetRoles());
 
-        // API tokens are only authenticated once an endpoint asks for that scheme, which is after this runs.
+        // Authorization also ran, so an endpoint's own scheme (hub or API token) may have authenticated the
+        // request too. Those identities carry the owning account's id but no roles, so look the roles up.
+        if (context.User.Identities.FirstOrDefault(x => x.IsAuthenticated) is { } other &&
+            Guid.TryParse(other.FindFirst(ClaimTypes.NameIdentifier)?.Value, out var userId))
+            return await automationTokens.IsUserPrivilegedAsync(userId, context.RequestAborted);
+
+        // Not authenticated yet, as on an anonymous endpoint, but the header still names the account the
+        // caller acts as.
         if (context.TryGetApiTokenFromHeader(out var apiToken))
             return await automationTokens.IsApiTokenOwnerPrivilegedAsync(apiToken, context.RequestAborted);
 

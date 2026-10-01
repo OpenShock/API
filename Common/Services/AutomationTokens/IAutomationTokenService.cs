@@ -42,9 +42,14 @@ public interface IAutomationTokenService
     Task<bool> IsApiTokenOwnerPrivilegedAsync(string apiToken, CancellationToken ct);
 
     /// <summary>
+    /// True if <paramref name="userId"/> holds a privileged role.
+    /// </summary>
+    Task<bool> IsUserPrivilegedAsync(Guid userId, CancellationToken ct);
+
+    /// <summary>
     /// Counts one accepted request against the token. Batched, never written per request.
     /// </summary>
-    void RecordRequest(Guid automationTokenId);
+    void RecordRequest(ResolvedAutomationToken automationToken);
 
     /// <summary>
     /// If the current request resolved an automation token, audits its use to create <paramref name="userId"/>.

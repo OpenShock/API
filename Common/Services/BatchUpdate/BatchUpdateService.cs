@@ -39,11 +39,13 @@ internal sealed class ConcurrentCountingBatchQueue<TKey> where TKey : notnull
     private readonly Lock _lock = new();
     private Dictionary<TKey, long> _dictionary = new();
 
-    public void Increment(TKey key)
+    public void Increment(TKey key) => Add(key, 1);
+
+    public void Add(TKey key, long count)
     {
         lock (_lock)
         {
-            _dictionary[key] = _dictionary.GetValueOrDefault(key) + 1;
+            _dictionary[key] = _dictionary.GetValueOrDefault(key) + count;
         }
     }
 
@@ -68,7 +70,7 @@ public sealed class BatchUpdateService : BackgroundService, IBatchUpdateService
 
     private readonly ConcurrentUniqueBatchQueue<Guid, bool> _tokenLastUsed = new();
     private readonly ConcurrentUniqueBatchQueue<string, DateTimeOffset> _sessionLastUsed = new();
-    private readonly ConcurrentCountingBatchQueue<Guid> _automationTokenUses = new();
+    private readonly ConcurrentCountingBatchQueue<(Guid Id, string TokenHash)> _automationTokenUses = new();
 
     public BatchUpdateService(IDbContextFactory<OpenShockContext> dbFactory, ILogger<BatchUpdateService> logger, IConnectionMultiplexer connectionMultiplexer)
     {
@@ -100,13 +102,27 @@ public sealed class BatchUpdateService : BackgroundService, IBatchUpdateService
 
         var now = DateTime.UtcNow;
 
-        await using var db = await _dbFactory.CreateDbContextAsync();
-        foreach (var (automationTokenId, count) in uses)
+        try
         {
-            await db.AutomationTokens.Where(x => x.Id == automationTokenId)
-                .ExecuteUpdateAsync(x => x
-                    .SetProperty(y => y.LastUsedAt, now)
-                    .SetProperty(y => y.UseCount, y => y.UseCount + count));
+            await using var db = await _dbFactory.CreateDbContextAsync();
+            foreach (var ((automationTokenId, tokenHash), count) in uses.ToArray())
+            {
+                // Matching the hash drops uses of a secret rotated away since, so they never count towards
+                // the new one. Rotation resets the counters, and this keeps them reset.
+                await db.AutomationTokens.Where(x => x.Id == automationTokenId && x.TokenHash == tokenHash)
+                    .ExecuteUpdateAsync(x => x
+                        .SetProperty(y => y.LastUsedAt, now)
+                        .SetProperty(y => y.UseCount, y => y.UseCount + count));
+
+                uses.Remove((automationTokenId, tokenHash));
+            }
+        }
+        catch
+        {
+            // Unlike a time of last use, a count can't be rebuilt by the next request, so put back what
+            // wasn't written for the next flush to retry.
+            foreach (var (key, count) in uses) _automationTokenUses.Add(key, count);
+            throw;
         }
     }
 
@@ -135,9 +151,9 @@ public sealed class BatchUpdateService : BackgroundService, IBatchUpdateService
         _tokenLastUsed.Enqueue(apiTokenId, false);
     }
     
-    public void UpdateAutomationTokenUsed(Guid automationTokenId)
+    public void UpdateAutomationTokenUsed(Guid automationTokenId, string tokenHash)
     {
-        _automationTokenUses.Increment(automationTokenId);
+        _automationTokenUses.Increment((automationTokenId, tokenHash));
     }
 
     public void UpdateSessionLastUsed(string sessionToken, DateTimeOffset lastUsed)

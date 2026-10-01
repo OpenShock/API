@@ -38,7 +38,7 @@ public sealed class AutomationTokenService : IAutomationTokenService
         return await _db.AutomationTokens
             .AsNoTracking()
             .Where(t => t.TokenHash == tokenHash)
-            .Select(t => new ResolvedAutomationToken(t.Id, t.Name, t.Types))
+            .Select(t => new ResolvedAutomationToken(t.Id, t.Name, t.Types, t.TokenHash))
             .FirstOrDefaultAsync(ct);
     }
 
@@ -54,7 +54,8 @@ public sealed class AutomationTokenService : IAutomationTokenService
         return roles is not null && PrivilegedRoles.Any(roles);
     }
 
-    public void RecordRequest(Guid automationTokenId) => _batchUpdateService.UpdateAutomationTokenUsed(automationTokenId);
+    public void RecordRequest(ResolvedAutomationToken automationToken) =>
+        _batchUpdateService.UpdateAutomationTokenUsed(automationToken.Id, automationToken.TokenHash);
 
     public async Task RecordSignupAsync(Guid userId, CancellationToken ct)
     {
@@ -81,7 +82,7 @@ public sealed class AutomationTokenService : IAutomationTokenService
     {
         if (Current is not { } automationToken) return true;
 
-        if (await IsPrivilegedAsync(userId, ct)) return false;
+        if (await IsUserPrivilegedAsync(userId, ct)) return false;
 
         await AuditUseAsync(automationToken, userId, flow, ct);
 
@@ -103,7 +104,7 @@ public sealed class AutomationTokenService : IAutomationTokenService
         return await TryRecordUseAsync(userId.Value, flow, ct);
     }
 
-    private async Task<bool> IsPrivilegedAsync(Guid userId, CancellationToken ct)
+    public async Task<bool> IsUserPrivilegedAsync(Guid userId, CancellationToken ct)
     {
         var roles = await _db.Users
             .Where(u => u.Id == userId)

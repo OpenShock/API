@@ -26,14 +26,21 @@ public sealed class DeleteExpiredAutomatedAccountsJob
     {
         var now = DateTime.UtcNow;
 
-        // Selecting and deleting in one statement means an account promoted, or a token whose cleanup was switched
-        // off, between a read and the delete can't slip through.
+        // Selecting and deleting in one statement means an account promoted between a read and the delete can't
+        // slip through: Postgres rechecks a deleted row that changed under it. It doesn't recheck joined rows, so
+        // the tokens are locked first. That waits out a cleanup setting being changed and evaluates the committed
+        // one, and holds off a later change until these deletes commit.
         var deleted = await _db.Database.SqlQuery<DeletedAccount>($"""
+            WITH t AS (
+                SELECT id, auto_cleanup_after
+                FROM automation_tokens
+                WHERE auto_cleanup_users
+                  AND auto_cleanup_after IS NOT NULL
+                FOR SHARE
+            )
             DELETE FROM users AS u
-            USING automation_tokens AS t
+            USING t
             WHERE t.id = u.created_by_automation_token_id
-              AND t.auto_cleanup_users
-              AND t.auto_cleanup_after IS NOT NULL
               AND u.created_at + t.auto_cleanup_after < {now}
               AND NOT (u.roles && {PrivilegedRoles.All})
             RETURNING u.id AS "UserId", u.created_by_automation_token_id AS "AutomationTokenId"
