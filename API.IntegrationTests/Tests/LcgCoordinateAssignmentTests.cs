@@ -132,7 +132,7 @@ public sealed class LcgCoordinateAssignmentTests
     public async Task CoordinatesOverrideLoadWithinRegion()
     {
         // Baseline for MixedCoordinatesLeaveRegionUntouched: with full coordinates, distance wins over load.
-        await AddGateway("us-west.example.com", "US", Oregon, load: 5);
+        await AddGateway("us-west.example.com", "US", Oregon, load: 50);
         await AddGateway("us-east.example.com", "US", Virginia, load: 0);
 
         WebApplicationFactory.ClientLocation = Seattle;
@@ -146,10 +146,21 @@ public sealed class LcgCoordinateAssignmentTests
         // us-east has no coordinates, so the US region can't be ranked fairly and must fall back to
         // pure load balancing, rather than us-east winning on a 0 km same-country score.
         await AddGateway("us-west.example.com", "US", Oregon, load: 0);
-        await AddGateway("us-east.example.com", "US", null, load: 5);
+        await AddGateway("us-east.example.com", "US", null, load: 50);
 
         WebApplicationFactory.ClientLocation = NewYork;
         await Assert.That(await AssignHost("US")).IsEqualTo("us-west.example.com");
+    }
+
+    [Test]
+    [NotInParallel(ParalellGateway)]
+    public async Task LeastLoadedWinsWithoutGeoInformation()
+    {
+        await AddGateway("us-west.example.com", "US", Oregon, load: 80);
+        await AddGateway("de1.example.com", "DE", Frankfurt, load: 20);
+
+        WebApplicationFactory.ClientLocation = null;
+        await Assert.That(await AssignHost(null)).IsEqualTo("de1.example.com");
     }
 
     [Test]

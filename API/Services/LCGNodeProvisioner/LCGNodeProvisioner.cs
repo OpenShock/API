@@ -20,6 +20,12 @@ public sealed class LCGNodeProvisioner : ILCGNodeProvisioner
     /// </summary>
     private const double CoordinateToleranceKm = 150;
 
+    /// <summary>
+    /// Load percentage points within which a node still counts as least loaded, so hubs spread across
+    /// similarly loaded nodes between load reports instead of all landing on the strict minimum.
+    /// </summary>
+    private const int LoadTolerance = 10;
+
     private readonly string _environmentName;
     private readonly IRedisCollection<LcgNode> _lcgNodes;
     private readonly ILogger<LCGNodeProvisioner> _logger;
@@ -33,11 +39,17 @@ public sealed class LCGNodeProvisioner : ILCGNodeProvisioner
 
     public async Task<LcgNode?> GetOptimalNodeAsync()
     {
-        var node = await _lcgNodes
-            .OrderBy(x => x.Load)
-            .FirstOrDefaultAsync(x => x.Environment == _environmentName);
+        var nodes = await _lcgNodes
+            .Where(x => x.Environment == _environmentName)
+            .ToListAsync();
 
-        if (node is null) _logger.LogWarning("No LCG nodes available!");
+        if (nodes.Count < 1)
+        {
+            _logger.LogWarning("No LCG nodes available!");
+            return null;
+        }
+
+        var node = PickLeastLoaded(nodes);
         if (_logger.IsEnabled(LogLevel.Debug)) _logger.LogDebug("LCG node provisioned: {@LcgNode}", node);
 
         return node;
@@ -89,24 +101,25 @@ public sealed class LCGNodeProvisioner : ILCGNodeProvisioner
             closestRegionNodes = NarrowByCoordinates(closestRegionNodes, client);
         }
 
-        // 3) Among those, find minimal load
-        var minLoad = closestRegionNodes.Min(x => x.Load);
-        var loadCandidates = closestRegionNodes
-            .Where(x => x.Load == minLoad)
-            .ToArray();
-        
-        if(loadCandidates.Length < 1)
-        {
-            _logger.LogWarning("No LCG nodes available after filtering by geo location and load!");
-            return null;
-        }
+        // 3) Among those, randomly pick one of the least loaded
+        var node = PickLeastLoaded(closestRegionNodes);
 
-        // 4) Randomly pick one of the tied nodes
-        var node = loadCandidates[Random.Shared.Next(loadCandidates.Length)];
-        
         if (_logger.IsEnabled(LogLevel.Debug)) _logger.LogDebug("LCG node provisioned: {@LcgNode}", node);
 
         return node;
+    }
+
+    /// <summary>
+    /// Randomly picks one of the nodes within <see cref="LoadTolerance"/> of the least loaded one.
+    /// </summary>
+    private static LcgNode PickLeastLoaded(IList<LcgNode> nodes)
+    {
+        var minLoad = nodes.Min(x => x.Load);
+        var candidates = nodes
+            .Where(x => x.Load - minLoad <= LoadTolerance)
+            .ToArray();
+
+        return candidates[Random.Shared.Next(candidates.Length)];
     }
 
     /// <summary>

@@ -31,7 +31,7 @@ builder.Services.AddSingleton(lcgOptions);
 builder.Services
     .AddOpenShockMemDB(redisOptions)
     .AddOpenShockDB(databaseOptions)
-    .AddOpenShockServices(configureMetrics: metricsBuilder => { metricsBuilder.AddMeter("OpenShock.Gateway"); })
+    .AddOpenShockServices(configureMetrics: metricsBuilder => { metricsBuilder.AddMeter("OpenShock.Gateway", GatewayLoadSampler.ResourceMonitoringMeter); })
     .AddOpenShockSignalR(redisOptions);
 
 builder.Services.AddScoped<IDeviceService, DeviceService>();
@@ -45,6 +45,8 @@ builder.Services.AddHostedService<LcgKeepAlive>();
 
 builder.Services.AddSingleton<GatewayMetrics>();
 builder.Services.AddSingleton<HubLifetimeManager>();
+builder.Services.AddResourceMonitoring();
+builder.Services.AddSingleton<GatewayLoadSampler>();
 builder.Services.AddSingleton<ApiTokenUpdateSubscriber>();
 
 var app = builder.Build();

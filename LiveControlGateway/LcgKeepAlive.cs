@@ -18,6 +18,7 @@ public sealed class LcgKeepAlive : BackgroundService
     private readonly IWebHostEnvironment _env;
     private readonly LcgOptions _options;
     private readonly HealthCheckService _healthCheckService;
+    private readonly GatewayLoadSampler _loadSampler;
     private readonly ILogger<LcgKeepAlive> _logger;
 
     private uint _errorsInRow;
@@ -33,13 +34,15 @@ public sealed class LcgKeepAlive : BackgroundService
     /// <param name="env"></param>
     /// <param name="options"></param>
     /// <param name="healthCheckService"></param>
+    /// <param name="loadSampler"></param>
     /// <param name="logger"></param>
-    public LcgKeepAlive(IRedisConnectionProvider redisConnectionProvider, IWebHostEnvironment env, LcgOptions options, HealthCheckService healthCheckService, ILogger<LcgKeepAlive> logger)
+    public LcgKeepAlive(IRedisConnectionProvider redisConnectionProvider, IWebHostEnvironment env, LcgOptions options, HealthCheckService healthCheckService, GatewayLoadSampler loadSampler, ILogger<LcgKeepAlive> logger)
     {
         _redisConnectionProvider = redisConnectionProvider;
         _env = env;
         _options = options;
         _healthCheckService = healthCheckService;
+        _loadSampler = loadSampler;
         _logger = logger;
     }
 
@@ -49,7 +52,8 @@ public sealed class LcgKeepAlive : BackgroundService
         // write costs the same round trip the read did, a new advertised field can't be forgotten in a
         // comparison, and nodes left by an older build (same bare-host key, missing fields) get fixed
         // up for free. The TTL is set in the same call.
-        // TODO: Load reporting
+        var load = _loadSampler.Measure();
+
         await _redisConnectionProvider.RedisCollection<LcgNode>(false).InsertAsync(new LcgNode
         {
             Id = _options.GetPublicNodeId(),
@@ -59,7 +63,7 @@ public sealed class LcgKeepAlive : BackgroundService
             Country = _options.CountryCode,
             Latitude = _options.Latitude,
             Longitude = _options.Longitude,
-            Load = 0,
+            Load = load,
             Environment = _env.EnvironmentName
         }, WhenKey.Always, KeepAliveKeyTtl);
     }

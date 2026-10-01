@@ -30,6 +30,7 @@
     <PackageVersion Include="Microsoft.EntityFrameworkCore.Design" Version="11.0.0-rc.1.26425.128" />
     <PackageVersion Include="Microsoft.EntityFrameworkCore.Tools" Version="11.0.0-rc.1.26425.128" />
     <PackageVersion Include="Microsoft.Extensions.Caching.Hybrid" Version="10.10.0" />
+    <PackageVersion Include="Microsoft.Extensions.Diagnostics.ResourceMonitoring" Version="10.10.0" />
     <PackageVersion Include="Microsoft.IO.RecyclableMemoryStream" Version="3.0.1" />
     <PackageVersion Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="11.0.0-rc.1.1" />
     <PackageVersion Include="NRedisStack" Version="1.8.0" />

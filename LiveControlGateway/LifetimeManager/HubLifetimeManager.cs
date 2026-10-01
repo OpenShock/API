@@ -100,6 +100,11 @@ public sealed class HubLifetimeManager
     }
 
     /// <summary>
+    /// Number of hubs currently connected to this gateway
+    /// </summary>
+    public int HubCount => _lifetimes.Count;
+
+    /// <summary>
     /// When the hub lifetime is busy, we cannot add a new device connection
     /// </summary>
     public sealed class Busy;

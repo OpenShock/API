@@ -53,6 +53,12 @@ public sealed class LcgOptions
     public double? Longitude { get; set; }
 
     /// <summary>
+    /// Number of hub connections at which this gateway reports itself as fully loaded. Not a hard limit.
+    /// </summary>
+    [Range(1, int.MaxValue)]
+    public int MaxHubConnections { get; set; } = 5000;
+
+    /// <summary>
     /// Normalized public path prefix: a single leading slash and no trailing slash, or empty for root.
     /// ("gateway", "/gateway", "/gateway/" all become "/gateway"; "" / "/" become "").
     /// </summary>
