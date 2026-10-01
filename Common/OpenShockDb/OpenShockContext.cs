@@ -116,6 +116,8 @@ public class OpenShockContext : DbContext, IDataProtectionKeyContext
     public DbSet<EmailProviderBlacklist> EmailProviderBlacklists { get; set; }
 
     public DbSet<EmailOutboxMessage> EmailOutbox { get; set; }
+
+    public DbSet<AutomationToken> AutomationTokens { get; set; }
     
     public DbSet<DataProtectionKey> DataProtectionKeys { get; set; }
 
@@ -626,6 +628,15 @@ public class OpenShockContext : DbContext, IDataProtectionKeyContext
                 .HasColumnName("created_at");
             entity.Property(e => e.ActivatedAt)
                 .HasColumnName("activated_at");
+            entity.Property(e => e.CreatedByAutomationTokenId)
+                .HasColumnName("created_by_automation_token_id");
+
+            entity.HasIndex(e => e.CreatedByAutomationTokenId);
+
+            entity.HasOne(d => d.CreatedByAutomationToken).WithMany(p => p.CreatedUsers)
+                .HasForeignKey(d => d.CreatedByAutomationTokenId)
+                .OnDelete(DeleteBehavior.Restrict)
+                .HasConstraintName("fk_users_created_by_automation_token_id");
         });
 
         modelBuilder.Entity<UserOAuthConnection>(entity =>
@@ -854,6 +865,41 @@ public class OpenShockContext : DbContext, IDataProtectionKeyContext
                 .HasColumnName("created_at");
         });
 
+        modelBuilder.Entity<AutomationToken>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("automation_tokens_pkey");
+
+            entity.ToTable("automation_tokens");
+
+            entity.HasIndex(e => e.TokenHash).IsUnique();
+
+            entity.Property(e => e.Id)
+                .ValueGeneratedNever()
+                .HasColumnName("id");
+            entity.Property(e => e.Name)
+                .VarCharWithLength(ApiHardLimits.ApiKeyNameMaxLength)
+                .HasColumnName("name");
+            entity.Property(e => e.TokenHash)
+                .UseCollation("C")
+                .VarCharWithLength(HardLimits.Sha256HashHexLength)
+                .HasColumnName("token_hash");
+            entity.Property(e => e.Types)
+                .HasColumnType("automation_token_type[]")
+                .HasColumnName("types");
+            entity.Property(e => e.CreatedAt)
+                .HasDefaultValueSql("CURRENT_TIMESTAMP")
+                .HasColumnName("created_at");
+            entity.Property(e => e.LastUsedAt).HasColumnName("last_used_at");
+            entity.Property(e => e.LastRotatedAt).HasColumnName("last_rotated_at");
+            entity.Property(e => e.UseCount)
+                .HasDefaultValue(0L)
+                .HasColumnName("use_count");
+            entity.Property(e => e.AutoCleanupUsers)
+                .HasDefaultValue(false)
+                .HasColumnName("auto_cleanup_users");
+            entity.Property(e => e.AutoCleanupAfter).HasColumnName("auto_cleanup_after");
+        });
+
         modelBuilder.Entity<EmailOutboxMessage>(entity =>
         {
             entity.HasKey(e => e.Id).HasName("email_outbox_pkey");
@@ -936,6 +982,8 @@ public class OpenShockContext : DbContext, IDataProtectionKeyContext
                 .HasColumnName("created_at");
             entity.Property(e => e.ActivatedAt)
                 .HasColumnName("activated_at");
+            entity.Property(e => e.CreatedByAutomationTokenId)
+                .HasColumnName("created_by_automation_token_id");
             entity.Property(e => e.DeactivatedAt)
                 .HasColumnName("deactivated_at");
             entity.Property(e => e.DeactivatedByUserId)

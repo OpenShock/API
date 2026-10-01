@@ -1,0 +1,69 @@
+﻿using Microsoft.EntityFrameworkCore;
+using OpenShock.Common.OpenShockDb;
+using OpenShock.Cron.Attributes;
+
+namespace OpenShock.Cron.Jobs;
+
+/// <summary>
+/// Hard-deletes automated accounts (mainly test accounts) that were created through an admin-issued
+/// automation token whose owner enabled auto-cleanup (off by default), once the token's configured lifetime
+/// has passed since the account was created. Accounts the token was merely used with are never touched,
+/// only the ones it created.
+/// </summary>
+[CronJob("0 * * * *")] // Every hour
+public sealed class DeleteExpiredAutomatedAccountsJob
+{
+    private readonly OpenShockContext _db;
+    private readonly ILogger<DeleteExpiredAutomatedAccountsJob> _logger;
+
+    public DeleteExpiredAutomatedAccountsJob(OpenShockContext db, ILogger<DeleteExpiredAutomatedAccountsJob> logger)
+    {
+        _db = db;
+        _logger = logger;
+    }
+
+    public async Task<int> Execute()
+    {
+        var now = DateTime.UtcNow;
+
+        // Selecting and deleting in one statement means an account promoted between a read and the delete can't
+        // slip through: Postgres rechecks a deleted row that changed under it. It doesn't recheck joined rows, so
+        // the tokens are locked first. That waits out a cleanup setting being changed and evaluates the committed
+        // one, and holds off a later change until these deletes commit.
+        var deleted = await _db.Database.SqlQuery<DeletedAccount>($"""
+            WITH t AS (
+                SELECT id, auto_cleanup_after
+                FROM automation_tokens
+                WHERE auto_cleanup_users
+                  AND auto_cleanup_after IS NOT NULL
+                FOR SHARE
+            )
+            DELETE FROM users AS u
+            USING t
+            WHERE t.id = u.created_by_automation_token_id
+              AND u.created_at + t.auto_cleanup_after < {now}
+              AND NOT (u.roles && {PrivilegedRoles.All})
+            RETURNING u.id AS "UserId", u.created_by_automation_token_id AS "AutomationTokenId"
+            """).ToListAsync();
+
+        if (deleted.Count == 0)
+        {
+            _logger.LogDebug("No automation-token-created accounts eligible for cleanup");
+            return 0;
+        }
+
+        // A user's audit log is deleted with the user, so the log line is the lasting record of what went.
+        foreach (var account in deleted)
+        {
+            _logger.LogInformation(
+                "Automation-token cleanup deleted account {UserId} created by automation token {AutomationTokenId}",
+                account.UserId, account.AutomationTokenId);
+        }
+
+        _logger.LogInformation("Automation-token cleanup: {DeletedCount} accounts deleted", deleted.Count);
+
+        return deleted.Count;
+    }
+
+    private sealed record DeletedAccount(Guid UserId, Guid AutomationTokenId);
+}

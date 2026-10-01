@@ -87,6 +87,8 @@ public sealed partial class AdminController
 
         public required DateTimeOffset? ActivatedAt { get; init; }
 
+        public required Guid? CreatedByAutomationTokenId { get; init; }
+
         public required AdminUserView_UserActivationRequest? ActivationRequest { get; init; }
 
         public required AdminUserView_UserDeactivation? Deactivation { get; init; }
@@ -113,6 +115,7 @@ public sealed partial class AdminController
                 u.Roles,
                 u.CreatedAt,
                 u.ActivatedAt,
+                u.CreatedByAutomationTokenId,
                 Hubs = u.Devices.Select(hub =>
                     new AdminUserView_Hub
                     {
@@ -201,6 +204,7 @@ public sealed partial class AdminController
             Roles = user.Roles,
             CreatedAt = user.CreatedAt,
             ActivatedAt = user.ActivatedAt,
+            CreatedByAutomationTokenId = user.CreatedByAutomationTokenId,
             Hubs = user.Hubs,
             ApiTokens = user.ApiTokens,
             PasswordResets = user.PasswordResets,

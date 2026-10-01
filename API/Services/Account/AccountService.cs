@@ -7,6 +7,7 @@ using OpenShock.Common.OpenShockDb;
 using OpenShock.Common.Options;
 using OpenShock.Common.Results;
 using OpenShock.Common.Services.Audit;
+using OpenShock.Common.Services.AutomationTokens;
 using OpenShock.Common.Services.RedisPubSub;
 using OpenShock.Common.Services.Session;
 using OpenShock.Common.Utils;
@@ -26,6 +27,7 @@ public sealed class AccountService : IAccountService
     private readonly IRedisPubService _redisPubService;
     private readonly ISessionService _sessionService;
     private readonly IAuditService _auditService;
+    private readonly IAutomationTokenService _automationTokens;
     private readonly MailOptions _mailOptions;
     private readonly ILogger<AccountService> _logger;
 
@@ -36,14 +38,16 @@ public sealed class AccountService : IAccountService
     /// <param name="redisPubService">Used to notify the email outbox delivery job that mail was enqueued.</param>
     /// <param name="sessionService"></param>
     /// <param name="auditService"></param>
+    /// <param name="automationTokens">The automation token this request carries, if any; an account it creates is linked to it.</param>
     /// <param name="mailOptions">Decides whether an activation link can ever reach the user.</param>
     /// <param name="logger"></param>
-    public AccountService(OpenShockContext db, IRedisPubService redisPubService, ISessionService sessionService, IAuditService auditService, MailOptions mailOptions, ILogger<AccountService> logger)
+    public AccountService(OpenShockContext db, IRedisPubService redisPubService, ISessionService sessionService, IAuditService auditService, IAutomationTokenService automationTokens, MailOptions mailOptions, ILogger<AccountService> logger)
     {
         _db = db;
         _redisPubService = redisPubService;
         _sessionService = sessionService;
         _auditService =  auditService;
+        _automationTokens = automationTokens;
         _mailOptions = mailOptions;
         _logger = logger;
     }
@@ -91,7 +95,7 @@ public sealed class AccountService : IAccountService
         return await _db.EmailProviderBlacklists.AnyAsync(e => e.Domain == domain);
     }
 
-    private async Task<AccountCreationResult> CreateAccount(string email, string username, string password, bool verifyOnCreation)
+    private async Task<AccountCreationResult> CreateAccount(string email, string username, string password, bool verifyOnCreation, Guid? createdByAutomationTokenId)
     {
         email = email.ToLowerInvariant();
 
@@ -106,7 +110,8 @@ public sealed class AccountService : IAccountService
             Id = Guid.CreateVersion7(),
             Name = username,
             Email = email,
-            PasswordHash = HashingUtils.HashPassword(password)
+            PasswordHash = HashingUtils.HashPassword(password),
+            CreatedByAutomationTokenId = createdByAutomationTokenId
         };
         _db.Users.Add(user);
 
@@ -124,27 +129,40 @@ public sealed class AccountService : IAccountService
     }
 
     /// <inheritdoc />
-    public async Task<AccountCreationResult> CreateAccountWithActivationFlowAsync(string email, string username, string password)
+    public async Task<AccountCreationResult> CreateAccountWithActivationFlowAsync(string email, string username, string password, CancellationToken cancellationToken = default)
     {
         // With mail disabled the activation email is never delivered, so an activation flow would leave
         // the account permanently unusable. Activate on creation instead.
         var mailEnabled = _mailOptions.IsEnabled;
 
-        var accountCreate = await CreateAccount(email, username, password, !mailEnabled);
-        if (accountCreate.Value is not User user || !mailEnabled) return accountCreate;
+        // An account an automation token creates must never exist without the audit entry for that use, so the
+        // account, its activation request and the audit entry commit together.
+        await using var transaction = await _db.Database.BeginTransactionAsync(cancellationToken);
 
-        // The real activation token is minted by the outbox delivery job at send time; here we record the
-        // request (with a seeded hash) and durably enqueue the email.
-        user.UserActivationRequest = new UserActivationRequest
+        // Created with an automation token, the account is linked to it on insert, which makes it an automated account.
+        var accountCreate = await CreateAccount(email, username, password, !mailEnabled, _automationTokens.Current?.Id);
+        if (accountCreate.Value is not User user) return accountCreate;
+
+        if (mailEnabled)
         {
-            UserId = user.Id,
-            TokenHash = SeedTokenHash()
-        };
+            // The real activation token is minted by the outbox delivery job at send time; here we record the
+            // request (with a seeded hash) and durably enqueue the email.
+            user.UserActivationRequest = new UserActivationRequest
+            {
+                UserId = user.Id,
+                TokenHash = SeedTokenHash()
+            };
 
-        _db.EmailOutbox.Add(EmailOutboxMessage.ForAccountActivation(user.Id, email, username));
+            _db.EmailOutbox.Add(EmailOutboxMessage.ForAccountActivation(user.Id, email, username));
 
-        await _db.SaveChangesAsync();
-        await NotifyEmailOutboxAsync();
+            await _db.SaveChangesAsync(cancellationToken);
+        }
+
+        await _automationTokens.RecordSignupAsync(user.Id, cancellationToken);
+
+        await transaction.CommitAsync(cancellationToken);
+
+        if (mailEnabled) await NotifyEmailOutboxAsync();
 
         return user;
     }

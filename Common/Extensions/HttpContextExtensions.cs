@@ -1,11 +1,52 @@
 ﻿using System.Diagnostics.CodeAnalysis;
+using Microsoft.AspNetCore.Http;
 using OpenShock.Common.OpenShockDb;
 using OpenShock.Common.Constants;
+using OpenShock.Common.Services.AutomationTokens;
 
 namespace OpenShock.Common.Extensions;
 
 public static class HttpContextExtensions
 {
+    public static bool TryGetAutomationTokenFromHeader(this HttpContext context, [NotNullWhen(true)] out string? token)
+    {
+        ArgumentNullException.ThrowIfNull(context);
+
+        if (context.Request.Headers.TryGetValue(AuthConstants.AutomationTokenHeaderName, out var value) && !string.IsNullOrEmpty(value))
+        {
+            token = value!;
+            return true;
+        }
+
+        token = null;
+        return false;
+    }
+
+    /// <summary>
+    /// Stores the result of resolving the automation-token header. Called by the automation-token middleware.
+    /// </summary>
+    public static void SetResolvedAutomationToken(this HttpContext context, ResolvedAutomationToken resolved)
+    {
+        ArgumentNullException.ThrowIfNull(context);
+        context.SetItemByType(resolved);
+    }
+
+    /// <summary>
+    /// Returns the automation token resolved earlier in the pipeline, or <c>null</c> if no header was
+    /// present (or it did not resolve to a known token).
+    /// </summary>
+    public static ResolvedAutomationToken? GetResolvedAutomationToken(this HttpContext context)
+    {
+        ArgumentNullException.ThrowIfNull(context);
+        return context.GetItemByType<ResolvedAutomationToken>();
+    }
+
+    /// <summary>
+    /// Returns true if the request presented an automation token that grants <paramref name="type"/>.
+    /// </summary>
+    public static bool IsBypassed(this HttpContext context, AutomationTokenType type) =>
+        context.GetResolvedAutomationToken()?.Types.Contains(type) ?? false;
+
     // FullName is only null for open generic parameters, which a closed T never is.
     private static string ItemKeyOf<T>() => typeof(T).FullName!;
 
