@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using System.Net;
 using System.Reflection;
 using System.Text.Json.Nodes;
 using System.Text.Json.Serialization;
@@ -20,6 +21,16 @@ public sealed class OpenShockSchemaTransformer : IOpenApiSchemaTransformer
         if (context.JsonTypeInfo.Type == typeof(SemVersion))
         {
             ReplaceWith(schema, OpenApiSchemas.SemVerSchema);
+            return Task.CompletedTask;
+        }
+
+        if (context.JsonTypeInfo.Type == typeof(IPAddress))
+        {
+            ReplaceWith(schema, OpenApiSchemas.IpAddressSchema);
+
+            // The exporter has no type to derive nullability from, the converter owns the schema
+            if (context.JsonPropertyInfo?.IsGetNullable == true && schema.Type is { } ipType) schema.Type = ipType | JsonSchemaType.Null;
+
             return Task.CompletedTask;
         }
 

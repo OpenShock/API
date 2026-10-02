@@ -15,6 +15,6 @@ public sealed partial class SessionsController
     [HttpGet("self")]
     public LoginSessionResponse GetSelfSession()
     {
-        return LoginSessionResponse.MapFrom(GetRequiredItem<LoginSession>());
+        return LoginSessionResponse.MapFrom(GetRequiredItem<LoginSession>(), _logger);
     }
 }

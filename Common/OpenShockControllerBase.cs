@@ -64,7 +64,7 @@ public abstract class OpenShockControllerBase : OpenShock.Internal.Common.OpenSh
         var userAgent = HttpContext.GetUserAgent();
         var enrichment = enrichmentService.Enrich(remoteIp);
 
-        var session = await sessionService.CreateSessionAsync(accountId, userAgent, remoteIp.ToString(), actorId: accountId, enrichment: enrichment);
+        var session = await sessionService.CreateSessionAsync(accountId, userAgent, remoteIp, actorId: accountId, enrichment: enrichment);
 
 
         HttpContext.Response.Cookies.Append(AuthConstants.UserSessionCookieName, session.Token, new CookieOptions

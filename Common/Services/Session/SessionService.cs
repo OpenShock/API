@@ -1,4 +1,5 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using System.Net;
+using Microsoft.EntityFrameworkCore;
 using OpenShock.Common.Constants;
 using OpenShock.Common.Models;
 using OpenShock.Common.OpenShockDb;
@@ -33,7 +34,7 @@ public sealed class SessionService : ISessionService
         _auditService = auditService;
     }
 
-    public async Task<CreateSessionResult> CreateSessionAsync(Guid userId, string userAgent, string ipAddress, Guid? actorId, IpEnrichmentData? enrichment = null)
+    public async Task<CreateSessionResult> CreateSessionAsync(Guid userId, string userAgent, IPAddress ipAddress, Guid? actorId, IpEnrichmentData? enrichment = null)
     {
         Guid id = Guid.CreateVersion7();
         string token = CryptoUtils.RandomString(AuthConstants.GeneratedTokenLength);
@@ -43,7 +44,7 @@ public sealed class SessionService : ISessionService
             Id = HashingUtils.HashToken(token),
             UserId = userId,
             UserAgent = userAgent,
-            Ip = ipAddress,
+            Ip = ipAddress.ToString(),
             PublicId = id,
             Created = DateTime.UtcNow,
             Expires = DateTime.UtcNow.Add(Duration.LoginSessionLifetime),

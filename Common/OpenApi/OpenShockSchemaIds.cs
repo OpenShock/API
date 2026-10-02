@@ -1,3 +1,4 @@
+using System.Net;
 using System.Text.Json.Serialization.Metadata;
 using Microsoft.AspNetCore.OpenApi;
 using OpenShock.Common.Models;
@@ -16,6 +17,9 @@ public static class OpenShockSchemaIds
 
         // Inlined in the old documents
         if (type == typeof(SemVersion) || type == typeof(PauseReason)) return null;
+
+        // Serialized as a plain string, so it does not deserve a component of its own
+        if (type == typeof(IPAddress)) return null;
 
         var id = OpenApiOptions.CreateDefaultSchemaReferenceId(typeInfo);
         if (id is null) return null;

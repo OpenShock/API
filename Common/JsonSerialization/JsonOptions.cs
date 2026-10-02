@@ -15,6 +15,7 @@ public static class JsonOptions
     {
         options.PropertyNameCaseInsensitive = true;
         options.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
+        options.Converters.Add(new IPAddressJsonConverter());
         options.Converters.Add(new PermissionTypeConverter());
         options.Converters.Add(new FlagGuardedJsonStringEnumConverter());
     }

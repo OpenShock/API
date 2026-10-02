@@ -1,11 +1,12 @@
-﻿using OpenShock.Common.Redis;
+﻿using System.Net;
+using OpenShock.Common.Redis;
 using OpenShock.Common.Services.Geo;
 
 namespace OpenShock.Common.Services.Session;
 
 public interface ISessionService
 {
-    public Task<CreateSessionResult> CreateSessionAsync(Guid userId, string userAgent, string ipAddress, Guid? actorId, IpEnrichmentData? enrichment = null);
+    public Task<CreateSessionResult> CreateSessionAsync(Guid userId, string userAgent, IPAddress ipAddress, Guid? actorId, IpEnrichmentData? enrichment = null);
 
     public IAsyncEnumerable<LoginSession> ListSessionsByUserIdAsync(Guid userId);
 

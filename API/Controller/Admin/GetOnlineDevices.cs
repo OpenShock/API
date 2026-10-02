@@ -1,9 +1,11 @@
-﻿using System.Net.Mime;
+﻿using System.Net;
+using System.Net.Mime;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using OpenShock.Common.Extensions;
 using OpenShock.Common.Models;
 using OpenShock.Common.Redis;
+using OpenShock.Common.Utils;
 using System.Text.Json.Serialization;
 using OpenShock.Common.JsonSerialization;
 
@@ -58,7 +60,7 @@ public sealed partial class AdminController
                         LatencyMs = x.LatencyMs,
                         Rssi = x.Rssi,
                         Country = x.Country,
-                        Ip = x.Ip
+                        Ip = IpAddressUtils.ParseStoredOrNull(x.Ip, _logger)
                     };
                 })
         );
@@ -81,6 +83,6 @@ public sealed partial class AdminController
         public required ushort? LatencyMs { get; init; }
         public required int? Rssi { get; init; }
         public required string? Country { get; set; }
-        public required string? Ip { get; set; }
+        public required IPAddress? Ip { get; set; }
     }
 }

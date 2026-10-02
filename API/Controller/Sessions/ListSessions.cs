@@ -11,6 +11,6 @@ public sealed partial class SessionsController
     public IAsyncEnumerable<LoginSessionResponse> ListSessions()
     {
         return _sessionService.ListSessionsByUserIdAsync(CurrentUser.Id)
-            .Select(LoginSessionResponse.MapFrom);
+            .Select(session => LoginSessionResponse.MapFrom(session, _logger));
     }
 }
