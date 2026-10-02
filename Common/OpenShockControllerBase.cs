@@ -29,13 +29,13 @@ public abstract class OpenShockControllerBase : OpenShock.Internal.Common.OpenSh
     protected T? GetOptionalItem<T>() where T : class => HttpContext.GetItemByType<T>();
 
     [NonAction]
-    protected OkObjectResult LegacyDataOk<T>(T data, string message = "")
+    protected OkObjectResult LegacyDataOk<T>(T data, string message = "") where T : notnull
     {
         return Ok(new LegacyDataResponse<T>(data, message));
     }
 
     [NonAction]
-    protected CreatedResult LegacyDataCreated<T>(string? uri, T data)
+    protected CreatedResult LegacyDataCreated<T>(string? uri, T data) where T : notnull
     {
         return Created(uri, new LegacyDataResponse<T>(data));
     }
