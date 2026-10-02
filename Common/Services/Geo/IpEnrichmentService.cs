@@ -86,6 +86,7 @@ public sealed class IpEnrichmentService : IIpEnrichmentService, IDisposable
     {
         if (_asnReader is null && _cityReader is null) return null;
 
+        long? asnNumber = null;
         string? asnOrg = null;
         // Null means "unknown" (no ASN DB, lookup miss, or failure); only a resolved ASN org yields a verdict.
         bool? isVpn = null;
@@ -96,6 +97,7 @@ public sealed class IpEnrichmentService : IIpEnrichmentService, IDisposable
             {
                 if (_asnReader.TryAsn(ip, out var asn) && asn is not null)
                 {
+                    asnNumber = asn.AutonomousSystemNumber;
                     asnOrg = asn.AutonomousSystemOrganization;
                     if (asnOrg is not null)
                     {
@@ -132,7 +134,7 @@ public sealed class IpEnrichmentService : IIpEnrichmentService, IDisposable
             }
         }
 
-        return new IpEnrichmentData(asnOrg, isVpn, countryCode, city, location, accuracyRadiusKm);
+        return new IpEnrichmentData(asnNumber, asnOrg, isVpn, countryCode, city, location, accuracyRadiusKm);
     }
 
     public void Dispose()

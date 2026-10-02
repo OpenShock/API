@@ -75,11 +75,34 @@ public sealed class HubLifetimeManager
 
         meter.CreateObservableUpDownCounter("openshock_hub_connections", () =>
         {
-            return new[]
+            var lifetimes = _lifetimes;
+
+            // Grouped on the number alone; the org rides along from whichever hub was seen first,
+            // which is the same org for every hub in the group.
+            var perAsn = new Dictionary<string, (string Org, int Count)>();
+            foreach (var (_, lifetime) in lifetimes)
             {
-                new Measurement<int>(_lifetimes.Count, gatewayFqdn)
-            };
-        }, "connections", "Current number of connected hubs");
+                var ipInfo = lifetime.HubController.IpInfo;
+                var asn = (string)GatewayMetrics.AsnTag(ipInfo).Value!;
+                perAsn[asn] = perAsn.TryGetValue(asn, out var entry)
+                    ? (entry.Org, entry.Count + 1)
+                    : ((string)GatewayMetrics.AsnOrgTag(ipInfo).Value!, 1);
+            }
+
+            // An idle gateway still reports a zero, so a sum over gateways does not go empty.
+            if (perAsn.Count == 0) perAsn[GatewayMetrics.Unknown] = (GatewayMetrics.Unknown, 0);
+
+            var measurements = new Measurement<int>[perAsn.Count];
+            var i = 0;
+            foreach (var (asn, (org, count)) in perAsn)
+            {
+                measurements[i++] = new Measurement<int>(count, gatewayFqdn,
+                    new KeyValuePair<string, object?>("asn", asn),
+                    new KeyValuePair<string, object?>("asn_org", org));
+            }
+
+            return measurements;
+        }, "connections", "Current number of connected hubs by network (ASN)");
 
         // Derived from the hubs themselves rather than tracked alongside them: a separately
         // maintained counter drifts from the truth the moment a teardown path misses a decrement.
@@ -130,7 +153,7 @@ public sealed class HubLifetimeManager
                 // There already is a hub lifetime, lets swap!
                 if (!hubLifetime.TryMarkSwapping())
                 {
-                    _metrics.HubConnectAttempt(GatewayMetrics.HubConnectOutcome.Busy);
+                    _metrics.HubConnectAttempt(GatewayMetrics.HubConnectOutcome.Busy, hubController);
                     return new Busy(); 
                 }
 
@@ -149,7 +172,7 @@ public sealed class HubLifetimeManager
         {
             _logger.LogTrace("Swapping hub lifetime [{HubId}]", hubController.Id);
             await hubLifetime.Swap(hubController);
-            _metrics.HubConnectAttempt(GatewayMetrics.HubConnectOutcome.Swapped);
+            _metrics.HubConnectAttempt(GatewayMetrics.HubConnectOutcome.Swapped, hubController);
         }
         else
         {
@@ -159,11 +182,11 @@ public sealed class HubLifetimeManager
                 // If we fail to initialize, the hub must be removed
                 await RemoveDeviceConnection(hubController); // Here be dragons?
                 _logger.LogError("Failed to initialize hub lifetime [{HubId}]", hubController.Id);
-                _metrics.HubConnectAttempt(GatewayMetrics.HubConnectOutcome.InitFailed);
+                _metrics.HubConnectAttempt(GatewayMetrics.HubConnectOutcome.InitFailed, hubController);
                 return new Error();
             }
 
-            _metrics.HubConnectAttempt(GatewayMetrics.HubConnectOutcome.Connected);
+            _metrics.HubConnectAttempt(GatewayMetrics.HubConnectOutcome.Connected, hubController);
         }
 
         return hubLifetime;
@@ -237,7 +260,7 @@ public sealed class HubLifetimeManager
             else
             {
                 _lifetimes = withoutHub;
-                _metrics.HubDisconnected();
+                _metrics.HubDisconnected(hubController);
             }
         }
     }
