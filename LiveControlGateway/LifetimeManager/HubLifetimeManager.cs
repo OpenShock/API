@@ -77,24 +77,22 @@ public sealed class HubLifetimeManager
         {
             var lifetimes = _lifetimes;
 
-            // Grouped on the number alone; the org rides along from whichever hub was seen first,
-            // which is the same org for every hub in the group.
-            var perAsn = new Dictionary<string, (string Org, int Count)>();
+            // Grouped on the org as well as the number: a lookup can resolve the ASN but not its org,
+            // and the series here must match the tags the per-hub counters were recorded with.
+            var perAsn = new Dictionary<(string Asn, string Org), int>();
             foreach (var (_, lifetime) in lifetimes)
             {
                 var ipInfo = lifetime.HubController.IpInfo;
-                var asn = (string)GatewayMetrics.AsnTag(ipInfo).Value!;
-                perAsn[asn] = perAsn.TryGetValue(asn, out var entry)
-                    ? (entry.Org, entry.Count + 1)
-                    : ((string)GatewayMetrics.AsnOrgTag(ipInfo).Value!, 1);
+                var key = ((string)GatewayMetrics.AsnTag(ipInfo).Value!, (string)GatewayMetrics.AsnOrgTag(ipInfo).Value!);
+                perAsn[key] = perAsn.GetValueOrDefault(key) + 1;
             }
 
             // An idle gateway still reports a zero, so a sum over gateways does not go empty.
-            if (perAsn.Count == 0) perAsn[GatewayMetrics.Unknown] = (GatewayMetrics.Unknown, 0);
+            if (perAsn.Count == 0) perAsn[(GatewayMetrics.Unknown, GatewayMetrics.Unknown)] = 0;
 
             var measurements = new Measurement<int>[perAsn.Count];
             var i = 0;
-            foreach (var (asn, (org, count)) in perAsn)
+            foreach (var ((asn, org), count) in perAsn)
             {
                 measurements[i++] = new Measurement<int>(count, gatewayFqdn,
                     new KeyValuePair<string, object?>("asn", asn),
