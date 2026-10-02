@@ -20,6 +20,8 @@ namespace OpenShock.LiveControlGateway.Metrics;
 /// Hub instruments also carry the hub's network as <c>asn</c> and <c>asn_org</c>, from GeoIP. The
 /// org is redundant with the number but saves every dashboard a lookup table; it adds no series
 /// of its own. Both are <see cref="Unknown"/> when GeoIP is not configured or the lookup missed.
+/// Hub latency additionally carries <c>country</c>; the other hub instruments leave it off, as it
+/// would only split their series further without a dashboard that needs it.
 /// </para>
 /// </remarks>
 public sealed class GatewayMetrics
@@ -87,6 +89,7 @@ public sealed class GatewayMetrics
     private readonly Counter<long> _hubDisconnections;
     private readonly Counter<long> _liveControlAttempts;
     private readonly Histogram<int> _liveControlLatency;
+    private readonly Histogram<int> _hubLatency;
     private readonly Counter<long> _frames;
 
     /// <summary>
@@ -116,6 +119,14 @@ public sealed class GatewayMetrics
                 HistogramBucketBoundaries = [5, 10, 20, 30, 50, 75, 100, 150, 200, 300, 500, 1000, 2000]
             });
 
+        // Same boundaries as the client latency, so the two can be read side by side.
+        _hubLatency = meter.CreateHistogram<int>("openshock_hub_latency", "ms",
+            "Round trip latency to hubs, measured from the gateway's ping/pong keep alive.",
+            advice: new InstrumentAdvice<int>
+            {
+                HistogramBucketBoundaries = [5, 10, 20, 30, 50, 75, 100, 150, 200, 300, 500, 1000, 2000]
+            });
+
         // Tagged by control type so live control shows up next to the API's command counter, but the
         // two do not mean the same thing: a live session streams frames at the hub's tick rate, so
         // these count ticks of a held control, not discrete presses.
@@ -140,6 +151,15 @@ public sealed class GatewayMetrics
         _hubDisconnections.Add(1, _gatewayFqdn, AsnTag(hub.IpInfo), AsnOrgTag(hub.IpInfo));
 
     /// <summary>
+    /// Record a measured hub round trip.
+    /// </summary>
+    /// <param name="latencyMs"></param>
+    /// <param name="hub">The hub that answered the ping</param>
+    public void HubLatency(int latencyMs, IHubController hub) =>
+        _hubLatency.Record(latencyMs, _gatewayFqdn, AsnTag(hub.IpInfo), AsnOrgTag(hub.IpInfo),
+            CountryTag(hub.IpInfo));
+
+    /// <summary>
     /// The <c>asn</c> tag for a hub's network.
     /// </summary>
     public static KeyValuePair<string, object?> AsnTag(IpEnrichmentData? ipInfo) =>
@@ -150,6 +170,12 @@ public sealed class GatewayMetrics
     /// </summary>
     public static KeyValuePair<string, object?> AsnOrgTag(IpEnrichmentData? ipInfo) =>
         new("asn_org", ipInfo?.AsnOrg ?? Unknown);
+
+    /// <summary>
+    /// The <c>country</c> tag for a hub's network, as an ISO country code.
+    /// </summary>
+    public static KeyValuePair<string, object?> CountryTag(IpEnrichmentData? ipInfo) =>
+        new("country", ipInfo?.CountryCode ?? Unknown);
 
     /// <summary>
     /// Record the outcome of a live control session attempt. This is churn only - the number of
