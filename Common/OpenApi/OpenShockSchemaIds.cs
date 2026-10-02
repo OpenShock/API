@@ -6,8 +6,9 @@ using OpenShock.Common.Models;
 namespace OpenShock.Common.OpenApi;
 
 /// <summary>
-/// Schema ids matching what Swashbuckle produced, so generated clients keep their type names:
-/// generic arguments come first (<c>LegacyDataResponse&lt;bool&gt;</c> is <c>BooleanLegacyDataResponse</c>) and arrays end in "Array".
+/// Schema ids are the generator's own. Three types are inlined instead of becoming components: each is written by a
+/// custom converter as a single scalar and gets its schema from <see cref="OpenShockSchemaTransformer"/>, so a named
+/// component would only add a wrapper for clients to unwrap.
 /// </summary>
 public static class OpenShockSchemaIds
 {
@@ -15,33 +16,8 @@ public static class OpenShockSchemaIds
     {
         var type = typeInfo.Type;
 
-        // Inlined in the old documents
-        if (type == typeof(SemVersion) || type == typeof(PauseReason)) return null;
+        if (type == typeof(SemVersion) || type == typeof(PauseReason) || type == typeof(IPAddress)) return null;
 
-        // Serialized as a plain string, so it does not deserve a component of its own
-        if (type == typeof(IPAddress)) return null;
-
-        var id = OpenApiOptions.CreateDefaultSchemaReferenceId(typeInfo);
-        if (id is null) return null;
-
-        return type.IsArray || type.IsGenericType ? GetName(type) : id;
-    }
-
-    private static string GetName(Type type)
-    {
-        while (true)
-        {
-            // T? shares T's schema; nullability is not part of the id
-            if (Nullable.GetUnderlyingType(type) is not { } underlying)
-            {
-                if (type.IsArray) return GetName(type.GetElementType()!) + "Array";
-                if (!type.IsGenericType) return type.Name;
-
-                var name = type.Name;
-                return string.Concat(type.GetGenericArguments().Select(GetName)) + name[..name.IndexOf('`')];
-            }
-
-            type = underlying;
-        }
+        return OpenApiOptions.CreateDefaultSchemaReferenceId(typeInfo);
     }
 }

@@ -2,7 +2,6 @@ using System.ComponentModel.DataAnnotations;
 using System.Net;
 using System.Reflection;
 using System.Text.Json.Nodes;
-using System.Text.Json.Serialization;
 using System.Text.Json.Serialization.Metadata;
 using Microsoft.AspNetCore.Mvc.Controllers;
 using Microsoft.AspNetCore.OpenApi;
@@ -76,8 +75,15 @@ public sealed class OpenShockSchemaTransformer : IOpenApiSchemaTransformer
     }
 
     /// <summary>
-    /// .NET 10 models numbers as "integer or numeric string" (with a pattern) because of JsonNumberHandling.AllowReadingFromString,
-    /// and uses unsigned formats. Swashbuckle emitted plain integers with signed formats, which generators understand better.
+    /// Two things the exporter leaves awkward for a client:
+    /// <list type="bullet">
+    /// <item>JsonNumberHandling.AllowReadingFromString makes every number an "integer or numeric string" union, which would
+    /// have clients type every count as <c>number | string</c>. A response always carries a number, so the string half goes.</item>
+    /// <item>Unsigned formats have no OpenAPI equivalent that generators recognise, and an unrecognised format falls back to
+    /// a plain number, silently losing precision past 2^53. Each becomes the narrowest signed format that covers it, with the
+    /// real range as bounds. uint32 keeps no format at all: int64 would push clients to bigint for a value a double holds
+    /// exactly, while int32 would misstate the upper half of its range.</item>
+    /// </list>
     /// </summary>
     private static void NormalizeNumbers(OpenApiSchema schema)
     {
@@ -89,50 +95,42 @@ public sealed class OpenShockSchemaTransformer : IOpenApiSchemaTransformer
             if (schema.Pattern?.StartsWith("^-?(?:0|[1-9]", StringComparison.Ordinal) == true) schema.Pattern = null;
         }
 
-        schema.Format = schema.Format switch
+        (string? Format, string Maximum)? unsigned = schema.Format switch
         {
-            "uint8" or "uint16" or "uint32" => "int32",
-            "uint64" => "int64",
-            _ => schema.Format
+            "uint8" => ("int32", "255"),
+            "uint16" => ("int32", "65535"),
+            "uint32" => (null, "4294967295"),
+            "uint64" => ("int64", "18446744073709551615"),
+            _ => null
         };
+        if (unsigned is not { } signed) return;
+
+        schema.Format = signed.Format;
+        // A [Range] attribute is narrower than the type's own range, so it wins.
+        schema.Minimum ??= "0";
+        schema.Maximum ??= signed.Maximum;
     }
 
     /// <summary>
-    /// Swashbuckle marked every object schema without a dictionary value type as closed (additionalProperties: false),
-    /// left extension-data types open, and did not treat property initializers as optional.
+    /// A property with an initializer is exported with a default and dropped from <c>required</c>, but the serializer always
+    /// writes it, so a response carries it either way and a client should not have to treat it as optional.
+    /// The default stays on the schema: it describes what the server assumes when a request leaves the property out.
     /// </summary>
     private static void NormalizeObject(OpenApiSchema schema, OpenApiSchemaTransformerContext context)
     {
         if (schema.Type is not { } type || (type & ~JsonSchemaType.Null) != JsonSchemaType.Object) return;
         if (context.JsonTypeInfo.Kind != JsonTypeInfoKind.Object) return;
 
-        // Properties with an initializer are exported with a default and dropped from "required", but they are always present on the wire
         foreach (var (name, property) in schema.Properties ?? new Dictionary<string, IOpenApiSchema>())
         {
-            if (property is not OpenApiSchema { Default: not null, Type: { } propertyType } inline || propertyType.HasFlag(JsonSchemaType.Null)) continue;
+            if (property is not OpenApiSchema { Default: not null, Type: { } propertyType } || propertyType.HasFlag(JsonSchemaType.Null)) continue;
 
             (schema.Required ??= new HashSet<string>()).Add(name);
-            inline.Default = null;
-        }
-
-        if (schema.AdditionalProperties is not null) return;
-
-        var hasExtensionData = context.JsonTypeInfo.Type
-            .GetMembers(BindingFlags.Public | BindingFlags.Instance)
-            .Any(m => m.IsDefined(typeof(JsonExtensionDataAttribute), true));
-
-        if (hasExtensionData)
-        {
-            schema.AdditionalProperties = new OpenApiSchema();
-        }
-        else
-        {
-            schema.AdditionalPropertiesAllowed = false;
         }
     }
 
     /// <summary>
-    /// Restores member-level metadata Swashbuckle derived from attributes: [Obsolete], get-only properties, and [Required] on strings.
+    /// Member-level metadata the exporter does not derive from attributes: [Obsolete] and [Required] on strings.
     /// </summary>
     private static void ApplyMemberMetadata(OpenApiSchema schema, OpenApiSchemaTransformerContext context)
     {
@@ -148,7 +146,6 @@ public sealed class OpenShockSchemaTransformer : IOpenApiSchemaTransformer
         var attributes = property.AttributeProvider?.GetCustomAttributes(true) ?? [];
 
         if (attributes.OfType<ObsoleteAttribute>().Any()) schema.Deprecated = true;
-        if (property is { Get: not null, Set: null } && schema.Type is not null) schema.ReadOnly = true;
 
         if (schema.Type is { } type && type.HasFlag(JsonSchemaType.String) && schema.MinLength is null &&
             attributes.OfType<RequiredAttribute>().Any(a => !a.AllowEmptyStrings))
@@ -159,7 +156,7 @@ public sealed class OpenShockSchemaTransformer : IOpenApiSchemaTransformer
 
     /// <summary>
     /// Resolves the member (property/field) or controller action parameter that this schema is being generated for,
-    /// mirroring what Swashbuckle exposed as SchemaFilterContext.MemberInfo / ParameterFilterContext.ParameterInfo.
+    /// which the transformer context exposes only in pieces.
     /// </summary>
     private static ICustomAttributeProvider? GetCustomAttributeProvider(OpenApiSchemaTransformerContext context)
     {
@@ -177,8 +174,8 @@ public sealed class OpenShockSchemaTransformer : IOpenApiSchemaTransformer
     }
 
     /// <summary>
-    /// Mimics Swashbuckle's MapType&lt;T&gt;, which fully replaces the generated schema for a type. Transformers can only
-    /// mutate the schema instance in place, so every property a default-generated leaf schema might carry is reset first.
+    /// Replaces a generated schema wholesale. A transformer can only mutate the instance it is handed, so every property
+    /// a default-generated leaf schema might carry is overwritten, not just the ones the replacement sets.
     /// </summary>
     private static void ReplaceWith(OpenApiSchema schema, OpenApiSchema replacement)
     {

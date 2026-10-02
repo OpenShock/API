@@ -7,7 +7,7 @@ namespace OpenShock.Common.OpenApi;
 
 /// <summary>
 /// Restores controller class &lt;summary&gt; text as top-level tag descriptions,
-/// which Swashbuckle's IncludeXmlComments(..., includeControllerXmlComments: true) used to do.
+/// which the built-in XML comment support does not do.
 /// </summary>
 public sealed class ControllerTagDescriptionTransformer(DocumentedXmlComments comments) : IOpenApiDocumentTransformer
 {
