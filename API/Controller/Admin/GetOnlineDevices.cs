@@ -60,7 +60,9 @@ public sealed partial class AdminController
                         LatencyMs = x.LatencyMs,
                         Rssi = x.Rssi,
                         Country = x.Country,
-                        Ip = IpAddressUtils.ParseStoredOrNull(x.Ip, _logger)
+                        Ip = IpAddressUtils.ParseStoredOrNull(x.Ip, _logger),
+                        Asn = x.Asn,
+                        AsnOrg = x.AsnOrg
                     };
                 })
         );
@@ -84,5 +86,7 @@ public sealed partial class AdminController
         public required int? Rssi { get; init; }
         public required string? Country { get; set; }
         public required IPAddress? Ip { get; set; }
+        public required long? Asn { get; set; }
+        public required string? AsnOrg { get; set; }
     }
 }

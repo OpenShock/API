@@ -37,6 +37,6 @@ public sealed class GeoLocatedWebApplicationFactory : WebApplicationFactory
         public GeoPoint? Location { get; set; }
 
         public IpEnrichmentData? Enrich(IPAddress ip) =>
-            Location is { } location ? new IpEnrichmentData(null, null, null, null, location, 20) : null;
+            Location is { } location ? new IpEnrichmentData(null, null, null, null, null, location, 20) : null;
     }
 }

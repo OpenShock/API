@@ -17,6 +17,7 @@ using System.Net.WebSockets;
 using System.Security.Claims;
 using OpenShock.Common.Authentication;
 using OpenShock.Common.Extensions;
+using OpenShock.Common.Services.Geo;
 using SemVersion = OpenShock.Common.Models.SemVersion;
 using Timer = System.Timers.Timer;
 
@@ -65,6 +66,9 @@ public abstract class HubControllerBase<TIn, TOut> : FlatbuffersWebsocketBaseCon
 
     /// <inheritdoc cref="IHubController.Id" />
     public override Guid Id => CurrentHubId;
+
+    /// <inheritdoc />
+    public IpEnrichmentData? IpInfo { get; private set; }
     
     /// <summary>
     /// Authentication context
@@ -143,6 +147,10 @@ public abstract class HubControllerBase<TIn, TOut> : FlatbuffersWebsocketBaseCon
         }
         
         _userAgent = HttpContext.Request.Headers.UserAgent.ToString().Truncate(256);
+
+        // Resolved before the lifetime is added, so the connect attempt metric already carries it.
+        IpInfo = ServiceProvider.GetRequiredService<IIpEnrichmentService>().Enrich(HttpContext.GetRemoteIP());
+
         var hubLifetimeResult = await _hubLifetimeManager.TryAddDeviceConnection(5, this, LinkedToken);
 
         switch (hubLifetimeResult)
@@ -250,7 +258,9 @@ public abstract class HubControllerBase<TIn, TOut> : FlatbuffersWebsocketBaseCon
             LatencyMs = latency,
             Rssi = rssi,
             Country = HttpContext.GetCFIPCountry(),
-            Ip = HttpContext.GetRemoteIP()
+            Ip = HttpContext.GetRemoteIP(),
+            Asn = IpInfo?.Asn,
+            AsnOrg = IpInfo?.AsnOrg
         });
 
         return true;

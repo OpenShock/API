@@ -504,9 +504,12 @@ public sealed class HubLifetime : IAsyncDisposable
         // as we don't want to send a device online status every time, we will do it here
         online.BootedAt = data.BootedAt;
         online.LatencyMs = data.LatencyMs;
+        
         online.Rssi = data.Rssi;
         online.Country = data.Country;
         online.Ip = data.Ip?.ToString();
+        online.Asn = data.Asn;
+        online.AsnOrg = data.AsnOrg;
 
         var sendOnlineStatusUpdate = false;
 
@@ -562,6 +565,8 @@ public sealed class HubLifetime : IAsyncDisposable
                 Rssi = data.Rssi,
                 Country = data.Country,
                 Ip = data.Ip?.ToString(),
+                Asn = data.Asn,
+                AsnOrg = data.AsnOrg,
             }, Duration.DeviceKeepAliveTimeout);
         }
     }
@@ -674,4 +679,14 @@ public readonly struct SelfOnlineData
     /// Remote ip address
     /// </summary>
     public IPAddress? Ip { get; init; } = null;
+
+    /// <summary>
+    /// Autonomous system number of the remote ip, if GeoIP is available
+    /// </summary>
+    public long? Asn { get; init; } = null;
+
+    /// <summary>
+    /// Organization owning <see cref="Asn"/>
+    /// </summary>
+    public string? AsnOrg { get; init; } = null;
 }

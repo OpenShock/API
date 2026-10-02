@@ -17,6 +17,7 @@ var builder = OpenShockApplication.CreateDefaultBuilder<Program>(args);
 var redisOptions = builder.RegisterRedisOptions();
 var databaseOptions = builder.RegisterDatabaseOptions();
 builder.RegisterMetricsOptions();
+builder.RegisterGeoOptions();
 
 var lcgOptions = builder.Configuration.GetRequiredSection(LcgOptions.SectionName).Get<LcgOptions>();
 if (lcgOptions is null)

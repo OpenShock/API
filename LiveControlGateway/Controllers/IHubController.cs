@@ -1,4 +1,5 @@
 ﻿using OpenShock.Common.Models;
+using OpenShock.Common.Services.Geo;
 using OpenShock.Serialization.Gateway;
 
 namespace OpenShock.LiveControlGateway.Controllers;
@@ -12,6 +13,12 @@ public interface IHubController : IAsyncDisposable
     /// The hub ID, unique across all hubs
     /// </summary>
     public Guid Id { get; }
+
+    /// <summary>
+    /// GeoIP data for the address this connection came from, resolved once when it connected.
+    /// Null when no GeoIP database is configured.
+    /// </summary>
+    public IpEnrichmentData? IpInfo { get; }
 
     /// <summary>
     /// Control shockers

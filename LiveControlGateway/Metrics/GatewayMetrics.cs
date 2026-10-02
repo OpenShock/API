@@ -1,6 +1,8 @@
 using System.Diagnostics.Metrics;
 using OpenShock.Common.Metrics;
 using OpenShock.Common.OpenShockDb;
+using OpenShock.Common.Services.Geo;
+using OpenShock.LiveControlGateway.Controllers;
 using OpenShock.LiveControlGateway.Options;
 
 namespace OpenShock.LiveControlGateway.Metrics;
@@ -14,6 +16,11 @@ namespace OpenShock.LiveControlGateway.Metrics;
 /// Every measurement carries <c>gateway_fqdn</c> as a normal tag rather than a tag on the
 /// <see cref="Meter"/> itself - a meter-level tag is a *scope* attribute, which the Prometheus
 /// exporter emits prefixed as <c>otel_scope_gateway_fqdn</c>.
+/// <para>
+/// Hub instruments also carry the hub's network as <c>asn</c> and <c>asn_org</c>, from GeoIP. The
+/// org is redundant with the number but saves every dashboard a lookup table; it adds no series
+/// of its own. Both are <see cref="Unknown"/> when GeoIP is not configured or the lookup missed.
+/// </para>
 /// </remarks>
 public sealed class GatewayMetrics
 {
@@ -71,6 +78,9 @@ public sealed class GatewayMetrics
         public const string ShockerExclusive = "shocker_exclusive";
     }
 
+    /// <summary>Tag value for a hub whose network could not be resolved.</summary>
+    public const string Unknown = "unknown";
+
     private readonly KeyValuePair<string, object?> _gatewayFqdn;
 
     private readonly Counter<long> _hubConnectAttempts;
@@ -117,13 +127,29 @@ public sealed class GatewayMetrics
     /// Record the outcome of a hub connection attempt.
     /// </summary>
     /// <param name="outcome">One of <see cref="HubConnectOutcome"/></param>
-    public void HubConnectAttempt(string outcome) =>
-        _hubConnectAttempts.Add(1, _gatewayFqdn, new KeyValuePair<string, object?>("outcome", outcome));
+    /// <param name="hub">The connecting hub</param>
+    public void HubConnectAttempt(string outcome, IHubController hub) =>
+        _hubConnectAttempts.Add(1, _gatewayFqdn, new KeyValuePair<string, object?>("outcome", outcome),
+            AsnTag(hub.IpInfo), AsnOrgTag(hub.IpInfo));
 
     /// <summary>
     /// Record a hub lifetime being torn down.
     /// </summary>
-    public void HubDisconnected() => _hubDisconnections.Add(1, _gatewayFqdn);
+    /// <param name="hub">The hub that disconnected</param>
+    public void HubDisconnected(IHubController hub) =>
+        _hubDisconnections.Add(1, _gatewayFqdn, AsnTag(hub.IpInfo), AsnOrgTag(hub.IpInfo));
+
+    /// <summary>
+    /// The <c>asn</c> tag for a hub's network.
+    /// </summary>
+    public static KeyValuePair<string, object?> AsnTag(IpEnrichmentData? ipInfo) =>
+        new("asn", ipInfo?.Asn?.ToString() ?? Unknown);
+
+    /// <summary>
+    /// The <c>asn_org</c> tag for a hub's network.
+    /// </summary>
+    public static KeyValuePair<string, object?> AsnOrgTag(IpEnrichmentData? ipInfo) =>
+        new("asn_org", ipInfo?.AsnOrg ?? Unknown);
 
     /// <summary>
     /// Record the outcome of a live control session attempt. This is churn only - the number of
