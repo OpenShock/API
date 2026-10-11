@@ -522,7 +522,7 @@ public sealed class LiveControlController : WebsocketBaseController<LiveControlR
         var intensity = Math.Clamp(scopedIntensity, HardLimits.MinControlIntensity,
             perms.Intensity ?? HardLimits.MaxControlIntensity);
 
-        var result = HubLifetime.ReceiveFrame(frame.Shocker, frame.Type, intensity, _tps);
+        var result = HubLifetime.ReceiveFrame(frame.Shocker, _currentUser.Id, frame.Type, intensity, _tps);
 
         switch (result)
         {

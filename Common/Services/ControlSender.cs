@@ -113,6 +113,7 @@ public sealed class ControlSender : IControlSender
 
         var messagesByDevice = new Dictionary<Guid, List<ShockerControlCommand>>();
         var logsByOwner = new Dictionary<Guid, List<ControlLog>>();
+        var statDeltas = new List<ControlStatDelta>(controls.Count);
 
         foreach (var control in controls.DistinctBy(x => x.Id))
         {
@@ -177,10 +178,26 @@ public sealed class ControlSender : IControlSender
                 CustomName = sender.CustomName,
                 CreatedAt = now
             });
+
+            statDeltas.Add(new ControlStatDelta(
+                ShockerId: shocker.ShockerId,
+                ControllerUserId: sender.Id == Guid.Empty ? null : sender.Id,
+                Bucket: now,
+                Type: control.Type,
+                Live: false,
+                Count: 1,
+                DurationMs: control.Duration,
+                IntensityMs: (long)control.Intensity * control.Duration,
+                MaxIntensity: control.Intensity));
         }
 
-        // Save all db changes before continuing
-        await _db.SaveChangesAsync();
+        // Save all db changes before continuing, logs and stats commit together
+        await using (var transaction = await _db.Database.BeginTransactionAsync())
+        {
+            await _db.SaveChangesAsync();
+            await _db.UpsertControlStatsAsync(statDeltas);
+            await transaction.CommitAsync();
+        }
 
         // Then send all network events
         await Task.WhenAll([

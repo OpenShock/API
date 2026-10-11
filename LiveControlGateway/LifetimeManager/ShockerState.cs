@@ -40,6 +40,17 @@ public sealed class ShockerState
     /// Last duration sent to the shocker via live control
     /// </summary>
     public ControlType LastType { get; set; } = ControlType.Stop;
+
+    /// <summary>
+    /// User who sent the last live control frame
+    /// </summary>
+    public Guid LastControllerId { get; set; }
+
+    /// <summary>
+    /// Whether the shocker was emitting live control on the previous tick, with which type and by whom.
+    /// Used to count continuous bursts for stats.
+    /// </summary>
+    public (ControlType Type, Guid ControllerId)? EmittingOnLastTick { get; set; }
     
     /// <summary>
     /// Active until time for the shocker, determined by client TPS interval + current time

@@ -28,6 +28,7 @@ public sealed class HubLifetimeManager
     private readonly IRedisPubService _redisPubService;
     private readonly ILoggerFactory _loggerFactory;
     private readonly GatewayMetrics _metrics;
+    private readonly LiveControlStatsService _liveControlStats;
     private readonly ILogger<HubLifetimeManager> _logger;
     
     /// <summary>
@@ -49,6 +50,7 @@ public sealed class HubLifetimeManager
     /// <param name="loggerFactory"></param>
     /// <param name="lcgOptions"></param>
     /// <param name="metrics"></param>
+    /// <param name="liveControlStats"></param>
     /// <param name="meter"></param>
     public HubLifetimeManager(
         IDbContextFactory<OpenShockContext> dbContextFactory,
@@ -58,6 +60,7 @@ public sealed class HubLifetimeManager
         ILoggerFactory loggerFactory,
         LcgOptions lcgOptions,
         GatewayMetrics metrics,
+        LiveControlStatsService liveControlStats,
         [FromKeyedServices("OpenShock.Gateway.Meter")] Meter meter
     )
     {
@@ -67,6 +70,7 @@ public sealed class HubLifetimeManager
         _redisPubService = redisPubService;
         _loggerFactory = loggerFactory;
         _metrics = metrics;
+        _liveControlStats = liveControlStats;
 
         _logger = _loggerFactory.CreateLogger<HubLifetimeManager>();
         
@@ -201,6 +205,7 @@ public sealed class HubLifetimeManager
             _connectionMultiplexer,
             _redisConnectionProvider,
             _redisPubService,
+            _liveControlStats,
             _loggerFactory.CreateLogger<HubLifetime>());
 
         return deviceLifetime;

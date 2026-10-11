@@ -18,7 +18,7 @@ partial class OpenShockContextModelSnapshot : ModelSnapshot
     // If you encounter a merge conflict in the line below, it means you need to
     // discard one of the migration branches and recreate its migrations on top of
     // the other branch. See https://aka.ms/efcore-docs-migrations-conflicts for more info.
-    public override string LastMigrationId => "20260930204951_AddAutomationTokens";
+    public override string LastMigrationId => "20261010115002_AddControlStats";
 
     protected override void BuildModel(ModelBuilder modelBuilder)
     {
@@ -389,6 +389,71 @@ partial class OpenShockContextModelSnapshot : ModelSnapshot
                     .HasName("configuration_pkey");
 
                 b.ToTable("configuration");
+            });
+
+        modelBuilder.Entity("OpenShock.Common.OpenShockDb.ControlStat", b =>
+            {
+                b.Property<Guid>("Id")
+                    .HasColumnType("uuid")
+                    .HasColumnName("id");
+
+                b.Property<DateTime>("Bucket")
+                    .HasColumnType("timestamp with time zone")
+                    .HasColumnName("bucket");
+
+                b.Property<Guid?>("ControllerUserId")
+                    .HasColumnType("uuid")
+                    .HasColumnName("controller_user_id");
+
+                b.Property<long>("Count")
+                    .HasColumnType("bigint")
+                    .HasColumnName("count");
+
+                b.Property<long>("DurationMs")
+                    .HasColumnType("bigint")
+                    .HasColumnName("duration_ms");
+
+                b.Property<long>("IntensityMs")
+                    .HasColumnType("bigint")
+                    .HasColumnName("intensity_ms");
+
+                b.Property<bool>("Live")
+                    .HasColumnType("boolean")
+                    .HasColumnName("live");
+
+                b.Property<byte>("MaxIntensity")
+                    .HasColumnType("smallint")
+                    .HasColumnName("max_intensity");
+
+                b.Property<Guid>("OwnerUserId")
+                    .HasColumnType("uuid")
+                    .HasColumnName("owner_user_id");
+
+                b.Property<Guid?>("ShockerId")
+                    .HasColumnType("uuid")
+                    .HasColumnName("shocker_id");
+
+                b.Property<ControlType>("Type")
+                    .HasColumnType("control_type")
+                    .HasColumnName("type");
+
+                b.HasKey("Id")
+                    .HasName("control_stats_pkey");
+
+                b.HasIndex("ShockerId");
+
+                b.HasIndex("ControllerUserId", "Bucket");
+
+                b.HasIndex("OwnerUserId", "Bucket");
+
+                var index = b.HasIndex("OwnerUserId", "ShockerId", "ControllerUserId", "Bucket", "Type", "Live")
+                    .IsUnique()
+                    .HasDatabaseName("ix_control_stats_upsert_key")
+                    .HasFilter("shocker_id IS NOT NULL");
+
+                NpgsqlIndexBuilderExtensions.AreNullsDistinct(index, false);
+
+                b.ToTable("control_stats");
             });
 
         modelBuilder.Entity("OpenShock.Common.OpenShockDb.Device", b =>
@@ -1420,6 +1485,26 @@ partial class OpenShockContextModelSnapshot : ModelSnapshot
                 b.Navigation("ReportedByUser");
             });
 
+        modelBuilder.Entity("OpenShock.Common.OpenShockDb.ControlStat", b =>
+            {
+                b.HasOne("OpenShock.Common.OpenShockDb.User", "Owner")
+                    .WithMany("ControlStats")
+                    .HasForeignKey("OwnerUserId")
+                    .OnDelete(DeleteBehavior.Cascade)
+                    .IsRequired()
+                    .HasConstraintName("fk_control_stats_owner_user_id");
+
+                b.HasOne("OpenShock.Common.OpenShockDb.Shocker", "Shocker")
+                    .WithMany("ControlStats")
+                    .HasForeignKey("ShockerId")
+                    .OnDelete(DeleteBehavior.SetNull)
+                    .HasConstraintName("fk_control_stats_shocker_id");
+
+                b.Navigation("Owner");
+
+                b.Navigation("Shocker");
+            });
+
         modelBuilder.Entity("OpenShock.Common.OpenShockDb.Device", b =>
             {
                 b.HasOne("OpenShock.Common.OpenShockDb.User", "Owner")
@@ -1714,6 +1799,8 @@ partial class OpenShockContextModelSnapshot : ModelSnapshot
 
         modelBuilder.Entity("OpenShock.Common.OpenShockDb.Shocker", b =>
             {
+                b.Navigation("ControlStats");
+
                 b.Navigation("PublicShareMappings");
 
                 b.Navigation("ShockerControlLogs");
@@ -1732,6 +1819,8 @@ partial class OpenShockContextModelSnapshot : ModelSnapshot
                 b.Navigation("ApiTokens");
 
                 b.Navigation("AuditLogs");
+
+                b.Navigation("ControlStats");
 
                 b.Navigation("Devices");
 

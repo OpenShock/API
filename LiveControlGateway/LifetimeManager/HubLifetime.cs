@@ -50,6 +50,7 @@ public sealed class HubLifetime : IAsyncDisposable
     private readonly IDbContextFactory<OpenShockContext> _dbContextFactory;
     private readonly IRedisConnectionProvider _redisConnectionProvider;
     private readonly IRedisPubService _redisPubService;
+    private readonly LiveControlStatsService _liveControlStats;
 
     private readonly RedisChannel _deviceMsgChannel;
     private readonly ISubscriber _subscriber;
@@ -83,12 +84,14 @@ public sealed class HubLifetime : IAsyncDisposable
     /// <param name="connectionMultiplexer"></param>
     /// <param name="redisConnectionProvider"></param>
     /// <param name="redisPubService"></param>
+    /// <param name="liveControlStats"></param>
     /// <param name="logger"></param>
     public HubLifetime([Range(1, 10)] byte tps, IHubController hubController,
         IDbContextFactory<OpenShockContext> dbContextFactory,
         IConnectionMultiplexer connectionMultiplexer,
         IRedisConnectionProvider redisConnectionProvider,
         IRedisPubService redisPubService,
+        LiveControlStatsService liveControlStats,
         ILogger<HubLifetime> logger)
     {
         HubController = hubController;
@@ -96,6 +99,7 @@ public sealed class HubLifetime : IAsyncDisposable
         _dbContextFactory = dbContextFactory;
         _redisConnectionProvider = redisConnectionProvider;
         _redisPubService = redisPubService;
+        _liveControlStats = liveControlStats;
         _logger = logger;
 
         _waitBetweenTicks = TimeSpan.FromMilliseconds(1000.0 / tps);
@@ -360,10 +364,29 @@ public sealed class HubLifetime : IAsyncDisposable
     {
         var now = DateTimeOffset.UtcNow;
         var commandList = new List<ShockerCommand>(_shockerStates.Count);
+        var tickMs = (long)_waitBetweenTicks.TotalMilliseconds;
 
         foreach (var state in _shockerStates.Values)
         {
-            if (state.ActiveUntil < now || state.ExclusiveUntil >= now) continue;
+            if (state.ActiveUntil < now || state.ExclusiveUntil >= now)
+            {
+                state.EmittingOnLastTick = null;
+                continue;
+            }
+
+            // Each emitting tick is one tick interval of activity, a new type or controller starts a new burst
+            var emitting = (state.LastType, state.LastControllerId);
+            _liveControlStats.Record(new ControlStatDelta(
+                ShockerId: state.Id,
+                ControllerUserId: state.LastControllerId,
+                Bucket: now.UtcDateTime,
+                Type: state.LastType,
+                Live: true,
+                Count: state.EmittingOnLastTick == emitting ? 0 : 1,
+                DurationMs: tickMs,
+                IntensityMs: state.LastIntensity * tickMs,
+                MaxIntensity: state.LastIntensity));
+            state.EmittingOnLastTick = emitting;
 
             commandList.Add(new ShockerCommand
             {
@@ -411,12 +434,13 @@ public sealed class HubLifetime : IAsyncDisposable
     /// Receive a control frame by a client, this implies that limits and permissions have been checked before
     /// </summary>
     /// <param name="shocker"></param>
+    /// <param name="controllerId">User sending the frame</param>
     /// <param name="type"></param>
     /// <param name="intensity"></param>
     /// <param name="tps"></param>
     /// <returns></returns>
-    public Union3<Success, NotFound, ShockerExclusive> ReceiveFrame(Guid shocker, ControlType type, byte intensity,
-        byte tps)
+    public Union3<Success, NotFound, ShockerExclusive> ReceiveFrame(Guid shocker, Guid controllerId, ControlType type,
+        byte intensity, byte tps)
     {
         if (!_shockerStates.TryGetValue(shocker, out var state)) return new NotFound();
         if (state.ExclusiveUntil > DateTimeOffset.UtcNow)
@@ -427,6 +451,7 @@ public sealed class HubLifetime : IAsyncDisposable
 
         state.LastType = type;
         state.LastIntensity = intensity;
+        state.LastControllerId = controllerId;
         state.ActiveUntil = CalculateActiveUntil(tps);
         return new Success();
     }
