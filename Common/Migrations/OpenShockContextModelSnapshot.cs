@@ -18,7 +18,7 @@ partial class OpenShockContextModelSnapshot : ModelSnapshot
     // If you encounter a merge conflict in the line below, it means you need to
     // discard one of the migration branches and recreate its migrations on top of
     // the other branch. See https://aka.ms/efcore-docs-migrations-conflicts for more info.
-    public override string LastMigrationId => "20261010115002_AddControlStats";
+    public override string LastMigrationId => "20261011154350_AddControlStatsReadAutomationToken";
 
     protected override void BuildModel(ModelBuilder modelBuilder)
     {
@@ -29,7 +29,7 @@ partial class OpenShockContextModelSnapshot : ModelSnapshot
             .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
         NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "audit_action", new[] { "login", "logout", "password_changed", "email_change_requested", "email_changed", "username_changed", "api_token_created", "api_token_deleted", "oauth_connected", "oauth_disconnected", "account_deactivated", "account_reactivated", "account_deleted", "automation_token_created", "automation_token_updated", "automation_token_rotated", "automation_token_deleted", "automation_token_used" });
-        NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "automation_token_type", new[] { "turnstile", "rate_limit" });
+        NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "automation_token_type", new[] { "turnstile", "rate_limit", "control_stats_read" });
         NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "configuration_value_type", new[] { "string", "bool", "int", "float", "json" });
         NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "control_limit_mode", new[] { "clamp", "lerp" });
         NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "control_type", new[] { "stop", "shock", "vibrate", "sound" });

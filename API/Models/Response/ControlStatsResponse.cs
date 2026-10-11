@@ -68,3 +68,23 @@ public sealed class DailyControlStats
     public required DateOnly Date { get; init; }
     public required ControlStatTotals[] Stats { get; init; }
 }
+
+public sealed class ControlStatChangesResponse
+{
+    /// <summary>Pass as <c>since</c> on the next call.</summary>
+    public required DateTime Cursor { get; init; }
+
+    public required UserControlStatTotals[] Users { get; init; }
+}
+
+/// <summary>Lifetime totals of one user, the same views as <see cref="ControlStatsResponse"/> without breakdowns.</summary>
+public sealed class UserControlStatTotals
+{
+    public required Guid UserId { get; init; }
+
+    /// <summary>Activity on shockers the user owns.</summary>
+    public required ControlStatTotals[] Received { get; init; }
+
+    /// <summary>Activity the user sent to shockers, their own included.</summary>
+    public required ControlStatTotals[] Given { get; init; }
+}
