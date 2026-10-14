@@ -51,7 +51,10 @@ public class WebApplicationFactory : WebApplicationFactory<Program>
             { "ASPNETCORE_UNDER_INTEGRATION_TEST", "1" },
 
             { "OPENSHOCK__DB__CONN", PostgreSql.Container.GetConnectionString() },
-            { "OPENSHOCK__DB__SKIPMIGRATION", "false" },
+            // InMemoryDatabase migrates the shared database once per test session. Every factory
+            // variant boots its own host against that same database, and concurrent EF migrators
+            // corrupt each other, so no host migrates on boot here.
+            { "OPENSHOCK__DB__SKIPMIGRATION", "true" },
             { "OPENSHOCK__DB__DEBUG", "false" },
 
             { "OPENSHOCK__REDIS__CONN", Redis.Container.GetConnectionString() },
