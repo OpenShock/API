@@ -33,6 +33,8 @@ public sealed partial class AdminController
 
         await redisPubService.SendEmailOutboxPending();
 
-        return Ok(EmailOutboxMessageDto.FromModel(message));
+        var userIds = await ResolveUserIdsByEmail([message.Recipient], ct);
+
+        return Ok(EmailOutboxMessageDto.FromModel(message, userIds.GetValueOrDefault(message.Recipient.ToLowerInvariant())));
     }
 }

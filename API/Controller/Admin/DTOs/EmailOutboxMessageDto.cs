@@ -12,6 +12,9 @@ public sealed class EmailOutboxMessageDto
     public required EmailType Type { get; set; }
     public required string Recipient { get; set; }
     public required string? RecipientName { get; set; }
+
+    /// <summary>The user currently registered under <see cref="Recipient"/>, or null if there is none.</summary>
+    public required Guid? RecipientUserId { get; set; }
     public required Dictionary<string, string> Payload { get; set; }
     public required string? CoalesceKey { get; set; }
     public required EmailStatus Status { get; set; }
@@ -22,12 +25,13 @@ public sealed class EmailOutboxMessageDto
     public required DateTimeOffset? SentAt { get; set; }
     public required DateTimeOffset? FailedAt { get; set; }
 
-    public static EmailOutboxMessageDto FromModel(EmailOutboxMessage m) => new()
+    public static EmailOutboxMessageDto FromModel(EmailOutboxMessage m, Guid? recipientUserId) => new()
     {
         Id = m.Id,
         Type = m.Type,
         Recipient = m.Recipient,
         RecipientName = m.RecipientName,
+        RecipientUserId = recipientUserId,
         Payload = m.Payload,
         CoalesceKey = m.CoalesceKey,
         Status = m.Status,

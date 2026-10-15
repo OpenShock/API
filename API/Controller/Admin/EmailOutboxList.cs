@@ -75,13 +75,28 @@ public sealed partial class AdminController
         }
 
         var messages = await query.Take(limit).ToArrayAsync();
+        var userIds = await ResolveUserIdsByEmail(messages.Select(m => m.Recipient));
 
         return Ok(new Paginated<EmailOutboxMessageDto>
         {
-            Data = messages.Select(EmailOutboxMessageDto.FromModel).ToArray(),
+            Data = messages.Select(m => EmailOutboxMessageDto.FromModel(m, userIds.GetValueOrDefault(m.Recipient.ToLowerInvariant()))).ToArray(),
             Offset = offset,
             Limit = limit,
             Total = total,
         });
+    }
+
+    /// <summary>
+    /// Maps each (lowercased) address to the id of the user currently registered under it. Addresses
+    /// with no matching user - deleted accounts, changed emails, test sends - are absent from the result.
+    /// </summary>
+    private async Task<Dictionary<string, Guid?>> ResolveUserIdsByEmail(IEnumerable<string> emails, CancellationToken ct = default)
+    {
+        var lowered = emails.Select(e => e.ToLowerInvariant()).Distinct().ToArray();
+        if (lowered.Length == 0) return [];
+
+        return await _db.Users
+            .Where(u => lowered.Contains(u.Email))
+            .ToDictionaryAsync(u => u.Email, u => (Guid?)u.Id, ct);
     }
 }
