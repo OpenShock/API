@@ -180,7 +180,7 @@ public static class TestHelper
     /// </summary>
     public static string UniqueEmail(string prefix)
     {
-        var suffix = Guid.CreateVersion7().ToString("N")[..8];
+        var suffix = Guid.NewGuid().ToString("N")[..8];
         return $"{prefix}-{suffix}@test.org";
     }
 
@@ -190,7 +190,7 @@ public static class TestHelper
     /// </summary>
     public static string UniqueUsername(string prefix)
     {
-        var suffix = Guid.CreateVersion7().ToString("N")[..8];
+        var suffix = Guid.NewGuid().ToString("N")[..8];
         return ($"{prefix}{suffix}").ToLowerInvariant();
     }
 }

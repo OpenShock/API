@@ -171,11 +171,8 @@ public static class OpenShockServiceHelper
 
         configureAuth?.Invoke(authBuilder);
 
-        services.AddAuthorization(options =>
-        {
-            options.AddPolicy(OpenShockAuthPolicies.RankAdmin, policy => policy.RequireRole("Admin", "System"));
-            // TODO: Add token permission policies
-        });
+        services.AddAuthorizationBuilder()
+            .AddPolicy(OpenShockAuthPolicies.RankAdmin, policy => policy.RequireRole("Admin", "System"));
 
         services.AddSingleton<IAuthorizationMiddlewareResultHandler, OpenShockAuthorizationMiddlewareResultHandler>();
 

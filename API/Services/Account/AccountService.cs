@@ -279,19 +279,22 @@ public sealed class AccountService : IAccountService
         return true;
     }
 
+    private async Task<bool> IsPrivilegedAsync(Guid userId)
+    {
+        var roles = await _db.Users
+            .Where(u => u.Id == userId)
+            .Select(u => u.Roles)
+            .FirstOrDefaultAsync();
+
+        return roles is not null && PrivilegedRoles.Any(roles);
+    }
+
     /// <inheritdoc />
     public async Task<Union5<Success, CannotDeactivatePrivilegedAccount, AccountDeactivationAlreadyInProgress, Unauthorized, NotFound>> DeactivateAccountAsync(Guid executingUserId, Guid userId, bool deleteLater, string? reason = null)
     {
         if (executingUserId != userId)
         {
-            var isPrivileged = await _db.Users
-                            .Where(u => u.Id == executingUserId)
-                            .SelectMany(u => u.Roles)
-                            .AnyAsync(r =>
-                                r == RoleType.Staff ||
-                                r == RoleType.Admin ||
-                                r == RoleType.System);
-            if (!isPrivileged)
+            if (!await IsPrivilegedAsync(executingUserId))
             {
                 return new Unauthorized();
             }
@@ -351,14 +354,7 @@ public sealed class AccountService : IAccountService
 
         if (!isSelfReactivation)
         {
-            var isPrivileged = await _db.Users
-                            .Where(u => u.Id == executingUserId)
-                            .SelectMany(u => u.Roles)
-                            .AnyAsync(r =>
-                                r == RoleType.Staff ||
-                                r == RoleType.Admin ||
-                                r == RoleType.System);
-            if (!isPrivileged)
+            if (!await IsPrivilegedAsync(executingUserId))
             {
                 return new Unauthorized();
             }
@@ -385,14 +381,7 @@ public sealed class AccountService : IAccountService
     /// <inheritdoc />
     public async Task<Union4<Success, CannotDeletePrivilegedAccount, Unauthorized, NotFound>> DeleteAccountAsync(Guid executingUserId, Guid userId, string? reason = null)
     {
-        var isPrivileged = await _db.Users
-                        .Where(u => u.Id == executingUserId)
-                        .SelectMany(u => u.Roles)
-                        .AnyAsync(r =>
-                            r == RoleType.Staff ||
-                            r == RoleType.Admin ||
-                            r == RoleType.System);
-        if (!isPrivileged)
+        if (!await IsPrivilegedAsync(executingUserId))
         {
             return new Unauthorized();
         }
@@ -407,20 +396,15 @@ public sealed class AccountService : IAccountService
 
         // TODO: Do more checks?
 
-        await using var transaction = await _db.Database.BeginTransactionAsync();
-
         _db.Users.Remove(user);
 
         await _db.SaveChangesAsync();
 
-        await _auditService.LogAsync(
-            userId,
-            action: AuditAction.AccountDeleted,
-            actorId: executingUserId,
-            reason: reason
-        );
-
-        await transaction.CommitAsync();
+        // The user's audit log is deleted with the user (and an entry written for a deleted user violates its
+        // foreign key), so the log line is the lasting record of the deletion.
+        _logger.LogInformation(
+            "Account {UserId} deleted by {ExecutingUserId}. Reason: {Reason}",
+            userId, executingUserId, reason);
 
         return new Success();
     }

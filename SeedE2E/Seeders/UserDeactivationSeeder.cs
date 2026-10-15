@@ -16,7 +16,11 @@ public static class UserDeactivationSeeder
         logger.LogInformation("Generating UserDeactivations...");
 
         var allUserIds = await db.Users.Select(u => u.Id).ToListAsync();
-        var moderatorIds = await db.Users.Where(u => u.Roles.Any(r => r == RoleType.Staff || r == RoleType.Admin)).Select(m => m.Id).ToListAsync();
+        // Npgsql can't translate predicates over the roles enum array, so the roles are filtered here.
+        var moderatorIds = (await db.Users.Select(u => new { u.Id, u.Roles }).ToListAsync())
+            .Where(u => u.Roles.Any(r => r is RoleType.Staff or RoleType.Admin))
+            .Select(u => u.Id)
+            .ToList();
 
         var deactivationFaker = new Faker<UserDeactivation>()
             .RuleFor(d => d.DeactivatedUserId, f => f.PickRandom(allUserIds))
