@@ -19,7 +19,7 @@ public sealed class OtaService : IOtaService
     }
 
     /// <inheritdoc />
-    public Task Started(Guid deviceId, int updateId, SemVersion version)
+    public Task Started(Guid deviceId, int updateId, SemVersion version, CancellationToken cancellationToken)
     {
         _db.DeviceOtaUpdates.Add(new DeviceOtaUpdate
         {
@@ -29,46 +29,46 @@ public sealed class OtaService : IOtaService
             Version = version.ToString()
         });
 
-        return _db.SaveChangesAsync();
+        return _db.SaveChangesAsync(cancellationToken);
     }
 
     /// <inheritdoc />
-    public async Task Progress(Guid deviceId, int updateId)
+    public async Task Progress(Guid deviceId, int updateId, CancellationToken cancellationToken)
     {
         var updateTask = await _db.DeviceOtaUpdates
-            .FirstOrDefaultAsync(x => x.DeviceId == deviceId && x.UpdateId == updateId);
+            .FirstOrDefaultAsync(x => x.DeviceId == deviceId && x.UpdateId == updateId, cancellationToken);
         if (updateTask is null) return;
         updateTask.Status = OtaUpdateStatus.Running;
 
-        await _db.SaveChangesAsync();
+        await _db.SaveChangesAsync(cancellationToken);
     }
 
     /// <inheritdoc />
-    public async Task Error(Guid deviceId, int updateId, bool fatal, string message)
+    public async Task Error(Guid deviceId, int updateId, bool fatal, string message, CancellationToken cancellationToken)
     {
         var updateTask = await _db.DeviceOtaUpdates
-            .FirstOrDefaultAsync(x => x.DeviceId == deviceId && x.UpdateId == updateId);
+            .FirstOrDefaultAsync(x => x.DeviceId == deviceId && x.UpdateId == updateId, cancellationToken);
         if (updateTask is null) return;
         updateTask.Status = OtaUpdateStatus.Error;
         updateTask.Message = message;
 
-        await _db.SaveChangesAsync();
+        await _db.SaveChangesAsync(cancellationToken);
     }
     
     /// <inheritdoc />
-    public async Task<bool> Success(Guid deviceId, int updateId)
+    public async Task<bool> Success(Guid deviceId, int updateId, CancellationToken cancellationToken)
     {
         var updateTask = await _db.DeviceOtaUpdates
-            .FirstOrDefaultAsync(x => x.DeviceId == deviceId && x.UpdateId == updateId);
+            .FirstOrDefaultAsync(x => x.DeviceId == deviceId && x.UpdateId == updateId, cancellationToken);
         if (updateTask is null) return false;
         updateTask.Status = OtaUpdateStatus.Finished;
 
-        await _db.SaveChangesAsync();
+        await _db.SaveChangesAsync(cancellationToken);
         return true;
     }
 
     /// <inheritdoc />
-    public async Task<IReadOnlyCollection<OtaItem>> GetUpdates(Guid deviceId)
+    public async Task<IReadOnlyCollection<OtaItem>> GetUpdates(Guid deviceId, CancellationToken cancellationToken)
     {
         return await _db.DeviceOtaUpdates.AsNoTracking()
             .Where(x => x.DeviceId == deviceId)
@@ -80,15 +80,15 @@ public sealed class OtaService : IOtaService
                 Status = x.Status,
                 Version = SemVersion.Parse(x.Version),
                 Message = x.Message
-            }).ToArrayAsync();
+            }).ToArrayAsync(cancellationToken);
     }
 
     /// <inheritdoc />
-    public async Task<bool> UpdateUnfinished(Guid deviceId, int updateId)
+    public async Task<bool> UpdateUnfinished(Guid deviceId, int updateId, CancellationToken cancellationToken)
     {
         return await _db.DeviceOtaUpdates.AsNoTracking()
             .AnyAsync(x => x.DeviceId == deviceId &&
                            x.UpdateId == updateId &&
-                           (x.Status == OtaUpdateStatus.Running || x.Status == OtaUpdateStatus.Started));
+                           (x.Status == OtaUpdateStatus.Running || x.Status == OtaUpdateStatus.Started), cancellationToken);
     }
 }

@@ -48,7 +48,7 @@ public sealed partial class AccountController
             return Ok();
         }
 
-        await _accountService.CreatePasswordResetFlowAsync(body.Email);
+        await _accountService.CreatePasswordResetFlowAsync(body.Email, cancellationToken);
 
         return Ok();
     }

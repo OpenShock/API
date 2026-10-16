@@ -47,7 +47,7 @@ public sealed class UserHub : Hub<IUserHub>
         var devicesOnline = _provider.RedisCollection<DeviceOnline>(false);
         var sharedDevices = await _db.Devices
             .Where(x => x.Shockers.Any(y => y.UserShares.Any(z => z.SharedWithUserId == UserId)))
-            .Select(x => x.Id.ToString()).ToArrayAsync();
+            .Select(x => x.Id.ToString()).ToArrayAsync(Context.ConnectionAborted);
 
         var own = devicesOnline.Where(x => x.Owner == UserId).ToListAsync();
         var shared = devicesOnline.FindByIdsAsync(sharedDevices);
@@ -92,7 +92,7 @@ public sealed class UserHub : Hub<IUserHub>
             ConnectionId = Context.ConnectionId,
             AdditionalItems = additionalItems,
             CustomName = customName
-        }).FirstAsync();
+        }).FirstAsync(Context.ConnectionAborted);
 
         ApiTokenControlLimits? tokenLimits = null;
         if (Context.GetHttpContext()?.GetItemByType<ApiToken>() is { } apiToken)
@@ -103,7 +103,7 @@ public sealed class UserHub : Hub<IUserHub>
             tokenLimits = ApiTokenControlLimits.FromToken(apiToken);
         }
 
-        await _controlSender.ControlByUser(shocks, sender, Clients, tokenLimits);
+        await _controlSender.ControlByUser(shocks, sender, Clients, tokenLimits, Context.ConnectionAborted);
     }
 
     public async Task CaptivePortal(Guid deviceId, bool enabled)
@@ -112,7 +112,7 @@ public sealed class UserHub : Hub<IUserHub>
         if (TokenPermissions is not null) return;
 
         var devices = await _db.Devices.Where(x => x.OwnerId == UserId)
-            .AnyAsync(x => x.Id == deviceId);
+            .AnyAsync(x => x.Id == deviceId, Context.ConnectionAborted);
         if (!devices) return;
 
         await _redisPubService.SendDeviceCaptivePortal(deviceId, enabled);
@@ -124,7 +124,7 @@ public sealed class UserHub : Hub<IUserHub>
         if (TokenPermissions is not null) return;
 
         var devices = await _db.Devices.Where(x => x.OwnerId == UserId)
-            .AnyAsync(x => x.Id == deviceId);
+            .AnyAsync(x => x.Id == deviceId, Context.ConnectionAborted);
         if (!devices) return;
 
         await _redisPubService.SendDeviceEmergencyStop(deviceId);
@@ -136,7 +136,7 @@ public sealed class UserHub : Hub<IUserHub>
         if (TokenPermissions is not null) return;
 
         var devices = await _db.Devices.Where(x => x.OwnerId == UserId)
-            .AnyAsync(x => x.Id == deviceId);
+            .AnyAsync(x => x.Id == deviceId, Context.ConnectionAborted);
         if (!devices) return;
 
         await _redisPubService.SendDeviceOtaInstall(deviceId, version);
@@ -148,7 +148,7 @@ public sealed class UserHub : Hub<IUserHub>
         if (TokenPermissions is not null) return;
 
         var devices = await _db.Devices.Where(x => x.OwnerId == UserId)
-            .AnyAsync(x => x.Id == deviceId);
+            .AnyAsync(x => x.Id == deviceId, Context.ConnectionAborted);
         if (!devices) return;
 
         await _redisPubService.SendDeviceReboot(deviceId);

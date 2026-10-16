@@ -19,6 +19,7 @@ public sealed partial class SharesController
     /// </summary>
     /// <param name="shareCodeId"></param>
     /// <param name="deviceUpdateService"></param>
+    /// <param name="cancellationToken"></param>
     /// <response code="200">Linked share code</response>
     /// <response code="404">Share code not found or does not belong to you</response>
     /// <response code="400">You cannot link your own shocker code / You already have this shocker linked to your account</response>
@@ -30,16 +31,17 @@ public sealed partial class SharesController
     [MapToApiVersion("1")]
     public async Task<IActionResult> LinkShareCode(
         [FromRoute] Guid shareCodeId,
-        [FromServices] IDeviceUpdateService deviceUpdateService
+        [FromServices] IDeviceUpdateService deviceUpdateService,
+        CancellationToken cancellationToken
     )
     {
         var shareCode = await _db.ShockerShareCodes.Where(x => x.Id == shareCodeId && x.Shocker.Device.Owner.UserDeactivation == null).Select(x => new
         {
             Share = x, x.Shocker.Device.OwnerId, x.Shocker.DeviceId
-        }).FirstOrDefaultAsync();
+        }).FirstOrDefaultAsync(cancellationToken);
         if (shareCode is null) return Problem(ShareCodeError.ShareCodeNotFound);
         if (shareCode.OwnerId == CurrentUser.Id) return Problem(ShareCodeError.CantLinkOwnShareCode);
-        if (await _db.UserShares.AnyAsync(x => x.ShockerId == shareCode.Share.ShockerId && x.SharedWithUserId == CurrentUser.Id))
+        if (await _db.UserShares.AnyAsync(x => x.ShockerId == shareCode.Share.ShockerId && x.SharedWithUserId == CurrentUser.Id, cancellationToken))
             return Problem(ShareCodeError.ShockerAlreadyLinked);
         
         _db.UserShares.Add(new UserShare
@@ -56,9 +58,9 @@ public sealed partial class SharesController
         });
         _db.ShockerShareCodes.Remove(shareCode.Share);
 
-        if (await _db.SaveChangesAsync() <= 1) throw new Exception("Error while linking share code to your account");
+        if (await _db.SaveChangesAsync(cancellationToken) <= 1) throw new Exception("Error while linking share code to your account");
 
-        await deviceUpdateService.UpdateDevice(shareCode.OwnerId, shareCode.DeviceId, DeviceUpdateType.ShockerUpdated, CurrentUser.Id);
+        await deviceUpdateService.UpdateDevice(shareCode.OwnerId, shareCode.DeviceId, DeviceUpdateType.ShockerUpdated, CurrentUser.Id, cancellationToken);
 
         return LegacyEmptyOk("Successfully linked share code");
     }

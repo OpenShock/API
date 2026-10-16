@@ -19,6 +19,7 @@ public sealed partial class ShareLinksController
     /// <param name="publicShareId"></param>
     /// <param name="shockerId"></param>
     /// <param name="body"></param>
+    /// <param name="cancellationToken"></param>
     /// <response code="200">Successfully updated shocker</response>
     /// <response code="404">Public share or shocker does not exist</response>
     /// <response code="400">Shocker does not exist in public share</response>
@@ -27,14 +28,14 @@ public sealed partial class ShareLinksController
     [TokenPermission(PermissionType.Publicshares_Edit)]
     [ProducesResponseType<string>(StatusCodes.Status200OK, MediaTypeNames.Text.Plain)]
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status404NotFound, MediaTypeNames.Application.ProblemJson)] // PublicShareNotFound, ShockerNotInPublicShare
-    public async Task<IActionResult> EditShocker([FromRoute] Guid publicShareId, [FromRoute] Guid shockerId, [FromBody] PublicShareEditShocker body)
+    public async Task<IActionResult> EditShocker([FromRoute] Guid publicShareId, [FromRoute] Guid shockerId, [FromBody] PublicShareEditShocker body, CancellationToken cancellationToken)
     {
-        var exists = await _db.PublicShares.AnyAsync(x => x.OwnerId == CurrentUser.Id && x.Id == publicShareId && (x.ExpiresAt == null || x.ExpiresAt > DateTime.UtcNow));
+        var exists = await _db.PublicShares.AnyAsync(x => x.OwnerId == CurrentUser.Id && x.Id == publicShareId && (x.ExpiresAt == null || x.ExpiresAt > DateTime.UtcNow), cancellationToken);
         if (!exists) return Problem(PublicShareError.PublicShareNotFound);
 
         var shocker =
             await _db.PublicShareShockerMappings.FirstOrDefaultAsync(x =>
-                x.PublicShareId == publicShareId && x.ShockerId == shockerId);
+                x.PublicShareId == publicShareId && x.ShockerId == shockerId, cancellationToken);
         if (shocker is null) return Problem(PublicShareError.ShockerNotInPublicShare);
 
         shocker.AllowShock = body.Permissions.Shock;
@@ -45,7 +46,7 @@ public sealed partial class ShareLinksController
         shocker.MaxDuration = body.Limits.Duration;
         shocker.Cooldown = body.Cooldown;
 
-        await _db.SaveChangesAsync();
+        await _db.SaveChangesAsync(cancellationToken);
         return LegacyEmptyOk("Successfully updated shocker");
     }
 }

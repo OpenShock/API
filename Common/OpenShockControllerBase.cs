@@ -54,7 +54,7 @@ public abstract class OpenShockControllerBase : OpenShock.Internal.Common.OpenSh
     }
 
     [NonAction]
-    protected async Task CreateSession(Guid accountId, string domain)
+    protected async Task CreateSession(Guid accountId, string domain, CancellationToken cancellationToken)
     {
         var frontendOptions = HttpContext.RequestServices.GetRequiredService<FrontendOptions>();
         var sessionService = HttpContext.RequestServices.GetRequiredService<ISessionService>();
@@ -64,7 +64,7 @@ public abstract class OpenShockControllerBase : OpenShock.Internal.Common.OpenSh
         var userAgent = HttpContext.GetUserAgent();
         var enrichment = enrichmentService.Enrich(remoteIp);
 
-        var session = await sessionService.CreateSessionAsync(accountId, userAgent, remoteIp, actorId: accountId, enrichment: enrichment);
+        var session = await sessionService.CreateSessionAsync(accountId, userAgent, remoteIp, actorId: accountId, enrichment: enrichment, cancellationToken: cancellationToken);
 
 
         HttpContext.Response.Cookies.Append(AuthConstants.UserSessionCookieName, session.Token, new CookieOptions

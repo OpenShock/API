@@ -104,7 +104,8 @@ public sealed partial class TokensController
                
                Please investigate further if necessary.
                """,
-            Color.OrangeRed);
+            Color.OrangeRed,
+            cancellationToken);
 
         return Ok();
     }

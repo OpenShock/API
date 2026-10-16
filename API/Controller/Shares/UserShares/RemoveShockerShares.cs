@@ -16,13 +16,13 @@ public sealed partial class UserSharesController
     [MapToApiVersion("2")]
     [TokenPermission(PermissionType.Shockers_Edit)]
     [ProducesResponseType<RemoveUserSharesResponse>(StatusCodes.Status200OK)]
-    public async Task<IActionResult> BulkRemoveUserShareShockers([FromRoute] Guid userId , [FromBody] [MinLength(1)] Guid[] shockerIds, [FromServices] IDeviceUpdateService deviceUpdateService)
+    public async Task<IActionResult> BulkRemoveUserShareShockers([FromRoute] Guid userId , [FromBody] [MinLength(1)] Guid[] shockerIds, [FromServices] IDeviceUpdateService deviceUpdateService, CancellationToken cancellationToken)
     {
         var affected = await _db.UserShares
             .Where(x => shockerIds.Contains(x.ShockerId) && x.SharedWithUserId == userId &&
                         (x.Shocker.Device.OwnerId == CurrentUser.Id || x.SharedWithUserId == CurrentUser.Id))
             .Select(x => new { DeviceId = x.Shocker.Device.Id, OwnerId = x.Shocker.Device.OwnerId, UserShare = x })
-            .ToArrayAsync();
+            .ToArrayAsync(cancellationToken);
         
         // Check if we have all shockers to delete
         var missingShockers = shockerIds.Except(affected.Select(x => x.UserShare.ShockerId)).ToArray();
@@ -33,7 +33,7 @@ public sealed partial class UserSharesController
         
         _db.UserShares.RemoveRange(affected.Select(x => x.UserShare));
 
-        var deletedRecords = await _db.SaveChangesAsync();
+        var deletedRecords = await _db.SaveChangesAsync(cancellationToken);
 
         var updateTasks = affected.DistinctBy(x => x.DeviceId).Select(x =>
             deviceUpdateService.UpdateDevice(x.OwnerId, x.DeviceId, DeviceUpdateType.ShockerUpdated, userId));

@@ -18,7 +18,7 @@ public sealed partial class ShareLinksController
     [TokenPermission(PermissionType.Publicshares_Edit)]
     [Consumes(MediaTypeNames.Application.Json)]
     [ProducesResponseType<LegacyDataResponse<Guid>>(StatusCodes.Status200OK,  MediaTypeNames.Application.Json)]
-    public async Task<IActionResult> CreatePublicShare([FromBody] PublicShareCreate body)
+    public async Task<IActionResult> CreatePublicShare([FromBody] PublicShareCreate body, CancellationToken cancellationToken)
     {
         // Expiry date in the past is not allowed, but null (no expiry) is allowed
         if (body.ExpiresOn <= DateTime.UtcNow)
@@ -34,7 +34,7 @@ public sealed partial class ShareLinksController
             ExpiresAt = body.ExpiresOn is null ? null : DateTime.SpecifyKind(body.ExpiresOn.Value, DateTimeKind.Utc)
         };
         _db.PublicShares.Add(entity);
-        await _db.SaveChangesAsync();
+        await _db.SaveChangesAsync(cancellationToken);
 
         return LegacyDataOk(entity.Id);
     }

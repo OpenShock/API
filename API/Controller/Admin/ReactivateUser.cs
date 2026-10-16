@@ -21,11 +21,12 @@ public sealed partial class AdminController
     public async Task<IActionResult> ReactivateUser(
         [FromRoute] Guid userId,
         [FromQuery][MaxLength(ApiHardLimits.AuditReasonMaxLength)] string? reason,
-        [FromServices] IAccountService accountService)
+        [FromServices] IAccountService accountService,
+        CancellationToken cancellationToken)
     {
         PedanticallyEnsureAdmin();
 
-        var reactivationResult = await accountService.ReactivateAccountAsync(CurrentUser.Id, userId, reason);
+        var reactivationResult = await accountService.ReactivateAccountAsync(CurrentUser.Id, userId, reason, cancellationToken);
         return reactivationResult switch
         {
             Results.Success => Ok("Account reactivated"),

@@ -37,20 +37,21 @@ public sealed class DevicesOtaController : AuthenticatedSessionControllerBase
     /// </summary>
     /// <param name="deviceId">Id of the device</param>
     /// <param name="otaService"></param>
+    /// <param name="cancellationToken"></param>
     /// <response code="200">OK</response>
     /// <response code="404">Could not find device or you do not have access to it</response>
     [HttpGet("{deviceId}/ota")]
     [MapToApiVersion("1")]
     [ProducesResponseType<LegacyDataResponse<IReadOnlyCollection<OtaItem>>>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status404NotFound, MediaTypeNames.Application.ProblemJson)] // DeviceNotFound
-    public async Task<IActionResult> GetOtaUpdateHistory([FromRoute] Guid deviceId, [FromServices] IOtaService otaService)
+    public async Task<IActionResult> GetOtaUpdateHistory([FromRoute] Guid deviceId, [FromServices] IOtaService otaService, CancellationToken cancellationToken)
     {
         // Check if user owns device or has a share
         var deviceExistsAndYouHaveAccess = await _db.Devices.AnyAsync(x =>
-            x.Id == deviceId && x.OwnerId == CurrentUser.Id);
+            x.Id == deviceId && x.OwnerId == CurrentUser.Id, cancellationToken);
         if (!deviceExistsAndYouHaveAccess) return Problem(HubError.HubNotFound);
 
-        return LegacyDataOk(await otaService.GetUpdates(deviceId));
+        return LegacyDataOk(await otaService.GetUpdates(deviceId, cancellationToken));
     }
     
 }

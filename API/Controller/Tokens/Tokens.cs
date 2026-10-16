@@ -21,9 +21,9 @@ public sealed partial class TokensController
     /// <response code="200">All tokens for the current user</response>
     [HttpGet]
     [MapToApiVersion("1")]
-    public IAsyncEnumerable<TokenResponse> ListTokens([FromServices] IApiTokenService tokenService)
+    public IAsyncEnumerable<TokenResponse> ListTokens([FromServices] IApiTokenService tokenService, CancellationToken cancellationToken)
     {
-        return tokenService.ListTokensV1(ownerId: CurrentUser.Id);
+        return tokenService.ListTokensV1(ownerId: CurrentUser.Id, cancellationToken: cancellationToken);
     }
 
     /// <summary>
@@ -32,9 +32,9 @@ public sealed partial class TokensController
     /// <response code="200">All tokens for the current user</response>
     [HttpGet]
     [MapToApiVersion("2")]
-    public IAsyncEnumerable<TokenResponseV2> ListTokensV2([FromServices] IApiTokenService tokenService)
+    public IAsyncEnumerable<TokenResponseV2> ListTokensV2([FromServices] IApiTokenService tokenService, CancellationToken cancellationToken)
     {
-        return tokenService.ListTokensV2(ownerId: CurrentUser.Id);
+        return tokenService.ListTokensV2(ownerId: CurrentUser.Id, cancellationToken: cancellationToken);
     }
 
     /// <summary>
@@ -42,15 +42,16 @@ public sealed partial class TokensController
     /// </summary>
     /// <param name="tokenId"></param>
     /// <param name="tokenService"></param>
+    /// <param name="cancellationToken"></param>
     /// <response code="200">The token</response>
     /// <response code="404">The token does not exist or you do not have access to it.</response>
     [HttpGet("{tokenId}")]
     [ProducesResponseType<TokenResponse>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status404NotFound, MediaTypeNames.Application.ProblemJson)] // ApiTokenNotFound
     [MapToApiVersion("1")]
-    public async Task<IActionResult> GetTokenById([FromRoute] Guid tokenId, [FromServices] IApiTokenService tokenService)
+    public async Task<IActionResult> GetTokenById([FromRoute] Guid tokenId, [FromServices] IApiTokenService tokenService, CancellationToken cancellationToken)
     {
-        var apiToken = await tokenService.GetTokenV1(tokenId, CurrentUser.Id);
+        var apiToken = await tokenService.GetTokenV1(tokenId, CurrentUser.Id, cancellationToken);
         if (apiToken is null) return Problem(ApiTokenError.ApiTokenNotFound);
 
         return Ok(apiToken);
@@ -61,15 +62,16 @@ public sealed partial class TokensController
     /// </summary>
     /// <param name="tokenId"></param>
     /// <param name="tokenService"></param>
+    /// <param name="cancellationToken"></param>
     /// <response code="200">The token</response>
     /// <response code="404">The token does not exist or you do not have access to it.</response>
     [HttpGet("{tokenId}")]
     [ProducesResponseType<TokenResponseV2>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status404NotFound, MediaTypeNames.Application.ProblemJson)] // ApiTokenNotFound
     [MapToApiVersion("2")]
-    public async Task<IActionResult> GetTokenByIdV2([FromRoute] Guid tokenId, [FromServices] IApiTokenService tokenService)
+    public async Task<IActionResult> GetTokenByIdV2([FromRoute] Guid tokenId, [FromServices] IApiTokenService tokenService, CancellationToken cancellationToken)
     {
-        var apiToken = await tokenService.GetTokenV2(tokenId, CurrentUser.Id);
+        var apiToken = await tokenService.GetTokenV2(tokenId, CurrentUser.Id, cancellationToken);
         if (apiToken is null) return Problem(ApiTokenError.ApiTokenNotFound);
 
         return Ok(apiToken);
@@ -80,6 +82,7 @@ public sealed partial class TokensController
     /// </summary>
     /// <param name="body"></param>
     /// <param name="tokenService"></param>
+    /// <param name="cancellationToken"></param>
     /// <response code="200">The created token</response>
     [HttpPost]
     [Consumes(MediaTypeNames.Application.Json)]
@@ -87,9 +90,10 @@ public sealed partial class TokensController
     [MapToApiVersion("1")]
     public Task<TokenCreatedResponse> CreateToken(
         [FromBody] CreateTokenRequest body,
-        [FromServices] IApiTokenService tokenService)
+        [FromServices] IApiTokenService tokenService,
+        CancellationToken cancellationToken)
     {
-        return tokenService.CreateTokenV1(CurrentUser.Id, HttpContext.GetRemoteIP(), body);
+        return tokenService.CreateTokenV1(CurrentUser.Id, HttpContext.GetRemoteIP(), body, cancellationToken);
     }
 
     /// <summary>
@@ -98,6 +102,7 @@ public sealed partial class TokensController
     /// <param name="tokenId"></param>
     /// <param name="body"></param>
     /// <param name="tokenService"></param>
+    /// <param name="cancellationToken"></param>
     /// <response code="200">The edited token</response>
     /// <response code="404">The token does not exist or you do not have access to it.</response>
     [HttpPatch("{tokenId}")]
@@ -105,9 +110,9 @@ public sealed partial class TokensController
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status404NotFound, MediaTypeNames.Application.ProblemJson)] // ApiTokenNotFound
     [MapToApiVersion("1")]
-    public async Task<IActionResult> EditToken([FromRoute] Guid tokenId, [FromBody] EditTokenRequest body, [FromServices] IApiTokenService tokenService)
+    public async Task<IActionResult> EditToken([FromRoute] Guid tokenId, [FromBody] EditTokenRequest body, [FromServices] IApiTokenService tokenService, CancellationToken cancellationToken)
     {
-        if (!await tokenService.EditTokenV1(tokenId, body, CurrentUser.Id)) return Problem(ApiTokenError.ApiTokenNotFound);
+        if (!await tokenService.EditTokenV1(tokenId, body, CurrentUser.Id, cancellationToken)) return Problem(ApiTokenError.ApiTokenNotFound);
 
         return Ok();
     }
@@ -117,6 +122,7 @@ public sealed partial class TokensController
     /// </summary>
     /// <param name="body"></param>
     /// <param name="tokenService"></param>
+    /// <param name="cancellationToken"></param>
     /// <response code="200">The created token</response>
     [HttpPost]
     [Consumes(MediaTypeNames.Application.Json)]
@@ -124,9 +130,10 @@ public sealed partial class TokensController
     [MapToApiVersion("2")]
     public Task<TokenCreatedResponseV2> CreateTokenV2(
         [FromBody] CreateTokenRequestV2 body,
-        [FromServices] IApiTokenService tokenService)
+        [FromServices] IApiTokenService tokenService,
+        CancellationToken cancellationToken)
     {
-        return tokenService.CreateTokenV2(CurrentUser.Id, HttpContext.GetRemoteIP(), body);
+        return tokenService.CreateTokenV2(CurrentUser.Id, HttpContext.GetRemoteIP(), body, cancellationToken);
     }
 
     /// <summary>
@@ -135,6 +142,7 @@ public sealed partial class TokensController
     /// <param name="tokenId"></param>
     /// <param name="body"></param>
     /// <param name="tokenService"></param>
+    /// <param name="cancellationToken"></param>
     /// <response code="200">The edited token</response>
     /// <response code="404">The token does not exist or you do not have access to it.</response>
     [HttpPatch("{tokenId}")]
@@ -142,9 +150,9 @@ public sealed partial class TokensController
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status404NotFound, MediaTypeNames.Application.ProblemJson)] // ApiTokenNotFound
     [MapToApiVersion("2")]
-    public async Task<IActionResult> EditTokenV2([FromRoute] Guid tokenId, [FromBody] EditTokenRequestV2 body, [FromServices] IApiTokenService tokenService)
+    public async Task<IActionResult> EditTokenV2([FromRoute] Guid tokenId, [FromBody] EditTokenRequestV2 body, [FromServices] IApiTokenService tokenService, CancellationToken cancellationToken)
     {
-        if (!await tokenService.EditTokenV2(tokenId, body, CurrentUser.Id)) return Problem(ApiTokenError.ApiTokenNotFound);
+        if (!await tokenService.EditTokenV2(tokenId, body, CurrentUser.Id, cancellationToken)) return Problem(ApiTokenError.ApiTokenNotFound);
 
         return Ok();
     }
@@ -155,6 +163,7 @@ public sealed partial class TokensController
     /// <param name="tokenId"></param>
     /// <param name="body"></param>
     /// <param name="tokenService"></param>
+    /// <param name="cancellationToken"></param>
     /// <response code="200">The now-set paused state of the token.</response>
     /// <response code="404">The token does not exist or you do not have access to it.</response>
     [HttpPatch("{tokenId}/paused")]
@@ -162,9 +171,9 @@ public sealed partial class TokensController
     [ProducesResponseType<TokenPausedResponse>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status404NotFound, MediaTypeNames.Application.ProblemJson)] // ApiTokenNotFound
     [MapToApiVersion("2")]
-    public async Task<IActionResult> SetTokenPaused([FromRoute] Guid tokenId, [FromBody] SetTokenPausedRequest body, [FromServices] IApiTokenService tokenService)
+    public async Task<IActionResult> SetTokenPaused([FromRoute] Guid tokenId, [FromBody] SetTokenPausedRequest body, [FromServices] IApiTokenService tokenService, CancellationToken cancellationToken)
     {
-        var paused = await tokenService.SetTokenPaused(tokenId, body.Paused, CurrentUser.Id);
+        var paused = await tokenService.SetTokenPaused(tokenId, body.Paused, CurrentUser.Id, cancellationToken);
         if (paused is null) return Problem(ApiTokenError.ApiTokenNotFound);
 
         return Ok(new TokenPausedResponse { Paused = paused.Value });

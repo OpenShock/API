@@ -19,6 +19,7 @@ public sealed partial class AuthenticatedAccountController
     /// Change the username of the current user
     /// </summary>
     /// <param name="body"></param>
+    /// <param name="cancellationToken"></param>
     /// <returns></returns>
     /// <exception cref="Exception"></exception>
     [HttpPost("username")]
@@ -27,10 +28,11 @@ public sealed partial class AuthenticatedAccountController
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status409Conflict, MediaTypeNames.Application.ProblemJson)] // UsernameTaken
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status400BadRequest, MediaTypeNames.Application.ProblemJson)] // UsernameInvalid
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status403Forbidden, MediaTypeNames.Application.ProblemJson)] // UsernameRecentlyChanged
-    public async Task<IActionResult> ChangeUsername([FromBody] ChangeUsernameRequest body)
+    public async Task<IActionResult> ChangeUsername([FromBody] ChangeUsernameRequest body, CancellationToken cancellationToken)
     {
         var result = await _accountService.ChangeUsernameAsync(CurrentUser.Id, body.Username, actorId: CurrentUser.Id,
-            ignoreLimit: CurrentUser.Roles.Any(r => r is RoleType.Staff or RoleType.Admin or RoleType.System));
+            ignoreLimit: CurrentUser.Roles.Any(r => r is RoleType.Staff or RoleType.Admin or RoleType.System),
+            cancellationToken: cancellationToken);
 
         return result switch
         {

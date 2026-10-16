@@ -124,7 +124,7 @@ public sealed class PublicShareHub : Hub<IPublicShareHub>
         if (!TokenPermissions.IsAllowedAllowOrNull(PermissionType.Shockers_Use)) return Task.CompletedTask;
         
         return _controlSender.ControlPublicShare(shocks, CustomData.CachedControlLogSender, CustomData.User?.Id,
-            _userHub.Clients, CustomData.PublicShareId);
+            _userHub.Clients, CustomData.PublicShareId, Context.ConnectionAborted);
     }
 
     private CustomDataHolder CustomData => (CustomDataHolder)Context.Items[PublicShareCustomData]!;

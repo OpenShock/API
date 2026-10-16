@@ -65,7 +65,7 @@ public sealed partial class AccountController
         if (!await automationTokens.TryRecordUseAsync(account.Id, AutomationTokenFlow.Login, cancellationToken))
             return Problem(AutomationTokenError.NotAllowedForAccount);
         
-        await CreateSession(account.Id, cookieDomain);
+        await CreateSession(account.Id, cookieDomain, cancellationToken);
         
         return Ok(LoginV2OkResponse.FromUser(account));
     }
