@@ -1,5 +1,6 @@
 using System.Net.Mime;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using OpenShock.API.Errors;
 using OpenShock.API.Models.Requests;
@@ -30,6 +31,7 @@ public sealed partial class IntegrationsController
     /// <response code="200">The changed users' totals and the cursor to pass next time.</response>
     /// <response code="403">No automation token granting ControlStatsRead was presented.</response>
     [HttpPost("control-stats/changes")]
+    [EnableRateLimiting("control-stats")]
     [ProducesResponseType<ControlStatChangesResponse>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status403Forbidden, MediaTypeNames.Application.ProblemJson)] // MissingCapability
     public async Task<IActionResult> GetControlStatChanges(ControlStatChangesRequest body, CancellationToken cancellationToken)
