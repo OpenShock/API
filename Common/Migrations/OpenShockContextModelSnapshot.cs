@@ -18,7 +18,7 @@ partial class OpenShockContextModelSnapshot : ModelSnapshot
     // If you encounter a merge conflict in the line below, it means you need to
     // discard one of the migration branches and recreate its migrations on top of
     // the other branch. See https://aka.ms/efcore-docs-migrations-conflicts for more info.
-    public override string LastMigrationId => "20261016135411_AddControlStats";
+    public override string LastMigrationId => "20261016142540_AddControlStats";
 
     protected override void BuildModel(ModelBuilder modelBuilder)
     {
@@ -478,6 +478,24 @@ partial class OpenShockContextModelSnapshot : ModelSnapshot
                 b.HasIndex("AppliedAt");
 
                 b.ToTable("control_stat_batches");
+            });
+
+        modelBuilder.Entity("OpenShock.Common.OpenShockDb.ControlStatRemoval", b =>
+            {
+                b.Property<Guid>("UserId")
+                    .HasColumnType("uuid")
+                    .HasColumnName("user_id");
+
+                b.Property<DateTime>("RemovedAt")
+                    .HasColumnType("timestamp with time zone")
+                    .HasColumnName("removed_at");
+
+                b.HasKey("UserId")
+                    .HasName("control_stat_removals_pkey");
+
+                b.HasIndex("RemovedAt");
+
+                b.ToTable("control_stat_removals");
             });
 
         modelBuilder.Entity("OpenShock.Common.OpenShockDb.Device", b =>

@@ -17,9 +17,12 @@ public readonly record struct ControlStatDelta(
     long IntensityMs,
     byte MaxIntensity)
 {
-    /// <summary>Truncates a UTC timestamp to the start of its hour, the granularity of <see cref="ControlStat.Bucket"/>.</summary>
+    /// <summary>Granularity of <see cref="ControlStat.Bucket"/>, every time zone's UTC offset is a multiple of it.</summary>
+    public static readonly TimeSpan BucketSize = TimeSpan.FromMinutes(15);
+
+    /// <summary>Truncates a UTC timestamp to the start of its <see cref="BucketSize"/> bucket.</summary>
     public static DateTime ToBucket(DateTime utc) =>
-        new(utc.Ticks - utc.Ticks % TimeSpan.TicksPerHour, DateTimeKind.Utc);
+        new(utc.Ticks - utc.Ticks % BucketSize.Ticks, DateTimeKind.Utc);
 
     /// <summary>Combines two deltas for the same bucket.</summary>
     public ControlStatDelta Merge(ControlStatDelta other) => this with
@@ -37,10 +40,17 @@ public readonly record struct ControlStatDelta(
 public static class ControlStatQueries
 {
     /// <summary>
-    /// How long <see cref="ControlStatBatch"/> markers are kept. Batches are retried every flush, so a marker only has
-    /// to outlive the retries of a batch whose commit acknowledgement got lost.
+    /// How long after its creation a buffered batch may still be applied, older ones are refused. This is what makes
+    /// pruning <see cref="ControlStatBatch"/> markers safe: once no retry of a batch can be applied anymore, its marker
+    /// has nothing left to deduplicate.
     /// </summary>
-    private static readonly TimeSpan BatchMarkerRetention = TimeSpan.FromDays(1);
+    public static readonly TimeSpan BatchReplayLifetime = TimeSpan.FromDays(30);
+
+    /// <summary>
+    /// Markers outlive <see cref="BatchReplayLifetime"/> by this much, covering clock skew between the services that
+    /// create batches and the database that stamps the markers.
+    /// </summary>
+    private static readonly TimeSpan BatchMarkerMargin = TimeSpan.FromDays(1);
 
     /// <summary>
     /// Adds the given deltas onto their buckets in a single statement, creating buckets as needed. Deltas of shockers
@@ -101,24 +111,41 @@ public static class ControlStatQueries
     /// <summary>
     /// Applies a buffered batch of deltas exactly once. The batch is marked applied in the same transaction, so
     /// retrying it with the same <paramref name="batchId"/> after an unknown commit outcome can't count it twice.
+    /// Batches older than <see cref="BatchReplayLifetime"/> are refused, as their marker may have been pruned.
     /// </summary>
-    /// <returns>False if the batch had already been applied.</returns>
-    public static async Task<bool> ApplyControlStatBatchAsync(this OpenShockContext db, Guid batchId,
-        IEnumerable<ControlStatDelta> deltas, CancellationToken cancellationToken = default)
+    public static async Task<ControlStatBatchResult> ApplyControlStatBatchAsync(this OpenShockContext db, Guid batchId,
+        DateTime createdAt, IEnumerable<ControlStatDelta> deltas, CancellationToken cancellationToken = default)
     {
+        if (DateTime.UtcNow - createdAt > BatchReplayLifetime) return ControlStatBatchResult.Expired;
+
         await using var transaction = await db.Database.BeginTransactionAsync(cancellationToken);
 
         var marked = await db.Database.ExecuteSqlAsync(
             $"INSERT INTO control_stat_batches (id, applied_at) VALUES ({batchId}, now()) ON CONFLICT DO NOTHING",
             cancellationToken);
-        if (marked == 0) return false;
+        if (marked == 0) return ControlStatBatchResult.AlreadyApplied;
 
         await db.UpsertControlStatsAsync(deltas, cancellationToken);
 
-        var expiredBefore = DateTime.UtcNow - BatchMarkerRetention;
-        await db.ControlStatBatches.Where(x => x.AppliedAt < expiredBefore).ExecuteDeleteAsync(cancellationToken);
+        // Only markers of batches that can no longer be applied, see BatchReplayLifetime
+        var prunableBefore = DateTime.UtcNow - BatchReplayLifetime - BatchMarkerMargin;
+        await db.ControlStatBatches.Where(x => x.AppliedAt < prunableBefore).ExecuteDeleteAsync(cancellationToken);
 
         await transaction.CommitAsync(cancellationToken);
-        return true;
+        return ControlStatBatchResult.Applied;
     }
+}
+
+/// <summary>
+/// Outcome of <see cref="ControlStatQueries.ApplyControlStatBatchAsync"/>.
+/// </summary>
+public enum ControlStatBatchResult
+{
+    Applied,
+
+    /// <summary>A previous attempt with the same batch id was committed.</summary>
+    AlreadyApplied,
+
+    /// <summary>Older than <see cref="ControlStatQueries.BatchReplayLifetime"/>, not applied.</summary>
+    Expired
 }

@@ -365,25 +365,26 @@ public sealed class HubLifetime : IAsyncDisposable
     {
         var now = DateTimeOffset.UtcNow;
         var commandList = new List<ShockerCommand>(_shockerStates.Count);
-        var emittingStates = new List<(ShockerState State, ControlType Type, Guid ControllerId, byte Intensity)>(_shockerStates.Count);
+        var emittingFrames = new List<(ShockerState State, LiveFrame Frame)>(_shockerStates.Count);
 
         foreach (var state in _shockerStates.Values)
         {
-            if (state.ActiveUntil < now || state.ExclusiveUntil >= now)
+            // Read once, the command and its stats are both built from this one frame even if another one arrives
+            var frame = state.LastFrame;
+            if (frame is null || frame.ActiveUntil < now || state.ExclusiveUntil >= now)
             {
                 state.EmittingOnLastTick = null;
                 continue;
             }
 
-            // Snapshot what is sent, a frame arriving while the send is awaited must not change what gets counted
-            emittingStates.Add((state, state.LastType, state.LastControllerId, state.LastIntensity));
+            emittingFrames.Add((state, frame));
 
             commandList.Add(new ShockerCommand
             {
                 Model = FbsMapper.ToFbsModelType(state.Model),
                 Id = state.RfId,
-                Type = FbsMapper.ToFbsCommandType(state.LastType),
-                Intensity = state.LastIntensity,
+                Type = FbsMapper.ToFbsCommandType(frame.Type),
+                Intensity = frame.Intensity,
                 Duration = _commandDuration,
             });
         }
@@ -394,21 +395,21 @@ public sealed class HubLifetime : IAsyncDisposable
         if (!await HubController.SendControl(commandList)) return;
 
         var tickMs = (long)_waitBetweenTicks.TotalMilliseconds;
-        foreach (var (state, type, controllerId, intensity) in emittingStates)
+        foreach (var (state, frame) in emittingFrames)
         {
             // Each sent tick is one tick interval of activity, a new type or controller starts a new burst
-            var emitting = (type, controllerId);
+            var emitting = (frame.Type, frame.ControllerId);
             _batchUpdateService.RecordControlStat(new ControlStatDelta(
                 OwnerUserId: state.OwnerId,
                 ShockerId: state.Id,
-                ControllerUserId: controllerId,
+                ControllerUserId: frame.ControllerId,
                 Bucket: now.UtcDateTime,
-                Type: type,
+                Type: frame.Type,
                 Live: true,
                 Count: state.EmittingOnLastTick == emitting ? 0 : 1,
                 DurationMs: tickMs,
-                IntensityMs: intensity * tickMs,
-                MaxIntensity: intensity));
+                IntensityMs: frame.Intensity * tickMs,
+                MaxIntensity: frame.Intensity));
             state.EmittingOnLastTick = emitting;
         }
     }
@@ -460,10 +461,7 @@ public sealed class HubLifetime : IAsyncDisposable
                 Until = state.ExclusiveUntil
             };
 
-        state.LastType = type;
-        state.LastIntensity = intensity;
-        state.LastControllerId = controllerId;
-        state.ActiveUntil = CalculateActiveUntil(tps);
+        state.LastFrame = new LiveFrame(type, intensity, controllerId, CalculateActiveUntil(tps));
         return new Success();
     }
 

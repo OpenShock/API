@@ -13,15 +13,15 @@ public class ControlStatsAccumulatorTests
         new(Owner, Shocker, Controller, at, type, Live: true, count, DurationMs: 100, IntensityMs: intensity * 100L, intensity);
 
     [Test]
-    public async Task Add_MergesWithinTheSameHour()
+    public async Task Add_MergesWithinTheSameBucket()
     {
         var accumulator = new ControlStatsAccumulator();
-        accumulator.Add(Delta(new DateTime(2026, 1, 1, 10, 5, 0, DateTimeKind.Utc), count: 1, intensity: 20));
-        accumulator.Add(Delta(new DateTime(2026, 1, 1, 10, 55, 0, DateTimeKind.Utc), count: 0, intensity: 80));
+        accumulator.Add(Delta(new DateTime(2026, 1, 1, 10, 31, 0, DateTimeKind.Utc), count: 1, intensity: 20));
+        accumulator.Add(Delta(new DateTime(2026, 1, 1, 10, 44, 59, DateTimeKind.Utc), count: 0, intensity: 80));
 
         var merged = (await Assert.That(accumulator.DequeueAll()).HasSingleItem())!;
 
-        await Assert.That(merged.Bucket).IsEqualTo(new DateTime(2026, 1, 1, 10, 0, 0, DateTimeKind.Utc));
+        await Assert.That(merged.Bucket).IsEqualTo(new DateTime(2026, 1, 1, 10, 30, 0, DateTimeKind.Utc));
         await Assert.That(merged.Count).IsEqualTo(1);
         await Assert.That(merged.DurationMs).IsEqualTo(200);
         await Assert.That(merged.IntensityMs).IsEqualTo(10_000);
@@ -29,13 +29,13 @@ public class ControlStatsAccumulatorTests
     }
 
     [Test]
-    public async Task Add_SplitsAcrossHoursAndTypes_AndIgnoresStop()
+    public async Task Add_SplitsAcrossBucketsAndTypes_AndIgnoresStop()
     {
         var accumulator = new ControlStatsAccumulator();
-        accumulator.Add(Delta(new DateTime(2026, 1, 1, 10, 59, 0, DateTimeKind.Utc)));
-        accumulator.Add(Delta(new DateTime(2026, 1, 1, 11, 0, 0, DateTimeKind.Utc)));
-        accumulator.Add(Delta(new DateTime(2026, 1, 1, 11, 0, 0, DateTimeKind.Utc), ControlType.Vibrate));
-        accumulator.Add(Delta(new DateTime(2026, 1, 1, 11, 0, 0, DateTimeKind.Utc), ControlType.Stop));
+        accumulator.Add(Delta(new DateTime(2026, 1, 1, 10, 44, 59, DateTimeKind.Utc)));
+        accumulator.Add(Delta(new DateTime(2026, 1, 1, 10, 45, 0, DateTimeKind.Utc)));
+        accumulator.Add(Delta(new DateTime(2026, 1, 1, 10, 45, 0, DateTimeKind.Utc), ControlType.Vibrate));
+        accumulator.Add(Delta(new DateTime(2026, 1, 1, 10, 45, 0, DateTimeKind.Utc), ControlType.Stop));
 
         await Assert.That(accumulator.DequeueAll().Length).IsEqualTo(3);
     }

@@ -55,6 +55,18 @@ public partial class AddControlStats : Migration
             });
 
         migrationBuilder.CreateTable(
+            name: "control_stat_removals",
+            columns: table => new
+            {
+                user_id = table.Column<Guid>(type: "uuid", nullable: false),
+                removed_at = table.Column<DateTime>(type: "timestamp with time zone", nullable: false)
+            },
+            constraints: table =>
+            {
+                table.PrimaryKey("control_stat_removals_pkey", x => x.user_id);
+            });
+
+        migrationBuilder.CreateTable(
             name: "control_stats",
             columns: table => new
             {
@@ -94,6 +106,11 @@ public partial class AddControlStats : Migration
             column: "applied_at");
 
         migrationBuilder.CreateIndex(
+            name: "IX_control_stat_removals_removed_at",
+            table: "control_stat_removals",
+            column: "removed_at");
+
+        migrationBuilder.CreateIndex(
             name: "IX_control_stats_controller_user_id_bucket",
             table: "control_stats",
             columns: new[] { "controller_user_id", "bucket" });
@@ -120,13 +137,46 @@ public partial class AddControlStats : Migration
             unique: true,
             filter: "shocker_id IS NOT NULL")
             .Annotation("Npgsql:NullsDistinct", false);
+
+        // Deleted stats rows (e.g. cascaded from a deleted owner) lower the totals of everyone involved without
+        // leaving a row behind, so record those users for change detection. Statement level, so a cascade of many
+        // rows is one insert.
+        migrationBuilder.Sql(
+            """
+            CREATE FUNCTION control_stats_record_removals() RETURNS trigger LANGUAGE plpgsql AS $$
+            BEGIN
+                INSERT INTO control_stat_removals (user_id, removed_at)
+                SELECT user_id, now() FROM (
+                    SELECT owner_user_id AS user_id FROM removed
+                    UNION
+                    SELECT controller_user_id FROM removed WHERE controller_user_id IS NOT NULL
+                ) users
+                ON CONFLICT (user_id) DO UPDATE SET removed_at = excluded.removed_at;
+                RETURN NULL;
+            END
+            $$;
+
+            CREATE TRIGGER control_stats_record_removals
+                AFTER DELETE ON control_stats
+                REFERENCING OLD TABLE AS removed
+                FOR EACH STATEMENT EXECUTE FUNCTION control_stats_record_removals();
+            """);
     }
 
     /// <inheritdoc />
     protected override void Down(MigrationBuilder migrationBuilder)
     {
+        migrationBuilder.Sql(
+            """
+            DROP TRIGGER control_stats_record_removals ON control_stats;
+            DROP FUNCTION control_stats_record_removals();
+            """);
+
         migrationBuilder.DropTable(
             name: "control_stat_batches");
+
+        migrationBuilder.DropTable(
+            name: "control_stat_removals");
 
         migrationBuilder.DropTable(
             name: "control_stats");

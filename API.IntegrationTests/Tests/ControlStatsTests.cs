@@ -111,10 +111,10 @@ public sealed class ControlStatsTests
         await using var scope = WebApplicationFactory.Services.CreateAsyncScope();
         var db = scope.ServiceProvider.GetRequiredService<OpenShockContext>();
 
-        // Same hour, same key twice in one batch, plus a guest (null controller) bucket
+        // Same bucket, same key twice in one batch, plus a guest (null controller) bucket
         await db.UpsertControlStatsAsync([
             Delta(userId, shockerId, userId, bucket.AddMinutes(5), count: 1, intensity: 20),
-            Delta(userId, shockerId, userId, bucket.AddMinutes(50), count: 1, intensity: 80),
+            Delta(userId, shockerId, userId, bucket.AddMinutes(14), count: 1, intensity: 80),
             Delta(userId, shockerId, null, bucket, count: 4)
         ]);
         await db.UpsertControlStatsAsync([Delta(userId, shockerId, userId, bucket, count: 1, intensity: 10)]);
@@ -166,12 +166,32 @@ public sealed class ControlStatsTests
         await using var scope = WebApplicationFactory.Services.CreateAsyncScope();
         var db = scope.ServiceProvider.GetRequiredService<OpenShockContext>();
 
-        await Assert.That(await db.ApplyControlStatBatchAsync(batchId, deltas)).IsTrue();
+        var createdAt = DateTime.UtcNow;
+        await Assert.That(await db.ApplyControlStatBatchAsync(batchId, createdAt, deltas)).IsEqualTo(ControlStatBatchResult.Applied);
         // Retry after a commit whose acknowledgement got lost
-        await Assert.That(await db.ApplyControlStatBatchAsync(batchId, deltas)).IsFalse();
+        await Assert.That(await db.ApplyControlStatBatchAsync(batchId, createdAt, deltas)).IsEqualTo(ControlStatBatchResult.AlreadyApplied);
 
         var row = await db.ControlStats.AsNoTracking().SingleAsync(x => x.ShockerId == shockerId);
         await Assert.That(row.Count).IsEqualTo(2);
+    }
+
+    [Test]
+    public async Task ApplyBatch_OlderThanReplayLifetime_IsRefused()
+    {
+        var userId = await TestHelper.CreateUserInDb(WebApplicationFactory, TestHelper.UniqueUsername("statsexp"),
+            TestHelper.UniqueEmail("statsexp"), "SecurePassword123#");
+        var shockerId = await CreateShocker(userId, "Expired");
+        var createdAt = DateTime.UtcNow - ControlStatQueries.BatchReplayLifetime - TimeSpan.FromMinutes(1);
+
+        await using var scope = WebApplicationFactory.Services.CreateAsyncScope();
+        var db = scope.ServiceProvider.GetRequiredService<OpenShockContext>();
+
+        // Its marker may already be pruned, so applying it could count it a second time
+        var result = await db.ApplyControlStatBatchAsync(Guid.CreateVersion7(), createdAt,
+            [Delta(userId, shockerId, userId, createdAt, count: 1)]);
+
+        await Assert.That(result).IsEqualTo(ControlStatBatchResult.Expired);
+        await Assert.That(await db.ControlStats.AnyAsync(x => x.ShockerId == shockerId)).IsFalse();
     }
 
     [Test]
@@ -201,6 +221,34 @@ public sealed class ControlStatsTests
 
         using (var ranged = await GetStats(client, "?tz=Europe/Berlin&from=2026-01-02&to=2026-01-02"))
             await Assert.That(Days(ranged)).IsEquivalentTo(new[] { "2026-01-02" });
+    }
+
+    [Test]
+    public async Task Stats_HalfHourOffsetTimeZone_SplitsDaysAtLocalMidnight()
+    {
+        var user = await TestHelper.CreateAndLoginUser(WebApplicationFactory, TestHelper.UniqueUsername("statskol"),
+            TestHelper.UniqueEmail("statskol"), "SecurePassword123#");
+        var shockerId = await CreateShocker(user.Id, "Kolkata");
+
+        await using (var scope = WebApplicationFactory.Services.CreateAsyncScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<OpenShockContext>();
+            await db.UpsertControlStatsAsync([
+                // Midnight in Kolkata (UTC+5:30) is 18:30 UTC, in the middle of an hour
+                Delta(user.Id, shockerId, user.Id, new DateTime(2026, 1, 1, 18, 15, 0, DateTimeKind.Utc), count: 1),
+                Delta(user.Id, shockerId, user.Id, new DateTime(2026, 1, 1, 18, 45, 0, DateTimeKind.Utc), count: 2)
+            ]);
+        }
+
+        using var client = TestHelper.CreateAuthenticatedClient(WebApplicationFactory, user.SessionToken);
+
+        using (var all = await GetStats(client, "?tz=Asia/Kolkata"))
+            await Assert.That(Days(all)).IsEquivalentTo(new[] { "2026-01-01", "2026-01-02" });
+
+        using var secondDay = await GetStats(client, "?tz=Asia/Kolkata&from=2026-01-02");
+        await Assert.That(Days(secondDay)).IsEquivalentTo(new[] { "2026-01-02" });
+        await Assert.That(FindTotals(secondDay.RootElement.GetProperty("received").GetProperty("totals"), "Shock", live: false)
+            .GetProperty("count").GetInt64()).IsEqualTo(2);
     }
 
     [Test]

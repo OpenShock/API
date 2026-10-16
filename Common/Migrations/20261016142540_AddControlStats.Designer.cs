@@ -14,7 +14,7 @@ using OpenShock.Common.OpenShockDb;
 namespace OpenShock.Common.Migrations;
 
 [DbContext(typeof(MigrationOpenShockContext))]
-[Migration("20261016135411_AddControlStats")]
+[Migration("20261016142540_AddControlStats")]
 partial class AddControlStats
 {
     /// <inheritdoc />
@@ -476,6 +476,24 @@ partial class AddControlStats
                 b.HasIndex("AppliedAt");
 
                 b.ToTable("control_stat_batches");
+            });
+
+        modelBuilder.Entity("OpenShock.Common.OpenShockDb.ControlStatRemoval", b =>
+            {
+                b.Property<Guid>("UserId")
+                    .HasColumnType("uuid")
+                    .HasColumnName("user_id");
+
+                b.Property<DateTime>("RemovedAt")
+                    .HasColumnType("timestamp with time zone")
+                    .HasColumnName("removed_at");
+
+                b.HasKey("UserId")
+                    .HasName("control_stat_removals_pkey");
+
+                b.HasIndex("RemovedAt");
+
+                b.ToTable("control_stat_removals");
             });
 
         modelBuilder.Entity("OpenShock.Common.OpenShockDb.Device", b =>

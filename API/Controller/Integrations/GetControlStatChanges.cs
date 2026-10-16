@@ -21,9 +21,11 @@ public sealed partial class IntegrationsController
     /// </summary>
     /// <remarks>
     /// Requires an automation token granting <c>ControlStatsRead</c>. "Changed since" is answered from when each
-    /// stats row was last written rather than the hour it covers, so live control stats written late (e.g. after a
-    /// database outage) are still picked up. The lookback is widened by <see cref="ChangeOverlap"/> to cover writes
-    /// still committing while the previous call read, so a user can be reported again although nothing changed.
+    /// stats row was last written rather than the time it covers, so live control stats written late (e.g. after a
+    /// database outage) are still picked up. Rows deleted along with their owner lower the totals of everyone who
+    /// controlled them without leaving a row behind, those are picked up from <see cref="ControlStatRemoval"/>. The
+    /// lookback is widened by <see cref="ChangeOverlap"/> to cover writes still committing while the previous call
+    /// read, so a user can be reported again although nothing changed.
     /// </remarks>
     /// <response code="200">The changed users' totals and the cursor to pass next time.</response>
     /// <response code="403">No automation token granting ControlStatsRead was presented.</response>
@@ -63,7 +65,13 @@ public sealed partial class IntegrationsController
                 .Distinct()
                 .ToArrayAsync(cancellationToken);
 
-            changed = owners.Union(controllers).ToArray();
+            // Deletions leave no row to be updated, so they are recorded separately
+            var removed = await _db.ControlStatRemovals
+                .Where(x => x.RemovedAt >= from && userIds.Contains(x.UserId))
+                .Select(x => x.UserId)
+                .ToArrayAsync(cancellationToken);
+
+            changed = owners.Union(controllers).Union(removed).ToArray();
         }
         else
         {

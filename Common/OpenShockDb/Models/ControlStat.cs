@@ -1,8 +1,10 @@
 namespace OpenShock.Common.OpenShockDb;
 
 /// <summary>
-/// Hourly rollup of shocker control activity. Unlike <see cref="ShockerControlLog"/> these rows are never trimmed,
-/// so they back lifetime statistics. One row per owner, shocker, controller, hour, type and live flag. Live control
+/// Rollup of shocker control activity in 15 minute buckets. Unlike <see cref="ShockerControlLog"/> these rows are
+/// never trimmed, so they back lifetime statistics. 15 minutes since every time zone's UTC offset is a multiple of it,
+/// so local days always start on a bucket boundary (an hour would split them in e.g. Asia/Kolkata, UTC+5:30). One row
+/// per owner, shocker, controller, bucket, type and live flag. Live control
 /// activity is only counted once the gateway has written it to the hub's websocket.
 /// </summary>
 public sealed class ControlStat
@@ -21,7 +23,7 @@ public sealed class ControlStat
     /// </summary>
     public Guid? ControllerUserId { get; set; }
 
-    /// <summary>Start of the UTC hour this row aggregates.</summary>
+    /// <summary>Start of the 15 minute UTC bucket this row aggregates, see <see cref="ControlStatDelta.BucketSize"/>.</summary>
     public required DateTime Bucket { get; set; }
 
     public required ControlType Type { get; set; }

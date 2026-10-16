@@ -138,6 +138,35 @@ public sealed class ControlStatChangesTests
         await Assert.That(user.GetProperty("userId").GetGuid()).IsEqualTo(owner);
     }
 
+    [Test]
+    public async Task Since_ReportsControllersWhoseStatsWereDeleted()
+    {
+        var owner = await CreateUser("chgdelown");
+        var controller = await CreateUser("chgdelctl");
+        var shockerId = await CreateShocker(owner, "Deleted");
+        await Upsert(Delta(owner, shockerId, controller, new DateTime(2026, 1, 1, 12, 0, 0, DateTimeKind.Utc), count: 4));
+        await Backdate(owner);
+
+        using var client = await CreateTokenClient([AutomationTokenType.ControlStatsRead]);
+        var userIds = new[] { controller };
+
+        DateTime cursor;
+        using (var initial = await Post(client, new { userIds }))
+            cursor = initial.RootElement.GetProperty("cursor").GetDateTime();
+
+        // As when the owner's account is deleted, which cascades onto their stats
+        await using (var scope = WebApplicationFactory.Services.CreateAsyncScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<OpenShockContext>();
+            await db.ControlStats.Where(x => x.OwnerUserId == owner).ExecuteDeleteAsync();
+        }
+
+        using var changed = await Post(client, new { since = cursor, userIds });
+        var user = changed.RootElement.GetProperty("users").EnumerateArray().Single();
+        await Assert.That(user.GetProperty("userId").GetGuid()).IsEqualTo(controller);
+        await Assert.That(user.GetProperty("given").GetArrayLength()).IsEqualTo(0);
+    }
+
     /// <summary>Moves the users' rows out of the change lookback, as if written long ago.</summary>
     private async Task Backdate(params Guid[] ownerIds)
     {

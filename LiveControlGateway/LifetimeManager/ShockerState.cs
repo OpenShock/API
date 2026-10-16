@@ -36,20 +36,10 @@ public sealed class ShockerState
     // Last state
 
     /// <summary>
-    /// Last intensity sent to the shocker via live control
+    /// Last live control frame received for the shocker. Replaced as a whole on every frame, so a reader always
+    /// sees one frame's type, intensity, controller and expiry together, never a mix of two frames.
     /// </summary>
-    [Range(HardLimits.MinControlIntensity, HardLimits.MaxControlIntensity)]
-    public byte LastIntensity { get; set; } = 0;
-    
-    /// <summary>
-    /// Last duration sent to the shocker via live control
-    /// </summary>
-    public ControlType LastType { get; set; } = ControlType.Stop;
-
-    /// <summary>
-    /// User who sent the last live control frame
-    /// </summary>
-    public Guid LastControllerId { get; set; }
+    public LiveFrame? LastFrame { get; set; }
 
     /// <summary>
     /// Whether the shocker was emitting live control on the previous tick, with which type and by whom.
@@ -58,12 +48,20 @@ public sealed class ShockerState
     public (ControlType Type, Guid ControllerId)? EmittingOnLastTick { get; set; }
     
     /// <summary>
-    /// Active until time for the shocker, determined by client TPS interval + current time
-    /// </summary>
-    public DateTimeOffset ActiveUntil = DateTimeOffset.MinValue;
-    
-    /// <summary>
     /// When an exclusive command is sent to the shocker, this is the time it will be exclusive until so we dont allow other live commands
     /// </summary>
     public DateTimeOffset ExclusiveUntil = DateTimeOffset.MinValue;
 }
+
+/// <summary>
+/// A live control frame as received from a client
+/// </summary>
+/// <param name="Type">Control type</param>
+/// <param name="Intensity">Intensity, already clamped to the controller's permissions</param>
+/// <param name="ControllerId">User who sent the frame</param>
+/// <param name="ActiveUntil">Until when the frame keeps the shocker going, determined by client TPS interval + receive time</param>
+public sealed record LiveFrame(
+    ControlType Type,
+    [property: Range(HardLimits.MinControlIntensity, HardLimits.MaxControlIntensity)] byte Intensity,
+    Guid ControllerId,
+    DateTimeOffset ActiveUntil);

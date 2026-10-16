@@ -89,6 +89,8 @@ public class OpenShockContext : DbContext, IDataProtectionKeyContext
 
     public DbSet<ControlStatBatch> ControlStatBatches { get; set; }
 
+    public DbSet<ControlStatRemoval> ControlStatRemovals { get; set; }
+
     public DbSet<UserShare> UserShares { get; set; }
 
     public DbSet<ShockerShareCode> ShockerShareCodes { get; set; }
@@ -512,6 +514,21 @@ public class OpenShockContext : DbContext, IDataProtectionKeyContext
                 .ValueGeneratedNever()
                 .HasColumnName("id");
             entity.Property(e => e.AppliedAt).HasColumnName("applied_at");
+        });
+
+        // Filled by the control_stats_record_removals trigger, see the AddControlStats migration
+        modelBuilder.Entity<ControlStatRemoval>(entity =>
+        {
+            entity.HasKey(e => e.UserId).HasName("control_stat_removals_pkey");
+
+            entity.ToTable("control_stat_removals");
+
+            entity.HasIndex(e => e.RemovedAt);
+
+            entity.Property(e => e.UserId)
+                .ValueGeneratedNever()
+                .HasColumnName("user_id");
+            entity.Property(e => e.RemovedAt).HasColumnName("removed_at");
         });
 
         modelBuilder.Entity<UserShare>(entity =>
