@@ -40,7 +40,12 @@ public abstract class WebsocketBaseController<T> : OpenShockControllerBase, IAsy
     /// <summary>
     /// Channel for multithreading thread safety of the websocket, MessageLoop is the only reader for this channel
     /// </summary>
-    protected readonly Channel<T> Channel = System.Threading.Channels.Channel.CreateUnbounded<T>();
+    protected readonly Channel<QueuedMessage> Channel = System.Threading.Channels.Channel.CreateUnbounded<QueuedMessage>();
+
+    /// <summary>
+    /// A message waiting to be sent, <paramref name="Sent"/> is completed with whether it was written to the websocket
+    /// </summary>
+    protected readonly record struct QueuedMessage(T Data, TaskCompletionSource<bool>? Sent);
 
 #pragma warning disable IDISP008
     protected WebSocket? WebSocket;
@@ -59,14 +64,40 @@ public abstract class WebsocketBaseController<T> : OpenShockControllerBase, IAsy
     [NonAction]
     public ValueTask QueueMessage(T data)
     {
-        if (WebSocket is null or { State: WebSocketState.Closed or WebSocketState.CloseSent or WebSocketState.Aborted })
+        if (!CanSend())
         {
             Logger.LogDebug("WebSocket is null, abort or closed, not sending message");
             return ValueTask.CompletedTask;
         }
         
-        return Channel.Writer.WriteAsync(data, LinkedToken);
+        return Channel.Writer.WriteAsync(new QueuedMessage(data, null), LinkedToken);
     }
+
+    /// <summary>
+    /// Queue a message and wait until it has been written to the websocket
+    /// </summary>
+    /// <param name="data"></param>
+    /// <returns>Whether the message was written, false if the websocket closed or failed before sending it</returns>
+    [NonAction]
+    public async Task<bool> SendMessage(T data)
+    {
+        if (!CanSend()) return false;
+
+        var sent = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+        try
+        {
+            await Channel.Writer.WriteAsync(new QueuedMessage(data, sent), LinkedToken);
+        }
+        catch (Exception e) when (e is ChannelClosedException or OperationCanceledException)
+        {
+            return false;
+        }
+
+        return await sent.Task;
+    }
+
+    private bool CanSend() =>
+        WebSocket is not (null or { State: WebSocketState.Closed or WebSocketState.CloseSent or WebSocketState.Aborted });
 
     private bool _disposed;
 
@@ -172,18 +203,29 @@ public abstract class WebsocketBaseController<T> : OpenShockControllerBase, IAsy
     [NonAction]
     private async Task MessageLoop()
     {
-        await foreach (var msg in Channel.Reader.ReadAllAsync(LinkedToken))
+        try
         {
-            try
+            await foreach (var msg in Channel.Reader.ReadAllAsync(LinkedToken))
             {
-                await SendWebSocketMessage(msg, WebSocket!, LinkedToken);
+                try
+                {
+                    await SendWebSocketMessage(msg.Data, WebSocket!, LinkedToken);
+                    msg.Sent?.TrySetResult(true);
+                }
+                catch (Exception e)
+                {
+                    msg.Sent?.TrySetResult(false);
+                    Logger.LogError(e, "Error while sending message to client - {Msg}", JsonSerializer.Serialize(msg.Data));
+                    await ForceClose(WebSocketCloseStatus.InternalServerError, "Internal server error, error sending message to websocket client");
+                    throw;
+                }
             }
-            catch (Exception e)
-            {
-                Logger.LogError(e, "Error while sending message to client - {Msg}", JsonSerializer.Serialize(msg));
-                await ForceClose(WebSocketCloseStatus.InternalServerError, "Internal server error, error sending message to websocket client");
-                throw;
-            }
+        }
+        finally
+        {
+            // Nothing is sent anymore, so close the channel to new writes and fail everyone still waiting on theirs
+            Channel.Writer.TryComplete();
+            while (Channel.Reader.TryRead(out var unsent)) unsent.Sent?.TrySetResult(false);
         }
     }
 

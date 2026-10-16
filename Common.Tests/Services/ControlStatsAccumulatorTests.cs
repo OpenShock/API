@@ -5,11 +5,12 @@ namespace OpenShock.Common.Tests.Services;
 
 public class ControlStatsAccumulatorTests
 {
+    private static readonly Guid Owner = Guid.CreateVersion7();
     private static readonly Guid Shocker = Guid.CreateVersion7();
     private static readonly Guid Controller = Guid.CreateVersion7();
 
     private static ControlStatDelta Delta(DateTime at, ControlType type = ControlType.Shock, long count = 1, byte intensity = 50) =>
-        new(Shocker, Controller, at, type, Live: true, count, DurationMs: 100, IntensityMs: intensity * 100L, intensity);
+        new(Owner, Shocker, Controller, at, type, Live: true, count, DurationMs: 100, IntensityMs: intensity * 100L, intensity);
 
     [Test]
     public async Task Add_MergesWithinTheSameHour()

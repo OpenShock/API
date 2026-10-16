@@ -87,6 +87,8 @@ public class OpenShockContext : DbContext, IDataProtectionKeyContext
 
     public DbSet<ControlStat> ControlStats { get; set; }
 
+    public DbSet<ControlStatBatch> ControlStatBatches { get; set; }
+
     public DbSet<UserShare> UserShares { get; set; }
 
     public DbSet<ShockerShareCode> ShockerShareCodes { get; set; }
@@ -470,6 +472,7 @@ public class OpenShockContext : DbContext, IDataProtectionKeyContext
             entity.HasIndex(e => new { e.OwnerUserId, e.Bucket });
             entity.HasIndex(e => new { e.ControllerUserId, e.Bucket });
             entity.HasIndex(e => e.ShockerId);
+            entity.HasIndex(e => e.UpdatedAt);
 
             entity.Property(e => e.Id)
                 .ValueGeneratedNever()
@@ -484,6 +487,7 @@ public class OpenShockContext : DbContext, IDataProtectionKeyContext
             entity.Property(e => e.DurationMs).HasColumnName("duration_ms");
             entity.Property(e => e.IntensityMs).HasColumnName("intensity_ms");
             entity.Property(e => e.MaxIntensity).HasColumnName("max_intensity");
+            entity.Property(e => e.UpdatedAt).HasColumnName("updated_at");
 
             entity.HasOne(e => e.Owner).WithMany(u => u.ControlStats)
                 .HasForeignKey(e => e.OwnerUserId)
@@ -494,6 +498,20 @@ public class OpenShockContext : DbContext, IDataProtectionKeyContext
                 .HasForeignKey(e => e.ShockerId)
                 .OnDelete(DeleteBehavior.SetNull)
                 .HasConstraintName("fk_control_stats_shocker_id");
+        });
+
+        modelBuilder.Entity<ControlStatBatch>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("control_stat_batches_pkey");
+
+            entity.ToTable("control_stat_batches");
+
+            entity.HasIndex(e => e.AppliedAt);
+
+            entity.Property(e => e.Id)
+                .ValueGeneratedNever()
+                .HasColumnName("id");
+            entity.Property(e => e.AppliedAt).HasColumnName("applied_at");
         });
 
         modelBuilder.Entity<UserShare>(entity =>

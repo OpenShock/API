@@ -43,6 +43,18 @@ public partial class AddControlStats : Migration
             .OldAnnotation("Npgsql:Enum:shocker_model_type", "cai_xianlin,petrainer,petrainer_998dr,wellturn_t330");
 
         migrationBuilder.CreateTable(
+            name: "control_stat_batches",
+            columns: table => new
+            {
+                id = table.Column<Guid>(type: "uuid", nullable: false),
+                applied_at = table.Column<DateTime>(type: "timestamp with time zone", nullable: false)
+            },
+            constraints: table =>
+            {
+                table.PrimaryKey("control_stat_batches_pkey", x => x.id);
+            });
+
+        migrationBuilder.CreateTable(
             name: "control_stats",
             columns: table => new
             {
@@ -56,7 +68,8 @@ public partial class AddControlStats : Migration
                 count = table.Column<long>(type: "bigint", nullable: false),
                 duration_ms = table.Column<long>(type: "bigint", nullable: false),
                 intensity_ms = table.Column<long>(type: "bigint", nullable: false),
-                max_intensity = table.Column<byte>(type: "smallint", nullable: false)
+                max_intensity = table.Column<byte>(type: "smallint", nullable: false),
+                updated_at = table.Column<DateTime>(type: "timestamp with time zone", nullable: false)
             },
             constraints: table =>
             {
@@ -76,6 +89,11 @@ public partial class AddControlStats : Migration
             });
 
         migrationBuilder.CreateIndex(
+            name: "IX_control_stat_batches_applied_at",
+            table: "control_stat_batches",
+            column: "applied_at");
+
+        migrationBuilder.CreateIndex(
             name: "IX_control_stats_controller_user_id_bucket",
             table: "control_stats",
             columns: new[] { "controller_user_id", "bucket" });
@@ -91,6 +109,11 @@ public partial class AddControlStats : Migration
             column: "shocker_id");
 
         migrationBuilder.CreateIndex(
+            name: "IX_control_stats_updated_at",
+            table: "control_stats",
+            column: "updated_at");
+
+        migrationBuilder.CreateIndex(
             name: "ix_control_stats_upsert_key",
             table: "control_stats",
             columns: new[] { "owner_user_id", "shocker_id", "controller_user_id", "bucket", "type", "live" },
@@ -102,6 +125,9 @@ public partial class AddControlStats : Migration
     /// <inheritdoc />
     protected override void Down(MigrationBuilder migrationBuilder)
     {
+        migrationBuilder.DropTable(
+            name: "control_stat_batches");
+
         migrationBuilder.DropTable(
             name: "control_stats");
 

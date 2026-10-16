@@ -193,6 +193,10 @@ public abstract class HubControllerBase<TIn, TOut> : FlatbuffersWebsocketBaseCon
 
     /// <inheritdoc />
     [NonAction]
+    public abstract Task<bool> SendControl(IList<ShockerCommand> controlCommands);
+
+    /// <inheritdoc />
+    [NonAction]
     public abstract ValueTask CaptivePortal(bool enable);
 
     /// <inheritdoc />

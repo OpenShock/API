@@ -365,7 +365,7 @@ public sealed class HubLifetime : IAsyncDisposable
     {
         var now = DateTimeOffset.UtcNow;
         var commandList = new List<ShockerCommand>(_shockerStates.Count);
-        var tickMs = (long)_waitBetweenTicks.TotalMilliseconds;
+        var emittingStates = new List<(ShockerState State, ControlType Type, Guid ControllerId, byte Intensity)>(_shockerStates.Count);
 
         foreach (var state in _shockerStates.Values)
         {
@@ -375,19 +375,8 @@ public sealed class HubLifetime : IAsyncDisposable
                 continue;
             }
 
-            // Each emitting tick is one tick interval of activity, a new type or controller starts a new burst
-            var emitting = (state.LastType, state.LastControllerId);
-            _batchUpdateService.RecordControlStat(new ControlStatDelta(
-                ShockerId: state.Id,
-                ControllerUserId: state.LastControllerId,
-                Bucket: now.UtcDateTime,
-                Type: state.LastType,
-                Live: true,
-                Count: state.EmittingOnLastTick == emitting ? 0 : 1,
-                DurationMs: tickMs,
-                IntensityMs: state.LastIntensity * tickMs,
-                MaxIntensity: state.LastIntensity));
-            state.EmittingOnLastTick = emitting;
+            // Snapshot what is sent, a frame arriving while the send is awaited must not change what gets counted
+            emittingStates.Add((state, state.LastType, state.LastControllerId, state.LastIntensity));
 
             commandList.Add(new ShockerCommand
             {
@@ -401,7 +390,27 @@ public sealed class HubLifetime : IAsyncDisposable
 
         if (commandList.Count == 0) return;
 
-        await HubController.Control(commandList);
+        // Only count what actually got written to the hub, a tick lost to a closing connection is not activity
+        if (!await HubController.SendControl(commandList)) return;
+
+        var tickMs = (long)_waitBetweenTicks.TotalMilliseconds;
+        foreach (var (state, type, controllerId, intensity) in emittingStates)
+        {
+            // Each sent tick is one tick interval of activity, a new type or controller starts a new burst
+            var emitting = (type, controllerId);
+            _batchUpdateService.RecordControlStat(new ControlStatDelta(
+                OwnerUserId: state.OwnerId,
+                ShockerId: state.Id,
+                ControllerUserId: controllerId,
+                Bucket: now.UtcDateTime,
+                Type: type,
+                Live: true,
+                Count: state.EmittingOnLastTick == emitting ? 0 : 1,
+                DurationMs: tickMs,
+                IntensityMs: intensity * tickMs,
+                MaxIntensity: intensity));
+            state.EmittingOnLastTick = emitting;
+        }
     }
 
     /// <summary>
@@ -426,6 +435,7 @@ public sealed class HubLifetime : IAsyncDisposable
         _shockerStates = await db.Shockers.Where(x => x.DeviceId == HubController.Id).Select(x => new ShockerState()
         {
             Id = x.Id,
+            OwnerId = x.Device.OwnerId,
             Model = x.Model,
             RfId = x.RfId
         }).ToDictionaryAsync(x => x.Id, x => x, cancellationToken);

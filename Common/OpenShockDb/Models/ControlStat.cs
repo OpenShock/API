@@ -2,7 +2,8 @@ namespace OpenShock.Common.OpenShockDb;
 
 /// <summary>
 /// Hourly rollup of shocker control activity. Unlike <see cref="ShockerControlLog"/> these rows are never trimmed,
-/// so they back lifetime statistics. One row per owner, shocker, controller, hour, type and live flag.
+/// so they back lifetime statistics. One row per owner, shocker, controller, hour, type and live flag. Live control
+/// activity is only counted once the gateway has written it to the hub's websocket.
 /// </summary>
 public sealed class ControlStat
 {
@@ -37,6 +38,9 @@ public sealed class ControlStat
     public required long IntensityMs { get; set; }
 
     public required byte MaxIntensity { get; set; }
+
+    /// <summary>When this row was last added to, change detection for integrations keys off this.</summary>
+    public required DateTime UpdatedAt { get; set; }
 
     // Navigations
     public User Owner { get; set; } = null!;

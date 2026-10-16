@@ -82,8 +82,8 @@ public sealed class ControlStatsTests
 
             // Identical keys apart from the shocker, so after SET NULL they would collide on a full unique index
             await db.UpsertControlStatsAsync([
-                Delta(shockerA, user.Id, bucket, count: 2),
-                Delta(shockerB, user.Id, bucket, count: 3)
+                Delta(user.Id, shockerA, user.Id, bucket, count: 2),
+                Delta(user.Id, shockerB, user.Id, bucket, count: 3)
             ]);
 
             await db.Shockers.Where(x => x.Id == shockerA).ExecuteDeleteAsync();
@@ -113,12 +113,12 @@ public sealed class ControlStatsTests
 
         // Same hour, same key twice in one batch, plus a guest (null controller) bucket
         await db.UpsertControlStatsAsync([
-            Delta(shockerId, userId, bucket.AddMinutes(5), count: 1, intensity: 20),
-            Delta(shockerId, userId, bucket.AddMinutes(50), count: 1, intensity: 80),
-            Delta(shockerId, null, bucket, count: 4)
+            Delta(userId, shockerId, userId, bucket.AddMinutes(5), count: 1, intensity: 20),
+            Delta(userId, shockerId, userId, bucket.AddMinutes(50), count: 1, intensity: 80),
+            Delta(userId, shockerId, null, bucket, count: 4)
         ]);
-        await db.UpsertControlStatsAsync([Delta(shockerId, userId, bucket, count: 1, intensity: 10)]);
-        await db.UpsertControlStatsAsync([Delta(shockerId, null, bucket, count: 1)]);
+        await db.UpsertControlStatsAsync([Delta(userId, shockerId, userId, bucket, count: 1, intensity: 10)]);
+        await db.UpsertControlStatsAsync([Delta(userId, shockerId, null, bucket, count: 1)]);
 
         var rows = await db.ControlStats.AsNoTracking().Where(x => x.ShockerId == shockerId).ToArrayAsync();
         await Assert.That(rows.Length).IsEqualTo(2);
@@ -134,6 +134,47 @@ public sealed class ControlStatsTests
     }
 
     [Test]
+    public async Task Upsert_ForShockerDeletedBeforeFlush_KeepsDeltaWithoutShocker()
+    {
+        var userId = await TestHelper.CreateUserInDb(WebApplicationFactory, TestHelper.UniqueUsername("statsgone"),
+            TestHelper.UniqueEmail("statsgone"), "SecurePassword123#");
+        var shockerId = await CreateShocker(userId, "Gone");
+
+        await using var scope = WebApplicationFactory.Services.CreateAsyncScope();
+        var db = scope.ServiceProvider.GetRequiredService<OpenShockContext>();
+
+        // Buffered live control activity whose shocker got deleted before the flush
+        await db.Shockers.Where(x => x.Id == shockerId).ExecuteDeleteAsync();
+        await db.UpsertControlStatsAsync([
+            Delta(userId, shockerId, userId, new DateTime(2026, 3, 1, 12, 0, 0, DateTimeKind.Utc), count: 3)
+        ]);
+
+        var row = await db.ControlStats.AsNoTracking().SingleAsync(x => x.OwnerUserId == userId);
+        await Assert.That(row.ShockerId).IsNull();
+        await Assert.That(row.Count).IsEqualTo(3);
+    }
+
+    [Test]
+    public async Task ApplyBatch_RetriedWithSameId_IsCountedOnce()
+    {
+        var userId = await TestHelper.CreateUserInDb(WebApplicationFactory, TestHelper.UniqueUsername("statsbatch"),
+            TestHelper.UniqueEmail("statsbatch"), "SecurePassword123#");
+        var shockerId = await CreateShocker(userId, "Batch");
+        var batchId = Guid.CreateVersion7();
+        ControlStatDelta[] deltas = [Delta(userId, shockerId, userId, new DateTime(2026, 3, 1, 12, 0, 0, DateTimeKind.Utc), count: 2)];
+
+        await using var scope = WebApplicationFactory.Services.CreateAsyncScope();
+        var db = scope.ServiceProvider.GetRequiredService<OpenShockContext>();
+
+        await Assert.That(await db.ApplyControlStatBatchAsync(batchId, deltas)).IsTrue();
+        // Retry after a commit whose acknowledgement got lost
+        await Assert.That(await db.ApplyControlStatBatchAsync(batchId, deltas)).IsFalse();
+
+        var row = await db.ControlStats.AsNoTracking().SingleAsync(x => x.ShockerId == shockerId);
+        await Assert.That(row.Count).IsEqualTo(2);
+    }
+
+    [Test]
     public async Task Stats_GroupsDaysInRequestedTimeZone_AndFiltersRange()
     {
         var user = await TestHelper.CreateAndLoginUser(WebApplicationFactory, TestHelper.UniqueUsername("statstz"),
@@ -145,8 +186,8 @@ public sealed class ControlStatsTests
             var db = scope.ServiceProvider.GetRequiredService<OpenShockContext>();
             await db.UpsertControlStatsAsync([
                 // 23:00 UTC on Jan 1 is already Jan 2 in Berlin (UTC+1)
-                Delta(shockerId, user.Id, new DateTime(2026, 1, 1, 23, 0, 0, DateTimeKind.Utc), count: 1),
-                Delta(shockerId, user.Id, new DateTime(2026, 1, 5, 12, 0, 0, DateTimeKind.Utc), count: 1)
+                Delta(user.Id, shockerId, user.Id, new DateTime(2026, 1, 1, 23, 0, 0, DateTimeKind.Utc), count: 1),
+                Delta(user.Id, shockerId, user.Id, new DateTime(2026, 1, 5, 12, 0, 0, DateTimeKind.Utc), count: 1)
             ]);
         }
 
@@ -184,8 +225,8 @@ public sealed class ControlStatsTests
         await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.Unauthorized);
     }
 
-    private static ControlStatDelta Delta(Guid shockerId, Guid? controllerId, DateTime at, long count, byte intensity = 50) =>
-        new(shockerId, controllerId, at, ControlType.Shock, Live: false, count, DurationMs: count * 1000,
+    private static ControlStatDelta Delta(Guid ownerId, Guid shockerId, Guid? controllerId, DateTime at, long count, byte intensity = 50) =>
+        new(ownerId, shockerId, controllerId, at, ControlType.Shock, Live: false, count, DurationMs: count * 1000,
             IntensityMs: count * 1000 * intensity, intensity);
 
     private async Task<Guid> CreateShocker(Guid ownerId, string name)

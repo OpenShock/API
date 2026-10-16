@@ -19,6 +19,11 @@ public sealed class ShockerState
     public required Guid Id { get; init; }
     
     /// <summary>
+    /// User owning the shocker
+    /// </summary>
+    public required Guid OwnerId { get; init; }
+
+    /// <summary>
     /// RfId of the shocker
     /// </summary>
     public required ushort RfId { get; init; }

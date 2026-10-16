@@ -20,12 +20,10 @@ public sealed partial class IntegrationsController
     /// Returns the lifetime totals of every requested user whose stats changed since the given cursor.
     /// </summary>
     /// <remarks>
-    /// Requires an automation token granting <c>ControlStatsRead</c>. Stats rows are hourly buckets that only
-    /// ever change while their hour is current, so "changed since" is answered from the bucket indexes. The
-    /// lookback is widened by <see cref="FlushOverlap"/> to cover buffered live control stats flushed just after
-    /// the hour rolled over, so a user can be reported again although nothing changed. Live control stats that
-    /// only get written after a longer database outage land in an older bucket and are missed, the totals catch up
-    /// with that user's next control since they are always lifetime totals.
+    /// Requires an automation token granting <c>ControlStatsRead</c>. "Changed since" is answered from when each
+    /// stats row was last written rather than the hour it covers, so live control stats written late (e.g. after a
+    /// database outage) are still picked up. The lookback is widened by <see cref="ChangeOverlap"/> to cover writes
+    /// still committing while the previous call read, so a user can be reported again although nothing changed.
     /// </remarks>
     /// <response code="200">The changed users' totals and the cursor to pass next time.</response>
     /// <response code="403">No automation token granting ControlStatsRead was presented.</response>
@@ -48,8 +46,11 @@ public sealed partial class IntegrationsController
             var since = body.Since.Value.Kind == DateTimeKind.Unspecified
                 ? DateTime.SpecifyKind(body.Since.Value, DateTimeKind.Utc)
                 : body.Since.Value.ToUniversalTime();
-            var from = ControlStatDelta.ToBucket(since - FlushOverlap);
-            var recent = _db.ControlStats.Where(x => x.Bucket >= from);
+            // A cursor at the very beginning of time can't be widened any further
+            var from = since - DateTime.MinValue > ChangeOverlap
+                ? since - ChangeOverlap
+                : DateTime.SpecifyKind(DateTime.MinValue, DateTimeKind.Utc);
+            var recent = _db.ControlStats.Where(x => x.UpdatedAt >= from);
 
             var owners = await recent
                 .Where(x => userIds.Contains(x.OwnerUserId))
@@ -104,8 +105,11 @@ public sealed partial class IntegrationsController
         });
     }
 
-    /// <summary>Well above the batch update service's flush interval, which writes live control stats.</summary>
-    private static readonly TimeSpan FlushOverlap = TimeSpan.FromMinutes(5);
+    /// <summary>
+    /// Well above how long a stats write takes to commit, and any clock skew between the API and the database, since
+    /// <see cref="ControlStat.UpdatedAt"/> is stamped by the database when its transaction starts.
+    /// </summary>
+    private static readonly TimeSpan ChangeOverlap = TimeSpan.FromMinutes(5);
 
     private static ControlStatTotals[] ToTotals(IEnumerable<TotalsRow> rows) => rows
         .OrderBy(x => x.Type)

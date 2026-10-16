@@ -18,7 +18,7 @@ partial class OpenShockContextModelSnapshot : ModelSnapshot
     // If you encounter a merge conflict in the line below, it means you need to
     // discard one of the migration branches and recreate its migrations on top of
     // the other branch. See https://aka.ms/efcore-docs-migrations-conflicts for more info.
-    public override string LastMigrationId => "20261011154350_AddControlStatsReadAutomationToken";
+    public override string LastMigrationId => "20261016135411_AddControlStats";
 
     protected override void BuildModel(ModelBuilder modelBuilder)
     {
@@ -437,10 +437,16 @@ partial class OpenShockContextModelSnapshot : ModelSnapshot
                     .HasColumnType("control_type")
                     .HasColumnName("type");
 
+                b.Property<DateTime>("UpdatedAt")
+                    .HasColumnType("timestamp with time zone")
+                    .HasColumnName("updated_at");
+
                 b.HasKey("Id")
                     .HasName("control_stats_pkey");
 
                 b.HasIndex("ShockerId");
+
+                b.HasIndex("UpdatedAt");
 
                 b.HasIndex("ControllerUserId", "Bucket");
 
@@ -454,6 +460,24 @@ partial class OpenShockContextModelSnapshot : ModelSnapshot
                 NpgsqlIndexBuilderExtensions.AreNullsDistinct(index, false);
 
                 b.ToTable("control_stats");
+            });
+
+        modelBuilder.Entity("OpenShock.Common.OpenShockDb.ControlStatBatch", b =>
+            {
+                b.Property<Guid>("Id")
+                    .HasColumnType("uuid")
+                    .HasColumnName("id");
+
+                b.Property<DateTime>("AppliedAt")
+                    .HasColumnType("timestamp with time zone")
+                    .HasColumnName("applied_at");
+
+                b.HasKey("Id")
+                    .HasName("control_stat_batches_pkey");
+
+                b.HasIndex("AppliedAt");
+
+                b.ToTable("control_stat_batches");
             });
 
         modelBuilder.Entity("OpenShock.Common.OpenShockDb.Device", b =>

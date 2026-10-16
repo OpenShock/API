@@ -180,6 +180,7 @@ public sealed class ControlSender : IControlSender
             });
 
             statDeltas.Add(new ControlStatDelta(
+                OwnerUserId: shocker.OwnerId,
                 ShockerId: shocker.ShockerId,
                 ControllerUserId: controllerUserId,
                 Bucket: now,

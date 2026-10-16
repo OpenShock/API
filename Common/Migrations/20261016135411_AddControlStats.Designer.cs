@@ -14,7 +14,7 @@ using OpenShock.Common.OpenShockDb;
 namespace OpenShock.Common.Migrations;
 
 [DbContext(typeof(MigrationOpenShockContext))]
-[Migration("20261010115002_AddControlStats")]
+[Migration("20261016135411_AddControlStats")]
 partial class AddControlStats
 {
     /// <inheritdoc />
@@ -435,10 +435,16 @@ partial class AddControlStats
                     .HasColumnType("control_type")
                     .HasColumnName("type");
 
+                b.Property<DateTime>("UpdatedAt")
+                    .HasColumnType("timestamp with time zone")
+                    .HasColumnName("updated_at");
+
                 b.HasKey("Id")
                     .HasName("control_stats_pkey");
 
                 b.HasIndex("ShockerId");
+
+                b.HasIndex("UpdatedAt");
 
                 b.HasIndex("ControllerUserId", "Bucket");
 
@@ -452,6 +458,24 @@ partial class AddControlStats
                 NpgsqlIndexBuilderExtensions.AreNullsDistinct(index, false);
 
                 b.ToTable("control_stats");
+            });
+
+        modelBuilder.Entity("OpenShock.Common.OpenShockDb.ControlStatBatch", b =>
+            {
+                b.Property<Guid>("Id")
+                    .HasColumnType("uuid")
+                    .HasColumnName("id");
+
+                b.Property<DateTime>("AppliedAt")
+                    .HasColumnType("timestamp with time zone")
+                    .HasColumnName("applied_at");
+
+                b.HasKey("Id")
+                    .HasName("control_stat_batches_pkey");
+
+                b.HasIndex("AppliedAt");
+
+                b.ToTable("control_stat_batches");
             });
 
         modelBuilder.Entity("OpenShock.Common.OpenShockDb.Device", b =>
