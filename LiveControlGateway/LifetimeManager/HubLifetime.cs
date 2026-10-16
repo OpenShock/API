@@ -7,6 +7,7 @@ using OpenShock.Common.OpenShockDb;
 using OpenShock.Common.Redis;
 using OpenShock.Common.Redis.PubSub;
 using OpenShock.Common.Results;
+using OpenShock.Common.Services.BatchUpdate;
 using OpenShock.Common.Services.RedisPubSub;
 using OpenShock.Common.Utils;
 using OpenShock.LiveControlGateway.Controllers;
@@ -50,6 +51,7 @@ public sealed class HubLifetime : IAsyncDisposable
     private readonly IDbContextFactory<OpenShockContext> _dbContextFactory;
     private readonly IRedisConnectionProvider _redisConnectionProvider;
     private readonly IRedisPubService _redisPubService;
+    private readonly IBatchUpdateService _batchUpdateService;
 
     private readonly RedisChannel _deviceMsgChannel;
     private readonly ISubscriber _subscriber;
@@ -83,12 +85,14 @@ public sealed class HubLifetime : IAsyncDisposable
     /// <param name="connectionMultiplexer"></param>
     /// <param name="redisConnectionProvider"></param>
     /// <param name="redisPubService"></param>
+    /// <param name="batchUpdateService"></param>
     /// <param name="logger"></param>
     public HubLifetime([Range(1, 10)] byte tps, IHubController hubController,
         IDbContextFactory<OpenShockContext> dbContextFactory,
         IConnectionMultiplexer connectionMultiplexer,
         IRedisConnectionProvider redisConnectionProvider,
         IRedisPubService redisPubService,
+        IBatchUpdateService batchUpdateService,
         ILogger<HubLifetime> logger)
     {
         HubController = hubController;
@@ -96,6 +100,7 @@ public sealed class HubLifetime : IAsyncDisposable
         _dbContextFactory = dbContextFactory;
         _redisConnectionProvider = redisConnectionProvider;
         _redisPubService = redisPubService;
+        _batchUpdateService = batchUpdateService;
         _logger = logger;
 
         _waitBetweenTicks = TimeSpan.FromMilliseconds(1000.0 / tps);
@@ -360,24 +365,53 @@ public sealed class HubLifetime : IAsyncDisposable
     {
         var now = DateTimeOffset.UtcNow;
         var commandList = new List<ShockerCommand>(_shockerStates.Count);
+        var emittingFrames = new List<(ShockerState State, LiveFrame Frame)>(_shockerStates.Count);
 
         foreach (var state in _shockerStates.Values)
         {
-            if (state.ActiveUntil < now || state.ExclusiveUntil >= now) continue;
+            // Read once, the command and its stats are both built from this one frame even if another one arrives
+            var frame = state.LastFrame;
+            if (frame is null || frame.ActiveUntil < now || state.ExclusiveUntil >= now)
+            {
+                state.EmittingOnLastTick = null;
+                continue;
+            }
+
+            emittingFrames.Add((state, frame));
 
             commandList.Add(new ShockerCommand
             {
                 Model = FbsMapper.ToFbsModelType(state.Model),
                 Id = state.RfId,
-                Type = FbsMapper.ToFbsCommandType(state.LastType),
-                Intensity = state.LastIntensity,
+                Type = FbsMapper.ToFbsCommandType(frame.Type),
+                Intensity = frame.Intensity,
                 Duration = _commandDuration,
             });
         }
 
         if (commandList.Count == 0) return;
 
-        await HubController.Control(commandList);
+        // Only count what actually got written to the hub, a tick lost to a closing connection is not activity
+        if (!await HubController.SendControl(commandList)) return;
+
+        var tickMs = (long)_waitBetweenTicks.TotalMilliseconds;
+        foreach (var (state, frame) in emittingFrames)
+        {
+            // Each sent tick is one tick interval of activity, a new type or controller starts a new burst
+            var emitting = (frame.Type, frame.ControllerId);
+            _batchUpdateService.RecordControlStat(new ControlStatDelta(
+                OwnerUserId: state.OwnerId,
+                ShockerId: state.Id,
+                ControllerUserId: frame.ControllerId,
+                Bucket: now.UtcDateTime,
+                Type: frame.Type,
+                Live: true,
+                Count: state.EmittingOnLastTick == emitting ? 0 : 1,
+                DurationMs: tickMs,
+                IntensityMs: frame.Intensity * tickMs,
+                MaxIntensity: frame.Intensity));
+            state.EmittingOnLastTick = emitting;
+        }
     }
 
     /// <summary>
@@ -402,6 +436,7 @@ public sealed class HubLifetime : IAsyncDisposable
         _shockerStates = await db.Shockers.Where(x => x.DeviceId == HubController.Id).Select(x => new ShockerState()
         {
             Id = x.Id,
+            OwnerId = x.Device.OwnerId,
             Model = x.Model,
             RfId = x.RfId
         }).ToDictionaryAsync(x => x.Id, x => x, cancellationToken);
@@ -411,12 +446,13 @@ public sealed class HubLifetime : IAsyncDisposable
     /// Receive a control frame by a client, this implies that limits and permissions have been checked before
     /// </summary>
     /// <param name="shocker"></param>
+    /// <param name="controllerId">User sending the frame</param>
     /// <param name="type"></param>
     /// <param name="intensity"></param>
     /// <param name="tps"></param>
     /// <returns></returns>
-    public Union3<Success, NotFound, ShockerExclusive> ReceiveFrame(Guid shocker, ControlType type, byte intensity,
-        byte tps)
+    public Union3<Success, NotFound, ShockerExclusive> ReceiveFrame(Guid shocker, Guid controllerId, ControlType type,
+        byte intensity, byte tps)
     {
         if (!_shockerStates.TryGetValue(shocker, out var state)) return new NotFound();
         if (state.ExclusiveUntil > DateTimeOffset.UtcNow)
@@ -425,9 +461,7 @@ public sealed class HubLifetime : IAsyncDisposable
                 Until = state.ExclusiveUntil
             };
 
-        state.LastType = type;
-        state.LastIntensity = intensity;
-        state.ActiveUntil = CalculateActiveUntil(tps);
+        state.LastFrame = new LiveFrame(type, intensity, controllerId, CalculateActiveUntil(tps));
         return new Success();
     }
 

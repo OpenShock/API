@@ -85,6 +85,12 @@ public class OpenShockContext : DbContext, IDataProtectionKeyContext
 
     public DbSet<ShockerControlLog> ShockerControlLogs { get; set; }
 
+    public DbSet<ControlStat> ControlStats { get; set; }
+
+    public DbSet<ControlStatBatch> ControlStatBatches { get; set; }
+
+    public DbSet<ControlStatRemoval> ControlStatRemovals { get; set; }
+
     public DbSet<UserShare> UserShares { get; set; }
 
     public DbSet<ShockerShareCode> ShockerShareCodes { get; set; }
@@ -450,6 +456,79 @@ public class OpenShockContext : DbContext, IDataProtectionKeyContext
             entity.HasOne(d => d.Shocker).WithMany(p => p.ShockerControlLogs)
                 .HasForeignKey(d => d.ShockerId)
                 .HasConstraintName("fk_shocker_control_logs_shocker_id");
+        });
+
+        modelBuilder.Entity<ControlStat>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("control_stats_pkey");
+
+            entity.ToTable("control_stats");
+
+            // Upsert target. Rows orphaned by a shocker delete (shocker_id SET NULL) fall outside the filter, so
+            // they may duplicate each other without violating it; readers sum them anyway.
+            entity.HasIndex(e => new { e.OwnerUserId, e.ShockerId, e.ControllerUserId, e.Bucket, e.Type, e.Live })
+                .IsUnique()
+                .AreNullsDistinct(false)
+                .HasFilter("shocker_id IS NOT NULL")
+                .HasDatabaseName("ix_control_stats_upsert_key");
+            entity.HasIndex(e => new { e.OwnerUserId, e.Bucket });
+            entity.HasIndex(e => new { e.ControllerUserId, e.Bucket });
+            entity.HasIndex(e => e.ShockerId);
+            entity.HasIndex(e => e.UpdatedAt);
+
+            entity.Property(e => e.Id)
+                .ValueGeneratedNever()
+                .HasColumnName("id");
+            entity.Property(e => e.OwnerUserId).HasColumnName("owner_user_id");
+            entity.Property(e => e.ShockerId).HasColumnName("shocker_id");
+            entity.Property(e => e.ControllerUserId).HasColumnName("controller_user_id");
+            entity.Property(e => e.Bucket).HasColumnName("bucket");
+            entity.Property(e => e.Type).HasColumnType("control_type").HasColumnName("type");
+            entity.Property(e => e.Live).HasColumnName("live");
+            entity.Property(e => e.Count).HasColumnName("count");
+            entity.Property(e => e.DurationMs).HasColumnName("duration_ms");
+            entity.Property(e => e.IntensityMs).HasColumnName("intensity_ms");
+            entity.Property(e => e.MaxIntensity).HasColumnName("max_intensity");
+            entity.Property(e => e.UpdatedAt).HasColumnName("updated_at");
+
+            entity.HasOne(e => e.Owner).WithMany(u => u.ControlStats)
+                .HasForeignKey(e => e.OwnerUserId)
+                .OnDelete(DeleteBehavior.Cascade)
+                .HasConstraintName("fk_control_stats_owner_user_id");
+
+            entity.HasOne(e => e.Shocker).WithMany(s => s.ControlStats)
+                .HasForeignKey(e => e.ShockerId)
+                .OnDelete(DeleteBehavior.SetNull)
+                .HasConstraintName("fk_control_stats_shocker_id");
+        });
+
+        modelBuilder.Entity<ControlStatBatch>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("control_stat_batches_pkey");
+
+            entity.ToTable("control_stat_batches");
+
+            entity.HasIndex(e => e.AppliedAt);
+
+            entity.Property(e => e.Id)
+                .ValueGeneratedNever()
+                .HasColumnName("id");
+            entity.Property(e => e.AppliedAt).HasColumnName("applied_at");
+        });
+
+        // Filled by the control_stats_record_removals trigger, see the AddControlStats migration
+        modelBuilder.Entity<ControlStatRemoval>(entity =>
+        {
+            entity.HasKey(e => e.UserId).HasName("control_stat_removals_pkey");
+
+            entity.ToTable("control_stat_removals");
+
+            entity.HasIndex(e => e.RemovedAt);
+
+            entity.Property(e => e.UserId)
+                .ValueGeneratedNever()
+                .HasColumnName("user_id");
+            entity.Property(e => e.RemovedAt).HasColumnName("removed_at");
         });
 
         modelBuilder.Entity<UserShare>(entity =>

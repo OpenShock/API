@@ -202,13 +202,20 @@ public sealed class HubV2Controller : HubControllerBase<HubToGatewayMessage, Gat
 
     /// <inheritdoc />
     public override ValueTask Control(IList<ShockerCommand> controlCommands)
-        => QueueMessage(new GatewayToHubMessage
+        => QueueMessage(ControlMessage(controlCommands));
+
+    /// <inheritdoc />
+    public override Task<bool> SendControl(IList<ShockerCommand> controlCommands)
+        => SendMessage(ControlMessage(controlCommands));
+
+    private static GatewayToHubMessage ControlMessage(IList<ShockerCommand> controlCommands)
+        => new()
         {
             Payload = new GatewayToHubMessagePayload(new ShockerCommandList
             {
                 Commands = controlCommands
             })
-        });
+        };
 
     /// <inheritdoc />
     public override ValueTask CaptivePortal(bool enable)

@@ -243,10 +243,10 @@ public sealed class AutomationTokenTests
         {
             name = "created-by-test",
             types = new[] { "Turnstile" }
-        }));
+        }), cancellationToken);
 
         await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.OK);
-        using var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+        using var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync(cancellationToken));
         var id = json.RootElement.GetProperty("id").GetGuid();
         var secret = json.RootElement.GetProperty("secret").GetString()!;
 
@@ -264,9 +264,9 @@ public sealed class AutomationTokenTests
         var (tokenId, oldSecret) = await CreateAutomationTokenInDb();
         using var client = await CreateAdminClient("autorotate");
 
-        var response = await client.PostAsync($"/1/admin/automationTokens/{tokenId}/rotate", null);
+        var response = await client.PostAsync($"/1/admin/automationTokens/{tokenId}/rotate", null, cancellationToken);
         await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.OK);
-        using var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+        using var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync(cancellationToken));
         var newSecret = json.RootElement.GetProperty("secret").GetString()!;
 
         await using var scope = WebApplicationFactory.Services.CreateAsyncScope();

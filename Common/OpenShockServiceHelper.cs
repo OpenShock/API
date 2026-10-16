@@ -377,6 +377,7 @@ public static class OpenShockServiceHelper
                 options.AddPolicy("auth", _ => RateLimitPartition.GetNoLimiter("test-nolimit"));
                 options.AddPolicy("token-reporting", _ => RateLimitPartition.GetNoLimiter("test-nolimit"));
                 options.AddPolicy("shocker-logs", _ => RateLimitPartition.GetNoLimiter("test-nolimit"));
+                options.AddPolicy("control-stats", _ => RateLimitPartition.GetNoLimiter("test-nolimit"));
                 return;
             }
 
@@ -480,6 +481,16 @@ public static class OpenShockServiceHelper
             options.AddPolicy("shocker-logs", context =>
                 TryBypass(context) ??
                 RateLimitPartition.GetConcurrencyLimiter("shocker-logs", _ => new ConcurrencyLimiterOptions
+                {
+                    PermitLimit = 10,
+                    QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
+                    QueueLimit = 20
+                }));
+
+            // Control stats aggregate a user's whole history, so cap how many run at once
+            options.AddPolicy("control-stats", context =>
+                TryBypass(context) ??
+                RateLimitPartition.GetConcurrencyLimiter("control-stats", _ => new ConcurrencyLimiterOptions
                 {
                     PermitLimit = 10,
                     QueueProcessingOrder = QueueProcessingOrder.OldestFirst,

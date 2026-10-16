@@ -172,7 +172,15 @@ public sealed class HubV1Controller : HubControllerBase<HubToGatewayMessage, Gat
     /// <inheritdoc />
     [NonAction]
     public override ValueTask Control(IList<ShockerCommand> controlCommands)
-        => QueueMessage(new GatewayToHubMessage
+        => QueueMessage(ControlMessage(controlCommands));
+
+    /// <inheritdoc />
+    [NonAction]
+    public override Task<bool> SendControl(IList<ShockerCommand> controlCommands)
+        => SendMessage(ControlMessage(controlCommands));
+
+    private static GatewayToHubMessage ControlMessage(IList<ShockerCommand> controlCommands)
+        => new()
         {
             Payload = new GatewayToHubMessagePayload(new ShockerCommandList
             {
@@ -185,7 +193,7 @@ public sealed class HubV1Controller : HubControllerBase<HubToGatewayMessage, Gat
                     Model = x.Model
                 })]
             })
-        });
+        };
 
     /// <inheritdoc />
     public override ValueTask<bool> EmergencyStop()

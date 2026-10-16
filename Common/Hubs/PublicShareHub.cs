@@ -59,7 +59,7 @@ public sealed class PublicShareHub : Hub<IPublicShareHub>
             }
         }
 
-        var exists = await _db.PublicShares.AnyAsync(x => x.Id == id && (x.ExpiresAt == null || x.ExpiresAt > DateTime.UtcNow), Context.ConnectionAborted);
+        var exists = await _db.PublicShares.AnyAsync(x => x.Id == id && (x.ExpiresAt == null || x.ExpiresAt > DateTime.UtcNow));
         if (!exists)
         {
             _logger.LogDebug("Aborting connection... public share not found");
@@ -115,7 +115,7 @@ public sealed class PublicShareHub : Hub<IPublicShareHub>
                     AdditionalItems = additionalItems
                 }
         };
-        await Groups.AddToGroupAsync(Context.ConnectionId, $"share-link-{param}", Context.ConnectionAborted);
+        await Groups.AddToGroupAsync(Context.ConnectionId, $"share-link-{param}");
         await Clients.Caller.Welcome(user is null ? AuthType.Guest : AuthType.Authenticated);
     }
 
@@ -123,8 +123,8 @@ public sealed class PublicShareHub : Hub<IPublicShareHub>
     {
         if (!TokenPermissions.IsAllowedAllowOrNull(PermissionType.Shockers_Use)) return Task.CompletedTask;
         
-        return _controlSender.ControlPublicShare(shocks, CustomData.CachedControlLogSender, _userHub.Clients,
-            CustomData.PublicShareId, Context.ConnectionAborted);
+        return _controlSender.ControlPublicShare(shocks, CustomData.CachedControlLogSender, CustomData.User?.Id,
+            _userHub.Clients, CustomData.PublicShareId, Context.ConnectionAborted);
     }
 
     private CustomDataHolder CustomData => (CustomDataHolder)Context.Items[PublicShareCustomData]!;
@@ -140,7 +140,7 @@ public sealed class PublicShareHub : Hub<IPublicShareHub>
             Id = x.Id,
             Image = x.GetImageUrl(),
             Name = x.Name
-        }).FirstAsync(user => user.Id == session.UserId, Context.ConnectionAborted);
+        }).FirstAsync(user => user.Id == session.UserId);
     }
 
     private sealed class CustomDataHolder
