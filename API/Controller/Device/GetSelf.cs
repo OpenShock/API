@@ -18,7 +18,7 @@ public sealed partial class DeviceController
     [HttpGet("self")]
     [MapToApiVersion("1")]
     [ProducesResponseType<LegacyDataResponse<DeviceSelfResponse>>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
-    public async Task<IActionResult> GetSelf()
+    public async Task<IActionResult> GetSelf(CancellationToken cancellationToken)
     {
         var identity = User.GetOpenShockHubIdentity();
         var currentHubId = identity.GetClaimValueAsGuid(OpenShockAuthClaims.HubId);
@@ -29,7 +29,7 @@ public sealed partial class DeviceController
             Id = x.Id,
             RfId = x.RfId,
             Model = x.Model
-        }).ToArrayAsync();
+        }).ToArrayAsync(cancellationToken);
 
         return LegacyDataOk(new DeviceSelfResponse
             {

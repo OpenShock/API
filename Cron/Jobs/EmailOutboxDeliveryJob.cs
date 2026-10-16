@@ -28,6 +28,7 @@ public sealed class EmailOutboxDeliveryJob
     private const int BatchSize = EmailOutboxQueries.ClaimBatchSize;
 
     private readonly OpenShockContext _db;
+    private readonly IHostApplicationLifetime _lifetime;
     private readonly IEmailOutboxDispatcher _dispatcher;
     private readonly ILogger<EmailOutboxDeliveryJob> _logger;
 
@@ -35,28 +36,36 @@ public sealed class EmailOutboxDeliveryJob
     /// DI constructor
     /// </summary>
     /// <param name="db"></param>
+    /// <param name="lifetime">Its stopping token cancels the job when the server shuts down.</param>
     /// <param name="dispatcher"></param>
     /// <param name="logger"></param>
-    public EmailOutboxDeliveryJob(OpenShockContext db, IEmailOutboxDispatcher dispatcher, ILogger<EmailOutboxDeliveryJob> logger)
+    public EmailOutboxDeliveryJob(OpenShockContext db, IHostApplicationLifetime lifetime, IEmailOutboxDispatcher dispatcher, ILogger<EmailOutboxDeliveryJob> logger)
     {
         _db = db;
+        _lifetime = lifetime;
         _dispatcher = dispatcher;
         _logger = logger;
     }
 
     public async Task Execute()
     {
+        var cancellationToken = _lifetime.ApplicationStopping;
         int claimed;
         do
         {
-            var ids = await ClaimDueBatchAsync();
+            var ids = await ClaimDueBatchAsync(cancellationToken);
             claimed = ids.Count;
 
             foreach (var id in ids)
             {
                 try
                 {
-                    await DeliverAsync(id);
+                    await DeliverAsync(id, cancellationToken);
+                }
+                catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+                {
+                    // Shutting down: stop the batch. Claimed rows stay Sending and are retried when their lease lapses.
+                    throw;
                 }
                 catch (DbUpdateConcurrencyException)
                 {
@@ -82,17 +91,17 @@ public sealed class EmailOutboxDeliveryJob
     /// is held only for this short transaction; the sends happen afterwards, outside it. Returns the ids
     /// now owned by this run.
     /// </summary>
-    private async Task<List<Guid>> ClaimDueBatchAsync()
+    private async Task<List<Guid>> ClaimDueBatchAsync(CancellationToken cancellationToken)
     {
         _db.ChangeTracker.Clear();
 
-        await using var transaction = await _db.Database.BeginTransactionAsync();
+        await using var transaction = await _db.Database.BeginTransactionAsync(cancellationToken);
 
-        var due = await _db.EmailOutbox.DueForDelivery(BatchSize).ToListAsync();
+        var due = await _db.EmailOutbox.DueForDelivery(BatchSize).ToListAsync(cancellationToken);
 
         if (due.Count == 0)
         {
-            await transaction.CommitAsync();
+            await transaction.CommitAsync(cancellationToken);
             return [];
         }
 
@@ -112,8 +121,8 @@ public sealed class EmailOutboxDeliveryJob
             }
         }
 
-        await _db.SaveChangesAsync();
-        await transaction.CommitAsync();
+        await _db.SaveChangesAsync(cancellationToken);
+        await transaction.CommitAsync(cancellationToken);
         return claimed;
     }
 
@@ -123,11 +132,11 @@ public sealed class EmailOutboxDeliveryJob
     /// carries the current concurrency token; if the row is no longer <see cref="EmailStatus.Sending"/>
     /// another run already resolved it and this one bows out.
     /// </summary>
-    private async Task DeliverAsync(Guid messageId)
+    private async Task DeliverAsync(Guid messageId, CancellationToken cancellationToken)
     {
         _db.ChangeTracker.Clear();
 
-        var message = await _db.EmailOutbox.FirstOrDefaultAsync(m => m.Id == messageId);
+        var message = await _db.EmailOutbox.FirstOrDefaultAsync(m => m.Id == messageId, cancellationToken);
         if (message is null)
         {
             _logger.LogWarning("Email outbox message {MessageId} no longer exists; nothing to send", messageId);
@@ -147,17 +156,17 @@ public sealed class EmailOutboxDeliveryJob
                 .Where(m => m.CoalesceKey == message.CoalesceKey)
                 .OrderByDescending(m => m.CreatedAt).ThenByDescending(m => m.Id)
                 .Select(m => m.Id)
-                .FirstAsync();
+                .FirstAsync(cancellationToken);
 
             if (newestId != message.Id)
             {
                 EmailOutboxStateMachine.ApplyResult(message, EmailDispatchResult.Skip("Superseded by a newer request"), DateTime.UtcNow);
-                await _db.SaveChangesAsync();
+                await _db.SaveChangesAsync(cancellationToken);
                 return;
             }
         }
 
-        var result = await _dispatcher.SendAsync(message, _db);
+        var result = await _dispatcher.SendAsync(message, _db, cancellationToken);
 
         if (result.Outcome == EmailDispatchOutcome.TransientFailure && message.AttemptCount >= EmailOutboxRetryPolicy.MaxAttempts)
         {
@@ -166,6 +175,7 @@ public sealed class EmailOutboxDeliveryJob
         }
 
         EmailOutboxStateMachine.ApplyResult(message, result, DateTime.UtcNow);
+        // Not cancellable: once the send has happened, the outcome must be recorded or it will be sent again.
         await _db.SaveChangesAsync();
     }
 }

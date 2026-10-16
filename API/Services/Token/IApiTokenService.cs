@@ -17,40 +17,40 @@ public interface IApiTokenService
     /// <summary>
     /// List all tokens owned by <paramref name="ownerId"/>.
     /// </summary>
-    IAsyncEnumerable<TokenResponse> ListTokensV1(Guid ownerId);
+    IAsyncEnumerable<TokenResponse> ListTokensV1(Guid ownerId, CancellationToken cancellationToken = default);
 
     /// <inheritdoc cref="ListTokensV1"/>
-    IAsyncEnumerable<TokenResponseV2> ListTokensV2(Guid ownerId);
+    IAsyncEnumerable<TokenResponseV2> ListTokensV2(Guid ownerId, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Get a single token by id (optionally restricted to an owner), or <c>null</c> if it does not exist.
     /// </summary>
-    Task<TokenResponse?> GetTokenV1(Guid tokenId, Guid? ownerId = null);
+    Task<TokenResponse?> GetTokenV1(Guid tokenId, Guid? ownerId = null, CancellationToken cancellationToken = default);
 
     /// <inheritdoc cref="GetTokenV1"/>
-    Task<TokenResponseV2?> GetTokenV2(Guid tokenId, Guid? ownerId = null);
+    Task<TokenResponseV2?> GetTokenV2(Guid tokenId, Guid? ownerId = null, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Create a new token owned by <paramref name="userId"/> and return the response including the raw token secret.
     /// </summary>
-    Task<TokenCreatedResponse> CreateTokenV1(Guid userId, IPAddress createdByIp, CreateTokenRequest body);
+    Task<TokenCreatedResponse> CreateTokenV1(Guid userId, IPAddress createdByIp, CreateTokenRequest body, CancellationToken cancellationToken = default);
 
     /// <inheritdoc cref="CreateTokenV1"/>
-    Task<TokenCreatedResponseV2> CreateTokenV2(Guid userId, IPAddress createdByIp, CreateTokenRequestV2 body);
+    Task<TokenCreatedResponseV2> CreateTokenV2(Guid userId, IPAddress createdByIp, CreateTokenRequestV2 body, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Edit a token by id (optionally restricted to an owner). Returns <c>false</c> if the token does not exist.
     /// </summary>
-    Task<bool> EditTokenV1(Guid tokenId, EditTokenRequest body, Guid? ownerId = null);
+    Task<bool> EditTokenV1(Guid tokenId, EditTokenRequest body, Guid? ownerId = null, CancellationToken cancellationToken = default);
 
     /// <inheritdoc cref="EditTokenV1"/>
-    Task<bool> EditTokenV2(Guid tokenId, EditTokenRequestV2 body, Guid? ownerId = null);
+    Task<bool> EditTokenV2(Guid tokenId, EditTokenRequestV2 body, Guid? ownerId = null, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Set the paused state of a token by id (optionally restricted to an owner).
     /// Returns the now-set paused state, or <c>null</c> if the token does not exist.
     /// </summary>
-    Task<bool?> SetTokenPaused(Guid tokenId, bool paused, Guid? ownerId = null);
+    Task<bool?> SetTokenPaused(Guid tokenId, bool paused, Guid? ownerId = null, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Delete a token by id (optionally restricted to an owner) and write the deletion audit log entry.

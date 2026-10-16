@@ -76,7 +76,7 @@ public sealed class HubV2Controller : HubControllerBase<HubToGatewayMessage, Gat
     private IUserHub HcOwner => _userHubContext.Clients.User(CurrentHubOwnerId.ToString());
     
     /// <inheritdoc />
-    protected override async Task<bool> Handle(HubToGatewayMessage data)
+    protected override async Task<bool> Handle(HubToGatewayMessage data, CancellationToken cancellationToken)
     {
         var payload = data.Payload;
 
@@ -112,7 +112,8 @@ public sealed class HubV2Controller : HubControllerBase<HubToGatewayMessage, Gat
                 await otaService.Started(
                     CurrentHubId,
                     payload.OtaUpdateStarted.UpdateId,
-                    SemVersion.FromFbs(payload.OtaUpdateStarted.Version));
+                    SemVersion.FromFbs(payload.OtaUpdateStarted.Version),
+                    cancellationToken);
                 break;
 
             case HubToGatewayMessagePayload.ItemKind.OtaUpdateProgress:
@@ -125,7 +126,7 @@ public sealed class HubV2Controller : HubControllerBase<HubToGatewayMessage, Gat
                 if (_lastStatus == OtaUpdateStatus.Started)
                 {
                     _lastStatus = OtaUpdateStatus.Running;
-                    await otaService.Progress(CurrentHubId, payload.OtaUpdateProgress.UpdateId);
+                    await otaService.Progress(CurrentHubId, payload.OtaUpdateProgress.UpdateId, cancellationToken);
                 }
 
                 break;
@@ -138,7 +139,8 @@ public sealed class HubV2Controller : HubControllerBase<HubToGatewayMessage, Gat
                     payload.OtaUpdateFailed.Message!);
 
                 await otaService.Error(CurrentHubId, payload.OtaUpdateFailed.UpdateId,
-                    payload.OtaUpdateFailed.Fatal, payload.OtaUpdateFailed.Message!);
+                    payload.OtaUpdateFailed.Fatal, payload.OtaUpdateFailed.Message!,
+                    cancellationToken);
 
                 _lastStatus = OtaUpdateStatus.Error;
                 break;
@@ -149,7 +151,7 @@ public sealed class HubV2Controller : HubControllerBase<HubToGatewayMessage, Gat
                     await HcOwner.OtaInstallSucceeded(
                         CurrentHubId, payload.BootStatus.OtaUpdateId);
 
-                    await otaService.Success(CurrentHubId, payload.BootStatus.OtaUpdateId);
+                    await otaService.Success(CurrentHubId, payload.BootStatus.OtaUpdateId, cancellationToken);
                     _lastStatus = OtaUpdateStatus.Finished;
                     break;
                 }
@@ -160,7 +162,8 @@ public sealed class HubV2Controller : HubControllerBase<HubToGatewayMessage, Gat
                         CurrentHubId, payload.BootStatus.OtaUpdateId);
 
                     await otaService.Error(CurrentHubId, payload.BootStatus.OtaUpdateId, false,
-                        "Hub booted with firmware rollback");
+                        "Hub booted with firmware rollback",
+                        cancellationToken);
                     _lastStatus = OtaUpdateStatus.Error;
                     break;
                 }
@@ -170,7 +173,8 @@ public sealed class HubV2Controller : HubControllerBase<HubToGatewayMessage, Gat
                     if (payload.BootStatus.OtaUpdateId == 0) break;
 
                     var unfinished = await otaService.UpdateUnfinished(CurrentHubId,
-                        payload.BootStatus.OtaUpdateId);
+                        payload.BootStatus.OtaUpdateId,
+                        cancellationToken);
 
                     if (!unfinished) break;
 
@@ -180,7 +184,8 @@ public sealed class HubV2Controller : HubControllerBase<HubToGatewayMessage, Gat
                         CurrentHubId, payload.BootStatus.OtaUpdateId);
 
                     await otaService.Error(CurrentHubId, payload.BootStatus.OtaUpdateId, false,
-                        "Hub booted with normal boot, update seems unfinished");
+                        "Hub booted with normal boot, update seems unfinished",
+                        cancellationToken);
                     _lastStatus = OtaUpdateStatus.Error;
                 }
 

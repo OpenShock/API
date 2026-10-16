@@ -49,7 +49,7 @@ public sealed class ApiTokenAuthentication : AuthenticationHandler<Authenticatio
         var tokenDto = await _db.ApiTokens
             .Include(x => x.User)
             .Include(x => x.User.UserDeactivation)
-            .FirstOrDefaultAsync(x => x.TokenHash == tokenHash && (x.ValidUntil == null || x.ValidUntil >= DateTime.UtcNow));
+            .FirstOrDefaultAsync(x => x.TokenHash == tokenHash && (x.ValidUntil == null || x.ValidUntil >= DateTime.UtcNow), Context.RequestAborted);
         if (tokenDto is null) return Fail(AuthResultError.TokenInvalid);
         if (tokenDto.User.UserDeactivation is not null)
         {

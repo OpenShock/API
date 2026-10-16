@@ -21,11 +21,12 @@ public sealed partial class AdminController
     public async Task<IActionResult> DeleteUser(
         [FromRoute] Guid userId,
         [FromQuery][MaxLength(ApiHardLimits.AuditReasonMaxLength)] string? reason,
-        [FromServices] IAccountService accountService)
+        [FromServices] IAccountService accountService,
+        CancellationToken cancellationToken)
     {
         PedanticallyEnsureAdmin();
 
-        var result = await accountService.DeleteAccountAsync(CurrentUser.Id, userId, reason);
+        var result = await accountService.DeleteAccountAsync(CurrentUser.Id, userId, reason, cancellationToken);
         return result switch
         {
             Results.Success => Ok("Account deleted"),

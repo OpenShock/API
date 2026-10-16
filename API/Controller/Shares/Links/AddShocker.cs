@@ -18,6 +18,7 @@ public sealed partial class ShareLinksController
     /// </summary>
     /// <param name="publicShareId"></param>
     /// <param name="shockerId"></param>
+    /// <param name="cancellationToken"></param>
     /// <response code="200">Successfully added shocker</response>
     /// <response code="404">Public share or shocker does not exist</response>
     /// <response code="409">Shocker already exists in public share</response>
@@ -26,16 +27,16 @@ public sealed partial class ShareLinksController
     [ProducesResponseType<LegacyEmptyResponse>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status404NotFound, MediaTypeNames.Application.ProblemJson)] // PublicShareNotFound, ShockerNotFound
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status409Conflict, MediaTypeNames.Application.ProblemJson)] // ShockerAlreadyInPublicShare
-    public async Task<IActionResult> AddShocker([FromRoute] Guid publicShareId, [FromRoute] Guid shockerId)
+    public async Task<IActionResult> AddShocker([FromRoute] Guid publicShareId, [FromRoute] Guid shockerId, CancellationToken cancellationToken)
     {
-        var exists = await _db.PublicShares.AnyAsync(x => x.OwnerId == CurrentUser.Id && x.Id == publicShareId && (x.ExpiresAt == null || x.ExpiresAt > DateTime.UtcNow));
+        var exists = await _db.PublicShares.AnyAsync(x => x.OwnerId == CurrentUser.Id && x.Id == publicShareId && (x.ExpiresAt == null || x.ExpiresAt > DateTime.UtcNow), cancellationToken);
         if (!exists) return Problem(PublicShareError.PublicShareNotFound);
 
         var ownShocker =
-            await _db.Shockers.AnyAsync(x => x.Id == shockerId && x.Device.OwnerId == CurrentUser.Id);
+            await _db.Shockers.AnyAsync(x => x.Id == shockerId && x.Device.OwnerId == CurrentUser.Id, cancellationToken);
         if (!ownShocker) return Problem(ShockerError.ShockerNotFound);
 
-        if (await _db.PublicShareShockerMappings.AnyAsync(x => x.PublicShareId == publicShareId && x.ShockerId == shockerId))
+        if (await _db.PublicShareShockerMappings.AnyAsync(x => x.PublicShareId == publicShareId && x.ShockerId == shockerId, cancellationToken))
             return Problem(PublicShareError.ShockerAlreadyInPublicShare);
 
         _db.PublicShareShockerMappings.Add(new PublicShareShocker
@@ -49,7 +50,7 @@ public sealed partial class ShareLinksController
             IsPaused = false
         });
 
-        await _db.SaveChangesAsync();
+        await _db.SaveChangesAsync(cancellationToken);
         
         return LegacyEmptyOk("Successfully added shocker");
     }

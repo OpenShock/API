@@ -34,7 +34,7 @@ public sealed partial class AdminController
     {
         PedanticallyEnsureAdmin();
 
-        var result = await accountService.ChangePasswordAsync(userId, body.Password, actorId: CurrentUser.Id);
+        var result = await accountService.ChangePasswordAsync(userId, body.Password, actorId: CurrentUser.Id, cancellationToken: cancellationToken);
 
         return result switch
         {

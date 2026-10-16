@@ -45,8 +45,9 @@ public abstract class FlatbuffersWebsocketBaseController<TIn, TOut> : WebsocketB
     /// Handle the incoming message
     /// </summary>
     /// <param name="data"></param>
+    /// <param name="cancellationToken"></param>
     /// <returns>false if message is invalid</returns>
-    protected abstract Task<bool> Handle(TIn data);
+    protected abstract Task<bool> Handle(TIn data, CancellationToken cancellationToken);
 
     /// <inheritdoc />
     protected override async Task<bool> HandleReceive(CancellationToken cancellationToken)
@@ -66,7 +67,7 @@ public abstract class FlatbuffersWebsocketBaseController<TIn, TOut> : WebsocketB
                 Logger.LogTrace("Client sent closure");
                 return false;
             case TIn data:
-                return await Handle(data);
+                return await Handle(data, cancellationToken);
             default:
                 return false;
         }

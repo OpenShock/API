@@ -32,7 +32,7 @@ public sealed class ControlSender : IControlSender
         _metrics = metrics;
     }
 
-    public async Task<ShockerControlResult> ControlByUser(IReadOnlyList<Control> controls,ControlLogSender sender, IHubClients<IUserHub> hubClients, ApiTokenControlLimits? tokenLimits = null)
+    public async Task<ShockerControlResult> ControlByUser(IReadOnlyList<Control> controls,ControlLogSender sender, IHubClients<IUserHub> hubClients, ApiTokenControlLimits? tokenLimits = null, CancellationToken cancellationToken = default)
     {
         var shockers = await _db.Shockers
             .AsNoTracking()
@@ -62,12 +62,12 @@ public sealed class ControlSender : IControlSender
                     Live      = x.Share.AllowLiveControl
                 }
             })
-            .ToArrayAsync();
+            .ToArrayAsync(cancellationToken);
 
-        return await ControlInternal(controls, sender, hubClients, shockers, ControlMetrics.Source.User, tokenLimits);
+        return await ControlInternal(controls, sender, hubClients, shockers, ControlMetrics.Source.User, tokenLimits, cancellationToken);
     }
 
-    public async Task<ShockerControlResult> ControlPublicShare(IReadOnlyList<Control> controls, ControlLogSender sender, IHubClients<IUserHub> hubClients, Guid publicShareId)
+    public async Task<ShockerControlResult> ControlPublicShare(IReadOnlyList<Control> controls, ControlLogSender sender, IHubClients<IUserHub> hubClients, Guid publicShareId, CancellationToken cancellationToken)
     {
         var publicShareShockers = await _db.PublicShareShockerMappings
             .AsNoTracking()
@@ -91,9 +91,9 @@ public sealed class ControlSender : IControlSender
                     Live = x.AllowLiveControl
                 }
             })
-            .ToArrayAsync();
+            .ToArrayAsync(cancellationToken);
         
-        return await ControlInternal(controls, sender, hubClients, publicShareShockers, ControlMetrics.Source.PublicShare);
+        return await ControlInternal(controls, sender, hubClients, publicShareShockers, ControlMetrics.Source.PublicShare, cancellationToken: cancellationToken);
     }
     
     private static void Clamp(Control control, SharePermsAndLimits? limits)
@@ -105,7 +105,7 @@ public sealed class ControlSender : IControlSender
         control.Duration = Math.Clamp(control.Duration, HardLimits.MinControlDuration, durationMax);
     }
 
-    private async Task<ShockerControlResult> ControlInternal(IReadOnlyList<Control> controls, ControlLogSender sender, IHubClients<IUserHub> hubClients, ControlShockerObj[] allowedShockers, string source, ApiTokenControlLimits? tokenLimits = null)
+    private async Task<ShockerControlResult> ControlInternal(IReadOnlyList<Control> controls, ControlLogSender sender, IHubClients<IUserHub> hubClients, ControlShockerObj[] allowedShockers, string source, ApiTokenControlLimits? tokenLimits = null, CancellationToken cancellationToken = default)
     {
         var shockersById = allowedShockers.ToDictionary(s => s.ShockerId, s => s);
 
@@ -180,7 +180,7 @@ public sealed class ControlSender : IControlSender
         }
 
         // Save all db changes before continuing
-        await _db.SaveChangesAsync();
+        await _db.SaveChangesAsync(cancellationToken);
 
         // Then send all network events
         await Task.WhenAll([

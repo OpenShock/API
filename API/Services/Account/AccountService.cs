@@ -78,9 +78,9 @@ public sealed class AccountService : IAccountService
         }
     }
 
-    private async Task<bool> IsUserNameBlacklisted(string username)
+    private async Task<bool> IsUserNameBlacklisted(string username, CancellationToken cancellationToken)
     {
-        await foreach (var entry in _db.UserNameBlacklists.AsNoTracking().AsAsyncEnumerable())
+        await foreach (var entry in _db.UserNameBlacklists.AsNoTracking().AsAsyncEnumerable().WithCancellation(cancellationToken))
         {
             if (entry.IsMatch(username)) return true;
         }
@@ -88,21 +88,21 @@ public sealed class AccountService : IAccountService
         return false;
     }
 
-    private async Task<bool> IsEmailProviderBlacklisted(string email)
+    private async Task<bool> IsEmailProviderBlacklisted(string email, CancellationToken cancellationToken)
     {
         if (!MailAddress.TryCreate(email, out var address)) return false;
         var domain = address.Host.ToLowerInvariant();
-        return await _db.EmailProviderBlacklists.AnyAsync(e => e.Domain == domain);
+        return await _db.EmailProviderBlacklists.AnyAsync(e => e.Domain == domain, cancellationToken);
     }
 
-    private async Task<AccountCreationResult> CreateAccount(string email, string username, string password, bool verifyOnCreation, Guid? createdByAutomationTokenId)
+    private async Task<AccountCreationResult> CreateAccount(string email, string username, string password, bool verifyOnCreation, Guid? createdByAutomationTokenId, CancellationToken cancellationToken)
     {
         email = email.ToLowerInvariant();
 
-        if (await IsUserNameBlacklisted(username) || await IsEmailProviderBlacklisted(email))
+        if (await IsUserNameBlacklisted(username, cancellationToken) || await IsEmailProviderBlacklisted(email, cancellationToken))
             return new AccountWithEmailOrUsernameExists();
         
-        if (await _db.Users.AnyAsync(x => x.Email == email || x.Name == username))
+        if (await _db.Users.AnyAsync(x => x.Email == email || x.Name == username, cancellationToken))
             return new AccountWithEmailOrUsernameExists();
 
         var user = new User
@@ -115,14 +115,14 @@ public sealed class AccountService : IAccountService
         };
         _db.Users.Add(user);
 
-        await _db.SaveChangesAsync();
+        await _db.SaveChangesAsync(cancellationToken);
 
         // Use date created by the database to keep timing consistent
         if (verifyOnCreation)
         {
             await _db.Users
                 .Where(u => u.Id == user.Id)
-                .ExecuteUpdateAsync(spc => spc.SetProperty(u => u.ActivatedAt, u => u.CreatedAt));
+                .ExecuteUpdateAsync(spc => spc.SetProperty(u => u.ActivatedAt, u => u.CreatedAt), cancellationToken);
         }
 
         return user;
@@ -140,7 +140,7 @@ public sealed class AccountService : IAccountService
         await using var transaction = await _db.Database.BeginTransactionAsync(cancellationToken);
 
         // Created with an automation token, the account is linked to it on insert, which makes it an automated account.
-        var accountCreate = await CreateAccount(email, username, password, !mailEnabled, _automationTokens.Current?.Id);
+        var accountCreate = await CreateAccount(email, username, password, !mailEnabled, _automationTokens.Current?.Id, cancellationToken);
         if (accountCreate.Value is not User user) return accountCreate;
 
         if (mailEnabled)
@@ -179,7 +179,8 @@ public sealed class AccountService : IAccountService
         string provider,
         string providerAccountId,
         string? providerAccountName,
-        bool isEmailTrusted)
+        bool isEmailTrusted,
+        CancellationToken cancellationToken)
     {
         email = email.ToLowerInvariant();
         provider = provider.ToLowerInvariant();
@@ -189,14 +190,14 @@ public sealed class AccountService : IAccountService
         isEmailTrusted |= !_mailOptions.IsEnabled;
 
         // Reuse your existing guards
-        if (await IsUserNameBlacklisted(username) || await IsEmailProviderBlacklisted(email))
+        if (await IsUserNameBlacklisted(username, cancellationToken) || await IsEmailProviderBlacklisted(email, cancellationToken))
             return new AccountWithEmailOrUsernameExists();
 
         // Fast uniqueness check (optimistic; race handled by unique constraints below)
-        var exists = await _db.Users.AnyAsync(u => u.Email == email || u.Name == username);
+        var exists = await _db.Users.AnyAsync(u => u.Email == email || u.Name == username, cancellationToken);
         if (exists) return new AccountWithEmailOrUsernameExists();
 
-        await using var tx = await _db.Database.BeginTransactionAsync();
+        await using var tx = await _db.Database.BeginTransactionAsync(cancellationToken);
 
         try
         {
@@ -213,7 +214,7 @@ public sealed class AccountService : IAccountService
             };
 
             _db.Users.Add(user);
-            await _db.SaveChangesAsync();
+            await _db.SaveChangesAsync(cancellationToken);
 
             // If email isn't trusted, create an activation request and durably enqueue the activation
             // email. The token itself is minted by the outbox delivery job at send time.
@@ -228,7 +229,7 @@ public sealed class AccountService : IAccountService
 
                 _db.EmailOutbox.Add(EmailOutboxMessage.ForAccountActivation(user.Id, email, username));
 
-                await _db.SaveChangesAsync();
+                await _db.SaveChangesAsync(cancellationToken);
             }
 
             // Link external identity
@@ -241,9 +242,9 @@ public sealed class AccountService : IAccountService
                 CreatedAt = creationTime,
             });
 
-            await _db.SaveChangesAsync();
+            await _db.SaveChangesAsync(cancellationToken);
 
-            await tx.CommitAsync();
+            await tx.CommitAsync(cancellationToken);
 
             // Notify the outbox delivery job only after a successful commit.
             if (!isEmailTrusted)
@@ -255,7 +256,7 @@ public sealed class AccountService : IAccountService
         }
         catch (DbUpdateException ex) when (ex.InnerException is PostgresException { SqlState: "23505" })
         {
-            await tx.RollbackAsync();
+            await tx.RollbackAsync(cancellationToken);
             return new AccountWithEmailOrUsernameExists();
         }
     }
@@ -280,7 +281,7 @@ public sealed class AccountService : IAccountService
     }
 
     /// <inheritdoc />
-    public async Task<Union5<Success, CannotDeactivatePrivilegedAccount, AccountDeactivationAlreadyInProgress, Unauthorized, NotFound>> DeactivateAccountAsync(Guid executingUserId, Guid userId, bool deleteLater, string? reason = null)
+    public async Task<Union5<Success, CannotDeactivatePrivilegedAccount, AccountDeactivationAlreadyInProgress, Unauthorized, NotFound>> DeactivateAccountAsync(Guid executingUserId, Guid userId, bool deleteLater, string? reason = null, CancellationToken cancellationToken = default)
     {
         if (executingUserId != userId)
         {
@@ -290,14 +291,14 @@ public sealed class AccountService : IAccountService
                             .AnyAsync(r =>
                                 r == RoleType.Staff ||
                                 r == RoleType.Admin ||
-                                r == RoleType.System);
+                                r == RoleType.System, cancellationToken);
             if (!isPrivileged)
             {
                 return new Unauthorized();
             }
         }
 
-        var user = await _db.Users.Include(u => u.UserDeactivation).FirstOrDefaultAsync(u => u.Id == userId);
+        var user = await _db.Users.Include(u => u.UserDeactivation).FirstOrDefaultAsync(u => u.Id == userId, cancellationToken);
         if (user is null) return new NotFound();
 
         if (user.Roles.Any(r => r is RoleType.Admin or RoleType.System))
@@ -310,7 +311,7 @@ public sealed class AccountService : IAccountService
             return new AccountDeactivationAlreadyInProgress();
         }
 
-        await using (var transaction = await _db.Database.BeginTransactionAsync())
+        await using (var transaction = await _db.Database.BeginTransactionAsync(cancellationToken))
         {
             user.UserDeactivation = new UserDeactivation
             {
@@ -319,17 +320,18 @@ public sealed class AccountService : IAccountService
                 DeleteLater = deleteLater,
             };
             
-            await _db.SaveChangesAsync();
+            await _db.SaveChangesAsync(cancellationToken);
 
             await _auditService.LogAsync(
                 userId,
                 action: AuditAction.AccountDeactivated,
                 actorId: executingUserId,
                 metadata: new AccountDeactivatedMetadata(deleteLater),
-                reason: reason
+                reason: reason,
+                cancellationToken: cancellationToken
             );
 
-            await transaction.CommitAsync();
+            await transaction.CommitAsync(cancellationToken);
         }
 
         // Remove all login sessions
@@ -339,9 +341,9 @@ public sealed class AccountService : IAccountService
     }
 
     /// <inheritdoc />
-    public async Task<Union3<Success, Unauthorized, NotFound>> ReactivateAccountAsync(Guid executingUserId, Guid userId, string? reason = null)
+    public async Task<Union3<Success, Unauthorized, NotFound>> ReactivateAccountAsync(Guid executingUserId, Guid userId, string? reason = null, CancellationToken cancellationToken = default)
     {
-        var user = await _db.Users.Include(u => u.UserDeactivation).FirstOrDefaultAsync(u => u.Id == userId && u.UserDeactivation != null);
+        var user = await _db.Users.Include(u => u.UserDeactivation).FirstOrDefaultAsync(u => u.Id == userId && u.UserDeactivation != null, cancellationToken);
         if (user is null) return new NotFound();
 
         var deactivation = user.UserDeactivation!;
@@ -357,33 +359,34 @@ public sealed class AccountService : IAccountService
                             .AnyAsync(r =>
                                 r == RoleType.Staff ||
                                 r == RoleType.Admin ||
-                                r == RoleType.System);
+                                r == RoleType.System, cancellationToken);
             if (!isPrivileged)
             {
                 return new Unauthorized();
             }
         }
 
-        await using var transaction = await _db.Database.BeginTransactionAsync();
+        await using var transaction = await _db.Database.BeginTransactionAsync(cancellationToken);
 
         _db.Remove(deactivation);
 
-        await _db.SaveChangesAsync();
+        await _db.SaveChangesAsync(cancellationToken);
 
         await _auditService.LogAsync(
             userId,
             action: AuditAction.AccountReactivated,
             actorId: executingUserId,
-            reason: reason
+            reason: reason,
+            cancellationToken: cancellationToken
         );
 
-        await transaction.CommitAsync();
+        await transaction.CommitAsync(cancellationToken);
 
         return new Success();
     }
 
     /// <inheritdoc />
-    public async Task<Union4<Success, CannotDeletePrivilegedAccount, Unauthorized, NotFound>> DeleteAccountAsync(Guid executingUserId, Guid userId, string? reason = null)
+    public async Task<Union4<Success, CannotDeletePrivilegedAccount, Unauthorized, NotFound>> DeleteAccountAsync(Guid executingUserId, Guid userId, string? reason = null, CancellationToken cancellationToken = default)
     {
         var isPrivileged = await _db.Users
                         .Where(u => u.Id == executingUserId)
@@ -391,13 +394,13 @@ public sealed class AccountService : IAccountService
                         .AnyAsync(r =>
                             r == RoleType.Staff ||
                             r == RoleType.Admin ||
-                            r == RoleType.System);
+                            r == RoleType.System, cancellationToken);
         if (!isPrivileged)
         {
             return new Unauthorized();
         }
 
-        var user = await _db.Users.Include(u => u.UserDeactivation).FirstOrDefaultAsync(u => u.Id == userId);
+        var user = await _db.Users.Include(u => u.UserDeactivation).FirstOrDefaultAsync(u => u.Id == userId, cancellationToken);
         if (user is null) return new NotFound();
 
         if (user.Roles.Any(r => r is RoleType.Admin or RoleType.System))
@@ -407,20 +410,21 @@ public sealed class AccountService : IAccountService
 
         // TODO: Do more checks?
 
-        await using var transaction = await _db.Database.BeginTransactionAsync();
+        await using var transaction = await _db.Database.BeginTransactionAsync(cancellationToken);
 
         _db.Users.Remove(user);
 
-        await _db.SaveChangesAsync();
+        await _db.SaveChangesAsync(cancellationToken);
 
         await _auditService.LogAsync(
             userId,
             action: AuditAction.AccountDeleted,
             actorId: executingUserId,
-            reason: reason
+            reason: reason,
+            cancellationToken: cancellationToken
         );
 
-        await transaction.CommitAsync();
+        await transaction.CommitAsync(cancellationToken);
 
         return new Success();
     }
@@ -445,7 +449,7 @@ public sealed class AccountService : IAccountService
             return new AccountIsOAuthOnly();
         }
 
-        if (!await CheckPassword(password, user))
+        if (!await CheckPassword(password, user, cancellationToken))
         {
             return new NotFound();
         }
@@ -482,7 +486,7 @@ public sealed class AccountService : IAccountService
     }
 
     /// <inheritdoc />
-    public async Task<Union5<Success, TooManyPasswordResets, AccountNotActivated, AccountDeactivated, NotFound>> CreatePasswordResetFlowAsync(string email)
+    public async Task<Union5<Success, TooManyPasswordResets, AccountNotActivated, AccountDeactivated, NotFound>> CreatePasswordResetFlowAsync(string email, CancellationToken cancellationToken)
     {
         var validSince = DateTime.UtcNow - Duration.PasswordResetRequestLifetime;
         var lowerCaseEmail = email.ToLowerInvariant();
@@ -494,7 +498,7 @@ public sealed class AccountService : IAccountService
                 IsDeactivated = x.UserDeactivation != null,
                 PasswordResetCount = x.PasswordResets.Count(y => y.UsedAt == null && y.CreatedAt >= validSince)
             })
-            .FirstOrDefaultAsync();
+            .FirstOrDefaultAsync(cancellationToken);
         if (user is null) return new NotFound();
         if (user.User.ActivatedAt is null) return new AccountNotActivated();
         if (user.IsDeactivated) return new AccountDeactivated();
@@ -512,7 +516,7 @@ public sealed class AccountService : IAccountService
         };
         _db.UserPasswordResets.Add(passwordReset);
         _db.EmailOutbox.Add(EmailOutboxMessage.ForPasswordReset(passwordReset.Id, user.User.Id, user.User.Email, user.User.Name));
-        await _db.SaveChangesAsync();
+        await _db.SaveChangesAsync(cancellationToken);
         await NotifyEmailOutboxAsync();
 
         return new Success();
@@ -520,7 +524,8 @@ public sealed class AccountService : IAccountService
 
     /// <inheritdoc />
     public async Task<Union5<Success, NotFound, AccountNotActivated, AccountDeactivated, SecretInvalid>> CompletePasswordResetFlowAsync(Guid passwordResetId,
-        string secret, string newPassword)
+        string secret, string newPassword,
+        CancellationToken cancellationToken)
     {
         var validSince = DateTime.UtcNow - Duration.PasswordResetRequestLifetime;
 
@@ -533,7 +538,7 @@ public sealed class AccountService : IAccountService
                 UserSecurityStamp = x.User.SecurityStamp
             })
             .FirstOrDefaultAsync(x => x.Reset.Id == passwordResetId && x.Reset.UsedAt == null && x.Reset.CreatedAt >= validSince
-                && x.Reset.SecurityStampAtCreate == x.UserSecurityStamp);
+                && x.Reset.SecurityStampAtCreate == x.UserSecurityStamp, cancellationToken);
         if (reset is null) return new NotFound();
         if (reset.UserActivatedAt is null) return new AccountNotActivated();
         if (reset.IsDeactivated) return new AccountDeactivated();
@@ -541,7 +546,7 @@ public sealed class AccountService : IAccountService
         var result = HashingUtils.VerifyToken(secret, reset.Reset.TokenHash);
         if (!result.Verified) return new SecretInvalid();
 
-        await using var transaction = await _db.Database.BeginTransactionAsync();
+        await using var transaction = await _db.Database.BeginTransactionAsync(cancellationToken);
 
         // Race-safe consume + apply: only updates if SecurityStamp still matches the snapshot.
         // If a sibling reset (or a separate password/email change) completed since the read above,
@@ -552,22 +557,23 @@ public sealed class AccountService : IAccountService
             .Where(u => u.Id == reset.Reset.UserId && u.SecurityStamp == reset.Reset.SecurityStampAtCreate)
             .ExecuteUpdateAsync(s => s
                 .SetProperty(u => u.PasswordHash, newPasswordHash)
-                .SetProperty(u => u.SecurityStamp, newStamp));
+                .SetProperty(u => u.SecurityStamp, newStamp), cancellationToken);
         if (userRows == 0) return new NotFound();
 
         var now = DateTime.UtcNow;
         await _db.UserPasswordResets
             .Where(r => r.Id == reset.Reset.Id && r.UsedAt == null)
-            .ExecuteUpdateAsync(s => s.SetProperty(r => r.UsedAt, now));
+            .ExecuteUpdateAsync(s => s.SetProperty(r => r.UsedAt, now), cancellationToken);
 
         // Unauthenticated email-token flow proving control of the account, so the actor is the account itself.
         await _auditService.LogAsync(
             reset.Reset.UserId,
             action: AuditAction.PasswordChanged,
-            actorId: reset.Reset.UserId
+            actorId: reset.Reset.UserId,
+            cancellationToken: cancellationToken
         );
 
-        await transaction.CommitAsync();
+        await transaction.CommitAsync(cancellationToken);
 
         return new Success();
     }
@@ -590,7 +596,7 @@ public sealed class AccountService : IAccountService
         if (validationResult.Value is UsernameError usernameError)
             return usernameError;
 
-        if (await IsUserNameBlacklisted(username))
+        if (await IsUserNameBlacklisted(username, cancellationToken))
             return new UsernameTaken(); // Don't inform the user about when the blacklist is hit
 
         var isTaken = await _db.Users.AnyAsync(x => x.Name == username, cancellationToken: cancellationToken);
@@ -710,33 +716,34 @@ public sealed class AccountService : IAccountService
 
 
     /// <inheritdoc />
-    public async Task<Union4<Success, AccountNotActivated, AccountDeactivated, NotFound>> ChangePasswordAsync(Guid userId, string newPassword, Guid? actorId)
+    public async Task<Union4<Success, AccountNotActivated, AccountDeactivated, NotFound>> ChangePasswordAsync(Guid userId, string newPassword, Guid? actorId, CancellationToken cancellationToken)
     {
-        var user = await _db.Users.Include(u => u.UserDeactivation).FirstOrDefaultAsync(x => x.Id == userId);
+        var user = await _db.Users.Include(u => u.UserDeactivation).FirstOrDefaultAsync(x => x.Id == userId, cancellationToken);
         if (user is null) return new NotFound();
         if (user.ActivatedAt is null) return new AccountNotActivated();
         if (user.UserDeactivation is not null) return new AccountDeactivated();
 
-        await using var transaction = await _db.Database.BeginTransactionAsync();
+        await using var transaction = await _db.Database.BeginTransactionAsync(cancellationToken);
 
         user.PasswordHash = HashingUtils.HashPassword(newPassword);
         user.SecurityStamp = Guid.CreateVersion7(); // Any outstanding reset/email-change row for this user has a stale SecurityStampAtCreate after this; predicate handles invalidation.
 
-        await _db.SaveChangesAsync();
+        await _db.SaveChangesAsync(cancellationToken);
 
         await _auditService.LogAsync(
             userId,
             action: AuditAction.PasswordChanged,
-            actorId: actorId ?? userId
+            actorId: actorId ?? userId,
+            cancellationToken: cancellationToken
         );
 
-        await transaction.CommitAsync();
+        await transaction.CommitAsync(cancellationToken);
 
         return new Success();
     }
 
     /// <inheritdoc />
-    public async Task<Union7<Success, EmailAlreadyInUse, EmailUnchanged, TooManyEmailChanges, AccountNotActivated, AccountDeactivated, NotFound>> CreateEmailChangeFlowAsync(Guid userId, string newEmail, Guid? actorId)
+    public async Task<Union7<Success, EmailAlreadyInUse, EmailUnchanged, TooManyEmailChanges, AccountNotActivated, AccountDeactivated, NotFound>> CreateEmailChangeFlowAsync(Guid userId, string newEmail, Guid? actorId, CancellationToken cancellationToken)
     {
         var validSince = DateTime.UtcNow - Duration.EmailChangeRequestLifetime;
 
@@ -748,18 +755,18 @@ public sealed class AccountService : IAccountService
                 IsDeactivated = x.UserDeactivation != null,
                 PendingCount = x.EmailChanges.Count(y => y.UsedAt == null && y.CreatedAt >= validSince)
             })
-            .FirstOrDefaultAsync();
+            .FirstOrDefaultAsync(cancellationToken);
         if (data is null) return new NotFound();
         if (data.User.ActivatedAt is null) return new AccountNotActivated();
         if (data.IsDeactivated) return new AccountDeactivated();
         if (string.Equals(data.User.Email, newEmail, StringComparison.OrdinalIgnoreCase)) return new EmailUnchanged();
         if (data.PendingCount >= 3) return new TooManyEmailChanges();
 
-        if (await IsEmailProviderBlacklisted(newEmail))
+        if (await IsEmailProviderBlacklisted(newEmail, cancellationToken))
             return new EmailAlreadyInUse(); // Don't reveal blacklist hits
 
         var lowerCaseEmail = newEmail.ToLowerInvariant();
-        if (await _db.Users.AnyAsync(x => x.Email == lowerCaseEmail))
+        if (await _db.Users.AnyAsync(x => x.Email == lowerCaseEmail, cancellationToken))
             return new EmailAlreadyInUse();
 
         // The verification token is minted lazily by the outbox delivery job at send time, so no usable
@@ -774,7 +781,7 @@ public sealed class AccountService : IAccountService
             SecurityStampAtCreate = data.User.SecurityStamp
         };
         
-        await using (var transaction = await _db.Database.BeginTransactionAsync())
+        await using (var transaction = await _db.Database.BeginTransactionAsync(cancellationToken))
         {
             _db.UserEmailChanges.Add(emailChange);
 
@@ -786,16 +793,17 @@ public sealed class AccountService : IAccountService
             _db.EmailOutbox.Add(EmailOutboxMessage.ForEmailVerification(emailChange.Id, data.User.Id, lowerCaseEmail, data.User.Name));
             _db.EmailOutbox.Add(EmailOutboxMessage.ForEmailChangeNotice(lowerCaseEmail, data.User.Email, data.User.Name));
 
-            await _db.SaveChangesAsync();
+            await _db.SaveChangesAsync(cancellationToken);
 
             await _auditService.LogAsync(
                 userId,
                 action: AuditAction.EmailChangeRequested,
                 actorId: actorId ?? userId,
-                metadata: new EmailChangeRequestedMetadata(newEmail)
+                metadata: new EmailChangeRequestedMetadata(newEmail),
+                cancellationToken: cancellationToken
             );
 
-            await transaction.CommitAsync();
+            await transaction.CommitAsync(cancellationToken);
         }
         
         await NotifyEmailOutboxAsync();
@@ -865,7 +873,7 @@ public sealed class AccountService : IAccountService
         return new VerifyEmailSuccess(change.UserId, change.OldEmail, change.NewEmail);
     }
 
-    private async Task<bool> CheckPassword(string password, User user)
+    private async Task<bool> CheckPassword(string password, User user, CancellationToken cancellationToken)
     {
         if (string.IsNullOrEmpty(user.PasswordHash))
         {
@@ -887,7 +895,7 @@ public sealed class AccountService : IAccountService
             // links for this user must continue to work.
             _logger.LogInformation("Rehashing password for user ID: [{Id}]", user.Id);
             user.PasswordHash = HashingUtils.HashPassword(password);
-            await _db.SaveChangesAsync();
+            await _db.SaveChangesAsync(cancellationToken);
         }
 
         return true;

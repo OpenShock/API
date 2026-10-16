@@ -34,6 +34,7 @@ public sealed partial class AccountController
     /// <param name="passwordResetId">The id of the password reset</param>
     /// <param name="secret">The secret of the password reset</param>
     /// <param name="body"></param>
+    /// <param name="cancellationToken"></param>
     /// <response code="200">Password successfully changed</response>
     /// <response code="404">Password reset process not found</response>
     [HttpPost("password-reset/{passwordResetId}/{secret}/complete")]
@@ -43,9 +44,10 @@ public sealed partial class AccountController
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status404NotFound, MediaTypeNames.Application.ProblemJson)] // PasswordResetNotFound
     [MapToApiVersion("1")]
     public async Task<IActionResult> PasswordResetComplete([FromRoute] Guid passwordResetId,
-        [FromRoute] string secret, [FromBody] PasswordResetProcessData body)
+        [FromRoute] string secret, [FromBody] PasswordResetProcessData body,
+        CancellationToken cancellationToken)
     {
-        var passwordResetComplete = await _accountService.CompletePasswordResetFlowAsync(passwordResetId, secret, body.Password);
+        var passwordResetComplete = await _accountService.CompletePasswordResetFlowAsync(passwordResetId, secret, body.Password, cancellationToken);
 
         return passwordResetComplete switch
         {

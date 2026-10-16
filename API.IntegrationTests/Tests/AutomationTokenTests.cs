@@ -235,7 +235,7 @@ public sealed class AutomationTokenTests
     // --- Admin endpoints ---
 
     [Test]
-    public async Task Create_ReturnsWorkingSecret()
+    public async Task Create_ReturnsWorkingSecret(CancellationToken cancellationToken)
     {
         using var client = await CreateAdminClient("autocreate");
 
@@ -252,14 +252,14 @@ public sealed class AutomationTokenTests
 
         await using var scope = WebApplicationFactory.Services.CreateAsyncScope();
         var service = scope.ServiceProvider.GetRequiredService<IAutomationTokenService>();
-        var resolved = await service.ResolveAsync(secret, CancellationToken.None);
+        var resolved = await service.ResolveAsync(secret, cancellationToken);
         await Assert.That(resolved).IsNotNull();
         await Assert.That(resolved!.Id).IsEqualTo(id);
         await Assert.That(resolved.Types).Contains(AutomationTokenType.Turnstile);
     }
 
     [Test]
-    public async Task Rotate_OldSecretStopsResolving()
+    public async Task Rotate_OldSecretStopsResolving(CancellationToken cancellationToken)
     {
         var (tokenId, oldSecret) = await CreateAutomationTokenInDb();
         using var client = await CreateAdminClient("autorotate");
@@ -271,8 +271,8 @@ public sealed class AutomationTokenTests
 
         await using var scope = WebApplicationFactory.Services.CreateAsyncScope();
         var service = scope.ServiceProvider.GetRequiredService<IAutomationTokenService>();
-        await Assert.That(await service.ResolveAsync(oldSecret, CancellationToken.None)).IsNull();
-        await Assert.That((await service.ResolveAsync(newSecret, CancellationToken.None))?.Id).IsEqualTo(tokenId);
+        await Assert.That(await service.ResolveAsync(oldSecret, cancellationToken)).IsNull();
+        await Assert.That((await service.ResolveAsync(newSecret, cancellationToken))?.Id).IsEqualTo(tokenId);
     }
 
     [Test]

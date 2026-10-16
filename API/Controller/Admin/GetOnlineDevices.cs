@@ -20,7 +20,7 @@ public sealed partial class AdminController
     /// <response code="401">Unauthorized</response>
     [HttpGet("monitoring/onlineDevices")]
     [ProducesResponseType<LegacyDataResponse<AdminOnlineDeviceResponse[]>>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
-    public async Task<IActionResult> GetOnlineDevices()
+    public async Task<IActionResult> GetOnlineDevices(CancellationToken cancellationToken)
     {
         PedanticallyEnsureAdmin();
 
@@ -40,7 +40,7 @@ public sealed partial class AdminController
                     Name = x.Owner.Name
                 }
             })
-            .ToArrayAsync();
+            .ToArrayAsync(cancellationToken);
 
         return LegacyDataOk(
             allOnlineDevices

@@ -54,12 +54,13 @@ public sealed partial class DevicesController
     /// Get a device by its id
     /// </summary>
     /// <param name="deviceId"></param>
+    /// <param name="cancellationToken"></param>
     /// <response code="200">The device</response>
     [HttpGet("{deviceId}")]
     [ProducesResponseType<LegacyDataResponse<DeviceWithTokenResponse>>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status404NotFound, MediaTypeNames.Application.ProblemJson)] // DeviceNotFound
     [MapToApiVersion("1")]
-    public async Task<IActionResult> GetDeviceById([FromRoute] Guid deviceId)
+    public async Task<IActionResult> GetDeviceById([FromRoute] Guid deviceId, CancellationToken cancellationToken)
     {
         var hasAuthPerms = IsAllowed(PermissionType.Devices_Auth);
         
@@ -71,7 +72,7 @@ public sealed partial class DevicesController
                 Name = x.Name,
                 CreatedOn = x.CreatedAt,
                 Token = hasAuthPerms ? x.Token : null
-            }).FirstOrDefaultAsync();
+            }).FirstOrDefaultAsync(cancellationToken);
         if (device is null) return Problem(HubError.HubNotFound);
 
         return LegacyDataOk(device);
@@ -83,6 +84,7 @@ public sealed partial class DevicesController
     /// <param name="deviceId"></param>
     /// <param name="body"></param>
     /// <param name="updateService"></param>
+    /// <param name="cancellationToken"></param>
     /// <response code="200">Successfully updated device</response>
     /// <response code="404">Device does not exist</response>
     [HttpPatch("{deviceId}")]
@@ -91,15 +93,15 @@ public sealed partial class DevicesController
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status404NotFound, MediaTypeNames.Application.ProblemJson)] // DeviceNotFound
     [MapToApiVersion("1")]
-    public async Task<IActionResult> EditDevice([FromRoute] Guid deviceId, [FromBody] HubEditRequest body, [FromServices] IDeviceUpdateService updateService)
+    public async Task<IActionResult> EditDevice([FromRoute] Guid deviceId, [FromBody] HubEditRequest body, [FromServices] IDeviceUpdateService updateService, CancellationToken cancellationToken)
     {
-        var device = await _db.Devices.FirstOrDefaultAsync(x => x.OwnerId == CurrentUser.Id && x.Id == deviceId);
+        var device = await _db.Devices.FirstOrDefaultAsync(x => x.OwnerId == CurrentUser.Id && x.Id == deviceId, cancellationToken);
         if (device is null) return Problem(HubError.HubNotFound);
 
         device.Name = body.Name;
-        await _db.SaveChangesAsync();
+        await _db.SaveChangesAsync(cancellationToken);
 
-        await updateService.UpdateDeviceForAllShared(CurrentUser.Id, device.Id, DeviceUpdateType.Updated);
+        await updateService.UpdateDeviceForAllShared(CurrentUser.Id, device.Id, DeviceUpdateType.Updated, cancellationToken);
 
         return Ok();
     }
@@ -108,6 +110,7 @@ public sealed partial class DevicesController
     /// Regenerate a device token
     /// </summary>
     /// <param name="deviceId">The id of the device to regenerate the token for</param>
+    /// <param name="cancellationToken"></param>
     /// <response code="200">Successfully regenerated device token</response>
     /// <response code="404">Device does not exist</response>
     /// <response code="500">Failed to save regenerated token</response>
@@ -116,14 +119,14 @@ public sealed partial class DevicesController
     [ProducesResponseType<string>(StatusCodes.Status200OK, MediaTypeNames.Text.Plain)]
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status404NotFound, MediaTypeNames.Application.ProblemJson)] // DeviceNotFound
     [MapToApiVersion("1")]
-    public async Task<IActionResult> RegenerateDeviceToken([FromRoute] Guid deviceId)
+    public async Task<IActionResult> RegenerateDeviceToken([FromRoute] Guid deviceId, CancellationToken cancellationToken)
     {
-        var device = await _db.Devices.FirstOrDefaultAsync(x => x.OwnerId == CurrentUser.Id && x.Id == deviceId);
+        var device = await _db.Devices.FirstOrDefaultAsync(x => x.OwnerId == CurrentUser.Id && x.Id == deviceId, cancellationToken);
         if (device is null) return Problem(HubError.HubNotFound);
 
         device.Token = CryptoUtils.RandomString(256);
 
-        var affected = await _db.SaveChangesAsync();
+        var affected = await _db.SaveChangesAsync(cancellationToken);
         if (affected <= 0) throw new Exception("Failed to save regenerated token");
 
         return Ok(device.Token);
@@ -134,6 +137,7 @@ public sealed partial class DevicesController
     /// </summary>
     /// <param name="deviceId">The id of the device to delete</param>
     /// <param name="updateService"></param>
+    /// <param name="cancellationToken"></param>
     /// <response code="200">Successfully deleted device</response>
     /// <response code="404">Device does not exist</response>
     [HttpDelete("{deviceId}")]
@@ -141,12 +145,12 @@ public sealed partial class DevicesController
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status404NotFound, MediaTypeNames.Application.ProblemJson)] // DeviceNotFound
     [MapToApiVersion("1")]
-    public async Task<IActionResult> RemoveDevice([FromRoute] Guid deviceId, [FromServices] IDeviceUpdateService updateService)
+    public async Task<IActionResult> RemoveDevice([FromRoute] Guid deviceId, [FromServices] IDeviceUpdateService updateService, CancellationToken cancellationToken)
     {
-        var affected = await _db.Devices.Where(x => x.Id == deviceId).WhereIsUserOrPrivileged(x => x.Owner, CurrentUser).ExecuteDeleteAsync();
+        var affected = await _db.Devices.Where(x => x.Id == deviceId).WhereIsUserOrPrivileged(x => x.Owner, CurrentUser).ExecuteDeleteAsync(cancellationToken);
         if (affected <= 0) return Problem(HubError.HubNotFound);
         
-        await updateService.UpdateDeviceForAllShared(CurrentUser.Id, deviceId, DeviceUpdateType.Deleted);
+        await updateService.UpdateDeviceForAllShared(CurrentUser.Id, deviceId, DeviceUpdateType.Deleted, cancellationToken);
         
         return Ok();
     }
@@ -159,11 +163,11 @@ public sealed partial class DevicesController
     [TokenPermission(PermissionType.Devices_Edit)]
     [ProducesResponseType<Guid>(StatusCodes.Status201Created, MediaTypeNames.Text.Plain)]
     [MapToApiVersion("1")]
-    public Task<IActionResult> CreateDevice([FromServices] IDeviceUpdateService updateService)
+    public Task<IActionResult> CreateDevice([FromServices] IDeviceUpdateService updateService, CancellationToken cancellationToken)
     => CreateDeviceV2(new HubCreateRequest
         {
             Name = $"New Hub {DateTimeOffset.UtcNow:d}"
-        }, updateService);
+        }, updateService, cancellationToken);
     
     
     /// <summary>
@@ -175,9 +179,9 @@ public sealed partial class DevicesController
     [Consumes(MediaTypeNames.Application.Json)]
     [ProducesResponseType<Guid>(StatusCodes.Status201Created, MediaTypeNames.Text.Plain)]
     [MapToApiVersion("2")]
-    public async Task<IActionResult> CreateDeviceV2([FromBody] HubCreateRequest body, [FromServices] IDeviceUpdateService updateService)
+    public async Task<IActionResult> CreateDeviceV2([FromBody] HubCreateRequest body, [FromServices] IDeviceUpdateService updateService, CancellationToken cancellationToken)
     {
-        int nDevices = await _db.Devices.CountAsync(d => d.OwnerId == CurrentUser.Id);
+        int nDevices = await _db.Devices.CountAsync(d => d.OwnerId == CurrentUser.Id, cancellationToken);
         if (nDevices >= HardLimits.MaxHubsPerUser)
         {
             return Problem(HubError.TooManyHubs);
@@ -191,9 +195,9 @@ public sealed partial class DevicesController
             Token = CryptoUtils.RandomString(256)
         };
         _db.Devices.Add(device);
-        await _db.SaveChangesAsync();
+        await _db.SaveChangesAsync(cancellationToken);
         
-        await updateService.UpdateDevice(CurrentUser.Id, device.Id, DeviceUpdateType.Created);
+        await updateService.UpdateDevice(CurrentUser.Id, device.Id, DeviceUpdateType.Created, cancellationToken);
 
         return Created($"/1/devices/{device.Id}", device.Id);
     }
@@ -202,6 +206,7 @@ public sealed partial class DevicesController
     /// Get a pair code for a device
     /// </summary>
     /// <param name="deviceId"></param>
+    /// <param name="cancellationToken"></param>
     /// <response code="200">The pair code</response>
     /// <response code="404">Device does not exist or does not belong to you</response>
     [HttpGet("{deviceId}/pair")]
@@ -209,11 +214,11 @@ public sealed partial class DevicesController
     [ProducesResponseType<LegacyDataResponse<string>>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status404NotFound, MediaTypeNames.Application.ProblemJson)] // DeviceNotFound
     [MapToApiVersion("1")]
-    public async Task<IActionResult> GetPairCode([FromRoute] Guid deviceId)
+    public async Task<IActionResult> GetPairCode([FromRoute] Guid deviceId, CancellationToken cancellationToken)
     {
         var devicePairs = _redis.RedisCollection<DevicePair>();
 
-        var deviceExists = await _db.Devices.AnyAsync(x => x.Id == deviceId && x.OwnerId == CurrentUser.Id);
+        var deviceExists = await _db.Devices.AnyAsync(x => x.Id == deviceId && x.OwnerId == CurrentUser.Id, cancellationToken);
         if (!deviceExists) return Problem(HubError.HubNotFound);
         await _redis.Connection.UnlinkAsync($"{typeof(DevicePair).FullName}:{deviceId}");
 
@@ -233,6 +238,7 @@ public sealed partial class DevicesController
     /// Get LCG info for a device if it is online and connected to a LCG node
     /// </summary>
     /// <param name="deviceId"></param>
+    /// <param name="cancellationToken"></param>
     /// <response code="200">LCG node was found and device is online</response>
     /// <response code="404">Device does not exist or does not belong to you</response>
     /// <response code="404">Device is not online</response>
@@ -240,9 +246,9 @@ public sealed partial class DevicesController
     [ProducesResponseType<LegacyDataResponse<LcgResponse>>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status404NotFound, MediaTypeNames.Application.ProblemJson)] // DeviceNotFound, DeviceIsNotOnline
     [MapToApiVersion("1")]
-    public async Task<IActionResult> GetLiveControlGatewayInfo([FromRoute] Guid deviceId)
+    public async Task<IActionResult> GetLiveControlGatewayInfo([FromRoute] Guid deviceId, CancellationToken cancellationToken)
     {
-        var result = await ResolveDeviceGatewayAsync(deviceId);
+        var result = await ResolveDeviceGatewayAsync(deviceId, cancellationToken);
         if (result is not LcgNode gateway) return Problem((OpenShockProblem)result.Value!);
 
         return LegacyDataOk(new LcgResponse
@@ -262,9 +268,9 @@ public sealed partial class DevicesController
     [ProducesResponseType<LcgResponseV2>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status404NotFound, MediaTypeNames.Application.ProblemJson)] // DeviceNotFound, DeviceIsNotOnline
     [MapToApiVersion("2")]
-    public async Task<IActionResult> GetLiveControlGatewayInfoV2([FromRoute] Guid deviceId)
+    public async Task<IActionResult> GetLiveControlGatewayInfoV2([FromRoute] Guid deviceId, CancellationToken cancellationToken)
     {
-        var result = await ResolveDeviceGatewayAsync(deviceId);
+        var result = await ResolveDeviceGatewayAsync(deviceId, cancellationToken);
         if (result is not LcgNode gateway) return Problem((OpenShockProblem)result.Value!);
 
         return Ok(new LcgResponseV2
@@ -281,12 +287,13 @@ public sealed partial class DevicesController
     /// <see cref="OpenShockProblem"/> when the caller lacks access, the hub is offline, or it has
     /// no gateway.
     /// </summary>
-    private async Task<ValueOrProblem<LcgNode>> ResolveDeviceGatewayAsync(Guid deviceId)
+    private async Task<ValueOrProblem<LcgNode>> ResolveDeviceGatewayAsync(Guid deviceId, CancellationToken cancellationToken)
     {
         // Check if user owns device or has a share
         var deviceExistsAndYouHaveAccess = await _db.Devices.AnyAsync(x =>
             x.Id == deviceId && (x.OwnerId == CurrentUser.Id || x.Shockers.Any(y => y.UserShares.Any(
-                z => z.SharedWithUserId == CurrentUser.Id))));
+                z => z.SharedWithUserId == CurrentUser.Id))),
+                cancellationToken);
         if (!deviceExistsAndYouHaveAccess) return HubError.HubNotFound;
 
         // Check if device is online

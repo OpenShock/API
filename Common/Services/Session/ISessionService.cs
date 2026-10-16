@@ -6,7 +6,7 @@ namespace OpenShock.Common.Services.Session;
 
 public interface ISessionService
 {
-    public Task<CreateSessionResult> CreateSessionAsync(Guid userId, string userAgent, IPAddress ipAddress, Guid? actorId, IpEnrichmentData? enrichment = null);
+    public Task<CreateSessionResult> CreateSessionAsync(Guid userId, string userAgent, IPAddress ipAddress, Guid? actorId, IpEnrichmentData? enrichment = null, CancellationToken cancellationToken = default);
 
     public IAsyncEnumerable<LoginSession> ListSessionsByUserIdAsync(Guid userId);
 
@@ -24,7 +24,7 @@ public interface ISessionService
 
     public Task DeleteSessionAsync(LoginSession loginSession);
 
-    public Task LogoutSessionAsync(LoginSession loginSession);
+    public Task LogoutSessionAsync(LoginSession loginSession, CancellationToken cancellationToken = default);
 }
 
 public sealed record CreateSessionResult(Guid Id, string Token);

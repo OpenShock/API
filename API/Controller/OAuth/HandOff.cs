@@ -84,7 +84,7 @@ public sealed partial class OAuthController
                     return RedirectFrontendError("internalError");
                 }
 
-                await CreateSession(connection.UserId, domain);
+                await CreateSession(connection.UserId, domain, cancellationToken);
 
                 // Flow cookie no longer needed
                 await HttpContext.SignOutAsync(OAuthConstants.FlowScheme);
@@ -124,7 +124,7 @@ public sealed partial class OAuthController
                     return RedirectFrontendConnections("internalError");
                 }
 
-                await CreateSession(userId, domain);
+                await CreateSession(userId, domain, cancellationToken);
 
                 // Flow cookie no longer needed
                 await HttpContext.SignOutAsync(OAuthConstants.FlowScheme);

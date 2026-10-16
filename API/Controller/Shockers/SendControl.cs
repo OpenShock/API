@@ -34,7 +34,8 @@ public sealed partial class ShockerController
     public async Task<IActionResult> SendControl(
         [FromBody] ControlRequest body,
         [FromServices] IHubContext<UserHub, IUserHub> userHub,
-        [FromServices] IControlSender controlSender)
+        [FromServices] IControlSender controlSender,
+        CancellationToken cancellationToken)
     {
         var sender = new ControlLogSender
         {
@@ -55,7 +56,7 @@ public sealed partial class ShockerController
             tokenLimits = ApiTokenControlLimits.FromToken(apiToken);
         }
 
-        var controlAction = await controlSender.ControlByUser(body.Shocks, sender, userHub.Clients, tokenLimits);
+        var controlAction = await controlSender.ControlByUser(body.Shocks, sender, userHub.Clients, tokenLimits, cancellationToken);
         return controlAction switch
         {
             Success => LegacyEmptyOk("Successfully sent control messages"),
@@ -81,12 +82,13 @@ public sealed partial class ShockerController
     public Task<IActionResult> SendControl_DEPRECATED(
         [FromBody] IReadOnlyList<Common.Models.WebSocket.User.Control> body,
         [FromServices] IHubContext<UserHub, IUserHub> userHub,
-        [FromServices] IControlSender controlSender)
+        [FromServices] IControlSender controlSender,
+        CancellationToken cancellationToken)
     {
         return SendControl(new ControlRequest
         {
             Shocks = body,
             CustomName = null
-        }, userHub, controlSender);
+        }, userHub, controlSender, cancellationToken);
     }
 }

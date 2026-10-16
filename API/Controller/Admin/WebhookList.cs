@@ -12,10 +12,10 @@ public sealed partial class AdminController
     /// <response code="200">OK</response>
     /// <response code="401">Unauthorized</response>
     [HttpGet("webhooks")]
-    public async Task<WebhookDto[]> ListWebhooks([FromServices] IWebhookService webhookService)
+    public async Task<WebhookDto[]> ListWebhooks([FromServices] IWebhookService webhookService, CancellationToken cancellationToken)
     {
         PedanticallyEnsureAdmin();
 
-        return await webhookService.GetWebhooksAsync();
+        return await webhookService.GetWebhooksAsync(cancellationToken);
     }
 }
