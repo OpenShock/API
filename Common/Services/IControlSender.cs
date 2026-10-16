@@ -10,7 +10,7 @@ public interface IControlSender
 {
     public Task<ShockerControlResult> ControlByUser(IReadOnlyList<Control> controls, ControlLogSender sender, IHubClients<IUserHub> hubClients, ApiTokenControlLimits? tokenLimits = null);
 
-    public Task<ShockerControlResult> ControlPublicShare(IReadOnlyList<Control> controls, ControlLogSender sender, IHubClients<IUserHub> hubClients, Guid publicShareId);
+    public Task<ShockerControlResult> ControlPublicShare(IReadOnlyList<Control> controls, ControlLogSender sender, Guid? controllerUserId, IHubClients<IUserHub> hubClients, Guid publicShareId);
 }
 
 /// <summary>

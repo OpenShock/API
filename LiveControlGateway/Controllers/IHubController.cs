@@ -28,6 +28,13 @@ public interface IHubController : IAsyncDisposable
     public ValueTask Control(IList<ShockerCommand> controlCommands);
 
     /// <summary>
+    /// Control shockers and wait until the commands have been written to the hub's websocket
+    /// </summary>
+    /// <param name="controlCommands"></param>
+    /// <returns>Whether the commands were written, false if the connection closed or failed first</returns>
+    public Task<bool> SendControl(IList<ShockerCommand> controlCommands);
+
+    /// <summary>
     /// Turn the captive portal on or off
     /// </summary>
     /// <param name="enable"></param>

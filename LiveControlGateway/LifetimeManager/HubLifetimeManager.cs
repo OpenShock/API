@@ -6,6 +6,7 @@ using OpenShock.Common.Models;
 using OpenShock.Common.OpenShockDb;
 using OpenShock.Common.Redis.PubSub;
 using OpenShock.Common.Results;
+using OpenShock.Common.Services.BatchUpdate;
 using OpenShock.Common.Services.RedisPubSub;
 using OpenShock.LiveControlGateway.Controllers;
 using OpenShock.LiveControlGateway.Metrics;
@@ -28,6 +29,7 @@ public sealed class HubLifetimeManager
     private readonly IRedisPubService _redisPubService;
     private readonly ILoggerFactory _loggerFactory;
     private readonly GatewayMetrics _metrics;
+    private readonly IBatchUpdateService _batchUpdateService;
     private readonly ILogger<HubLifetimeManager> _logger;
     
     /// <summary>
@@ -49,6 +51,7 @@ public sealed class HubLifetimeManager
     /// <param name="loggerFactory"></param>
     /// <param name="lcgOptions"></param>
     /// <param name="metrics"></param>
+    /// <param name="batchUpdateService"></param>
     /// <param name="meter"></param>
     public HubLifetimeManager(
         IDbContextFactory<OpenShockContext> dbContextFactory,
@@ -58,6 +61,7 @@ public sealed class HubLifetimeManager
         ILoggerFactory loggerFactory,
         LcgOptions lcgOptions,
         GatewayMetrics metrics,
+        IBatchUpdateService batchUpdateService,
         [FromKeyedServices("OpenShock.Gateway.Meter")] Meter meter
     )
     {
@@ -67,6 +71,7 @@ public sealed class HubLifetimeManager
         _redisPubService = redisPubService;
         _loggerFactory = loggerFactory;
         _metrics = metrics;
+        _batchUpdateService = batchUpdateService;
 
         _logger = _loggerFactory.CreateLogger<HubLifetimeManager>();
         
@@ -201,6 +206,7 @@ public sealed class HubLifetimeManager
             _connectionMultiplexer,
             _redisConnectionProvider,
             _redisPubService,
+            _batchUpdateService,
             _loggerFactory.CreateLogger<HubLifetime>());
 
         return deviceLifetime;
