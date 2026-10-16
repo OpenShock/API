@@ -2,6 +2,11 @@
   <!-- Props -->
   <PropertyGroup>
     <OutputType>Library</OutputType>
+
+    <!-- .NET 11 SDK emits a dotnet-watch browser tools JS initializer for every Web SDK project in Debug.
+         As a library, Common's copy flows into API/Cron/LCG and collides with theirs, failing the build with
+         "scoped css bundles do not have matching endpoints". The host apps still get their own. -->
+    <EnableHotReloadInRuntimeConfigDevFile>false</EnableHotReloadInRuntimeConfigDevFile>
   </PropertyGroup>
 
   <!-- NuGet packages -->
