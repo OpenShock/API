@@ -37,7 +37,8 @@ public static class ControlStatQueries
 {
     /// <summary>
     /// Adds the given deltas onto their buckets in a single statement, creating buckets as needed. The owner is
-    /// resolved through <c>shocker -&gt; device</c>, deltas for shockers that no longer exist are dropped.
+    /// resolved through <c>shocker -&gt; device</c>, deltas for shockers that no longer exist are dropped. That only
+    /// loses the live control activity of a shocker deleted within one batch update flush interval, accepted for stats.
     /// </summary>
     public static Task<int> UpsertControlStatsAsync(this OpenShockContext db, IEnumerable<ControlStatDelta> deltas,
         CancellationToken cancellationToken = default)

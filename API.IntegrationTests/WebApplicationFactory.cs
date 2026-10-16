@@ -113,6 +113,8 @@ public class WebApplicationFactory : WebApplicationFactory<Program>
                     RateLimitPartition.GetNoLimiter("test-token-reporting-no-limit"));
                 options.AddPolicy("shocker-logs", _ =>
                     RateLimitPartition.GetNoLimiter("test-shocker-logs-no-limit"));
+                options.AddPolicy("control-stats", _ =>
+                    RateLimitPartition.GetNoLimiter("test-control-stats-no-limit"));
             });
         });
     }

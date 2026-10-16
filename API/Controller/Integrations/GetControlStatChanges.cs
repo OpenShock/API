@@ -23,7 +23,9 @@ public sealed partial class IntegrationsController
     /// Requires an automation token granting <c>ControlStatsRead</c>. Stats rows are hourly buckets that only
     /// ever change while their hour is current, so "changed since" is answered from the bucket indexes. The
     /// lookback is widened by <see cref="FlushOverlap"/> to cover buffered live control stats flushed just after
-    /// the hour rolled over, so a user can be reported again although nothing changed.
+    /// the hour rolled over, so a user can be reported again although nothing changed. Live control stats that
+    /// only get written after a longer database outage land in an older bucket and are missed, the totals catch up
+    /// with that user's next control since they are always lifetime totals.
     /// </remarks>
     /// <response code="200">The changed users' totals and the cursor to pass next time.</response>
     /// <response code="403">No automation token granting ControlStatsRead was presented.</response>
@@ -40,9 +42,13 @@ public sealed partial class IntegrationsController
         var userIds = body.UserIds.Distinct().ToArray();
 
         Guid[] changed;
-        if (body.Since is { } since)
+        if (body.Since is not null)
         {
-            var from = ControlStatDelta.ToBucket(since.ToUniversalTime() - FlushOverlap);
+            // A cursor without offset is the UTC one we handed out, not server local time
+            var since = body.Since.Value.Kind == DateTimeKind.Unspecified
+                ? DateTime.SpecifyKind(body.Since.Value, DateTimeKind.Utc)
+                : body.Since.Value.ToUniversalTime();
+            var from = ControlStatDelta.ToBucket(since - FlushOverlap);
             var recent = _db.ControlStats.Where(x => x.Bucket >= from);
 
             var owners = await recent
@@ -98,7 +104,7 @@ public sealed partial class IntegrationsController
         });
     }
 
-    /// <summary>Well above the live control gateway's stats flush interval.</summary>
+    /// <summary>Well above the batch update service's flush interval, which writes live control stats.</summary>
     private static readonly TimeSpan FlushOverlap = TimeSpan.FromMinutes(5);
 
     private static ControlStatTotals[] ToTotals(IEnumerable<TotalsRow> rows) => rows

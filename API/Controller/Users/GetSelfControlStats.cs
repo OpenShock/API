@@ -1,6 +1,7 @@
 ﻿using System.ComponentModel.DataAnnotations;
 using System.Net.Mime;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using Npgsql;
 using OpenShock.API.Errors;
@@ -19,16 +20,17 @@ public sealed partial class UsersController
     /// <summary>
     /// Get control statistics for the current user, both for their own shockers and for controls they sent.
     /// </summary>
-    /// <param name="tz">IANA time zone the daily breakdown and the date range are in, defaults to UTC.</param>
+    /// <param name="tz">IANA time zone the daily breakdown and the date range are in, e.g. <c>Europe/Berlin</c>, defaults to UTC.</param>
     /// <param name="from">First day to include (inclusive), defaults to all time.</param>
     /// <param name="to">Last day to include (inclusive), defaults to today.</param>
     /// <param name="cancellationToken"></param>
     /// <response code="200">The statistics.</response>
     /// <response code="400">Unknown time zone or invalid range.</response>
-    [HttpGet("self/stats")]
+    [HttpGet("self/control-stats")]
+    [EnableRateLimiting("control-stats")]
     [ProducesResponseType<ControlStatsResponse>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status400BadRequest, MediaTypeNames.Application.ProblemJson)] // InvalidTimeZone, InvalidRange
-    public async Task<IActionResult> GetSelfStats(
+    public async Task<IActionResult> GetSelfControlStats(
         [FromQuery, MaxLength(64)] string? tz,
         [FromQuery] DateOnly? from,
         [FromQuery] DateOnly? to,
@@ -37,23 +39,27 @@ public sealed partial class UsersController
         tz ??= "UTC";
         if (from > to) return Problem(ControlStatsError.InvalidRange);
 
-        // Postgres is the one interpreting the time zone, so it is the one validating it. Done upfront since it
-        // only evaluates AT TIME ZONE once there are rows to apply it to.
+        // Postgres is the one interpreting the time zone, so it is the one validating it, and while at it turns the
+        // local range into UTC so the filters below hit the bucket index instead of converting every row. "Valid" is
+        // there since AT TIME ZONE is skipped for null input, and so wouldn't reject an unknown zone without a range.
+        TimeZoneRange range;
         try
         {
-            await _db.Database.SqlQuery<DateTime>($"SELECT now() AT TIME ZONE {tz} AS \"Value\"").SingleAsync(cancellationToken);
+            range = await _db.Database.SqlQuery<TimeZoneRange>(
+                $"""
+                 SELECT now() AT TIME ZONE {tz} IS NOT NULL AS "Valid",
+                        {from}::date::timestamp AT TIME ZONE {tz} AS "FromUtc",
+                        ({to}::date + 1)::timestamp AT TIME ZONE {tz} AS "ToUtcExclusive"
+                 """).SingleAsync(cancellationToken);
         }
         catch (PostgresException e) when (e.SqlState == PostgresErrorCodes.InvalidParameterValue)
         {
             return Problem(ControlStatsError.InvalidTimeZone);
         }
 
-        var fromLocal = from?.ToDateTime(TimeOnly.MinValue);
-        var toLocalExclusive = to?.AddDays(1).ToDateTime(TimeOnly.MinValue);
-
         var stats = _db.ControlStats.AsQueryable();
-        if (fromLocal is not null) stats = stats.Where(x => TimeZoneInfo.ConvertTimeBySystemTimeZoneId(x.Bucket, tz) >= fromLocal);
-        if (toLocalExclusive is not null) stats = stats.Where(x => TimeZoneInfo.ConvertTimeBySystemTimeZoneId(x.Bucket, tz) < toLocalExclusive);
+        if (range.FromUtc is not null) stats = stats.Where(x => x.Bucket >= range.FromUtc.Value);
+        if (range.ToUtcExclusive is not null) stats = stats.Where(x => x.Bucket < range.ToUtcExclusive.Value);
 
         // Fine grained enough to derive every received view in memory, the row count is bounded by
         // days * shockers * controllers * types rather than by activity
@@ -178,6 +184,13 @@ public sealed partial class UsersController
             };
         })
         .ToArray();
+
+    private sealed class TimeZoneRange
+    {
+        public required bool Valid { get; init; }
+        public required DateTime? FromUtc { get; init; }
+        public required DateTime? ToUtcExclusive { get; init; }
+    }
 
     private sealed record ReceivedKey(DateTime Day, Guid? ShockerId, Guid? ControllerUserId);
 

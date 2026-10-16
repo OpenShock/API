@@ -64,10 +64,10 @@ public sealed class ControlSender : IControlSender
             })
             .ToArrayAsync();
 
-        return await ControlInternal(controls, sender, hubClients, shockers, ControlMetrics.Source.User, tokenLimits);
+        return await ControlInternal(controls, sender, sender.Id, hubClients, shockers, ControlMetrics.Source.User, tokenLimits);
     }
 
-    public async Task<ShockerControlResult> ControlPublicShare(IReadOnlyList<Control> controls, ControlLogSender sender, IHubClients<IUserHub> hubClients, Guid publicShareId)
+    public async Task<ShockerControlResult> ControlPublicShare(IReadOnlyList<Control> controls, ControlLogSender sender, Guid? controllerUserId, IHubClients<IUserHub> hubClients, Guid publicShareId)
     {
         var publicShareShockers = await _db.PublicShareShockerMappings
             .AsNoTracking()
@@ -93,7 +93,7 @@ public sealed class ControlSender : IControlSender
             })
             .ToArrayAsync();
         
-        return await ControlInternal(controls, sender, hubClients, publicShareShockers, ControlMetrics.Source.PublicShare);
+        return await ControlInternal(controls, sender, controllerUserId, hubClients, publicShareShockers, ControlMetrics.Source.PublicShare);
     }
     
     private static void Clamp(Control control, SharePermsAndLimits? limits)
@@ -105,7 +105,7 @@ public sealed class ControlSender : IControlSender
         control.Duration = Math.Clamp(control.Duration, HardLimits.MinControlDuration, durationMax);
     }
 
-    private async Task<ShockerControlResult> ControlInternal(IReadOnlyList<Control> controls, ControlLogSender sender, IHubClients<IUserHub> hubClients, ControlShockerObj[] allowedShockers, string source, ApiTokenControlLimits? tokenLimits = null)
+    private async Task<ShockerControlResult> ControlInternal(IReadOnlyList<Control> controls, ControlLogSender sender, Guid? controllerUserId, IHubClients<IUserHub> hubClients, ControlShockerObj[] allowedShockers, string source, ApiTokenControlLimits? tokenLimits = null)
     {
         var shockersById = allowedShockers.ToDictionary(s => s.ShockerId, s => s);
 
@@ -171,7 +171,7 @@ public sealed class ControlSender : IControlSender
             {
                 Id = Guid.CreateVersion7(),
                 ShockerId = shocker.ShockerId,
-                ControlledByUserId = sender.Id == Guid.Empty ? null : sender.Id,
+                ControlledByUserId = controllerUserId,
                 Intensity = control.Intensity,
                 Duration = control.Duration,
                 Type = control.Type,
@@ -181,7 +181,7 @@ public sealed class ControlSender : IControlSender
 
             statDeltas.Add(new ControlStatDelta(
                 ShockerId: shocker.ShockerId,
-                ControllerUserId: sender.Id == Guid.Empty ? null : sender.Id,
+                ControllerUserId: controllerUserId,
                 Bucket: now,
                 Type: control.Type,
                 Live: false,

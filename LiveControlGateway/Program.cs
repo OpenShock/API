@@ -1,4 +1,4 @@
-﻿using System.Diagnostics.Metrics;
+using System.Diagnostics.Metrics;
 using Microsoft.Extensions.Diagnostics.ResourceMonitoring;
 using Microsoft.Extensions.Options;
 using OpenShock.Common;
@@ -47,8 +47,6 @@ builder.Services.AddHostedService<LcgKeepAlive>();
 
 builder.Services.AddSingleton<GatewayMetrics>();
 builder.Services.AddSingleton<HubLifetimeManager>();
-builder.Services.AddSingleton<LiveControlStatsService>();
-builder.Services.AddHostedService(sp => sp.GetRequiredService<LiveControlStatsService>());
 builder.Services.AddResourceMonitoring();
 // The defaults differ per OS ([0, 1] on Linux, [0, 100] on Windows), so pin both to [0, 1].
 #pragma warning disable EXTEXP0008

@@ -3,6 +3,7 @@ using NRedisStack.RedisStackCommands;
 using OpenShock.Common.Constants;
 using OpenShock.Common.OpenShockDb;
 using OpenShock.Common.Redis;
+using OpenShock.Common.Services.ControlStats;
 using OpenShock.Common.Utils;
 using StackExchange.Redis;
 
@@ -71,6 +72,7 @@ public sealed class BatchUpdateService : BackgroundService, IBatchUpdateService
     private readonly ConcurrentUniqueBatchQueue<Guid, bool> _tokenLastUsed = new();
     private readonly ConcurrentUniqueBatchQueue<string, DateTimeOffset> _sessionLastUsed = new();
     private readonly ConcurrentCountingBatchQueue<(Guid Id, string TokenHash)> _automationTokenUses = new();
+    private readonly ControlStatsAccumulator _controlStats = new();
 
     public BatchUpdateService(IDbContextFactory<OpenShockContext> dbFactory, ILogger<BatchUpdateService> logger, IConnectionMultiplexer connectionMultiplexer)
     {
@@ -126,6 +128,27 @@ public sealed class BatchUpdateService : BackgroundService, IBatchUpdateService
         }
     }
 
+    private async Task UpdateControlStats()
+    {
+        var deltas = _controlStats.DequeueAll();
+
+        // Skip if there is nothing
+        if (deltas.Length < 1) return;
+
+        try
+        {
+            await using var db = await _dbFactory.CreateDbContextAsync();
+            await db.UpsertControlStatsAsync(deltas);
+        }
+        catch
+        {
+            // Like use counts these can't be rebuilt, so put them back for the next flush to retry. Still lost if
+            // the final flush on shutdown fails, which is accepted for statistics.
+            foreach (var delta in deltas) _controlStats.Add(delta);
+            throw;
+        }
+    }
+
     private async Task UpdateSessions()
     {
         var sessionsToUpdate = new List<Task<bool>>(); 
@@ -154,6 +177,11 @@ public sealed class BatchUpdateService : BackgroundService, IBatchUpdateService
     public void UpdateAutomationTokenUsed(Guid automationTokenId, string tokenHash)
     {
         _automationTokenUses.Increment((automationTokenId, tokenHash));
+    }
+
+    public void RecordControlStat(ControlStatDelta delta)
+    {
+        _controlStats.Add(delta);
     }
 
     public void UpdateSessionLastUsed(string sessionToken, DateTimeOffset lastUsed)
@@ -192,7 +220,7 @@ public sealed class BatchUpdateService : BackgroundService, IBatchUpdateService
     {
         try
         {
-            await Task.WhenAll(UpdateTokens(), UpdateAutomationTokens(), UpdateSessions());
+            await Task.WhenAll(UpdateTokens(), UpdateAutomationTokens(), UpdateControlStats(), UpdateSessions());
         }
         catch (Exception e)
         {

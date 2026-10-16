@@ -7,6 +7,7 @@ using OpenShock.Common.OpenShockDb;
 using OpenShock.Common.Redis;
 using OpenShock.Common.Redis.PubSub;
 using OpenShock.Common.Results;
+using OpenShock.Common.Services.BatchUpdate;
 using OpenShock.Common.Services.RedisPubSub;
 using OpenShock.Common.Utils;
 using OpenShock.LiveControlGateway.Controllers;
@@ -50,7 +51,7 @@ public sealed class HubLifetime : IAsyncDisposable
     private readonly IDbContextFactory<OpenShockContext> _dbContextFactory;
     private readonly IRedisConnectionProvider _redisConnectionProvider;
     private readonly IRedisPubService _redisPubService;
-    private readonly LiveControlStatsService _liveControlStats;
+    private readonly IBatchUpdateService _batchUpdateService;
 
     private readonly RedisChannel _deviceMsgChannel;
     private readonly ISubscriber _subscriber;
@@ -84,14 +85,14 @@ public sealed class HubLifetime : IAsyncDisposable
     /// <param name="connectionMultiplexer"></param>
     /// <param name="redisConnectionProvider"></param>
     /// <param name="redisPubService"></param>
-    /// <param name="liveControlStats"></param>
+    /// <param name="batchUpdateService"></param>
     /// <param name="logger"></param>
     public HubLifetime([Range(1, 10)] byte tps, IHubController hubController,
         IDbContextFactory<OpenShockContext> dbContextFactory,
         IConnectionMultiplexer connectionMultiplexer,
         IRedisConnectionProvider redisConnectionProvider,
         IRedisPubService redisPubService,
-        LiveControlStatsService liveControlStats,
+        IBatchUpdateService batchUpdateService,
         ILogger<HubLifetime> logger)
     {
         HubController = hubController;
@@ -99,7 +100,7 @@ public sealed class HubLifetime : IAsyncDisposable
         _dbContextFactory = dbContextFactory;
         _redisConnectionProvider = redisConnectionProvider;
         _redisPubService = redisPubService;
-        _liveControlStats = liveControlStats;
+        _batchUpdateService = batchUpdateService;
         _logger = logger;
 
         _waitBetweenTicks = TimeSpan.FromMilliseconds(1000.0 / tps);
@@ -376,7 +377,7 @@ public sealed class HubLifetime : IAsyncDisposable
 
             // Each emitting tick is one tick interval of activity, a new type or controller starts a new burst
             var emitting = (state.LastType, state.LastControllerId);
-            _liveControlStats.Record(new ControlStatDelta(
+            _batchUpdateService.RecordControlStat(new ControlStatDelta(
                 ShockerId: state.Id,
                 ControllerUserId: state.LastControllerId,
                 Bucket: now.UtcDateTime,

@@ -169,10 +169,10 @@ public sealed class ControlStatsTests
             TestHelper.UniqueEmail("statsbad"), "SecurePassword123#");
         using var client = TestHelper.CreateAuthenticatedClient(WebApplicationFactory, user.SessionToken);
 
-        var badTz = await client.GetAsync("/1/users/self/stats?tz=Not/AZone");
+        var badTz = await client.GetAsync("/1/users/self/control-stats?tz=Not/AZone");
         await Assert.That(badTz.StatusCode).IsEqualTo(HttpStatusCode.BadRequest);
 
-        var badRange = await client.GetAsync("/1/users/self/stats?from=2026-02-01&to=2026-01-01");
+        var badRange = await client.GetAsync("/1/users/self/control-stats?from=2026-02-01&to=2026-01-01");
         await Assert.That(badRange.StatusCode).IsEqualTo(HttpStatusCode.BadRequest);
     }
 
@@ -180,7 +180,7 @@ public sealed class ControlStatsTests
     public async Task Stats_Unauthenticated_Returns401()
     {
         using var client = WebApplicationFactory.CreateClient();
-        var response = await client.GetAsync("/1/users/self/stats");
+        var response = await client.GetAsync("/1/users/self/control-stats");
         await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.Unauthorized);
     }
 
@@ -210,7 +210,7 @@ public sealed class ControlStatsTests
 
     private static async Task<JsonDocument> GetStats(HttpClient client, string query = "")
     {
-        var response = await client.GetAsync("/1/users/self/stats" + query);
+        var response = await client.GetAsync("/1/users/self/control-stats" + query);
         await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.OK);
         return JsonDocument.Parse(await response.Content.ReadAsStringAsync());
     }
