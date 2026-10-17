@@ -1,4 +1,5 @@
 using System.Net;
+using System.Text.Json;
 using OpenShock.API.IntegrationTests.Helpers;
 
 namespace OpenShock.API.IntegrationTests.Tests;
@@ -7,6 +8,44 @@ public sealed class AccountAuthenticatedTests
 {
     [ClassDataSource<WebApplicationFactory>(Shared = SharedType.PerTestSession)]
     public required WebApplicationFactory WebApplicationFactory { get; init; }
+
+    // --- Get Self ---
+
+    [Test]
+    public async Task GetSelf_ReturnsCurrentUserInfo_WithoutLegacyWrapper()
+    {
+        var user = await TestHelper.CreateAndLoginUser(WebApplicationFactory, "accself", "accself@test.org", "SecurePassword123#");
+        using var client = TestHelper.CreateAuthenticatedClient(WebApplicationFactory, user.SessionToken);
+
+        var response = await client.GetAsync("/1/account");
+
+        await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.OK);
+
+        using var doc = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+        var root = doc.RootElement;
+        await Assert.That(root.TryGetProperty("data", out _)).IsFalse();
+        await Assert.That(root.GetProperty("name").GetString()).IsEqualTo("accself");
+        await Assert.That(root.GetProperty("email").GetString()).IsEqualTo("accself@test.org");
+        await Assert.That(root.GetProperty("hasPassword").GetBoolean()).IsTrue();
+        await Assert.That(root.TryGetProperty("id", out _)).IsTrue();
+        await Assert.That(root.TryGetProperty("image", out _)).IsTrue();
+        await Assert.That(root.TryGetProperty("roles", out _)).IsTrue();
+    }
+
+    [Test]
+    public async Task GetSelf_WithApiToken_ReturnsUserInfo()
+    {
+        var userId = await TestHelper.CreateUserInDb(WebApplicationFactory, "accselfapi", "accselfapi@test.org", "SecurePassword123#");
+        var (_, rawToken) = await TestHelper.CreateApiTokenInDb(WebApplicationFactory, userId, "AccountSelfApiToken");
+        using var client = TestHelper.CreateApiTokenClient(WebApplicationFactory, rawToken);
+
+        var response = await client.GetAsync("/1/account");
+
+        await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.OK);
+
+        using var doc = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+        await Assert.That(doc.RootElement.GetProperty("name").GetString()).IsEqualTo("accselfapi");
+    }
 
     // --- Change Password ---
 
