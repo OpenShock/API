@@ -16,10 +16,9 @@ public interface IBatchUpdateService
     /// <param name="tokenHash">Hash of the secret presented; the use is dropped if the token was rotated since</param>
     public void UpdateAutomationTokenUsed(Guid automationTokenId, string tokenHash);
     /// <summary>
-    /// Buffer control activity for the <c>control_stats</c> rollup, used by live control so the per-tick hot path
-    /// never touches the database
+    /// Buffer a control log for the next flush, written at most once per <see cref="ShockerControlLog.Id"/>
     /// </summary>
-    /// <param name="delta"></param>
-    public void RecordControlStat(ControlStatDelta delta);
+    /// <param name="log"></param>
+    public void InsertControlLog(ShockerControlLog log);
     public void UpdateSessionLastUsed(string sessionToken, DateTimeOffset lastUsed);
 }

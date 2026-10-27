@@ -77,8 +77,24 @@ x-openshock-svc: &openshock-svc
 
 services:
 
-  db: # We need a postgres database, preferably version 18+
-    image: postgres:18
+  db: # We need a postgres database, version 18+, with the TimescaleDB extension (Community edition)
+    build:
+      dockerfile_inline: |
+        FROM postgres:18
+        ADD https://packagecloud.io/timescale/timescaledb/gpgkey /etc/apt/keyrings/timescaledb.asc
+        RUN set -eux; \
+            chmod 644 /etc/apt/keyrings/timescaledb.asc; \
+            . /etc/os-release; \
+            apt-get update; \
+            apt-get install -y --no-install-recommends ca-certificates; \
+            echo "deb [signed-by=/etc/apt/keyrings/timescaledb.asc] https://packagecloud.io/timescale/timescaledb/debian/ $$VERSION_CODENAME main" \
+                > /etc/apt/sources.list.d/timescaledb.list; \
+            apt-get update; \
+            apt-get install -y --no-install-recommends timescaledb-2-postgresql-18; \
+            rm -rf /var/lib/apt/lists/*
+    image: openshock-postgres-timescaledb:18
+    pull_policy: build
+    command: postgres -c shared_preload_libraries=timescaledb -c timescaledb.telemetry_level=off
     restart: unless-stopped
     container_name: openshock-postgres
     healthcheck:
