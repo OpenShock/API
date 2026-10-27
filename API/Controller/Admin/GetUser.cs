@@ -183,7 +183,7 @@ public sealed partial class AdminController
                         CreatedAt = change.CreatedAt,
                     }
                 ).ToArray(),
-                ShockerControlLogsCount = u.ShockerControlLogs.Count()
+                ShockerControlLogsCount = _db.ShockerControlLogs.Count(l => l.ControlledByUserId == u.Id)
 
             })
             .FirstOrDefaultAsync(cancellationToken);

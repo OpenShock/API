@@ -15,7 +15,7 @@ public sealed class InMemoryDatabase : IAsyncInitializer, IAsyncDisposable
     {
         get
         {
-            _container ??= new PostgreSqlBuilder(image: "postgres:latest")
+            _container ??= new PostgreSqlBuilder(image: "timescale/timescaledb:latest-pg18") // Community edition, the schema needs it
                 .WithNetwork(DockerNetwork.Instance)
                 .WithName($"tunit-cron-postgresql-{Guid.CreateVersion7()}")
                 .WithDatabase("openshock")

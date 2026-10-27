@@ -17,3 +17,14 @@ public record CiSafeParallelLimit : IParallelLimit
 {
     public int Limit => Math.Max(Environment.ProcessorCount * 2, 8);
 }
+
+public static class ThreadPoolSetup
+{
+    // Running tests block on the shared host's boot, which connects to Redis synchronously and needs a free thread
+    [Before(TestSession)]
+    public static void RaiseMinThreads()
+    {
+        ThreadPool.GetMinThreads(out var workerThreads, out var completionPortThreads);
+        ThreadPool.SetMinThreads(Math.Max(workerThreads, new CiSafeParallelLimit().Limit * 2), completionPortThreads);
+    }
+}

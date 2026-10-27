@@ -97,7 +97,10 @@ They are only required on the gateway container and are configuration local to t
 
 The OpenShock stack consists of the following components:
 
-- Postgres as database
+- Postgres 18+ as database, with the [TimescaleDB](https://github.com/timescale/timescaledb) extension in its
+  Community edition (the Apache-2 only `-oss` builds lack features the schema needs). It has to be in
+  `shared_preload_libraries`. The `db` service in `docker-compose.yml` builds such an image on top of `postgres:18`,
+  so an existing `postgres:18` data directory can be reused as is.
 - Redis-Stack (with keyspace events KEA) (preferably [DragonflyDB](https://github.com/dragonflydb/dragonfly))
 - One or multiple APIs (container, API)
 - One or multiple gateways (container, LCG)

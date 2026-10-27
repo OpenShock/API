@@ -373,7 +373,7 @@ public sealed class HubLifetime : IAsyncDisposable
             var frame = state.LastFrame;
             if (frame is null || frame.ActiveUntil < now || state.ExclusiveUntil >= now)
             {
-                state.EmittingOnLastTick = null;
+                EndBurst(state);
                 continue;
             }
 
@@ -391,27 +391,29 @@ public sealed class HubLifetime : IAsyncDisposable
 
         if (commandList.Count == 0) return;
 
-        // Only count what actually got written to the hub, a tick lost to a closing connection is not activity
+        // Only log what actually got written to the hub, a tick lost to a closing connection is not activity
         if (!await HubController.SendControl(commandList)) return;
 
         var tickMs = (long)_waitBetweenTicks.TotalMilliseconds;
         foreach (var (state, frame) in emittingFrames)
         {
             // Each sent tick is one tick interval of activity, a new type or controller starts a new burst
-            var emitting = (frame.Type, frame.ControllerId);
-            _batchUpdateService.RecordControlStat(new ControlStatDelta(
-                OwnerUserId: state.OwnerId,
-                ShockerId: state.Id,
-                ControllerUserId: frame.ControllerId,
-                Bucket: now.UtcDateTime,
-                Type: frame.Type,
-                Live: true,
-                Count: state.EmittingOnLastTick == emitting ? 0 : 1,
-                DurationMs: tickMs,
-                IntensityMs: frame.Intensity * tickMs,
-                MaxIntensity: frame.Intensity));
-            state.EmittingOnLastTick = emitting;
+            if (state.Burst is not { } burst || burst.Type != frame.Type || burst.ControllerId != frame.ControllerId)
+            {
+                EndBurst(state);
+                burst = state.Burst = new LiveBurst(frame.Type, frame.ControllerId, now.UtcDateTime);
+            }
+
+            burst.AddTick(frame.Intensity, tickMs);
         }
+    }
+
+    private void EndBurst(ShockerState state)
+    {
+        if (state.Burst is not { } burst) return;
+        state.Burst = null;
+
+        if (burst.Type != ControlType.Stop) _batchUpdateService.InsertControlLog(burst.ToLog(state));
     }
 
     /// <summary>
@@ -433,13 +435,21 @@ public sealed class HubLifetime : IAsyncDisposable
     {
         _logger.LogDebug("Updating shockers for device [{DeviceId}]", HubController.Id);
 
-        _shockerStates = await db.Shockers.Where(x => x.DeviceId == HubController.Id).Select(x => new ShockerState()
+        var shockerStates = await db.Shockers.Where(x => x.DeviceId == HubController.Id).Select(x => new ShockerState()
         {
             Id = x.Id,
             OwnerId = x.Device.OwnerId,
             Model = x.Model,
             RfId = x.RfId
         }).ToDictionaryAsync(x => x.Id, x => x, cancellationToken);
+
+        foreach (var (id, state) in _shockerStates)
+        {
+            if (shockerStates.TryGetValue(id, out var updated)) updated.Burst = state.Burst;
+            else EndBurst(state);
+        }
+
+        _shockerStates = shockerStates;
     }
 
     /// <summary>
@@ -613,6 +623,8 @@ public sealed class HubLifetime : IAsyncDisposable
 
         // Cancelling ends UpdateLoop, which disposes its own timer on the way out
         await _cancellationSource.CancelAsync();
+
+        foreach (var state in _shockerStates.Values) EndBurst(state);
 
         if (_deviceMsgQueue is not null)
         {

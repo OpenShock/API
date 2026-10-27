@@ -18,14 +18,14 @@ partial class OpenShockContextModelSnapshot : ModelSnapshot
     // If you encounter a merge conflict in the line below, it means you need to
     // discard one of the migration branches and recreate its migrations on top of
     // the other branch. See https://aka.ms/efcore-docs-migrations-conflicts for more info.
-    public override string LastMigrationId => "20261016142540_AddControlStats";
+    public override string LastMigrationId => "20261027164641_MaterializeControlStats";
 
     protected override void BuildModel(ModelBuilder modelBuilder)
     {
 #pragma warning disable 612, 618
         modelBuilder
             .HasAnnotation("Npgsql:CollationDefinition:public.ndcoll", "und-u-ks-level2,und-u-ks-level2,icu,False")
-            .HasAnnotation("ProductVersion", "11.0.0-rc.1.26425.128")
+            .HasAnnotation("ProductVersion", "11.0.0-rc.2.26504.105")
             .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
         NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "audit_action", new[] { "login", "logout", "password_changed", "email_change_requested", "email_changed", "username_changed", "api_token_created", "api_token_deleted", "oauth_connected", "oauth_disconnected", "account_deactivated", "account_reactivated", "account_deleted", "automation_token_created", "automation_token_updated", "automation_token_rotated", "automation_token_deleted", "automation_token_used" });
@@ -41,6 +41,7 @@ partial class OpenShockContextModelSnapshot : ModelSnapshot
         NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "permission_type", new[] { "shockers.use", "shockers.edit", "shockers.pause", "devices.edit", "devices.auth", "usershares.edit", "usershares.pause", "publicshares.pause", "publicshares.edit" });
         NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "role_type", new[] { "support", "staff", "admin", "system" });
         NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "shocker_model_type", new[] { "cai_xianlin", "petrainer", "petrainer_998dr", "wellturn_t330" });
+        NpgsqlModelBuilderExtensions.HasPostgresExtension(modelBuilder, "timescaledb");
         NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
         modelBuilder.Entity("Microsoft.AspNetCore.DataProtection.EntityFrameworkCore.DataProtectionKey", b =>
@@ -393,10 +394,6 @@ partial class OpenShockContextModelSnapshot : ModelSnapshot
 
         modelBuilder.Entity("OpenShock.Common.OpenShockDb.ControlStat", b =>
             {
-                b.Property<Guid>("Id")
-                    .HasColumnType("uuid")
-                    .HasColumnName("id");
-
                 b.Property<DateTime>("Bucket")
                     .HasColumnType("timestamp with time zone")
                     .HasColumnName("bucket");
@@ -429,7 +426,7 @@ partial class OpenShockContextModelSnapshot : ModelSnapshot
                     .HasColumnType("uuid")
                     .HasColumnName("owner_user_id");
 
-                b.Property<Guid?>("ShockerId")
+                b.Property<Guid>("ShockerId")
                     .HasColumnType("uuid")
                     .HasColumnName("shocker_id");
 
@@ -437,65 +434,9 @@ partial class OpenShockContextModelSnapshot : ModelSnapshot
                     .HasColumnType("control_type")
                     .HasColumnName("type");
 
-                b.Property<DateTime>("UpdatedAt")
-                    .HasColumnType("timestamp with time zone")
-                    .HasColumnName("updated_at");
+                b.ToTable((string)null);
 
-                b.HasKey("Id")
-                    .HasName("control_stats_pkey");
-
-                b.HasIndex("ShockerId");
-
-                b.HasIndex("UpdatedAt");
-
-                b.HasIndex("ControllerUserId", "Bucket");
-
-                b.HasIndex("OwnerUserId", "Bucket");
-
-                var index = b.HasIndex("OwnerUserId", "ShockerId", "ControllerUserId", "Bucket", "Type", "Live")
-                    .IsUnique()
-                    .HasDatabaseName("ix_control_stats_upsert_key")
-                    .HasFilter("shocker_id IS NOT NULL");
-
-                NpgsqlIndexBuilderExtensions.AreNullsDistinct(index, false);
-
-                b.ToTable("control_stats");
-            });
-
-        modelBuilder.Entity("OpenShock.Common.OpenShockDb.ControlStatBatch", b =>
-            {
-                b.Property<Guid>("Id")
-                    .HasColumnType("uuid")
-                    .HasColumnName("id");
-
-                b.Property<DateTime>("AppliedAt")
-                    .HasColumnType("timestamp with time zone")
-                    .HasColumnName("applied_at");
-
-                b.HasKey("Id")
-                    .HasName("control_stat_batches_pkey");
-
-                b.HasIndex("AppliedAt");
-
-                b.ToTable("control_stat_batches");
-            });
-
-        modelBuilder.Entity("OpenShock.Common.OpenShockDb.ControlStatRemoval", b =>
-            {
-                b.Property<Guid>("UserId")
-                    .HasColumnType("uuid")
-                    .HasColumnName("user_id");
-
-                b.Property<DateTime>("RemovedAt")
-                    .HasColumnType("timestamp with time zone")
-                    .HasColumnName("removed_at");
-
-                b.HasKey("UserId")
-                    .HasName("control_stat_removals_pkey");
-
-                b.HasIndex("RemovedAt");
-
-                b.ToTable("control_stat_removals");
+                b.ToView("control_stats", (string)null);
             });
 
         modelBuilder.Entity("OpenShock.Common.OpenShockDb.Device", b =>
@@ -861,15 +802,15 @@ partial class OpenShockContextModelSnapshot : ModelSnapshot
                     .HasColumnType("uuid")
                     .HasColumnName("id");
 
-                b.Property<Guid?>("ControlledByUserId")
-                    .HasColumnType("uuid")
-                    .HasColumnName("controlled_by_user_id");
-
                 b.Property<DateTime>("CreatedAt")
                     .ValueGeneratedOnAdd()
                     .HasColumnType("timestamp with time zone")
                     .HasColumnName("created_at")
                     .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                b.Property<Guid?>("ControlledByUserId")
+                    .HasColumnType("uuid")
+                    .HasColumnName("controlled_by_user_id");
 
                 b.Property<string>("CustomName")
                     .HasMaxLength(64)
@@ -879,6 +820,12 @@ partial class OpenShockContextModelSnapshot : ModelSnapshot
                 b.Property<long>("Duration")
                     .HasColumnType("bigint")
                     .HasColumnName("duration");
+
+                b.Property<DateTime>("InsertedAt")
+                    .ValueGeneratedOnAdd()
+                    .HasColumnType("timestamp with time zone")
+                    .HasColumnName("inserted_at")
+                    .HasDefaultValueSql("now()");
 
                 b.Property<byte>("Intensity")
                     .HasColumnType("smallint")
@@ -890,6 +837,14 @@ partial class OpenShockContextModelSnapshot : ModelSnapshot
                     .HasDefaultValue(false)
                     .HasColumnName("live_control");
 
+                b.Property<byte>("MaxIntensity")
+                    .HasColumnType("smallint")
+                    .HasColumnName("max_intensity");
+
+                b.Property<Guid>("OwnerUserId")
+                    .HasColumnType("uuid")
+                    .HasColumnName("owner_user_id");
+
                 b.Property<Guid>("ShockerId")
                     .HasColumnType("uuid")
                     .HasColumnName("shocker_id");
@@ -898,12 +853,14 @@ partial class OpenShockContextModelSnapshot : ModelSnapshot
                     .HasColumnType("control_type")
                     .HasColumnName("type");
 
-                b.HasKey("Id")
+                b.HasKey("Id", "CreatedAt")
                     .HasName("shocker_control_logs_pkey");
 
                 b.HasIndex("ControlledByUserId");
 
-                b.HasIndex("ShockerId");
+                b.HasIndex("OwnerUserId", "CreatedAt");
+
+                b.HasIndex("ShockerId", "CreatedAt");
 
                 b.ToTable("shocker_control_logs");
             });
@@ -1527,26 +1484,6 @@ partial class OpenShockContextModelSnapshot : ModelSnapshot
                 b.Navigation("ReportedByUser");
             });
 
-        modelBuilder.Entity("OpenShock.Common.OpenShockDb.ControlStat", b =>
-            {
-                b.HasOne("OpenShock.Common.OpenShockDb.User", "Owner")
-                    .WithMany("ControlStats")
-                    .HasForeignKey("OwnerUserId")
-                    .OnDelete(DeleteBehavior.Cascade)
-                    .IsRequired()
-                    .HasConstraintName("fk_control_stats_owner_user_id");
-
-                b.HasOne("OpenShock.Common.OpenShockDb.Shocker", "Shocker")
-                    .WithMany("ControlStats")
-                    .HasForeignKey("ShockerId")
-                    .OnDelete(DeleteBehavior.SetNull)
-                    .HasConstraintName("fk_control_stats_shocker_id");
-
-                b.Navigation("Owner");
-
-                b.Navigation("Shocker");
-            });
-
         modelBuilder.Entity("OpenShock.Common.OpenShockDb.Device", b =>
             {
                 b.HasOne("OpenShock.Common.OpenShockDb.User", "Owner")
@@ -1614,26 +1551,6 @@ partial class OpenShockContextModelSnapshot : ModelSnapshot
                     .HasConstraintName("fk_shockers_device_id");
 
                 b.Navigation("Device");
-            });
-
-        modelBuilder.Entity("OpenShock.Common.OpenShockDb.ShockerControlLog", b =>
-            {
-                b.HasOne("OpenShock.Common.OpenShockDb.User", "ControlledByUser")
-                    .WithMany("ShockerControlLogs")
-                    .HasForeignKey("ControlledByUserId")
-                    .OnDelete(DeleteBehavior.Cascade)
-                    .HasConstraintName("fk_shocker_control_logs_controlled_by_user_id");
-
-                b.HasOne("OpenShock.Common.OpenShockDb.Shocker", "Shocker")
-                    .WithMany("ShockerControlLogs")
-                    .HasForeignKey("ShockerId")
-                    .OnDelete(DeleteBehavior.Cascade)
-                    .IsRequired()
-                    .HasConstraintName("fk_shocker_control_logs_shocker_id");
-
-                b.Navigation("ControlledByUser");
-
-                b.Navigation("Shocker");
             });
 
         modelBuilder.Entity("OpenShock.Common.OpenShockDb.ShockerShareCode", b =>
@@ -1841,11 +1758,7 @@ partial class OpenShockContextModelSnapshot : ModelSnapshot
 
         modelBuilder.Entity("OpenShock.Common.OpenShockDb.Shocker", b =>
             {
-                b.Navigation("ControlStats");
-
                 b.Navigation("PublicShareMappings");
-
-                b.Navigation("ShockerControlLogs");
 
                 b.Navigation("ShockerShareCodes");
 
@@ -1861,8 +1774,6 @@ partial class OpenShockContextModelSnapshot : ModelSnapshot
                 b.Navigation("ApiTokens");
 
                 b.Navigation("AuditLogs");
-
-                b.Navigation("ControlStats");
 
                 b.Navigation("Devices");
 
@@ -1883,8 +1794,6 @@ partial class OpenShockContextModelSnapshot : ModelSnapshot
                 b.Navigation("PasswordResets");
 
                 b.Navigation("ReportedApiTokens");
-
-                b.Navigation("ShockerControlLogs");
 
                 b.Navigation("UserActivationRequest");
 

@@ -21,16 +21,23 @@ public sealed partial class ShockerController
 {
     private const string AllLogsDefaultSort = "createdOn";
 
-    private static readonly IReadOnlyDictionary<string, SortFunc<ShockerControlLog>> AllLogsSorters =
-        new Dictionary<string, SortFunc<ShockerControlLog>>(StringComparer.OrdinalIgnoreCase)
+    private static readonly IReadOnlyDictionary<string, SortFunc<LogRow>> AllLogsSorters =
+        new Dictionary<string, SortFunc<LogRow>>(StringComparer.OrdinalIgnoreCase)
         {
-            [AllLogsDefaultSort] = (q, desc) => desc ? q.OrderByDescending(x => x.CreatedAt) : q.OrderBy(x => x.CreatedAt),
-            ["intensity"] = (q, desc) => desc ? q.OrderByDescending(x => x.Intensity) : q.OrderBy(x => x.Intensity),
-            ["duration"] = (q, desc) => desc ? q.OrderByDescending(x => x.Duration) : q.OrderBy(x => x.Duration),
-            ["type"] = (q, desc) => desc ? q.OrderByDescending(x => x.Type) : q.OrderBy(x => x.Type),
+            [AllLogsDefaultSort] = (q, desc) => desc ? q.OrderByDescending(x => x.Log.CreatedAt) : q.OrderBy(x => x.Log.CreatedAt),
+            ["intensity"] = (q, desc) => desc ? q.OrderByDescending(x => x.Log.Intensity) : q.OrderBy(x => x.Log.Intensity),
+            ["duration"] = (q, desc) => desc ? q.OrderByDescending(x => x.Log.Duration) : q.OrderBy(x => x.Log.Duration),
+            ["type"] = (q, desc) => desc ? q.OrderByDescending(x => x.Log.Type) : q.OrderBy(x => x.Log.Type),
             ["hubName"] = (q, desc) => desc ? q.OrderByDescending(x => x.Shocker.Device.Name) : q.OrderBy(x => x.Shocker.Device.Name),
             ["shockerName"] = (q, desc) => desc ? q.OrderByDescending(x => x.Shocker.Name) : q.OrderBy(x => x.Shocker.Name),
         };
+
+    private sealed class LogRow
+    {
+        public required ShockerControlLog Log { get; init; }
+        public required Shocker Shocker { get; init; }
+        public required User? Controller { get; init; }
+    }
 
     /// <summary>
     /// Get the logs for a shocker
@@ -53,34 +60,47 @@ public sealed partial class ShockerController
         var exists = await _db.Shockers.AnyAsync(x => x.Device.OwnerId == CurrentUser.Id && x.Id == shockerId, cancellationToken);
         if (!exists) return Problem(ShockerError.ShockerNotFound);
 
-        var logs = _db.ShockerControlLogs
+        var page = _db.ShockerControlLogs
             .Where(x => x.ShockerId == shockerId)
             .OrderByDescending(x => x.CreatedAt)
             .Skip((int)offset)
-            .Take((int)limit)
-            .Select(x => new LogEntry
-            {
-                Id = x.Id,
-                Duration = x.Duration,
-                Intensity = x.Intensity,
-                Type = x.Type,
-                CreatedOn = x.CreatedAt,
-                ControlledBy = x.ControlledByUser == null
-                    ? new ControlLogSenderLight
-                    {
-                        Id = Guid.Empty,
-                        Name = "Guest",
-                        Image = GravatarUtils.GuestImageUrl,
-                        CustomName = x.CustomName
-                    }
-                    : new ControlLogSenderLight
-                    {
-                        Id = x.ControlledByUser.Id,
-                        Name = x.ControlledByUser.Name,
-                        Image = x.ControlledByUser.GetImageUrl(),
-                        CustomName = x.CustomName
-                    }
-            })
+            .Take((int)limit);
+
+        var logs = (from x in page
+                join u in _db.Users on x.ControlledByUserId equals (Guid?)u.Id into controllers
+                from u in controllers.DefaultIfEmpty()
+                orderby x.CreatedAt descending
+                select new LogEntry
+                {
+                    Id = x.Id,
+                    Duration = x.Duration,
+                    Intensity = x.Intensity,
+                    Type = x.Type,
+                    CreatedOn = x.CreatedAt,
+                    ControlledBy = u != null
+                        ? new ControlLogSenderLight
+                        {
+                            Id = u.Id,
+                            Name = u.Name,
+                            Image = u.GetImageUrl(),
+                            CustomName = x.CustomName
+                        }
+                        : x.ControlledByUserId == null
+                            ? new ControlLogSenderLight
+                            {
+                                Id = Guid.Empty,
+                                Name = "Guest",
+                                Image = GravatarUtils.GuestImageUrl,
+                                CustomName = x.CustomName
+                            }
+                            : new ControlLogSenderLight
+                            {
+                                Id = x.ControlledByUserId.Value,
+                                Name = "Deleted User",
+                                Image = GravatarUtils.GuestImageUrl,
+                                CustomName = x.CustomName
+                            }
+                })
             .AsAsyncEnumerable();
 
         return LegacyDataOk(logs);
@@ -103,43 +123,56 @@ public sealed partial class ShockerController
         [FromQuery(Name = "shockerIds")] Guid[]? shockerIds,
         CancellationToken cancellationToken)
     {
-        var query = _db.ShockerControlLogs
-            .Where(x => x.Shocker.Device.OwnerId == CurrentUser.Id);
+        var logs = _db.ShockerControlLogs.Where(x => x.OwnerUserId == CurrentUser.Id);
 
         if (shockerIds is { Length: > 0 })
-            query = query.Where(x => ((IEnumerable<Guid>)shockerIds).Contains(x.ShockerId));
+            logs = logs.Where(x => ((IEnumerable<Guid>)shockerIds).Contains(x.ShockerId));
+
+        var query = from x in logs
+            join s in _db.Shockers on x.ShockerId equals s.Id
+            join u in _db.Users on x.ControlledByUserId equals (Guid?)u.Id into controllers
+            from u in controllers.DefaultIfEmpty()
+            select new LogRow { Log = x, Shocker = s, Controller = u };
 
         var ordered = query
             .ApplySort(pagination, AllLogsSorters, AllLogsDefaultSort)
-            .ThenBy(x => x.Id);
+            .ThenBy(x => x.Log.Id);
 
         return await ordered.ToPagedResultAsync(
             x => new LogEntryWithHub
             {
-                Id = x.Id,
+                Id = x.Log.Id,
                 HubId = x.Shocker.Device.Id,
                 HubName = x.Shocker.Device.Name,
                 ShockerId = x.Shocker.Id,
                 ShockerName = x.Shocker.Name,
-                Duration = x.Duration,
-                Intensity = x.Intensity,
-                Type = x.Type,
-                CreatedOn = x.CreatedAt,
-                ControlledBy = x.ControlledByUser == null
+                Duration = x.Log.Duration,
+                Intensity = x.Log.Intensity,
+                Type = x.Log.Type,
+                CreatedOn = x.Log.CreatedAt,
+                ControlledBy = x.Controller != null
                     ? new ControlLogSenderLight
                     {
-                        Id = Guid.Empty,
-                        Name = "Guest",
-                        Image = GravatarUtils.GuestImageUrl,
-                        CustomName = x.CustomName
+                        Id = x.Controller.Id,
+                        Name = x.Controller.Name,
+                        Image = x.Controller.GetImageUrl(),
+                        CustomName = x.Log.CustomName
                     }
-                    : new ControlLogSenderLight
-                    {
-                        Id = x.ControlledByUser.Id,
-                        Name = x.ControlledByUser.Name,
-                        Image = x.ControlledByUser.GetImageUrl(),
-                        CustomName = x.CustomName
-                    }
+                    : x.Log.ControlledByUserId == null
+                        ? new ControlLogSenderLight
+                        {
+                            Id = Guid.Empty,
+                            Name = "Guest",
+                            Image = GravatarUtils.GuestImageUrl,
+                            CustomName = x.Log.CustomName
+                        }
+                        : new ControlLogSenderLight
+                        {
+                            Id = x.Log.ControlledByUserId.Value,
+                            Name = "Deleted User",
+                            Image = GravatarUtils.GuestImageUrl,
+                            CustomName = x.Log.CustomName
+                        }
             },
             pagination,
             cancellationToken);

@@ -98,9 +98,16 @@ public sealed partial class UsersController
 
         var shockerIds = received.Select(x => x.Key.ShockerId).OfType<Guid>().Distinct().ToArray();
         var shockerNames = await _db.Shockers
-            .Where(x => shockerIds.Contains(x.Id))
+            .Where(x => x.Device.OwnerId == CurrentUser.Id && shockerIds.Contains(x.Id))
             .Select(x => new { x.Id, x.Name })
             .ToDictionaryAsync(x => x.Id, x => x.Name, cancellationToken);
+
+        // Deleted shockers are combined into one entry
+        received = received
+            .Select(x => x.Key.ShockerId is { } id && !shockerNames.ContainsKey(id)
+                ? x with { Key = x.Key with { ShockerId = null } }
+                : x)
+            .ToArray();
 
         var userIds = received.Select(x => x.Key.ControllerUserId).OfType<Guid>()
             .Concat(given.Select(x => x.Key.OwnerUserId))
@@ -116,6 +123,9 @@ public sealed partial class UsersController
                 Name = x.Name,
                 Image = GravatarUtils.GetUserImageUrl(x.Email)
             });
+
+        // Materialized stats outlive the logs of deleted owners
+        given = given.Where(x => users.ContainsKey(x.Key.OwnerUserId)).ToArray();
 
         return Ok(new ControlStatsResponse
         {
@@ -158,7 +168,7 @@ public sealed partial class UsersController
                     .Select(g => new UserControlStats
                     {
                         UserId = g.Key,
-                        User = users.GetValueOrDefault(g.Key),
+                        User = users[g.Key],
                         Stats = Totals(g)
                     })
                     .ToArray()

@@ -2,7 +2,7 @@
 
 services:
   postgres:
-    image: postgres:17
+    image: timescale/timescaledb:latest-pg18 # TimescaleDB Community edition, the schema needs it
     container_name: openshock-postgres
     healthcheck:
       test: [ "CMD-SHELL", "pg_isready -d $${POSTGRES_DB} -U $${POSTGRES_USER}" ]
@@ -17,7 +17,7 @@ services:
       POSTGRES_USER: openshock
       POSTGRES_DB: openshock
     volumes:
-      - ./postgres:/var/lib/postgresql/data
+      - ./postgres18:/var/lib/postgresql
     ports:
       - 5432:5432
 

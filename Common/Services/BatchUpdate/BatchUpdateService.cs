@@ -1,11 +1,9 @@
-﻿using System.Diagnostics;
-using System.Text.Json;
+﻿using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using NRedisStack.RedisStackCommands;
 using OpenShock.Common.Constants;
 using OpenShock.Common.OpenShockDb;
 using OpenShock.Common.Redis;
-using OpenShock.Common.Services.ControlStats;
 using OpenShock.Common.Utils;
 using StackExchange.Redis;
 
@@ -74,30 +72,13 @@ public sealed class BatchUpdateService : BackgroundService, IBatchUpdateService
     private readonly ConcurrentUniqueBatchQueue<Guid, bool> _tokenLastUsed = new();
     private readonly ConcurrentUniqueBatchQueue<string, DateTimeOffset> _sessionLastUsed = new();
     private readonly ConcurrentCountingBatchQueue<(Guid Id, string TokenHash)> _automationTokenUses = new();
-    private readonly ControlStatsAccumulator _controlStats = new();
+    private readonly Lock _controlLogsLock = new();
+    private List<ShockerControlLog> _controlLogs = [];
 
     /// <summary>
-    /// Control stat batches not yet applied, oldest first. Only touched by the flush loop, a batch keeps its id
-    /// across retries so it is applied at most once.
+    /// Within the host's default 30 second shutdown timeout.
     /// </summary>
-    private readonly Queue<PendingControlStatBatch> _controlStatBatches = new();
-
-    /// <summary>
-    /// Redis list of control stat batches an instance couldn't apply before shutting down, any instance applies them.
-    /// </summary>
-    private const string ParkedControlStatBatchesKey = "control-stats:parked-batches";
-
-    /// <summary>
-    /// How long shutdown keeps trying to hand unapplied control stats to the database or Redis, within the host's
-    /// default 30 second shutdown timeout.
-    /// </summary>
-    private static readonly TimeSpan ShutdownHandOffTimeout = TimeSpan.FromSeconds(20);
-
-    /// <summary>
-    /// How much of <see cref="ShutdownHandOffTimeout"/> shutdown waits on the database, so a stalled write still
-    /// leaves time to park control stats in Redis.
-    /// </summary>
-    private static readonly TimeSpan ShutdownDatabaseTimeout = TimeSpan.FromSeconds(15);
+    private static readonly TimeSpan ShutdownDatabaseTimeout = TimeSpan.FromSeconds(20);
 
     public BatchUpdateService(IDbContextFactory<OpenShockContext> dbFactory, ILogger<BatchUpdateService> logger, IConnectionMultiplexer connectionMultiplexer)
     {
@@ -153,138 +134,53 @@ public sealed class BatchUpdateService : BackgroundService, IBatchUpdateService
         }
     }
 
-    private async Task UpdateControlStats()
+    private async Task InsertControlLogs(CancellationToken cancellationToken = default)
     {
-        EnqueueRecordedControlStats();
-        await ApplyParkedControlStatBatches();
-        await ApplyQueuedControlStatBatches();
-    }
-
-    private void EnqueueRecordedControlStats()
-    {
-        var deltas = _controlStats.DequeueAll();
-        if (deltas.Length > 0)
-            _controlStatBatches.Enqueue(new PendingControlStatBatch(Guid.CreateVersion7(), DateTime.UtcNow, deltas));
-    }
-
-    private async Task ApplyQueuedControlStatBatches(CancellationToken cancellationToken = default)
-    {
-        // A batch that throws or is cancelled stays queued with its id. If its commit actually went through, the
-        // retry finds the batch marker and skips it instead of counting it twice.
-        while (_controlStatBatches.TryPeek(out var batch))
+        List<ShockerControlLog> logs;
+        lock (_controlLogsLock)
         {
-            await ApplyControlStatBatch(batch, cancellationToken);
-            _controlStatBatches.Dequeue();
+            if (_controlLogs.Count == 0) return;
+            logs = _controlLogs;
+            _controlLogs = [];
         }
-    }
 
-    private async Task ApplyControlStatBatch(PendingControlStatBatch batch, CancellationToken cancellationToken = default)
-    {
-        await using var db = await _dbFactory.CreateDbContextAsync(cancellationToken);
-        var result = await db.ApplyControlStatBatchAsync(batch.Id, batch.CreatedAt, batch.Deltas, cancellationToken);
-        if (result == ControlStatBatchResult.Expired)
-        {
-            _logger.LogError("Dropped control stat batch {BatchId} from {CreatedAt}, it outlived the replay lifetime: {Batch}",
-                batch.Id, batch.CreatedAt, JsonSerializer.Serialize(batch));
-        }
-    }
-
-    /// <summary>
-    /// Applies batches an instance parked in Redis on shutdown. Each one is only removed from Redis once applied, so
-    /// a crash in between leaves it parked. Several instances may apply the same batch concurrently, its marker makes
-    /// sure only one of them counts it.
-    /// </summary>
-    private async Task ApplyParkedControlStatBatches()
-    {
-        var redis = _connectionMultiplexer.GetDatabase();
-
-        RedisValue[] parked;
         try
         {
-            parked = await redis.ListRangeAsync(ParkedControlStatBatchesKey, 0, 99);
+            await using var db = await _dbFactory.CreateDbContextAsync(cancellationToken);
+            await db.InsertControlLogsAsync(logs, cancellationToken);
+        }
+        catch
+        {
+            // Retried on the next flush, the insert skips ids already written
+            lock (_controlLogsLock)
+            {
+                logs.AddRange(_controlLogs);
+                _controlLogs = logs;
+            }
+
+            throw;
+        }
+    }
+
+    private async Task InsertControlLogsOnShutdown(CancellationToken cancellationToken)
+    {
+        try
+        {
+            await InsertControlLogs(cancellationToken);
+            return;
         }
         catch (Exception e)
         {
-            // Still parked, the next flush tries again
-            _logger.LogWarning(e, "Failed to read parked control stat batches");
-            return;
+            _logger.LogWarning(e, "Failed to insert control logs on shutdown");
         }
 
-        foreach (var value in parked)
+        lock (_controlLogsLock)
         {
-            PendingControlStatBatch? batch = null;
-            try
-            {
-                batch = JsonSerializer.Deserialize<PendingControlStatBatch>(value.ToString());
-            }
-            catch (JsonException e)
-            {
-                // Can never be applied, so it must not block the others
-                _logger.LogError(e, "Discarding malformed parked control stat batch: {Value}", value.ToString());
-            }
-
-            if (batch is not null) await ApplyControlStatBatch(batch);
-            await redis.ListRemoveAsync(ParkedControlStatBatchesKey, value, 1);
+            _logger.LogCritical("Lost {Count} control logs on shutdown, the database didn't take them: {Logs}",
+                _controlLogs.Count, JsonSerializer.Serialize(_controlLogs));
+            _controlLogs = [];
         }
     }
-
-    /// <summary>
-    /// Stats can't be rebuilt, so on shutdown whatever is unapplied keeps being offered to the database until
-    /// <paramref name="databaseToken"/> is cancelled, and to Redis for another instance, until one takes it. Only if
-    /// neither does within <see cref="ShutdownHandOffTimeout"/> are the batches written to the log, the last place
-    /// they can be recovered from.
-    /// </summary>
-    private async Task HandOffControlStatsOnShutdown(CancellationToken databaseToken)
-    {
-        EnqueueRecordedControlStats();
-
-        var started = Stopwatch.GetTimestamp();
-        while (_controlStatBatches.Count > 0)
-        {
-            if (!databaseToken.IsCancellationRequested)
-            {
-                try
-                {
-                    await ApplyQueuedControlStatBatches(databaseToken);
-                    return;
-                }
-                catch (Exception e)
-                {
-                    _logger.LogWarning(e, "Failed to apply {Count} control stat batches on shutdown", _controlStatBatches.Count);
-                }
-            }
-
-            var remaining = ShutdownHandOffTimeout - Stopwatch.GetElapsedTime(started);
-            if (remaining <= TimeSpan.Zero) break;
-
-            try
-            {
-                var values = _controlStatBatches.Select(b => (RedisValue)JsonSerializer.Serialize(b)).ToArray();
-                // Redis calls can't be cancelled, only stopped waiting on. A push landing after we gave up parks
-                // batches that are also applied or logged here, their markers keep them from being counted twice.
-                await _connectionMultiplexer.GetDatabase().ListRightPushAsync(ParkedControlStatBatchesKey, values)
-                    .WaitAsync(remaining);
-                _controlStatBatches.Clear();
-                _logger.LogWarning("Parked {Count} unapplied control stat batches in Redis for another instance", values.Length);
-                return;
-            }
-            catch (Exception e)
-            {
-                _logger.LogWarning(e, "Failed to park {Count} control stat batches in Redis on shutdown", _controlStatBatches.Count);
-            }
-
-            remaining = ShutdownHandOffTimeout - Stopwatch.GetElapsedTime(started);
-            if (remaining <= TimeSpan.Zero) break;
-            await Task.Delay(remaining < TimeSpan.FromSeconds(1) ? remaining : TimeSpan.FromSeconds(1));
-        }
-
-        if (_controlStatBatches.Count == 0) return;
-
-        _logger.LogCritical("Lost {Count} control stat batches on shutdown, neither the database nor Redis took them: {Batches}",
-            _controlStatBatches.Count, JsonSerializer.Serialize(_controlStatBatches));
-    }
-
-    private sealed record PendingControlStatBatch(Guid Id, DateTime CreatedAt, ControlStatDelta[] Deltas);
 
     private async Task UpdateSessions(CancellationToken cancellationToken = default)
     {
@@ -316,9 +212,12 @@ public sealed class BatchUpdateService : BackgroundService, IBatchUpdateService
         _automationTokenUses.Increment((automationTokenId, tokenHash));
     }
 
-    public void RecordControlStat(ControlStatDelta delta)
+    public void InsertControlLog(ShockerControlLog log)
     {
-        _controlStats.Add(delta);
+        lock (_controlLogsLock)
+        {
+            _controlLogs.Add(log);
+        }
     }
 
     public void UpdateSessionLastUsed(string sessionToken, DateTimeOffset lastUsed)
@@ -349,15 +248,14 @@ public sealed class BatchUpdateService : BackgroundService, IBatchUpdateService
         }
 
         // Drain what was queued since the last tick, otherwise every shutdown silently loses up to Interval worth of
-        // last used updates. Control stats are handed off alongside instead of flushed, leaving parked batches to
-        // other instances, and nothing waits on the database past ShutdownDatabaseTimeout.
+        // updates
         using var databaseCts = new CancellationTokenSource(ShutdownDatabaseTimeout);
         await Task.WhenAll(
             RunUpdates(UpdateTokens(databaseCts.Token), UpdateAutomationTokens(databaseCts.Token), UpdateSessions(databaseCts.Token)),
-            HandOffControlStatsOnShutdown(databaseCts.Token));
+            InsertControlLogsOnShutdown(databaseCts.Token));
     }
 
-    private Task Flush() => RunUpdates(UpdateTokens(), UpdateAutomationTokens(), UpdateControlStats(), UpdateSessions());
+    private Task Flush() => RunUpdates(UpdateTokens(), UpdateAutomationTokens(), InsertControlLogs(), UpdateSessions());
 
     private async Task RunUpdates(params Task[] updates)
     {

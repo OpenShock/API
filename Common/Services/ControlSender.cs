@@ -113,7 +113,6 @@ public sealed class ControlSender : IControlSender
 
         var messagesByDevice = new Dictionary<Guid, List<ShockerControlCommand>>();
         var logsByOwner = new Dictionary<Guid, List<ControlLog>>();
-        var statDeltas = new List<ControlStatDelta>(controls.Count);
 
         foreach (var control in controls.DistinctBy(x => x.Id))
         {
@@ -170,35 +169,20 @@ public sealed class ControlSender : IControlSender
             _db.ShockerControlLogs.Add(new ShockerControlLog
             {
                 Id = Guid.CreateVersion7(),
+                OwnerUserId = shocker.OwnerId,
                 ShockerId = shocker.ShockerId,
                 ControlledByUserId = controllerUserId,
                 Intensity = control.Intensity,
+                MaxIntensity = control.Intensity,
                 Duration = control.Duration,
                 Type = control.Type,
                 CustomName = sender.CustomName,
                 CreatedAt = now
             });
-
-            statDeltas.Add(new ControlStatDelta(
-                OwnerUserId: shocker.OwnerId,
-                ShockerId: shocker.ShockerId,
-                ControllerUserId: controllerUserId,
-                Bucket: now,
-                Type: control.Type,
-                Live: false,
-                Count: 1,
-                DurationMs: control.Duration,
-                IntensityMs: (long)control.Intensity * control.Duration,
-                MaxIntensity: control.Intensity));
         }
 
-        // Save all db changes before continuing, logs and stats commit together
-        await using (var transaction = await _db.Database.BeginTransactionAsync(cancellationToken))
-        {
-            await _db.SaveChangesAsync(cancellationToken);
-            await _db.UpsertControlStatsAsync(statDeltas, cancellationToken);
-            await transaction.CommitAsync(cancellationToken);
-        }
+        // Save all db changes before continuing
+        await _db.SaveChangesAsync(cancellationToken);
 
         // Then send all network events
         await Task.WhenAll([

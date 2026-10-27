@@ -22,11 +22,8 @@ public sealed partial class IntegrationsController
     /// </summary>
     /// <remarks>
     /// Requires an automation token granting <c>ControlStatsRead</c>. "Changed since" is answered from when each
-    /// stats row was last written rather than the time it covers, so live control stats written late (e.g. after a
-    /// database outage) are still picked up. Rows deleted along with their owner lower the totals of everyone who
-    /// controlled them without leaving a row behind, those are picked up from <see cref="ControlStatRemoval"/>. The
-    /// lookback is widened by <see cref="ChangeOverlap"/> to cover writes still committing while the previous call
-    /// read, so a user can be reported again although nothing changed.
+    /// control log was written, so late writes are still picked up. The lookback is widened by
+    /// <see cref="ChangeOverlap"/>, so a user can be reported again although nothing changed.
     /// </remarks>
     /// <response code="200">The changed users' totals and the cursor to pass next time.</response>
     /// <response code="403">No automation token granting ControlStatsRead was presented.</response>
@@ -54,7 +51,10 @@ public sealed partial class IntegrationsController
             var from = since - DateTime.MinValue > ChangeOverlap
                 ? since - ChangeOverlap
                 : DateTime.SpecifyKind(DateTime.MinValue, DateTimeKind.Utc);
-            var recent = _db.ControlStats.Where(x => x.UpdatedAt >= from);
+            var createdFrom = from - DateTime.MinValue > LateWriteWindow
+                ? from - LateWriteWindow
+                : DateTime.SpecifyKind(DateTime.MinValue, DateTimeKind.Utc);
+            var recent = _db.ShockerControlLogs.Where(x => x.InsertedAt >= from && x.CreatedAt >= createdFrom);
 
             var owners = await recent
                 .Where(x => userIds.Contains(x.OwnerUserId))
@@ -62,18 +62,12 @@ public sealed partial class IntegrationsController
                 .Distinct()
                 .ToArrayAsync(cancellationToken);
             var controllers = await recent
-                .Where(x => x.ControllerUserId != null && userIds.Contains(x.ControllerUserId.Value))
-                .Select(x => x.ControllerUserId!.Value)
+                .Where(x => x.ControlledByUserId != null && userIds.Contains(x.ControlledByUserId.Value))
+                .Select(x => x.ControlledByUserId!.Value)
                 .Distinct()
                 .ToArrayAsync(cancellationToken);
 
-            // Deletions leave no row to be updated, so they are recorded separately
-            var removed = await _db.ControlStatRemovals
-                .Where(x => x.RemovedAt >= from && userIds.Contains(x.UserId))
-                .Select(x => x.UserId)
-                .ToArrayAsync(cancellationToken);
-
-            changed = owners.Union(controllers).Union(removed).ToArray();
+            changed = owners.Union(controllers).ToArray();
         }
         else
         {
@@ -91,8 +85,10 @@ public sealed partial class IntegrationsController
                 g.Sum(x => x.DurationMs), g.Sum(x => x.IntensityMs), g.Max(x => x.MaxIntensity)))
             .ToArrayAsync(cancellationToken);
 
+        // Materialized stats outlive the logs of deleted owners
         var given = await _db.ControlStats
             .Where(x => x.ControllerUserId != null && changed.Contains(x.ControllerUserId.Value))
+            .Where(x => _db.Users.Any(u => u.Id == x.OwnerUserId))
             .GroupBy(x => new { UserId = x.ControllerUserId!.Value, x.Type, x.Live })
             .Select(g => new TotalsRow(g.Key.UserId, g.Key.Type, g.Key.Live, g.Sum(x => x.Count),
                 g.Sum(x => x.DurationMs), g.Sum(x => x.IntensityMs), g.Max(x => x.MaxIntensity)))
@@ -116,10 +112,12 @@ public sealed partial class IntegrationsController
     }
 
     /// <summary>
-    /// Well above how long a stats write takes to commit, and any clock skew between the API and the database, since
-    /// <see cref="ControlStat.UpdatedAt"/> is stamped by the database when its transaction starts.
+    /// Above the 5 minute refresh interval of <c>control_stats</c>, logs written more than an hour late only count
+    /// once it refreshed.
     /// </summary>
-    private static readonly TimeSpan ChangeOverlap = TimeSpan.FromMinutes(5);
+    private static readonly TimeSpan ChangeOverlap = TimeSpan.FromMinutes(15);
+
+    private static readonly TimeSpan LateWriteWindow = TimeSpan.FromDays(1);
 
     private static ControlStatTotals[] ToTotals(IEnumerable<TotalsRow> rows) => rows
         .OrderBy(x => x.Type)

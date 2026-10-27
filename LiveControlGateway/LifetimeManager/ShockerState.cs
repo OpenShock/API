@@ -42,10 +42,9 @@ public sealed class ShockerState
     public LiveFrame? LastFrame { get; set; }
 
     /// <summary>
-    /// Whether the shocker was emitting live control on the previous tick, with which type and by whom.
-    /// Used to count continuous bursts for stats.
+    /// The live control burst running as of the previous tick
     /// </summary>
-    public (ControlType Type, Guid ControllerId)? EmittingOnLastTick { get; set; }
+    public LiveBurst? Burst { get; set; }
     
     /// <summary>
     /// When an exclusive command is sent to the shocker, this is the time it will be exclusive until so we dont allow other live commands
