@@ -216,25 +216,14 @@ public sealed class HubLifetime : IAsyncDisposable
 
     private async Task DeviceMessage(DeviceMessage message)
     {
-        switch (message.Payload)
+        // DeviceMessagePayload is closed, so a payload type added without a case here is a compile warning
+        await (message.Payload switch
         {
-            case DeviceTriggerPayload trigger:
-                await DeviceMessageTrigger(trigger);
-                break;
-            case DeviceTogglePayload toggle:
-                await DeviceMessageToggle(toggle);
-                break;
-            case DeviceControlPayload control:
-                await DeviceMessageControl(control);
-                break;
-            case DeviceOtaInstallPayload { Version: var version }:
-                await OtaInstall(version);
-                break;
-            default:
-                _logger.LogError("Got DeviceMessage with unknown payload type: {PayloadType}",
-                    message.Payload.GetType().Name);
-                break;
-        }
+            DeviceTriggerPayload trigger => new ValueTask(DeviceMessageTrigger(trigger)),
+            DeviceTogglePayload toggle => DeviceMessageToggle(toggle),
+            DeviceControlPayload control => DeviceMessageControl(control),
+            DeviceOtaInstallPayload { Version: var version } => OtaInstall(version),
+        });
     }
 
     private async Task DeviceMessageTrigger(DeviceTriggerPayload trigger)
@@ -364,8 +353,8 @@ public sealed class HubLifetime : IAsyncDisposable
     private async Task Update()
     {
         var now = DateTimeOffset.UtcNow;
-        var commandList = new List<ShockerCommand>(_shockerStates.Count);
-        var emittingFrames = new List<(ShockerState State, LiveFrame Frame)>(_shockerStates.Count);
+        List<ShockerCommand> commandList = [with(capacity: _shockerStates.Count)];
+        List<(ShockerState State, LiveFrame Frame)> emittingFrames = [with(capacity: _shockerStates.Count)];
 
         foreach (var state in _shockerStates.Values)
         {
@@ -475,7 +464,7 @@ public sealed class HubLifetime : IAsyncDisposable
     /// <returns></returns>
     public ValueTask Control(IReadOnlyList<ShockerControlCommand> commands)
     {
-        var shocksTransformed = new List<ShockerCommand>(commands.Count);
+        List<ShockerCommand> shocksTransformed = [with(capacity: commands.Count)];
 
         foreach (var command in commands)
         {

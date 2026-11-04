@@ -76,11 +76,12 @@ public sealed class UserSessionAuthentication : AuthenticationHandler<Authentica
         // An authenticated (hence activated) session has no use for the post-signup resend cookie.
         ActivationResendCookie.Remove(Context);
 
-        var claims = new List<Claim>(2 + user.Roles.Count)
-        {
+        List<Claim> claims =
+        [
+            with(capacity: 2 + user.Roles.Count),
             new(ClaimTypes.AuthenticationMethod, OpenShockAuthSchemes.UserSessionCookie),
             new(ClaimTypes.NameIdentifier, user.Id.ToString()),
-        };
+        ];
 
         foreach (var roletype in user.Roles)
         {

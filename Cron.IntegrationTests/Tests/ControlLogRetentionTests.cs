@@ -40,9 +40,9 @@ public sealed class ControlLogRetentionTests
         var baseTime = DateTime.UtcNow - TimeSpan.FromDays(1);
 
         // A: 15 logs (5 over). Newest 10 survive, oldest 5 go. Split across controllers C (first 8) and D.
-        var aOldestToNewest = new List<Guid>(15);
+        List<Guid> aOldestToNewest = [with(capacity: 15)];
         // B: 5 logs, all older than A's - a global (unpartitioned) trim would wrongly delete them.
-        var bIds = new List<Guid>(5);
+        List<Guid> bIds = [with(capacity: 5)];
 
         await using (var db = await Factory.DbContextFactory.CreateDbContextAsync())
         {

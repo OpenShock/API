@@ -60,12 +60,13 @@ public sealed class ApiTokenAuthentication : AuthenticationHandler<Authenticatio
         Context.SetItemByType(tokenDto);
         Context.SetItemByType(tokenDto.User);
 
-        var claims = new List<Claim>(3 + tokenDto.Permissions.Count)
-        {
+        List<Claim> claims =
+        [
+            with(capacity: 3 + tokenDto.Permissions.Count),
             new(ClaimTypes.AuthenticationMethod, OpenShockAuthSchemes.ApiToken),
             new(ClaimTypes.NameIdentifier, tokenDto.User.Id.ToString()),
             new(OpenShockAuthClaims.ApiTokenId, tokenDto.Id.ToString())
-        };
+        ];
 
         foreach (var perm in tokenDto.Permissions)
         {
