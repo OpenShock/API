@@ -4,6 +4,7 @@ using Microsoft.Extensions.DependencyInjection;
 using OpenShock.API.IntegrationTests.Helpers;
 using OpenShock.Common.Models;
 using OpenShock.Common.OpenShockDb;
+using OpenShock.Common.Utils;
 
 namespace OpenShock.API.IntegrationTests.Tests;
 
@@ -310,6 +311,65 @@ public sealed class MailTests
         await Assert.That(row.Status).IsEqualTo(EmailStatus.Pending);
         await Assert.That(row.CoalesceKey).IsEqualTo(EmailOutboxCoalesceKeys.PasswordReset(userId));
         await Assert.That(row.Payload[EmailOutboxPayloadKeys.PasswordResetId]).IsEqualTo(reset.Id.ToString());
+    }
+
+    [Test]
+    public async Task V2PasswordReset_UnactivatedUser_EnqueuesResetOutbox()
+    {
+        var email = TestHelper.UniqueEmail("mail-pwreset-unact");
+        var username = TestHelper.UniqueUsername("mailpwresetunact");
+        var userId = await TestHelper.CreateUserInDb(WebApplicationFactory, username, email, "OldPassword123#", activated: false);
+
+        using var client = WebApplicationFactory.CreateClient();
+        var response = await client.PostAsync("/2/account/password-reset", TestHelper.JsonContent(new
+        {
+            email,
+            turnstileResponse = "valid-token"
+        }));
+        await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.OK);
+
+        await using var scope = WebApplicationFactory.Services.CreateAsyncScope();
+        var db = scope.ServiceProvider.GetRequiredService<OpenShockContext>();
+        var row = await db.EmailOutbox.AsNoTracking().SingleAsync(m => m.Recipient == email);
+        await Assert.That(row.Type).IsEqualTo(EmailType.PasswordReset);
+        await Assert.That(row.CoalesceKey).IsEqualTo(EmailOutboxCoalesceKeys.PasswordReset(userId));
+    }
+
+    [Test]
+    public async Task PasswordResetComplete_UnactivatedUser_ActivatesAccount()
+    {
+        var email = TestHelper.UniqueEmail("mail-pwreset-activates");
+        var username = TestHelper.UniqueUsername("mailpwresetact");
+        var userId = await TestHelper.CreateUserInDb(WebApplicationFactory, username, email, "OldPassword123#", activated: false);
+
+        // Stand in for the Cron delivery job: seed the activation request and a reset with a known secret.
+        const string secret = "test-password-reset-secret";
+        var resetId = Guid.CreateVersion7();
+        await using (var seedScope = WebApplicationFactory.Services.CreateAsyncScope())
+        {
+            var seedDb = seedScope.ServiceProvider.GetRequiredService<OpenShockContext>();
+            var user = await seedDb.Users.FirstAsync(u => u.Id == userId);
+            seedDb.UserActivationRequests.Add(new UserActivationRequest { UserId = userId, TokenHash = HashingUtils.HashToken("unused-activation-secret") });
+            seedDb.UserPasswordResets.Add(new UserPasswordReset
+            {
+                Id = resetId,
+                UserId = userId,
+                TokenHash = HashingUtils.HashToken(secret),
+                SecurityStampAtCreate = user.SecurityStamp
+            });
+            await seedDb.SaveChangesAsync();
+        }
+
+        using var client = WebApplicationFactory.CreateClient();
+        var response = await client.PostAsync($"/1/account/password-reset/{resetId}/{secret}/complete",
+            TestHelper.JsonContent(new { password = "NewPassword123#" }));
+        await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.OK);
+
+        await using var scope = WebApplicationFactory.Services.CreateAsyncScope();
+        var db = scope.ServiceProvider.GetRequiredService<OpenShockContext>();
+        var activatedAt = await db.Users.AsNoTracking().Where(u => u.Id == userId).Select(u => u.ActivatedAt).SingleAsync();
+        await Assert.That(activatedAt).IsNotNull();
+        await Assert.That(await db.UserActivationRequests.AsNoTracking().AnyAsync(r => r.UserId == userId)).IsFalse();
     }
 
     [Test]

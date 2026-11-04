@@ -96,17 +96,18 @@ public interface IAccountService
     /// <param name="email"></param>
     /// <param name="cancellationToken"></param>
     /// <returns></returns>
-    public Task<Union5<Success, TooManyPasswordResets, AccountNotActivated, AccountDeactivated, NotFound>> CreatePasswordResetFlowAsync(string email, CancellationToken cancellationToken = default);
+    public Task<Union4<Success, TooManyPasswordResets, AccountDeactivated, NotFound>> CreatePasswordResetFlowAsync(string email, CancellationToken cancellationToken = default);
     
     /// <summary>
-    /// Completes a password reset process, sets a new password
+    /// Completes a password reset process, sets a new password. Since the reset link proves control of the
+    /// account's email, this also activates an unactivated account.
     /// </summary>
     /// <param name="passwordResetId"></param>
     /// <param name="secret"></param>
     /// <param name="newPassword"></param>
     /// <param name="cancellationToken"></param>
     /// <returns></returns>
-    public Task<Union5<Success, NotFound, AccountNotActivated, AccountDeactivated, SecretInvalid>> CompletePasswordResetFlowAsync(Guid passwordResetId, string secret, string newPassword, CancellationToken cancellationToken = default);
+    public Task<Union4<Success, NotFound, AccountDeactivated, SecretInvalid>> CompletePasswordResetFlowAsync(Guid passwordResetId, string secret, string newPassword, CancellationToken cancellationToken = default);
     
     /// <summary>
     /// Check the availability of a email
