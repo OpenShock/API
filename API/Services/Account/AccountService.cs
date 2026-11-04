@@ -281,37 +281,59 @@ public sealed class AccountService : IAccountService
     }
 
     /// <inheritdoc />
-    public async Task ResendActivationEmailAsync(string email, CancellationToken cancellationToken = default)
+    public async Task ResendActivationEmailAsync(string usernameOrEmail, CancellationToken cancellationToken = default)
     {
-        var lowerCaseEmail = email.ToLowerInvariant();
+        var lowercaseUsernameOrEmail = usernameOrEmail.ToLowerInvariant();
+
+        var userId = await _db.Users
+            .Where(u => u.Email == lowercaseUsernameOrEmail || u.Name == lowercaseUsernameOrEmail)
+            .Select(u => (Guid?)u.Id)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        // Silently no-op (and ignore the result) so this endpoint can't be used to probe which emails are
+        // registered, already activated, deactivated, or currently throttled.
+        if (userId is null) return;
+        await ResendActivationEmailAsync(userId.Value, cancellationToken);
+    }
+
+    /// <inheritdoc />
+    public async Task<Union4<Success, TooManyActivationResends, AccountDeactivated, NotFound>> ResendActivationEmailAsync(Guid userId, CancellationToken cancellationToken = default)
+    {
+        // Without mail no link can be delivered (and such accounts are activated on creation anyway).
+        if (!_mailOptions.IsEnabled) return new NotFound();
 
         var user = await _db.Users
-            .Include(u => u.UserDeactivation)
             .Include(u => u.UserActivationRequest)
-            .FirstOrDefaultAsync(u => u.Email == lowerCaseEmail, cancellationToken);
+            .Include(u => u.UserDeactivation)
+            .FirstOrDefaultAsync(u => u.Id == userId, cancellationToken);
+        if (user is null || user.ActivatedAt is not null) return new NotFound();
+        if (user.UserDeactivation is not null) return new AccountDeactivated();
 
-        // Silently no-op when there is nothing to send, so this endpoint can't be used to probe
-        // which emails are registered, already activated, or deactivated.
-        if (user is null || user.ActivatedAt is not null || user.UserDeactivation is not null) return;
+        // Throttle on the outbox itself (it is never auto-pruned), so the limit holds across API instances
+        // and restarts. The signup email counts towards it. A concurrent double-submit can slip one extra
+        // row past the check, but activation emails coalesce per user, so only the newest is delivered.
+        var coalesceKey = EmailOutboxCoalesceKeys.AccountActivation(userId);
+        var windowStart = DateTime.UtcNow - Duration.ActivationResendWindow;
+        var recent = await _db.EmailOutbox
+            .Where(m => m.CoalesceKey == coalesceKey && m.CreatedAt >= windowStart)
+            .Select(m => m.CreatedAt)
+            .ToListAsync(cancellationToken);
 
-        // Ensure an activation request exists (legacy data or a failed initial send may lack one). The
-        // real token is minted lazily by the outbox delivery job at send time, so we only seed the hash
-        // here; the seed is overwritten on send.
-        if (user.UserActivationRequest is null)
+        if (recent.Count >= 5 || recent.Any(createdAt => createdAt >= DateTime.UtcNow - Duration.ActivationResendCooldown))
+            return new TooManyActivationResends();
+
+        user.UserActivationRequest ??= new UserActivationRequest
         {
-            user.UserActivationRequest = new UserActivationRequest
-            {
-                UserId = user.Id,
-                TokenHash = SeedTokenHash()
-            };
-        }
+            UserId = user.Id,
+            TokenHash = SeedTokenHash(),
+            CreatedAt = DateTime.UtcNow
+        };
 
-        // Durably enqueue a fresh activation email. Its coalesce key supersedes any still-pending
-        // activation for this user, and the delivery job re-mints the token on send - invalidating any
-        // previously emailed link.
         _db.EmailOutbox.Add(EmailOutboxMessage.ForAccountActivation(user.Id, user.Email, user.Name));
         await _db.SaveChangesAsync(cancellationToken);
         await NotifyEmailOutboxAsync();
+
+        return new Success();
     }
 
     /// <inheritdoc />

@@ -93,6 +93,9 @@ public sealed class MailTests
         }));
         await Assert.That(signupResponse.StatusCode).IsEqualTo(HttpStatusCode.OK);
 
+        // Move the signup email out of the resend cooldown.
+        await BackdateOutboxAsync(email, TimeSpan.FromMinutes(11));
+
         // Resend enqueues another activation email. The delivery job re-mints the token and supersedes the
         // older row at send time (coalesce key) - that token rotation is covered in Cron.IntegrationTests.
         var resendResponse = await client.PostAsync("/1/account/activate/resend", TestHelper.JsonContent(new { email, turnstileResponse = "valid-token" }));
@@ -106,6 +109,101 @@ public sealed class MailTests
         await Assert.That(rows.Count).IsEqualTo(2);
         await Assert.That(rows.All(r => r.Type == EmailType.AccountActivation)).IsTrue();
         await Assert.That(rows.All(r => r.CoalesceKey == EmailOutboxCoalesceKeys.AccountActivation(user.Id))).IsTrue();
+    }
+
+    [Test]
+    public async Task ResendActivation_WithinCooldown_Returns200_AndEnqueuesNothing()
+    {
+        var email = TestHelper.UniqueEmail("mail-resend-cooldown");
+        var username = TestHelper.UniqueUsername("mailresendcooldown");
+        await TestHelper.CreateUserInDb(WebApplicationFactory, username, email, "SecurePassword123#", activated: false);
+
+        using var client = WebApplicationFactory.CreateClient();
+        for (var i = 0; i < 3; i++)
+        {
+            var response = await client.PostAsync("/1/account/activate/resend", TestHelper.JsonContent(new { email, turnstileResponse = "valid-token" }));
+            await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.OK);
+        }
+
+        await Assert.That(await CountOutboxAsync(email)).IsEqualTo(1);
+    }
+
+    [Test]
+    public async Task ResendActivation_DailyCapReached_EnqueuesNothing()
+    {
+        var email = TestHelper.UniqueEmail("mail-resend-cap");
+        var username = TestHelper.UniqueUsername("mailresendcap");
+        await TestHelper.CreateUserInDb(WebApplicationFactory, username, email, "SecurePassword123#", activated: false);
+
+        using var client = WebApplicationFactory.CreateClient();
+        for (var i = 0; i < 6; i++)
+        {
+            var response = await client.PostAsync("/1/account/activate/resend", TestHelper.JsonContent(new { email, turnstileResponse = "valid-token" }));
+            await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.OK);
+            // Step past the cooldown each time; only the 24h cap of 5 should stop the sixth.
+            await BackdateOutboxAsync(email, TimeSpan.FromMinutes(11));
+        }
+
+        await Assert.That(await CountOutboxAsync(email)).IsEqualTo(5);
+    }
+
+    [Test]
+    public async Task Login_UnactivatedUser_CorrectPassword_ReturnsNotActivated_AndEnqueuesActivation()
+    {
+        var email = TestHelper.UniqueEmail("mail-login-unactivated");
+        var username = TestHelper.UniqueUsername("maillogunact");
+        var userId = await TestHelper.CreateUserInDb(WebApplicationFactory, username, email, "SecurePassword123#", activated: false);
+
+        using var client = WebApplicationFactory.CreateClient();
+        var response = await client.PostAsync("/2/account/login", TestHelper.JsonContent(new
+        {
+            usernameOrEmail = email,
+            password = "SecurePassword123#",
+            turnstileResponse = "valid-token"
+        }));
+        await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.Unauthorized);
+        await Assert.That(await response.Content.ReadAsStringAsync()).Contains("Account.AccountNotActivated");
+
+        await using var scope = WebApplicationFactory.Services.CreateAsyncScope();
+        var db = scope.ServiceProvider.GetRequiredService<OpenShockContext>();
+        var row = await db.EmailOutbox.AsNoTracking().SingleAsync(m => m.Recipient == email);
+        await Assert.That(row.Type).IsEqualTo(EmailType.AccountActivation);
+        await Assert.That(row.CoalesceKey).IsEqualTo(EmailOutboxCoalesceKeys.AccountActivation(userId));
+    }
+
+    [Test]
+    public async Task Login_UnactivatedUser_WrongPassword_EnqueuesNothing()
+    {
+        var email = TestHelper.UniqueEmail("mail-login-unact-wrong");
+        var username = TestHelper.UniqueUsername("maillogunactw");
+        await TestHelper.CreateUserInDb(WebApplicationFactory, username, email, "SecurePassword123#", activated: false);
+
+        using var client = WebApplicationFactory.CreateClient();
+        var response = await client.PostAsync("/2/account/login", TestHelper.JsonContent(new
+        {
+            usernameOrEmail = email,
+            password = "WrongPassword123#",
+            turnstileResponse = "valid-token"
+        }));
+        await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.Unauthorized);
+
+        await Assert.That(await CountOutboxAsync(email)).IsEqualTo(0);
+    }
+
+    private async Task<int> CountOutboxAsync(string email)
+    {
+        await using var scope = WebApplicationFactory.Services.CreateAsyncScope();
+        var db = scope.ServiceProvider.GetRequiredService<OpenShockContext>();
+        return await db.EmailOutbox.AsNoTracking().CountAsync(m => m.Recipient == email);
+    }
+
+    private async Task BackdateOutboxAsync(string email, TimeSpan by)
+    {
+        await using var scope = WebApplicationFactory.Services.CreateAsyncScope();
+        var db = scope.ServiceProvider.GetRequiredService<OpenShockContext>();
+        await db.EmailOutbox
+            .Where(m => m.Recipient == email)
+            .ExecuteUpdateAsync(s => s.SetProperty(m => m.CreatedAt, m => m.CreatedAt - by));
     }
 
     [Test]

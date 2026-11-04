@@ -76,6 +76,23 @@ public sealed partial class OAuthController
                     return RedirectFrontendPath($"/oauth/{Uri.EscapeDataString(provider)}/create");
                 }
 
+                // Session auth rejects (and deletes) sessions of unactivated or deactivated users, so creating one
+                // here would bounce the user silently back to the login page. Surface the reason instead.
+                if (connection.User.UserDeactivation is not null)
+                {
+                    await HttpContext.SignOutAsync(OAuthConstants.FlowScheme);
+                    return RedirectFrontendError("accountDeactivated");
+                }
+
+                if (connection.User.ActivatedAt is null)
+                {
+                    // The provider vouched for the identity, so the caller owns this account: (re)send the
+                    // activation link (rate limited inside the service).
+                    await _accountService.ResendActivationEmailAsync(connection.UserId, cancellationToken);
+                    await HttpContext.SignOutAsync(OAuthConstants.FlowScheme);
+                    return RedirectFrontendError("accountNotActivated");
+                }
+
                 // Direct sign-in
                 var domain = GetCurrentCookieDomain();
                 if (string.IsNullOrEmpty(domain))

@@ -52,6 +52,15 @@ public sealed partial class AccountController
         var getAccountResult = await _accountService.GetAccountByCredentialsAsync(body.UsernameOrEmail, body.Password, cancellationToken);
         if (getAccountResult is not User account)
         {
+            // AccountNotActivated is only returned after the password checked out, so the caller owns this
+            // account: (re)send the activation link. Rate limited inside the service, and the response is the
+            // same whether or not a mail went out.
+            if (getAccountResult is AccountNotActivated)
+            {
+                await _accountService.ResendActivationEmailAsync(body.UsernameOrEmail, cancellationToken);
+            }
+
+
             return getAccountResult switch
             {
                 Results.NotFound => Problem(LoginError.InvalidCredentials),

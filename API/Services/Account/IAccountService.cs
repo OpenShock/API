@@ -48,13 +48,23 @@ public interface IAccountService
     Task<bool> TryActivateAccountAsync(string token, CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Resends the account activation email for an unactivated account, rotating the activation token.
-    /// Silently does nothing when no email is needed (unknown email, already activated, or deactivated)
-    /// to avoid leaking account state.
+    /// Resends the account activation email for the unactivated account with this username or email. Silently
+    /// does nothing when no email is sent (unknown account, already activated, deactivated, or throttled) to
+    /// avoid leaking account state. Subject to the same per-user rate limit as the overload below.
     /// </summary>
-    /// <param name="email">The email address of the account to resend the activation email for.</param>
+    /// <param name="usernameOrEmail">The username or email address of the account.</param>
     /// <param name="cancellationToken"></param>
-    Task ResendActivationEmailAsync(string email, CancellationToken cancellationToken = default);
+    Task ResendActivationEmailAsync(string usernameOrEmail, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Re-enqueues the activation email for an unactivated, non-deactivated account. Only call this after the
+    /// caller has proven ownership (correct password or OAuth identity). Rate limited per user: one email per
+    /// 10 minutes, at most 5 per 24 hours (the signup email included).
+    /// </summary>
+    /// <param name="userId"></param>
+    /// <param name="cancellationToken"></param>
+    /// <returns>NotFound when there is nothing to resend (unknown user, already activated, or mail disabled).</returns>
+    Task<Union4<Success, TooManyActivationResends, AccountDeactivated, NotFound>> ResendActivationEmailAsync(Guid userId, CancellationToken cancellationToken = default);
 
     public Task<Union5<Success, CannotDeactivatePrivilegedAccount, AccountDeactivationAlreadyInProgress, Unauthorized, NotFound>> DeactivateAccountAsync(Guid executingUserId, Guid userId, bool deleteLater = true, string? reason = null, CancellationToken cancellationToken = default);
 
@@ -180,6 +190,7 @@ public sealed class CannotDeactivatePrivilegedAccount;
 public sealed class AccountDeactivationAlreadyInProgress;
 public sealed class CannotDeletePrivilegedAccount;
 public sealed class TooManyPasswordResets;
+public sealed class TooManyActivationResends;
 public sealed class SecretInvalid;
 public sealed class Unauthorized;
 
