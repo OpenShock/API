@@ -73,6 +73,9 @@ public sealed class UserSessionAuthentication : AuthenticationHandler<Authentica
         Context.SetItemByType(session);
         Context.SetItemByType(user);
 
+        // An authenticated (hence activated) session has no use for the post-signup resend cookie.
+        ActivationResendCookie.Remove(Context);
+
         List<Claim> claims =
         [
             with(capacity: 2 + user.Roles.Count),

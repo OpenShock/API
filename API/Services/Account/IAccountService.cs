@@ -47,6 +47,25 @@ public interface IAccountService
     /// <returns></returns>
     Task<bool> TryActivateAccountAsync(string token, CancellationToken cancellationToken = default);
 
+    /// <summary>
+    /// Looks up the account by username or email and re-enqueues its activation email, see the overload below.
+    /// Only call this after the caller has proven ownership (e.g. a correct password), as the result reveals
+    /// account state.
+    /// </summary>
+    /// <param name="usernameOrEmail"></param>
+    /// <param name="cancellationToken"></param>
+    Task<Union4<Success, TooManyActivationResends, AccountDeactivated, NotFound>> ResendActivationEmailAsync(string usernameOrEmail, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Re-enqueues the activation email for an unactivated, non-deactivated account. Only call this after the
+    /// caller has proven ownership (correct password or OAuth identity). Rate limited per user: one email per
+    /// 10 minutes, at most 5 per 24 hours (the signup email included).
+    /// </summary>
+    /// <param name="userId"></param>
+    /// <param name="cancellationToken"></param>
+    /// <returns>NotFound when there is nothing to resend (unknown user, already activated, or mail disabled).</returns>
+    Task<Union4<Success, TooManyActivationResends, AccountDeactivated, NotFound>> ResendActivationEmailAsync(Guid userId, CancellationToken cancellationToken = default);
+
     public Task<Union5<Success, CannotDeactivatePrivilegedAccount, AccountDeactivationAlreadyInProgress, Unauthorized, NotFound>> DeactivateAccountAsync(Guid executingUserId, Guid userId, bool deleteLater = true, string? reason = null, CancellationToken cancellationToken = default);
 
     public Task<Union3<Success, Unauthorized, NotFound>> ReactivateAccountAsync(Guid executingUserId, Guid userId, string? reason = null, CancellationToken cancellationToken = default);
@@ -77,17 +96,18 @@ public interface IAccountService
     /// <param name="email"></param>
     /// <param name="cancellationToken"></param>
     /// <returns></returns>
-    public Task<Union5<Success, TooManyPasswordResets, AccountNotActivated, AccountDeactivated, NotFound>> CreatePasswordResetFlowAsync(string email, CancellationToken cancellationToken = default);
+    public Task<Union4<Success, TooManyPasswordResets, AccountDeactivated, NotFound>> CreatePasswordResetFlowAsync(string email, CancellationToken cancellationToken = default);
     
     /// <summary>
-    /// Completes a password reset process, sets a new password
+    /// Completes a password reset process, sets a new password. Since the reset link proves control of the
+    /// account's email, this also activates an unactivated account.
     /// </summary>
     /// <param name="passwordResetId"></param>
     /// <param name="secret"></param>
     /// <param name="newPassword"></param>
     /// <param name="cancellationToken"></param>
     /// <returns></returns>
-    public Task<Union5<Success, NotFound, AccountNotActivated, AccountDeactivated, SecretInvalid>> CompletePasswordResetFlowAsync(Guid passwordResetId, string secret, string newPassword, CancellationToken cancellationToken = default);
+    public Task<Union4<Success, NotFound, AccountDeactivated, SecretInvalid>> CompletePasswordResetFlowAsync(Guid passwordResetId, string secret, string newPassword, CancellationToken cancellationToken = default);
     
     /// <summary>
     /// Check the availability of a email
@@ -171,6 +191,7 @@ public sealed class CannotDeactivatePrivilegedAccount;
 public sealed class AccountDeactivationAlreadyInProgress;
 public sealed class CannotDeletePrivilegedAccount;
 public sealed class TooManyPasswordResets;
+public sealed class TooManyActivationResends;
 public sealed class SecretInvalid;
 public sealed class Unauthorized;
 

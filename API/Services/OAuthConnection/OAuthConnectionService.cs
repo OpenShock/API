@@ -30,6 +30,8 @@ public sealed class OAuthConnectionService : IOAuthConnectionService
     {
         var p = provider.ToLowerInvariant();
         return await _db.UserOAuthConnections
+            .Include(c => c.User)
+            .ThenInclude(u => u.UserDeactivation)
             .FirstOrDefaultAsync(c => c.ProviderKey == p && c.ExternalId == providerAccountId, cancellationToken);
     }
 

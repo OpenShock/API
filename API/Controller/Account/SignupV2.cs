@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using OpenShock.Common.Authentication;
+using Microsoft.AspNetCore.Mvc;
 using OpenShock.API.Models.Requests;
 using OpenShock.API.Services.Account;
 using System.Diagnostics;
@@ -49,13 +50,19 @@ public sealed partial class AccountController
         // Created with an automation token, the account is linked to it and the use audited in the same transaction.
         var creationAction = await _accountService.CreateAccountWithActivationFlowAsync(
             body.Email, body.Username, body.Password, cancellationToken);
-        if (creationAction is not User _)
+        if (creationAction is not User newUser)
         {
             return creationAction switch
             {
                 AccountWithEmailOrUsernameExists => Problem(SignupError.UsernameOrEmailExists),
                 _ => throw new UnreachableException()
             };
+        }
+
+        // Lets this browser ask for the activation email again without typing the address.
+        if (newUser.ActivatedAt is null && GetCurrentCookieDomain() is { } cookieDomain)
+        {
+            ActivationResendCookie.Set(HttpContext, newUser.Id, cookieDomain);
         }
 
         return Ok();

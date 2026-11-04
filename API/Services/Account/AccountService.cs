@@ -281,6 +281,67 @@ public sealed class AccountService : IAccountService
     }
 
     /// <inheritdoc />
+    public async Task<Union4<Success, TooManyActivationResends, AccountDeactivated, NotFound>> ResendActivationEmailAsync(string usernameOrEmail, CancellationToken cancellationToken = default)
+    {
+        var lowercaseUsernameOrEmail = usernameOrEmail.ToLowerInvariant();
+
+        var userId = await _db.Users
+            .Where(u => u.Email == lowercaseUsernameOrEmail || u.Name == lowercaseUsernameOrEmail)
+            .Select(u => (Guid?)u.Id)
+            .FirstOrDefaultAsync(cancellationToken);
+        if (userId is null) return new NotFound();
+
+        return await ResendActivationEmailAsync(userId.Value, cancellationToken);
+    }
+
+    /// <inheritdoc />
+    public async Task<Union4<Success, TooManyActivationResends, AccountDeactivated, NotFound>> ResendActivationEmailAsync(Guid userId, CancellationToken cancellationToken = default)
+    {
+        // Without mail no link can be delivered (and such accounts are activated on creation anyway).
+        if (!_mailOptions.IsEnabled) return new NotFound();
+
+        // Serialize resends per user: lock the user row for the whole check-then-enqueue, so concurrent
+        // requests can't both pass the limit below. Released on commit/rollback.
+        await using var tx = await _db.Database.BeginTransactionAsync(cancellationToken);
+        await _db.Database.ExecuteSqlAsync($"SELECT 1 FROM users WHERE id = {userId} FOR UPDATE", cancellationToken);
+
+        var user = await _db.Users
+            .Include(u => u.UserActivationRequest)
+            .Include(u => u.UserDeactivation)
+            .FirstOrDefaultAsync(u => u.Id == userId, cancellationToken);
+        if (user is null || user.ActivatedAt is not null) return new NotFound();
+        if (user.UserDeactivation is not null) return new AccountDeactivated();
+
+        // Throttle on the outbox itself (it is never auto-pruned), so the limit holds across API instances
+        // and restarts. The signup email counts towards it.
+        var coalesceKey = EmailOutboxCoalesceKeys.AccountActivation(userId);
+        var windowStart = DateTime.UtcNow - Duration.ActivationResendWindow;
+        var recent = await _db.EmailOutbox
+            .Where(m => m.CoalesceKey == coalesceKey && m.CreatedAt >= windowStart)
+            .Select(m => m.CreatedAt)
+            .ToListAsync(cancellationToken);
+
+        if (recent.Count >= 5 || recent.Any(createdAt => createdAt >= DateTime.UtcNow - Duration.ActivationResendCooldown))
+            return new TooManyActivationResends();
+
+        user.UserActivationRequest ??= new UserActivationRequest
+        {
+            UserId = user.Id,
+            TokenHash = SeedTokenHash(),
+            CreatedAt = DateTime.UtcNow
+        };
+
+        _db.EmailOutbox.Add(EmailOutboxMessage.ForAccountActivation(user.Id, user.Email, user.Name));
+        await _db.SaveChangesAsync(cancellationToken);
+        await tx.CommitAsync(cancellationToken);
+
+        // Notify the outbox delivery job only after a successful commit.
+        await NotifyEmailOutboxAsync();
+
+        return new Success();
+    }
+
+    /// <inheritdoc />
     public async Task<Union5<Success, CannotDeactivatePrivilegedAccount, AccountDeactivationAlreadyInProgress, Unauthorized, NotFound>> DeactivateAccountAsync(Guid executingUserId, Guid userId, bool deleteLater, string? reason = null, CancellationToken cancellationToken = default)
     {
         if (executingUserId != userId)
@@ -486,7 +547,7 @@ public sealed class AccountService : IAccountService
     }
 
     /// <inheritdoc />
-    public async Task<Union5<Success, TooManyPasswordResets, AccountNotActivated, AccountDeactivated, NotFound>> CreatePasswordResetFlowAsync(string email, CancellationToken cancellationToken)
+    public async Task<Union4<Success, TooManyPasswordResets, AccountDeactivated, NotFound>> CreatePasswordResetFlowAsync(string email, CancellationToken cancellationToken)
     {
         var validSince = DateTime.UtcNow - Duration.PasswordResetRequestLifetime;
         var lowerCaseEmail = email.ToLowerInvariant();
@@ -500,7 +561,8 @@ public sealed class AccountService : IAccountService
             })
             .FirstOrDefaultAsync(cancellationToken);
         if (user is null) return new NotFound();
-        if (user.User.ActivatedAt is null) return new AccountNotActivated();
+        // Unactivated accounts are allowed: completing the reset proves control of the inbox, which is all
+        // activation checks, so it activates the account (see CompletePasswordResetFlowAsync).
         if (user.IsDeactivated) return new AccountDeactivated();
         if (user.PasswordResetCount >= 3) return new TooManyPasswordResets();
 
@@ -523,7 +585,7 @@ public sealed class AccountService : IAccountService
     }
 
     /// <inheritdoc />
-    public async Task<Union5<Success, NotFound, AccountNotActivated, AccountDeactivated, SecretInvalid>> CompletePasswordResetFlowAsync(Guid passwordResetId,
+    public async Task<Union4<Success, NotFound, AccountDeactivated, SecretInvalid>> CompletePasswordResetFlowAsync(Guid passwordResetId,
         string secret, string newPassword,
         CancellationToken cancellationToken)
     {
@@ -533,14 +595,12 @@ public sealed class AccountService : IAccountService
             .Select(x => new
             {
                 Reset = x,
-                UserActivatedAt = x.User.ActivatedAt,
                 IsDeactivated = x.User.UserDeactivation != null,
                 UserSecurityStamp = x.User.SecurityStamp
             })
             .FirstOrDefaultAsync(x => x.Reset.Id == passwordResetId && x.Reset.UsedAt == null && x.Reset.CreatedAt >= validSince
                 && x.Reset.SecurityStampAtCreate == x.UserSecurityStamp, cancellationToken);
         if (reset is null) return new NotFound();
-        if (reset.UserActivatedAt is null) return new AccountNotActivated();
         if (reset.IsDeactivated) return new AccountDeactivated();
 
         var result = HashingUtils.VerifyToken(secret, reset.Reset.TokenHash);
@@ -551,16 +611,24 @@ public sealed class AccountService : IAccountService
         // Race-safe consume + apply: only updates if SecurityStamp still matches the snapshot.
         // If a sibling reset (or a separate password/email change) completed since the read above,
         // the stamp has rotated and the predicate matches zero rows.
+        // The reset link was delivered to the account's email, so completing it also verifies that email:
+        // an unactivated account is activated here (an already activated one keeps its original timestamp).
         var newPasswordHash = HashingUtils.HashPassword(newPassword);
         var newStamp = Guid.CreateVersion7();
+        var now = DateTime.UtcNow;
         var userRows = await _db.Users
             .Where(u => u.Id == reset.Reset.UserId && u.SecurityStamp == reset.Reset.SecurityStampAtCreate)
             .ExecuteUpdateAsync(s => s
                 .SetProperty(u => u.PasswordHash, newPasswordHash)
-                .SetProperty(u => u.SecurityStamp, newStamp), cancellationToken);
+                .SetProperty(u => u.SecurityStamp, newStamp)
+                .SetProperty(u => u.ActivatedAt, u => u.ActivatedAt ?? now), cancellationToken);
         if (userRows == 0) return new NotFound();
 
-        var now = DateTime.UtcNow;
+        // Any pending activation request is moot now; dropping it also makes the outbox skip a queued activation email.
+        await _db.UserActivationRequests
+            .Where(r => r.UserId == reset.Reset.UserId)
+            .ExecuteDeleteAsync(cancellationToken);
+
         await _db.UserPasswordResets
             .Where(r => r.Id == reset.Reset.Id && r.UsedAt == null)
             .ExecuteUpdateAsync(s => s.SetProperty(r => r.UsedAt, now), cancellationToken);
