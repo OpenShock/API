@@ -21,6 +21,7 @@ public sealed partial class ShockerController
     /// </summary>
     /// <param name="shockerId"></param>
     /// <param name="deviceUpdateService"></param>
+    /// <param name="cancellationToken"></param>
     /// <response code="200">Successfully deleted shocker</response>
     /// <response code="404">Shocker does not exist</response>
     [HttpDelete("{shockerId}")]
@@ -30,12 +31,13 @@ public sealed partial class ShockerController
     [MapToApiVersion("1")]
     public async Task<IActionResult> RemoveShocker(
         [FromRoute] Guid shockerId,
-        [FromServices] IDeviceUpdateService deviceUpdateService)
+        [FromServices] IDeviceUpdateService deviceUpdateService,
+        CancellationToken cancellationToken)
     {
         var affected = await _db.Shockers
             .Where(x => x.Id == shockerId)
             .WhereIsUserOrPrivileged(x => x.Device.Owner, CurrentUser)
-            .FirstOrDefaultAsync();
+            .FirstOrDefaultAsync(cancellationToken);
 
         if (affected is null)
         {
@@ -43,9 +45,9 @@ public sealed partial class ShockerController
         }
 
         _db.Shockers.Remove(affected);
-        await _db.SaveChangesAsync();
+        await _db.SaveChangesAsync(cancellationToken);
 
-        await deviceUpdateService.UpdateDeviceForAllShared(CurrentUser.Id, affected.DeviceId, DeviceUpdateType.ShockerUpdated);
+        await deviceUpdateService.UpdateDeviceForAllShared(CurrentUser.Id, affected.DeviceId, DeviceUpdateType.ShockerUpdated, cancellationToken);
 
         return LegacyEmptyOk("Shocker removed successfully");
     }

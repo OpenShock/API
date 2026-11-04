@@ -18,14 +18,17 @@ namespace OpenShock.API.Controller.Sessions;
 public sealed partial class SessionsController : AuthenticatedSessionControllerBase
 {
     private readonly ISessionService _sessionService;
+    private readonly ILogger<SessionsController> _logger;
 
     /// <summary>
     /// DI constructor
     /// </summary>
     /// <param name="sessionService"></param>
-    public SessionsController(ISessionService sessionService)
+    /// <param name="logger"></param>
+    public SessionsController(ISessionService sessionService, ILogger<SessionsController> logger)
     {
         _sessionService = sessionService;
+        _logger = logger;
     }
     
 

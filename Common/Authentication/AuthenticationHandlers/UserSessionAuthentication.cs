@@ -1,7 +1,6 @@
 ﻿using Microsoft.AspNetCore.Authentication;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
-using OpenShock.Common.Authentication.Services;
 using OpenShock.Common.Constants;
 using OpenShock.Common.Errors;
 using OpenShock.Common.Extensions;
@@ -20,7 +19,6 @@ namespace OpenShock.Common.Authentication.AuthenticationHandlers;
 
 public sealed class UserSessionAuthentication : AuthenticationHandler<AuthenticationSchemeOptions>
 {
-    private readonly IUserReferenceService _userReferenceService;
     private readonly IBatchUpdateService _batchUpdateService;
     private readonly OpenShockContext _db;
     private readonly ISessionService _sessionService;
@@ -30,14 +28,12 @@ public sealed class UserSessionAuthentication : AuthenticationHandler<Authentica
         IOptionsMonitor<AuthenticationSchemeOptions> options,
         ILoggerFactory logger,
         UrlEncoder encoder,
-        IUserReferenceService userReferenceService,
         OpenShockContext db,
         ISessionService sessionService,
         IBatchUpdateService batchUpdateService
         )
         : base(options, logger, encoder)
     {
-        _userReferenceService = userReferenceService;
         _db = db;
         _sessionService = sessionService;
         _batchUpdateService = batchUpdateService;
@@ -61,7 +57,7 @@ public sealed class UserSessionAuthentication : AuthenticationHandler<Authentica
 
         _batchUpdateService.UpdateSessionLastUsed(sessionToken, DateTimeOffset.UtcNow);
 
-        var user = await _db.Users.Include(u => u.UserDeactivation).FirstOrDefaultAsync(user => user.Id == session.UserId);
+        var user = await _db.Users.Include(u => u.UserDeactivation).FirstOrDefaultAsync(user => user.Id == session.UserId, Context.RequestAborted);
         if (user is null) return Fail(AuthResultError.SessionInvalid);
         if (user.ActivatedAt is null)
         {
@@ -74,8 +70,8 @@ public sealed class UserSessionAuthentication : AuthenticationHandler<Authentica
             return Fail(AuthResultError.AccountDeactivated);
         }
 
-        Context.Items["User"] = user;
-        _userReferenceService.AuthReference = session;
+        Context.SetItemByType(session);
+        Context.SetItemByType(user);
 
         var claims = new List<Claim>(2 + user.Roles.Count)
         {

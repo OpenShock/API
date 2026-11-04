@@ -20,6 +20,7 @@ public sealed class Shocker
     public Device Device { get; set; } = null!;
     public ICollection<UserShareInviteShocker> UserShareInviteShockerMappings { get; } = [];
     public ICollection<ShockerControlLog> ShockerControlLogs { get; } = [];
+    public ICollection<ControlStat> ControlStats { get; } = [];
     public ICollection<ShockerShareCode> ShockerShareCodes { get; } = [];
     public ICollection<UserShare> UserShares { get; } = [];
     public ICollection<PublicShareShocker> PublicShareMappings { get; } = [];

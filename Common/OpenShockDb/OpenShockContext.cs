@@ -85,6 +85,12 @@ public class OpenShockContext : DbContext, IDataProtectionKeyContext
 
     public DbSet<ShockerControlLog> ShockerControlLogs { get; set; }
 
+    public DbSet<ControlStat> ControlStats { get; set; }
+
+    public DbSet<ControlStatBatch> ControlStatBatches { get; set; }
+
+    public DbSet<ControlStatRemoval> ControlStatRemovals { get; set; }
+
     public DbSet<UserShare> UserShares { get; set; }
 
     public DbSet<ShockerShareCode> ShockerShareCodes { get; set; }
@@ -116,6 +122,8 @@ public class OpenShockContext : DbContext, IDataProtectionKeyContext
     public DbSet<EmailProviderBlacklist> EmailProviderBlacklists { get; set; }
 
     public DbSet<EmailOutboxMessage> EmailOutbox { get; set; }
+
+    public DbSet<AutomationToken> AutomationTokens { get; set; }
     
     public DbSet<DataProtectionKey> DataProtectionKeys { get; set; }
 
@@ -450,6 +458,79 @@ public class OpenShockContext : DbContext, IDataProtectionKeyContext
                 .HasConstraintName("fk_shocker_control_logs_shocker_id");
         });
 
+        modelBuilder.Entity<ControlStat>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("control_stats_pkey");
+
+            entity.ToTable("control_stats");
+
+            // Upsert target. Rows orphaned by a shocker delete (shocker_id SET NULL) fall outside the filter, so
+            // they may duplicate each other without violating it; readers sum them anyway.
+            entity.HasIndex(e => new { e.OwnerUserId, e.ShockerId, e.ControllerUserId, e.Bucket, e.Type, e.Live })
+                .IsUnique()
+                .AreNullsDistinct(false)
+                .HasFilter("shocker_id IS NOT NULL")
+                .HasDatabaseName("ix_control_stats_upsert_key");
+            entity.HasIndex(e => new { e.OwnerUserId, e.Bucket });
+            entity.HasIndex(e => new { e.ControllerUserId, e.Bucket });
+            entity.HasIndex(e => e.ShockerId);
+            entity.HasIndex(e => e.UpdatedAt);
+
+            entity.Property(e => e.Id)
+                .ValueGeneratedNever()
+                .HasColumnName("id");
+            entity.Property(e => e.OwnerUserId).HasColumnName("owner_user_id");
+            entity.Property(e => e.ShockerId).HasColumnName("shocker_id");
+            entity.Property(e => e.ControllerUserId).HasColumnName("controller_user_id");
+            entity.Property(e => e.Bucket).HasColumnName("bucket");
+            entity.Property(e => e.Type).HasColumnType("control_type").HasColumnName("type");
+            entity.Property(e => e.Live).HasColumnName("live");
+            entity.Property(e => e.Count).HasColumnName("count");
+            entity.Property(e => e.DurationMs).HasColumnName("duration_ms");
+            entity.Property(e => e.IntensityMs).HasColumnName("intensity_ms");
+            entity.Property(e => e.MaxIntensity).HasColumnName("max_intensity");
+            entity.Property(e => e.UpdatedAt).HasColumnName("updated_at");
+
+            entity.HasOne(e => e.Owner).WithMany(u => u.ControlStats)
+                .HasForeignKey(e => e.OwnerUserId)
+                .OnDelete(DeleteBehavior.Cascade)
+                .HasConstraintName("fk_control_stats_owner_user_id");
+
+            entity.HasOne(e => e.Shocker).WithMany(s => s.ControlStats)
+                .HasForeignKey(e => e.ShockerId)
+                .OnDelete(DeleteBehavior.SetNull)
+                .HasConstraintName("fk_control_stats_shocker_id");
+        });
+
+        modelBuilder.Entity<ControlStatBatch>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("control_stat_batches_pkey");
+
+            entity.ToTable("control_stat_batches");
+
+            entity.HasIndex(e => e.AppliedAt);
+
+            entity.Property(e => e.Id)
+                .ValueGeneratedNever()
+                .HasColumnName("id");
+            entity.Property(e => e.AppliedAt).HasColumnName("applied_at");
+        });
+
+        // Filled by the control_stats_record_removals trigger, see the AddControlStats migration
+        modelBuilder.Entity<ControlStatRemoval>(entity =>
+        {
+            entity.HasKey(e => e.UserId).HasName("control_stat_removals_pkey");
+
+            entity.ToTable("control_stat_removals");
+
+            entity.HasIndex(e => e.RemovedAt);
+
+            entity.Property(e => e.UserId)
+                .ValueGeneratedNever()
+                .HasColumnName("user_id");
+            entity.Property(e => e.RemovedAt).HasColumnName("removed_at");
+        });
+
         modelBuilder.Entity<UserShare>(entity =>
         {
             entity.HasKey(e => new { e.SharedWithUserId, e.ShockerId }).HasName("user_shares_pkey");
@@ -626,6 +707,15 @@ public class OpenShockContext : DbContext, IDataProtectionKeyContext
                 .HasColumnName("created_at");
             entity.Property(e => e.ActivatedAt)
                 .HasColumnName("activated_at");
+            entity.Property(e => e.CreatedByAutomationTokenId)
+                .HasColumnName("created_by_automation_token_id");
+
+            entity.HasIndex(e => e.CreatedByAutomationTokenId);
+
+            entity.HasOne(d => d.CreatedByAutomationToken).WithMany(p => p.CreatedUsers)
+                .HasForeignKey(d => d.CreatedByAutomationTokenId)
+                .OnDelete(DeleteBehavior.Restrict)
+                .HasConstraintName("fk_users_created_by_automation_token_id");
         });
 
         modelBuilder.Entity<UserOAuthConnection>(entity =>
@@ -854,6 +944,41 @@ public class OpenShockContext : DbContext, IDataProtectionKeyContext
                 .HasColumnName("created_at");
         });
 
+        modelBuilder.Entity<AutomationToken>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("automation_tokens_pkey");
+
+            entity.ToTable("automation_tokens");
+
+            entity.HasIndex(e => e.TokenHash).IsUnique();
+
+            entity.Property(e => e.Id)
+                .ValueGeneratedNever()
+                .HasColumnName("id");
+            entity.Property(e => e.Name)
+                .VarCharWithLength(ApiHardLimits.ApiKeyNameMaxLength)
+                .HasColumnName("name");
+            entity.Property(e => e.TokenHash)
+                .UseCollation("C")
+                .VarCharWithLength(HardLimits.Sha256HashHexLength)
+                .HasColumnName("token_hash");
+            entity.Property(e => e.Types)
+                .HasColumnType("automation_token_type[]")
+                .HasColumnName("types");
+            entity.Property(e => e.CreatedAt)
+                .HasDefaultValueSql("CURRENT_TIMESTAMP")
+                .HasColumnName("created_at");
+            entity.Property(e => e.LastUsedAt).HasColumnName("last_used_at");
+            entity.Property(e => e.LastRotatedAt).HasColumnName("last_rotated_at");
+            entity.Property(e => e.UseCount)
+                .HasDefaultValue(0L)
+                .HasColumnName("use_count");
+            entity.Property(e => e.AutoCleanupUsers)
+                .HasDefaultValue(false)
+                .HasColumnName("auto_cleanup_users");
+            entity.Property(e => e.AutoCleanupAfter).HasColumnName("auto_cleanup_after");
+        });
+
         modelBuilder.Entity<EmailOutboxMessage>(entity =>
         {
             entity.HasKey(e => e.Id).HasName("email_outbox_pkey");
@@ -936,6 +1061,8 @@ public class OpenShockContext : DbContext, IDataProtectionKeyContext
                 .HasColumnName("created_at");
             entity.Property(e => e.ActivatedAt)
                 .HasColumnName("activated_at");
+            entity.Property(e => e.CreatedByAutomationTokenId)
+                .HasColumnName("created_by_automation_token_id");
             entity.Property(e => e.DeactivatedAt)
                 .HasColumnName("deactivated_at");
             entity.Property(e => e.DeactivatedByUserId)

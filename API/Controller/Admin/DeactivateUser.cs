@@ -22,11 +22,12 @@ public sealed partial class AdminController
         [FromRoute] Guid userId,
         [FromQuery(Name = "deleteLater")] bool deleteLater,
         [FromQuery][MaxLength(ApiHardLimits.AuditReasonMaxLength)] string? reason,
-        [FromServices] IAccountService accountService)
+        [FromServices] IAccountService accountService,
+        CancellationToken cancellationToken)
     {
         PedanticallyEnsureAdmin();
 
-        var deactivationResult = await accountService.DeactivateAccountAsync(CurrentUser.Id, userId, deleteLater, reason);
+        var deactivationResult = await accountService.DeactivateAccountAsync(CurrentUser.Id, userId, deleteLater, reason, cancellationToken);
         return deactivationResult switch
         {
             Results.Success => Ok("Account deactivated"),

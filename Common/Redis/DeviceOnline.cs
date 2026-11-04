@@ -23,4 +23,6 @@ public sealed class DeviceOnline
     public int? Rssi { get; set; }
     public string? Country { get; set; }
     public string? Ip { get; set; }
+    public long? Asn { get; set; }
+    public string? AsnOrg { get; set; }
 }

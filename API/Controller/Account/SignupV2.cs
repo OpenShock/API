@@ -46,12 +46,18 @@ public sealed partial class AccountController
         var turnstileError = await VerifyTurnstileAsync(turnstileService, body.TurnstileResponse, cancellationToken);
         if (turnstileError is not null) return turnstileError;
 
-        var creationAction = await _accountService.CreateAccountWithActivationFlowAsync(body.Email, body.Username, body.Password);
-        return creationAction switch
+        // Created with an automation token, the account is linked to it and the use audited in the same transaction.
+        var creationAction = await _accountService.CreateAccountWithActivationFlowAsync(
+            body.Email, body.Username, body.Password, cancellationToken);
+        if (creationAction is not User _)
         {
-            User _ => Ok(),
-            AccountWithEmailOrUsernameExists => Problem(SignupError.UsernameOrEmailExists),
-            _ => throw new UnreachableException()
-        };
+            return creationAction switch
+            {
+                AccountWithEmailOrUsernameExists => Problem(SignupError.UsernameOrEmailExists),
+                _ => throw new UnreachableException()
+            };
+        }
+
+        return Ok();
     }
 }

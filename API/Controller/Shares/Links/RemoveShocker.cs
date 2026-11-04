@@ -19,6 +19,7 @@ public sealed partial class ShareLinksController
     /// </summary>
     /// <param name="publicShareId"></param>
     /// <param name="shockerId"></param>
+    /// <param name="cancellationToken"></param>
     /// <response code="200">Successfully removed shocker</response>
     /// <response code="404">Public share or shocker does not exist</response>
     /// <response code="400">Shocker does not exist in public share</response>
@@ -26,12 +27,12 @@ public sealed partial class ShareLinksController
     [TokenPermission(PermissionType.Publicshares_Edit)]
     [ProducesResponseType<LegacyEmptyResponse>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status404NotFound, MediaTypeNames.Application.ProblemJson)] // PublicShareNotFound, ShockerNotInPublicShare
-    public async Task<IActionResult> RemoveShocker([FromRoute] Guid publicShareId, [FromRoute] Guid shockerId)
+    public async Task<IActionResult> RemoveShocker([FromRoute] Guid publicShareId, [FromRoute] Guid shockerId, CancellationToken cancellationToken)
     {
         var exists = await _db.PublicShares
             .Where(x => x.Id == publicShareId && (x.ExpiresAt == null || x.ExpiresAt > DateTime.UtcNow))
             .WhereIsUserOrPrivileged(x => x.Owner, CurrentUser)
-            .AnyAsync();
+            .AnyAsync(cancellationToken);
         if (!exists)
         {
             return Problem(PublicShareError.PublicShareNotFound);
@@ -39,7 +40,7 @@ public sealed partial class ShareLinksController
 
         var affected = await _db.PublicShareShockerMappings
             .Where(x => x.PublicShareId == publicShareId && x.ShockerId == shockerId)
-            .ExecuteDeleteAsync();
+            .ExecuteDeleteAsync(cancellationToken);
         if (affected <= 0)
         {
             return Problem(PublicShareError.ShockerNotInPublicShare);

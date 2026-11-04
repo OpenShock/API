@@ -15,8 +15,9 @@ public interface IAccountService
     /// <param name="email"></param>
     /// <param name="username"></param>
     /// <param name="password"></param>
+    /// <param name="cancellationToken"></param>
     /// <returns></returns>
-    public Task<AccountCreationResult> CreateAccountWithActivationFlowAsync(string email, string username, string password);
+    public Task<AccountCreationResult> CreateAccountWithActivationFlowAsync(string email, string username, string password, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Creates an OAuth-only (passwordless) account and links the external identity in a single transaction.
@@ -29,8 +30,9 @@ public interface IAccountService
     /// <param name="providerAccountId">external subject/id from provider</param>
     /// <param name="providerAccountName">display name from provider</param>
     /// <param name="isEmailTrusted"></param>
+    /// <param name="cancellationToken"></param>
     /// <returns>Success with the created user, or AccountWithEmailOrUsernameExists when taken/blocked.</returns>
-    Task<AccountCreationResult> CreateOAuthOnlyAccountAsync(string email, string username, string provider, string providerAccountId, string? providerAccountName, bool isEmailTrusted);
+    Task<AccountCreationResult> CreateOAuthOnlyAccountAsync(string email, string username, string provider, string providerAccountId, string? providerAccountName, bool isEmailTrusted, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Returns true if the given email is already associated with an existing user account.
@@ -54,11 +56,11 @@ public interface IAccountService
     /// <param name="cancellationToken"></param>
     Task ResendActivationEmailAsync(string email, CancellationToken cancellationToken = default);
 
-    public Task<Union5<Success, CannotDeactivatePrivilegedAccount, AccountDeactivationAlreadyInProgress, Unauthorized, NotFound>> DeactivateAccountAsync(Guid executingUserId, Guid userId, bool deleteLater = true, string? reason = null);
+    public Task<Union5<Success, CannotDeactivatePrivilegedAccount, AccountDeactivationAlreadyInProgress, Unauthorized, NotFound>> DeactivateAccountAsync(Guid executingUserId, Guid userId, bool deleteLater = true, string? reason = null, CancellationToken cancellationToken = default);
 
-    public Task<Union3<Success, Unauthorized, NotFound>> ReactivateAccountAsync(Guid executingUserId, Guid userId, string? reason = null);
+    public Task<Union3<Success, Unauthorized, NotFound>> ReactivateAccountAsync(Guid executingUserId, Guid userId, string? reason = null, CancellationToken cancellationToken = default);
 
-    public Task<Union4<Success, CannotDeletePrivilegedAccount, Unauthorized, NotFound>> DeleteAccountAsync(Guid executingUserId, Guid userId, string? reason = null);
+    public Task<Union4<Success, CannotDeletePrivilegedAccount, Unauthorized, NotFound>> DeleteAccountAsync(Guid executingUserId, Guid userId, string? reason = null, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Get a user by credentials
@@ -82,8 +84,9 @@ public interface IAccountService
     /// Creates a new password reset request and send the email if successful
     /// </summary>
     /// <param name="email"></param>
+    /// <param name="cancellationToken"></param>
     /// <returns></returns>
-    public Task<Union5<Success, TooManyPasswordResets, AccountNotActivated, AccountDeactivated, NotFound>> CreatePasswordResetFlowAsync(string email);
+    public Task<Union5<Success, TooManyPasswordResets, AccountNotActivated, AccountDeactivated, NotFound>> CreatePasswordResetFlowAsync(string email, CancellationToken cancellationToken = default);
     
     /// <summary>
     /// Completes a password reset process, sets a new password
@@ -91,9 +94,18 @@ public interface IAccountService
     /// <param name="passwordResetId"></param>
     /// <param name="secret"></param>
     /// <param name="newPassword"></param>
+    /// <param name="cancellationToken"></param>
     /// <returns></returns>
-    public Task<Union5<Success, NotFound, AccountNotActivated, AccountDeactivated, SecretInvalid>> CompletePasswordResetFlowAsync(Guid passwordResetId, string secret, string newPassword);
+    public Task<Union5<Success, NotFound, AccountNotActivated, AccountDeactivated, SecretInvalid>> CompletePasswordResetFlowAsync(Guid passwordResetId, string secret, string newPassword, CancellationToken cancellationToken = default);
     
+    /// <summary>
+    /// Check the availability of a email
+    /// </summary>
+    /// <param name="email"></param>
+    /// <param name="cancellationToken"></param>
+    /// <returns></returns>
+    public Task<Union2<Success, EmailTaken>> CheckEmailAvailability(string email, CancellationToken cancellationToken = default);
+
     /// <summary>
     /// Check the availability of a username
     /// </summary>
@@ -114,13 +126,24 @@ public interface IAccountService
     public Task<Union6<Success, UsernameTaken, UsernameError, RecentlyChanged, AccountDeactivated, NotFound>> ChangeUsernameAsync(Guid userId, string username, Guid? actorId, bool ignoreLimit = false, CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// Change the email of a user
+    /// </summary>
+    /// <param name="userId"></param>
+    /// <param name="email"></param>
+    /// <param name="actorId">User that performed this change</param>
+    /// <param name="cancellationToken"></param>
+    /// <returns>Success, or the reason the email couldn't be changed (already taken, not a valid address, or user not found)</returns>
+    public Task<Union4<Success, EmailTaken, EmailInvalid, NotFound>> ChangeEmail(Guid userId, string email, Guid? actorId, CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Change the password of a user
     /// </summary>
     /// <param name="userId"></param>
     /// <param name="newPassword"></param>
     /// <param name="actorId">User that performed this change</param>
+    /// <param name="cancellationToken"></param>
     /// <returns></returns>
-    public Task<Union4<Success, AccountNotActivated, AccountDeactivated, NotFound>> ChangePasswordAsync(Guid userId, string newPassword, Guid? actorId);
+    public Task<Union4<Success, AccountNotActivated, AccountDeactivated, NotFound>> ChangePasswordAsync(Guid userId, string newPassword, Guid? actorId, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Creates a new email change request and sends a verification email to the new address.
@@ -129,8 +152,9 @@ public interface IAccountService
     /// <param name="userId">Id of the user whose email is being changed.</param>
     /// <param name="newEmail">Requested new email address.</param>
     /// <param name="actorId">User that called this</param>
+    /// <param name="cancellationToken"></param>
     /// <returns></returns>
-    public Task<Union7<Success, EmailAlreadyInUse, EmailUnchanged, TooManyEmailChanges, AccountNotActivated, AccountDeactivated, NotFound>> CreateEmailChangeFlowAsync(Guid userId, string newEmail, Guid? actorId);
+    public Task<Union7<Success, EmailAlreadyInUse, EmailUnchanged, TooManyEmailChanges, AccountNotActivated, AccountDeactivated, NotFound>> CreateEmailChangeFlowAsync(Guid userId, string newEmail, Guid? actorId, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Verifies a pending email change using the supplied token. On success the user's email is updated.
@@ -162,6 +186,9 @@ public sealed class Unauthorized;
 public sealed class UsernameTaken;
 
 public sealed class RecentlyChanged;
+
+public sealed class EmailTaken;
+public sealed class EmailInvalid;
 
 public sealed class EmailAlreadyInUse;
 public sealed class EmailUnchanged;

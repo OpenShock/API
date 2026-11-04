@@ -18,18 +18,19 @@ public sealed partial class ShareLinksController
     /// Deletes a public share
     /// </summary>
     /// <param name="publicShareId"></param>
+    /// <param name="cancellationToken"></param>
     /// <response code="200">Deleted public share</response>
     /// <response code="404">Public share not found or does not belong to you</response>
     [HttpDelete("{publicShareId}")]
     [TokenPermission(PermissionType.Publicshares_Edit)]
     [ProducesResponseType<LegacyEmptyResponse>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status404NotFound, MediaTypeNames.Application.ProblemJson)] // PublicShareNotFound
-    public async Task<IActionResult> DeletePublicShare([FromRoute] Guid publicShareId)
+    public async Task<IActionResult> DeletePublicShare([FromRoute] Guid publicShareId, CancellationToken cancellationToken)
     {
         var result = await _db.PublicShares
             .Where(x => x.Id == publicShareId && (x.ExpiresAt == null || x.ExpiresAt > DateTime.UtcNow))
             .WhereIsUserOrPrivileged(x => x.Owner, CurrentUser)
-            .ExecuteDeleteAsync();
+            .ExecuteDeleteAsync(cancellationToken);
 
         return result > 0
             ? LegacyEmptyOk("Deleted public share")

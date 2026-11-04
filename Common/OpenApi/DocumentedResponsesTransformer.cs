@@ -6,7 +6,7 @@ namespace OpenShock.Common.OpenApi;
 
 /// <summary>
 /// Restores &lt;response code="..."&gt; XML docs as responses, including codes that have no [ProducesResponseType],
-/// which Swashbuckle's XML comments filter used to add.
+/// which the built-in XML comment support leaves out.
 /// </summary>
 public sealed class DocumentedResponsesTransformer(DocumentedXmlComments comments) : IOpenApiOperationTransformer
 {

@@ -1,3 +1,4 @@
+using System.Runtime.CompilerServices;
 using System.Net.Mail;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -8,7 +9,7 @@ namespace OpenShock.API.Controller.Admin;
 public sealed partial class AdminController
 {
     [HttpGet("blacklist/emailProviders")]
-    public async IAsyncEnumerable<EmailProviderBlacklistDto> ListEmailProviderBlacklist([FromQuery(Name="match")] string? match)
+    public async IAsyncEnumerable<EmailProviderBlacklistDto> ListEmailProviderBlacklist([FromQuery(Name="match")] string? match, [EnumeratorCancellation] CancellationToken cancellationToken)
     {
         PedanticallyEnsureAdmin();
 
@@ -23,7 +24,7 @@ public sealed partial class AdminController
             match = parsed.Host.ToLowerInvariant();
         }
         
-        await foreach (var item in _db.EmailProviderBlacklists.AsNoTracking().AsAsyncEnumerable())
+        await foreach (var item in _db.EmailProviderBlacklists.AsNoTracking().AsAsyncEnumerable().WithCancellation(cancellationToken))
         {
             if (match is not null && !match.EndsWith(item.Domain)) continue;
             

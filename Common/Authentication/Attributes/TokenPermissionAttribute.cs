@@ -1,11 +1,10 @@
-﻿using Microsoft.AspNetCore.Mvc.Filters;
-using OpenShock.Common.Authentication.Services;
+﻿using System.Security.Claims;
+using Microsoft.AspNetCore.Mvc.Filters;
 using OpenShock.Common.Errors;
+using OpenShock.Common.Extensions;
 using OpenShock.Common.Models;
 using OpenShock.Common.OpenShockDb;
 using OpenShock.Common.Problems;
-using OpenShock.Common.Redis;
-using OpenShock.Common.Results;
 
 using OpenShock.Internal.Common.Problems;
 
@@ -21,40 +20,37 @@ public sealed class TokenPermissionAttribute : Attribute, IAuthorizationFilter
         _type = type;
     }
 
-    private static OpenShockProblem? LoginSessionMatch(LoginSession _)
-    {
-        return null;
-    }
-
-    private OpenShockProblem? ApiTokenMatch(ApiToken apiToken)
-    {
-        if (!_type.IsAllowed(apiToken.Permissions))
-        {
-            return AuthorizationError.TokenPermissionMissing(_type, apiToken.Permissions);
-        }
-        
-        return null;
-    }
-
-    private static OpenShockProblem? NoneMatch(None _)
-    {
-        return AuthorizationError.UnknownError;
-    }
-
     public void OnAuthorization(AuthorizationFilterContext context)
     {
-        var userReference = context.HttpContext.RequestServices.GetRequiredService<IUserReferenceService>();
+        var user = context.HttpContext.User;
 
-        var problem = userReference.AuthReference switch
-        {
-            LoginSession loginSession => LoginSessionMatch(loginSession),
-            ApiToken apiToken => ApiTokenMatch(apiToken),
-            None none => NoneMatch(none)
-        };
-
+        var problem = GetProblem(user);
         if (problem is not null)
         {
             context.Result = problem.ToObjectResult(context.HttpContext);
         }
+    }
+
+    private OpenShockProblem? GetProblem(ClaimsPrincipal user)
+    {
+        // A combined scheme authenticates every credential on the request, so a session cookie and an
+        // API token can both be present. The token handler is the one that ends up stashing
+        // the User item, so the token is what the action acts under and its permissions
+        // bind - checking the session first here would let a cookie strip a restricted token's scope.
+        if (user.HasOpenShockApiTokenIdentity())
+        {
+            var permissions = user.GetApiTokenPermissions();
+
+            return _type.IsAllowed(permissions)
+                ? null
+                : AuthorizationError.TokenPermissionMissing(_type, permissions);
+        }
+
+        // A session on its own is not scoped by token permissions.
+        if (user.HasOpenShockUserIdentity()) return null;
+
+        // Neither scheme authenticated, so there are no permissions to check and this should not have
+        // reached an authorized action.
+        return AuthorizationError.UnknownError;
     }
 }

@@ -34,12 +34,13 @@ public sealed partial class ShockerController
     [MapToApiVersion("1")]
     public async Task<IActionResult> RegisterShocker(
         [FromBody] NewShocker body,
-        [FromServices] IDeviceUpdateService deviceUpdateService)
+        [FromServices] IDeviceUpdateService deviceUpdateService,
+        CancellationToken cancellationToken)
     {
         var device = await _db.Devices.Where(x => x.OwnerId == CurrentUser.Id && x.Id == body.Device)
-            .Select(x => x.Id).FirstOrDefaultAsync();
+            .Select(x => x.Id).FirstOrDefaultAsync(cancellationToken);
         if (device == Guid.Empty) return Problem(HubError.HubNotFound);
-        var shockerCount = await _db.Shockers.CountAsync(x => x.DeviceId == body.Device);
+        var shockerCount = await _db.Shockers.CountAsync(x => x.DeviceId == body.Device, cancellationToken);
 
         if (shockerCount >= HardLimits.MaxShockersPerHub) return Problem(HubError.TooManyShockers);
 
@@ -52,10 +53,11 @@ public sealed partial class ShockerController
             DeviceId = body.Device
         };
         _db.Shockers.Add(shocker);
-        await _db.SaveChangesAsync();
+        await _db.SaveChangesAsync(cancellationToken);
 
         await deviceUpdateService.UpdateDeviceForAllShared(CurrentUser.Id, device,
-            DeviceUpdateType.ShockerUpdated);
+            DeviceUpdateType.ShockerUpdated,
+            cancellationToken);
 
         return LegacyDataCreated($"/1/shockers/{shocker.Id}", shocker.Id);
     }

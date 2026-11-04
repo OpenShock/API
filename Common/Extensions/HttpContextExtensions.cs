@@ -1,10 +1,79 @@
 ﻿using System.Diagnostics.CodeAnalysis;
+using Microsoft.AspNetCore.Http;
+using OpenShock.Common.OpenShockDb;
 using OpenShock.Common.Constants;
+using OpenShock.Common.Services.AutomationTokens;
 
 namespace OpenShock.Common.Extensions;
 
 public static class HttpContextExtensions
 {
+    public static bool TryGetAutomationTokenFromHeader(this HttpContext context, [NotNullWhen(true)] out string? token)
+    {
+        ArgumentNullException.ThrowIfNull(context);
+
+        if (context.Request.Headers.TryGetValue(AuthConstants.AutomationTokenHeaderName, out var value) && !string.IsNullOrEmpty(value))
+        {
+            token = value!;
+            return true;
+        }
+
+        token = null;
+        return false;
+    }
+
+    /// <summary>
+    /// Stores the result of resolving the automation-token header. Called by the automation-token middleware.
+    /// </summary>
+    public static void SetResolvedAutomationToken(this HttpContext context, ResolvedAutomationToken resolved)
+    {
+        ArgumentNullException.ThrowIfNull(context);
+        context.SetItemByType(resolved);
+    }
+
+    /// <summary>
+    /// Returns the automation token resolved earlier in the pipeline, or <c>null</c> if no header was
+    /// present (or it did not resolve to a known token).
+    /// </summary>
+    public static ResolvedAutomationToken? GetResolvedAutomationToken(this HttpContext context)
+    {
+        ArgumentNullException.ThrowIfNull(context);
+        return context.GetItemByType<ResolvedAutomationToken>();
+    }
+
+    /// <summary>
+    /// Returns true if the request presented an automation token that grants <paramref name="type"/>.
+    /// </summary>
+    public static bool IsBypassed(this HttpContext context, AutomationTokenType type) =>
+        context.GetResolvedAutomationToken()?.Types.Contains(type) ?? false;
+
+    // FullName is only null for open generic parameters, which a closed T never is.
+    private static string ItemKeyOf<T>() => typeof(T).FullName!;
+
+    /// <summary>
+    /// Stashes <paramref name="value"/> in HttpContext.Items under the full name of <typeparamref name="T"/>,
+    /// so the writer and every reader agree on the key without a string literal. Used by the
+    /// authentication handlers to hand the resolved User, ApiToken and LoginSession to the rest of the
+    /// pipeline.
+    /// </summary>
+    public static void SetItemByType<T>(this HttpContext context, T value) where T : class =>
+        context.Items[ItemKeyOf<T>()] = value;
+
+    /// <summary>
+    /// The item stashed with <see cref="SetItemByType{T}"/>, or null if none was, e.g. ApiToken on a
+    /// session-authenticated request.
+    /// </summary>
+    public static T? GetItemByType<T>(this HttpContext context) where T : class =>
+        context.Items.TryGetValue(ItemKeyOf<T>(), out var value) ? value as T : null;
+
+    /// <summary>
+    /// The item stashed with <see cref="SetItemByType{T}"/>; throws if it is missing, which means the
+    /// authentication scheme that provides it did not run.
+    /// </summary>
+    public static T GetRequiredItemByType<T>(this HttpContext context) where T : class =>
+        context.GetItemByType<T>() ?? throw new InvalidOperationException(
+            $"HttpContext.Items does not contain a required item of type {ItemKeyOf<T>()}.");
+
     private static readonly string[] TokenHeaderNames = [
         AuthConstants.ApiTokenHeaderName,
         "Open-Shock-Token",

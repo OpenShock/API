@@ -23,5 +23,11 @@ public sealed class LcgNode
 
     [Indexed(IndexEmptyAndMissing = false)] public required string Country { get; set; }
     [Indexed(Sortable = true, IndexEmptyAndMissing = false)] public required byte Load { get; set; }
+
+    /// <summary>Configured gateway location, or null when only <see cref="Country"/> is known.</summary>
+    public double? Latitude { get; set; }
+
+    /// <summary>See <see cref="Latitude"/>.</summary>
+    public double? Longitude { get; set; }
     [Indexed(IndexEmptyAndMissing = false)] public string Environment { get; set; } = "Production";
 }

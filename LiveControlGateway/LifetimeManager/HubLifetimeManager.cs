@@ -6,6 +6,7 @@ using OpenShock.Common.Models;
 using OpenShock.Common.OpenShockDb;
 using OpenShock.Common.Redis.PubSub;
 using OpenShock.Common.Results;
+using OpenShock.Common.Services.BatchUpdate;
 using OpenShock.Common.Services.RedisPubSub;
 using OpenShock.LiveControlGateway.Controllers;
 using OpenShock.LiveControlGateway.Metrics;
@@ -28,6 +29,7 @@ public sealed class HubLifetimeManager
     private readonly IRedisPubService _redisPubService;
     private readonly ILoggerFactory _loggerFactory;
     private readonly GatewayMetrics _metrics;
+    private readonly IBatchUpdateService _batchUpdateService;
     private readonly ILogger<HubLifetimeManager> _logger;
     
     /// <summary>
@@ -49,6 +51,7 @@ public sealed class HubLifetimeManager
     /// <param name="loggerFactory"></param>
     /// <param name="lcgOptions"></param>
     /// <param name="metrics"></param>
+    /// <param name="batchUpdateService"></param>
     /// <param name="meter"></param>
     public HubLifetimeManager(
         IDbContextFactory<OpenShockContext> dbContextFactory,
@@ -58,6 +61,7 @@ public sealed class HubLifetimeManager
         ILoggerFactory loggerFactory,
         LcgOptions lcgOptions,
         GatewayMetrics metrics,
+        IBatchUpdateService batchUpdateService,
         [FromKeyedServices("OpenShock.Gateway.Meter")] Meter meter
     )
     {
@@ -67,6 +71,7 @@ public sealed class HubLifetimeManager
         _redisPubService = redisPubService;
         _loggerFactory = loggerFactory;
         _metrics = metrics;
+        _batchUpdateService = batchUpdateService;
 
         _logger = _loggerFactory.CreateLogger<HubLifetimeManager>();
         
@@ -75,11 +80,32 @@ public sealed class HubLifetimeManager
 
         meter.CreateObservableUpDownCounter("openshock_hub_connections", () =>
         {
-            return new[]
+            var lifetimes = _lifetimes;
+
+            // Grouped on the org as well as the number: a lookup can resolve the ASN but not its org,
+            // and the series here must match the tags the per-hub counters were recorded with.
+            var perAsn = new Dictionary<(string Asn, string Org), int>();
+            foreach (var (_, lifetime) in lifetimes)
             {
-                new Measurement<int>(_lifetimes.Count, gatewayFqdn)
-            };
-        }, "connections", "Current number of connected hubs");
+                var ipInfo = lifetime.HubController.IpInfo;
+                var key = ((string)GatewayMetrics.AsnTag(ipInfo).Value!, (string)GatewayMetrics.AsnOrgTag(ipInfo).Value!);
+                perAsn[key] = perAsn.GetValueOrDefault(key) + 1;
+            }
+
+            // An idle gateway still reports a zero, so a sum over gateways does not go empty.
+            if (perAsn.Count == 0) perAsn[(GatewayMetrics.Unknown, GatewayMetrics.Unknown)] = 0;
+
+            var measurements = new Measurement<int>[perAsn.Count];
+            var i = 0;
+            foreach (var ((asn, org), count) in perAsn)
+            {
+                measurements[i++] = new Measurement<int>(count, gatewayFqdn,
+                    new KeyValuePair<string, object?>("asn", asn),
+                    new KeyValuePair<string, object?>("asn_org", org));
+            }
+
+            return measurements;
+        }, "connections", "Current number of connected hubs by network (ASN)");
 
         // Derived from the hubs themselves rather than tracked alongside them: a separately
         // maintained counter drifts from the truth the moment a teardown path misses a decrement.
@@ -98,6 +124,11 @@ public sealed class HubLifetimeManager
             };
         }, "connections", "Current number of live control sessions across all connected hubs");
     }
+
+    /// <summary>
+    /// Number of hubs currently connected to this gateway
+    /// </summary>
+    public int HubCount => _lifetimes.Count;
 
     /// <summary>
     /// When the hub lifetime is busy, we cannot add a new device connection
@@ -125,7 +156,7 @@ public sealed class HubLifetimeManager
                 // There already is a hub lifetime, lets swap!
                 if (!hubLifetime.TryMarkSwapping())
                 {
-                    _metrics.HubConnectAttempt(GatewayMetrics.HubConnectOutcome.Busy);
+                    _metrics.HubConnectAttempt(GatewayMetrics.HubConnectOutcome.Busy, hubController);
                     return new Busy(); 
                 }
 
@@ -144,7 +175,7 @@ public sealed class HubLifetimeManager
         {
             _logger.LogTrace("Swapping hub lifetime [{HubId}]", hubController.Id);
             await hubLifetime.Swap(hubController);
-            _metrics.HubConnectAttempt(GatewayMetrics.HubConnectOutcome.Swapped);
+            _metrics.HubConnectAttempt(GatewayMetrics.HubConnectOutcome.Swapped, hubController);
         }
         else
         {
@@ -154,11 +185,11 @@ public sealed class HubLifetimeManager
                 // If we fail to initialize, the hub must be removed
                 await RemoveDeviceConnection(hubController); // Here be dragons?
                 _logger.LogError("Failed to initialize hub lifetime [{HubId}]", hubController.Id);
-                _metrics.HubConnectAttempt(GatewayMetrics.HubConnectOutcome.InitFailed);
+                _metrics.HubConnectAttempt(GatewayMetrics.HubConnectOutcome.InitFailed, hubController);
                 return new Error();
             }
 
-            _metrics.HubConnectAttempt(GatewayMetrics.HubConnectOutcome.Connected);
+            _metrics.HubConnectAttempt(GatewayMetrics.HubConnectOutcome.Connected, hubController);
         }
 
         return hubLifetime;
@@ -175,6 +206,7 @@ public sealed class HubLifetimeManager
             _connectionMultiplexer,
             _redisConnectionProvider,
             _redisPubService,
+            _batchUpdateService,
             _loggerFactory.CreateLogger<HubLifetime>());
 
         return deviceLifetime;
@@ -232,7 +264,7 @@ public sealed class HubLifetimeManager
             else
             {
                 _lifetimes = withoutHub;
-                _metrics.HubDisconnected();
+                _metrics.HubDisconnected(hubController);
             }
         }
     }

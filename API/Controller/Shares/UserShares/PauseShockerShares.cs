@@ -20,13 +20,14 @@ public sealed partial class UserSharesController
     public async Task<IActionResult> BulkPauseUserShareShockers(
         [FromRoute] Guid userId,
         [FromBody] PauseUserShareShockersRequest pauseRequest,
-        [FromServices] IDeviceUpdateService deviceUpdateService)
+        [FromServices] IDeviceUpdateService deviceUpdateService,
+        CancellationToken cancellationToken)
     {
         var affected = await _db.UserShares
             .Include(x => x.Shocker)
             .Where(x => pauseRequest.Shockers.Contains(x.ShockerId) && x.SharedWithUserId == userId &&
                         x.Shocker.Device.OwnerId == CurrentUser.Id)
-            .ToArrayAsync();
+            .ToArrayAsync(cancellationToken);
 
         // Check if we have all shockers to delete
         var missingShockers = pauseRequest.Shockers.Except(affected.Select(x => x.ShockerId)).ToArray();
@@ -41,7 +42,7 @@ public sealed partial class UserSharesController
             _db.UserShares.Update(userShare);
         }
 
-        var deletedRecords = await _db.SaveChangesAsync();
+        var deletedRecords = await _db.SaveChangesAsync(cancellationToken);
 
         var uniqueHubIds = affected.Select(x => x.Shocker.DeviceId).Distinct();
         var updateTasks = uniqueHubIds.Select(device =>

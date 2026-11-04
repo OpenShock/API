@@ -17,13 +17,14 @@ public sealed partial class ShockerController
     /// Get information about a shocker.
     /// </summary>
     /// <param name="shockerId"></param>
+    /// <param name="cancellationToken"></param>
     /// <response code="200">The shocker information was successfully retrieved.</response>
     /// <response code="404">The shocker does not exist or you do not have access to it.</response>
     [HttpGet("{shockerId}")]
     [ProducesResponseType<LegacyDataResponse<ShockerWithDevice>>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status404NotFound, MediaTypeNames.Application.ProblemJson)] // ShockerNotFound
     [MapToApiVersion("1")]
-    public async Task<IActionResult> GetShockerById([FromRoute] Guid shockerId)
+    public async Task<IActionResult> GetShockerById([FromRoute] Guid shockerId, CancellationToken cancellationToken)
     {
         var shocker = await _db.Shockers.Where(x => x.Device.OwnerId == CurrentUser.Id && x.Id == shockerId).Select(x => new ShockerWithDevice
         {
@@ -34,7 +35,7 @@ public sealed partial class ShockerController
             Device = x.DeviceId,
             Model = x.Model,
             IsPaused = x.IsPaused
-        }).FirstOrDefaultAsync();
+        }).FirstOrDefaultAsync(cancellationToken);
 
         if (shocker is null) return Problem(ShockerError.ShockerNotFound);
         return LegacyDataOk(shocker);

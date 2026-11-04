@@ -1,6 +1,8 @@
 ﻿using System.Net;
 using OpenShock.API.Options;
+using OpenShock.Common.Extensions;
 using OpenShock.Common.Results;
+using OpenShock.Common.OpenShockDb;
 
 namespace OpenShock.API.Services.Turnstile;
 
@@ -11,13 +13,20 @@ public sealed class CloudflareTurnstileService : ICloudflareTurnstileService
     private readonly HttpClient _httpClient;
     private readonly TurnstileOptions _options;
     private readonly IHostEnvironment _environment;
+    private readonly IHttpContextAccessor _httpContextAccessor;
     private readonly ILogger<CloudflareTurnstileService> _logger;
 
-    public CloudflareTurnstileService(HttpClient httpClient, TurnstileOptions options, IHostEnvironment environment, ILogger<CloudflareTurnstileService> logger)
+    public CloudflareTurnstileService(
+        HttpClient httpClient,
+        TurnstileOptions options,
+        IHostEnvironment environment,
+        IHttpContextAccessor httpContextAccessor,
+        ILogger<CloudflareTurnstileService> logger)
     {
         _httpClient = httpClient;
         _options = options;
         _environment = environment;
+        _httpContextAccessor = httpContextAccessor;
         _logger = logger;
     }
 
@@ -44,6 +53,12 @@ public sealed class CloudflareTurnstileService : ICloudflareTurnstileService
     {
         if (!_options.Enabled) return new Success();
         
+        // An admin-issued automation token resolved earlier in the pipeline counts as a Turnstile pass
+        // if it carries the Turnstile type. Controllers separately check, through IAutomationTokenService,
+        // that the account they act on is not privileged.
+        if (_httpContextAccessor.HttpContext?.IsBypassed(AutomationTokenType.Turnstile) ?? false)
+            return new Success();
+
         if (string.IsNullOrEmpty(responseToken)) return CreateError(CloudflareTurnstileError.MissingResponse);
 
         if (_environment.IsDevelopment() && responseToken == "dev-bypass")

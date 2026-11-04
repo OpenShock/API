@@ -18,7 +18,7 @@ public sealed class DashboardAdminAuth : IDashboardAsyncAuthorizationFilter
 
         if (httpContext.TryGetUserSessionToken(out var userSessionCookie))
         {
-            if (await SessionAuthAdmin(userSessionCookie, sessionService, db))
+            if (await SessionAuthAdmin(userSessionCookie, sessionService, db, httpContext.RequestAborted))
             {
                 return true;
             }
@@ -29,12 +29,12 @@ public sealed class DashboardAdminAuth : IDashboardAsyncAuthorizationFilter
         return false;
     }
     
-    private static async Task<bool> SessionAuthAdmin(string sessionKey, ISessionService sessionService, OpenShockContext db)
+    private static async Task<bool> SessionAuthAdmin(string sessionKey, ISessionService sessionService, OpenShockContext db, CancellationToken cancellationToken)
     {
         var session = await sessionService.GetSessionByTokenAsync(sessionKey);
         if (session is null) return false;
 
-        var retrievedUser = await db.Users.FirstAsync(user => user.Id == session.UserId);
+        var retrievedUser = await db.Users.FirstAsync(user => user.Id == session.UserId, cancellationToken);
         return retrievedUser.IsRole(RoleType.Admin);
     }
 }

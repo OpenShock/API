@@ -58,7 +58,8 @@ public sealed partial class AdminController
             body.Name,
             body.Description,
             body.Type,
-            body.Value
+            body.Value,
+            cancellationToken
         );
 
         return result switch
@@ -90,7 +91,8 @@ public sealed partial class AdminController
         var result = await configurationService.TryUpdateItemAsync(
             body.Name,
             body.Description,
-            body.Value
+            body.Value,
+            cancellationToken
         );
 
         return result switch
@@ -117,7 +119,7 @@ public sealed partial class AdminController
     {
         PedanticallyEnsureAdmin();
 
-        var result = await configurationService.TryDeleteItemAsync(name);
+        var result = await configurationService.TryDeleteItemAsync(name, cancellationToken);
 
         return result switch
         {

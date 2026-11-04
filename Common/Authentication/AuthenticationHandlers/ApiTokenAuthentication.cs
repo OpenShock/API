@@ -1,7 +1,6 @@
 ﻿using Microsoft.AspNetCore.Authentication;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
-using OpenShock.Common.Authentication.Services;
 using OpenShock.Common.Errors;
 using OpenShock.Common.Extensions;
 using OpenShock.Common.OpenShockDb;
@@ -21,7 +20,6 @@ namespace OpenShock.Common.Authentication.AuthenticationHandlers;
 
 public sealed class ApiTokenAuthentication : AuthenticationHandler<AuthenticationSchemeOptions>
 {
-    private readonly IUserReferenceService _userReferenceService;
     private readonly IBatchUpdateService _batchUpdateService;
     private readonly OpenShockContext _db;
     private OpenShockProblem? _authResultError;
@@ -30,13 +28,11 @@ public sealed class ApiTokenAuthentication : AuthenticationHandler<Authenticatio
         IOptionsMonitor<AuthenticationSchemeOptions> options,
         ILoggerFactory logger,
         UrlEncoder encoder,
-        IUserReferenceService userReferenceService,
         OpenShockContext db,
         IBatchUpdateService batchUpdateService
         )
         : base(options, logger, encoder)
     {
-        _userReferenceService = userReferenceService;
         _db = db;
         _batchUpdateService = batchUpdateService;
     }
@@ -53,7 +49,7 @@ public sealed class ApiTokenAuthentication : AuthenticationHandler<Authenticatio
         var tokenDto = await _db.ApiTokens
             .Include(x => x.User)
             .Include(x => x.User.UserDeactivation)
-            .FirstOrDefaultAsync(x => x.TokenHash == tokenHash && (x.ValidUntil == null || x.ValidUntil >= DateTime.UtcNow));
+            .FirstOrDefaultAsync(x => x.TokenHash == tokenHash && (x.ValidUntil == null || x.ValidUntil >= DateTime.UtcNow), Context.RequestAborted);
         if (tokenDto is null) return Fail(AuthResultError.TokenInvalid);
         if (tokenDto.User.UserDeactivation is not null)
         {
@@ -61,8 +57,8 @@ public sealed class ApiTokenAuthentication : AuthenticationHandler<Authenticatio
         }
 
         _batchUpdateService.UpdateApiTokenLastUsed(tokenDto.Id);
-        Context.Items["User"] = tokenDto.User;
-        _userReferenceService.AuthReference = tokenDto;
+        Context.SetItemByType(tokenDto);
+        Context.SetItemByType(tokenDto.User);
 
         var claims = new List<Claim>(3 + tokenDto.Permissions.Count)
         {

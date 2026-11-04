@@ -24,6 +24,13 @@ public sealed class User
     public DateTime CreatedAt { get; set; }
     public DateTime? ActivatedAt { get; set; }
 
+    /// <summary>
+    /// The admin-issued automation token that created this account, which makes it an automated (bot)
+    /// account rather than one a person signed up for; these are mainly used by automated tests.
+    /// The account is deleted together with the token.
+    /// </summary>
+    public Guid? CreatedByAutomationTokenId { get; set; }
+
     // Navigations
     public UserActivationRequest? UserActivationRequest { get; set; }
     public UserDeactivation? UserDeactivation { get; set; }
@@ -36,9 +43,11 @@ public sealed class User
     public ICollection<UserShareInvite> IncomingUserShareInvites { get; } = [];
     public ICollection<PublicShare> OwnedPublicShares { get; } = [];
     public ICollection<ShockerControlLog> ShockerControlLogs { get; } = [];
+    public ICollection<ControlStat> ControlStats { get; } = [];
     public ICollection<UserNameChange> NameChanges { get; } = [];
     public ICollection<UserEmailChange> EmailChanges { get; } = [];
     public ICollection<UserPasswordReset> PasswordResets { get; } = [];
     public ICollection<UserAuditLog> AuditLogs { get; } = [];
     public ICollection<UserAuditLog> ActorAuditLogs { get; } = [];
+    public AutomationToken? CreatedByAutomationToken { get; set; }
 }

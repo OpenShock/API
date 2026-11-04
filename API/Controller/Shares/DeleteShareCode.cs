@@ -17,18 +17,19 @@ public sealed partial class SharesController
     /// Delete a share code
     /// </summary>
     /// <param name="shareCodeId"></param>
+    /// <param name="cancellationToken"></param>
     /// <response code="200">Deleted share code</response>
     /// <response code="404">Share code not found or does not belong to you</response>
     [HttpDelete("code/{shareCodeId}")]
     [ProducesResponseType<LegacyEmptyResponse>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status404NotFound, MediaTypeNames.Application.ProblemJson)] // ShareCodeNotFound
     [MapToApiVersion("1")]
-    public async Task<IActionResult> DeleteShareCode([FromRoute] Guid shareCodeId)
+    public async Task<IActionResult> DeleteShareCode([FromRoute] Guid shareCodeId, CancellationToken cancellationToken)
     {
         var affected = await _db.ShockerShareCodes
             .Where(x => x.Id == shareCodeId)
             .WhereIsUserOrPrivileged(x => x.Shocker.Device.Owner, CurrentUser)
-            .ExecuteDeleteAsync();
+            .ExecuteDeleteAsync(cancellationToken);
         if (affected <= 0)
         {
             return Problem(ShareCodeError.ShareCodeNotFound);

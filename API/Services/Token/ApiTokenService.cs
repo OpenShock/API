@@ -88,31 +88,31 @@ public sealed class ApiTokenService : IApiTokenService
     }
 
     /// <inheritdoc />
-    public IAsyncEnumerable<TokenResponse> ListTokensV1(Guid ownerId) => Tokens(ownerId)
+    public IAsyncEnumerable<TokenResponse> ListTokensV1(Guid ownerId, CancellationToken cancellationToken) => Tokens(ownerId)
         .OrderBy(x => x.CreatedAt)
         .Select(ToTokenResponse)
         .AsAsyncEnumerable();
 
     /// <inheritdoc />
-    public IAsyncEnumerable<TokenResponseV2> ListTokensV2(Guid ownerId) => Tokens(ownerId)
+    public IAsyncEnumerable<TokenResponseV2> ListTokensV2(Guid ownerId, CancellationToken cancellationToken) => Tokens(ownerId)
         .OrderBy(x => x.CreatedAt)
         .Select(ToTokenResponseV2)
         .AsAsyncEnumerable();
 
     /// <inheritdoc />
-    public Task<TokenResponse?> GetTokenV1(Guid tokenId, Guid? ownerId = null) => Tokens(ownerId)
+    public Task<TokenResponse?> GetTokenV1(Guid tokenId, Guid? ownerId = null, CancellationToken cancellationToken = default) => Tokens(ownerId)
         .Where(x => x.Id == tokenId)
         .Select(ToTokenResponse)
-        .FirstOrDefaultAsync();
+        .FirstOrDefaultAsync(cancellationToken);
 
     /// <inheritdoc />
-    public Task<TokenResponseV2?> GetTokenV2(Guid tokenId, Guid? ownerId = null) => Tokens(ownerId)
+    public Task<TokenResponseV2?> GetTokenV2(Guid tokenId, Guid? ownerId = null, CancellationToken cancellationToken = default) => Tokens(ownerId)
         .Where(x => x.Id == tokenId)
         .Select(ToTokenResponseV2)
-        .FirstOrDefaultAsync();
+        .FirstOrDefaultAsync(cancellationToken);
 
     /// <inheritdoc />
-    public async Task<TokenCreatedResponse> CreateTokenV1(Guid userId, IPAddress createdByIp, CreateTokenRequest body)
+    public async Task<TokenCreatedResponse> CreateTokenV1(Guid userId, IPAddress createdByIp, CreateTokenRequest body, CancellationToken cancellationToken)
     {
         var secret = CryptoUtils.RandomString(AuthConstants.ApiTokenLength);
 
@@ -127,19 +127,20 @@ public sealed class ApiTokenService : IApiTokenService
             ValidUntil = body.ValidUntil?.ToUniversalTime()
         };
 
-        await using (var transaction = await _db.Database.BeginTransactionAsync())
+        await using (var transaction = await _db.Database.BeginTransactionAsync(cancellationToken))
         {
             _db.ApiTokens.Add(tokenDto);
-            await _db.SaveChangesAsync();
+            await _db.SaveChangesAsync(cancellationToken);
 
             await _auditService.LogAsync(
                 userId,
                 action: AuditAction.ApiTokenCreated,
                 actorId: userId,
-                metadata: new ApiTokenCreatedMetadata(tokenDto.Id, tokenDto.Name, tokenDto.Permissions.Select(p => PermissionTypeBindings.PermissionTypeToName[p].Name).ToList())
+                metadata: new ApiTokenCreatedMetadata(tokenDto.Id, tokenDto.Name, tokenDto.Permissions.Select(p => PermissionTypeBindings.PermissionTypeToName[p].Name).ToList()),
+                cancellationToken: cancellationToken
             );
 
-            await transaction.CommitAsync();
+            await transaction.CommitAsync(cancellationToken);
         }
 
         return new TokenCreatedResponse
@@ -155,7 +156,7 @@ public sealed class ApiTokenService : IApiTokenService
     }
 
     /// <inheritdoc />
-    public async Task<TokenCreatedResponseV2> CreateTokenV2(Guid userId, IPAddress createdByIp, CreateTokenRequestV2 body)
+    public async Task<TokenCreatedResponseV2> CreateTokenV2(Guid userId, IPAddress createdByIp, CreateTokenRequestV2 body, CancellationToken cancellationToken)
     {
         var secret = CryptoUtils.RandomString(AuthConstants.ApiTokenLength);
 
@@ -171,19 +172,20 @@ public sealed class ApiTokenService : IApiTokenService
         };
         body.ShockerControl.ApplyTo(tokenDto);
 
-        await using (var transaction = await _db.Database.BeginTransactionAsync())
+        await using (var transaction = await _db.Database.BeginTransactionAsync(cancellationToken))
         {
             _db.ApiTokens.Add(tokenDto);
-            await _db.SaveChangesAsync();
+            await _db.SaveChangesAsync(cancellationToken);
 
             await _auditService.LogAsync(
                 userId,
                 action: AuditAction.ApiTokenCreated,
                 actorId: userId,
-                metadata: new ApiTokenCreatedMetadata(tokenDto.Id, tokenDto.Name, tokenDto.Permissions.Select(p => PermissionTypeBindings.PermissionTypeToName[p].Name).ToList())
+                metadata: new ApiTokenCreatedMetadata(tokenDto.Id, tokenDto.Name, tokenDto.Permissions.Select(p => PermissionTypeBindings.PermissionTypeToName[p].Name).ToList()),
+                cancellationToken: cancellationToken
             );
 
-            await transaction.CommitAsync();
+            await transaction.CommitAsync(cancellationToken);
         }
 
         return new TokenCreatedResponseV2
@@ -200,14 +202,14 @@ public sealed class ApiTokenService : IApiTokenService
     }
 
     /// <inheritdoc />
-    public async Task<bool> EditTokenV1(Guid tokenId, EditTokenRequest body, Guid? ownerId = null)
+    public async Task<bool> EditTokenV1(Guid tokenId, EditTokenRequest body, Guid? ownerId = null, CancellationToken cancellationToken = default)
     {
-        var token = await Tokens(ownerId).FirstOrDefaultAsync(x => x.Id == tokenId);
+        var token = await Tokens(ownerId).FirstOrDefaultAsync(x => x.Id == tokenId, cancellationToken);
         if (token is null) return false;
 
         token.Name = body.Name;
         token.Permissions = body.Permissions.Distinct().ToList();
-        await _db.SaveChangesAsync();
+        await _db.SaveChangesAsync(cancellationToken);
 
         await _redisPubService.SendApiTokenUpdate(tokenId);
 
@@ -215,15 +217,15 @@ public sealed class ApiTokenService : IApiTokenService
     }
 
     /// <inheritdoc />
-    public async Task<bool> EditTokenV2(Guid tokenId, EditTokenRequestV2 body, Guid? ownerId = null)
+    public async Task<bool> EditTokenV2(Guid tokenId, EditTokenRequestV2 body, Guid? ownerId = null, CancellationToken cancellationToken = default)
     {
-        var token = await Tokens(ownerId).FirstOrDefaultAsync(x => x.Id == tokenId);
+        var token = await Tokens(ownerId).FirstOrDefaultAsync(x => x.Id == tokenId, cancellationToken);
         if (token is null) return false;
 
         token.Name = body.Name;
         token.Permissions = body.Permissions.Distinct().ToList();
         body.ShockerControl.ApplyTo(token);
-        await _db.SaveChangesAsync();
+        await _db.SaveChangesAsync(cancellationToken);
 
         await _redisPubService.SendApiTokenUpdate(tokenId);
 
@@ -231,11 +233,11 @@ public sealed class ApiTokenService : IApiTokenService
     }
 
     /// <inheritdoc />
-    public async Task<bool?> SetTokenPaused(Guid tokenId, bool paused, Guid? ownerId = null)
+    public async Task<bool?> SetTokenPaused(Guid tokenId, bool paused, Guid? ownerId = null, CancellationToken cancellationToken = default)
     {
         var nUpdated = await Tokens(ownerId)
             .Where(x => x.Id == tokenId)
-            .ExecuteUpdateAsync(setters => setters.SetProperty(x => x.ShockerControlPaused, paused));
+            .ExecuteUpdateAsync(setters => setters.SetProperty(x => x.ShockerControlPaused, paused), cancellationToken);
         if (nUpdated <= 0) return null;
 
         await _redisPubService.SendApiTokenUpdate(tokenId);

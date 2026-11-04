@@ -22,6 +22,7 @@ public sealed partial class UserSharesController
     /// <param name="userId"></param>
     /// <param name="body"></param>
     /// <param name="deviceUpdateService"></param>
+    /// <param name="cancellationToken"></param>
     /// <response code="200">Successfully updated share code</response>
     /// <response code="404">The share code does not exist or you do not have access to it.</response>
     [HttpPatch("{userId:guid}/shockers")]
@@ -34,13 +35,14 @@ public sealed partial class UserSharesController
     public async Task<IActionResult> BulkUserShareShockersUpdate(
         [FromRoute] Guid userId,
         [FromBody] BulkUserShareShockersUpdateRequest body,
-        [FromServices] IDeviceUpdateService deviceUpdateService)
+        [FromServices] IDeviceUpdateService deviceUpdateService,
+        CancellationToken cancellationToken)
     {
         var affected = await _db.UserShares.Where(x =>
                 body.Shockers.Contains(x.ShockerId) && x.SharedWithUserId == userId &&
                 x.Shocker.Device.OwnerId == CurrentUser.Id).Select(x =>
                 new { Share = x, x.Shocker.DeviceId, Owner = x.Shocker.Device.OwnerId })
-            .ToArrayAsync();
+            .ToArrayAsync(cancellationToken);
         
         var missingShockers = body.Shockers.Except(affected.Select(x => x.Share.ShockerId)).ToArray();
         if (missingShockers.Length > 0)
@@ -60,7 +62,7 @@ public sealed partial class UserSharesController
             _db.UserShares.Update(share.Share);
         }
 
-        await _db.SaveChangesAsync();
+        await _db.SaveChangesAsync(cancellationToken);
 
         var uniqueHubIds = affected.Select(x => x.Share.Shocker.DeviceId).Distinct();
         var updateTasks = uniqueHubIds.Select(device =>

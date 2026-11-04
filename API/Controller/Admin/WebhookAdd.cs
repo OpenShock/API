@@ -19,11 +19,11 @@ public sealed partial class AdminController
     [Consumes(MediaTypeNames.Application.Json)]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    public async Task<IActionResult> AddWebhook([FromBody] AddWebhookDto body, [FromServices] IWebhookService webhookService)
+    public async Task<IActionResult> AddWebhook([FromBody] AddWebhookDto body, [FromServices] IWebhookService webhookService, CancellationToken cancellationToken)
     {
         PedanticallyEnsureAdmin();
 
-        var result = await webhookService.AddWebhookAsync(body.Name, body.Url);
+        var result = await webhookService.AddWebhookAsync(body.Name, body.Url, cancellationToken);
         return result switch
         {
             Success<WebhookDto> success => Ok(success.Value),

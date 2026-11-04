@@ -20,7 +20,7 @@ public sealed class WebhookService : IWebhookService
     private static string GetWebhookUrl(long webhookId, string webhookToken) =>
         $"https://discord.com/api/webhooks/{webhookId}/{webhookToken}";
     
-    public async Task<Union2<Success<WebhookDto>, UnsupportedWebhookUrl>> AddWebhookAsync(string name, Uri webhookUrl)
+    public async Task<Union2<Success<WebhookDto>, UnsupportedWebhookUrl>> AddWebhookAsync(string name, Uri webhookUrl, CancellationToken cancellationToken)
     {
         if (webhookUrl is not
             {
@@ -44,7 +44,7 @@ public sealed class WebhookService : IWebhookService
         
         _db.DiscordWebhooks.Add(webhook);
 
-        await _db.SaveChangesAsync();
+        await _db.SaveChangesAsync(cancellationToken);
 
         return new Success<WebhookDto>(new WebhookDto
         {
@@ -55,13 +55,13 @@ public sealed class WebhookService : IWebhookService
         });
     }
 
-    public async Task<bool> RemoveWebhookAsync(Guid webhookId)
+    public async Task<bool> RemoveWebhookAsync(Guid webhookId, CancellationToken cancellationToken)
     {
-        var nDeleted = await _db.DiscordWebhooks.Where(w => w.Id == webhookId).ExecuteDeleteAsync();
+        var nDeleted = await _db.DiscordWebhooks.Where(w => w.Id == webhookId).ExecuteDeleteAsync(cancellationToken);
         return nDeleted > 0;
     }
 
-    public async Task<WebhookDto[]> GetWebhooksAsync()
+    public async Task<WebhookDto[]> GetWebhooksAsync(CancellationToken cancellationToken)
     {
         return await _db.DiscordWebhooks
             .OrderByDescending(w => w.CreatedAt)
@@ -72,14 +72,14 @@ public sealed class WebhookService : IWebhookService
                 Url = GetWebhookUrl(w.WebhookId, w.WebhookToken),
                 CreatedAt = w.CreatedAt
             })
-            .ToArrayAsync();
+            .ToArrayAsync(cancellationToken);
     }
 
-    public async Task<Union4<Success, NotFound, Error, WebhookTimeout>> SendWebhookAsync(string webhookName, string title, string content, Color color)
+    public async Task<Union4<Success, NotFound, Error, WebhookTimeout>> SendWebhookAsync(string webhookName, string title, string content, Color color, CancellationToken cancellationToken)
     {
         var webhook = await _db.DiscordWebhooks
             .Where(w => w.Name == webhookName)
-            .FirstOrDefaultAsync();
+            .FirstOrDefaultAsync(cancellationToken);
 
         if (webhook is null)
             return new NotFound();
@@ -100,7 +100,8 @@ public sealed class WebhookService : IWebhookService
         {
             using var response = await _httpClient.PostAsJsonAsync(
                 GetWebhookUrl(webhook.WebhookId, webhook.WebhookToken),
-                payload);
+                payload,
+                cancellationToken);
 
             if (!response.IsSuccessStatusCode)
                 return new Error(); // Consider inspecting status code if you want more granularity

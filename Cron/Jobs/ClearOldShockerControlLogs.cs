@@ -13,23 +13,27 @@ namespace OpenShock.Cron.Jobs;
 public sealed class ClearOldShockerControlLogs
 {
     private readonly OpenShockContext _db;
+    private readonly IHostApplicationLifetime _lifetime;
     private readonly ILogger<ClearOldShockerControlLogs> _logger;
 
     /// <summary>
     /// DI constructor
     /// </summary>
     /// <param name="db"></param>
+    /// <param name="lifetime">Its stopping token cancels the job when the server shuts down.</param>
     /// <param name="logger"></param>
-    public ClearOldShockerControlLogs(OpenShockContext db, ILogger<ClearOldShockerControlLogs> logger)
+    public ClearOldShockerControlLogs(OpenShockContext db, IHostApplicationLifetime lifetime, ILogger<ClearOldShockerControlLogs> logger)
     {
         _db = db;
+        _lifetime = lifetime;
         _logger = logger;
     }
 
     public async Task<int> Execute()
     {
+        var cancellationToken = _lifetime.ApplicationStopping;
         var deletedUserLimits =
-            await _db.DeleteControlLogsBeyondPerUserLimitAsync(HardLimits.MaxShockerControlLogsPerUser);
+            await _db.DeleteControlLogsBeyondPerUserLimitAsync(HardLimits.MaxShockerControlLogsPerUser, cancellationToken);
 
         _logger.LogInformation("Deleted {deletedUserLimits} shocker control logs exceeding the per-user limit",
             deletedUserLimits);

@@ -99,7 +99,8 @@ public sealed partial class OAuthController
             provider,
             auth.ExternalAccountId,
             auth.ExternalAccountDisplayName ?? auth.ExternalAccountName,
-            isEmailTrusted
+            isEmailTrusted,
+            cancellationToken
         );
 
         if (created is not User newUser)
@@ -112,7 +113,7 @@ public sealed partial class OAuthController
         // Authenticate the client if its activated (create session and set session cookie)
         if (newUser.ActivatedAt is not null)
         {
-            await CreateSession(newUser.Id, domain);
+            await CreateSession(newUser.Id, domain, cancellationToken);
         }
 
         // Clear the temporary OAuth flow cookie.

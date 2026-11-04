@@ -14,7 +14,6 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.OpenApi;
 using OpenShock.Common.Authentication;
 using OpenShock.Common.Authentication.AuthenticationHandlers;
-using OpenShock.Common.Authentication.Services;
 using OpenShock.Common.Constants;
 using OpenShock.Common.HealthChecks;
 using OpenShock.Common.JsonSerialization;
@@ -24,8 +23,10 @@ using OpenShock.Common.Options;
 using OpenShock.Common.Problems;
 using OpenShock.Common.Services.Audit;
 using OpenShock.Common.Services.BatchUpdate;
+using OpenShock.Common.Services.AutomationTokens;
 using OpenShock.Common.Services.Configuration;
 using OpenShock.Common.Services.RedisPubSub;
+using OpenShock.Common.Services.Geo;
 using OpenShock.Common.Services.Session;
 using OpenShock.Common.Services.Webhook;
 using OpenShock.Common.Metrics;
@@ -157,8 +158,6 @@ public static class OpenShockServiceHelper
             };
         });
 
-        services.AddScoped<IUserReferenceService, UserReferenceService>();
-
         var authBuilder = services
             .AddOpenShockAuthentication(opt =>
             {
@@ -187,7 +186,9 @@ public static class OpenShockServiceHelper
         {
             options.DefaultApiVersion = new ApiVersion(1, 0);
             options.AssumeDefaultVersionWhenUnspecified = true;
-        });
+            // All routes are versioned via the /{version:apiVersion}/ segment
+            options.ApiVersionReader = new UrlSegmentApiVersionReader();
+        }).AddMvc();
 
         apiVersioningBuilder.AddApiExplorer(setup =>
         {
@@ -255,17 +256,15 @@ public static class OpenShockServiceHelper
                 return Task.CompletedTask;
             });
 
-            // .NET 10 defaults to OpenAPI 3.1; keep 3.0 so existing clients/tooling see the same dialect as with Swashbuckle.
-            options.Document.OpenApiVersion = OpenApiSpecVersion.OpenApi3_0;
+            options.Document.OpenApiVersion = OpenApiSpecVersion.OpenApi3_2;
             options.Document.CreateSchemaReferenceId = OpenShockSchemaIds.Create;
 
             options.Document.AddOperationTransformer<OpenShockOperationTransformer>();
             options.Document.AddSchemaTransformer<OpenShockSchemaTransformer>();
             options.Document.AddDocumentTransformer<EnumSchemaTransformer>();
-            options.Document.AddDocumentTransformer<NullableReferenceTransformer>();
 
             // Picks up XML doc comments (<summary>, <param>, ...) from whichever host process is running
-            // (API/Cron/LiveControlGateway) and from Common, mirroring what Swashbuckle's IncludeXmlComments used to do.
+            // (API/Cron/LiveControlGateway) and from Common.
             var entryAssemblyName = Assembly.GetEntryAssembly()?.GetName().Name;
             var xmlPaths = new[] { entryAssemblyName, typeof(OpenShockServiceHelper).Assembly.GetName().Name }
                 .OfType<string>()
@@ -345,6 +344,13 @@ public static class OpenShockServiceHelper
         services.AddScoped<IConfigurationService, ConfigurationService>();
         services.AddScoped<ISessionService, SessionService>();
         services.AddScoped<IAuditService, AuditService>();
+        services.AddScoped<IAutomationTokenService, AutomationTokenService>();
+
+        // Ensure GeoOptions is always resolvable so IpEnrichmentService can activate even in hosts
+        // (Cron, SeedE2E) that don't call RegisterGeoOptions(). TryAdd leaves the
+        // API's config-bound instance untouched; other hosts get a disabled default (no DB paths).
+        services.TryAddSingleton(new GeoOptions());
+        services.AddSingleton<IIpEnrichmentService, IpEnrichmentService>();
         services.AddHttpClient<IWebhookService, WebhookService>(client =>
         {
             client.Timeout = TimeSpan.FromSeconds(30);
@@ -371,7 +377,19 @@ public static class OpenShockServiceHelper
                 options.AddPolicy("auth", _ => RateLimitPartition.GetNoLimiter("test-nolimit"));
                 options.AddPolicy("token-reporting", _ => RateLimitPartition.GetNoLimiter("test-nolimit"));
                 options.AddPolicy("shocker-logs", _ => RateLimitPartition.GetNoLimiter("test-nolimit"));
+                options.AddPolicy("control-stats", _ => RateLimitPartition.GetNoLimiter("test-nolimit"));
                 return;
+            }
+
+            // If the request resolved an automation token granting RateLimit, skip every limiter on it.
+            // Selectors are sync and the AutomationTokenMiddleware (which runs before UseRateLimiter)
+            // has already populated HttpContext.Items, so this is just a dictionary lookup.
+            static RateLimitPartition<string>? TryBypass(HttpContext ctx)
+            {
+                var bypass = ctx.GetResolvedAutomationToken();
+                return bypass is not null && bypass.Types.Contains(AutomationTokenType.RateLimit)
+                    ? RateLimitPartition.GetNoLimiter($"automation-token-{bypass.Id}")
+                    : null;
             }
 
             options.OnRejected = async (context, cancellationToken) =>
@@ -402,6 +420,8 @@ public static class OpenShockServiceHelper
             // Fixed window at 10k requests allows 20k bursts if burst occurs at window boundary
             options.GlobalLimiter = PartitionedRateLimiter.Create<HttpContext, string>(context =>
             {
+                if (TryBypass(context) is { } bypassPartition) return bypassPartition;
+
                 var user = context.User;
                 var userId = user.FindFirstValue(ClaimTypes.NameIdentifier);
                 if (string.IsNullOrEmpty(userId))
@@ -437,7 +457,9 @@ public static class OpenShockServiceHelper
             // Authentication endpoints limiter
             options.AddPolicy("auth", context =>
             {
-                var ip = context.GetRemoteIP();
+                if (TryBypass(context) is { } bypassPartition) return bypassPartition;
+
+                var ip = context.GetRemoteIP().ToString();
                 return RateLimitPartition.GetFixedWindowLimiter(ip, _ => new FixedWindowRateLimiterOptions
                 {
                     PermitLimit = 10,
@@ -446,7 +468,8 @@ public static class OpenShockServiceHelper
             });
 
             // Token reporting endpoint concurrency limiter
-            options.AddPolicy("token-reporting", _ =>
+            options.AddPolicy("token-reporting", context =>
+                TryBypass(context) ??
                 RateLimitPartition.GetConcurrencyLimiter("token-reporting", _ => new ConcurrencyLimiterOptions
                 {
                     PermitLimit = 5,
@@ -455,8 +478,19 @@ public static class OpenShockServiceHelper
                 }));
 
             // Log fetching endpoint concurrency limiter
-            options.AddPolicy("shocker-logs", _ =>
+            options.AddPolicy("shocker-logs", context =>
+                TryBypass(context) ??
                 RateLimitPartition.GetConcurrencyLimiter("shocker-logs", _ => new ConcurrencyLimiterOptions
+                {
+                    PermitLimit = 10,
+                    QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
+                    QueueLimit = 20
+                }));
+
+            // Control stats aggregate a user's whole history, so cap how many run at once
+            options.AddPolicy("control-stats", context =>
+                TryBypass(context) ??
+                RateLimitPartition.GetConcurrencyLimiter("control-stats", _ => new ConcurrencyLimiterOptions
                 {
                     PermitLimit = 10,
                     QueueProcessingOrder = QueueProcessingOrder.OldestFirst,

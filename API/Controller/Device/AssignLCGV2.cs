@@ -5,6 +5,7 @@ using Asp.Versioning;
 using OpenShock.API.Services.LCGNodeProvisioner;
 using OpenShock.Common.Errors;
 using OpenShock.Common.Problems;
+using OpenShock.Common.Services.Geo;
 using OpenShock.Common.Utils;
 
 using OpenShock.Internal.Common.Problems;
@@ -23,7 +24,7 @@ public sealed partial class DeviceController
     [ProducesResponseType<LcgNodeResponseV2>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status400BadRequest, MediaTypeNames.Application.ProblemJson)] // BadSchemaVersion
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status503ServiceUnavailable, MediaTypeNames.Application.ProblemJson)] // NoLcgNodesAvailable
-    public async Task<IActionResult> GetLiveControlGatewayV2([FromQuery(Name = "version")] uint version, [FromServices] ILCGNodeProvisioner geoLocation)
+    public async Task<IActionResult> GetLiveControlGatewayV2([FromQuery(Name = "version")] uint version, [FromServices] ILCGNodeProvisioner geoLocation, [FromServices] IIpEnrichmentService ipEnrichment)
     {
         string path;
         switch (version)
@@ -43,7 +44,7 @@ public sealed partial class DeviceController
             _logger.LogWarning("CF-IPCountry header could not be parsed into a alpha2 country code");
         }
 
-        var closestNode = await geoLocation.GetOptimalNodeAsync(countryCode);
+        var closestNode = await geoLocation.GetOptimalNodeAsync(countryCode, ipEnrichment.Enrich(HttpContext.GetRemoteIP())?.Location);
         if (closestNode is null) return Problem(AssignLcgError.NoLcgNodesAvailable);
 
         return Ok(new LcgNodeResponseV2

@@ -25,6 +25,8 @@ public sealed class SessionsTests
         using var doc = JsonDocument.Parse(json);
         var root = doc.RootElement;
         await Assert.That(root.TryGetProperty("id", out _)).IsTrue();
+        await Assert.That(root.GetProperty("ip").ValueKind).IsEqualTo(JsonValueKind.String);
+        await Assert.That(IPAddress.TryParse(root.GetProperty("ip").GetString(), out _)).IsTrue();
     }
 
     // --- Delete Session ---

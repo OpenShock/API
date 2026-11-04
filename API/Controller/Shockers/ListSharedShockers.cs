@@ -27,7 +27,7 @@ public sealed partial class ShockerController
     [HttpGet("shared")]
     [MapToApiVersion("1")]
     [ProducesResponseType<LegacyDataResponse<OwnerShockerResponse[]>>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
-    public async Task<IActionResult> ListSharedShockers()
+    public async Task<IActionResult> ListSharedShockers(CancellationToken cancellationToken)
     {
         var sharedShockersData = await _db.UserShares
             .AsNoTracking()
@@ -58,7 +58,7 @@ public sealed partial class ShockerController
                     }
                 }
             })
-            .ToArrayAsync();
+            .ToArrayAsync(cancellationToken);
 
         var sharesResponse = sharedShockersData
             .GroupBy(x => new OwnerGroupKey(x.OwnerId, x.OwnerName, x.OwnerEmail))

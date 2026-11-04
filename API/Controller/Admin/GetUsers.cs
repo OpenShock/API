@@ -26,7 +26,8 @@ public sealed partial class AdminController
         [FromQuery(Name = "$filter")] string filterQuery = "",
         [FromQuery(Name = "$orderby")] string orderbyQuery = "",
         [FromQuery(Name = "$offset")][Range(0, int.MaxValue)] int offset = 0,
-        [FromQuery(Name = "$limit")][Range(1, 1000)] int limit = 100
+        [FromQuery(Name = "$limit")][Range(1, 1000)] int limit = 100,
+        CancellationToken cancellationToken = default
         )
     {
         PedanticallyEnsureAdmin();
@@ -73,10 +74,10 @@ public sealed partial class AdminController
 
         return Ok(new Paginated<AdminUsersView>
         {
-            Data = await deferredUsers.ToArrayAsync(),
+            Data = await deferredUsers.ToArrayAsync(cancellationToken),
             Offset = offset,
             Limit = limit,
-            Total = await deferredCount.ValueAsync(),
+            Total = await deferredCount.ValueAsync(cancellationToken),
         });
     }
 }

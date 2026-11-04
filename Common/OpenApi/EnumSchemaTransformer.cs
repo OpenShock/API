@@ -90,11 +90,33 @@ public sealed class EnumSchemaTransformer : IOpenApiDocumentTransformer
             {
                 if (property.Items is not OpenApiSchema items || !StandIns.TryGetValue(items, out var enumType)) continue;
 
-                schemas[enumType.Name] = CreateSchema(enumType);
-                property.Items = new OpenApiSchemaReference(enumType.Name, document);
+                var id = ResolveComponentId(schemas, enumType, out var enumSchema);
+                schemas[id] = enumSchema;
+                property.Items = new OpenApiSchemaReference(id, document);
             }
         }
 
         return Task.CompletedTask;
+    }
+
+    /// <summary>
+    /// The component id for an enum. The plain type name is what the generator would have used, but two enums of that name
+    /// in different scopes would overwrite each other, so a name already held by a different enum is qualified.
+    /// </summary>
+    private static string ResolveComponentId(IDictionary<string, IOpenApiSchema> schemas, Type enumType, out OpenApiSchema schema)
+    {
+        schema = CreateSchema(enumType);
+
+        var id = enumType.Name;
+        if (!schemas.TryGetValue(id, out var existing) || DescribesSameEnum(existing, schema)) return id;
+
+        return (enumType.DeclaringType?.Name ?? enumType.Namespace?.Split('.').LastOrDefault() ?? string.Empty) + id;
+    }
+
+    private static bool DescribesSameEnum(IOpenApiSchema existing, OpenApiSchema candidate)
+    {
+        if (existing is not OpenApiSchema { Enum: { } values } || candidate.Enum is not { } wanted) return false;
+
+        return values.Select(v => v?.ToJsonString()).SequenceEqual(wanted.Select(v => v?.ToJsonString()));
     }
 }

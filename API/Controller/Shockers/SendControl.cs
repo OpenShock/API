@@ -4,7 +4,6 @@ using Asp.Versioning;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.SignalR;
 using OpenShock.Common.Authentication.Attributes;
-using OpenShock.Common.Authentication.Services;
 using OpenShock.Common.Errors;
 using OpenShock.Common.Extensions;
 using OpenShock.Common.Hubs;
@@ -36,7 +35,7 @@ public sealed partial class ShockerController
         [FromBody] ControlRequest body,
         [FromServices] IHubContext<UserHub, IUserHub> userHub,
         [FromServices] IControlSender controlSender,
-        [FromServices] IUserReferenceService userReferenceService)
+        CancellationToken cancellationToken)
     {
         var sender = new ControlLogSender
         {
@@ -49,7 +48,7 @@ public sealed partial class ShockerController
         };
 
         ApiTokenControlLimits? tokenLimits = null;
-        if (userReferenceService.AuthReference is ApiToken apiToken)
+        if (GetOptionalItem<ApiToken>() is { } apiToken)
         {
             // A paused token may not control shockers.
             if (apiToken.ShockerControlPaused) return Problem(ApiTokenError.ApiTokenPaused);
@@ -57,7 +56,7 @@ public sealed partial class ShockerController
             tokenLimits = ApiTokenControlLimits.FromToken(apiToken);
         }
 
-        var controlAction = await controlSender.ControlByUser(body.Shocks, sender, userHub.Clients, tokenLimits);
+        var controlAction = await controlSender.ControlByUser(body.Shocks, sender, userHub.Clients, tokenLimits, cancellationToken);
         return controlAction switch
         {
             Success => LegacyEmptyOk("Successfully sent control messages"),
@@ -84,12 +83,12 @@ public sealed partial class ShockerController
         [FromBody] IReadOnlyList<Common.Models.WebSocket.User.Control> body,
         [FromServices] IHubContext<UserHub, IUserHub> userHub,
         [FromServices] IControlSender controlSender,
-        [FromServices] IUserReferenceService userReferenceService)
+        CancellationToken cancellationToken)
     {
         return SendControl(new ControlRequest
         {
             Shocks = body,
             CustomName = null
-        }, userHub, controlSender, userReferenceService);
+        }, userHub, controlSender, cancellationToken);
     }
 }

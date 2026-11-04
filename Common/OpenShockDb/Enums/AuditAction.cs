@@ -19,4 +19,9 @@ public enum AuditAction
     [PgName("account_deactivated")] AccountDeactivated,
     [PgName("account_reactivated")] AccountReactivated,
     [PgName("account_deleted")] AccountDeleted,
+    [PgName("automation_token_created")] AutomationTokenCreated,
+    [PgName("automation_token_updated")] AutomationTokenUpdated,
+    [PgName("automation_token_rotated")] AutomationTokenRotated,
+    [PgName("automation_token_deleted")] AutomationTokenDeleted,
+    [PgName("automation_token_used")] AutomationTokenUsed,
 }

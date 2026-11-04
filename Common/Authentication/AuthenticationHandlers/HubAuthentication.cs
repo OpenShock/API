@@ -51,7 +51,7 @@ public sealed class HubAuthentication : AuthenticationHandler<AuthenticationSche
                 x.OwnerId,
                 IsDeactivated = x.Owner.UserDeactivation != null
             })
-            .FirstOrDefaultAsync();
+            .FirstOrDefaultAsync(Context.RequestAborted);
         if (hub is null)
         {
             return Fail(AuthResultError.TokenInvalid);
