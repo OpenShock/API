@@ -63,7 +63,9 @@ public sealed class MailTests
         await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.OK);
 
         var setCookie = response.Headers.GetValues("Set-Cookie").ToArray();
-        await Assert.That(setCookie.Any(c => c.StartsWith(AuthConstants.ActivationResendCookieName + "=") && c.Contains("httponly", StringComparison.OrdinalIgnoreCase))).IsTrue();
+        var resendCookie = setCookie.Single(c => c.StartsWith(AuthConstants.ActivationResendCookieName + "="));
+        // Readable by the frontend, which shows the resend button only while the cookie exists.
+        await Assert.That(resendCookie.Contains("httponly", StringComparison.OrdinalIgnoreCase)).IsFalse();
     }
 
     [Test]
@@ -183,11 +185,12 @@ public sealed class MailTests
     }
 
     [Test]
-    public async Task ResendActivation_TamperedCookie_Returns400()
+    public async Task ResendActivation_TamperedCookie_Returns400_AndRemovesCookie()
     {
         using var client = CreateCookielessClient();
         var response = await PostResendAsync(client, $"{AuthConstants.ActivationResendCookieName}=not-a-valid-token");
         await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.BadRequest);
+        await Assert.That(DeletesResendCookie(response)).IsTrue();
     }
 
     [Test]

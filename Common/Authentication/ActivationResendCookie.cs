@@ -9,14 +9,19 @@ using OpenShock.Common.Options;
 namespace OpenShock.Common.Authentication;
 
 /// <summary>
-/// HttpOnly cookie set on signup when the new account still needs activation. It lets the browser that created
-/// the account ask for the activation email again ("didn't get the email?") without typing an address, so the
-/// resend endpoint can't be aimed at arbitrary inboxes or used to probe which emails are registered.
+/// Cookie set on signup when the new account still needs activation. It lets the browser that created the account
+/// ask for the activation email again ("didn't get the email?") without typing an address, so the resend endpoint
+/// can't be aimed at arbitrary inboxes or used to probe which emails are registered.
 /// </summary>
 /// <remarks>
 /// The value is a time-limited data protection payload holding the user id (keys are persisted to the database,
 /// so it is valid across API instances). It is removed on any successful session authentication, and by the
 /// resend endpoint once there is nothing left to resend.
+/// <para>
+/// Deliberately <em>not</em> HttpOnly: the frontend reads its presence to decide whether to offer the resend
+/// button. HttpOnly would buy little anyway - script on the page could call the endpoint with the cookie attached
+/// regardless - and a leaked token can only resend (rate limited) activation emails to that account's own inbox.
+/// </para>
 /// </remarks>
 public static class ActivationResendCookie
 {
@@ -34,7 +39,7 @@ public static class ActivationResendCookie
         {
             Expires = DateTimeOffset.UtcNow.Add(Duration.ActivationResendWindow),
             Secure = context.Request.IsHttps || frontendOptions.CookieSecure,
-            HttpOnly = true,
+            HttpOnly = false,
             SameSite = SameSiteMode.Lax,
             Domain = domain
         });

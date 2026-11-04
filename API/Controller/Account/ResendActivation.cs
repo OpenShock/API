@@ -17,7 +17,7 @@ public sealed partial class AccountController
     /// Resend the account activation email for the account this browser just signed up
     /// </summary>
     /// <remarks>
-    /// Identifies the account by the HttpOnly activation-resend cookie set on signup, not by an email address,
+    /// Identifies the account by the activation-resend cookie set on signup, not by an email address,
     /// so it can only target an account created from this browser and can't be used to probe registered emails.
     /// </remarks>
     /// <response code="200">Activation email enqueued</response>
@@ -32,7 +32,11 @@ public sealed partial class AccountController
     public async Task<IActionResult> ResendActivation(CancellationToken cancellationToken)
     {
         if (!ActivationResendCookie.TryGetUserId(HttpContext, out var userId))
+        {
+            // Tampered or expired (a no-op when there is no cookie), so the frontend stops offering the button.
+            ActivationResendCookie.Remove(HttpContext);
             return Problem(AccountError.AccountActivationResendUnavailable);
+        }
 
         var result = await _accountService.ResendActivationEmailAsync(userId.Value, cancellationToken);
 
