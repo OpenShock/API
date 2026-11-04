@@ -293,7 +293,17 @@ public sealed class AccountService : IAccountService
         // Silently no-op (and ignore the result) so this endpoint can't be used to probe which emails are
         // registered, already activated, deactivated, or currently throttled.
         if (userId is null) return;
-        await ResendActivationEmailAsync(userId.Value, cancellationToken);
+
+        try
+        {
+            await ResendActivationEmailAsync(userId.Value, cancellationToken);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            // Only existing accounts reach this point, so a failure must look exactly like an unknown email to
+            // the caller - otherwise the public endpoint leaks which emails are registered.
+            _logger.LogError(ex, "Failed to resend activation email for user {UserId}", userId.Value);
+        }
     }
 
     /// <inheritdoc />
