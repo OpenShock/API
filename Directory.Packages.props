@@ -15,7 +15,7 @@
     <PackageVersion Include="BCrypt.Net-Next" Version="4.2.1" />
     <PackageVersion Include="Bogus" Version="35.6.5" />
     <PackageVersion Include="MaxMind.GeoIP2" Version="6.1.0" />
-    <PackageVersion Include="Fluid.Core" Version="2.40.0" />
+    <PackageVersion Include="Fluid.Core" Version="2.41.1" />
     <PackageVersion Include="Hangfire.AspNetCore" Version="1.8.25" />
     <PackageVersion Include="Hangfire.PostgreSql" Version="1.21.1" />
     <PackageVersion Include="IDisposableAnalyzers" Version="4.0.8" />
@@ -51,10 +51,10 @@
     <PackageVersion Include="Serilog.Sinks.OpenTelemetry" Version="4.2.0" />
     <!-- Transitive via NRedisStack; 3.0.25 reflects over MulticastDelegate._invocationList, which no longer
          exists on .NET 11 and aborts the process (MissingFieldException on the connection-failed handler). -->
-    <PackageVersion Include="StackExchange.Redis" Version="3.2.15" />
+    <PackageVersion Include="StackExchange.Redis" Version="3.4.31" />
     <PackageVersion Include="Testcontainers.PostgreSql" Version="4.16.0" />
     <PackageVersion Include="Testcontainers.Redis" Version="4.16.0" />
-    <PackageVersion Include="TUnit" Version="1.78.0" />
+    <PackageVersion Include="TUnit" Version="1.80.0" />
     <PackageVersion Include="Z.EntityFramework.Plus.EFCore" Version="10.105.9" />
   </ItemGroup>
   <ItemGroup Condition="'$(UsingMicrosoftNETSdkWeb)' != 'true'">
