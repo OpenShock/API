@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Net.Mime;
 using Microsoft.AspNetCore.Mvc;
 using Asp.Versioning;
@@ -40,16 +41,16 @@ public sealed partial class AccountController
 
         var result = await _accountService.ResendActivationEmailAsync(userId.Value, cancellationToken);
 
-        switch (result)
+        // Already activated, deactivated, or gone: the cookie has nothing left to do.
+        if (result is AccountDeactivated or Results.NotFound)
+            ActivationResendCookie.Remove(HttpContext);
+
+        return result switch
         {
-            case Results.Success:
-                return Ok();
-            case TooManyActivationResends:
-                return Problem(AccountError.AccountActivationResendTooMany);
-            default:
-                // Already activated, deactivated, or gone: the cookie has nothing left to do.
-                ActivationResendCookie.Remove(HttpContext);
-                return Problem(AccountError.AccountActivationResendUnavailable);
-        }
+            Results.Success => Ok(),
+            TooManyActivationResends => Problem(AccountError.AccountActivationResendTooMany),
+            AccountDeactivated or Results.NotFound => Problem(AccountError.AccountActivationResendUnavailable),
+            _ => throw new UnreachableException()
+        };
     }
 }
