@@ -6,7 +6,7 @@ namespace OpenShock.Common.Redis.PubSub;
 public sealed class DeviceStatus
 {
     [Key(0)] public required Guid DeviceId { get; init; }
-    [Key(1)] public required IDeviceStatusPayload Payload { get; init; }
+    [Key(1)] public required DeviceStatusPayload Payload { get; init; }
 
     public static DeviceStatus Create(Guid deviceId, DeviceBoolStateType stateType, bool state) => new()
     {
@@ -20,7 +20,7 @@ public sealed class DeviceStatus
 }
 
 [Union(0, typeof(DeviceBoolStatePayload))]
-public interface IDeviceStatusPayload;
+public closed class DeviceStatusPayload;
 
 public enum DeviceBoolStateType : byte
 {
@@ -29,7 +29,7 @@ public enum DeviceBoolStateType : byte
 }
 
 [MessagePackObject]
-public sealed class DeviceBoolStatePayload : IDeviceStatusPayload
+public sealed class DeviceBoolStatePayload : DeviceStatusPayload
 {
     [Key(0)] public required DeviceBoolStateType Type { get; init; }
     [Key(1)] public required bool State { get; init; }

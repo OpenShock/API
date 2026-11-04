@@ -118,16 +118,11 @@ public sealed class RedisSubscriberService : IHostedService, IAsyncDisposable
 
     private async Task HandleDeviceStatusMessage(DeviceStatus message)
     {
-        switch (message.Payload)
+        // DeviceStatusPayload is closed, so a payload type added without a case here is a compile warning
+        await (message.Payload switch
         {
-            case DeviceBoolStatePayload boolState:
-                await HandleDeviceBoolState(message.DeviceId, boolState);
-                break;
-            default:
-                _logger.LogError("Got DeviceStatus with unknown payload type: {PayloadType}", message.Payload.GetType().Name);
-                break;
-        }
-
+            DeviceBoolStatePayload boolState => HandleDeviceBoolState(message.DeviceId, boolState),
+        });
     }
 
     private async Task HandleDeviceBoolState(Guid deviceId, DeviceBoolStatePayload state)
