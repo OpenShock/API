@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using OpenShock.Common.Authentication;
+using Microsoft.AspNetCore.Mvc;
 using OpenShock.Common.Constants;
 using OpenShock.Common.Extensions;
 using OpenShock.Common.Models;
@@ -79,6 +80,9 @@ public abstract class OpenShockControllerBase : OpenShock.Internal.Common.OpenSh
             SameSite = SameSiteMode.Lax,
             Domain = domain
         });
+
+        // Signed in, so the post-signup "didn't get the email?" cookie has served its purpose.
+        ActivationResendCookie.Remove(HttpContext);
     }
 
     [NonAction]

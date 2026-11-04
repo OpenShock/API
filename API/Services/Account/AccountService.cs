@@ -281,7 +281,7 @@ public sealed class AccountService : IAccountService
     }
 
     /// <inheritdoc />
-    public async Task ResendActivationEmailAsync(string usernameOrEmail, CancellationToken cancellationToken = default)
+    public async Task<Union4<Success, TooManyActivationResends, AccountDeactivated, NotFound>> ResendActivationEmailAsync(string usernameOrEmail, CancellationToken cancellationToken = default)
     {
         var lowercaseUsernameOrEmail = usernameOrEmail.ToLowerInvariant();
 
@@ -289,21 +289,9 @@ public sealed class AccountService : IAccountService
             .Where(u => u.Email == lowercaseUsernameOrEmail || u.Name == lowercaseUsernameOrEmail)
             .Select(u => (Guid?)u.Id)
             .FirstOrDefaultAsync(cancellationToken);
+        if (userId is null) return new NotFound();
 
-        // Silently no-op (and ignore the result) so this endpoint can't be used to probe which emails are
-        // registered, already activated, deactivated, or currently throttled.
-        if (userId is null) return;
-
-        try
-        {
-            await ResendActivationEmailAsync(userId.Value, cancellationToken);
-        }
-        catch (Exception ex) when (ex is not OperationCanceledException)
-        {
-            // Only existing accounts reach this point, so a failure must look exactly like an unknown email to
-            // the caller - otherwise the public endpoint leaks which emails are registered.
-            _logger.LogError(ex, "Failed to resend activation email for user {UserId}", userId.Value);
-        }
+        return await ResendActivationEmailAsync(userId.Value, cancellationToken);
     }
 
     /// <inheritdoc />

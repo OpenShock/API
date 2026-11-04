@@ -48,13 +48,13 @@ public interface IAccountService
     Task<bool> TryActivateAccountAsync(string token, CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Resends the account activation email for the unactivated account with this username or email. Silently
-    /// does nothing when no email is sent (unknown account, already activated, deactivated, or throttled) to
-    /// avoid leaking account state. Subject to the same per-user rate limit as the overload below.
+    /// Looks up the account by username or email and re-enqueues its activation email, see the overload below.
+    /// Only call this after the caller has proven ownership (e.g. a correct password), as the result reveals
+    /// account state.
     /// </summary>
-    /// <param name="usernameOrEmail">The username or email address of the account.</param>
+    /// <param name="usernameOrEmail"></param>
     /// <param name="cancellationToken"></param>
-    Task ResendActivationEmailAsync(string usernameOrEmail, CancellationToken cancellationToken = default);
+    Task<Union4<Success, TooManyActivationResends, AccountDeactivated, NotFound>> ResendActivationEmailAsync(string usernameOrEmail, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Re-enqueues the activation email for an unactivated, non-deactivated account. Only call this after the

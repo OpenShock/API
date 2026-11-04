@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Authentication;
+﻿using OpenShock.Common.Authentication;
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 using OpenShock.API.Models.Requests;
@@ -114,6 +115,11 @@ public sealed partial class OAuthController
         if (newUser.ActivatedAt is not null)
         {
             await CreateSession(newUser.Id, domain, cancellationToken);
+        }
+        else
+        {
+            // Lets this browser ask for the activation email again without typing the address.
+            ActivationResendCookie.Set(HttpContext, newUser.Id, domain);
         }
 
         // Clear the temporary OAuth flow cookie.

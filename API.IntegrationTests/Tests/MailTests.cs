@@ -2,6 +2,10 @@ using System.Net;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using OpenShock.API.IntegrationTests.Helpers;
+using Microsoft.AspNetCore.DataProtection;
+using Microsoft.AspNetCore.Mvc.Testing;
+using OpenShock.Common.Authentication;
+using OpenShock.Common.Constants;
 using OpenShock.Common.Models;
 using OpenShock.Common.OpenShockDb;
 using OpenShock.Common.Utils;
@@ -52,16 +56,27 @@ public sealed class MailTests
     // --- Resend Activation ---
 
     [Test]
+    public async Task V2Signup_Unactivated_SetsActivationResendCookie()
+    {
+        using var client = CreateCookielessClient();
+        var response = await SignUpAsync(client, TestHelper.UniqueEmail("mail-signup-cookie"), TestHelper.UniqueUsername("mailsignupcookie"));
+        await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.OK);
+
+        var setCookie = response.Headers.GetValues("Set-Cookie").ToArray();
+        await Assert.That(setCookie.Any(c => c.StartsWith(AuthConstants.ActivationResendCookieName + "=") && c.Contains("httponly", StringComparison.OrdinalIgnoreCase))).IsTrue();
+    }
+
+    [Test]
     public async Task ResendActivation_UnactivatedUser_EnqueuesActivationOutbox()
     {
         var email = TestHelper.UniqueEmail("mail-resend-activate");
         var username = TestHelper.UniqueUsername("mailresendactivate");
 
-        // Unactivated user with no existing activation request — exercises the create-request path.
+        // Unactivated user with no existing activation request - exercises the create-request path.
         var userId = await TestHelper.CreateUserInDb(WebApplicationFactory, username, email, "SecurePassword123#", activated: false);
 
-        using var client = WebApplicationFactory.CreateClient();
-        var response = await client.PostAsync("/1/account/activate/resend", TestHelper.JsonContent(new { email, turnstileResponse = "valid-token" }));
+        using var client = CreateCookielessClient();
+        var response = await PostResendAsync(client, MintResendCookie(userId));
         await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.OK);
 
         await using var scope = WebApplicationFactory.Services.CreateAsyncScope();
@@ -78,28 +93,25 @@ public sealed class MailTests
     }
 
     [Test]
-    public async Task ResendActivation_WithExistingRequest_EnqueuesAnotherActivationOutbox()
+    public async Task ResendActivation_WithSignupCookie_EnqueuesAnotherActivationOutbox()
     {
         var email = TestHelper.UniqueEmail("mail-resend-rotate");
         var username = TestHelper.UniqueUsername("mailresendrotate");
-        using var client = WebApplicationFactory.CreateClient();
+        using var client = CreateCookielessClient();
 
-        // Sign up (V2) — creates an unactivated user, its activation request, and the first enqueue.
-        var signupResponse = await client.PostAsync("/2/account/signup", TestHelper.JsonContent(new
-        {
-            username,
-            password = "SecurePassword123#",
-            email,
-            turnstileResponse = "valid-token"
-        }));
+        // Sign up (V2) - creates an unactivated user, its activation request, the first enqueue, and the cookie.
+        var signupResponse = await SignUpAsync(client, email, username);
         await Assert.That(signupResponse.StatusCode).IsEqualTo(HttpStatusCode.OK);
+        var cookie = signupResponse.Headers.GetValues("Set-Cookie")
+            .Single(c => c.StartsWith(AuthConstants.ActivationResendCookieName + "="))
+            .Split(';')[0];
 
         // Move the signup email out of the resend cooldown.
         await BackdateOutboxAsync(email, TimeSpan.FromMinutes(11));
 
         // Resend enqueues another activation email. The delivery job re-mints the token and supersedes the
         // older row at send time (coalesce key) - that token rotation is covered in Cron.IntegrationTests.
-        var resendResponse = await client.PostAsync("/1/account/activate/resend", TestHelper.JsonContent(new { email, turnstileResponse = "valid-token" }));
+        var resendResponse = await PostResendAsync(client, cookie);
         await Assert.That(resendResponse.StatusCode).IsEqualTo(HttpStatusCode.OK);
 
         await using var scope = WebApplicationFactory.Services.CreateAsyncScope();
@@ -113,39 +125,93 @@ public sealed class MailTests
     }
 
     [Test]
-    public async Task ResendActivation_WithinCooldown_Returns200_AndEnqueuesNothing()
+    public async Task ResendActivation_WithinCooldown_Returns429_AndEnqueuesNothing()
     {
         var email = TestHelper.UniqueEmail("mail-resend-cooldown");
         var username = TestHelper.UniqueUsername("mailresendcooldown");
-        await TestHelper.CreateUserInDb(WebApplicationFactory, username, email, "SecurePassword123#", activated: false);
+        var userId = await TestHelper.CreateUserInDb(WebApplicationFactory, username, email, "SecurePassword123#", activated: false);
+        var cookie = MintResendCookie(userId);
 
-        using var client = WebApplicationFactory.CreateClient();
-        for (var i = 0; i < 3; i++)
-        {
-            var response = await client.PostAsync("/1/account/activate/resend", TestHelper.JsonContent(new { email, turnstileResponse = "valid-token" }));
-            await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.OK);
-        }
+        using var client = CreateCookielessClient();
+        await Assert.That((await PostResendAsync(client, cookie)).StatusCode).IsEqualTo(HttpStatusCode.OK);
+        await Assert.That((await PostResendAsync(client, cookie)).StatusCode).IsEqualTo(HttpStatusCode.TooManyRequests);
 
         await Assert.That(await CountOutboxAsync(email)).IsEqualTo(1);
     }
 
     [Test]
-    public async Task ResendActivation_DailyCapReached_EnqueuesNothing()
+    public async Task ResendActivation_DailyCapReached_Returns429()
     {
         var email = TestHelper.UniqueEmail("mail-resend-cap");
         var username = TestHelper.UniqueUsername("mailresendcap");
-        await TestHelper.CreateUserInDb(WebApplicationFactory, username, email, "SecurePassword123#", activated: false);
+        var userId = await TestHelper.CreateUserInDb(WebApplicationFactory, username, email, "SecurePassword123#", activated: false);
+        var cookie = MintResendCookie(userId);
 
-        using var client = WebApplicationFactory.CreateClient();
-        for (var i = 0; i < 6; i++)
+        using var client = CreateCookielessClient();
+        for (var i = 0; i < 5; i++)
         {
-            var response = await client.PostAsync("/1/account/activate/resend", TestHelper.JsonContent(new { email, turnstileResponse = "valid-token" }));
-            await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.OK);
+            await Assert.That((await PostResendAsync(client, cookie)).StatusCode).IsEqualTo(HttpStatusCode.OK);
             // Step past the cooldown each time; only the 24h cap of 5 should stop the sixth.
             await BackdateOutboxAsync(email, TimeSpan.FromMinutes(11));
         }
+        await Assert.That((await PostResendAsync(client, cookie)).StatusCode).IsEqualTo(HttpStatusCode.TooManyRequests);
 
         await Assert.That(await CountOutboxAsync(email)).IsEqualTo(5);
+    }
+
+    [Test]
+    public async Task ResendActivation_AlreadyActivatedUser_Returns400_AndRemovesCookie()
+    {
+        var email = TestHelper.UniqueEmail("mail-resend-activated");
+        var username = TestHelper.UniqueUsername("mailresendactivated");
+        var userId = await TestHelper.CreateUserInDb(WebApplicationFactory, username, email, "SecurePassword123#", activated: true);
+
+        using var client = CreateCookielessClient();
+        var response = await PostResendAsync(client, MintResendCookie(userId));
+        await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.BadRequest);
+        await Assert.That(DeletesResendCookie(response)).IsTrue();
+
+        await Assert.That(await CountOutboxAsync(email)).IsEqualTo(0);
+    }
+
+    [Test]
+    public async Task ResendActivation_NoCookie_Returns400()
+    {
+        using var client = CreateCookielessClient();
+        var response = await PostResendAsync(client, cookie: null);
+        await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.BadRequest);
+    }
+
+    [Test]
+    public async Task ResendActivation_TamperedCookie_Returns400()
+    {
+        using var client = CreateCookielessClient();
+        var response = await PostResendAsync(client, $"{AuthConstants.ActivationResendCookieName}=not-a-valid-token");
+        await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.BadRequest);
+    }
+
+    [Test]
+    public async Task Login_Success_RemovesActivationResendCookie()
+    {
+        var email = TestHelper.UniqueEmail("mail-login-clears");
+        var username = TestHelper.UniqueUsername("maillogclears");
+        var userId = await TestHelper.CreateUserInDb(WebApplicationFactory, username, email, "SecurePassword123#", activated: true);
+
+        using var client = CreateCookielessClient();
+        using var request = new HttpRequestMessage(HttpMethod.Post, "/2/account/login")
+        {
+            Content = TestHelper.JsonContent(new
+            {
+                usernameOrEmail = email,
+                password = "SecurePassword123#",
+                turnstileResponse = "valid-token"
+            })
+        };
+        request.Headers.Add("Cookie", MintResendCookie(userId));
+
+        var response = await client.SendAsync(request);
+        await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.OK);
+        await Assert.That(DeletesResendCookie(response)).IsTrue();
     }
 
     [Test]
@@ -191,6 +257,40 @@ public sealed class MailTests
         await Assert.That(await CountOutboxAsync(email)).IsEqualTo(0);
     }
 
+    private HttpClient CreateCookielessClient() => WebApplicationFactory.CreateClient(new WebApplicationFactoryClientOptions
+    {
+        AllowAutoRedirect = false,
+        HandleCookies = false
+    });
+
+    private static Task<HttpResponseMessage> SignUpAsync(HttpClient client, string email, string username) =>
+        client.PostAsync("/2/account/signup", TestHelper.JsonContent(new
+        {
+            username,
+            password = "SecurePassword123#",
+            email,
+            turnstileResponse = "valid-token"
+        }));
+
+    private string MintResendCookie(Guid userId)
+    {
+        var provider = WebApplicationFactory.Services.GetRequiredService<IDataProtectionProvider>();
+        return $"{AuthConstants.ActivationResendCookieName}={ActivationResendCookie.CreateToken(provider, userId)}";
+    }
+
+    private static Task<HttpResponseMessage> PostResendAsync(HttpClient client, string? cookie)
+    {
+        var request = new HttpRequestMessage(HttpMethod.Post, "/1/account/activate/resend");
+        if (cookie is not null) request.Headers.Add("Cookie", cookie);
+        return client.SendAsync(request);
+    }
+
+    // A deleted cookie comes back as an empty value with an expiry in the past.
+    private static bool DeletesResendCookie(HttpResponseMessage response) =>
+        response.Headers.TryGetValues("Set-Cookie", out var values) &&
+        values.Any(c => c.StartsWith(AuthConstants.ActivationResendCookieName + "=;") &&
+                        c.Contains("expires=Thu, 01 Jan 1970", StringComparison.OrdinalIgnoreCase));
+
     private async Task<int> CountOutboxAsync(string email)
     {
         await using var scope = WebApplicationFactory.Services.CreateAsyncScope();
@@ -205,62 +305,6 @@ public sealed class MailTests
         await db.EmailOutbox
             .Where(m => m.Recipient == email)
             .ExecuteUpdateAsync(s => s.SetProperty(m => m.CreatedAt, m => m.CreatedAt - by));
-    }
-
-    [Test]
-    public async Task ResendActivation_AlreadyActivatedUser_Returns200_AndEnqueuesNothing()
-    {
-        var email = TestHelper.UniqueEmail("mail-resend-activated");
-        var username = TestHelper.UniqueUsername("mailresendactivated");
-
-        await TestHelper.CreateUserInDb(WebApplicationFactory, username, email, "SecurePassword123#", activated: true);
-
-        using var client = WebApplicationFactory.CreateClient();
-        var response = await client.PostAsync("/1/account/activate/resend", TestHelper.JsonContent(new { email, turnstileResponse = "valid-token" }));
-
-        // Generic 200 (no account-state leak), but nothing is enqueued for an already-activated account.
-        await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.OK);
-
-        await using var scope = WebApplicationFactory.Services.CreateAsyncScope();
-        var db = scope.ServiceProvider.GetRequiredService<OpenShockContext>();
-        var enqueued = await db.EmailOutbox.AsNoTracking().CountAsync(m => m.Recipient == email);
-        await Assert.That(enqueued).IsEqualTo(0);
-    }
-
-    [Test]
-    public async Task ResendActivation_UnknownEmail_Returns200_AndEnqueuesNothing()
-    {
-        var email = TestHelper.UniqueEmail("mail-resend-unknown");
-
-        using var client = WebApplicationFactory.CreateClient();
-        var response = await client.PostAsync("/1/account/activate/resend", TestHelper.JsonContent(new { email, turnstileResponse = "valid-token" }));
-
-        await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.OK);
-
-        await using var scope = WebApplicationFactory.Services.CreateAsyncScope();
-        var db = scope.ServiceProvider.GetRequiredService<OpenShockContext>();
-        var enqueued = await db.EmailOutbox.AsNoTracking().CountAsync(m => m.Recipient == email);
-        await Assert.That(enqueued).IsEqualTo(0);
-    }
-
-    [Test]
-    public async Task ResendActivation_InvalidTurnstile_Returns403_AndEnqueuesNothing()
-    {
-        var email = TestHelper.UniqueEmail("mail-resend-turnstile");
-        var username = TestHelper.UniqueUsername("mailresendturnstile");
-
-        await TestHelper.CreateUserInDb(WebApplicationFactory, username, email, "SecurePassword123#", activated: false);
-
-        using var client = WebApplicationFactory.CreateClient();
-        var response = await client.PostAsync("/1/account/activate/resend", TestHelper.JsonContent(new { email, turnstileResponse = "invalid-token" }));
-
-        // A failed turnstile must stop the send outright - this endpoint mails a third party.
-        await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.Forbidden);
-
-        await using var scope = WebApplicationFactory.Services.CreateAsyncScope();
-        var db = scope.ServiceProvider.GetRequiredService<OpenShockContext>();
-        var enqueued = await db.EmailOutbox.AsNoTracking().CountAsync(m => m.Recipient == email);
-        await Assert.That(enqueued).IsEqualTo(0);
     }
 
     // --- Password Reset ---

@@ -1,46 +1,51 @@
-using System.ComponentModel.DataAnnotations;
 using System.Net.Mime;
 using Microsoft.AspNetCore.Mvc;
 using Asp.Versioning;
 using Microsoft.AspNetCore.RateLimiting;
-using OpenShock.API.Services.Turnstile;
-using OpenShock.Common.Constants;
-using OpenShock.Common.DataAnnotations;
+using OpenShock.API.Services.Account;
+using OpenShock.Common.Authentication;
+using OpenShock.Common.Errors;
 using OpenShock.Common.Problems;
 using OpenShock.Internal.Common.Problems;
+using Results = OpenShock.Common.Results;
 
 namespace OpenShock.API.Controller.Account;
 
 public sealed partial class AccountController
 {
     /// <summary>
-    /// Resend the account activation email
+    /// Resend the account activation email for the account this browser just signed up
     /// </summary>
-    /// <response code="200">Activation email sent if the email is associated to an unactivated account</response>
+    /// <remarks>
+    /// Identifies the account by the HttpOnly activation-resend cookie set on signup, not by an email address,
+    /// so it can only target an account created from this browser and can't be used to probe registered emails.
+    /// </remarks>
+    /// <response code="200">Activation email enqueued</response>
+    /// <response code="400">No pending activation for this browser (missing/expired cookie, or already activated)</response>
+    /// <response code="429">An activation email was sent too recently</response>
     [HttpPost("activate/resend")]
     [EnableRateLimiting("auth")]
-    [Consumes(MediaTypeNames.Application.Json)]
     [MapToApiVersion("1")]
     [ProducesResponseType(StatusCodes.Status200OK)]
-    [ProducesResponseType<OpenShockProblem>(StatusCodes.Status403Forbidden, MediaTypeNames.Application.ProblemJson)]
-    public async Task<IActionResult> ResendActivation([FromBody] ResendActivationRequest body, [FromServices] ICloudflareTurnstileService turnstileService, CancellationToken cancellationToken)
+    [ProducesResponseType<OpenShockProblem>(StatusCodes.Status400BadRequest, MediaTypeNames.Application.ProblemJson)] // AccountActivationResendUnavailable
+    [ProducesResponseType<OpenShockProblem>(StatusCodes.Status429TooManyRequests, MediaTypeNames.Application.ProblemJson)] // AccountActivationResendTooMany
+    public async Task<IActionResult> ResendActivation(CancellationToken cancellationToken)
     {
-        // Unauthenticated and it puts mail in a third party's inbox, so it carries the same turnstile
-        // requirement as password-reset initiation; the rate limiter alone gates nothing but volume.
-        var turnstileError = await VerifyTurnstileAsync(turnstileService, body.TurnstileResponse, cancellationToken);
-        if (turnstileError is not null) return turnstileError;
+        if (!ActivationResendCookie.TryGetUserId(HttpContext, out var userId))
+            return Problem(AccountError.AccountActivationResendUnavailable);
 
-        await _accountService.ResendActivationEmailAsync(body.Email, cancellationToken);
-        return Ok();
-    }
+        var result = await _accountService.ResendActivationEmailAsync(userId.Value, cancellationToken);
 
-    public sealed class ResendActivationRequest
-    {
-        [OpenShock.Common.DataAnnotations.EmailAddress(true)]
-        public required string Email { get; init; }
-
-        [Required(AllowEmptyStrings = false)]
-        [StringLength(ApiHardLimits.MaxTurnstileResponseTokenLength)]
-        public required string TurnstileResponse { get; init; }
+        switch (result)
+        {
+            case Results.Success:
+                return Ok();
+            case TooManyActivationResends:
+                return Problem(AccountError.AccountActivationResendTooMany);
+            default:
+                // Already activated, deactivated, or gone: the cookie has nothing left to do.
+                ActivationResendCookie.Remove(HttpContext);
+                return Problem(AccountError.AccountActivationResendUnavailable);
+        }
     }
 }
