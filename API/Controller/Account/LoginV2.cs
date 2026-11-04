@@ -57,7 +57,15 @@ public sealed partial class AccountController
             // same whether or not a mail went out.
             if (getAccountResult is AccountNotActivated)
             {
-                await _accountService.ResendActivationEmailAsync(body.UsernameOrEmail, cancellationToken);
+                try
+                {
+                    await _accountService.ResendActivationEmailAsync(body.UsernameOrEmail, cancellationToken);
+                }
+                catch (Exception ex) when (ex is not OperationCanceledException)
+                {
+                    // Best effort: a failed resend must not turn the AccountNotActivated answer into a 500.
+                    _logger.LogError(ex, "Failed to resend activation email on login");
+                }
             }
 
 

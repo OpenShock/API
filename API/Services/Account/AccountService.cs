@@ -302,6 +302,11 @@ public sealed class AccountService : IAccountService
         // Without mail no link can be delivered (and such accounts are activated on creation anyway).
         if (!_mailOptions.IsEnabled) return new NotFound();
 
+        // Serialize resends per user: lock the user row for the whole check-then-enqueue, so concurrent
+        // requests can't both pass the limit below. Released on commit/rollback.
+        await using var tx = await _db.Database.BeginTransactionAsync(cancellationToken);
+        await _db.Database.ExecuteSqlAsync($"SELECT 1 FROM users WHERE id = {userId} FOR UPDATE", cancellationToken);
+
         var user = await _db.Users
             .Include(u => u.UserActivationRequest)
             .Include(u => u.UserDeactivation)
@@ -310,8 +315,7 @@ public sealed class AccountService : IAccountService
         if (user.UserDeactivation is not null) return new AccountDeactivated();
 
         // Throttle on the outbox itself (it is never auto-pruned), so the limit holds across API instances
-        // and restarts. The signup email counts towards it. A concurrent double-submit can slip one extra
-        // row past the check, but activation emails coalesce per user, so only the newest is delivered.
+        // and restarts. The signup email counts towards it.
         var coalesceKey = EmailOutboxCoalesceKeys.AccountActivation(userId);
         var windowStart = DateTime.UtcNow - Duration.ActivationResendWindow;
         var recent = await _db.EmailOutbox
@@ -331,6 +335,9 @@ public sealed class AccountService : IAccountService
 
         _db.EmailOutbox.Add(EmailOutboxMessage.ForAccountActivation(user.Id, user.Email, user.Name));
         await _db.SaveChangesAsync(cancellationToken);
+        await tx.CommitAsync(cancellationToken);
+
+        // Notify the outbox delivery job only after a successful commit.
         await NotifyEmailOutboxAsync();
 
         return new Success();

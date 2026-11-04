@@ -88,7 +88,16 @@ public sealed partial class OAuthController
                 {
                     // The provider vouched for the identity, so the caller owns this account: (re)send the
                     // activation link (rate limited inside the service).
-                    await _accountService.ResendActivationEmailAsync(connection.UserId, cancellationToken);
+                    try
+                    {
+                        await _accountService.ResendActivationEmailAsync(connection.UserId, cancellationToken);
+                    }
+                    catch (Exception ex) when (ex is not OperationCanceledException)
+                    {
+                        // Best effort: still clear the flow cookie and redirect with the real reason.
+                        _logger.LogError(ex, "Failed to resend activation email on OAuth login");
+                    }
+
                     await HttpContext.SignOutAsync(OAuthConstants.FlowScheme);
                     return RedirectFrontendError("accountNotActivated");
                 }
