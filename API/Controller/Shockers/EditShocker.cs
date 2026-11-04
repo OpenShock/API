@@ -52,9 +52,9 @@ public sealed partial class ShockerController
         await _db.SaveChangesAsync(cancellationToken);
         
         if (oldDevice != body.Device) 
-            await deviceUpdateService.UpdateDeviceForAllShared(CurrentUser.Id, oldDevice, DeviceUpdateType.ShockerUpdated, cancellationToken);
+            await deviceUpdateService.UpdateDeviceForAllShared(CurrentUser.Id, oldDevice, DeviceUpdateType.ShockerUpdated);
         
-        await deviceUpdateService.UpdateDeviceForAllShared(CurrentUser.Id, body.Device, DeviceUpdateType.ShockerUpdated, cancellationToken);
+        await deviceUpdateService.UpdateDeviceForAllShared(CurrentUser.Id, body.Device, DeviceUpdateType.ShockerUpdated);
         
         return LegacyEmptyOk("Shocker updated successfully");
     }

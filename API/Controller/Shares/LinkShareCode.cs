@@ -60,7 +60,7 @@ public sealed partial class SharesController
 
         if (await _db.SaveChangesAsync(cancellationToken) <= 1) throw new Exception("Error while linking share code to your account");
 
-        await deviceUpdateService.UpdateDevice(shareCode.OwnerId, shareCode.DeviceId, DeviceUpdateType.ShockerUpdated, CurrentUser.Id, cancellationToken);
+        await deviceUpdateService.UpdateDevice(shareCode.OwnerId, shareCode.DeviceId, DeviceUpdateType.ShockerUpdated, CurrentUser.Id);
 
         return LegacyEmptyOk("Successfully linked share code");
     }

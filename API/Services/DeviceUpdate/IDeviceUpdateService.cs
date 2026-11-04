@@ -11,9 +11,8 @@ public interface IDeviceUpdateService
     /// <param name="deviceId"></param>
     /// <param name="type"></param>
     /// <param name="affectedUser"></param>
-    /// <param name="cancellationToken"></param>
     /// <returns></returns>
-    public Task UpdateDevice(Guid ownerId, Guid deviceId, DeviceUpdateType type, Guid affectedUser, CancellationToken cancellationToken = default);
+    public Task UpdateDevice(Guid ownerId, Guid deviceId, DeviceUpdateType type, Guid affectedUser);
     
     /// <summary>
     /// When anything about the device or its shockers is updated, sent to owner, usually only used on device creation
@@ -21,9 +20,8 @@ public interface IDeviceUpdateService
     /// <param name="ownerId"></param>
     /// <param name="deviceId"></param>
     /// <param name="type"></param>
-    /// <param name="cancellationToken"></param>
     /// <returns></returns>
-    public Task UpdateDevice(Guid ownerId, Guid deviceId, DeviceUpdateType type, CancellationToken cancellationToken = default);
+    public Task UpdateDevice(Guid ownerId, Guid deviceId, DeviceUpdateType type);
     
     /// <summary>
     /// When anything about the device or its shockers is updated, sent to all shared users and owner
@@ -31,7 +29,6 @@ public interface IDeviceUpdateService
     /// <param name="ownerId"></param>
     /// <param name="deviceId"></param>
     /// <param name="type"></param>
-    /// <param name="cancellationToken"></param>
     /// <returns></returns>
-    public Task UpdateDeviceForAllShared(Guid ownerId, Guid deviceId, DeviceUpdateType type, CancellationToken cancellationToken = default);
+    public Task UpdateDeviceForAllShared(Guid ownerId, Guid deviceId, DeviceUpdateType type);
 }

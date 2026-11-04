@@ -57,6 +57,8 @@ public sealed partial class TokensController
         if (!await automationTokens.TryRecordUseAsync(CurrentUser.Id, AutomationTokenFlow.ReportTokens, cancellationToken))
             return Problem(AutomationTokenError.NotAllowedForAccount);
 
+        // Nothing below may be cancelled by the client disconnecting: once tokens start being deleted the
+        // report row and the admin webhook must follow, or a deletion goes unrecorded.
         var reportId = Guid.CreateVersion7();
 
         int nAffected = 0;
@@ -70,7 +72,7 @@ public sealed partial class TokensController
             
             nAffected = await _db.ApiTokens
                 .Where(x => hashes.Contains(x.TokenHash))
-                .ExecuteDeleteAsync(cancellationToken);
+                .ExecuteDeleteAsync();
         }
         catch (Exception e)
         {
@@ -88,7 +90,7 @@ public sealed partial class TokensController
             IpCountry = ipCountry,
             ReportedByUser = CurrentUser
         });
-        await _db.SaveChangesAsync(cancellationToken);
+        await _db.SaveChangesAsync();
 
         await webhookService.SendWebhookAsync(
             "TokensReported",
@@ -104,8 +106,7 @@ public sealed partial class TokensController
                
                Please investigate further if necessary.
                """,
-            Color.OrangeRed,
-            cancellationToken);
+            Color.OrangeRed);
 
         return Ok();
     }

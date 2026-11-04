@@ -181,7 +181,7 @@ public sealed partial class UserSharesController
         var affectedHubs = shareRequest.ShockerMappings.Select(x => x.ShockerId).Distinct();
         foreach (var affectedHub in affectedHubs)
         {
-            await deviceUpdateService.UpdateDevice(shareRequest.OwnerId, affectedHub, DeviceUpdateType.ShockerUpdated, CurrentUser.Id, cancellationToken);    
+            await deviceUpdateService.UpdateDevice(shareRequest.OwnerId, affectedHub, DeviceUpdateType.ShockerUpdated, CurrentUser.Id);    
         }
         
         var returnObject = new V2UserSharesListItemDto()

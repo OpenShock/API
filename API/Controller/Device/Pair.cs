@@ -60,7 +60,7 @@ public sealed partial class DeviceController
 
         try
         {
-            await _deviceUpdateService.UpdateDevice(device.OwnerId, pair.Id, DeviceUpdateType.Paired, cancellationToken);
+            await _deviceUpdateService.UpdateDevice(device.OwnerId, pair.Id, DeviceUpdateType.Paired);
         }
         catch (Exception ex)
         {

@@ -40,7 +40,7 @@ public sealed partial class ShockerController
         shocker.IsPaused = body.Pause;
         await _db.SaveChangesAsync(cancellationToken);
 
-        await deviceUpdateService.UpdateDeviceForAllShared(CurrentUser.Id, shocker.DeviceId, DeviceUpdateType.ShockerUpdated, cancellationToken);
+        await deviceUpdateService.UpdateDeviceForAllShared(CurrentUser.Id, shocker.DeviceId, DeviceUpdateType.ShockerUpdated);
 
         return LegacyDataOk(body.Pause);
     }

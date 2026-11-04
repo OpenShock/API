@@ -33,18 +33,17 @@ public sealed partial class AdminController
         token.UseCount = 0;
         token.LastRotatedAt = DateTime.UtcNow;
 
-        await using var transaction = await _db.Database.BeginTransactionAsync(ct);
+        await using var transaction = await _db.Database.BeginTransactionAsync();
 
-        await _db.SaveChangesAsync(ct);
+        await _db.SaveChangesAsync();
 
         await auditService.LogAsync(
             CurrentUser.Id,
             action: AuditAction.AutomationTokenRotated,
             actorId: CurrentUser.Id,
-            metadata: new AutomationTokenRotatedMetadata(token.Id, token.Name),
-            cancellationToken: ct);
+            metadata: new AutomationTokenRotatedMetadata(token.Id, token.Name));
 
-        await transaction.CommitAsync(ct);
+        await transaction.CommitAsync();
 
         // Accounts the token created stay linked to it (and to its cleanup schedule) across rotations,
         // since the token id doesn't change.

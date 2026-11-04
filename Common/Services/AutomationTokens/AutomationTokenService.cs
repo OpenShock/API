@@ -57,11 +57,11 @@ public sealed class AutomationTokenService : IAutomationTokenService
     public void RecordRequest(ResolvedAutomationToken automationToken) =>
         _batchUpdateService.UpdateAutomationTokenUsed(automationToken.Id, automationToken.TokenHash);
 
-    public async Task RecordSignupAsync(Guid userId, CancellationToken ct)
+    public async Task RecordSignupAsync(Guid userId)
     {
         if (Current is not { } automationToken) return;
 
-        await AuditUseAsync(automationToken, userId, AutomationTokenFlow.Signup, ct);
+        await AuditUseAsync(automationToken, userId, AutomationTokenFlow.Signup);
     }
 
     public async Task<bool> CanUseForLoginAsync(string usernameOrEmail, CancellationToken ct)
@@ -84,7 +84,7 @@ public sealed class AutomationTokenService : IAutomationTokenService
 
         if (await IsUserPrivilegedAsync(userId, ct)) return false;
 
-        await AuditUseAsync(automationToken, userId, flow, ct);
+        await AuditUseAsync(automationToken, userId, flow);
 
         return true;
     }
@@ -114,13 +114,12 @@ public sealed class AutomationTokenService : IAutomationTokenService
         return roles is not null && PrivilegedRoles.Any(roles);
     }
 
-    private Task AuditUseAsync(ResolvedAutomationToken automationToken, Guid userId, AutomationTokenFlow flow, CancellationToken ct) =>
+    private Task AuditUseAsync(ResolvedAutomationToken automationToken, Guid userId, AutomationTokenFlow flow) =>
         _auditService.LogAsync(
             userId,
             action: AuditAction.AutomationTokenUsed,
             // A password reset request proves nothing about who is asking, so it has no actor. In every
             // other flow the caller is the account itself, or has just created it.
             actorId: flow == AutomationTokenFlow.PasswordReset ? null : userId,
-            metadata: new AutomationTokenUsedMetadata(automationToken.Id, automationToken.Name, flow.ToString()),
-            cancellationToken: ct);
+            metadata: new AutomationTokenUsedMetadata(automationToken.Id, automationToken.Name, flow.ToString()));
 }

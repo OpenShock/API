@@ -29,7 +29,7 @@ public sealed class DeviceUpdateService : IDeviceUpdateService
     }
     
     /// <inheritdoc />
-    public async Task UpdateDevice(Guid ownerId, Guid deviceId, DeviceUpdateType type, Guid affectedUser, CancellationToken cancellationToken)
+    public async Task UpdateDevice(Guid ownerId, Guid deviceId, DeviceUpdateType type, Guid affectedUser)
     {
         var task1 = _redisPubService.SendDeviceUpdate(deviceId);
         var task2 = _hubContext.Clients.Users(ownerId.ToString(), affectedUser.ToString())
@@ -38,7 +38,7 @@ public sealed class DeviceUpdateService : IDeviceUpdateService
     }
 
     /// <inheritdoc />
-    public async Task UpdateDevice(Guid ownerId, Guid deviceId, DeviceUpdateType type, CancellationToken cancellationToken)
+    public async Task UpdateDevice(Guid ownerId, Guid deviceId, DeviceUpdateType type)
     {
         var task1 = _redisPubService.SendDeviceUpdate(deviceId);
         var task2 = _hubContext.Clients.Users(ownerId.ToString())
@@ -47,11 +47,11 @@ public sealed class DeviceUpdateService : IDeviceUpdateService
     }
 
     /// <inheritdoc />
-    public async Task UpdateDeviceForAllShared(Guid ownerId, Guid deviceId, DeviceUpdateType type, CancellationToken cancellationToken)
+    public async Task UpdateDeviceForAllShared(Guid ownerId, Guid deviceId, DeviceUpdateType type)
     {
         var task1 = _redisPubService.SendDeviceUpdate(deviceId);
         
-        var sharedWith = await _deviceService.GetSharedUserIdsAsync(deviceId, cancellationToken);
+        var sharedWith = await _deviceService.GetSharedUserIdsAsync(deviceId);
         sharedWith.Add(ownerId); // Add the owner to the list of users to send to
         var task2 = _hubContext.Clients.Users(sharedWith.Select(x => x.ToString()))
             .DeviceUpdate(deviceId, type);

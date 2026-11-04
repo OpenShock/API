@@ -34,7 +34,7 @@ public sealed class SessionService : ISessionService
         _auditService = auditService;
     }
 
-    public async Task<CreateSessionResult> CreateSessionAsync(Guid userId, string userAgent, IPAddress ipAddress, Guid? actorId, IpEnrichmentData? enrichment = null, CancellationToken cancellationToken = default)
+    public async Task<CreateSessionResult> CreateSessionAsync(Guid userId, string userAgent, IPAddress ipAddress, Guid? actorId, IpEnrichmentData? enrichment = null)
     {
         Guid id = Guid.CreateVersion7();
         string token = CryptoUtils.RandomString(AuthConstants.GeneratedTokenLength);
@@ -58,8 +58,7 @@ public sealed class SessionService : ISessionService
             userId,
             action: AuditAction.Login,
             actorId: actorId ?? userId,
-            metadata: new LoginMetadata(id),
-            cancellationToken: cancellationToken
+            metadata: new LoginMetadata(id)
         );
 
         return new CreateSessionResult(id, token);
@@ -129,7 +128,7 @@ public sealed class SessionService : ISessionService
         await _loginSessions.DeleteAsync(loginSession);
     }
 
-    public async Task LogoutSessionAsync(LoginSession loginSession, CancellationToken cancellationToken)
+    public async Task LogoutSessionAsync(LoginSession loginSession)
     {
         // Record the logout before destroying the session. The session delete is idempotent, so if
         // this throws the caller can safely retry; deleting first would leave the session gone while
@@ -137,8 +136,7 @@ public sealed class SessionService : ISessionService
         await _auditService.LogAsync(
             loginSession.UserId,
             action: AuditAction.Logout,
-            actorId: loginSession.UserId,
-            cancellationToken: cancellationToken
+            actorId: loginSession.UserId
         );
 
         await _loginSessions.DeleteAsync(loginSession);

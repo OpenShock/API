@@ -141,7 +141,7 @@ public sealed partial class ShockerController
         _db.ShockerShareCodes.Add(newCode);
         await _db.SaveChangesAsync(cancellationToken);
 
-        await deviceUpdateService.UpdateDeviceForAllShared(CurrentUser.Id, device, DeviceUpdateType.ShockerUpdated, cancellationToken);
+        await deviceUpdateService.UpdateDeviceForAllShared(CurrentUser.Id, device, DeviceUpdateType.ShockerUpdated);
 
         return LegacyDataOk(newCode.Id);
     }
@@ -175,7 +175,7 @@ public sealed partial class ShockerController
         var device = await _db.Shockers.Where(x => x.Id == shockerId)
             .Select(x => new { x.DeviceId, x.Device.OwnerId }).SingleAsync(cancellationToken);
 
-        await deviceUpdateService.UpdateDevice(device.OwnerId, device.DeviceId, DeviceUpdateType.ShockerUpdated, sharedWithUserId, cancellationToken);
+        await deviceUpdateService.UpdateDevice(device.OwnerId, device.DeviceId, DeviceUpdateType.ShockerUpdated, sharedWithUserId);
 
         return Ok();
     }
@@ -221,7 +221,7 @@ public sealed partial class ShockerController
 
         await _db.SaveChangesAsync(cancellationToken);
 
-        await deviceUpdateService.UpdateDevice(affected.Owner, affected.DeviceId, DeviceUpdateType.ShockerUpdated, sharedWithUserId, cancellationToken);
+        await deviceUpdateService.UpdateDevice(affected.Owner, affected.DeviceId, DeviceUpdateType.ShockerUpdated, sharedWithUserId);
 
         return Ok();
     }
@@ -260,7 +260,7 @@ public sealed partial class ShockerController
 
         await _db.SaveChangesAsync(cancellationToken);
 
-        await deviceUpdateService.UpdateDevice(affected.Owner, affected.DeviceId, DeviceUpdateType.ShockerUpdated, sharedWithUserId, cancellationToken);
+        await deviceUpdateService.UpdateDevice(affected.Owner, affected.DeviceId, DeviceUpdateType.ShockerUpdated, sharedWithUserId);
 
         return LegacyDataOk(body.Pause);
     }

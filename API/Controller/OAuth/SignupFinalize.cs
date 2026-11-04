@@ -114,7 +114,7 @@ public sealed partial class OAuthController
         // Authenticate the client if its activated (create session and set session cookie)
         if (newUser.ActivatedAt is not null)
         {
-            await CreateSession(newUser.Id, domain, cancellationToken);
+            await CreateSession(newUser.Id, domain);
         }
         else
         {

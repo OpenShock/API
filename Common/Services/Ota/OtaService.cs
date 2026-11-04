@@ -29,7 +29,7 @@ public sealed class OtaService : IOtaService
             Version = version.ToString()
         });
 
-        return _db.SaveChangesAsync(cancellationToken);
+        return _db.SaveChangesAsync();
     }
 
     /// <inheritdoc />
@@ -40,7 +40,7 @@ public sealed class OtaService : IOtaService
         if (updateTask is null) return;
         updateTask.Status = OtaUpdateStatus.Running;
 
-        await _db.SaveChangesAsync(cancellationToken);
+        await _db.SaveChangesAsync();
     }
 
     /// <inheritdoc />
@@ -52,7 +52,7 @@ public sealed class OtaService : IOtaService
         updateTask.Status = OtaUpdateStatus.Error;
         updateTask.Message = message;
 
-        await _db.SaveChangesAsync(cancellationToken);
+        await _db.SaveChangesAsync();
     }
     
     /// <inheritdoc />
@@ -63,7 +63,7 @@ public sealed class OtaService : IOtaService
         if (updateTask is null) return false;
         updateTask.Status = OtaUpdateStatus.Finished;
 
-        await _db.SaveChangesAsync(cancellationToken);
+        await _db.SaveChangesAsync();
         return true;
     }
 

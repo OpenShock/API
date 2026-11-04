@@ -50,7 +50,7 @@ public sealed partial class UserSharesController
             return Problem(ShareError.ShareCreateShockerNotFound(missingShockers));
         }
 
-        await using var transaction = await _db.Database.BeginTransactionAsync(cancellationToken);
+        await using var transaction = await _db.Database.BeginTransactionAsync();
 
         var shareInvite = new UserShareInvite
         {
@@ -76,9 +76,9 @@ public sealed partial class UserSharesController
             });
         }
 
-        await _db.SaveChangesAsync(cancellationToken);
+        await _db.SaveChangesAsync();
 
-        await transaction.CommitAsync(cancellationToken);
+        await transaction.CommitAsync();
 
         return Ok(shareInvite.Id);
     }

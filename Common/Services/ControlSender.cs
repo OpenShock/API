@@ -193,11 +193,11 @@ public sealed class ControlSender : IControlSender
         }
 
         // Save all db changes before continuing, logs and stats commit together
-        await using (var transaction = await _db.Database.BeginTransactionAsync(cancellationToken))
+        await using (var transaction = await _db.Database.BeginTransactionAsync())
         {
-            await _db.SaveChangesAsync(cancellationToken);
-            await _db.UpsertControlStatsAsync(statDeltas, cancellationToken);
-            await transaction.CommitAsync(cancellationToken);
+            await _db.SaveChangesAsync();
+            await _db.UpsertControlStatsAsync(statDeltas);
+            await transaction.CommitAsync();
         }
 
         // Then send all network events

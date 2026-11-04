@@ -47,7 +47,7 @@ public sealed partial class ShockerController
         _db.Shockers.Remove(affected);
         await _db.SaveChangesAsync(cancellationToken);
 
-        await deviceUpdateService.UpdateDeviceForAllShared(CurrentUser.Id, affected.DeviceId, DeviceUpdateType.ShockerUpdated, cancellationToken);
+        await deviceUpdateService.UpdateDeviceForAllShared(CurrentUser.Id, affected.DeviceId, DeviceUpdateType.ShockerUpdated);
 
         return LegacyEmptyOk("Shocker removed successfully");
     }

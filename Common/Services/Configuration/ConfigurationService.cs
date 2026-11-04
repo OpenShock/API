@@ -88,7 +88,7 @@ public sealed class ConfigurationService : IConfigurationService
         try
         {
             _db.Configuration.Add(item);
-            await _db.SaveChangesAsync(cancellationToken);
+            await _db.SaveChangesAsync();
         }
         catch (DbUpdateException ex) when (ex.InnerException is PostgresException { SqlState: "23505" }) // Unique constaint violation
         {
@@ -96,7 +96,7 @@ public sealed class ConfigurationService : IConfigurationService
         }
 
         // Cache the new type/value pair for fast retrieval
-        await _cache.SetAsync(name, new TypeValuePair(type, value), cancellationToken: cancellationToken);
+        await _cache.SetAsync(name, new TypeValuePair(type, value));
 
         return new Success();
     }
@@ -133,15 +133,14 @@ public sealed class ConfigurationService : IConfigurationService
 
         item.UpdatedAt = DateTime.UtcNow;
 
-        await _db.SaveChangesAsync(cancellationToken);
+        await _db.SaveChangesAsync();
 
         // Refresh cache if value changed
         if (value is not null)
         {
             await _cache.SetAsync(
                 name.ToUpperInvariant(),
-                new TypeValuePair(item.Type, item.Value),
-                cancellationToken: cancellationToken
+                new TypeValuePair(item.Type, item.Value)
             );
         }
 
@@ -157,10 +156,10 @@ public sealed class ConfigurationService : IConfigurationService
 
         // Remove and persist
         _db.Configuration.Remove(item);
-        await _db.SaveChangesAsync(cancellationToken);
+        await _db.SaveChangesAsync();
 
         // Evict from cache
-        await _cache.RemoveAsync(name, cancellationToken);
+        await _cache.RemoveAsync(name);
 
         return new Success();
     }
@@ -218,8 +217,8 @@ public sealed class ConfigurationService : IConfigurationService
             item.UpdatedAt = DateTime.UtcNow;
         }
 
-        await _db.SaveChangesAsync(cancellationToken);
-        await _cache.SetAsync(name, new TypeValuePair(type, newValue), cancellationToken: cancellationToken);
+        await _db.SaveChangesAsync();
+        await _cache.SetAsync(name, new TypeValuePair(type, newValue));
         return true;
     }
 

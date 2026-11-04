@@ -101,7 +101,7 @@ public sealed partial class DevicesController
         device.Name = body.Name;
         await _db.SaveChangesAsync(cancellationToken);
 
-        await updateService.UpdateDeviceForAllShared(CurrentUser.Id, device.Id, DeviceUpdateType.Updated, cancellationToken);
+        await updateService.UpdateDeviceForAllShared(CurrentUser.Id, device.Id, DeviceUpdateType.Updated);
 
         return Ok();
     }
@@ -150,7 +150,7 @@ public sealed partial class DevicesController
         var affected = await _db.Devices.Where(x => x.Id == deviceId).WhereIsUserOrPrivileged(x => x.Owner, CurrentUser).ExecuteDeleteAsync(cancellationToken);
         if (affected <= 0) return Problem(HubError.HubNotFound);
         
-        await updateService.UpdateDeviceForAllShared(CurrentUser.Id, deviceId, DeviceUpdateType.Deleted, cancellationToken);
+        await updateService.UpdateDeviceForAllShared(CurrentUser.Id, deviceId, DeviceUpdateType.Deleted);
         
         return Ok();
     }
@@ -197,7 +197,7 @@ public sealed partial class DevicesController
         _db.Devices.Add(device);
         await _db.SaveChangesAsync(cancellationToken);
         
-        await updateService.UpdateDevice(CurrentUser.Id, device.Id, DeviceUpdateType.Created, cancellationToken);
+        await updateService.UpdateDevice(CurrentUser.Id, device.Id, DeviceUpdateType.Created);
 
         return Created($"/1/devices/{device.Id}", device.Id);
     }
