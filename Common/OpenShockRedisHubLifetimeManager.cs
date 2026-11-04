@@ -45,14 +45,14 @@ public sealed class OpenShockRedisHubLifetimeManager<THub> : RedisHubLifetimeMan
     {
         if (userIds.Count <= 0) return Task.CompletedTask;
 
-        var localUsers = new List<string>(userIds.Count);
-        var remoteUsers = new List<string>(userIds.Count);
+        List<string> localUsers = [with(capacity: userIds.Count)];
+        List<string> remoteUsers = [with(capacity: userIds.Count)];
 
         foreach (var userId in userIds)
             if (userId.StartsWith("local#")) localUsers.Add(userId);
             else remoteUsers.Add(userId);
 
-        var tasks = new List<Task>(1 + localUsers.Count);
+        List<Task> tasks = [with(capacity: 1 + localUsers.Count)];
 
         if (remoteUsers.Count > 0)
         {
@@ -97,7 +97,7 @@ public sealed class OpenShockRedisHubLifetimeManager<THub> : RedisHubLifetimeMan
     {
         if (!_subscriptions.TryGetValue($"{_redisPrefix}:user:{userId[6..]}", out var store)) return Task.CompletedTask;
 
-        var tasks = new List<Task>(store.Count);
+        List<Task> tasks = [with(capacity: store.Count)];
         foreach (var context in store) tasks.Add(context.WriteAsync(message, cancellationToken).AsTask());
         return Task.WhenAll(tasks);
     }

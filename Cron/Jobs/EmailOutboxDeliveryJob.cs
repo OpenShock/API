@@ -106,7 +106,7 @@ public sealed class EmailOutboxDeliveryJob
         }
 
         var nowUtc = DateTime.UtcNow;
-        var claimed = new List<Guid>(due.Count);
+        List<Guid> claimed = [with(capacity: due.Count)];
 
         foreach (var message in due)
         {

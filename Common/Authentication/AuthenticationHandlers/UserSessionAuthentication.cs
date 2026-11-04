@@ -73,11 +73,12 @@ public sealed class UserSessionAuthentication : AuthenticationHandler<Authentica
         Context.SetItemByType(session);
         Context.SetItemByType(user);
 
-        var claims = new List<Claim>(2 + user.Roles.Count)
-        {
+        List<Claim> claims =
+        [
+            with(capacity: 2 + user.Roles.Count),
             new(ClaimTypes.AuthenticationMethod, OpenShockAuthSchemes.UserSessionCookie),
             new(ClaimTypes.NameIdentifier, user.Id.ToString()),
-        };
+        ];
 
         foreach (var roletype in user.Roles)
         {

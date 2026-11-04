@@ -113,7 +113,7 @@ public sealed class ControlSender : IControlSender
 
         var messagesByDevice = new Dictionary<Guid, List<ShockerControlCommand>>();
         var logsByOwner = new Dictionary<Guid, List<ControlLog>>();
-        var statDeltas = new List<ControlStatDelta>(controls.Count);
+        List<ControlStatDelta> statDeltas = [with(capacity: controls.Count)];
 
         foreach (var control in controls.DistinctBy(x => x.Id))
         {

@@ -353,8 +353,8 @@ public sealed class HubLifetime : IAsyncDisposable
     private async Task Update()
     {
         var now = DateTimeOffset.UtcNow;
-        var commandList = new List<ShockerCommand>(_shockerStates.Count);
-        var emittingFrames = new List<(ShockerState State, LiveFrame Frame)>(_shockerStates.Count);
+        List<ShockerCommand> commandList = [with(capacity: _shockerStates.Count)];
+        List<(ShockerState State, LiveFrame Frame)> emittingFrames = [with(capacity: _shockerStates.Count)];
 
         foreach (var state in _shockerStates.Values)
         {
@@ -464,7 +464,7 @@ public sealed class HubLifetime : IAsyncDisposable
     /// <returns></returns>
     public ValueTask Control(IReadOnlyList<ShockerControlCommand> commands)
     {
-        var shocksTransformed = new List<ShockerCommand>(commands.Count);
+        List<ShockerCommand> shocksTransformed = [with(capacity: commands.Count)];
 
         foreach (var command in commands)
         {
