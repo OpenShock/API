@@ -67,12 +67,12 @@ public sealed class SmtpEmailService : IEmailService
 
             await smtpClient.ConnectAsync(_options.Host, _options.Port, _options.EnableSsl, cancellationToken);
             _logger.LogTrace("Authenticating...");
-            if (smtpClient.Capabilities.HasFlag(SmtpCapabilities.Authentication))
+            if (smtpClient.Capabilities.Contains(SmtpCapability.Authentication))
                 await smtpClient.AuthenticateAsync(_options.Username, _options.Password, cancellationToken);
 
             _logger.LogTrace("Smtp client connected, sending email...");
 
-            await smtpClient.SendAsync(message, cancellationToken);
+            await smtpClient.SendAsync(new SmtpSendRequest(message), cancellationToken);
             await smtpClient.DisconnectAsync(true, cancellationToken);
             _logger.LogTrace("Sent email");
 
