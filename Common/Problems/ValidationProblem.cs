@@ -14,16 +14,15 @@ public sealed class ValidationProblem : OpenShockProblem
 
     public IDictionary<string, string[]> Errors { get; init; }
 
-    private static IDictionary<string, string[]> CreateErrorDictionary(ModelStateDictionary modelState)
+    private static Dictionary<string, string[]> CreateErrorDictionary(ModelStateDictionary modelState)
     {
         ArgumentNullException.ThrowIfNull(modelState);
 
-        Dictionary<string, string[]> errorDictionary = [with(modelState.Count, StringComparer.Ordinal)];
+        var errorDictionary = new Dictionary<string, string[]>(modelState.Count, StringComparer.Ordinal);
 
-        foreach (var keyModelStatePair in modelState)
+        foreach (var (key, value) in modelState)
         {
-            var key = keyModelStatePair.Key;
-            var errors = keyModelStatePair.Value.Errors;
+            var errors = value.Errors;
             if (errors is not { Count: > 0 }) continue;
             if (errors.Count == 1)
             {

@@ -23,7 +23,7 @@ public sealed class ControlStat
     /// </summary>
     public Guid? ControllerUserId { get; init; }
 
-    /// <summary>Start of the 15 minute UTC bucket this row aggregates, see <see cref="ControlStatDelta.BucketSize"/>.</summary>
+    /// <summary>Start of the 15-minute UTC bucket this row aggregates, see <see cref="ControlStatDelta.BucketSize"/>.</summary>
     public required DateTime Bucket { get; init; }
 
     public required ControlType Type { get; init; }

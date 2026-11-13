@@ -58,7 +58,7 @@ public sealed class SmtpEmailService : IEmailService
         try
         {
             _logger.LogTrace("Creating smtp client and connecting...");
-            using var smtpClient = new SmtpClient();
+            await using var smtpClient = new SmtpClient();
             if (!_options.VerifyCertificate)
             {
                 smtpClient.ServerCertificateValidationCallback = (_, _, _, _) => true;
