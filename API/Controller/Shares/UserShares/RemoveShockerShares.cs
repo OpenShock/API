@@ -21,7 +21,7 @@ public sealed partial class UserSharesController
         var affected = await _db.UserShares
             .Where(x => shockerIds.Contains(x.ShockerId) && x.SharedWithUserId == userId &&
                         (x.Shocker.Device.OwnerId == CurrentUser.Id || x.SharedWithUserId == CurrentUser.Id))
-            .Select(x => new { DeviceId = x.Shocker.Device.Id, OwnerId = x.Shocker.Device.OwnerId, UserShare = x })
+            .Select(x => new { DeviceId = x.Shocker.Device.Id, x.Shocker.Device.OwnerId, UserShare = x })
             .ToArrayAsync(cancellationToken);
         
         // Check if we have all shockers to delete

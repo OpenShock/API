@@ -49,7 +49,7 @@ public sealed partial class UserSharesController
             deviceUpdateService.UpdateDevice(CurrentUser.Id, device, DeviceUpdateType.ShockerUpdated, userId));
         await Task.WhenAll(updateTasks);
 
-        return Ok(new PauseUserShareShockersResponse()
+        return Ok(new PauseUserShareShockersResponse
         {
             AffectedRecords = deletedRecords,
             PauseStates = affected.ToDictionary(x => x.ShockerId, x => UserShareUtils.GetPausedReason(x.IsPaused, x.Shocker.IsPaused))

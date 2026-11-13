@@ -1,4 +1,5 @@
-﻿using System.Net.Mime;
+﻿using System.Linq.Expressions;
+using System.Net.Mime;
 using Asp.Versioning;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -11,15 +12,13 @@ using OpenShock.Common.Errors;
 using OpenShock.Common.Extensions;
 using OpenShock.Common.Models;
 using OpenShock.Common.OpenShockDb;
-using OpenShock.Common.Problems;
-
 using OpenShock.Internal.Common.Problems;
 
 namespace OpenShock.API.Controller.Shares.UserShares;
 
 file static class QueryHelper
 {
-    public static readonly System.Linq.Expressions.Expression<Func<UserShareInvite, ShareInviteBaseDetails>> SelectShareInvite = x =>
+    public static readonly Expression<Func<UserShareInvite, ShareInviteBaseDetails>> SelectShareInvite = x =>
         new ShareInviteBaseDetails
         {
             Id = x.Id,
@@ -184,7 +183,7 @@ public sealed partial class UserSharesController
             await deviceUpdateService.UpdateDevice(shareRequest.OwnerId, affectedHub, DeviceUpdateType.ShockerUpdated, CurrentUser.Id);    
         }
         
-        var returnObject = new V2UserSharesListItemDto()
+        var returnObject = new V2UserSharesListItemDto
         {
             Id = shareRequest.OwnerId,
             Email = shareRequest.Owner.Email,

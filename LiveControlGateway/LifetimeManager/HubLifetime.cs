@@ -1,7 +1,10 @@
-﻿using MessagePack;
+﻿using System.Collections.Immutable;
+using System.ComponentModel.DataAnnotations;
+using System.Diagnostics;
+using System.Net;
+using MessagePack;
 using Microsoft.EntityFrameworkCore;
 using OpenShock.Common.Constants;
-using OpenShock.Common.Extensions;
 using OpenShock.Common.Models;
 using OpenShock.Common.OpenShockDb;
 using OpenShock.Common.Redis;
@@ -9,19 +12,13 @@ using OpenShock.Common.Redis.PubSub;
 using OpenShock.Common.Results;
 using OpenShock.Common.Services.BatchUpdate;
 using OpenShock.Common.Services.RedisPubSub;
-using OpenShock.Common.Utils;
+using OpenShock.Internal.Common.Extensions;
+using OpenShock.Internal.Common.Utils;
 using OpenShock.LiveControlGateway.Controllers;
 using OpenShock.LiveControlGateway.Mappers;
 using OpenShock.Serialization.Gateway;
 using Redis.OM.Contracts;
 using StackExchange.Redis;
-using System.Collections.Immutable;
-using System.ComponentModel.DataAnnotations;
-using System.Diagnostics;
-using System.Net;
-using OpenShock.Internal.Common.Utils;
-
-using OpenShock.Internal.Common.Extensions;
 
 namespace OpenShock.LiveControlGateway.LifetimeManager;
 
@@ -422,7 +419,7 @@ public sealed class HubLifetime : IAsyncDisposable
     {
         _logger.LogDebug("Updating shockers for device [{DeviceId}]", HubController.Id);
 
-        _shockerStates = await db.Shockers.Where(x => x.DeviceId == HubController.Id).Select(x => new ShockerState()
+        _shockerStates = await db.Shockers.Where(x => x.DeviceId == HubController.Id).Select(x => new ShockerState
         {
             Id = x.Id,
             OwnerId = x.Device.OwnerId,

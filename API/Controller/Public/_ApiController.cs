@@ -1,7 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using OpenShock.Common;
 using OpenShock.Common.OpenShockDb;
-using Redis.OM.Contracts;
 
 namespace OpenShock.API.Controller.Public;
 
@@ -12,7 +11,7 @@ public sealed partial class PublicController : OpenShockControllerBase
     private readonly OpenShockContext _db;
     private readonly ILogger<PublicController> _logger;
 
-    public PublicController(OpenShockContext db, IRedisConnectionProvider redis, ILogger<PublicController> logger)
+    public PublicController(OpenShockContext db, ILogger<PublicController> logger)
     {
         _db = db;
         _logger = logger;

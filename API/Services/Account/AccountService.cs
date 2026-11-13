@@ -12,8 +12,6 @@ using OpenShock.Common.Services.RedisPubSub;
 using OpenShock.Common.Services.Session;
 using OpenShock.Common.Utils;
 using OpenShock.Common.Validation;
-using Z.EntityFramework.Plus;
-
 using OpenShock.Internal.Common.Utils;
 
 namespace OpenShock.API.Services.Account;
@@ -507,7 +505,7 @@ public sealed class AccountService : IAccountService
             return new AccountIsOAuthOnly();
         }
 
-        if (!await CheckPassword(password, user, cancellationToken))
+        if (!await CheckPassword(password, user))
         {
             return new NotFound();
         }
@@ -883,10 +881,10 @@ public sealed class AccountService : IAccountService
             .Select(x => new
             {
                 ChangeId = x.Id,
-                UserId = x.UserId,
+                x.UserId,
                 // Use the email captured when the change was requested, not the user's current email,
                 // which may have changed via another flow between request creation and verification.
-                OldEmail = x.OldEmail,
+                x.OldEmail,
                 x.NewEmail,
                 x.SecurityStampAtCreate
             })
@@ -932,7 +930,7 @@ public sealed class AccountService : IAccountService
         return new VerifyEmailSuccess(change.UserId, change.OldEmail, change.NewEmail);
     }
 
-    private async Task<bool> CheckPassword(string password, User user, CancellationToken cancellationToken)
+    private async Task<bool> CheckPassword(string password, User user)
     {
         if (string.IsNullOrEmpty(user.PasswordHash))
         {

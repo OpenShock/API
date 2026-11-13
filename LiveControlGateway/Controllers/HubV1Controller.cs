@@ -184,7 +184,7 @@ public sealed class HubV1Controller : HubControllerBase<HubToGatewayMessage, Gat
         {
             Payload = new GatewayToHubMessagePayload(new ShockerCommandList
             {
-                Commands = [.. controlCommands.Select(x => new Serialization.Deprecated.DoNotUse.V1.ShockerCommand()
+                Commands = [.. controlCommands.Select(x => new Serialization.Deprecated.DoNotUse.V1.ShockerCommand
                 {
                     Duration = x.Duration,
                     Type = x.Type,
@@ -205,7 +205,7 @@ public sealed class HubV1Controller : HubControllerBase<HubToGatewayMessage, Gat
     public override ValueTask CaptivePortal(bool enable)
         => QueueMessage(new GatewayToHubMessage
         {
-            Payload = new GatewayToHubMessagePayload(new CaptivePortalConfig()
+            Payload = new GatewayToHubMessagePayload(new CaptivePortalConfig
             {
                 Enabled = enable
             })
