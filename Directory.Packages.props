@@ -55,6 +55,6 @@
     <PackageVersion Include="Testcontainers.PostgreSql" Version="4.16.0" />
     <PackageVersion Include="Testcontainers.Redis" Version="4.16.0" />
     <PackageVersion Include="TUnit" Version="1.81.10" />
-    <PackageVersion Include="Z.EntityFramework.Plus.EFCore" Version="10.105.9" />
+    <PackageVersion Include="Z.EntityFramework.Plus.EFCore" Version="11.106.0" />
   </ItemGroup>
 </Project>
