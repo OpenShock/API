@@ -15,7 +15,7 @@ WORKDIR /app
 
 COPY docker/entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
-RUN apk update && apk add --no-cache openssl
+RUN apk update && apk add --no-cache openssl libmsquic
 
 COPY --link --from=build-cron /app .
 COPY docker/appsettings.Cron.json /app/appsettings.Container.json
