@@ -1,12 +1,11 @@
 using System.Net;
+using Microsoft.AspNetCore.DataProtection;
+using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using OpenShock.API.IntegrationTests.Helpers;
-using Microsoft.AspNetCore.DataProtection;
-using Microsoft.AspNetCore.Mvc.Testing;
 using OpenShock.Common.Authentication;
 using OpenShock.Common.Constants;
-using OpenShock.Common.Models;
 using OpenShock.Common.OpenShockDb;
 using OpenShock.Common.Utils;
 
@@ -201,15 +200,13 @@ public sealed class MailTests
         var userId = await TestHelper.CreateUserInDb(WebApplicationFactory, username, email, "SecurePassword123#", activated: true);
 
         using var client = CreateCookielessClient();
-        using var request = new HttpRequestMessage(HttpMethod.Post, "/2/account/login")
+        using var request = new HttpRequestMessage(HttpMethod.Post, "/2/account/login");
+        request.Content = TestHelper.JsonContent(new
         {
-            Content = TestHelper.JsonContent(new
-            {
-                usernameOrEmail = email,
-                password = "SecurePassword123#",
-                turnstileResponse = "valid-token"
-            })
-        };
+            usernameOrEmail = email,
+            password = "SecurePassword123#",
+            turnstileResponse = "valid-token"
+        });
         request.Headers.Add("Cookie", MintResendCookie(userId));
 
         var response = await client.SendAsync(request);
