@@ -1,5 +1,4 @@
 ﻿using System.ComponentModel.DataAnnotations;
-using System.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
 using OpenShock.Common.Constants;
 using OpenShock.Common.Errors;
@@ -33,8 +32,7 @@ public sealed partial class AdminController
             AccountSvc.CannotDeactivatePrivilegedAccount => Problem(AccountActivationError.CannotDeactivateOrDeletePrivledgedAccount),
             AccountSvc.AccountDeactivationAlreadyInProgress => Problem(AccountActivationError.AlreadyDeactivated),
             AccountSvc.Unauthorized => Problem(AccountActivationError.Unauthorized),
-            Results.NotFound => NotFound("User not found"),
-            _ => throw new UnreachableException()
+            Results.NotFound => NotFound("User not found")
         };
     }
 }

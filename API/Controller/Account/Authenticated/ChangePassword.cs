@@ -46,8 +46,7 @@ public sealed partial class AuthenticatedAccountController
             Results.Success => Ok(),
             AccountNotActivated => throw new UnreachableException("Authenticated user is not activated"),
             AccountDeactivated => throw new UnreachableException("Authenticated user is deactivated"),
-            Results.NotFound => throw new UnreachableException("Authenticated user not found in database"),
-            _ => throw new UnreachableException()
+            Results.NotFound => throw new UnreachableException("Authenticated user not found in database")
         };
     }
 }

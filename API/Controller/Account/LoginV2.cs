@@ -1,5 +1,4 @@
-﻿using System.Diagnostics;
-using System.Net.Mime;
+﻿using System.Net.Mime;
 using Asp.Versioning;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
@@ -48,40 +47,41 @@ public sealed partial class AccountController
             return Problem(AutomationTokenError.NotAllowedForAccount);
 
         var getAccountResult = await _accountService.GetAccountByCredentialsAsync(body.UsernameOrEmail, body.Password, cancellationToken);
-        if (getAccountResult is not User account)
+        return getAccountResult switch
         {
-            // AccountNotActivated is only returned after the password checked out, so the caller owns this
-            // account: (re)send the activation link. Rate limited inside the service, and the response is the
-            // same whether or not a mail went out.
-            if (getAccountResult is AccountNotActivated)
-            {
-                try
-                {
-                    await _accountService.ResendActivationEmailAsync(body.UsernameOrEmail, cancellationToken);
-                }
-                catch (Exception ex) when (ex is not OperationCanceledException)
-                {
-                    // Best effort: a failed resend must not turn the AccountNotActivated answer into a 500.
-                    _logger.LogError(ex, "Failed to resend activation email on login");
-                }
-            }
+            User account => await CompleteLoginAsync(account, cookieDomain),
+            Results.NotFound => Problem(LoginError.InvalidCredentials),
+            AccountDeactivated => Problem(AccountError.AccountDeactivated),
+            AccountNotActivated => await ResendActivationAndRejectAsync(),
+            AccountIsOAuthOnly => Problem(AccountError.AccountOAuthOnly)
+        };
 
+        async Task<IActionResult> CompleteLoginAsync(User account, string domain)
+        {
+            if (!await automationTokens.TryRecordUseAsync(account.Id, AutomationTokenFlow.Login, cancellationToken))
+                return Problem(AutomationTokenError.NotAllowedForAccount);
 
-            return getAccountResult switch
-            {
-                Results.NotFound => Problem(LoginError.InvalidCredentials),
-                AccountDeactivated => Problem(AccountError.AccountDeactivated),
-                AccountNotActivated => Problem(AccountError.AccountNotActivated),
-                AccountIsOAuthOnly => Problem(AccountError.AccountOAuthOnly),
-                _ => throw new UnreachableException()
-            };
+            await CreateSession(account.Id, domain);
+
+            return Ok(LoginV2OkResponse.FromUser(account));
         }
 
-        if (!await automationTokens.TryRecordUseAsync(account.Id, AutomationTokenFlow.Login, cancellationToken))
-            return Problem(AutomationTokenError.NotAllowedForAccount);
-        
-        await CreateSession(account.Id, cookieDomain);
-        
-        return Ok(LoginV2OkResponse.FromUser(account));
+        // AccountNotActivated is only returned after the password checked out, so the caller owns this
+        // account: (re)send the activation link. Rate limited inside the service, and the response is the
+        // same whether or not a mail went out.
+        async Task<IActionResult> ResendActivationAndRejectAsync()
+        {
+            try
+            {
+                await _accountService.ResendActivationEmailAsync(body.UsernameOrEmail, cancellationToken);
+            }
+            catch (Exception ex) when (ex is not OperationCanceledException)
+            {
+                // Best effort: a failed resend must not turn the AccountNotActivated answer into a 500.
+                _logger.LogError(ex, "Failed to resend activation email on login");
+            }
+
+            return Problem(AccountError.AccountNotActivated);
+        }
     }
 }

@@ -27,8 +27,7 @@ public sealed partial class AccountController
         {
             Success => new UsernameCheckResponse(UsernameAvailability.Available),
             UsernameTaken => new UsernameCheckResponse(UsernameAvailability.Taken),
-            UsernameError invalid => new UsernameCheckResponse(UsernameAvailability.Invalid, invalid),
-            _ => throw new UnreachableException()
+            UsernameError invalid => new UsernameCheckResponse(UsernameAvailability.Invalid, invalid)
         };
     }
 }

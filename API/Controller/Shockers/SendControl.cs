@@ -1,4 +1,3 @@
-using System.Diagnostics;
 using System.Net.Mime;
 using Asp.Versioning;
 using Microsoft.AspNetCore.Mvc;
@@ -61,8 +60,7 @@ public sealed partial class ShockerController
             Success => LegacyEmptyOk("Successfully sent control messages"),
             NotFound<Guid> notFound => Problem(ShockerControlError.ShockerControlNotFound(notFound.Value)),
             ShockerPaused paused => Problem(ShockerControlError.ShockerControlPaused(paused.Value)),
-            ShockerNoPermission noPermission => Problem(ShockerControlError.ShockerControlNoPermission(noPermission.Value)),
-            _ => throw new UnreachableException()
+            ShockerNoPermission noPermission => Problem(ShockerControlError.ShockerControlNoPermission(noPermission.Value))
         };
     }
 

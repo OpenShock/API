@@ -29,8 +29,7 @@ public sealed partial class AdminController
             Results.Success => Ok(),
             EmailTaken => Problem(AdminError.EmailTaken),
             EmailInvalid => Problem(AdminError.EmailInvalid),
-            Results.NotFound => NotFound(),
-            _ => throw new UnreachableException()
+            Results.NotFound => NotFound()
         };
     }
 

@@ -33,8 +33,7 @@ public sealed partial class AdminController
             Results.Success => Ok(),
             AccountNotActivated => Problem(AdminError.UserNotActivated),
             AccountDeactivated => Problem(AdminError.UserDeactivated),
-            Results.NotFound => NotFound(),
-            _ => throw new UnreachableException()
+            Results.NotFound => NotFound()
         };
     }
 

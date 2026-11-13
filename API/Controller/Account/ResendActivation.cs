@@ -1,4 +1,3 @@
-using System.Diagnostics;
 using System.Net.Mime;
 using Asp.Versioning;
 using Microsoft.AspNetCore.Mvc;
@@ -48,8 +47,7 @@ public sealed partial class AccountController
         {
             Results.Success => Ok(),
             TooManyActivationResends => Problem(AccountError.AccountActivationResendTooMany),
-            AccountDeactivated or Results.NotFound => Problem(AccountError.AccountActivationResendUnavailable),
-            _ => throw new UnreachableException()
+            AccountDeactivated or Results.NotFound => Problem(AccountError.AccountActivationResendUnavailable)
         };
     }
 }

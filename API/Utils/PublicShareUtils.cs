@@ -8,6 +8,6 @@ public static class PublicShareUtils
     {
         true when shockerLevel => PauseReason.Shocker | PauseReason.ShareLink,
         true => PauseReason.ShareLink,
-        _ => shockerLevel ? PauseReason.Shocker : PauseReason.None
+        false => shockerLevel ? PauseReason.Shocker : PauseReason.None
     };
 }

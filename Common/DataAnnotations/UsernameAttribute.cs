@@ -1,5 +1,4 @@
 ﻿using System.ComponentModel.DataAnnotations;
-using System.Diagnostics;
 using System.Text.Json.Nodes;
 using Microsoft.OpenApi;
 using OpenShock.Common.DataAnnotations.Interfaces;
@@ -50,8 +49,7 @@ public sealed class UsernameAttribute : ValidationAttribute, IParameterAttribute
         return result switch
         {
             Success => ValidationResult.Success,
-            UsernameError error => new ValidationResult($"{error.Type} - {error.Message}"),
-            _ => throw new UnreachableException()
+            UsernameError error => new ValidationResult($"{error.Type} - {error.Message}")
         };
     }
 

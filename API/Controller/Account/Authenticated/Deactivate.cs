@@ -26,8 +26,7 @@ public sealed partial class AuthenticatedAccountController
             AccountSvc.CannotDeactivatePrivilegedAccount => Problem(AccountActivationError.CannotDeactivateOrDeletePrivledgedAccount),
             AccountSvc.AccountDeactivationAlreadyInProgress => Problem(AccountActivationError.AlreadyDeactivated),
             AccountSvc.Unauthorized => Problem(AccountActivationError.Unauthorized),
-            Results.NotFound => throw new Exception("This is not supposed to happen, wtf?"),
-            _ => throw new UnreachableException()
+            Results.NotFound => throw new Exception("This is not supposed to happen, wtf?")
         };
     }
 }

@@ -1,5 +1,4 @@
-﻿using System.Diagnostics;
-using System.Net.Mime;
+﻿using System.Net.Mime;
 using Asp.Versioning;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
@@ -47,21 +46,21 @@ public sealed partial class AccountController
         // Created with an automation token, the account is linked to it and the use audited in the same transaction.
         var creationAction = await _accountService.CreateAccountWithActivationFlowAsync(
             body.Email, body.Username, body.Password, cancellationToken);
-        if (creationAction is not User newUser)
+        return creationAction switch
         {
-            return creationAction switch
+            User newUser => CompleteSignup(newUser),
+            AccountWithEmailOrUsernameExists => Problem(SignupError.UsernameOrEmailExists)
+        };
+
+        IActionResult CompleteSignup(User newUser)
+        {
+            // Lets this browser ask for the activation email again without typing the address.
+            if (newUser.ActivatedAt is null && GetCurrentCookieDomain() is { } cookieDomain)
             {
-                AccountWithEmailOrUsernameExists => Problem(SignupError.UsernameOrEmailExists),
-                _ => throw new UnreachableException()
-            };
-        }
+                ActivationResendCookie.Set(HttpContext, newUser.Id, cookieDomain);
+            }
 
-        // Lets this browser ask for the activation email again without typing the address.
-        if (newUser.ActivatedAt is null && GetCurrentCookieDomain() is { } cookieDomain)
-        {
-            ActivationResendCookie.Set(HttpContext, newUser.Id, cookieDomain);
+            return Ok();
         }
-
-        return Ok();
     }
 }
