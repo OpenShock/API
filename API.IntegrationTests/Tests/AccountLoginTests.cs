@@ -1,5 +1,6 @@
 using System.Net;
 using System.Text.Json;
+using Microsoft.AspNetCore.Mvc.Testing;
 using OpenShock.API.IntegrationTests.Helpers;
 using OpenShock.Common.Constants;
 
@@ -33,7 +34,7 @@ public sealed class AccountLoginTests
     {
         await TestHelper.CreateUserInDb(WebApplicationFactory, "loginv2", "loginv2@test.org", "SecurePassword123#");
 
-        using var client = WebApplicationFactory.CreateClient(new Microsoft.AspNetCore.Mvc.Testing.WebApplicationFactoryClientOptions
+        using var client = WebApplicationFactory.CreateClient(new WebApplicationFactoryClientOptions
         {
             AllowAutoRedirect = false,
             HandleCookies = false
@@ -115,7 +116,7 @@ public sealed class AccountLoginTests
     {
         await TestHelper.CreateUserInDb(WebApplicationFactory, "loginbyname", "loginbyname@test.org", "SecurePassword123#");
 
-        using var client = WebApplicationFactory.CreateClient(new Microsoft.AspNetCore.Mvc.Testing.WebApplicationFactoryClientOptions
+        using var client = WebApplicationFactory.CreateClient(new WebApplicationFactoryClientOptions
         {
             AllowAutoRedirect = false,
             HandleCookies = false
@@ -166,7 +167,7 @@ public sealed class AccountLoginTests
     [Test]
     public async Task Logout_WithoutSession_StillReturnsOk()
     {
-        using var client = WebApplicationFactory.CreateClient(new Microsoft.AspNetCore.Mvc.Testing.WebApplicationFactoryClientOptions
+        using var client = WebApplicationFactory.CreateClient(new WebApplicationFactoryClientOptions
         {
             AllowAutoRedirect = false,
             HandleCookies = false

@@ -1,8 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
-using OpenShock.Common.Models;
 using OpenShock.Common.OpenShockDb;
-using OpenShock.Common.Utils;
 using OpenShock.Internal.Common.Utils;
 
 namespace OpenShock.Cron.IntegrationTests.Tests;

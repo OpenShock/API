@@ -7,22 +7,16 @@ using OpenShock.API.Models.Requests;
 using OpenShock.API.Models.Response;
 using OpenShock.API.Services.DeviceUpdate;
 using OpenShock.Common.Authentication.Attributes;
-using OpenShock.Common.Constants;
 using OpenShock.Common.Errors;
 using OpenShock.Common.Extensions;
 using OpenShock.Common.Models;
 using OpenShock.Common.OpenShockDb;
-using OpenShock.Common.Problems;
 using OpenShock.Common.Redis;
 using OpenShock.Common.Results;
-using OpenShock.Common.Utils;
-using Redis.OM;
-
-using OpenShock.Internal.Common.Utils;
-
 using OpenShock.Internal.Common.Constants;
-
 using OpenShock.Internal.Common.Problems;
+using OpenShock.Internal.Common.Utils;
+using Redis.OM;
 
 namespace OpenShock.API.Controller.Devices;
 

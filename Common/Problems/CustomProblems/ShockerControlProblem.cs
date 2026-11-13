@@ -1,5 +1,4 @@
 ﻿using System.Net;
-
 using OpenShock.Internal.Common.Problems;
 
 namespace OpenShock.Common.Problems.CustomProblems;

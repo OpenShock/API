@@ -1,6 +1,6 @@
-﻿using Microsoft.Extensions.Options;
+﻿using System.ComponentModel.DataAnnotations;
+using Microsoft.Extensions.Options;
 using OpenShock.Common.Options;
-using System.ComponentModel.DataAnnotations;
 
 namespace OpenShock.Cron.Options;
 

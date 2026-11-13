@@ -1,15 +1,13 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using System.ComponentModel.DataAnnotations;
+using System.Net.Mime;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using OpenShock.Common.Errors;
-using OpenShock.Common.Extensions;
 using OpenShock.Common.Models;
 using OpenShock.Common.OpenShockDb;
-using OpenShock.Internal.DynamicLinq.Query;
-using System.ComponentModel.DataAnnotations;
-using System.Net.Mime;
-using Z.EntityFramework.Plus;
-
 using OpenShock.Internal.DynamicLinq.Extensions;
+using OpenShock.Internal.DynamicLinq.Query;
+using Z.EntityFramework.Plus;
 
 namespace OpenShock.API.Controller.Admin;
 
@@ -43,7 +41,7 @@ public sealed partial class AdminController
 
             if (!string.IsNullOrEmpty(orderbyQuery))
             {
-                query = OpenShock.Internal.DynamicLinq.Extensions.IQueryableExtensions.ApplyOrderBy(query, orderbyQuery);
+                query = IQueryableExtensions.ApplyOrderBy(query, orderbyQuery);
             }
             else
             {

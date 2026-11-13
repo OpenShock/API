@@ -1,6 +1,5 @@
 using System.Net;
 using System.Text.Json;
-
 using OpenShock.Common.JsonSerialization;
 
 namespace OpenShock.Common.Tests.JsonSerialization;

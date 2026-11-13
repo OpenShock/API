@@ -1,7 +1,6 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Authorization.Policy;
 using OpenShock.Common.Errors;
-
 using OpenShock.Common.JsonSerialization;
 
 namespace OpenShock.Common.Authentication;

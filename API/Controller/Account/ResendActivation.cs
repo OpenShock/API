@@ -1,12 +1,11 @@
 using System.Diagnostics;
 using System.Net.Mime;
-using Microsoft.AspNetCore.Mvc;
 using Asp.Versioning;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 using OpenShock.API.Services.Account;
 using OpenShock.Common.Authentication;
 using OpenShock.Common.Errors;
-using OpenShock.Common.Problems;
 using OpenShock.Internal.Common.Problems;
 using Results = OpenShock.Common.Results;
 

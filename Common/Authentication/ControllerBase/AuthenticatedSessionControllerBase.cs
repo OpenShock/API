@@ -4,8 +4,6 @@ using Microsoft.AspNetCore.Mvc.Filters;
 using OpenShock.Common.Extensions;
 using OpenShock.Common.Models;
 using OpenShock.Common.OpenShockDb;
-using OpenShock.Common.Redis;
-using OpenShock.Common.Results;
 
 namespace OpenShock.Common.Authentication.ControllerBase;
 

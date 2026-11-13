@@ -4,13 +4,9 @@ using Microsoft.AspNetCore.Mvc;
 using OpenShock.API.Models.Requests;
 using OpenShock.API.Services.Account;
 using OpenShock.Common.Errors;
-using OpenShock.Common.Problems;
 using OpenShock.Common.Utils;
-using Results = OpenShock.Common.Results;
-
-using OpenShock.Internal.Common.Utils;
-
 using OpenShock.Internal.Common.Problems;
+using Results = OpenShock.Common.Results;
 
 namespace OpenShock.API.Controller.Account.Authenticated;
 

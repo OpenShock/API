@@ -1,20 +1,18 @@
 ﻿using System.Collections.Immutable;
 using System.Diagnostics.Metrics;
 using Microsoft.EntityFrameworkCore;
-using OpenShock.Common.Extensions;
 using OpenShock.Common.Models;
 using OpenShock.Common.OpenShockDb;
 using OpenShock.Common.Redis.PubSub;
 using OpenShock.Common.Results;
 using OpenShock.Common.Services.BatchUpdate;
 using OpenShock.Common.Services.RedisPubSub;
+using OpenShock.Internal.Common.Extensions;
 using OpenShock.LiveControlGateway.Controllers;
 using OpenShock.LiveControlGateway.Metrics;
 using OpenShock.LiveControlGateway.Options;
 using Redis.OM.Contracts;
 using StackExchange.Redis;
-
-using OpenShock.Internal.Common.Extensions;
 
 namespace OpenShock.LiveControlGateway.LifetimeManager;
 

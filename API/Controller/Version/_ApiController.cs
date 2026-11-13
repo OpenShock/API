@@ -1,4 +1,6 @@
 ﻿using System.Net.Mime;
+using System.Reflection;
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Mvc;
 using OpenShock.API.OAuth;
 using OpenShock.API.Options;
@@ -6,10 +8,6 @@ using OpenShock.Common;
 using OpenShock.Common.Extensions;
 using OpenShock.Common.Models;
 using OpenShock.Common.Options;
-using OpenShock.Common.Utils;
-using System.Reflection;
-using Microsoft.AspNetCore.Authentication;
-
 using OpenShock.Internal.Common.Utils;
 
 namespace OpenShock.API.Controller.Version;

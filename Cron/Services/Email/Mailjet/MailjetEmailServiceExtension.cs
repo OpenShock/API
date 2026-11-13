@@ -1,7 +1,7 @@
-﻿using OpenShock.Cron.Options;
-using System.Net.Http.Headers;
+﻿using System.Net.Http.Headers;
 using System.Text;
 using Microsoft.Extensions.Options;
+using OpenShock.Cron.Options;
 
 namespace OpenShock.Cron.Services.Email.Mailjet;
 

@@ -1,8 +1,8 @@
 ﻿// ReSharper disable InconsistentNaming
 
+using System.ComponentModel.DataAnnotations;
 using Microsoft.Extensions.Options;
 using OpenShock.Internal.Common.Geo;
-using System.ComponentModel.DataAnnotations;
 
 namespace OpenShock.LiveControlGateway.Options;
 

@@ -2,7 +2,6 @@ using System.Security.Claims;
 using OpenShock.Common.Extensions;
 using OpenShock.Common.OpenShockDb;
 using OpenShock.Common.Services.AutomationTokens;
-using Microsoft.Extensions.Logging;
 
 namespace OpenShock.Common.Middleware;
 

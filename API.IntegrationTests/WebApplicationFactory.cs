@@ -1,5 +1,6 @@
 ﻿using System.Threading.RateLimiting;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.AspNetCore.TestHost;
@@ -112,7 +113,7 @@ public class WebApplicationFactory : WebApplicationFactory<Program>
 
             services.Configure<RateLimiterOptions>(options =>
             {
-                options.GlobalLimiter = PartitionedRateLimiter.Create<Microsoft.AspNetCore.Http.HttpContext, string>(
+                options.GlobalLimiter = PartitionedRateLimiter.Create<HttpContext, string>(
                     _ => RateLimitPartition.GetNoLimiter("test-no-limit"));
                 options.AddPolicy("auth", _ =>
                     RateLimitPartition.GetNoLimiter("test-auth-no-limit"));

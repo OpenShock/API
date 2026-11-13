@@ -1,6 +1,5 @@
 using System.Net;
 using Microsoft.Extensions.Logging.Abstractions;
-
 using OpenShock.Common.Utils;
 
 namespace OpenShock.Common.Tests.Utils;

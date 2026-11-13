@@ -1,21 +1,16 @@
 ﻿using System.Drawing;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using OpenShock.API.Models.Requests;
-using OpenShock.Common.Problems;
-using OpenShock.Common.Utils;
 using System.Net;
 using System.Net.Mime;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
+using Microsoft.EntityFrameworkCore;
 using OpenShock.API.Errors;
+using OpenShock.API.Models.Requests;
 using OpenShock.API.Services.Turnstile;
 using OpenShock.Common.OpenShockDb;
-using OpenShock.Common.Results;
 using OpenShock.Common.Services.AutomationTokens;
 using OpenShock.Common.Services.Webhook;
-
-using OpenShock.Internal.Common.Utils;
-
+using OpenShock.Common.Utils;
 using OpenShock.Internal.Common.Problems;
 
 namespace OpenShock.API.Controller.Tokens;
@@ -81,7 +76,7 @@ public sealed partial class TokensController
 
         var ipCountry = HttpContext.GetCFIPCountry();
         
-        _db.ApiTokenReports.Add(new Common.OpenShockDb.ApiTokenReport {
+        _db.ApiTokenReports.Add(new ApiTokenReport {
             Id = reportId,
             SubmittedCount = body.Secrets.Length,
             AffectedCount = nAffected,

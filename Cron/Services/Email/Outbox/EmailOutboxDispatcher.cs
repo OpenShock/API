@@ -1,10 +1,9 @@
 using Microsoft.EntityFrameworkCore;
-using OpenShock.Cron.Services.Email.Mailjet.Mail;
 using OpenShock.Common.Constants;
-using OpenShock.Common.Models;
 using OpenShock.Common.OpenShockDb;
 using OpenShock.Common.Options;
 using OpenShock.Common.Utils;
+using OpenShock.Cron.Services.Email.Mailjet.Mail;
 using OpenShock.Internal.Common.Utils;
 
 namespace OpenShock.Cron.Services.Email.Outbox;

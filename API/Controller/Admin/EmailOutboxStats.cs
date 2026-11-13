@@ -1,8 +1,8 @@
+using System.Net.Mime;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using OpenShock.API.Controller.Admin.DTOs;
 using OpenShock.Common.OpenShockDb;
-using System.Net.Mime;
 
 namespace OpenShock.API.Controller.Admin;
 

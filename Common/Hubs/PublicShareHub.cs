@@ -1,13 +1,12 @@
 ﻿using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
-using OpenShock.Common.Constants;
 using OpenShock.Common.Extensions;
 using OpenShock.Common.Models;
+using OpenShock.Common.Models.WebSocket.User;
 using OpenShock.Common.OpenShockDb;
 using OpenShock.Common.Services;
 using OpenShock.Common.Services.Session;
 using OpenShock.Common.Utils;
-
 using OpenShock.Internal.Common.Constants;
 
 namespace OpenShock.Common.Hubs;
@@ -119,7 +118,7 @@ public sealed class PublicShareHub : Hub<IPublicShareHub>
         await Clients.Caller.Welcome(user is null ? AuthType.Guest : AuthType.Authenticated);
     }
 
-    public Task Control(IReadOnlyList<Models.WebSocket.User.Control> shocks)
+    public Task Control(IReadOnlyList<Control> shocks)
     {
         if (!TokenPermissions.IsAllowedAllowOrNull(PermissionType.Shockers_Use)) return Task.CompletedTask;
         

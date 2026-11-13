@@ -1,7 +1,5 @@
 ﻿using System.ComponentModel.DataAnnotations;
-using OpenShock.Common.Constants;
 using OpenShock.Common.OpenShockDb;
-
 using OpenShock.Internal.Common.Constants;
 
 namespace OpenShock.API.Models.Requests;

@@ -1,8 +1,6 @@
 ﻿using OpenShock.Common.Results;
 using OpenShock.Common.Validation;
 
-using OpenShock.Internal.Common.Constants;
-
 namespace OpenShock.Common.Tests.Validation;
 
 internal class UsernameValidatorTests

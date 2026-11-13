@@ -1,18 +1,15 @@
-﻿using OpenShock.Common.Authentication;
-using Microsoft.AspNetCore.Mvc;
-using OpenShock.API.Models.Requests;
-using OpenShock.API.Services.Account;
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using System.Net.Mime;
 using Asp.Versioning;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
+using OpenShock.API.Models.Requests;
+using OpenShock.API.Services.Account;
 using OpenShock.API.Services.Turnstile;
+using OpenShock.Common.Authentication;
 using OpenShock.Common.Errors;
 using OpenShock.Common.OpenShockDb;
 using OpenShock.Common.Options;
-using OpenShock.Common.Problems;
-using OpenShock.Common.Results;
-
 using OpenShock.Internal.Common.Problems;
 
 namespace OpenShock.API.Controller.Account;

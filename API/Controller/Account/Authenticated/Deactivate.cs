@@ -1,13 +1,10 @@
-﻿using Microsoft.AspNetCore.Mvc;
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using System.Net.Mime;
-using OpenShock.API.Services.Account;
+using Microsoft.AspNetCore.Mvc;
 using OpenShock.Common.Errors;
-using OpenShock.Common.Problems;
+using OpenShock.Internal.Common.Problems;
 using AccountSvc = OpenShock.API.Services.Account;
 using Results = OpenShock.Common.Results;
-
-using OpenShock.Internal.Common.Problems;
 
 namespace OpenShock.API.Controller.Account.Authenticated;
 
@@ -26,8 +23,8 @@ public sealed partial class AuthenticatedAccountController
         return deactivationResult switch
         {
             Results.Success => NoContent(),
-            CannotDeactivatePrivilegedAccount => Problem(AccountActivationError.CannotDeactivateOrDeletePrivledgedAccount),
-            AccountDeactivationAlreadyInProgress => Problem(AccountActivationError.AlreadyDeactivated),
+            AccountSvc.CannotDeactivatePrivilegedAccount => Problem(AccountActivationError.CannotDeactivateOrDeletePrivledgedAccount),
+            AccountSvc.AccountDeactivationAlreadyInProgress => Problem(AccountActivationError.AlreadyDeactivated),
             AccountSvc.Unauthorized => Problem(AccountActivationError.Unauthorized),
             Results.NotFound => throw new Exception("This is not supposed to happen, wtf?"),
             _ => throw new UnreachableException()

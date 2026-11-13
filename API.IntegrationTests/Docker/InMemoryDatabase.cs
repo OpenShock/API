@@ -1,11 +1,9 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging.Abstractions;
 using OpenShock.Common.OpenShockDb;
-using OpenShock.Common.Utils;
+using OpenShock.Internal.Common.Utils;
 using Testcontainers.PostgreSql;
 using TUnit.Core.Interfaces;
-
-using OpenShock.Internal.Common.Utils;
 
 namespace OpenShock.API.IntegrationTests.Docker;
 

@@ -1,6 +1,5 @@
 ﻿using System.Net;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
-
 using OpenShock.Internal.Common.Problems;
 
 namespace OpenShock.Common.Problems;

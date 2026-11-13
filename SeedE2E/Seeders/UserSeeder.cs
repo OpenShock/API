@@ -1,12 +1,7 @@
 ﻿using Bogus;
 using Microsoft.Extensions.Logging;
-using OpenShock.Common.Constants;
-using OpenShock.Common.Models;
 using OpenShock.Common.OpenShockDb;
 using OpenShock.Common.Utils;
-
-using OpenShock.Internal.Common.Utils;
-
 using OpenShock.Internal.Common.Constants;
 
 namespace OpenShock.SeedE2E.Seeders;

@@ -1,12 +1,10 @@
-﻿using Asp.Versioning;
+﻿using System.Net.Mime;
+using System.Reflection;
+using Asp.Versioning;
 using Microsoft.AspNetCore.Mvc;
 using OpenShock.Common;
-using OpenShock.Common.Utils;
-using OpenShock.LiveControlGateway.Options;
-using System.Net.Mime;
-using System.Reflection;
-
 using OpenShock.Internal.Common.Utils;
+using OpenShock.LiveControlGateway.Options;
 
 namespace OpenShock.LiveControlGateway.Controllers;
 

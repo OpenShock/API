@@ -7,11 +7,9 @@ using OpenShock.Common.OpenShockDb;
 using OpenShock.Common.Redis;
 using OpenShock.Common.Redis.PubSub;
 using OpenShock.Common.Services.RedisPubSub;
-using OpenShock.Common.Utils;
+using OpenShock.Internal.Common.Utils;
 using Redis.OM.Contracts;
 using StackExchange.Redis;
-
-using OpenShock.Internal.Common.Utils;
 
 namespace OpenShock.API.Realtime;
 

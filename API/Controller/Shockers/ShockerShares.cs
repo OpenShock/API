@@ -1,17 +1,15 @@
-﻿using Asp.Versioning;
+﻿using System.Net.Mime;
+using Asp.Versioning;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using OpenShock.API.Models.Requests;
 using OpenShock.API.Models.Response;
-using OpenShock.Common.Extensions;
-using OpenShock.Common.Models;
-using OpenShock.Common.OpenShockDb;
-using System.Net.Mime;
 using OpenShock.API.Services.DeviceUpdate;
 using OpenShock.Common.Authentication.Attributes;
 using OpenShock.Common.Errors;
-using OpenShock.Common.Problems;
-
+using OpenShock.Common.Extensions;
+using OpenShock.Common.Models;
+using OpenShock.Common.OpenShockDb;
 using OpenShock.Internal.Common.Problems;
 
 namespace OpenShock.API.Controller.Shockers;

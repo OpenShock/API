@@ -1,6 +1,5 @@
 ﻿using System.Net;
 using MaxMind.GeoIP2;
-using Microsoft.Extensions.Logging;
 using OpenShock.Common.Options;
 
 namespace OpenShock.Common.Services.Geo;

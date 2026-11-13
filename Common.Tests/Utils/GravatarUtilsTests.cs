@@ -1,7 +1,5 @@
 using OpenShock.Common.Utils;
 
-using OpenShock.Internal.Common.Utils;
-
 namespace OpenShock.Common.Tests.Utils;
 
 public class GravatarUtilsTests

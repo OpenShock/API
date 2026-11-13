@@ -10,7 +10,6 @@ using OpenShock.Common.OpenShockDb;
 using OpenShock.Common.Services.Audit;
 using OpenShock.Common.Services.RedisPubSub;
 using OpenShock.Common.Utils;
-
 using OpenShock.Internal.Common.Utils;
 
 namespace OpenShock.API.Services.Token;

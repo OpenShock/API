@@ -1,7 +1,6 @@
 ﻿using System.ComponentModel.DataAnnotations;
 using System.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
-using OpenShock.API.Services.Account;
 using OpenShock.Common.Constants;
 using OpenShock.Common.Errors;
 using AccountSvc = OpenShock.API.Services.Account;
@@ -21,7 +20,7 @@ public sealed partial class AdminController
     public async Task<IActionResult> ReactivateUser(
         [FromRoute] Guid userId,
         [FromQuery][MaxLength(ApiHardLimits.AuditReasonMaxLength)] string? reason,
-        [FromServices] IAccountService accountService,
+        [FromServices] AccountSvc.IAccountService accountService,
         CancellationToken cancellationToken)
     {
         PedanticallyEnsureAdmin();

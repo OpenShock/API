@@ -6,10 +6,8 @@ using OpenShock.API.Models.Requests;
 using OpenShock.Common.Authentication.Attributes;
 using OpenShock.Common.Errors;
 using OpenShock.Common.OpenShockDb;
-using OpenShock.Common.Problems;
-using Z.EntityFramework.Plus;
-
 using OpenShock.Internal.Common.Problems;
+using Z.EntityFramework.Plus;
 
 namespace OpenShock.API.Controller.Shares.UserShares;
 

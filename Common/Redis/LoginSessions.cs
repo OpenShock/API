@@ -1,8 +1,6 @@
 ﻿using System.Text.Json.Serialization;
-using OpenShock.Common.JsonSerialization;
-using Redis.OM.Modeling;
-
 using OpenShock.Internal.Common.JsonSerialization;
+using Redis.OM.Modeling;
 
 namespace OpenShock.Common.Redis;
 

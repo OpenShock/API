@@ -3,15 +3,11 @@ using System.Text.Json;
 using System.Threading.Channels;
 using Microsoft.AspNetCore.Mvc;
 using OpenShock.Common.Errors;
-using OpenShock.Common.Problems;
 using OpenShock.Common.Results;
 using OpenShock.Common.Utils;
-
-using JsonOptions = OpenShock.Common.JsonSerialization.JsonOptions;
-
-using OpenShock.Internal.Common.Utils;
-
 using OpenShock.Internal.Common.Problems;
+using OpenShock.Internal.Common.Utils;
+using JsonOptions = OpenShock.Common.JsonSerialization.JsonOptions;
 
 namespace OpenShock.Common.Websocket;
 

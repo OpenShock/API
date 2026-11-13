@@ -1,8 +1,6 @@
 ﻿using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
-using OpenShock.Common.Constants;
 using OpenShock.Common.DeviceControl;
-using OpenShock.Common.Extensions;
 using OpenShock.Common.Hubs;
 using OpenShock.Common.Metrics;
 using OpenShock.Common.Models;
@@ -12,9 +10,7 @@ using OpenShock.Common.Redis.PubSub;
 using OpenShock.Common.Results;
 using OpenShock.Common.Services.RedisPubSub;
 using OpenShock.Common.Utils;
-
 using OpenShock.Internal.Common.Constants;
-
 using OpenShock.Internal.Common.Extensions;
 
 namespace OpenShock.Common.Services;

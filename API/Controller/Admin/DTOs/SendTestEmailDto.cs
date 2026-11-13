@@ -1,3 +1,4 @@
+using OpenShock.Common.DataAnnotations;
 using OpenShock.Common.OpenShockDb;
 
 namespace OpenShock.API.Controller.Admin.DTOs;
@@ -12,7 +13,7 @@ public sealed class SendTestEmailDto
     public required EmailType Type { get; set; }
 
     /// <summary>Destination address for the test email.</summary>
-    [OpenShock.Common.DataAnnotations.EmailAddress(true)]
+    [EmailAddress(true)]
     public required string Recipient { get; set; }
 
     /// <summary>Optional display name for the recipient.</summary>

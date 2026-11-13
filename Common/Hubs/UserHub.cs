@@ -5,6 +5,7 @@ using OpenShock.Common.Authentication;
 using OpenShock.Common.Extensions;
 using OpenShock.Common.Models;
 using OpenShock.Common.Models.WebSocket;
+using OpenShock.Common.Models.WebSocket.User;
 using OpenShock.Common.OpenShockDb;
 using OpenShock.Common.Redis;
 using OpenShock.Common.Services;
@@ -71,12 +72,12 @@ public sealed class UserHub : Hub<IUserHub>
         await Clients.Caller.DeviceStatus(final);
     }
 
-    public Task Control(IReadOnlyList<Models.WebSocket.User.Control> shocks)
+    public Task Control(IReadOnlyList<Control> shocks)
     {
         return ControlV2(shocks, null);
     }
 
-    public async Task ControlV2(IReadOnlyList<Models.WebSocket.User.Control> shocks, string? customName)
+    public async Task ControlV2(IReadOnlyList<Control> shocks, string? customName)
     {
         if (!TokenPermissions.IsAllowedAllowOrNull(PermissionType.Shockers_Use)) return;
 

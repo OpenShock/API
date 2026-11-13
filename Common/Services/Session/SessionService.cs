@@ -1,5 +1,4 @@
 ﻿using System.Net;
-using Microsoft.EntityFrameworkCore;
 using OpenShock.Common.Constants;
 using OpenShock.Common.Models;
 using OpenShock.Common.OpenShockDb;
@@ -7,11 +6,10 @@ using OpenShock.Common.Redis;
 using OpenShock.Common.Services.Audit;
 using OpenShock.Common.Services.Geo;
 using OpenShock.Common.Utils;
+using OpenShock.Internal.Common.Utils;
 using Redis.OM;
 using Redis.OM.Contracts;
 using Redis.OM.Searching;
-
-using OpenShock.Internal.Common.Utils;
 
 namespace OpenShock.Common.Services.Session;
 
