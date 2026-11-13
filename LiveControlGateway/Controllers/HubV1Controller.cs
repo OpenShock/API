@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.SignalR;
 using OpenShock.Common.Authentication;
+using OpenShock.Common.Constants;
 using OpenShock.Common.Hubs;
 using OpenShock.Common.Models;
 using OpenShock.Common.OpenShockDb;
@@ -172,7 +173,7 @@ public sealed class HubV1Controller : HubControllerBase<HubToGatewayMessage, Gat
     /// <inheritdoc />
     [NonAction]
     public override ValueTask Control(IList<ShockerCommand> controlCommands)
-        => QueueMessage(ControlMessage(controlCommands));
+        => QueueMessage(ControlMessage(controlCommands), Duration.HubControlMaxQueueAge);
 
     /// <inheritdoc />
     [NonAction]
