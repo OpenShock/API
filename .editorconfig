@@ -1,6 +1,8 @@
 root = true
 
 [*.cs]
+insert_final_newline = true
+
 # Do not suggest converting constructors into primary constructors
 csharp_style_prefer_primary_constructors = false
 dotnet_diagnostic.IDE0290.severity = none

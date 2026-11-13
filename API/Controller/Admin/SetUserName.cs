@@ -37,8 +37,7 @@ public sealed partial class AdminController
             UsernameError usernameError => Problem(AccountError.UsernameInvalid(usernameError)),
             RecentlyChanged => throw new UnreachableException("Failed to bypass username change ratelimit!"),
             AccountDeactivated => Problem(AdminError.UserDeactivated),
-            Results.NotFound => NotFound(),
-            _ => throw new UnreachableException()
+            Results.NotFound => NotFound()
         };
     }
 

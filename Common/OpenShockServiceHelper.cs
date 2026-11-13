@@ -1,4 +1,5 @@
-﻿using System.Net;
+﻿using System.Globalization;
+using System.Net;
 using System.Reflection;
 using System.Security.Claims;
 using System.Threading.RateLimiting;
@@ -401,7 +402,7 @@ public static class OpenShockServiceHelper
                 if (!context.Lease.TryGetMetadata(MetadataName.RetryAfter, out var retryAfter))
                     retryAfter = TimeSpan.FromMinutes(1);
 
-                var retryAfterSeconds = Math.Ceiling(retryAfter.TotalSeconds).ToString("R");
+                var retryAfterSeconds = Math.Ceiling(retryAfter.TotalSeconds).ToString("R", CultureInfo.InvariantCulture);
 
                 context.HttpContext.Response.Headers.RetryAfter = retryAfterSeconds;
 

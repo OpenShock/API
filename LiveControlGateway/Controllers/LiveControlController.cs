@@ -485,32 +485,27 @@ public sealed class LiveControlController : WebsocketBaseController<LiveControlR
         }
 
         var permCheck = CheckFramePermissions(frame.Shocker, frame.Type);
-        if (permCheck is not SharePermsAndLimits perms)
+        await (permCheck switch
         {
-            _metrics.Frame(permCheck switch
-            {
-                Results.NotFound => GatewayMetrics.FrameOutcome.ShockerNotFound,
-                LiveNotEnabled => GatewayMetrics.FrameOutcome.LiveNotEnabled,
-                NoPermission => GatewayMetrics.FrameOutcome.NoPermission,
-                ShockerPaused => GatewayMetrics.FrameOutcome.ShockerPaused,
-                _ => throw new UnreachableException()
-            }, frame.Type);
+            SharePermsAndLimits perms => ForwardFrame(frame, perms),
+            Results.NotFound => RejectFrame(frame, GatewayMetrics.FrameOutcome.ShockerNotFound, LiveResponseType.ShockerNotFound),
+            LiveNotEnabled => RejectFrame(frame, GatewayMetrics.FrameOutcome.LiveNotEnabled, LiveResponseType.ShockerMissingLivePermission),
+            NoPermission => RejectFrame(frame, GatewayMetrics.FrameOutcome.NoPermission, LiveResponseType.ShockerMissingPermission),
+            ShockerPaused => RejectFrame(frame, GatewayMetrics.FrameOutcome.ShockerPaused, LiveResponseType.ShockerPaused)
+        });
+    }
 
-            await QueueMessage(new LiveControlResponse<LiveResponseType>
-            {
-                ResponseType = permCheck switch
-                {
-                    Results.NotFound => LiveResponseType.ShockerNotFound,
-                    LiveNotEnabled => LiveResponseType.ShockerMissingLivePermission,
-                    NoPermission => LiveResponseType.ShockerMissingPermission,
-                    ShockerPaused => LiveResponseType.ShockerPaused,
-                    _ => throw new UnreachableException()
-                }
-            });
+    private async Task RejectFrame(ClientLiveFrame frame, string outcome, LiveResponseType responseType)
+    {
+        _metrics.Frame(outcome, frame.Type);
+        await QueueMessage(new LiveControlResponse<LiveResponseType>
+        {
+            ResponseType = responseType
+        });
+    }
 
-            return;
-        }
-
+    private async Task ForwardFrame(ClientLiveFrame frame, SharePermsAndLimits perms)
+    {
         // Apply the token's intensity scoping first (if any), then clamp to the share limits.
         var scopedIntensity = _tokenLimits?.ApplyIntensity(frame.Intensity) ?? frame.Intensity;
         var intensity = Math.Clamp(scopedIntensity, HardLimits.MinControlIntensity,

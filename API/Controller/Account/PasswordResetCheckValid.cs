@@ -45,8 +45,7 @@ public sealed partial class AccountController
         {
             Results.Success => LegacyEmptyOk("Valid password reset process"),
             Results.NotFound => Problem(PasswordResetError.PasswordResetNotFound),
-            SecretInvalid => Problem(PasswordResetError.PasswordResetNotFound),
-            _ => throw new UnreachableException()
+            SecretInvalid => Problem(PasswordResetError.PasswordResetNotFound)
         };
     }
 }

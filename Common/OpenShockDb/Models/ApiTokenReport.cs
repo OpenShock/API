@@ -2,7 +2,7 @@
 
 namespace OpenShock.Common.OpenShockDb;
 
-public class ApiTokenReport
+public sealed class ApiTokenReport
 {
     public Guid Id { get; init; }
     

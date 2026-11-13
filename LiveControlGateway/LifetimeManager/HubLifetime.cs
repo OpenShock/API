@@ -199,7 +199,8 @@ public sealed class HubLifetime : IAsyncDisposable
         DeviceMessage message;
         try
         {
-            message = MessagePackSerializer.Deserialize<DeviceMessage>((ReadOnlyMemory<byte>)value,
+            ReadOnlyMemory<byte> memView = value;
+            message = MessagePackSerializer.Deserialize<DeviceMessage>(memView,
                 cancellationToken: cancellationToken);
         }
         catch (Exception e)

@@ -60,7 +60,7 @@ public sealed class ControlSender : IControlSender
             })
             .ToArrayAsync(cancellationToken);
 
-        return await ControlInternal(controls, sender, sender.Id, hubClients, shockers, ControlMetrics.Source.User, tokenLimits, cancellationToken);
+        return await ControlInternal(controls, sender, sender.Id, hubClients, shockers, ControlMetrics.Source.User, tokenLimits);
     }
 
     public async Task<ShockerControlResult> ControlPublicShare(IReadOnlyList<Control> controls, ControlLogSender sender, Guid? controllerUserId, IHubClients<IUserHub> hubClients, Guid publicShareId, CancellationToken cancellationToken)
@@ -89,7 +89,7 @@ public sealed class ControlSender : IControlSender
             })
             .ToArrayAsync(cancellationToken);
         
-        return await ControlInternal(controls, sender, controllerUserId, hubClients, publicShareShockers, ControlMetrics.Source.PublicShare, cancellationToken: cancellationToken);
+        return await ControlInternal(controls, sender, controllerUserId, hubClients, publicShareShockers, ControlMetrics.Source.PublicShare);
     }
     
     private static void Clamp(Control control, SharePermsAndLimits? limits)
@@ -101,7 +101,7 @@ public sealed class ControlSender : IControlSender
         control.Duration = Math.Clamp(control.Duration, HardLimits.MinControlDuration, durationMax);
     }
 
-    private async Task<ShockerControlResult> ControlInternal(IReadOnlyList<Control> controls, ControlLogSender sender, Guid? controllerUserId, IHubClients<IUserHub> hubClients, ControlShockerObj[] allowedShockers, string source, ApiTokenControlLimits? tokenLimits = null, CancellationToken cancellationToken = default)
+    private async Task<ShockerControlResult> ControlInternal(IReadOnlyList<Control> controls, ControlLogSender sender, Guid? controllerUserId, IHubClients<IUserHub> hubClients, ControlShockerObj[] allowedShockers, string source, ApiTokenControlLimits? tokenLimits = null)
     {
         var shockersById = allowedShockers.ToDictionary(s => s.ShockerId, s => s);
 

@@ -23,8 +23,8 @@ public sealed partial class AdminController
             .ToDictionary();
 
         return gateways
-            .OrderBy(x => x.Environment)
-            .ThenBy(x => x.Id)
+            .OrderBy(x => x.Environment, StringComparer.Ordinal)
+            .ThenBy(x => x.Id, StringComparer.Ordinal)
             .Select(x => new AdminOnlineGatewayResponse
             {
                 Id = x.Id,

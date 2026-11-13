@@ -8,9 +8,7 @@ using OpenShock.API.Errors;
 using OpenShock.API.Models.Response;
 using OpenShock.Common.Models;
 using OpenShock.Common.OpenShockDb;
-using OpenShock.Common.Problems;
 using OpenShock.Common.Utils;
-
 using OpenShock.Internal.Common.Problems;
 
 namespace OpenShock.API.Controller.Users;
@@ -67,6 +65,8 @@ public sealed partial class UsersController
             .Where(x => x.OwnerUserId == CurrentUser.Id)
             .GroupBy(x => new
             {
+                // Npgsql translates this to `bucket AT TIME ZONE @tz`, so it runs in the database.
+                // ReSharper disable once EntityFramework.ClientSideDbFunctionCall
                 Day = TimeZoneInfo.ConvertTimeBySystemTimeZoneId(x.Bucket, tz).Date,
                 x.ShockerId,
                 x.ControllerUserId,

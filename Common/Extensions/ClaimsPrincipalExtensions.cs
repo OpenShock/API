@@ -43,7 +43,7 @@ public static class ClaimsPrincipalExtensions
     }
     
     public static string GetClaimValue(this ClaimsIdentity identity, string claimType) => identity.Claims.Single(x => x.Type == claimType).Value;
-    public static Guid GetClaimValueAsGuid(this ClaimsIdentity identity, string claimType) => Guid.Parse(GetClaimValue(identity, claimType));
+    public static Guid GetClaimValueAsGuid(this ClaimsIdentity identity, string claimType) => Guid.Parse(identity.GetClaimValue(claimType));
 
     public static IEnumerable<RoleType> GetRoles(this ClaimsIdentity identity)
     {
@@ -52,6 +52,6 @@ public static class ClaimsPrincipalExtensions
 
     public static bool IsAdminOrSystem(this ClaimsIdentity identity)
     {
-        return GetRoles(identity).Any(x => x is RoleType.Admin or RoleType.System);
+        return identity.GetRoles().Any(x => x is RoleType.Admin or RoleType.System);
     }
 }

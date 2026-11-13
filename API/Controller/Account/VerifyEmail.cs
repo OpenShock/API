@@ -48,8 +48,7 @@ public sealed partial class AccountController
         {
             VerifyEmailSuccess => Ok(),
             Results.NotFound => Problem(AccountError.EmailChangeNotFound),
-            EmailAlreadyInUse => Problem(AccountError.EmailChangeAlreadyInUse),
-            _ => throw new UnreachableException()
+            EmailAlreadyInUse => Problem(AccountError.EmailChangeAlreadyInUse)
         };
     }
 }

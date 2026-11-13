@@ -39,8 +39,7 @@ public sealed partial class AuthenticatedAccountController
             UsernameError usernameError => Problem(AccountError.UsernameInvalid(usernameError)),
             RecentlyChanged => Problem(AccountError.UsernameRecentlyChanged),
             AccountDeactivated => Problem(AccountError.AccountDeactivated),
-            Results.NotFound => throw new Exception("Unexpected result, apparently our current user does not exist..."),
-            _ => throw new UnreachableException()
+            Results.NotFound => throw new Exception("Unexpected result, apparently our current user does not exist...")
         };
     }
 }

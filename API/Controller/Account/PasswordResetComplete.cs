@@ -51,8 +51,7 @@ public sealed partial class AccountController
             Results.Success => LegacyEmptyOk("Password successfully changed"),
             Results.NotFound => Problem(PasswordResetError.PasswordResetNotFound),
             AccountDeactivated => Problem(AccountError.AccountDeactivated),
-            SecretInvalid => Problem(PasswordResetError.PasswordResetNotFound),
-            _ => throw new UnreachableException()
+            SecretInvalid => Problem(PasswordResetError.PasswordResetNotFound)
         };
     }
     
