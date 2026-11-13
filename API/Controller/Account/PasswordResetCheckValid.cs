@@ -1,16 +1,13 @@
-﻿using System;
-using System.Diagnostics;
-using Microsoft.AspNetCore.Mvc;
+﻿using System.Diagnostics;
 using System.Net.Mime;
 using Asp.Versioning;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 using OpenShock.API.Services.Account;
 using OpenShock.Common.Errors;
-using OpenShock.Common.Problems;
 using OpenShock.Common.Models;
-using Results = OpenShock.Common.Results;
-
 using OpenShock.Internal.Common.Problems;
+using Results = OpenShock.Common.Results;
 
 namespace OpenShock.API.Controller.Account;
 
@@ -48,8 +45,7 @@ public sealed partial class AccountController
         {
             Results.Success => LegacyEmptyOk("Valid password reset process"),
             Results.NotFound => Problem(PasswordResetError.PasswordResetNotFound),
-            SecretInvalid => Problem(PasswordResetError.PasswordResetNotFound),
-            _ => throw new UnreachableException()
+            SecretInvalid => Problem(PasswordResetError.PasswordResetNotFound)
         };
     }
 }

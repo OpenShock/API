@@ -1,9 +1,9 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using System.Security.Claims;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 using OpenShock.API.Models.Response;
 using OpenShock.API.OAuth;
 using OpenShock.Common.Extensions;
-using System.Security.Claims;
 
 namespace OpenShock.API.Controller.OAuth;
 
@@ -37,7 +37,8 @@ public sealed partial class OAuthController
             return error switch
             {
                 OAuthValidationError.FlowStateMissing => Problem(OAuthError.FlowNotFound),
-                _ => Problem(OAuthError.InternalError)
+                OAuthValidationError.FlowDataMissingOrInvalid => Problem(OAuthError.InternalError),
+                _ => throw new ArgumentOutOfRangeException(nameof(error), error, null)
             };
         }
 

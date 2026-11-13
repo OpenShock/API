@@ -1,5 +1,4 @@
 ﻿using System.Net;
-
 using OpenShock.Internal.Common.Problems;
 
 namespace OpenShock.Common.Problems.CustomProblems;
@@ -12,5 +11,5 @@ public sealed class ShockerControlProblem(
     string? detail = null)
     : OpenShockProblem(type, title, status, detail)
 {
-    public Guid ShockerId { get; set; } = shockerId;
+    public Guid ShockerId { get; init; } = shockerId;
 }

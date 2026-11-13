@@ -1,14 +1,12 @@
 ﻿using System.Net.Mime;
-using Microsoft.AspNetCore.Mvc;
 using Asp.Versioning;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 using OpenShock.API.Models.Requests;
 using OpenShock.API.Services.Turnstile;
 using OpenShock.Common.Errors;
 using OpenShock.Common.OpenShockDb;
-using OpenShock.Common.Problems;
 using OpenShock.Common.Services.AutomationTokens;
-
 using OpenShock.Internal.Common.Problems;
 
 namespace OpenShock.API.Controller.Account;
@@ -48,7 +46,7 @@ public sealed partial class AccountController
             return Ok();
         }
 
-        await _accountService.CreatePasswordResetFlowAsync(body.Email);
+        await _accountService.CreatePasswordResetFlowAsync(body.Email, cancellationToken);
 
         return Ok();
     }

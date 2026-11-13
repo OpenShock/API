@@ -2,7 +2,7 @@ using OpenShock.Common.Services.Geo;
 
 namespace OpenShock.Common.Tests.Services;
 
-public class IpEnrichmentServiceTests
+public sealed class IpEnrichmentServiceTests
 {
     [Test]
     [Arguments("NordVPN")]

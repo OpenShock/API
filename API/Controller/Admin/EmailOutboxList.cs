@@ -1,14 +1,12 @@
+using System.ComponentModel.DataAnnotations;
+using System.Net.Mime;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using OpenShock.API.Controller.Admin.DTOs;
 using OpenShock.Common.Errors;
-using OpenShock.Common.Extensions;
 using OpenShock.Common.Models;
-using OpenShock.Common.OpenShockDb;
 using OpenShock.Internal.DynamicLinq.Extensions;
 using OpenShock.Internal.DynamicLinq.Query;
-using System.ComponentModel.DataAnnotations;
-using System.Net.Mime;
 
 namespace OpenShock.API.Controller.Admin;
 
@@ -27,7 +25,8 @@ public sealed partial class AdminController
         [FromQuery(Name = "$filter")] string filterQuery = "",
         [FromQuery(Name = "$orderby")] string orderbyQuery = "",
         [FromQuery(Name = "$offset")][Range(0, int.MaxValue)] int offset = 0,
-        [FromQuery(Name = "$limit")][Range(1, 1000)] int limit = 100
+        [FromQuery(Name = "$limit")][Range(1, 1000)] int limit = 100,
+        CancellationToken cancellationToken = default
         )
     {
         PedanticallyEnsureAdmin();
@@ -67,14 +66,14 @@ public sealed partial class AdminController
         // its custom data reader can't apply Npgsql's jsonb -> Dictionary<string,string> conversion for
         // the Payload column and blindly casts the raw jsonb string to the dictionary, throwing
         // InvalidCastException. Plain async queries let Npgsql materialize Payload correctly.
-        var total = await query.LongCountAsync();
+        var total = await query.LongCountAsync(cancellationToken);
 
         if (offset != 0)
         {
             query = query.Skip(offset);
         }
 
-        var messages = await query.Take(limit).ToArrayAsync();
+        var messages = await query.Take(limit).ToArrayAsync(cancellationToken);
 
         return Ok(new Paginated<EmailOutboxMessageDto>
         {

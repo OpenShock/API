@@ -2,7 +2,7 @@ using OpenShock.Common.Services.Geo;
 
 namespace OpenShock.Common.Tests.Services;
 
-public class GeoPointTests
+public sealed class GeoPointTests
 {
     [Test]
     public async Task DistanceToKm_BerlinToParis_MatchesKnownDistance()

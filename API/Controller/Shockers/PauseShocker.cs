@@ -8,8 +8,6 @@ using OpenShock.Common.Authentication.Attributes;
 using OpenShock.Common.Errors;
 using OpenShock.Common.Models;
 using OpenShock.Common.OpenShockDb;
-using OpenShock.Common.Problems;
-
 using OpenShock.Internal.Common.Problems;
 
 namespace OpenShock.API.Controller.Shockers;
@@ -22,6 +20,7 @@ public sealed partial class ShockerController
     /// <param name="shockerId"></param>
     /// <param name="body"></param>
     /// <param name="deviceUpdateService"></param>
+    /// <param name="cancellationToken"></param>
     /// <response code="200">Successfully set pause state</response>
     /// <response code="404">Shocker not found or does not belong to you</response>
     [HttpPost("{shockerId}/pause")]
@@ -31,12 +30,13 @@ public sealed partial class ShockerController
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status404NotFound, MediaTypeNames.Application.ProblemJson)] // ShockerNotFound    
     [MapToApiVersion("1")]
     public async Task<IActionResult> PauseShocker([FromRoute] Guid shockerId, [FromBody] PauseRequest body,
-        [FromServices] IDeviceUpdateService deviceUpdateService)
+        [FromServices] IDeviceUpdateService deviceUpdateService,
+        CancellationToken cancellationToken)
     {
-        var shocker = await _db.Shockers.FirstOrDefaultAsync(x => x.Id == shockerId && x.Device.OwnerId == CurrentUser.Id);
+        var shocker = await _db.Shockers.FirstOrDefaultAsync(x => x.Id == shockerId && x.Device.OwnerId == CurrentUser.Id, cancellationToken);
         if (shocker is null) return Problem(ShockerError.ShockerNotFound);
         shocker.IsPaused = body.Pause;
-        await _db.SaveChangesAsync();
+        await _db.SaveChangesAsync(cancellationToken);
 
         await deviceUpdateService.UpdateDeviceForAllShared(CurrentUser.Id, shocker.DeviceId, DeviceUpdateType.ShockerUpdated);
 

@@ -1,5 +1,4 @@
 ﻿using System.Net;
-using System.Net.Http.Json;
 using System.Net.Mime;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.EntityFrameworkCore;
@@ -8,9 +7,8 @@ using OpenShock.API.Models.Response;
 using OpenShock.Common.OpenShockDb;
 using OpenShock.Common.Redis;
 using OpenShock.Common.Utils;
-using Redis.OM.Contracts;
-
 using OpenShock.Internal.Common.Utils;
+using Redis.OM.Contracts;
 
 namespace OpenShock.API.IntegrationTests.Tests;
 

@@ -1,14 +1,12 @@
-﻿using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using OpenShock.Common.Redis;
-using System.Net.Mime;
+﻿using System.Net.Mime;
 using Asp.Versioning;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
+using Microsoft.EntityFrameworkCore;
 using OpenShock.Common.Errors;
-using OpenShock.Common.Problems;
 using OpenShock.Common.Models;
-
+using OpenShock.Common.Redis;
 using OpenShock.Internal.Common.Problems;
 
 namespace OpenShock.API.Controller.Device;
@@ -19,6 +17,7 @@ public sealed partial class DeviceController
     /// Pair a device with a pair code.
     /// </summary>
     /// <param name="pairCode">The pair code to pair with.</param>
+    /// <param name="cancellationToken"></param>
     /// <response code="200">Successfully assigned LCG node</response>
     /// <response code="404">No such pair code exists</response>
     [AllowAnonymous]
@@ -28,9 +27,9 @@ public sealed partial class DeviceController
     [EnableRateLimiting("auth")]
     [ProducesResponseType<LegacyDataResponse<string>>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status404NotFound, MediaTypeNames.Application.ProblemJson)] // PairCodeNotFound
-    public async Task<IActionResult> Pair([FromRoute] string pairCode)
+    public async Task<IActionResult> Pair([FromRoute] string pairCode, CancellationToken cancellationToken)
     {
-        return await PairInternal(pairCode);
+        return await PairInternal(pairCode, cancellationToken);
     }
 
     /// <summary>
@@ -41,12 +40,12 @@ public sealed partial class DeviceController
     [HttpGet("~/{version:apiVersion}/pair/{pairCode}")]
     [ApiExplorerSettings(IgnoreApi = true)]
     [EnableRateLimiting("auth")]
-    public async Task<IActionResult> PairDeprecated([FromRoute] string pairCode)
+    public async Task<IActionResult> PairDeprecated([FromRoute] string pairCode, CancellationToken cancellationToken)
     {
-        return await PairInternal(pairCode);
+        return await PairInternal(pairCode, cancellationToken);
     }
 
-    private async Task<IActionResult> PairInternal(string pairCode)
+    private async Task<IActionResult> PairInternal(string pairCode, CancellationToken cancellationToken)
     {
         var devicePairs = _redis.RedisCollection<DevicePair>();
 
@@ -54,7 +53,7 @@ public sealed partial class DeviceController
         if (pair is null) return Problem(PairError.PairCodeNotFound);
         await devicePairs.DeleteAsync(pair);
 
-        var device = await _db.Devices.Where(x => x.Id == pair.Id).Select(x => new { x.Token, x.OwnerId }).FirstOrDefaultAsync();
+        var device = await _db.Devices.Where(x => x.Id == pair.Id).Select(x => new { x.Token, x.OwnerId }).FirstOrDefaultAsync(cancellationToken);
         if (device is null) throw new Exception("Device not found for pair code");
 
         try

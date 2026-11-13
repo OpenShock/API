@@ -1,18 +1,15 @@
-﻿using Microsoft.AspNetCore.Authentication;
+﻿using System.Security.Claims;
+using System.Text.Encodings.Web;
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using OpenShock.Common.Constants;
 using OpenShock.Common.Errors;
 using OpenShock.Common.Extensions;
+using OpenShock.Common.JsonSerialization;
 using OpenShock.Common.OpenShockDb;
-using OpenShock.Common.Problems;
 using OpenShock.Common.Services.BatchUpdate;
 using OpenShock.Common.Services.Session;
-using System.Security.Claims;
-using System.Text.Encodings.Web;
-
-using OpenShock.Common.JsonSerialization;
-
 using OpenShock.Internal.Common.Problems;
 
 namespace OpenShock.Common.Authentication.AuthenticationHandlers;
@@ -57,7 +54,7 @@ public sealed class UserSessionAuthentication : AuthenticationHandler<Authentica
 
         _batchUpdateService.UpdateSessionLastUsed(sessionToken, DateTimeOffset.UtcNow);
 
-        var user = await _db.Users.Include(u => u.UserDeactivation).FirstOrDefaultAsync(user => user.Id == session.UserId);
+        var user = await _db.Users.Include(u => u.UserDeactivation).FirstOrDefaultAsync(user => user.Id == session.UserId, Context.RequestAborted);
         if (user is null) return Fail(AuthResultError.SessionInvalid);
         if (user.ActivatedAt is null)
         {
@@ -73,11 +70,15 @@ public sealed class UserSessionAuthentication : AuthenticationHandler<Authentica
         Context.SetItemByType(session);
         Context.SetItemByType(user);
 
-        var claims = new List<Claim>(2 + user.Roles.Count)
-        {
+        // An authenticated (hence activated) session has no use for the post-signup resend cookie.
+        ActivationResendCookie.Remove(Context);
+
+        List<Claim> claims =
+        [
+            with(capacity: 2 + user.Roles.Count),
             new(ClaimTypes.AuthenticationMethod, OpenShockAuthSchemes.UserSessionCookie),
             new(ClaimTypes.NameIdentifier, user.Id.ToString()),
-        };
+        ];
 
         foreach (var roletype in user.Roles)
         {

@@ -2,5 +2,5 @@
 
 public sealed class CreateTokenRequest : EditTokenRequest
 {
-    public DateTime? ValidUntil { get; set; } = null;
+    public DateTime? ValidUntil { get; init; } = null;
 }

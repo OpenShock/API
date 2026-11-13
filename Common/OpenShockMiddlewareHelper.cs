@@ -1,35 +1,28 @@
-﻿using Microsoft.AspNetCore.Diagnostics.HealthChecks;
+﻿using System.Net;
+using System.Text;
+using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.AspNetCore.HttpOverrides;
-using Microsoft.AspNetCore.OpenApi;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
+using Npgsql;
 using OpenShock.Common.HealthChecks;
 using OpenShock.Common.Middleware;
 using OpenShock.Common.OpenShockDb;
 using OpenShock.Common.Options;
 using OpenShock.Common.Redis;
-using OpenShock.Common.Utils;
+using OpenShock.Internal.Common.Utils;
 using Redis.OM;
 using Redis.OM.Contracts;
 using Scalar.AspNetCore;
 using Serilog;
 using Serilog.Events;
+using ILogger = Microsoft.Extensions.Logging.ILogger;
 using IPNetwork = System.Net.IPNetwork;
-
-using OpenShock.Internal.Common.Utils;
 
 namespace OpenShock.Common;
 
 public static class OpenShockMiddlewareHelper
 {
-    private static readonly ForwardedHeadersOptions ForwardedSettings = new()
-    {
-        ForwardedHeaders = ForwardedHeaders.All,
-        RequireHeaderSymmetry = false,
-        ForwardLimit = null,
-        ForwardedForHeaderName = "CF-Connecting-IP"
-    };
-    
     public static async Task<IApplicationBuilder> UseCommonOpenShockMiddleware(this WebApplication app, string? pathBase = null)
     {
         // Networks allowed to reach the operational endpoints (metrics, health). Defaults to the
@@ -46,17 +39,27 @@ public static class OpenShockMiddlewareHelper
             app.UsePathBase(NormalizePathBase(pathBase));
         }
 
+        // Built per application instead of shared statically: several hosts starting in the same process
+        // (the integration tests) would otherwise add to one KnownIPNetworks list concurrently.
+        var forwardedSettings = new ForwardedHeadersOptions
+        {
+            ForwardedHeaders = ForwardedHeaders.All,
+            RequireHeaderSymmetry = false,
+            ForwardLimit = null,
+            ForwardedForHeaderName = "CF-Connecting-IP"
+        };
+
         foreach (var proxy in await TrustedProxiesFetcher.GetTrustedNetworksAsync())
         {
-            ForwardedSettings.KnownIPNetworks.Add(proxy);
+            forwardedSettings.KnownIPNetworks.Add(proxy);
         }
 
-        app.UseForwardedHeaders(ForwardedSettings);
+        app.UseForwardedHeaders(forwardedSettings);
 
         // Health is operational data, gated by the same allow-list as /metrics. This runs after
         // UseForwardedHeaders, so a proxied request is judged on its real client IP, and before routing,
         // so a rejected caller cannot even tell the endpoints exist.
-        app.Use(async (HttpContext context, RequestDelegate next) =>
+        app.Use(async (context, next) =>
         {
             if (context.Request.Path.StartsWithSegments(HealthCheckPaths.Health)
                 && !IsAllowed(context.Connection.RemoteIpAddress, internalAllowedIpNetworks))
@@ -128,7 +131,7 @@ public static class OpenShockMiddlewareHelper
             return IsAllowed(context.Connection.RemoteIpAddress, internalAllowedIpNetworks);
         });
         
-        app.MapOpenApi("/openapi/{documentName}.json").WithDocumentPerVersion();
+        app.MapOpenApi().WithDocumentPerVersion();
 
         app.MapScalarApiReference("/scalar/viewer", options =>
                 options
@@ -145,12 +148,46 @@ public static class OpenShockMiddlewareHelper
             ResponseWriter = WriteHealthReportAsync
         });
 
+        app.MapSecurityTxt();
+
         app.MapControllers();
 
         return app;
     }
 
-    private static bool IsAllowed(System.Net.IPAddress? remoteIp, IPNetwork[] allowedNetworks) =>
+    /// <summary>
+    /// Publishes <c>/.well-known/security.txt</c> (RFC 9116) when <see cref="SecurityTxtOptions"/> is
+    /// configured. Unconfigured hosts get no endpoint at all, and an expired file is withheld: the RFC
+    /// prefers no file over stale contact information.
+    /// </summary>
+    private static void MapSecurityTxt(this WebApplication app)
+    {
+        var options = SecurityTxtOptions.FromConfiguration(app.Configuration);
+        if (options is null) return;
+
+        if (options.IsExpired(DateTimeOffset.UtcNow))
+        {
+            Log.Warning("{Section}:Expires ({Expires}) is in the past, security.txt will not be served until it is renewed",
+                SecurityTxtOptions.SectionName, options.Expires);
+        }
+
+        app.MapGet(SecurityTxtOptions.Path, (HttpContext context) =>
+        {
+            if (options.IsExpired(DateTimeOffset.UtcNow)) return Microsoft.AspNetCore.Http.Results.NotFound();
+
+            // The file only speaks for the host root it is served from. Under a path base it is not at
+            // the well-known location, so it cannot truthfully name a canonical URL.
+            var request = context.Request;
+            var canonical = request.PathBase.HasValue || !request.IsHttps
+                ? null
+                : new Uri($"https://{request.Host.Value}{SecurityTxtOptions.Path}");
+
+            context.Response.Headers.CacheControl = "public, max-age=3600";
+            return Microsoft.AspNetCore.Http.Results.Text(options.Render(canonical), "text/plain", Encoding.UTF8);
+        }).ExcludeFromDescription();
+    }
+
+    private static bool IsAllowed(IPAddress? remoteIp, IPNetwork[] allowedNetworks) =>
         remoteIp is not null && allowedNetworks.Any(network => network.Contains(remoteIp));
 
     /// <summary>
@@ -213,14 +250,14 @@ public static class OpenShockMiddlewareHelper
     /// type catalog. Called after migrations are applied so newly-added types (enums) are visible without a
     /// process restart. Best-effort: a failure here is logged but not fatal, since a restart also clears it.
     /// </summary>
-    private static async Task ReloadRuntimeTypeCatalogAsync(IServiceProvider services, Microsoft.Extensions.Logging.ILogger logger)
+    private static async Task ReloadRuntimeTypeCatalogAsync(IServiceProvider services, ILogger logger)
     {
         try
         {
             await using var context = services.GetRequiredService<OpenShockContext>();
             // The connection is owned by the DbContext and disposed with it; do not dispose it here.
 #pragma warning disable IDISP001
-            var connection = (Npgsql.NpgsqlConnection)context.Database.GetDbConnection();
+            var connection = (NpgsqlConnection)context.Database.GetDbConnection();
 #pragma warning restore IDISP001
             await connection.OpenAsync();
             await connection.ReloadTypesAsync();

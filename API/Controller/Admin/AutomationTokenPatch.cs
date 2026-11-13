@@ -42,18 +42,17 @@ public sealed partial class AdminController
         token.AutoCleanupUsers = autoCleanupUsers;
         token.AutoCleanupAfter = autoCleanupAfter;
 
-        await using var transaction = await _db.Database.BeginTransactionAsync(ct);
+        await using var transaction = await _db.Database.BeginTransactionAsync();
 
-        await _db.SaveChangesAsync(ct);
+        await _db.SaveChangesAsync();
 
         await auditService.LogAsync(
             CurrentUser.Id,
             action: AuditAction.AutomationTokenUpdated,
             actorId: CurrentUser.Id,
-            metadata: new AutomationTokenUpdatedMetadata(token.Id, token.Name, [.. token.Types.Select(t => t.ToString())], token.AutoCleanupUsers, token.AutoCleanupAfter),
-            cancellationToken: ct);
+            metadata: new AutomationTokenUpdatedMetadata(token.Id, token.Name, [.. token.Types.Select(t => t.ToString())], token.AutoCleanupUsers, token.AutoCleanupAfter));
 
-        await transaction.CommitAsync(ct);
+        await transaction.CommitAsync();
 
         return Ok(AutomationTokenDto.FromEntity(token));
     }

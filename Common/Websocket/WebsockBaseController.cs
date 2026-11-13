@@ -1,17 +1,14 @@
-﻿using System.Net.WebSockets;
+﻿using System.Diagnostics;
+using System.Net.WebSockets;
 using System.Text.Json;
 using System.Threading.Channels;
 using Microsoft.AspNetCore.Mvc;
 using OpenShock.Common.Errors;
-using OpenShock.Common.Problems;
 using OpenShock.Common.Results;
 using OpenShock.Common.Utils;
-
-using JsonOptions = OpenShock.Common.JsonSerialization.JsonOptions;
-
-using OpenShock.Internal.Common.Utils;
-
 using OpenShock.Internal.Common.Problems;
+using OpenShock.Internal.Common.Utils;
+using JsonOptions = OpenShock.Common.JsonSerialization.JsonOptions;
 
 namespace OpenShock.Common.Websocket;
 
@@ -45,7 +42,12 @@ public abstract class WebsocketBaseController<T> : OpenShockControllerBase, IAsy
     /// <summary>
     /// A message waiting to be sent, <paramref name="Sent"/> is completed with whether it was written to the websocket
     /// </summary>
-    protected readonly record struct QueuedMessage(T Data, TaskCompletionSource<bool>? Sent);
+    /// <param name="Data"></param>
+    /// <param name="Sent"></param>
+    /// <param name="ExpiresAt">
+    /// <see cref="Stopwatch.GetTimestamp"/> after which the message is dropped instead of written, 0 for never.
+    /// </param>
+    protected readonly record struct QueuedMessage(T Data, TaskCompletionSource<bool>? Sent, long ExpiresAt = 0);
 
 #pragma warning disable IDISP008
     protected WebSocket? WebSocket;
@@ -71,6 +73,23 @@ public abstract class WebsocketBaseController<T> : OpenShockControllerBase, IAsy
         }
         
         return Channel.Writer.WriteAsync(new QueuedMessage(data, null), LinkedToken);
+    }
+
+    /// <summary>
+    /// Queue a message that is only worth sending promptly. If the client is so far behind that it has
+    /// waited longer than <paramref name="maxQueueAge"/> when its turn comes, it is dropped.
+    /// </summary>
+    [NonAction]
+    public ValueTask QueueMessage(T data, TimeSpan maxQueueAge)
+    {
+        if (!CanSend())
+        {
+            Logger.LogDebug("WebSocket is null, abort or closed, not sending message");
+            return ValueTask.CompletedTask;
+        }
+
+        var expiresAt = Stopwatch.GetTimestamp() + (long)(maxQueueAge.TotalSeconds * Stopwatch.Frequency);
+        return Channel.Writer.WriteAsync(new QueuedMessage(data, null, expiresAt), LinkedToken);
     }
 
     /// <summary>
@@ -207,6 +226,13 @@ public abstract class WebsocketBaseController<T> : OpenShockControllerBase, IAsy
         {
             await foreach (var msg in Channel.Reader.ReadAllAsync(LinkedToken))
             {
+                if (msg.ExpiresAt != 0 && Stopwatch.GetTimestamp() > msg.ExpiresAt)
+                {
+                    Logger.LogDebug("Dropping a message that waited too long in the send queue");
+                    msg.Sent?.TrySetResult(false);
+                    continue;
+                }
+
                 try
                 {
                     await SendWebSocketMessage(msg.Data, WebSocket!, LinkedToken);

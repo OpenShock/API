@@ -1,15 +1,13 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using System.ComponentModel.DataAnnotations;
+using System.Net.Mime;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using OpenShock.Common.Errors;
-using OpenShock.Common.Extensions;
 using OpenShock.Common.Models;
 using OpenShock.Common.OpenShockDb;
-using OpenShock.Internal.DynamicLinq.Query;
-using System.ComponentModel.DataAnnotations;
-using System.Net.Mime;
-using Z.EntityFramework.Plus;
-
 using OpenShock.Internal.DynamicLinq.Extensions;
+using OpenShock.Internal.DynamicLinq.Query;
+using Z.EntityFramework.Plus;
 
 namespace OpenShock.API.Controller.Admin;
 
@@ -26,7 +24,8 @@ public sealed partial class AdminController
         [FromQuery(Name = "$filter")] string filterQuery = "",
         [FromQuery(Name = "$orderby")] string orderbyQuery = "",
         [FromQuery(Name = "$offset")][Range(0, int.MaxValue)] int offset = 0,
-        [FromQuery(Name = "$limit")][Range(1, 1000)] int limit = 100
+        [FromQuery(Name = "$limit")][Range(1, 1000)] int limit = 100,
+        CancellationToken cancellationToken = default
         )
     {
         PedanticallyEnsureAdmin();
@@ -42,7 +41,7 @@ public sealed partial class AdminController
 
             if (!string.IsNullOrEmpty(orderbyQuery))
             {
-                query = OpenShock.Internal.DynamicLinq.Extensions.IQueryableExtensions.ApplyOrderBy(query, orderbyQuery);
+                query = IQueryableExtensions.ApplyOrderBy(query, orderbyQuery);
             }
             else
             {
@@ -73,10 +72,10 @@ public sealed partial class AdminController
 
         return Ok(new Paginated<AdminUsersView>
         {
-            Data = await deferredUsers.ToArrayAsync(),
+            Data = await deferredUsers.ToArrayAsync(cancellationToken),
             Offset = offset,
             Limit = limit,
-            Total = await deferredCount.ValueAsync(),
+            Total = await deferredCount.ValueAsync(cancellationToken),
         });
     }
 }

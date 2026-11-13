@@ -2,7 +2,6 @@
 using Microsoft.AspNetCore.DataProtection.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using OpenShock.Common.Constants;
-using OpenShock.Common.Extensions;
 using OpenShock.Common.Models;
 
 using OpenShock.Internal.Common.Constants;
@@ -154,7 +153,7 @@ public class OpenShockContext : DbContext, IDataProtectionKeyContext
             entity.HasIndex(e => e.TokenHash).IsUnique();
 
             entity.Property(e => e.Id)
-                .ValueGeneratedNever()
+                .ValueGeneratedOnAdd()
                 .HasColumnName("id");
             entity.Property(e => e.CreatedByIp)
                 .HasColumnName("created_by_ip");
@@ -168,7 +167,7 @@ public class OpenShockContext : DbContext, IDataProtectionKeyContext
                 .HasColumnName("name");
             entity.Property(e => e.TokenHash)
                 .UseCollation("C")
-                .VarCharWithLength(HardLimits.Sha256HashHexLength)
+                .HasMaxLength(HardLimits.Sha256HashHexLength)
                 .HasColumnName("token_hash");
             entity.Property(e => e.UserId).HasColumnName("user_id");
             entity.Property(e => e.ValidUntil).HasColumnName("valid_until");
@@ -211,7 +210,7 @@ public class OpenShockContext : DbContext, IDataProtectionKeyContext
             entity.ToTable("api_token_reports");
             
             entity.Property(e => e.Id)
-                .ValueGeneratedNever()
+                .ValueGeneratedOnAdd()
                 .HasColumnName("id");
         });
         
@@ -222,7 +221,7 @@ public class OpenShockContext : DbContext, IDataProtectionKeyContext
             entity.ToTable("api_token_reports");
 
             entity.Property(e => e.Id)
-                .ValueGeneratedNever()
+                .ValueGeneratedOnAdd()
                 .HasColumnName("id");
             entity.Property(e => e.SubmittedCount)
                 .HasColumnName("submitted_count");
@@ -253,13 +252,13 @@ public class OpenShockContext : DbContext, IDataProtectionKeyContext
             entity.HasIndex(e => e.Token).IsUnique();
 
             entity.Property(e => e.Id)
-                .ValueGeneratedNever()
+                .ValueGeneratedOnAdd()
                 .HasColumnName("id");
             entity.Property(e => e.CreatedAt)
                 .HasDefaultValueSql("CURRENT_TIMESTAMP")
                 .HasColumnName("created_at");
             entity.Property(e => e.Name)
-                .VarCharWithLength(HardLimits.HubNameMaxLength)
+                .HasMaxLength(HardLimits.HubNameMaxLength)
                 .HasColumnName("name");
             entity.Property(e => e.OwnerId).HasColumnName("owner_id");
             entity.Property(e => e.Token)
@@ -286,10 +285,10 @@ public class OpenShockContext : DbContext, IDataProtectionKeyContext
                 .HasDefaultValueSql("CURRENT_TIMESTAMP")
                 .HasColumnName("created_at");
             entity.Property(e => e.Message)
-                .VarCharWithLength(ApiHardLimits.OtaUpdateMessageMaxLength)
+                .HasMaxLength(ApiHardLimits.OtaUpdateMessageMaxLength)
                 .HasColumnName("message");
             entity.Property(e => e.Version)
-                .VarCharWithLength(HardLimits.SemVerMaxLength)
+                .HasMaxLength(HardLimits.SemVerMaxLength)
                 .HasColumnName("version");
 
             entity.Property(e => e.Status).HasColumnType("ota_update_status").HasColumnName("status");
@@ -309,14 +308,14 @@ public class OpenShockContext : DbContext, IDataProtectionKeyContext
             entity.HasIndex(e => e.UserId);
 
             entity.Property(e => e.Id)
-                .ValueGeneratedNever()
+                .ValueGeneratedOnAdd()
                 .HasColumnName("id");
             entity.Property(e => e.CreatedAt)
                 .HasDefaultValueSql("CURRENT_TIMESTAMP")
                 .HasColumnName("created_at");
             entity.Property(e => e.TokenHash)
                 .UseCollation("C")
-                .VarCharWithLength(ApiHardLimits.PasswordResetSecretMaxLength)
+                .HasMaxLength(ApiHardLimits.PasswordResetSecretMaxLength)
                 .HasColumnName("token_hash");
             entity.Property(e => e.SecurityStampAtCreate)
                 .HasColumnName("security_stamp_at_create");
@@ -338,7 +337,7 @@ public class OpenShockContext : DbContext, IDataProtectionKeyContext
             entity.HasIndex(e => e.OwnerId);
 
             entity.Property(e => e.Id)
-                .ValueGeneratedNever()
+                .ValueGeneratedOnAdd()
                 .HasColumnName("id");
             entity.Property(e => e.CreatedAt)
                 .HasDefaultValueSql("CURRENT_TIMESTAMP")
@@ -402,7 +401,7 @@ public class OpenShockContext : DbContext, IDataProtectionKeyContext
             entity.HasIndex(e => e.DeviceId);
 
             entity.Property(e => e.Id)
-                .ValueGeneratedNever()
+                .ValueGeneratedOnAdd()
                 .HasColumnName("id");
             entity.Property(e => e.CreatedAt)
                 .HasDefaultValueSql("CURRENT_TIMESTAMP")
@@ -431,14 +430,14 @@ public class OpenShockContext : DbContext, IDataProtectionKeyContext
             entity.HasIndex(e => e.ShockerId);
 
             entity.Property(e => e.Id)
-                .ValueGeneratedNever()
+                .ValueGeneratedOnAdd()
                 .HasColumnName("id");
             entity.Property(e => e.ControlledByUserId).HasColumnName("controlled_by_user_id");
             entity.Property(e => e.CreatedAt)
                 .HasDefaultValueSql("CURRENT_TIMESTAMP")
                 .HasColumnName("created_at");
             entity.Property(e => e.CustomName)
-                .VarCharWithLength(HardLimits.ShockerControlLogCustomNameMaxLength)
+                .HasMaxLength(HardLimits.ShockerControlLogCustomNameMaxLength)
                 .HasColumnName("custom_name");
             entity.Property(e => e.Duration).HasColumnName("duration");
             entity.Property(e => e.Intensity).HasColumnName("intensity");
@@ -579,7 +578,7 @@ public class OpenShockContext : DbContext, IDataProtectionKeyContext
             entity.ToTable("shocker_share_codes");
 
             entity.Property(e => e.Id)
-                .ValueGeneratedNever()
+                .ValueGeneratedOnAdd()
                 .HasColumnName("id");
             entity.Property(e => e.CreatedAt)
                 .HasDefaultValueSql("CURRENT_TIMESTAMP")
@@ -619,14 +618,14 @@ public class OpenShockContext : DbContext, IDataProtectionKeyContext
             entity.HasIndex(e => e.OwnerId);
 
             entity.Property(e => e.Id)
-                .ValueGeneratedNever()
+                .ValueGeneratedOnAdd()
                 .HasColumnName("id");
             entity.Property(e => e.CreatedAt)
                 .HasDefaultValueSql("CURRENT_TIMESTAMP")
                 .HasColumnName("created_at");
             entity.Property(e => e.ExpiresAt).HasColumnName("expires_at");
             entity.Property(e => e.Name)
-                .VarCharWithLength(HardLimits.PublicShareNameMaxLength)
+                .HasMaxLength(HardLimits.PublicShareNameMaxLength)
                 .HasColumnName("name");
             entity.Property(e => e.OwnerId).HasColumnName("owner_id");
 
@@ -683,18 +682,18 @@ public class OpenShockContext : DbContext, IDataProtectionKeyContext
             entity.HasIndex(e => e.Name).UseCollation("ndcoll").IsUnique();
 
             entity.Property(e => e.Id)
-                .ValueGeneratedNever()
+                .ValueGeneratedOnAdd()
                 .HasColumnName("id");
             entity.Property(e => e.Name)
                 .UseCollation("ndcoll")
-                .VarCharWithLength(HardLimits.UsernameMaxLength)
+                .HasMaxLength(HardLimits.UsernameMaxLength)
                 .HasColumnName("name");
             entity.Property(e => e.Email)
-                .VarCharWithLength(HardLimits.EmailAddressMaxLength)
+                .HasMaxLength(HardLimits.EmailAddressMaxLength)
                 .HasColumnName("email");
             entity.Property(e => e.PasswordHash)
                 .UseCollation("C")
-                .VarCharWithLength(ApiHardLimits.PasswordHashMaxLength)
+                .HasMaxLength(ApiHardLimits.PasswordHashMaxLength)
                 .HasColumnName("password_hash");
             entity.Property(e => e.SecurityStamp)
                 .HasDefaultValueSql("gen_random_uuid()")
@@ -756,7 +755,7 @@ public class OpenShockContext : DbContext, IDataProtectionKeyContext
                 .HasColumnName("user_id");
             entity.Property(e => e.TokenHash)
                 .UseCollation("C")
-                .VarCharWithLength(ApiHardLimits.UserActivationRequestSecretMaxLength)
+                .HasMaxLength(ApiHardLimits.UserActivationRequestSecretMaxLength)
                 .HasColumnName("token_hash");
             entity.Property(e => e.EmailSendAttempts)
                 .HasColumnName("email_send_attempts");
@@ -807,19 +806,19 @@ public class OpenShockContext : DbContext, IDataProtectionKeyContext
             entity.HasIndex(e => e.CreatedAt);
 
             entity.Property(e => e.Id)
-                .ValueGeneratedNever()
+                .ValueGeneratedOnAdd()
                 .HasColumnName("id");
             entity.Property(e => e.UserId)
                 .HasColumnName("user_id");
             entity.Property(e => e.OldEmail)
-                .VarCharWithLength(HardLimits.EmailAddressMaxLength)
+                .HasMaxLength(HardLimits.EmailAddressMaxLength)
                 .HasColumnName("email_old");
             entity.Property(e => e.NewEmail)
-                .VarCharWithLength(HardLimits.EmailAddressMaxLength)
+                .HasMaxLength(HardLimits.EmailAddressMaxLength)
                 .HasColumnName("email_new");
             entity.Property(e => e.TokenHash)
                 .UseCollation("C")
-                .VarCharWithLength(ApiHardLimits.UserEmailChangeSecretMaxLength)
+                .HasMaxLength(ApiHardLimits.UserEmailChangeSecretMaxLength)
                 .HasColumnName("token_hash");
             entity.Property(e => e.SecurityStampAtCreate)
                 .HasColumnName("security_stamp_at_create");
@@ -853,7 +852,7 @@ public class OpenShockContext : DbContext, IDataProtectionKeyContext
                 .HasDefaultValueSql("CURRENT_TIMESTAMP")
                 .HasColumnName("created_at");
             entity.Property(e => e.OldName)
-                .VarCharWithLength(HardLimits.UsernameMaxLength)
+                .HasMaxLength(HardLimits.UsernameMaxLength)
                 .HasColumnName("old_name");
 
             entity.HasOne(d => d.User).WithMany(p => p.NameChanges)
@@ -911,11 +910,11 @@ public class OpenShockContext : DbContext, IDataProtectionKeyContext
             entity.HasIndex(e => e.Value).UseCollation("ndcoll").IsUnique();
 
             entity.Property(e => e.Id)
-                .ValueGeneratedNever()
+                .ValueGeneratedOnAdd()
                 .HasColumnName("id");
             entity.Property(e => e.Value)
                 .UseCollation("ndcoll")
-                .VarCharWithLength(HardLimits.UsernameMaxLength)
+                .HasMaxLength(HardLimits.UsernameMaxLength)
                 .HasColumnName("value");
             entity.Property(e => e.MatchType)
                 .HasColumnName("match_type");
@@ -933,11 +932,11 @@ public class OpenShockContext : DbContext, IDataProtectionKeyContext
             entity.HasIndex(e => e.Domain).UseCollation("ndcoll").IsUnique();
 
             entity.Property(e => e.Id)
-                .ValueGeneratedNever()
+                .ValueGeneratedOnAdd()
                 .HasColumnName("id");
             entity.Property(e => e.Domain)
                 .UseCollation("ndcoll")
-                .VarCharWithLength(ApiHardLimits.EmailProviderDomainMaxLength)
+                .HasMaxLength(ApiHardLimits.EmailProviderDomainMaxLength)
                 .HasColumnName("domain");
             entity.Property(e => e.CreatedAt)
                 .HasDefaultValueSql("CURRENT_TIMESTAMP")
@@ -953,14 +952,14 @@ public class OpenShockContext : DbContext, IDataProtectionKeyContext
             entity.HasIndex(e => e.TokenHash).IsUnique();
 
             entity.Property(e => e.Id)
-                .ValueGeneratedNever()
+                .ValueGeneratedOnAdd()
                 .HasColumnName("id");
             entity.Property(e => e.Name)
-                .VarCharWithLength(ApiHardLimits.ApiKeyNameMaxLength)
+                .HasMaxLength(ApiHardLimits.ApiKeyNameMaxLength)
                 .HasColumnName("name");
             entity.Property(e => e.TokenHash)
                 .UseCollation("C")
-                .VarCharWithLength(HardLimits.Sha256HashHexLength)
+                .HasMaxLength(HardLimits.Sha256HashHexLength)
                 .HasColumnName("token_hash");
             entity.Property(e => e.Types)
                 .HasColumnType("automation_token_type[]")
@@ -994,21 +993,21 @@ public class OpenShockContext : DbContext, IDataProtectionKeyContext
             entity.HasIndex(e => e.CoalesceKey);
 
             entity.Property(e => e.Id)
-                .ValueGeneratedNever()
+                .ValueGeneratedOnAdd()
                 .HasColumnName("id");
             entity.Property(e => e.Type)
                 .HasColumnName("type");
             entity.Property(e => e.Recipient)
-                .VarCharWithLength(HardLimits.EmailAddressMaxLength)
+                .HasMaxLength(HardLimits.EmailAddressMaxLength)
                 .HasColumnName("recipient");
             entity.Property(e => e.RecipientName)
-                .VarCharWithLength(HardLimits.UsernameMaxLength)
+                .HasMaxLength(HardLimits.UsernameMaxLength)
                 .HasColumnName("recipient_name");
             entity.Property(e => e.Payload)
                 .HasColumnType("jsonb")
                 .HasColumnName("payload");
             entity.Property(e => e.CoalesceKey)
-                .VarCharWithLength(ApiHardLimits.EmailOutboxCoalesceKeyMaxLength)
+                .HasMaxLength(ApiHardLimits.EmailOutboxCoalesceKeyMaxLength)
                 .HasColumnName("coalesce_key");
             entity.Property(e => e.Status)
                 .HasColumnName("status");
@@ -1025,7 +1024,7 @@ public class OpenShockContext : DbContext, IDataProtectionKeyContext
                 .HasDefaultValueSql("CURRENT_TIMESTAMP")
                 .HasColumnName("next_attempt_at");
             entity.Property(e => e.LastError)
-                .VarCharWithLength(ApiHardLimits.EmailOutboxLastErrorMaxLength)
+                .HasMaxLength(ApiHardLimits.EmailOutboxLastErrorMaxLength)
                 .HasColumnName("last_error");
             entity.Property(e => e.CreatedAt)
                 .HasDefaultValueSql("CURRENT_TIMESTAMP")
@@ -1098,7 +1097,7 @@ public class OpenShockContext : DbContext, IDataProtectionKeyContext
             entity.HasIndex(e => e.CreatedAt);
 
             entity.Property(e => e.Id)
-                .ValueGeneratedNever()
+                .ValueGeneratedOnAdd()
                 .HasColumnName("id");
             entity.Property(e => e.UserId).HasColumnName("user_id");
             entity.Property(e => e.ActorId).HasColumnName("actor_id");
@@ -1106,13 +1105,13 @@ public class OpenShockContext : DbContext, IDataProtectionKeyContext
                 .HasColumnType("audit_action")
                 .HasColumnName("action");
             entity.Property(e => e.Reason)
-                .VarCharWithLength(ApiHardLimits.AuditReasonMaxLength)
+                .HasMaxLength(ApiHardLimits.AuditReasonMaxLength)
                 .HasColumnName("reason");
             entity.Property(e => e.IpAddress)
-                .VarCharWithLength(HardLimits.IpAddressMaxLength)
+                .HasMaxLength(HardLimits.IpAddressMaxLength)
                 .HasColumnName("ip_address");
             entity.Property(e => e.UserAgent)
-                .VarCharWithLength(HardLimits.UserAgentMaxLength)
+                .HasMaxLength(HardLimits.UserAgentMaxLength)
                 .HasColumnName("user_agent");
             entity.Property(e => e.Metadata)
                 .HasColumnType("jsonb")

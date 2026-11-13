@@ -1,5 +1,6 @@
 using System.Net;
 using System.Text.Json;
+using Microsoft.AspNetCore.Mvc.Testing;
 using OpenShock.API.IntegrationTests.Helpers;
 
 namespace OpenShock.API.IntegrationTests.Tests;
@@ -64,7 +65,7 @@ public sealed class AccountAuthenticatedTests
         await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.OK);
 
         // Verify can login with new password
-        using var loginClient = WebApplicationFactory.CreateClient(new Microsoft.AspNetCore.Mvc.Testing.WebApplicationFactoryClientOptions
+        using var loginClient = WebApplicationFactory.CreateClient(new WebApplicationFactoryClientOptions
         {
             AllowAutoRedirect = false,
             HandleCookies = false

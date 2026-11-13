@@ -1,19 +1,14 @@
-﻿using Microsoft.AspNetCore.Authentication;
+﻿using System.Security.Claims;
+using System.Text.Encodings.Web;
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using OpenShock.Common.Errors;
 using OpenShock.Common.Extensions;
+using OpenShock.Common.JsonSerialization;
 using OpenShock.Common.OpenShockDb;
-using OpenShock.Common.Problems;
 using OpenShock.Common.Services.BatchUpdate;
 using OpenShock.Common.Utils;
-using System.Security.Claims;
-using System.Text.Encodings.Web;
-
-using OpenShock.Common.JsonSerialization;
-
-using OpenShock.Internal.Common.Utils;
-
 using OpenShock.Internal.Common.Problems;
 
 namespace OpenShock.Common.Authentication.AuthenticationHandlers;
@@ -49,7 +44,7 @@ public sealed class ApiTokenAuthentication : AuthenticationHandler<Authenticatio
         var tokenDto = await _db.ApiTokens
             .Include(x => x.User)
             .Include(x => x.User.UserDeactivation)
-            .FirstOrDefaultAsync(x => x.TokenHash == tokenHash && (x.ValidUntil == null || x.ValidUntil >= DateTime.UtcNow));
+            .FirstOrDefaultAsync(x => x.TokenHash == tokenHash && (x.ValidUntil == null || x.ValidUntil >= DateTime.UtcNow), Context.RequestAborted);
         if (tokenDto is null) return Fail(AuthResultError.TokenInvalid);
         if (tokenDto.User.UserDeactivation is not null)
         {
@@ -60,12 +55,13 @@ public sealed class ApiTokenAuthentication : AuthenticationHandler<Authenticatio
         Context.SetItemByType(tokenDto);
         Context.SetItemByType(tokenDto.User);
 
-        var claims = new List<Claim>(3 + tokenDto.Permissions.Count)
-        {
+        List<Claim> claims =
+        [
+            with(capacity: 3 + tokenDto.Permissions.Count),
             new(ClaimTypes.AuthenticationMethod, OpenShockAuthSchemes.ApiToken),
             new(ClaimTypes.NameIdentifier, tokenDto.User.Id.ToString()),
             new(OpenShockAuthClaims.ApiTokenId, tokenDto.Id.ToString())
-        };
+        ];
 
         foreach (var perm in tokenDto.Permissions)
         {

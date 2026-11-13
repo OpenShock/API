@@ -27,7 +27,7 @@ public sealed partial class AdminController
         var token = await _db.AutomationTokens.AsNoTracking().FirstOrDefaultAsync(t => t.Id == id, ct);
         if (token is null) return NotFound();
 
-        await using var transaction = await _db.Database.BeginTransactionAsync(ct);
+        await using var transaction = await _db.Database.BeginTransactionAsync();
 
         var createdUsers = await _db.Users
             .Where(u => u.CreatedByAutomationTokenId == id)
@@ -46,7 +46,7 @@ public sealed partial class AdminController
         // one, or one created or promoted meanwhile. On success, exactly userIds went with it.
         try
         {
-            await _db.AutomationTokens.Where(t => t.Id == id).ExecuteDeleteAsync(ct);
+            await _db.AutomationTokens.Where(t => t.Id == id).ExecuteDeleteAsync();
         }
         catch (PostgresException e) when (e.SqlState == PostgresErrorCodes.ForeignKeyViolation)
         {
@@ -57,10 +57,9 @@ public sealed partial class AdminController
             CurrentUser.Id,
             action: AuditAction.AutomationTokenDeleted,
             actorId: CurrentUser.Id,
-            metadata: new AutomationTokenDeletedMetadata(token.Id, token.Name, userIds.Length),
-            cancellationToken: ct);
+            metadata: new AutomationTokenDeletedMetadata(token.Id, token.Name, userIds.Length));
 
-        await transaction.CommitAsync(ct);
+        await transaction.CommitAsync();
 
         // Each deleted account's own audit log goes with it, so the log line is the lasting record of what went.
         foreach (var userId in userIds)

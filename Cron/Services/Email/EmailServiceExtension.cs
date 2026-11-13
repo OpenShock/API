@@ -38,6 +38,7 @@ public static class EmailServiceExtension
             case MailOptions.MailType.Smtp:
                 builder.AddSmtpEmailService();
                 break;
+            case MailOptions.MailType.None:
             default:
                 throw new Exception("Unknown mail type");
         }

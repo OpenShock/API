@@ -1,7 +1,5 @@
 ﻿using System.ComponentModel.DataAnnotations;
-using System.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
-using OpenShock.API.Services.Account;
 using OpenShock.Common.Constants;
 using OpenShock.Common.Errors;
 using AccountSvc = OpenShock.API.Services.Account;
@@ -21,18 +19,18 @@ public sealed partial class AdminController
     public async Task<IActionResult> DeleteUser(
         [FromRoute] Guid userId,
         [FromQuery][MaxLength(ApiHardLimits.AuditReasonMaxLength)] string? reason,
-        [FromServices] IAccountService accountService)
+        [FromServices] AccountSvc.IAccountService accountService,
+        CancellationToken cancellationToken)
     {
         PedanticallyEnsureAdmin();
 
-        var result = await accountService.DeleteAccountAsync(CurrentUser.Id, userId, reason);
+        var result = await accountService.DeleteAccountAsync(CurrentUser.Id, userId, reason, cancellationToken);
         return result switch
         {
             Results.Success => Ok("Account deleted"),
-            CannotDeletePrivilegedAccount => Problem(AccountActivationError.CannotDeactivateOrDeletePrivledgedAccount),
+            AccountSvc.CannotDeletePrivilegedAccount => Problem(AccountActivationError.CannotDeactivateOrDeletePrivledgedAccount),
             AccountSvc.Unauthorized => Problem(AccountActivationError.Unauthorized),
-            Results.NotFound => NotFound("User not found"),
-            _ => throw new UnreachableException()
+            Results.NotFound => NotFound("User not found")
         };
     }
 }

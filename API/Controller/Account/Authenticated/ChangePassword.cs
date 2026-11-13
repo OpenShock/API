@@ -4,13 +4,9 @@ using Microsoft.AspNetCore.Mvc;
 using OpenShock.API.Models.Requests;
 using OpenShock.API.Services.Account;
 using OpenShock.Common.Errors;
-using OpenShock.Common.Problems;
 using OpenShock.Common.Utils;
-using Results = OpenShock.Common.Results;
-
-using OpenShock.Internal.Common.Utils;
-
 using OpenShock.Internal.Common.Problems;
+using Results = OpenShock.Common.Results;
 
 namespace OpenShock.API.Controller.Account.Authenticated;
 
@@ -20,6 +16,7 @@ public sealed partial class AuthenticatedAccountController
     /// Change the password of the current user
     /// </summary>
     /// <param name="body"></param>
+    /// <param name="cancellationToken"></param>
     /// <returns></returns>
     /// <exception cref="Exception"></exception>
     [HttpPost("password")]
@@ -28,7 +25,7 @@ public sealed partial class AuthenticatedAccountController
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status403Forbidden, MediaTypeNames.Application.ProblemJson)] // PasswordChangeInvalidPassword
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status409Conflict, MediaTypeNames.Application.ProblemJson)] // PasswordNotSet
     // notActivated / deactivated / notFound are blocked by UserSessionAuthentication before reaching this controller.
-    public async Task<IActionResult> ChangePassword([FromBody] ChangePasswordRequest body)
+    public async Task<IActionResult> ChangePassword([FromBody] ChangePasswordRequest body, CancellationToken cancellationToken)
     {
         // OAuth-only accounts that have never set a password must go through the email-confirmed
         // /password/set flow rather than silently setting one through this endpoint.
@@ -42,15 +39,14 @@ public sealed partial class AuthenticatedAccountController
             return Problem(AccountError.PasswordChangeInvalidPassword);
         }
         
-        var result = await _accountService.ChangePasswordAsync(CurrentUser.Id, body.NewPassword, actorId: CurrentUser.Id);
+        var result = await _accountService.ChangePasswordAsync(CurrentUser.Id, body.NewPassword, actorId: CurrentUser.Id, cancellationToken: cancellationToken);
 
         return result switch
         {
             Results.Success => Ok(),
             AccountNotActivated => throw new UnreachableException("Authenticated user is not activated"),
             AccountDeactivated => throw new UnreachableException("Authenticated user is deactivated"),
-            Results.NotFound => throw new UnreachableException("Authenticated user not found in database"),
-            _ => throw new UnreachableException()
+            Results.NotFound => throw new UnreachableException("Authenticated user not found in database")
         };
     }
 }

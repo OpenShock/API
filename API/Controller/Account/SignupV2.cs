@@ -1,17 +1,14 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using System.Net.Mime;
+using Asp.Versioning;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using OpenShock.API.Models.Requests;
 using OpenShock.API.Services.Account;
-using System.Diagnostics;
-using System.Net.Mime;
-using Asp.Versioning;
-using Microsoft.AspNetCore.RateLimiting;
 using OpenShock.API.Services.Turnstile;
+using OpenShock.Common.Authentication;
 using OpenShock.Common.Errors;
 using OpenShock.Common.OpenShockDb;
 using OpenShock.Common.Options;
-using OpenShock.Common.Problems;
-using OpenShock.Common.Results;
-
 using OpenShock.Internal.Common.Problems;
 
 namespace OpenShock.API.Controller.Account;
@@ -49,15 +46,21 @@ public sealed partial class AccountController
         // Created with an automation token, the account is linked to it and the use audited in the same transaction.
         var creationAction = await _accountService.CreateAccountWithActivationFlowAsync(
             body.Email, body.Username, body.Password, cancellationToken);
-        if (creationAction is not User _)
+        return creationAction switch
         {
-            return creationAction switch
-            {
-                AccountWithEmailOrUsernameExists => Problem(SignupError.UsernameOrEmailExists),
-                _ => throw new UnreachableException()
-            };
-        }
+            User newUser => CompleteSignup(newUser),
+            AccountWithEmailOrUsernameExists => Problem(SignupError.UsernameOrEmailExists)
+        };
 
-        return Ok();
+        IActionResult CompleteSignup(User newUser)
+        {
+            // Lets this browser ask for the activation email again without typing the address.
+            if (newUser.ActivatedAt is null && GetCurrentCookieDomain() is { } cookieDomain)
+            {
+                ActivationResendCookie.Set(HttpContext, newUser.Id, cookieDomain);
+            }
+
+            return Ok();
+        }
     }
 }

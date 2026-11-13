@@ -1,11 +1,10 @@
 using System.Net;
 using Microsoft.Extensions.Logging.Abstractions;
-
 using OpenShock.Common.Utils;
 
 namespace OpenShock.Common.Tests.Utils;
 
-public class IpAddressUtilsTests
+public sealed class IpAddressUtilsTests
 {
     [Test]
     public async Task ParseStoredOrThrow_Null_ReturnsNull()

@@ -1,13 +1,13 @@
 ﻿using System.Net;
 using System.Net.Mime;
+using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using OpenShock.Common.Extensions;
+using OpenShock.Common.JsonSerialization;
 using OpenShock.Common.Models;
 using OpenShock.Common.Redis;
 using OpenShock.Common.Utils;
-using System.Text.Json.Serialization;
-using OpenShock.Common.JsonSerialization;
 
 namespace OpenShock.API.Controller.Admin;
 
@@ -20,7 +20,7 @@ public sealed partial class AdminController
     /// <response code="401">Unauthorized</response>
     [HttpGet("monitoring/onlineDevices")]
     [ProducesResponseType<LegacyDataResponse<AdminOnlineDeviceResponse[]>>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
-    public async Task<IActionResult> GetOnlineDevices()
+    public async Task<IActionResult> GetOnlineDevices(CancellationToken cancellationToken)
     {
         PedanticallyEnsureAdmin();
 
@@ -40,7 +40,7 @@ public sealed partial class AdminController
                     Name = x.Owner.Name
                 }
             })
-            .ToArrayAsync();
+            .ToArrayAsync(cancellationToken);
 
         return LegacyDataOk(
             allOnlineDevices
@@ -84,9 +84,9 @@ public sealed partial class AdminController
         public required DateTimeOffset BootedAt { get; init; }
         public required ushort? LatencyMs { get; init; }
         public required int? Rssi { get; init; }
-        public required string? Country { get; set; }
-        public required IPAddress? Ip { get; set; }
-        public required long? Asn { get; set; }
-        public required string? AsnOrg { get; set; }
+        public required string? Country { get; init; }
+        public required IPAddress? Ip { get; init; }
+        public required long? Asn { get; init; }
+        public required string? AsnOrg { get; init; }
     }
 }

@@ -1,7 +1,7 @@
 ﻿using Asp.Versioning;
 using Microsoft.AspNetCore.Mvc;
-using OpenShock.Common;
 using OpenShock.API.Services.Account;
+using OpenShock.Common;
 
 namespace OpenShock.API.Controller.Account;
 

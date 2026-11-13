@@ -1,11 +1,11 @@
-﻿using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Caching.Hybrid;
-using Npgsql;
-using OpenShock.Common.OpenShockDb;
-using System.Buffers;
+﻿using System.Buffers;
 using System.Globalization;
 using System.Text.Json;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Hybrid;
+using Npgsql;
 using OpenShock.Common.JsonSerialization;
+using OpenShock.Common.OpenShockDb;
 using OpenShock.Common.Results;
 
 namespace OpenShock.Common.Services.Configuration;
@@ -59,7 +59,7 @@ public sealed class ConfigurationService : IConfigurationService
         };
     }
 
-    public async Task<Union4<Success, AlreadyExists, InvalidNameFormat, InvalidValueFormat>> TryAddItemAsync(string name, string description, ConfigurationValueType type, string value)
+    public async Task<Union4<Success, AlreadyExists, InvalidNameFormat, InvalidValueFormat>> TryAddItemAsync(string name, string description, ConfigurationValueType type, string value, CancellationToken cancellationToken)
     {
         // Validate name (only uppercase letters and underscores)
         if (!IsValidName(name))
@@ -101,7 +101,7 @@ public sealed class ConfigurationService : IConfigurationService
         return new Success();
     }
 
-    public async Task<Union4<Success, NotFound, InvalidNameFormat, InvalidValueFormat>> TryUpdateItemAsync(string name, string? description, string? value)
+    public async Task<Union4<Success, NotFound, InvalidNameFormat, InvalidValueFormat>> TryUpdateItemAsync(string name, string? description, string? value, CancellationToken cancellationToken)
     {
         // Validate name
         if (!IsValidName(name))
@@ -112,7 +112,7 @@ public sealed class ConfigurationService : IConfigurationService
             return new Success();
 
         // Load existing item
-        var item = await _db.Configuration.FirstOrDefaultAsync(ci => ci.Name == name);
+        var item = await _db.Configuration.FirstOrDefaultAsync(ci => ci.Name == name, cancellationToken);
         if (item is null)
             return new NotFound();
 
@@ -147,10 +147,10 @@ public sealed class ConfigurationService : IConfigurationService
         return new Success();
     }
 
-    public async Task<Union3<Success, NotFound, InvalidNameFormat>> TryDeleteItemAsync(string name)
+    public async Task<Union3<Success, NotFound, InvalidNameFormat>> TryDeleteItemAsync(string name, CancellationToken cancellationToken)
     {
         // Find the item
-        var item = await _db.Configuration.FirstOrDefaultAsync(ci => ci.Name == name);
+        var item = await _db.Configuration.FirstOrDefaultAsync(ci => ci.Name == name, cancellationToken);
         if (item is null)
             return new NotFound();
 
@@ -165,23 +165,23 @@ public sealed class ConfigurationService : IConfigurationService
     }
 
     private sealed record TypeValuePair(ConfigurationValueType Type, string Value);
-    private async Task<TypeValuePair?> TryGetTypeValuePair(string name)
+    private async Task<TypeValuePair?> TryGetTypeValuePair(string name, CancellationToken cancellationToken)
     {
         name = name.ToUpperInvariant();
-        return await _cache.GetOrCreateAsync(name, async cancellationToken =>
+        return await _cache.GetOrCreateAsync(name, async ct =>
         {
             var pair = await GetAllItemsQuery()
                 .Where(ci => ci.Name == name)
                 .Select(ci => new TypeValuePair(ci.Type, ci.Value))
-                .FirstOrDefaultAsync(cancellationToken);
+                .FirstOrDefaultAsync(ct);
 
             return pair;
-        });
+        }, cancellationToken: cancellationToken);
     }
 
-    private async Task<bool> SetValueAsync(string name, string newValue, ConfigurationValueType type)
+    private async Task<bool> SetValueAsync(string name, string newValue, ConfigurationValueType type, CancellationToken cancellationToken)
     {
-        var item = await _db.Configuration.FirstOrDefaultAsync(c => c.Name == name);
+        var item = await _db.Configuration.FirstOrDefaultAsync(c => c.Name == name, cancellationToken);
 
         if (item is null)
         {
@@ -222,20 +222,20 @@ public sealed class ConfigurationService : IConfigurationService
         return true;
     }
 
-    public async Task<ConfigGetResult<string>> TryGetStringAsync(string name)
+    public async Task<ConfigGetResult<string>> TryGetStringAsync(string name, CancellationToken cancellationToken)
     {
-        var pair = await TryGetTypeValuePair(name);
+        var pair = await TryGetTypeValuePair(name, cancellationToken);
         if (pair is null) return ConfigGetResult<string>.NotFound();
         if (pair.Type != ConfigurationValueType.String) return ConfigGetResult<string>.InvalidValueType();
         return pair.Value;
     }
 
-    public Task<bool> TrySetStringAsync(string name, string value) =>
-        SetValueAsync(name, value, ConfigurationValueType.String);
+    public Task<bool> TrySetStringAsync(string name, string value, CancellationToken cancellationToken) =>
+        SetValueAsync(name, value, ConfigurationValueType.String, cancellationToken);
 
-    public async Task<ConfigGetResult<bool>> TryGetBoolAsync(string name)
+    public async Task<ConfigGetResult<bool>> TryGetBoolAsync(string name, CancellationToken cancellationToken)
     {
-        var pair = await TryGetTypeValuePair(name);
+        var pair = await TryGetTypeValuePair(name, cancellationToken);
         if (pair is null) return ConfigGetResult<bool>.NotFound();
         if (pair.Type != ConfigurationValueType.Bool) return ConfigGetResult<bool>.InvalidValueType();
         if (!bool.TryParse(pair.Value, out var value))
@@ -246,12 +246,12 @@ public sealed class ConfigurationService : IConfigurationService
         return value;
     }
 
-    public Task<bool> TrySetBoolAsync(string name, bool value) =>
-        SetValueAsync(name, value.ToString(), ConfigurationValueType.Bool);
+    public Task<bool> TrySetBoolAsync(string name, bool value, CancellationToken cancellationToken) =>
+        SetValueAsync(name, value.ToString(), ConfigurationValueType.Bool, cancellationToken);
 
-    public async Task<ConfigGetResult<int>> TryGetIntAsync(string name)
+    public async Task<ConfigGetResult<int>> TryGetIntAsync(string name, CancellationToken cancellationToken)
     {
-        var pair = await TryGetTypeValuePair(name);
+        var pair = await TryGetTypeValuePair(name, cancellationToken);
         if (pair is null) return ConfigGetResult<int>.NotFound();
         if (pair.Type != ConfigurationValueType.Int) return ConfigGetResult<int>.InvalidValueType();
         if (!int.TryParse(pair.Value, out var value))
@@ -262,15 +262,15 @@ public sealed class ConfigurationService : IConfigurationService
         return value;
     }
 
-    public Task<bool> TrySetIntAsync(string name, int value) =>
-        SetValueAsync(name, value.ToString(), ConfigurationValueType.Int);
+    public Task<bool> TrySetIntAsync(string name, int value, CancellationToken cancellationToken) =>
+        SetValueAsync(name, value.ToString(), ConfigurationValueType.Int, cancellationToken);
 
-    public async Task<ConfigGetResult<float>> TryGetFloatAsync(string name)
+    public async Task<ConfigGetResult<float>> TryGetFloatAsync(string name, CancellationToken cancellationToken)
     {
-        var pair = await TryGetTypeValuePair(name);
+        var pair = await TryGetTypeValuePair(name, cancellationToken);
         if (pair is null) return ConfigGetResult<float>.NotFound();
         if (pair.Type != ConfigurationValueType.Float) return ConfigGetResult<float>.InvalidValueType();
-        if (!float.TryParse(pair.Value, out var value))
+        if (!float.TryParse(pair.Value, CultureInfo.InvariantCulture, out var value))
         {
             _logger.LogWarning("Failed to parse float for '{Name}': Value='{Value}'", name, pair.Value);
             return ConfigGetResult<float>.InvalidValueFormat();
@@ -278,12 +278,12 @@ public sealed class ConfigurationService : IConfigurationService
         return value;
     }
 
-    public Task<bool> TrySetFloatAsync(string name, float value) =>
-        SetValueAsync(name, value.ToString("R"), ConfigurationValueType.Float);
+    public Task<bool> TrySetFloatAsync(string name, float value, CancellationToken cancellationToken) =>
+        SetValueAsync(name, value.ToString("R", CultureInfo.InvariantCulture), ConfigurationValueType.Float, cancellationToken);
 
-    public async Task<ConfigGetResult<T>> TryGetJsonAsync<T>(string name)
+    public async Task<ConfigGetResult<T>> TryGetJsonAsync<T>(string name, CancellationToken cancellationToken)
     {
-        var pair = await TryGetTypeValuePair(name);
+        var pair = await TryGetTypeValuePair(name, cancellationToken);
         if (pair is null) return ConfigGetResult<T>.NotFound();
         if (pair.Type != ConfigurationValueType.Json) return ConfigGetResult<T>.InvalidValueType();
 
@@ -299,12 +299,12 @@ public sealed class ConfigurationService : IConfigurationService
         }
     }
 
-    public async Task<bool> TrySetJsonAsync<T>(string name, T value)
+    public async Task<bool> TrySetJsonAsync<T>(string name, T value, CancellationToken cancellationToken)
     {
         try
         {
             var json = JsonSerializer.Serialize(value);
-            return await SetValueAsync(name, json, ConfigurationValueType.Json);
+            return await SetValueAsync(name, json, ConfigurationValueType.Json, cancellationToken);
         }
         catch (JsonException ex)
         {

@@ -4,8 +4,6 @@ using OpenShock.Common.Constants;
 using OpenShock.Common.OpenShockDb;
 using OpenShock.Common.Utils;
 
-using OpenShock.Internal.Common.Utils;
-
 namespace OpenShock.SeedE2E.Seeders;
 
 public static class UserActivationRequestSeeder
@@ -30,7 +28,7 @@ public static class UserActivationRequestSeeder
             .RuleFor(a => a.EmailSendAttempts, f => f.Random.Number(0, 3))
             .RuleFor(a => a.CreatedAt, f => f.Date.RecentOffset(20).UtcDateTime);
 
-        var requests = new List<UserActivationRequest>(allUserIds.Count);
+        List<UserActivationRequest> requests = [with(capacity: allUserIds.Count)];
         for (int i = 0; i < allUserIds.Count; i++)
         {
             var faked = activationFaker.Generate();

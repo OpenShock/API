@@ -1,16 +1,16 @@
-﻿using Microsoft.AspNetCore.Authentication;
+﻿using System.Security.Claims;
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 using OpenShock.API.Models.Requests;
 using OpenShock.API.Models.Response;
 using OpenShock.API.OAuth;
 using OpenShock.API.Services.OAuthConnection;
+using OpenShock.Common.Authentication;
 using OpenShock.Common.Errors;
 using OpenShock.Common.Extensions;
 using OpenShock.Common.OpenShockDb;
 using OpenShock.Common.Options;
-using OpenShock.Common.Results;
-using System.Security.Claims;
 
 namespace OpenShock.API.Controller.OAuth;
 
@@ -56,7 +56,8 @@ public sealed partial class OAuthController
             return error switch
             {
                 OAuthValidationError.FlowStateMissing => Problem(OAuthError.FlowNotFound),
-                _ => Problem(OAuthError.InternalError)
+                OAuthValidationError.FlowDataMissingOrInvalid => Problem(OAuthError.InternalError),
+                _ => throw new ArgumentOutOfRangeException(nameof(error), error, null)
             };
         }
         
@@ -99,7 +100,8 @@ public sealed partial class OAuthController
             provider,
             auth.ExternalAccountId,
             auth.ExternalAccountDisplayName ?? auth.ExternalAccountName,
-            isEmailTrusted
+            isEmailTrusted,
+            cancellationToken
         );
 
         if (created is not User newUser)
@@ -113,6 +115,11 @@ public sealed partial class OAuthController
         if (newUser.ActivatedAt is not null)
         {
             await CreateSession(newUser.Id, domain);
+        }
+        else
+        {
+            // Lets this browser ask for the activation email again without typing the address.
+            ActivationResendCookie.Set(HttpContext, newUser.Id, domain);
         }
 
         // Clear the temporary OAuth flow cookie.

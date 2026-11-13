@@ -1,43 +1,43 @@
-﻿using System.Net;
+﻿using System.Globalization;
+using System.Net;
 using System.Reflection;
 using System.Security.Claims;
+using System.Threading.RateLimiting;
 using Asp.Versioning;
 using Asp.Versioning.OpenApi.Transformers;
 using Microsoft.AspNetCore.Authentication;
-using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Hybrid;
 using Microsoft.Extensions.DependencyInjection.Extensions;
-using Microsoft.Extensions.Hosting;
 using Microsoft.OpenApi;
 using OpenShock.Common.Authentication;
 using OpenShock.Common.Authentication.AuthenticationHandlers;
 using OpenShock.Common.Constants;
+using OpenShock.Common.Extensions;
 using OpenShock.Common.HealthChecks;
 using OpenShock.Common.JsonSerialization;
+using OpenShock.Common.Metrics;
 using OpenShock.Common.OpenApi;
 using OpenShock.Common.OpenShockDb;
 using OpenShock.Common.Options;
 using OpenShock.Common.Problems;
 using OpenShock.Common.Services.Audit;
-using OpenShock.Common.Services.BatchUpdate;
 using OpenShock.Common.Services.AutomationTokens;
+using OpenShock.Common.Services.BatchUpdate;
 using OpenShock.Common.Services.Configuration;
-using OpenShock.Common.Services.RedisPubSub;
 using OpenShock.Common.Services.Geo;
+using OpenShock.Common.Services.RedisPubSub;
 using OpenShock.Common.Services.Session;
 using OpenShock.Common.Services.Webhook;
-using OpenShock.Common.Metrics;
+using OpenShock.Common.Utils;
+using OpenShock.Internal.Common.ExceptionHandling;
 using OpenTelemetry.Metrics;
 using Redis.OM;
 using Redis.OM.Contracts;
 using StackExchange.Redis;
-using System.Threading.RateLimiting;
-using OpenShock.Common.Extensions;
-using OpenShock.Common.Utils;
-using OpenShock.Internal.Common.ExceptionHandling;
 using JsonOptions = OpenShock.Common.JsonSerialization.JsonOptions;
 
 namespace OpenShock.Common;
@@ -402,7 +402,7 @@ public static class OpenShockServiceHelper
                 if (!context.Lease.TryGetMetadata(MetadataName.RetryAfter, out var retryAfter))
                     retryAfter = TimeSpan.FromMinutes(1);
 
-                var retryAfterSeconds = Math.Ceiling(retryAfter.TotalSeconds).ToString("R");
+                var retryAfterSeconds = Math.Ceiling(retryAfter.TotalSeconds).ToString("R", CultureInfo.InvariantCulture);
 
                 context.HttpContext.Response.Headers.RetryAfter = retryAfterSeconds;
 

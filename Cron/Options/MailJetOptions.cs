@@ -1,6 +1,6 @@
-﻿using Microsoft.Extensions.Options;
+﻿using System.ComponentModel.DataAnnotations;
+using Microsoft.Extensions.Options;
 using OpenShock.Common.Options;
-using System.ComponentModel.DataAnnotations;
 
 namespace OpenShock.Cron.Options;
 
@@ -16,6 +16,6 @@ public sealed class MailJetOptions
 }
 
 [OptionsValidator]
-public partial class MailJetOptionsValidator : IValidateOptions<MailJetOptions>
+public sealed partial class MailJetOptionsValidator : IValidateOptions<MailJetOptions>
 {
 }

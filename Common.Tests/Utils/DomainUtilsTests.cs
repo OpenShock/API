@@ -2,7 +2,7 @@
 
 namespace OpenShock.Common.Tests.Utils;
 
-public class DomainUtilsTests
+public sealed class DomainUtilsTests
 {
     [Test]
     public async Task NullString_ReturnsFalse()

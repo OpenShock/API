@@ -1,4 +1,4 @@
-import { render } from '@react-email/render';
+import { render } from 'react-email';
 import { readdir, writeFile } from 'node:fs/promises';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
@@ -8,7 +8,7 @@ import { build_placeholders } from '../emails/_lib/placeholders.ts';
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const root = resolve(__dirname, '..');
 const emails_dir = join(root, 'emails');
-const out_dir = resolve(root, '..', 'API', 'SmtpTemplates');
+const out_dir = resolve(root, '..', 'Cron', 'SmtpTemplates');
 
 import type { ComponentType } from 'react';
 

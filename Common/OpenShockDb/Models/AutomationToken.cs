@@ -2,7 +2,7 @@ namespace OpenShock.Common.OpenShockDb;
 
 public sealed class AutomationToken
 {
-    public required Guid Id { get; set; }
+    public Guid Id { get; init; }
 
     public required string Name { get; set; }
 
@@ -10,7 +10,7 @@ public sealed class AutomationToken
 
     public required List<AutomationTokenType> Types { get; set; }
 
-    public DateTime CreatedAt { get; set; }
+    public DateTime CreatedAt { get; init; }
 
     public DateTime? LastUsedAt { get; set; }
 

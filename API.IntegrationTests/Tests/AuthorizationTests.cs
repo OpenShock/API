@@ -134,7 +134,7 @@ public sealed class AuthorizationTests
             permissions = new[] { "shockers.use" }
         }));
         var createJson = await createResponse.Content.ReadAsStringAsync();
-        using var createDoc = System.Text.Json.JsonDocument.Parse(createJson);
+        using var createDoc = JsonDocument.Parse(createJson);
         var tokenId = createDoc.RootElement.GetProperty("id").GetString();
 
         // User2 tries to access it

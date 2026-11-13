@@ -1,21 +1,16 @@
 ﻿using System.Drawing;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using OpenShock.API.Models.Requests;
-using OpenShock.Common.Problems;
-using OpenShock.Common.Utils;
 using System.Net;
 using System.Net.Mime;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
+using Microsoft.EntityFrameworkCore;
 using OpenShock.API.Errors;
+using OpenShock.API.Models.Requests;
 using OpenShock.API.Services.Turnstile;
 using OpenShock.Common.OpenShockDb;
-using OpenShock.Common.Results;
 using OpenShock.Common.Services.AutomationTokens;
 using OpenShock.Common.Services.Webhook;
-
-using OpenShock.Internal.Common.Utils;
-
+using OpenShock.Common.Utils;
 using OpenShock.Internal.Common.Problems;
 
 namespace OpenShock.API.Controller.Tokens;
@@ -57,8 +52,8 @@ public sealed partial class TokensController
         if (!await automationTokens.TryRecordUseAsync(CurrentUser.Id, AutomationTokenFlow.ReportTokens, cancellationToken))
             return Problem(AutomationTokenError.NotAllowedForAccount);
 
-        var reportId = Guid.CreateVersion7();
-
+        // Nothing below may be cancelled by the client disconnecting: once tokens start being deleted the
+        // report row and the admin webhook must follow, or a deletion goes unrecorded.
         int nAffected = 0;
         try
         {
@@ -70,7 +65,7 @@ public sealed partial class TokensController
             
             nAffected = await _db.ApiTokens
                 .Where(x => hashes.Contains(x.TokenHash))
-                .ExecuteDeleteAsync(cancellationToken);
+                .ExecuteDeleteAsync();
         }
         catch (Exception e)
         {
@@ -79,16 +74,16 @@ public sealed partial class TokensController
 
         var ipCountry = HttpContext.GetCFIPCountry();
         
-        _db.ApiTokenReports.Add(new Common.OpenShockDb.ApiTokenReport {
-            Id = reportId,
+        var report = new ApiTokenReport {
             SubmittedCount = body.Secrets.Length,
             AffectedCount = nAffected,
             UserId = CurrentUser.Id,
             IpAddress = remoteIP,
             IpCountry = ipCountry,
             ReportedByUser = CurrentUser
-        });
-        await _db.SaveChangesAsync(cancellationToken);
+        };
+        _db.ApiTokenReports.Add(report);
+        await _db.SaveChangesAsync();
 
         await webhookService.SendWebhookAsync(
             "TokensReported",
@@ -100,7 +95,7 @@ public sealed partial class TokensController
                • 🧹 **Deleted Tokens**: {nAffected}
                • 🌍 **IP Address**: {remoteIP}
                • 📍 **Country**: {ipCountry}
-               • 🆔 **Report ID**: `{reportId}`
+               • 🆔 **Report ID**: `{report.Id}`
                
                Please investigate further if necessary.
                """,

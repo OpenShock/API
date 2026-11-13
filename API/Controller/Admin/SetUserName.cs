@@ -4,11 +4,9 @@ using Microsoft.AspNetCore.Mvc;
 using OpenShock.API.Services.Account;
 using OpenShock.Common.DataAnnotations;
 using OpenShock.Common.Errors;
-using OpenShock.Common.Problems;
 using OpenShock.Common.Validation;
-using Results = OpenShock.Common.Results;
-
 using OpenShock.Internal.Common.Problems;
+using Results = OpenShock.Common.Results;
 
 namespace OpenShock.API.Controller.Admin;
 
@@ -39,8 +37,7 @@ public sealed partial class AdminController
             UsernameError usernameError => Problem(AccountError.UsernameInvalid(usernameError)),
             RecentlyChanged => throw new UnreachableException("Failed to bypass username change ratelimit!"),
             AccountDeactivated => Problem(AdminError.UserDeactivated),
-            Results.NotFound => NotFound(),
-            _ => throw new UnreachableException()
+            Results.NotFound => NotFound()
         };
     }
 

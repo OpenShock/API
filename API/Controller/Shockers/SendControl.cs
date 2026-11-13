@@ -1,4 +1,3 @@
- ﻿using System.Diagnostics;
 using System.Net.Mime;
 using Asp.Versioning;
 using Microsoft.AspNetCore.Mvc;
@@ -8,11 +7,10 @@ using OpenShock.Common.Errors;
 using OpenShock.Common.Extensions;
 using OpenShock.Common.Hubs;
 using OpenShock.Common.Models;
+using OpenShock.Common.Models.WebSocket.User;
 using OpenShock.Common.OpenShockDb;
-using OpenShock.Common.Problems;
 using OpenShock.Common.Results;
 using OpenShock.Common.Services;
-
 using OpenShock.Internal.Common.Problems;
 
 namespace OpenShock.API.Controller.Shockers;
@@ -34,7 +32,8 @@ public sealed partial class ShockerController
     public async Task<IActionResult> SendControl(
         [FromBody] ControlRequest body,
         [FromServices] IHubContext<UserHub, IUserHub> userHub,
-        [FromServices] IControlSender controlSender)
+        [FromServices] IControlSender controlSender,
+        CancellationToken cancellationToken)
     {
         var sender = new ControlLogSender
         {
@@ -55,14 +54,13 @@ public sealed partial class ShockerController
             tokenLimits = ApiTokenControlLimits.FromToken(apiToken);
         }
 
-        var controlAction = await controlSender.ControlByUser(body.Shocks, sender, userHub.Clients, tokenLimits);
+        var controlAction = await controlSender.ControlByUser(body.Shocks, sender, userHub.Clients, tokenLimits, cancellationToken);
         return controlAction switch
         {
             Success => LegacyEmptyOk("Successfully sent control messages"),
             NotFound<Guid> notFound => Problem(ShockerControlError.ShockerControlNotFound(notFound.Value)),
             ShockerPaused paused => Problem(ShockerControlError.ShockerControlPaused(paused.Value)),
-            ShockerNoPermission noPermission => Problem(ShockerControlError.ShockerControlNoPermission(noPermission.Value)),
-            _ => throw new UnreachableException()
+            ShockerNoPermission noPermission => Problem(ShockerControlError.ShockerControlNoPermission(noPermission.Value))
         };
     }
 
@@ -79,14 +77,15 @@ public sealed partial class ShockerController
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status412PreconditionFailed, MediaTypeNames.Application.ProblemJson)] // Shocker is paused
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status403Forbidden, MediaTypeNames.Application.ProblemJson)] // You don't have permission to control this shocker
     public Task<IActionResult> SendControl_DEPRECATED(
-        [FromBody] IReadOnlyList<Common.Models.WebSocket.User.Control> body,
+        [FromBody] IReadOnlyList<Control> body,
         [FromServices] IHubContext<UserHub, IUserHub> userHub,
-        [FromServices] IControlSender controlSender)
+        [FromServices] IControlSender controlSender,
+        CancellationToken cancellationToken)
     {
         return SendControl(new ControlRequest
         {
             Shocks = body,
             CustomName = null
-        }, userHub, controlSender);
+        }, userHub, controlSender, cancellationToken);
     }
 }

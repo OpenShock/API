@@ -3,7 +3,7 @@ using OpenShock.Common.Models;
 
 namespace OpenShock.Common.Tests.Models;
 
-public class SemVersionTests
+public sealed class SemVersionTests
 {
     // ---------------------------
     // Parse / TryParse - happy path

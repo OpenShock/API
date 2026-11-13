@@ -31,13 +31,13 @@ jobs:
 
     # Initializes the CodeQL tools for scanning.
     - name: Initialize CodeQL
-      uses: github/codeql-action/init@e58424170fb0262c8d7ed60a2e84b9bffe205c67 # codeql-bundle-v2.26.1
+      uses: github/codeql-action/init@52cf1852265d99e9bea071b03366fc777a602909 # codeql-bundle-v2.27.4
       with:
         languages: csharp
         build-mode: manual
     
     - name: Setup .NET SDK ${{ env.DOTNET_VERSION }}
-      uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+      uses: actions/setup-dotnet@0f4a354dd5547a28c70b7853dbd95d5b67886e73 # v6.1.0
       with:
         dotnet-version: ${{ env.DOTNET_VERSION }}
 
@@ -50,6 +50,6 @@ jobs:
         dotnet publish Cron/Cron.csproj -c Release
 
     - name: Perform CodeQL Analysis
-      uses: github/codeql-action/analyze@e58424170fb0262c8d7ed60a2e84b9bffe205c67 # codeql-bundle-v2.26.1
+      uses: github/codeql-action/analyze@52cf1852265d99e9bea071b03366fc777a602909 # codeql-bundle-v2.27.4
       with:
         category: "/language:csharp"

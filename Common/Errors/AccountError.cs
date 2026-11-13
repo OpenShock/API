@@ -1,7 +1,5 @@
 ﻿using System.Net;
-using OpenShock.Common.Problems;
 using OpenShock.Common.Validation;
-
 using OpenShock.Internal.Common.Problems;
 
 namespace OpenShock.Common.Errors;
@@ -28,6 +26,8 @@ public static class AccountError
         "Account.Username.RecentlyChanged", "You have recently changed your username. You can only change your username every 7 days", HttpStatusCode.Forbidden);
 
     public static OpenShockProblem AccountNotActivated => new OpenShockProblem("Account.AccountNotActivated", "Your account has not been activated", HttpStatusCode.Unauthorized);
+    public static OpenShockProblem AccountActivationResendUnavailable => new OpenShockProblem("Account.Activation.ResendUnavailable", "No activation email can be resent from this browser", HttpStatusCode.BadRequest);
+    public static OpenShockProblem AccountActivationResendTooMany => new OpenShockProblem("Account.Activation.ResendTooMany", "Too many activation emails have been requested. Please try again later", HttpStatusCode.TooManyRequests);
     public static OpenShockProblem AccountActivationNotFound => new OpenShockProblem("Account.Activation.NotFound", "There is no account activation request matching the supplied token", HttpStatusCode.BadRequest);
     public static OpenShockProblem AccountDeactivated => new OpenShockProblem("Account.Deactivated", "Your account has been deactivated", HttpStatusCode.Unauthorized);
 

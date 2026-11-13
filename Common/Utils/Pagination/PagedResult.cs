@@ -9,22 +9,22 @@ public sealed class PagedResult<T>
     /// <summary>
     /// Items on the current page.
     /// </summary>
-    public required IReadOnlyList<T> Items { get; set; }
+    public required IReadOnlyList<T> Items { get; init; }
 
     /// <summary>
     /// 1-based current page index.
     /// </summary>
-    public required uint Page { get; set; }
+    public required uint Page { get; init; }
 
     /// <summary>
     /// Page size used to produce this result.
     /// </summary>
-    public required uint PageSize { get; set; }
+    public required uint PageSize { get; init; }
 
     /// <summary>
     /// Total number of items across all pages matching the query.
     /// </summary>
-    public required int TotalCount { get; set; }
+    public required int TotalCount { get; init; }
 
     /// <summary>
     /// Total number of pages. Always at least 1, even when <see cref="TotalCount"/> is zero.

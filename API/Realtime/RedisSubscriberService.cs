@@ -7,11 +7,9 @@ using OpenShock.Common.OpenShockDb;
 using OpenShock.Common.Redis;
 using OpenShock.Common.Redis.PubSub;
 using OpenShock.Common.Services.RedisPubSub;
-using OpenShock.Common.Utils;
+using OpenShock.Internal.Common.Utils;
 using Redis.OM.Contracts;
 using StackExchange.Redis;
-
-using OpenShock.Internal.Common.Utils;
 
 namespace OpenShock.API.Realtime;
 
@@ -118,16 +116,11 @@ public sealed class RedisSubscriberService : IHostedService, IAsyncDisposable
 
     private async Task HandleDeviceStatusMessage(DeviceStatus message)
     {
-        switch (message.Payload)
+        // DeviceStatusPayload is closed, so a payload type added without a case here is a compile warning
+        await (message.Payload switch
         {
-            case DeviceBoolStatePayload boolState:
-                await HandleDeviceBoolState(message.DeviceId, boolState);
-                break;
-            default:
-                _logger.LogError("Got DeviceStatus with unknown payload type: {PayloadType}", message.Payload.GetType().Name);
-                break;
-        }
-
+            DeviceBoolStatePayload boolState => HandleDeviceBoolState(message.DeviceId, boolState),
+        });
     }
 
     private async Task HandleDeviceBoolState(Guid deviceId, DeviceBoolStatePayload state)

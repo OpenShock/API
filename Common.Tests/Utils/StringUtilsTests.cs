@@ -2,7 +2,7 @@ using OpenShock.Common.Utils;
 
 namespace OpenShock.Common.Tests.Utils;
 
-public class StringUtilsTests
+public sealed class StringUtilsTests
 {
     [Test]
     public async Task Truncate_ShorterThanMax_ReturnsOriginal()

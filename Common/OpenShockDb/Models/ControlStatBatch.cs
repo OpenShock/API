@@ -7,7 +7,7 @@ namespace OpenShock.Common.OpenShockDb;
 /// </summary>
 public sealed class ControlStatBatch
 {
-    public required Guid Id { get; set; }
+    public required Guid Id { get; init; }
 
-    public required DateTime AppliedAt { get; set; }
+    public required DateTime AppliedAt { get; init; }
 }

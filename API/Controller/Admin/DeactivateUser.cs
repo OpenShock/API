@@ -1,7 +1,5 @@
 ﻿using System.ComponentModel.DataAnnotations;
-using System.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
-using OpenShock.API.Services.Account;
 using OpenShock.Common.Constants;
 using OpenShock.Common.Errors;
 using AccountSvc = OpenShock.API.Services.Account;
@@ -22,19 +20,19 @@ public sealed partial class AdminController
         [FromRoute] Guid userId,
         [FromQuery(Name = "deleteLater")] bool deleteLater,
         [FromQuery][MaxLength(ApiHardLimits.AuditReasonMaxLength)] string? reason,
-        [FromServices] IAccountService accountService)
+        [FromServices] AccountSvc.IAccountService accountService,
+        CancellationToken cancellationToken)
     {
         PedanticallyEnsureAdmin();
 
-        var deactivationResult = await accountService.DeactivateAccountAsync(CurrentUser.Id, userId, deleteLater, reason);
+        var deactivationResult = await accountService.DeactivateAccountAsync(CurrentUser.Id, userId, deleteLater, reason, cancellationToken);
         return deactivationResult switch
         {
             Results.Success => Ok("Account deactivated"),
-            CannotDeactivatePrivilegedAccount => Problem(AccountActivationError.CannotDeactivateOrDeletePrivledgedAccount),
-            AccountDeactivationAlreadyInProgress => Problem(AccountActivationError.AlreadyDeactivated),
+            AccountSvc.CannotDeactivatePrivilegedAccount => Problem(AccountActivationError.CannotDeactivateOrDeletePrivledgedAccount),
+            AccountSvc.AccountDeactivationAlreadyInProgress => Problem(AccountActivationError.AlreadyDeactivated),
             AccountSvc.Unauthorized => Problem(AccountActivationError.Unauthorized),
-            Results.NotFound => NotFound("User not found"),
-            _ => throw new UnreachableException()
+            Results.NotFound => NotFound("User not found")
         };
     }
 }

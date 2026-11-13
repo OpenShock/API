@@ -1,6 +1,7 @@
 ﻿using System.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
 using OpenShock.API.Services.Account;
+using OpenShock.Common.DataAnnotations;
 using OpenShock.Common.Errors;
 using Results = OpenShock.Common.Results;
 
@@ -28,14 +29,13 @@ public sealed partial class AdminController
             Results.Success => Ok(),
             EmailTaken => Problem(AdminError.EmailTaken),
             EmailInvalid => Problem(AdminError.EmailInvalid),
-            Results.NotFound => NotFound(),
-            _ => throw new UnreachableException()
+            Results.NotFound => NotFound()
         };
     }
 
     public sealed class SetUserEmailRequestBody
     {
-        [OpenShock.Common.DataAnnotations.EmailAddress(true)]
+        [EmailAddress(true)]
         public required string Email { get; init; }
     }
 }

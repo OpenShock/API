@@ -6,10 +6,8 @@ using OpenShock.API.Models.Requests;
 using OpenShock.Common.Authentication.Attributes;
 using OpenShock.Common.Errors;
 using OpenShock.Common.OpenShockDb;
-using OpenShock.Common.Problems;
-using Z.EntityFramework.Plus;
-
 using OpenShock.Internal.Common.Problems;
+using Z.EntityFramework.Plus;
 
 namespace OpenShock.API.Controller.Shares.UserShares;
 
@@ -22,7 +20,7 @@ public sealed partial class UserSharesController
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status404NotFound, MediaTypeNames.Application.ProblemJson)] // UserNotFound, ShareCreateShockerNotFound
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status400BadRequest, MediaTypeNames.Application.ProblemJson)] // ShareCreateCannotShareWithSelf
     [MapToApiVersion("2")]
-    public async Task<IActionResult> CreateShareInvite([FromBody] CreateShareRequest body)
+    public async Task<IActionResult> CreateShareInvite([FromBody] CreateShareRequest body, CancellationToken cancellationToken)
     {
         if (body.User == CurrentUser.Id)
         {
@@ -38,10 +36,10 @@ public sealed partial class UserSharesController
             var existsFuture = _db.Users.AsNoTracking().DeferredAny(x => x.Id == body.User).FutureValue();
             
             // We can already resolve the futures here since this is the last future query
-            if (!await existsFuture.ValueAsync()) return Problem(UserError.UserNotFound);
+            if (!await existsFuture.ValueAsync(cancellationToken)) return Problem(UserError.UserNotFound);
         }
 
-        var belongsToUs = await belongsToUsFuture.ToArrayAsync();
+        var belongsToUs = await belongsToUsFuture.ToArrayAsync(cancellationToken);
 
         var missingShockers = providedShockerIds.Except(belongsToUs).ToArray();
         
@@ -54,7 +52,6 @@ public sealed partial class UserSharesController
 
         var shareInvite = new UserShareInvite
         {
-            Id = Guid.CreateVersion7(),
             OwnerId = CurrentUser.Id,
             RecipientUserId = body.User
         };

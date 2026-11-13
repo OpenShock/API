@@ -20,13 +20,14 @@ public sealed partial class UserSharesController
     public async Task<IActionResult> BulkPauseUserShareShockers(
         [FromRoute] Guid userId,
         [FromBody] PauseUserShareShockersRequest pauseRequest,
-        [FromServices] IDeviceUpdateService deviceUpdateService)
+        [FromServices] IDeviceUpdateService deviceUpdateService,
+        CancellationToken cancellationToken)
     {
         var affected = await _db.UserShares
             .Include(x => x.Shocker)
             .Where(x => pauseRequest.Shockers.Contains(x.ShockerId) && x.SharedWithUserId == userId &&
                         x.Shocker.Device.OwnerId == CurrentUser.Id)
-            .ToArrayAsync();
+            .ToArrayAsync(cancellationToken);
 
         // Check if we have all shockers to delete
         var missingShockers = pauseRequest.Shockers.Except(affected.Select(x => x.ShockerId)).ToArray();
@@ -41,14 +42,14 @@ public sealed partial class UserSharesController
             _db.UserShares.Update(userShare);
         }
 
-        var deletedRecords = await _db.SaveChangesAsync();
+        var deletedRecords = await _db.SaveChangesAsync(cancellationToken);
 
         var uniqueHubIds = affected.Select(x => x.Shocker.DeviceId).Distinct();
         var updateTasks = uniqueHubIds.Select(device =>
             deviceUpdateService.UpdateDevice(CurrentUser.Id, device, DeviceUpdateType.ShockerUpdated, userId));
         await Task.WhenAll(updateTasks);
 
-        return Ok(new PauseUserShareShockersResponse()
+        return Ok(new PauseUserShareShockersResponse
         {
             AffectedRecords = deletedRecords,
             PauseStates = affected.ToDictionary(x => x.ShockerId, x => UserShareUtils.GetPausedReason(x.IsPaused, x.Shocker.IsPaused))
@@ -58,13 +59,13 @@ public sealed partial class UserSharesController
 
 public sealed class PauseUserShareShockersRequest
 {
-    [Required, MinLength(1)] public required Guid[] Shockers { get; set; }
+    [Required, MinLength(1)] public required Guid[] Shockers { get; init; }
 
-    [Required] public required bool Pause { get; set; }
+    [Required] public required bool Pause { get; init; }
 }
 
 public sealed class PauseUserShareShockersResponse
 {
-    public required int AffectedRecords { get; set; }
-    public required IReadOnlyDictionary<Guid, PauseReason> PauseStates { get; set; }
+    public required int AffectedRecords { get; init; }
+    public required IReadOnlyDictionary<Guid, PauseReason> PauseStates { get; init; }
 }

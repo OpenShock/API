@@ -17,7 +17,7 @@ namespace OpenShock.Common.Models;
 [JsonDerivedType(typeof(AutomationTokenRotatedMetadata), "automationTokenRotated")]
 [JsonDerivedType(typeof(AutomationTokenDeletedMetadata), "automationTokenDeleted")]
 [JsonDerivedType(typeof(AutomationTokenUsedMetadata), "automationTokenUsed")]
-public abstract record AuditMetadata;
+public closed record AuditMetadata;
 
 public sealed record LoginMetadata(Guid SessionId) : AuditMetadata;
 

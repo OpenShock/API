@@ -5,6 +5,7 @@ using OpenShock.Common.Authentication;
 using OpenShock.Common.Extensions;
 using OpenShock.Common.Models;
 using OpenShock.Common.Models.WebSocket;
+using OpenShock.Common.Models.WebSocket.User;
 using OpenShock.Common.OpenShockDb;
 using OpenShock.Common.Redis;
 using OpenShock.Common.Services;
@@ -47,7 +48,7 @@ public sealed class UserHub : Hub<IUserHub>
         var devicesOnline = _provider.RedisCollection<DeviceOnline>(false);
         var sharedDevices = await _db.Devices
             .Where(x => x.Shockers.Any(y => y.UserShares.Any(z => z.SharedWithUserId == UserId)))
-            .Select(x => x.Id.ToString()).ToArrayAsync();
+            .Select(x => x.Id.ToString()).ToArrayAsync(Context.ConnectionAborted);
 
         var own = devicesOnline.Where(x => x.Owner == UserId).ToListAsync();
         var shared = devicesOnline.FindByIdsAsync(sharedDevices);
@@ -71,12 +72,12 @@ public sealed class UserHub : Hub<IUserHub>
         await Clients.Caller.DeviceStatus(final);
     }
 
-    public Task Control(IReadOnlyList<Models.WebSocket.User.Control> shocks)
+    public Task Control(IReadOnlyList<Control> shocks)
     {
         return ControlV2(shocks, null);
     }
 
-    public async Task ControlV2(IReadOnlyList<Models.WebSocket.User.Control> shocks, string? customName)
+    public async Task ControlV2(IReadOnlyList<Control> shocks, string? customName)
     {
         if (!TokenPermissions.IsAllowedAllowOrNull(PermissionType.Shockers_Use)) return;
 
@@ -92,7 +93,7 @@ public sealed class UserHub : Hub<IUserHub>
             ConnectionId = Context.ConnectionId,
             AdditionalItems = additionalItems,
             CustomName = customName
-        }).FirstAsync();
+        }).FirstAsync(Context.ConnectionAborted);
 
         ApiTokenControlLimits? tokenLimits = null;
         if (Context.GetHttpContext()?.GetItemByType<ApiToken>() is { } apiToken)
@@ -103,7 +104,7 @@ public sealed class UserHub : Hub<IUserHub>
             tokenLimits = ApiTokenControlLimits.FromToken(apiToken);
         }
 
-        await _controlSender.ControlByUser(shocks, sender, Clients, tokenLimits);
+        await _controlSender.ControlByUser(shocks, sender, Clients, tokenLimits, Context.ConnectionAborted);
     }
 
     public async Task CaptivePortal(Guid deviceId, bool enabled)
@@ -112,7 +113,7 @@ public sealed class UserHub : Hub<IUserHub>
         if (TokenPermissions is not null) return;
 
         var devices = await _db.Devices.Where(x => x.OwnerId == UserId)
-            .AnyAsync(x => x.Id == deviceId);
+            .AnyAsync(x => x.Id == deviceId, Context.ConnectionAborted);
         if (!devices) return;
 
         await _redisPubService.SendDeviceCaptivePortal(deviceId, enabled);
@@ -124,7 +125,7 @@ public sealed class UserHub : Hub<IUserHub>
         if (TokenPermissions is not null) return;
 
         var devices = await _db.Devices.Where(x => x.OwnerId == UserId)
-            .AnyAsync(x => x.Id == deviceId);
+            .AnyAsync(x => x.Id == deviceId, Context.ConnectionAborted);
         if (!devices) return;
 
         await _redisPubService.SendDeviceEmergencyStop(deviceId);
@@ -136,7 +137,7 @@ public sealed class UserHub : Hub<IUserHub>
         if (TokenPermissions is not null) return;
 
         var devices = await _db.Devices.Where(x => x.OwnerId == UserId)
-            .AnyAsync(x => x.Id == deviceId);
+            .AnyAsync(x => x.Id == deviceId, Context.ConnectionAborted);
         if (!devices) return;
 
         await _redisPubService.SendDeviceOtaInstall(deviceId, version);
@@ -148,7 +149,7 @@ public sealed class UserHub : Hub<IUserHub>
         if (TokenPermissions is not null) return;
 
         var devices = await _db.Devices.Where(x => x.OwnerId == UserId)
-            .AnyAsync(x => x.Id == deviceId);
+            .AnyAsync(x => x.Id == deviceId, Context.ConnectionAborted);
         if (!devices) return;
 
         await _redisPubService.SendDeviceReboot(deviceId);

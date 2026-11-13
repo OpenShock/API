@@ -3,7 +3,7 @@ using OpenShock.Common.Services.ControlStats;
 
 namespace OpenShock.Common.Tests.Services;
 
-public class ControlStatsAccumulatorTests
+public sealed class ControlStatsAccumulatorTests
 {
     private static readonly Guid Owner = Guid.CreateVersion7();
     private static readonly Guid Shocker = Guid.CreateVersion7();

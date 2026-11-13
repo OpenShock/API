@@ -1,17 +1,15 @@
-﻿using Asp.Versioning;
+﻿using System.Net.Mime;
+using Asp.Versioning;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using OpenShock.API.Models.Requests;
 using OpenShock.API.Models.Response;
-using OpenShock.Common.Extensions;
-using OpenShock.Common.Models;
-using OpenShock.Common.OpenShockDb;
-using System.Net.Mime;
 using OpenShock.API.Services.DeviceUpdate;
 using OpenShock.Common.Authentication.Attributes;
 using OpenShock.Common.Errors;
-using OpenShock.Common.Problems;
-
+using OpenShock.Common.Extensions;
+using OpenShock.Common.Models;
+using OpenShock.Common.OpenShockDb;
 using OpenShock.Internal.Common.Problems;
 
 namespace OpenShock.API.Controller.Shockers;
@@ -22,15 +20,16 @@ public sealed partial class ShockerController
     /// Get all user shares for a shocker
     /// </summary>
     /// <param name="shockerId">Id of the shocker</param>
+    /// <param name="cancellationToken"></param>
     /// <response code="200">OK</response>
     /// <response code="404">The shocker does not exist or you do not have access to it.</response>
     [HttpGet("{shockerId}/shares")]
     [ProducesResponseType<LegacyDataResponse<ShareInfo[]>>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status404NotFound, MediaTypeNames.Application.ProblemJson)] // ShockerNotFound    
     [MapToApiVersion("1")]
-    public async Task<IActionResult> GetUserShares([FromRoute] Guid shockerId)
+    public async Task<IActionResult> GetUserShares([FromRoute] Guid shockerId, CancellationToken cancellationToken)
     {
-        var owns = await _db.Shockers.AnyAsync(x => x.Device.OwnerId == CurrentUser.Id && x.Id == shockerId);
+        var owns = await _db.Shockers.AnyAsync(x => x.Device.OwnerId == CurrentUser.Id && x.Id == shockerId, cancellationToken);
         if (!owns) return Problem(ShockerError.ShockerNotFound);
 
         var shares = _db.UserShares
@@ -69,14 +68,15 @@ public sealed partial class ShockerController
     /// List all share codes for a shocker
     /// </summary>
     /// <param name="shockerId"></param>
+    /// <param name="cancellationToken"></param>
     /// <response code="200">OK</response>
     [HttpGet("{shockerId}/shareCodes")]
     [ProducesResponseType<LegacyDataResponse<ShareCodeInfo[]>>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status404NotFound, MediaTypeNames.Application.ProblemJson)] // ShockerNotFound    
     [MapToApiVersion("1")]
-    public async Task<IActionResult> ShockerShareCodeList([FromRoute] Guid shockerId)
+    public async Task<IActionResult> ShockerShareCodeList([FromRoute] Guid shockerId, CancellationToken cancellationToken)
     {
-        var owns = await _db.Shockers.AnyAsync(x => x.Device.OwnerId == CurrentUser.Id && x.Id == shockerId);
+        var owns = await _db.Shockers.AnyAsync(x => x.Device.OwnerId == CurrentUser.Id && x.Id == shockerId, cancellationToken);
         if (!owns) return Problem(ShockerError.ShockerNotFound);
 
         var shares = _db.ShockerShareCodes
@@ -93,8 +93,8 @@ public sealed partial class ShockerController
 
     public sealed class ShareCodeInfo
     {
-        public required Guid Id { get; set; }
-        public required DateTime CreatedOn { get; set; }
+        public required Guid Id { get; init; }
+        public required DateTime CreatedOn { get; init; }
     }
 
     /// <summary>
@@ -103,6 +103,7 @@ public sealed partial class ShockerController
     /// <param name="shockerId"></param>
     /// <param name="body"></param>
     /// <param name="deviceUpdateService"></param>
+    /// <param name="cancellationToken"></param>
     /// <response code="200">The share code was successfully created.</response>
     /// <response code="404">Shocker does not exists or you do not have access to it.</response>
     /// <returns></returns>
@@ -115,16 +116,16 @@ public sealed partial class ShockerController
     public async Task<IActionResult> ShockerShareCodeCreate(
         [FromRoute] Guid shockerId,
         [FromBody] ShockerPermLimitPair body,
-        [FromServices] IDeviceUpdateService deviceUpdateService
+        [FromServices] IDeviceUpdateService deviceUpdateService,
+        CancellationToken cancellationToken
     )
     {
         var device = await _db.Shockers.Where(x => x.Device.OwnerId == CurrentUser.Id && x.Id == shockerId)
-            .Select(x => x.DeviceId).FirstOrDefaultAsync();
+            .Select(x => x.DeviceId).FirstOrDefaultAsync(cancellationToken);
         if (device == Guid.Empty) return Problem(ShockerError.ShockerNotFound);
 
         var newCode = new ShockerShareCode
         {
-            Id = Guid.CreateVersion7(),
             ShockerId = shockerId,
             AllowShock = body.Permissions.Shock,
             AllowVibrate = body.Permissions.Vibrate,
@@ -135,7 +136,7 @@ public sealed partial class ShockerController
             IsPaused = false
         };
         _db.ShockerShareCodes.Add(newCode);
-        await _db.SaveChangesAsync();
+        await _db.SaveChangesAsync(cancellationToken);
 
         await deviceUpdateService.UpdateDeviceForAllShared(CurrentUser.Id, device, DeviceUpdateType.ShockerUpdated);
 
@@ -148,6 +149,7 @@ public sealed partial class ShockerController
     /// <param name="shockerId"></param>
     /// <param name="sharedWithUserId"></param>
     /// <param name="deviceUpdateService"></param>
+    /// <param name="cancellationToken"></param>
     /// <response code="200">Successfully removed share code</response>
     /// <response code="404">Share does not exists or device/shocker does not belong to you nor is shared with you</response>
     [HttpDelete("{shockerId}/shares/{sharedWithUserId}")]
@@ -158,16 +160,17 @@ public sealed partial class ShockerController
     public async Task<IActionResult> ShockerShareRemove(
         [FromRoute] Guid shockerId,
         [FromRoute] Guid sharedWithUserId,
-        [FromServices] IDeviceUpdateService deviceUpdateService)
+        [FromServices] IDeviceUpdateService deviceUpdateService,
+        CancellationToken cancellationToken)
     {
         var affected = await _db.UserShares.Where(x =>
                 x.ShockerId == shockerId && x.SharedWithUserId == sharedWithUserId &&
                 (x.Shocker.Device.OwnerId == CurrentUser.Id || x.SharedWithUserId == CurrentUser.Id))
-            .ExecuteDeleteAsync();
+            .ExecuteDeleteAsync(cancellationToken);
         if (affected <= 0) return Problem(ShockerError.ShockerNotFound);
 
         var device = await _db.Shockers.Where(x => x.Id == shockerId)
-            .Select(x => new { x.DeviceId, x.Device.OwnerId }).SingleAsync();
+            .Select(x => new { x.DeviceId, x.Device.OwnerId }).SingleAsync(cancellationToken);
 
         await deviceUpdateService.UpdateDevice(device.OwnerId, device.DeviceId, DeviceUpdateType.ShockerUpdated, sharedWithUserId);
 
@@ -181,6 +184,7 @@ public sealed partial class ShockerController
     /// <param name="sharedWithUserId"></param>
     /// <param name="body"></param>
     /// <param name="deviceUpdateService"></param>
+    /// <param name="cancellationToken"></param>
     /// <response code="200">Successfully updated share code</response>
     /// <response code="404">The share code does not exist or you do not have access to it.</response>
     [HttpPatch("{shockerId}/shares/{sharedWithUserId}")]
@@ -193,13 +197,14 @@ public sealed partial class ShockerController
         [FromRoute] Guid shockerId,
         [FromRoute] Guid sharedWithUserId,
         [FromBody] ShockerPermLimitPair body,
-        [FromServices] IDeviceUpdateService deviceUpdateService)
+        [FromServices] IDeviceUpdateService deviceUpdateService,
+        CancellationToken cancellationToken)
     {
         var affected = await _db.UserShares.Where(x =>
                 x.ShockerId == shockerId && x.SharedWithUserId == sharedWithUserId &&
                 x.Shocker.Device.OwnerId == CurrentUser.Id).Select(x =>
                 new { Share = x, x.Shocker.DeviceId, Owner = x.Shocker.Device.OwnerId })
-            .FirstOrDefaultAsync();
+            .FirstOrDefaultAsync(cancellationToken);
         if (affected is null) return Problem(ShockerError.ShockerNotFound);
 
         var share = affected.Share;
@@ -211,7 +216,7 @@ public sealed partial class ShockerController
         share.MaxIntensity = body.Limits.Intensity;
         share.MaxDuration = body.Limits.Duration;
 
-        await _db.SaveChangesAsync();
+        await _db.SaveChangesAsync(cancellationToken);
 
         await deviceUpdateService.UpdateDevice(affected.Owner, affected.DeviceId, DeviceUpdateType.ShockerUpdated, sharedWithUserId);
 
@@ -225,6 +230,7 @@ public sealed partial class ShockerController
     /// <param name="sharedWithUserId"></param>
     /// <param name="body"></param>
     /// <param name="deviceUpdateService"></param>
+    /// <param name="cancellationToken"></param>
     /// <response code="200">Successfully updated pause status share</response>
     /// <response code="404">The share code does not exist or you do not have access to it.</response>
     [HttpPost("{shockerId}/shares/{sharedWithUserId}/pause")]
@@ -237,18 +243,19 @@ public sealed partial class ShockerController
         [FromRoute] Guid shockerId,
         [FromRoute] Guid sharedWithUserId,
         [FromBody] PauseRequest body,
-        [FromServices] IDeviceUpdateService deviceUpdateService)
+        [FromServices] IDeviceUpdateService deviceUpdateService,
+        CancellationToken cancellationToken)
     {
         var affected = await _db.UserShares.Where(x =>
             x.ShockerId == shockerId && x.SharedWithUserId == sharedWithUserId &&
             x.Shocker.Device.OwnerId == CurrentUser.Id).Select(x =>
             new { Share = x, x.Shocker.DeviceId, Owner = x.Shocker.Device.OwnerId })
-            .FirstOrDefaultAsync();
+            .FirstOrDefaultAsync(cancellationToken);
         if (affected is null) return Problem(ShockerError.ShockerNotFound);
 
         affected.Share.IsPaused = body.Pause;
 
-        await _db.SaveChangesAsync();
+        await _db.SaveChangesAsync(cancellationToken);
 
         await deviceUpdateService.UpdateDevice(affected.Owner, affected.DeviceId, DeviceUpdateType.ShockerUpdated, sharedWithUserId);
 

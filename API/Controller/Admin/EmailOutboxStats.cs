@@ -1,8 +1,8 @@
+using System.Net.Mime;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using OpenShock.API.Controller.Admin.DTOs;
 using OpenShock.Common.OpenShockDb;
-using System.Net.Mime;
 
 namespace OpenShock.API.Controller.Admin;
 
@@ -15,7 +15,7 @@ public sealed partial class AdminController
     /// <response code="401">Unauthorized</response>
     [HttpGet("email/outbox/stats")]
     [ProducesResponseType<EmailOutboxStatsDto>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
-    public async Task<EmailOutboxStatsDto> GetEmailOutboxStats()
+    public async Task<EmailOutboxStatsDto> GetEmailOutboxStats(CancellationToken cancellationToken)
     {
         PedanticallyEnsureAdmin();
 
@@ -23,7 +23,7 @@ public sealed partial class AdminController
             .AsNoTracking()
             .GroupBy(m => m.Status)
             .Select(g => new { Status = g.Key, Count = g.LongCount() })
-            .ToDictionaryAsync(x => x.Status, x => x.Count);
+            .ToDictionaryAsync(x => x.Status, x => x.Count, cancellationToken);
 
         long Count(EmailStatus status) => counts.GetValueOrDefault(status);
 

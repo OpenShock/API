@@ -1,4 +1,3 @@
-using System.Net.Http.Json;
 using System.Text.Json.Serialization;
 
 namespace OpenShock.Cron.IntegrationTests.Helpers;

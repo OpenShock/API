@@ -1,8 +1,8 @@
-﻿using OpenShock.Common.Options;
+﻿using System.Net;
+using OpenShock.Common.Options;
 using OpenShock.Common.Utils;
-using StackExchange.Redis;
-
 using OpenShock.Internal.Common.Utils;
+using StackExchange.Redis;
 
 namespace OpenShock.Common.Extensions;
 
@@ -154,7 +154,7 @@ public static class ConfigurationExtensions
                 }
 
                 // leave IP addresses alone
-                if (System.Net.IPAddress.TryParse(domain, out _)) continue;
+                if (IPAddress.TryParse(domain, out _)) continue;
                 
                 if (!DomainUtils.IsValidDomain(domain))
                     throw new Exception($"Invalid domain: {domain}");

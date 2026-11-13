@@ -1,4 +1,5 @@
-﻿using System.Net.Mime;
+﻿using System.Linq.Expressions;
+using System.Net.Mime;
 using Asp.Versioning;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -11,15 +12,13 @@ using OpenShock.Common.Errors;
 using OpenShock.Common.Extensions;
 using OpenShock.Common.Models;
 using OpenShock.Common.OpenShockDb;
-using OpenShock.Common.Problems;
-
 using OpenShock.Internal.Common.Problems;
 
 namespace OpenShock.API.Controller.Shares.UserShares;
 
 file static class QueryHelper
 {
-    public static readonly System.Linq.Expressions.Expression<Func<UserShareInvite, ShareInviteBaseDetails>> SelectShareInvite = x =>
+    public static readonly Expression<Func<UserShareInvite, ShareInviteBaseDetails>> SelectShareInvite = x =>
         new ShareInviteBaseDetails
         {
             Id = x.Id,
@@ -87,10 +86,10 @@ public sealed partial class UserSharesController
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status404NotFound, MediaTypeNames.Application.ProblemJson)] // ShareRequestNotFound
     [TokenPermission(PermissionType.Usershares_Edit)]
     [MapToApiVersion("2")]
-    public async Task<IActionResult> DeleteOutgoingInvite([FromRoute] Guid inviteId)
+    public async Task<IActionResult> DeleteOutgoingInvite([FromRoute] Guid inviteId, CancellationToken cancellationToken)
     {
         var deletedShareRequest = await _db.UserShareInvites
-            .Where(x => x.Id == inviteId && x.OwnerId == CurrentUser.Id).ExecuteDeleteAsync();
+            .Where(x => x.Id == inviteId && x.OwnerId == CurrentUser.Id).ExecuteDeleteAsync(cancellationToken);
         
         if (deletedShareRequest <= 0) return Problem(ShareError.ShareRequestNotFound);
         
@@ -102,10 +101,10 @@ public sealed partial class UserSharesController
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status404NotFound, MediaTypeNames.Application.ProblemJson)] // ShareRequestNotFound
     [TokenPermission(PermissionType.Usershares_Edit)]
     [MapToApiVersion("2")]
-    public async Task<IActionResult> DenyIncomingInvite([FromRoute] Guid inviteId)
+    public async Task<IActionResult> DenyIncomingInvite([FromRoute] Guid inviteId, CancellationToken cancellationToken)
     {
         var deletedShareRequest = await _db.UserShareInvites
-            .Where(x => x.Id == inviteId && x.RecipientUserId == CurrentUser.Id).ExecuteDeleteAsync();
+            .Where(x => x.Id == inviteId && x.RecipientUserId == CurrentUser.Id).ExecuteDeleteAsync(cancellationToken);
         
         if (deletedShareRequest <= 0) return Problem(ShareError.ShareRequestNotFound);
         
@@ -117,17 +116,18 @@ public sealed partial class UserSharesController
     /// </summary>
     /// <param name="inviteId"></param>
     /// <param name="deviceUpdateService"></param>
+    /// <param name="cancellationToken"></param>
     /// <returns></returns>
     [HttpPost("invites/incoming/{inviteId}")]
     [ProducesResponseType<V2UserSharesListItem>(StatusCodes.Status200OK)]
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status404NotFound, MediaTypeNames.Application.ProblemJson)] // ShareRequestNotFound
     [TokenPermission(PermissionType.Usershares_Edit)]
     [MapToApiVersion("2")]
-    public async Task<IActionResult> RedeemInvite([FromRoute] Guid inviteId, [FromServices] IDeviceUpdateService deviceUpdateService)
+    public async Task<IActionResult> RedeemInvite([FromRoute] Guid inviteId, [FromServices] IDeviceUpdateService deviceUpdateService, CancellationToken cancellationToken)
     {
         var shareRequest = await _db.UserShareInvites
             .Include(x => x.ShockerMappings).ThenInclude(x => x.Shocker).Include(x => x.Owner)
-            .FirstOrDefaultAsync(x => x.Id == inviteId && (x.RecipientUserId == null || x.RecipientUserId == CurrentUser.Id));
+            .FirstOrDefaultAsync(x => x.Id == inviteId && (x.RecipientUserId == null || x.RecipientUserId == CurrentUser.Id), cancellationToken);
         
         if (shareRequest is null) return Problem(ShareError.ShareRequestNotFound);
 
@@ -137,7 +137,7 @@ public sealed partial class UserSharesController
             return Problem(ShareError.ShareRequestCreateCannotShareWithSelf);
         }
 
-        var alreadySharedShockers = await _db.UserShares.Where(x => x.Shocker.Device.Owner.Id == shareRequest.OwnerId && x.SharedWithUserId == CurrentUser.Id).ToListAsync();
+        var alreadySharedShockers = await _db.UserShares.Where(x => x.Shocker.Device.Owner.Id == shareRequest.OwnerId && x.SharedWithUserId == CurrentUser.Id).ToListAsync(cancellationToken);
         
         foreach (var shareInvitationShocker in shareRequest.ShockerMappings)
         {
@@ -175,7 +175,7 @@ public sealed partial class UserSharesController
         
         _db.UserShareInvites.Remove(shareRequest);
         
-        if (await _db.SaveChangesAsync() < 1) throw new Exception("Error while linking share code to your account");
+        if (await _db.SaveChangesAsync(cancellationToken) < 1) throw new Exception("Error while linking share code to your account");
 
         var affectedHubs = shareRequest.ShockerMappings.Select(x => x.ShockerId).Distinct();
         foreach (var affectedHub in affectedHubs)
@@ -183,7 +183,7 @@ public sealed partial class UserSharesController
             await deviceUpdateService.UpdateDevice(shareRequest.OwnerId, affectedHub, DeviceUpdateType.ShockerUpdated, CurrentUser.Id);    
         }
         
-        var returnObject = new V2UserSharesListItemDto()
+        var returnObject = new V2UserSharesListItemDto
         {
             Id = shareRequest.OwnerId,
             Email = shareRequest.Owner.Email,
@@ -215,25 +215,25 @@ public sealed partial class UserSharesController
     }
 }
 
-public class ShareRequestBase
+public closed class ShareRequestBase
 {
-    public required Guid Id { get; set; }
-    public required DateTime CreatedAt { get; set; }
-    public required BasicUserInfo Owner { get; set; }
-    public required BasicUserInfo? SharedWith { get; set; }
+    public required Guid Id { get; init; }
+    public required DateTime CreatedAt { get; init; }
+    public required BasicUserInfo Owner { get; init; }
+    public required BasicUserInfo? SharedWith { get; init; }
 }
 
 public sealed class ShareInviteBaseItem : ShareRequestBase
 {
-    public required ShareRequestCounts Counts { get; set; }
+    public required ShareRequestCounts Counts { get; init; }
     
     public sealed class ShareRequestCounts
     {
-        public required int Shockers { get; set; }
+        public required int Shockers { get; init; }
     }
 }
 
 public sealed class ShareInviteBaseDetails : ShareRequestBase
 {
-    public required IEnumerable<ShockerPermLimitPairWithIdAndName> Shockers { get; set; }
+    public required IEnumerable<ShockerPermLimitPairWithIdAndName> Shockers { get; init; }
 }

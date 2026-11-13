@@ -20,7 +20,7 @@ namespace OpenShock.Cron.IntegrationTests;
 /// there is no background loop, so nothing races the assertions. The Cron host doesn't migrate on
 /// boot, so the factory applies migrations to the fresh database first.
 /// </summary>
-public class CronApplicationFactory : WebApplicationFactory<Program>, IAsyncInitializer
+public sealed class CronApplicationFactory : WebApplicationFactory<Program>, IAsyncInitializer
 {
     [ClassDataSource<InMemoryDatabase>(Shared = SharedType.PerTestSession)]
     public required InMemoryDatabase PostgreSql { get; init; }

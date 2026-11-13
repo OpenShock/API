@@ -1,7 +1,5 @@
 ﻿using System.Web;
 
-using OpenShock.Internal.Common.Utils;
-
 namespace OpenShock.Common.Utils;
 
 public static class GravatarUtils

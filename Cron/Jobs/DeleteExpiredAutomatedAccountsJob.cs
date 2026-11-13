@@ -14,16 +14,19 @@ namespace OpenShock.Cron.Jobs;
 public sealed class DeleteExpiredAutomatedAccountsJob
 {
     private readonly OpenShockContext _db;
+    private readonly IHostApplicationLifetime _lifetime;
     private readonly ILogger<DeleteExpiredAutomatedAccountsJob> _logger;
 
-    public DeleteExpiredAutomatedAccountsJob(OpenShockContext db, ILogger<DeleteExpiredAutomatedAccountsJob> logger)
+    public DeleteExpiredAutomatedAccountsJob(OpenShockContext db, IHostApplicationLifetime lifetime, ILogger<DeleteExpiredAutomatedAccountsJob> logger)
     {
         _db = db;
+        _lifetime = lifetime;
         _logger = logger;
     }
 
     public async Task<int> Execute()
     {
+        var cancellationToken = _lifetime.ApplicationStopping;
         var now = DateTime.UtcNow;
 
         // Selecting and deleting in one statement means an account promoted between a read and the delete can't
@@ -44,7 +47,7 @@ public sealed class DeleteExpiredAutomatedAccountsJob
               AND u.created_at + t.auto_cleanup_after < {now}
               AND NOT (u.roles && {PrivilegedRoles.All})
             RETURNING u.id AS "UserId", u.created_by_automation_token_id AS "AutomationTokenId"
-            """).ToListAsync();
+            """).ToListAsync(cancellationToken);
 
         if (deleted.Count == 0)
         {

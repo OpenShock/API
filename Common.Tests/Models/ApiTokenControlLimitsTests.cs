@@ -3,7 +3,7 @@ using OpenShock.Common.OpenShockDb;
 
 namespace OpenShock.Common.Tests.Models;
 
-public class ApiTokenControlLimitsTests
+public sealed class ApiTokenControlLimitsTests
 {
     private static ApiTokenControlLimits IntensityLimits(byte min, byte max, ControlLimitMode mode) => new()
     {

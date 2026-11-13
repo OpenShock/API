@@ -9,10 +9,8 @@ using OpenShock.Common.Errors;
 using OpenShock.Common.Extensions;
 using OpenShock.Common.Models;
 using OpenShock.Common.OpenShockDb;
-using OpenShock.Common.Problems;
 using OpenShock.Common.Utils;
 using OpenShock.Common.Utils.Pagination;
-
 using OpenShock.Internal.Common.Problems;
 
 namespace OpenShock.API.Controller.Shockers;
@@ -38,6 +36,7 @@ public sealed partial class ShockerController
     /// <param name="shockerId"></param>
     /// <param name="offset"></param>
     /// <param name="limit"></param>
+    /// <param name="cancellationToken"></param>
     /// <response code="200">The logs</response>
     /// <response code="404">Shocker does not exist</response>
     [HttpGet("{shockerId}/logs")]
@@ -46,9 +45,10 @@ public sealed partial class ShockerController
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status404NotFound, MediaTypeNames.Application.ProblemJson)] // ShockerNotFound
     [MapToApiVersion("1")]
     public async Task<IActionResult> GetShockerLogs([FromRoute] Guid shockerId, [FromQuery(Name = "offset")] uint offset = 0,
-        [FromQuery, Range(1, 500)] uint limit = 100)
+        [FromQuery, Range(1, 500)] uint limit = 100,
+        CancellationToken cancellationToken = default)
     {
-        var exists = await _db.Shockers.AnyAsync(x => x.Device.OwnerId == CurrentUser.Id && x.Id == shockerId);
+        var exists = await _db.Shockers.AnyAsync(x => x.Device.OwnerId == CurrentUser.Id && x.Id == shockerId, cancellationToken);
         if (!exists) return Problem(ShockerError.ShockerNotFound);
 
         var logs = _db.ShockerControlLogs

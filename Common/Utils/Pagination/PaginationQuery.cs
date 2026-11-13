@@ -77,7 +77,7 @@ public sealed class PaginationQuery
     /// endpoints almost always want "newest/highest first" as the default.
     /// </summary>
     [FromQuery(Name = "sortDir")]
-    public SortDirection SortDir { get; set; } = SortDirection.Desc;
+    public SortDirection SortDir { get; init; } = SortDirection.Desc;
 
     /// <summary>
     /// Number of items to skip based on <see cref="Page"/> and <see cref="PageSize"/>.

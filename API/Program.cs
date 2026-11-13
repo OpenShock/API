@@ -69,7 +69,11 @@ builder.Services
                 DefaultOptions(options, "google");
                 options.ClientId = googleOptions.ClientId;
                 options.ClientSecret = googleOptions.ClientSecret;
-                
+
+                // The default Google claim actions don't map email_verified (OIDC userinfo v3). Without it every
+                // Google signup is treated as an untrusted email and the account is left unactivated.
+                options.ClaimActions.MapJsonKey(OAuthConstants.ClaimEmailVerified, "email_verified");
+
                 options.Validate();
             });
         }

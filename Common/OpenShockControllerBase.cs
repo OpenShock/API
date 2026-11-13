@@ -1,20 +1,18 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using OpenShock.Common.Authentication;
 using OpenShock.Common.Constants;
 using OpenShock.Common.Extensions;
 using OpenShock.Common.Models;
-using OpenShock.Common.OpenShockDb;
 using OpenShock.Common.Options;
 using OpenShock.Common.Services.Geo;
 using OpenShock.Common.Services.Session;
 using OpenShock.Common.Utils;
 
-using OpenShock.Internal.Common.Problems;
-
 namespace OpenShock.Common;
 
 // Inherits Problem(OpenShockProblem) from OpenShock.Internal.Common.OpenShockControllerBase;
 // the members below are OpenShock-API-specific and stay local.
-public abstract class OpenShockControllerBase : OpenShock.Internal.Common.OpenShockControllerBase
+public abstract class OpenShockControllerBase : Internal.Common.OpenShockControllerBase
 {
     /// <summary>
     /// Convenience wrapper for <see cref="OpenShock.Common.Extensions.HttpContextExtensions.GetRequiredItemByType{T}(HttpContext)"/>.
@@ -79,6 +77,9 @@ public abstract class OpenShockControllerBase : OpenShock.Internal.Common.OpenSh
             SameSite = SameSiteMode.Lax,
             Domain = domain
         });
+
+        // Signed in, so the post-signup "didn't get the email?" cookie has served its purpose.
+        ActivationResendCookie.Remove(HttpContext);
     }
 
     [NonAction]

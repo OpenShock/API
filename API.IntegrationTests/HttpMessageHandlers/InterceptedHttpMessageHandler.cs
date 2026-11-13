@@ -1,5 +1,7 @@
 ﻿using System.Net;
+using System.Text;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using System.Web;
 
 namespace OpenShock.API.IntegrationTests.HttpMessageHandlers;
@@ -56,7 +58,7 @@ sealed class InterceptedHttpMessageHandler : DelegatingHandler
 
         var responseMessage = new HttpResponseMessage(HttpStatusCode.OK)
         {
-            Content = new StringContent(responseJson, System.Text.Encoding.UTF8, "application/json")
+            Content = new StringContent(responseJson, Encoding.UTF8, "application/json")
         };
 
         return responseMessage;
@@ -71,19 +73,19 @@ sealed class InterceptedHttpMessageHandler : DelegatingHandler
         };
     }
 
-    private class CloudflareTurnstileVerifyResponseDto
+    private sealed class CloudflareTurnstileVerifyResponseDto
     {
-        [System.Text.Json.Serialization.JsonPropertyName("success")]
+        [JsonPropertyName("success")]
         public bool Success { get; init; }
-        [System.Text.Json.Serialization.JsonPropertyName("error-codes")]
+        [JsonPropertyName("error-codes")]
         public required string[] ErrorCodes { get; init; }
-        [System.Text.Json.Serialization.JsonPropertyName("challenge_ts")]
+        [JsonPropertyName("challenge_ts")]
         public DateTime ChallengeTs { get; init; }
-        [System.Text.Json.Serialization.JsonPropertyName("hostname")]
+        [JsonPropertyName("hostname")]
         public required string Hostname { get; init; }
-        [System.Text.Json.Serialization.JsonPropertyName("action")]
+        [JsonPropertyName("action")]
         public required string Action { get; init; }
-        [System.Text.Json.Serialization.JsonPropertyName("cdata")]
+        [JsonPropertyName("cdata")]
         public required string Cdata { get; init; }
     }
 }

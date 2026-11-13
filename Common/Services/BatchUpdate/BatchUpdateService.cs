@@ -9,8 +9,6 @@ using OpenShock.Common.Services.ControlStats;
 using OpenShock.Common.Utils;
 using StackExchange.Redis;
 
-using OpenShock.Internal.Common.Utils;
-
 namespace OpenShock.Common.Services.BatchUpdate;
 
 internal sealed class ConcurrentUniqueBatchQueue<TKey, TValue> where TKey : notnull

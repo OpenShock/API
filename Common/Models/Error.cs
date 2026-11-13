@@ -2,5 +2,5 @@
 
 public sealed class Error<TError> where TError : Enum
 {
-    public required TError Type { get; set; }
+    public required TError Type { get; init; }
 }

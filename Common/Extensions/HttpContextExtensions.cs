@@ -1,7 +1,6 @@
 ﻿using System.Diagnostics.CodeAnalysis;
-using Microsoft.AspNetCore.Http;
-using OpenShock.Common.OpenShockDb;
 using OpenShock.Common.Constants;
+using OpenShock.Common.OpenShockDb;
 using OpenShock.Common.Services.AutomationTokens;
 
 namespace OpenShock.Common.Extensions;

@@ -6,8 +6,6 @@ using OpenShock.API.Utils;
 using OpenShock.Common.Errors;
 using OpenShock.Common.Extensions;
 using OpenShock.Common.Models;
-using OpenShock.Common.Problems;
-
 using OpenShock.Internal.Common.Problems;
 
 namespace OpenShock.API.Controller.Public;
@@ -18,13 +16,14 @@ public sealed partial class PublicController
     /// Gets information about a public share.
     /// </summary>
     /// <param name="publicShareId"></param>
+    /// <param name="cancellationToken"></param>
     /// <response code="200">The public share information was successfully retrieved.</response>
     /// <response code="404">The public share does not exist.</response>
     [HttpGet("shares/links/{publicShareId}")]
     [Tags("Public Shocker Shares")]
     [ProducesResponseType<LegacyDataResponse<PublicShareResponse>>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status404NotFound, MediaTypeNames.Application.ProblemJson)] // PublicShareNotFound
-    public async Task<IActionResult> GetPublicShare([FromRoute] Guid publicShareId)
+    public async Task<IActionResult> GetPublicShare([FromRoute] Guid publicShareId, CancellationToken cancellationToken)
     {
         var publicShare = await _db.PublicShares
             .Where(x => x.Id == publicShareId && x.Owner.UserDeactivation == null)
@@ -63,7 +62,7 @@ public sealed partial class PublicController
                     Paused = PublicShareUtils.GetPausedReason(y.IsPaused, y.Shocker.IsPaused),
                 }
             })
-        }).FirstOrDefaultAsync();
+        }).FirstOrDefaultAsync(cancellationToken);
 
         if (publicShare is null) return Problem(PublicShareError.PublicShareNotFound);
         

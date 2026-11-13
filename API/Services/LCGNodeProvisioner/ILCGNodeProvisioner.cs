@@ -1,6 +1,6 @@
-﻿using OpenShock.Internal.Common.Geo;
-using OpenShock.Common.Redis;
+﻿using OpenShock.Common.Redis;
 using OpenShock.Common.Services.Geo;
+using OpenShock.Internal.Common.Geo;
 
 namespace OpenShock.API.Services.LCGNodeProvisioner;
 

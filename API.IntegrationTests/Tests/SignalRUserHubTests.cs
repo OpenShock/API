@@ -1,4 +1,6 @@
 using System.Net;
+using System.Text.Json;
+using Microsoft.AspNetCore.Mvc.Testing;
 using OpenShock.API.IntegrationTests.Helpers;
 using OpenShock.Common.Constants;
 
@@ -44,7 +46,7 @@ public sealed class SignalRUserHubTests
     [Test]
     public async Task Negotiate_WithInvalidSession_Returns401()
     {
-        using var client = WebApplicationFactory.CreateClient(new Microsoft.AspNetCore.Mvc.Testing.WebApplicationFactoryClientOptions
+        using var client = WebApplicationFactory.CreateClient(new WebApplicationFactoryClientOptions
         {
             AllowAutoRedirect = false,
             HandleCookies = false
@@ -79,7 +81,7 @@ public sealed class SignalRUserHubTests
         await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.OK);
 
         var json = await response.Content.ReadAsStringAsync();
-        using var doc = System.Text.Json.JsonDocument.Parse(json);
+        using var doc = JsonDocument.Parse(json);
         // Negotiate response should contain connectionId and available transports
         await Assert.That(doc.RootElement.TryGetProperty("connectionId", out _)).IsTrue();
         await Assert.That(doc.RootElement.TryGetProperty("availableTransports", out _)).IsTrue();

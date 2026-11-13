@@ -1,19 +1,11 @@
 ﻿using System.Diagnostics;
+using System.Net.Mime;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 using OpenShock.API.Services.Account;
 using OpenShock.Common.DataAnnotations;
 using OpenShock.Common.Errors;
-using OpenShock.Common.Problems;
-using OpenShock.Common.Models;
-using OpenShock.Common.OpenShockDb;
-using System.Linq.Expressions;
-using System.Net;
-using System.Net.Mime;
-using Z.EntityFramework.Plus;
-using Results = OpenShock.Common.Results;
-
 using OpenShock.Internal.Common.Problems;
+using Results = OpenShock.Common.Results;
 
 namespace OpenShock.API.Controller.Admin;
 
@@ -34,15 +26,14 @@ public sealed partial class AdminController
     {
         PedanticallyEnsureAdmin();
 
-        var result = await accountService.ChangePasswordAsync(userId, body.Password, actorId: CurrentUser.Id);
+        var result = await accountService.ChangePasswordAsync(userId, body.Password, actorId: CurrentUser.Id, cancellationToken: cancellationToken);
 
         return result switch
         {
             Results.Success => Ok(),
             AccountNotActivated => Problem(AdminError.UserNotActivated),
             AccountDeactivated => Problem(AdminError.UserDeactivated),
-            Results.NotFound => NotFound(),
-            _ => throw new UnreachableException()
+            Results.NotFound => NotFound()
         };
     }
 

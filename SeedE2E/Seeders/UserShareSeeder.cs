@@ -26,7 +26,7 @@ public static class UserShareSeeder
         int sharesCount = allShockerIds.Count / 4 + 1;
 
         // Generate roughly 1 share per 4 shockers
-        var shares = new List<UserShare>(sharesCount);
+        List<UserShare> shares = [with(capacity: sharesCount)];
         for (int i = 0; i < sharesCount; i++)
         {
             var faked = shareFaker.Generate();
@@ -36,7 +36,7 @@ public static class UserShareSeeder
         }
 
         // Exclude shares where user == owner of shocker via Device→Shocker→Device→Owner
-        var validShares = new List<UserShare>(shares.Count);
+        List<UserShare> validShares = [with(capacity: shares.Count)];
         foreach (var share in shares)
         {
             var shocker = await db.Shockers.Include(s => s.Device).FirstOrDefaultAsync(s => s.Id == share.ShockerId);

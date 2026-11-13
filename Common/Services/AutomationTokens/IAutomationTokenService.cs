@@ -55,7 +55,7 @@ public interface IAutomationTokenService
     /// If the current request resolved an automation token, audits its use to create <paramref name="userId"/>.
     /// The account itself is linked to the token when it is created.
     /// </summary>
-    Task RecordSignupAsync(Guid userId, CancellationToken ct);
+    Task RecordSignupAsync(Guid userId);
 
     /// <summary>
     /// Checked before the password is verified, so an automation token (which also lifts Turnstile and rate
