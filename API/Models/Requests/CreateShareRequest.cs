@@ -9,4 +9,3 @@ public sealed class CreateShareRequest
     public required ShockerPermLimitPairWithId[] Shockers { get; init; }
     public Guid? User { get; init; } = null;
 }
-
