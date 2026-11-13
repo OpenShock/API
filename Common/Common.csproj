@@ -22,6 +22,9 @@
     <PackageReference Include="MessagePack" />
     <PackageReference Include="Microsoft.AspNetCore.DataProtection.EntityFrameworkCore" />
     <PackageReference Include="Microsoft.AspNetCore.OpenApi" />
+    <!-- Direct reference so EF Core GA wins over the exact rc.3 pin in Npgsql.EntityFrameworkCore.PostgreSQL 11.0.0-rc.3.
+         Remove once Npgsql's EF provider 11.0.0 ships. -->
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" />
     <PackageReference Include="Microsoft.Extensions.Caching.Hybrid" />
     <PackageReference Include="Microsoft.IO.RecyclableMemoryStream" />
     <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" />
