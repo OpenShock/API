@@ -234,7 +234,7 @@ public sealed class AccountService : IAccountService
                 UserId = user.Id,
                 ProviderKey = provider,
                 ExternalId = providerAccountId,
-                DisplayName = providerAccountName,
+                DisplayName = providerAccountName?.Truncate(ApiHardLimits.OAuthDisplayNameMaxLength),
                 CreatedAt = creationTime,
             });
 

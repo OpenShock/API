@@ -1,5 +1,3 @@
-using OpenShock.Internal.Common.Constants;
-
 namespace OpenShock.Common.Constants;
 
 /// <summary>
@@ -26,6 +24,17 @@ public static class ApiHardLimits
     public const int UserActivationRequestSecretMaxLength = 128;
     public const int PasswordResetSecretMaxLength = 100;
     public const int AuditReasonMaxLength = 512;
+
+    public const int ConfigurationNameMaxLength = 64;
+    public const int ConfigurationDescriptionMaxLength = 256;
+    public const int ConfigurationValueMaxLength = 4096;
+
+    public const int OAuthProviderKeyMaxLength = 16;
+    public const int OAuthExternalIdMaxLength = 255;
+    public const int OAuthDisplayNameMaxLength = 64;
+
+    public const int DiscordWebhookNameMaxLength = 64;
+    public const int DiscordWebhookTokenMaxLength = 128;
 
     public const int MaxTurnstileResponseTokenLength = 2048; // https://developers.cloudflare.com/turnstile/get-started/server-side-validation/
 
