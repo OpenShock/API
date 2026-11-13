@@ -13,7 +13,7 @@ using TUnit.Core.Interfaces;
 
 namespace OpenShock.API.IntegrationTests;
 
-public record CiSafeParallelLimit : IParallelLimit
+public sealed record CiSafeParallelLimit : IParallelLimit
 {
     public int Limit => Math.Max(Environment.ProcessorCount * 2, 8);
 }

@@ -7,7 +7,7 @@ using MsOptions = Microsoft.Extensions.Options.Options;
 
 namespace OpenShock.Common.Tests.HealthChecks;
 
-public class CachedHealthCheckServiceTests
+public sealed class CachedHealthCheckServiceTests
 {
     // --- helpers ---
 

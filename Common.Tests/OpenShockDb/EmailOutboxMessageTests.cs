@@ -2,7 +2,7 @@ using OpenShock.Common.OpenShockDb;
 
 namespace OpenShock.Common.Tests.OpenShockDb;
 
-public class EmailOutboxMessageTests
+public sealed class EmailOutboxMessageTests
 {
     [Test]
     public async Task Create_InitializesAsPendingWithGivenFields()

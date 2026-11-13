@@ -4,7 +4,7 @@ using OpenShock.Common.JsonSerialization;
 
 namespace OpenShock.Common.Tests.JsonSerialization;
 
-public class IPAddressJsonConverterTests
+public sealed class IPAddressJsonConverterTests
 {
     private static readonly JsonSerializerOptions Options = JsonOptions.Default;
 

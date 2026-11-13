@@ -8,7 +8,7 @@ public class ControlLogSenderLight
     public required string? CustomName { get; set; }
 }
 
-public class ControlLogSender : ControlLogSenderLight
+public sealed class ControlLogSender : ControlLogSenderLight
 {
     public required string ConnectionId { get; set; }
     public required Dictionary<string, object> AdditionalItems { get; set; }

@@ -3,7 +3,7 @@ using OpenShock.Common.Options;
 
 namespace OpenShock.Common.Tests.Options;
 
-public class SecurityTxtOptionsTests
+public sealed class SecurityTxtOptionsTests
 {
     private static IConfiguration Config(params (string Key, string? Value)[] values) =>
         new ConfigurationBuilder()

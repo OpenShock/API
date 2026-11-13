@@ -73,7 +73,7 @@ sealed class InterceptedHttpMessageHandler : DelegatingHandler
         };
     }
 
-    private class CloudflareTurnstileVerifyResponseDto
+    private sealed class CloudflareTurnstileVerifyResponseDto
     {
         [JsonPropertyName("success")]
         public bool Success { get; init; }

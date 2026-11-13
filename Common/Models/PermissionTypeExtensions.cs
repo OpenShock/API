@@ -70,4 +70,4 @@ public static class PermissionTypeBindings
     }
 }
 
-public record PermissionTypeRecord(PermissionType PermissionType, string Name, IReadOnlyList<PermissionType> Parents);
+public sealed record PermissionTypeRecord(PermissionType PermissionType, string Name, IReadOnlyList<PermissionType> Parents);

@@ -216,7 +216,7 @@ public sealed partial class UserSharesController
     }
 }
 
-public class ShareRequestBase
+public closed class ShareRequestBase
 {
     public required Guid Id { get; set; }
     public required DateTime CreatedAt { get; set; }

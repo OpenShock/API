@@ -4,7 +4,7 @@ using OpenShock.Internal.Common.DataAnnotations;
 
 namespace OpenShock.API.Models.Requests;
 
-public class ReportTokensRequest
+public sealed class ReportTokensRequest
 {
     [Required(AllowEmptyStrings = false)]
     [StringLength(ApiHardLimits.MaxTurnstileResponseTokenLength)]

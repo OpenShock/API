@@ -9,7 +9,7 @@ namespace OpenShock.Common.Tests.Models;
 /// <see cref="AuditMetadata"/> is closed, so the compiler keeps every subtype in this assembly, but it can't check that
 /// each one is also registered for polymorphic JSON. An unregistered subtype only fails once it gets serialized.
 /// </summary>
-public class AuditMetadataTests
+public sealed class AuditMetadataTests
 {
     private static readonly Type[] Subtypes = typeof(AuditMetadata).Assembly.GetTypes()
         .Where(t => t != typeof(AuditMetadata) && typeof(AuditMetadata).IsAssignableFrom(t))

@@ -16,6 +16,6 @@ public sealed class MailJetOptions
 }
 
 [OptionsValidator]
-public partial class MailJetOptionsValidator : IValidateOptions<MailJetOptions>
+public sealed partial class MailJetOptionsValidator : IValidateOptions<MailJetOptions>
 {
 }

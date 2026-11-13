@@ -3,7 +3,7 @@ using OpenShock.Internal.Common.Problems;
 
 namespace OpenShock.Common.Problems.CustomProblems;
 
-public class PolicyNotMetProblem : OpenShockProblem
+public sealed class PolicyNotMetProblem : OpenShockProblem
 {
     public PolicyNotMetProblem(IEnumerable<string> failedRequirements) : base(
         "Authorization.Policy.NotMet",

@@ -10,7 +10,7 @@ namespace OpenShock.Common.Tests.Redis;
 /// The API publishes these messages and the gateway consumes them, so during a rolling deploy old and new builds
 /// talk to each other. The pinned bytes guard the wire format, the round trips guard the union dispatch.
 /// </summary>
-public class PubSubSerializationTests
+public sealed class PubSubSerializationTests
 {
     // Same resolver chain as OpenShockApplication sets as the default
     private static readonly MessagePackSerializerOptions Options = MessagePackSerializerOptions.Standard.WithResolver(

@@ -89,6 +89,6 @@ public sealed class LcgOptions
 /// Options validator for <see cref="LcgOptions"/>
 /// </summary>
 [OptionsValidator]
-public partial class LcgOptionsValidator : IValidateOptions<LcgOptions>
+public sealed partial class LcgOptionsValidator : IValidateOptions<LcgOptions>
 {
 }

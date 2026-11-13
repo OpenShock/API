@@ -23,6 +23,6 @@ public sealed class SmtpOptions
 }
 
 [OptionsValidator]
-public partial class SmtpOptionsValidator : IValidateOptions<SmtpOptions>
+public sealed partial class SmtpOptionsValidator : IValidateOptions<SmtpOptions>
 {
 }

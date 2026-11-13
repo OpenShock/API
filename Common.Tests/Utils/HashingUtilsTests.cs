@@ -3,7 +3,7 @@ using OpenShock.Common.Utils;
 
 namespace OpenShock.Common.Tests.Utils;
 
-public class HashingUtilsTests
+public sealed class HashingUtilsTests
 {
     // --- HashSha256 ---
 

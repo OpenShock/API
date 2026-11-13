@@ -3,7 +3,7 @@ using OpenShock.Common.Validation;
 
 namespace OpenShock.Common.Tests.Validation;
 
-internal class UsernameValidatorTests
+internal sealed class UsernameValidatorTests
 {
     [Test]
     public async Task Validate_ValidUsername_ReturnsSuccess()

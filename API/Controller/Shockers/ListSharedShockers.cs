@@ -8,12 +8,12 @@ using OpenShock.Common.Utils;
 
 namespace OpenShock.API.Controller.Shockers;
 
-file record OwnerGroupKey(Guid OwnerId, string OwnerName, string OwnerEmail)
+file sealed record OwnerGroupKey(Guid OwnerId, string OwnerName, string OwnerEmail)
 {
     public override int GetHashCode() => OwnerId.GetHashCode();
 }
 
-file record DeviceGroupKey(Guid DeviceId, string DeviceName)
+file sealed record DeviceGroupKey(Guid DeviceId, string DeviceName)
 {
     public override int GetHashCode() => DeviceId.GetHashCode();
 }

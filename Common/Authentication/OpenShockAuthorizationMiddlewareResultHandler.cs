@@ -5,7 +5,7 @@ using OpenShock.Common.JsonSerialization;
 
 namespace OpenShock.Common.Authentication;
 
-public class OpenShockAuthorizationMiddlewareResultHandler : IAuthorizationMiddlewareResultHandler
+public sealed class OpenShockAuthorizationMiddlewareResultHandler : IAuthorizationMiddlewareResultHandler
 {
     private readonly AuthorizationMiddlewareResultHandler _defaultHandler;
 
