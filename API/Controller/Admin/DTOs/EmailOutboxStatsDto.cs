@@ -5,10 +5,10 @@ namespace OpenShock.API.Controller.Admin.DTOs;
 /// </summary>
 public sealed class EmailOutboxStatsDto
 {
-    public required long Pending { get; set; }
-    public required long Sending { get; set; }
-    public required long Sent { get; set; }
-    public required long Failed { get; set; }
-    public required long Skipped { get; set; }
-    public required long Total { get; set; }
+    public required long Pending { get; init; }
+    public required long Sending { get; init; }
+    public required long Sent { get; init; }
+    public required long Failed { get; init; }
+    public required long Skipped { get; init; }
+    public required long Total { get; init; }
 }

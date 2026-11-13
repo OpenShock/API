@@ -2,6 +2,6 @@
 
 public sealed class AddWebhookDto
 {
-    public required string Name { get; set; }
-    public required Uri Url { get; set; }
+    public required string Name { get; init; }
+    public required Uri Url { get; init; }
 }

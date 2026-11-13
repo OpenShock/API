@@ -12,7 +12,7 @@ public sealed class ValidationProblem : OpenShockProblem
         Errors = CreateErrorDictionary(state);
     }
 
-    public IDictionary<string, string[]> Errors { get; set; }
+    public IDictionary<string, string[]> Errors { get; init; }
 
     private static IDictionary<string, string[]> CreateErrorDictionary(ModelStateDictionary modelState)
     {

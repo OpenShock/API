@@ -12,5 +12,5 @@ public sealed class PolicyNotMetProblem : OpenShockProblem
         FailedRequirements = failedRequirements;
     }
     
-    public IEnumerable<string> FailedRequirements { get; set; }
+    public IEnumerable<string> FailedRequirements { get; init; }
 }

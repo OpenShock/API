@@ -45,5 +45,5 @@ public sealed partial class UserSharesController
 
 public sealed class RemoveUserSharesResponse
 {
-    public required int AffectedRecords { get; set; }
+    public required int AffectedRecords { get; init; }
 }

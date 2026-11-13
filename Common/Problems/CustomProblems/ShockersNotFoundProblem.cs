@@ -11,5 +11,5 @@ public sealed class ShockersNotFoundProblem(
     string? detail = null)
     : OpenShockProblem(type, title, status, detail)
 {
-    public IReadOnlyList<Guid> MissingShockers { get; set; } = missingShockers;
+    public IReadOnlyList<Guid> MissingShockers { get; init; } = missingShockers;
 }

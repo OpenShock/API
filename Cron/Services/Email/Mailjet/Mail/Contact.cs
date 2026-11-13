@@ -6,10 +6,10 @@ namespace OpenShock.Cron.Services.Email.Mailjet.Mail;
 public class Contact
 {
     [Required(AllowEmptyStrings = false)]
-    public required string Email { get; set; }
+    public required string Email { get; init; }
 
     [Required(AllowEmptyStrings = false)]
-    public required string Name { get; set; }
+    public required string Name { get; init; }
 
     public Contact() { }
     

@@ -13,6 +13,6 @@ public sealed class TokenPermissionProblem(
     string? detail = null)
     : OpenShockProblem(type, title, status, detail)
 {
-    public PermissionType RequiredPermission { get; set; } = requiredPermission;
-    public IEnumerable<PermissionType> GrantedPermissions { get; set; } = grantedPermissions;
+    public PermissionType RequiredPermission { get; init; } = requiredPermission;
+    public IEnumerable<PermissionType> GrantedPermissions { get; init; } = grantedPermissions;
 }

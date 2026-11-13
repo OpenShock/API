@@ -12,12 +12,12 @@ public sealed class UserPasswordReset
     /// <summary>
     /// Public identifier embedded in the reset URL alongside the secret token.
     /// </summary>
-    public required Guid Id { get; set; }
+    public required Guid Id { get; init; }
 
     /// <summary>
     /// User this reset request belongs to.
     /// </summary>
-    public required Guid UserId { get; set; }
+    public required Guid UserId { get; init; }
 
     /// <summary>
     /// Hash of the secret token for the reset link. The plaintext token is never stored - it only
@@ -33,7 +33,7 @@ public sealed class UserPasswordReset
     /// password (or email) change through any path silently invalidates every outstanding
     /// reset link.
     /// </summary>
-    public required Guid SecurityStampAtCreate { get; set; }
+    public required Guid SecurityStampAtCreate { get; init; }
 
     /// <summary>
     /// When the reset was consumed. Null while the request is still pending.
@@ -44,8 +44,8 @@ public sealed class UserPasswordReset
     /// When the reset was created. Combined with <see cref="Duration.PasswordResetRequestLifetime"/>
     /// to enforce the link's expiry.
     /// </summary>
-    public DateTime CreatedAt { get; set; }
+    public DateTime CreatedAt { get; init; }
 
     // Navigations
-    public User User { get; set; } = null!;
+    public User User { get; init; } = null!;
 }

@@ -13,24 +13,24 @@ public sealed class UserEmailChange
     /// Internal identifier. Unlike password resets, the email-change link only carries the secret
     /// token — the id is not exposed in the URL.
     /// </summary>
-    public required Guid Id { get; set; }
+    public required Guid Id { get; init; }
 
     /// <summary>
     /// User this email change belongs to.
     /// </summary>
-    public required Guid UserId { get; set; }
+    public required Guid UserId { get; init; }
 
     /// <summary>
     /// The user's email address at the time the request was created. Preserved for audit; not
     /// part of the verification predicate (the version counter handles that).
     /// </summary>
-    public required string OldEmail { get; set; }
+    public required string OldEmail { get; init; }
 
     /// <summary>
     /// The email address the user wants to switch to. Written to <see cref="User.Email"/> when
     /// the verification link is followed.
     /// </summary>
-    public required string NewEmail { get; set; }
+    public required string NewEmail { get; init; }
 
     /// <summary>
     /// Hash of the secret token sent to <see cref="NewEmail"/>. The plaintext token is never stored -
@@ -45,7 +45,7 @@ public sealed class UserEmailChange
     /// The change is only valid while this still matches the user's current stamp, so any
     /// password or other email change going through first silently invalidates this one.
     /// </summary>
-    public required Guid SecurityStampAtCreate { get; set; }
+    public required Guid SecurityStampAtCreate { get; init; }
 
     /// <summary>
     /// When the verification link was followed and the email was actually changed. Null while the
@@ -57,8 +57,8 @@ public sealed class UserEmailChange
     /// When the request was created. Combined with <see cref="Duration.EmailChangeRequestLifetime"/>
     /// to enforce the link's expiry.
     /// </summary>
-    public DateTime CreatedAt { get; set; }
+    public DateTime CreatedAt { get; init; }
 
     // Navigations
-    public User User { get; set; } = null!;
+    public User User { get; init; } = null!;
 }

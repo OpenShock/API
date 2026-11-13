@@ -145,7 +145,7 @@ public sealed class PublicShareHub : Hub<IPublicShareHub>
     private sealed class CustomDataHolder
     {
         public required Guid PublicShareId { get; init; }
-        public required BasicUserInfo? User { get; set; }
+        public required BasicUserInfo? User { get; init; }
         public required string? CustomName { get; init; }
         public required ControlLogSender CachedControlLogSender { get; init; }
     }

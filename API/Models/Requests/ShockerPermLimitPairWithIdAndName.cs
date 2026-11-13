@@ -2,5 +2,5 @@
 
 public sealed class ShockerPermLimitPairWithIdAndName : ShockerPermLimitPairWithId
 {
-    public required string Name { get; set; }
+    public required string Name { get; init; }
 }

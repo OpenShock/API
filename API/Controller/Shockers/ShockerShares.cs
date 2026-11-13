@@ -93,8 +93,8 @@ public sealed partial class ShockerController
 
     public sealed class ShareCodeInfo
     {
-        public required Guid Id { get; set; }
-        public required DateTime CreatedOn { get; set; }
+        public required Guid Id { get; init; }
+        public required DateTime CreatedOn { get; init; }
     }
 
     /// <summary>

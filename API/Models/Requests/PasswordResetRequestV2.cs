@@ -6,9 +6,9 @@ namespace OpenShock.API.Models.Requests;
 public sealed class PasswordResetRequestV2
 {
     [Common.DataAnnotations.EmailAddress(true)]
-    public required string Email { get; set; }
+    public required string Email { get; init; }
     
     [Required(AllowEmptyStrings = false)]
     [StringLength(ApiHardLimits.MaxTurnstileResponseTokenLength)]
-    public required string TurnstileResponse { get; set; }
+    public required string TurnstileResponse { get; init; }
 }

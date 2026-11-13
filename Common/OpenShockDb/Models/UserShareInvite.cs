@@ -2,16 +2,16 @@
 
 public sealed class UserShareInvite
 {
-    public required Guid Id { get; set; }
+    public required Guid Id { get; init; }
 
-    public required Guid OwnerId { get; set; }
+    public required Guid OwnerId { get; init; }
 
-    public Guid? RecipientUserId { get; set; }
+    public Guid? RecipientUserId { get; init; }
 
-    public DateTime CreatedAt { get; set; }
+    public DateTime CreatedAt { get; init; }
 
     // Navigations
-    public User Owner { get; set; } = null!;
-    public User? RecipientUser { get; set; }
+    public User Owner { get; init; } = null!;
+    public User? RecipientUser { get; init; }
     public ICollection<UserShareInviteShocker> ShockerMappings { get; } = [];
 }

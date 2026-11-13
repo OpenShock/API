@@ -2,5 +2,5 @@
 
 public sealed class PauseRequest
 {
-    public required bool Pause { get; set; }
+    public required bool Pause { get; init; }
 }

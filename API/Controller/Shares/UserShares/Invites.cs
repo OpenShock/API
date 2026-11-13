@@ -218,23 +218,23 @@ public sealed partial class UserSharesController
 
 public closed class ShareRequestBase
 {
-    public required Guid Id { get; set; }
-    public required DateTime CreatedAt { get; set; }
-    public required BasicUserInfo Owner { get; set; }
-    public required BasicUserInfo? SharedWith { get; set; }
+    public required Guid Id { get; init; }
+    public required DateTime CreatedAt { get; init; }
+    public required BasicUserInfo Owner { get; init; }
+    public required BasicUserInfo? SharedWith { get; init; }
 }
 
 public sealed class ShareInviteBaseItem : ShareRequestBase
 {
-    public required ShareRequestCounts Counts { get; set; }
+    public required ShareRequestCounts Counts { get; init; }
     
     public sealed class ShareRequestCounts
     {
-        public required int Shockers { get; set; }
+        public required int Shockers { get; init; }
     }
 }
 
 public sealed class ShareInviteBaseDetails : ShareRequestBase
 {
-    public required IEnumerable<ShockerPermLimitPairWithIdAndName> Shockers { get; set; }
+    public required IEnumerable<ShockerPermLimitPairWithIdAndName> Shockers { get; init; }
 }

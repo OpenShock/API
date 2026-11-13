@@ -10,12 +10,12 @@ namespace OpenShock.API.Controller.Admin.DTOs;
 public sealed class SendTestEmailDto
 {
     /// <summary>Which template to preview.</summary>
-    public required EmailType Type { get; set; }
+    public required EmailType Type { get; init; }
 
     /// <summary>Destination address for the test email.</summary>
     [EmailAddress(true)]
-    public required string Recipient { get; set; }
+    public required string Recipient { get; init; }
 
     /// <summary>Optional display name for the recipient.</summary>
-    public string? RecipientName { get; set; }
+    public string? RecipientName { get; init; }
 }

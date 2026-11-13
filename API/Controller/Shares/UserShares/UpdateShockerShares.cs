@@ -73,5 +73,5 @@ public sealed partial class UserSharesController
 
 public sealed class BulkUserShareShockersUpdateRequest : ShockerPermLimitPair
 {
-    public required IReadOnlyList<Guid> Shockers { get; set; }
+    public required IReadOnlyList<Guid> Shockers { get; init; }
 }

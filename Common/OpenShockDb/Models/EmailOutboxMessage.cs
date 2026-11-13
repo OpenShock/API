@@ -51,16 +51,16 @@ namespace OpenShock.Common.OpenShockDb;
 public sealed class EmailOutboxMessage
 {
     /// <summary>Primary key (UUIDv7, time-ordered so the queue drains roughly FIFO).</summary>
-    public required Guid Id { get; set; }
+    public required Guid Id { get; init; }
 
     /// <summary>Which email this is; selects the template and the send logic.</summary>
-    public required EmailType Type { get; set; }
+    public required EmailType Type { get; init; }
 
     /// <summary>Destination email address.</summary>
-    public required string Recipient { get; set; }
+    public required string Recipient { get; init; }
 
     /// <summary>Optional display name for the recipient.</summary>
-    public string? RecipientName { get; set; }
+    public string? RecipientName { get; init; }
 
     /// <summary>
     /// Dynamic, non-secret parameters needed to render and send, stored as Postgres <c>jsonb</c>
@@ -101,7 +101,7 @@ public sealed class EmailOutboxMessage
     public string? LastError { get; set; }
 
     /// <summary>When the row was created (i.e. when the email was enqueued).</summary>
-    public DateTime CreatedAt { get; set; }
+    public DateTime CreatedAt { get; init; }
 
     /// <summary>When the message was successfully handed to the provider. Null until then.</summary>
     public DateTime? SentAt { get; set; }

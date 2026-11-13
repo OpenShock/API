@@ -4,6 +4,6 @@ namespace OpenShock.Common.Models;
 
 public sealed class ControlRequest
 {
-    public required IReadOnlyList<Control> Shocks { get; set; }
-    public string? CustomName { get; set; } = null;
+    public required IReadOnlyList<Control> Shocks { get; init; }
+    public string? CustomName { get; init; } = null;
 }

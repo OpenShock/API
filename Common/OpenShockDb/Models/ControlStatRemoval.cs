@@ -8,7 +8,7 @@ namespace OpenShock.Common.OpenShockDb;
 public sealed class ControlStatRemoval
 {
     /// <summary>Deliberately not a foreign key, the user may be the one that got deleted.</summary>
-    public required Guid UserId { get; set; }
+    public required Guid UserId { get; init; }
 
-    public required DateTime RemovedAt { get; set; }
+    public required DateTime RemovedAt { get; init; }
 }

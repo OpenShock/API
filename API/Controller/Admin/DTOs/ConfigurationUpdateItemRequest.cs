@@ -15,16 +15,16 @@ public sealed class ConfigurationUpdateItemRequest
     /// Must consist only of uppercase letters and underscores.
     /// </summary>
     [Required(AllowEmptyStrings = false)]
-    public required string Name { get; set; }
+    public required string Name { get; init; }
 
     /// <summary>
     /// (Optional) New description for the configuration item.
     /// </summary>
-    public string? Description { get; set; }
+    public string? Description { get; init; }
 
     /// <summary>
     /// (Optional) New value for the configuration item.
     /// Must match the format expected by its existing <see cref="ConfigurationValueType"/>.
     /// </summary>
-    public string? Value { get; set; }
+    public string? Value { get; init; }
 }

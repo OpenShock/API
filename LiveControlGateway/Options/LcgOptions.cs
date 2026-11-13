@@ -20,23 +20,23 @@ public sealed class LcgOptions
     /// FQDN (public host) of the LCG that clients connect to
     /// </summary>
     [Required(AllowEmptyStrings = false)]
-    public required string Fqdn { get; set; }
+    public required string Fqdn { get; init; }
 
     /// <summary>
     /// Public port clients (firmware &amp; browsers) connect to. Defaults to 443.
     /// </summary>
-    public ushort PublicPort { get; set; } = 443;
+    public ushort PublicPort { get; init; } = 443;
 
     /// <summary>
     /// Public path prefix the gateway is served under (e.g. "/gateway"). Empty = root.
     /// </summary>
-    public string PublicPath { get; set; } = string.Empty;
+    public string PublicPath { get; init; } = string.Empty;
 
     /// <summary>
     /// A valid country code by ISO 3166-1 alpha-2 https://en.wikipedia.org/wiki/ISO_3166-1_alpha-2
     /// </summary>
     [Alpha2CountryCode]
-    public required string CountryCode { get; set; }
+    public required string CountryCode { get; init; }
 
     /// <summary>
     /// Optional latitude of the gateway (WGS84 decimal degrees). When set together with
@@ -44,19 +44,19 @@ public sealed class LcgOptions
     /// instead of only by country, which matters for large countries hosting several gateways.
     /// </summary>
     [Range(-90d, 90d)]
-    public double? Latitude { get; set; }
+    public double? Latitude { get; init; }
 
     /// <summary>
     /// Optional longitude of the gateway (WGS84 decimal degrees). See <see cref="Latitude"/>.
     /// </summary>
     [Range(-180d, 180d)]
-    public double? Longitude { get; set; }
+    public double? Longitude { get; init; }
 
     /// <summary>
     /// Number of hub connections at which this gateway reports itself as fully loaded. Not a hard limit.
     /// </summary>
     [Range(1, int.MaxValue)]
-    public int MaxHubConnections { get; set; } = 5000;
+    public int MaxHubConnections { get; init; } = 5000;
 
     /// <summary>
     /// Normalized public path prefix: a single leading slash and no trailing slash, or empty for root.

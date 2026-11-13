@@ -7,10 +7,10 @@ namespace OpenShock.Common.Models.WebSocket.User;
 // ReSharper disable once ClassNeverInstantiated.Global
 public sealed class Control
 {
-    public required Guid Id { get; set; }
+    public required Guid Id { get; init; }
 
     [EnumDataType(typeof(ControlType))]
-    public required ControlType Type { get; set; }
+    public required ControlType Type { get; init; }
 
     [Range(HardLimits.MinControlIntensity, HardLimits.MaxControlIntensity)]
     public required byte Intensity { get; set; }
@@ -21,5 +21,5 @@ public sealed class Control
     /// <summary>
     /// If true, overrides livecontrol
     /// </summary>
-    public bool Exclusive { get; set; } = false;
+    public bool Exclusive { get; init; } = false;
 }

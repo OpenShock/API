@@ -59,13 +59,13 @@ public sealed partial class UserSharesController
 
 public sealed class PauseUserShareShockersRequest
 {
-    [Required, MinLength(1)] public required Guid[] Shockers { get; set; }
+    [Required, MinLength(1)] public required Guid[] Shockers { get; init; }
 
-    [Required] public required bool Pause { get; set; }
+    [Required] public required bool Pause { get; init; }
 }
 
 public sealed class PauseUserShareShockersResponse
 {
-    public required int AffectedRecords { get; set; }
-    public required IReadOnlyDictionary<Guid, PauseReason> PauseStates { get; set; }
+    public required int AffectedRecords { get; init; }
+    public required IReadOnlyDictionary<Guid, PauseReason> PauseStates { get; init; }
 }

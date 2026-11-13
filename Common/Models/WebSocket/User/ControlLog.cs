@@ -7,15 +7,15 @@ namespace OpenShock.Common.Models.WebSocket.User;
 // ReSharper disable once ClassNeverInstantiated.Global
 public sealed class ControlLog
 {
-    public required BasicShockerInfo Shocker { get; set; }
+    public required BasicShockerInfo Shocker { get; init; }
 
-    public required ControlType Type { get; set; }
+    public required ControlType Type { get; init; }
 
     [Range(HardLimits.MinControlIntensity, HardLimits.MaxControlIntensity)]
-    public required byte Intensity { get; set; }
+    public required byte Intensity { get; init; }
 
     [Range(HardLimits.MinControlDuration, HardLimits.MaxControlDuration)]
-    public required uint Duration { get; set; }
+    public required uint Duration { get; init; }
 
-    public required DateTime ExecutedAt { get; set; }
+    public required DateTime ExecutedAt { get; init; }
 }

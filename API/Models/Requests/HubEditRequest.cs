@@ -7,5 +7,5 @@ public sealed class HubEditRequest
 {
     [Required(AllowEmptyStrings = false)]
     [StringLength(HardLimits.HubNameMaxLength, MinimumLength = HardLimits.HubNameMinLength)]
-    public required string Name { get; set; }
+    public required string Name { get; init; }
 }

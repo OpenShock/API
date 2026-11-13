@@ -9,5 +9,5 @@ public sealed class EmailOutboxBulkRequest
 {
     [Required]
     [MaxLength(1000)]
-    public required Guid[] Ids { get; set; }
+    public required Guid[] Ids { get; init; }
 }
