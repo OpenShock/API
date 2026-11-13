@@ -150,7 +150,7 @@ public sealed partial class UserSharesController
                 existingShare.AllowLiveControl = shareInvitationShocker.AllowLiveControl;
                 existingShare.MaxIntensity = shareInvitationShocker.MaxIntensity;
                 existingShare.MaxDuration = shareInvitationShocker.MaxDuration;
-                existingShare.IsPaused = shareInvitationShocker.IsPaused;
+                // Keep existingShare.IsPaused: redeeming an invite must not lift a pause the owner set on the share
                 _db.UserShares.Update(existingShare);
 
             }
