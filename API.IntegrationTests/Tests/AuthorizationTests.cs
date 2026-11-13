@@ -25,6 +25,7 @@ public sealed class AuthorizationTests
     [Arguments("/1/tokens")]
     [Arguments("/1/sessions/self")]
     [Arguments("/1/users/self")]
+    [Arguments("/1/account")]
     public async Task ProtectedEndpoint_NoAuth_Returns401(string url)
     {
         using var client = WebApplicationFactory.CreateClient();
