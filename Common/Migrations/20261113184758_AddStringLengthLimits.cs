@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore.Migrations;
+using OpenShock.Common.OpenShockDb;
 
 #nullable disable
 
@@ -10,8 +11,11 @@ public partial class _20261113184758_AddStringLengthLimits : Migration
     /// <inheritdoc />
     protected override void Up(MigrationBuilder migrationBuilder)
     {
-        // The columns below were unbounded text. Truncate anything longer than the new limit first,
-        // otherwise the type change fails on existing rows.
+        // The columns below were unbounded text. A truncated credential is useless, so abort with a clear
+        // error if any existing webhook token exceeds the new limit.
+        migrationBuilder.Sql(MigrationQueries.FailIfLonger("discord_webhooks", "webhook_token", 128));
+
+        // Truncate anything else longer than the new limit first, otherwise the type change fails on existing rows.
         migrationBuilder.Sql("UPDATE user_oauth_connections SET display_name = left(display_name, 64) WHERE char_length(display_name) > 64;");
 
         migrationBuilder.AlterColumn<string>(
@@ -47,8 +51,6 @@ public partial class _20261113184758_AddStringLengthLimits : Migration
             oldClrType: typeof(string),
             oldType: "text",
             oldCollation: "C");
-
-        migrationBuilder.Sql("UPDATE discord_webhooks SET webhook_token = left(webhook_token, 128) WHERE char_length(webhook_token) > 128;");
 
         migrationBuilder.AlterColumn<string>(
             name: "webhook_token",
