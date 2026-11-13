@@ -22,14 +22,6 @@ namespace OpenShock.Common;
 
 public static class OpenShockMiddlewareHelper
 {
-    private static readonly ForwardedHeadersOptions ForwardedSettings = new()
-    {
-        ForwardedHeaders = ForwardedHeaders.All,
-        RequireHeaderSymmetry = false,
-        ForwardLimit = null,
-        ForwardedForHeaderName = "CF-Connecting-IP"
-    };
-    
     public static async Task<IApplicationBuilder> UseCommonOpenShockMiddleware(this WebApplication app, string? pathBase = null)
     {
         // Networks allowed to reach the operational endpoints (metrics, health). Defaults to the
@@ -46,12 +38,22 @@ public static class OpenShockMiddlewareHelper
             app.UsePathBase(NormalizePathBase(pathBase));
         }
 
+        // Built per application instead of shared statically: several hosts starting in the same process
+        // (the integration tests) would otherwise add to one KnownIPNetworks list concurrently.
+        var forwardedSettings = new ForwardedHeadersOptions
+        {
+            ForwardedHeaders = ForwardedHeaders.All,
+            RequireHeaderSymmetry = false,
+            ForwardLimit = null,
+            ForwardedForHeaderName = "CF-Connecting-IP"
+        };
+
         foreach (var proxy in await TrustedProxiesFetcher.GetTrustedNetworksAsync())
         {
-            ForwardedSettings.KnownIPNetworks.Add(proxy);
+            forwardedSettings.KnownIPNetworks.Add(proxy);
         }
 
-        app.UseForwardedHeaders(ForwardedSettings);
+        app.UseForwardedHeaders(forwardedSettings);
 
         // Health is operational data, gated by the same allow-list as /metrics. This runs after
         // UseForwardedHeaders, so a proxied request is judged on its real client IP, and before routing,
