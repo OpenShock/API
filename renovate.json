@@ -1,32 +1,4 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
-  "extends": [
-    "config:recommended",
-    ":semanticCommitTypeAll(chore)",
-    "helpers:pinGitHubActionDigests",
-    "schedule:weekly"
-  ],
-  "minimumReleaseAge": "3 days",
-  "packageRules": [
-    {
-      "description": "One PR for all non-major NuGet updates",
-      "matchManagers": ["nuget"],
-      "matchUpdateTypes": ["minor", "patch"],
-      "groupName": "nuget non-major"
-    },
-    {
-      "description": "One PR for all GitHub Actions updates",
-      "matchManagers": ["github-actions"],
-      "groupName": "github-actions"
-    },
-    {
-      "description": "global.json SDK pin and the .NET images must move together",
-      "matchPackageNames": [
-        "dotnet-sdk",
-        "mcr.microsoft.com/dotnet/sdk",
-        "mcr.microsoft.com/dotnet/aspnet"
-      ],
-      "groupName": "dotnet sdk and images"
-    }
-  ]
+  "extends": ["local>OpenShock/org-config//renovate/default", "local>OpenShock/org-config//renovate/automerge"]
 }
