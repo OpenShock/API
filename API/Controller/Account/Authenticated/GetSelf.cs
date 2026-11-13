@@ -17,16 +17,13 @@ public sealed partial class AuthenticatedAccountController
     [HttpGet]
     [Authorize(AuthenticationSchemes = OpenShockAuthSchemes.UserSessionApiTokenCombo)]
     [ProducesResponseType<UserSelfResponse>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
-    public UserSelfResponse GetSelf() => CreateSelfResponse(CurrentUser);
-
-    internal static UserSelfResponse CreateSelfResponse(OpenShock.Common.OpenShockDb.User user) => new()
+    public UserSelfResponse GetSelf() => new()
     {
-        Id = user.Id,
-        Name = user.Name,
-        Email = user.Email,
-        Image = user.GetImageUrl(),
-        Roles = user.Roles,
-        Rank = user.Roles.Count > 0 ? user.Roles.Max().ToString() : "User",
-        HasPassword = !string.IsNullOrEmpty(user.PasswordHash)
+        Id = CurrentUser.Id,
+        Name = CurrentUser.Name,
+        Email = CurrentUser.Email,
+        Image = CurrentUser.GetImageUrl(),
+        Roles = CurrentUser.Roles,
+        HasPassword = !string.IsNullOrEmpty(CurrentUser.PasswordHash)
     };
 }
