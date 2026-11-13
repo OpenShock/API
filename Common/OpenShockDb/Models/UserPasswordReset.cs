@@ -12,7 +12,7 @@ public sealed class UserPasswordReset
     /// <summary>
     /// Public identifier embedded in the reset URL alongside the secret token.
     /// </summary>
-    public required Guid Id { get; init; }
+    public Guid Id { get; init; }
 
     /// <summary>
     /// User this reset request belongs to.

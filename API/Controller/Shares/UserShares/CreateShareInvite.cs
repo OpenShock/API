@@ -52,7 +52,6 @@ public sealed partial class UserSharesController
 
         var shareInvite = new UserShareInvite
         {
-            Id = Guid.CreateVersion7(),
             OwnerId = CurrentUser.Id,
             RecipientUserId = body.User
         };

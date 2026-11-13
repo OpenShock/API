@@ -153,7 +153,7 @@ public class OpenShockContext : DbContext, IDataProtectionKeyContext
             entity.HasIndex(e => e.TokenHash).IsUnique();
 
             entity.Property(e => e.Id)
-                .ValueGeneratedNever()
+                .ValueGeneratedOnAdd()
                 .HasColumnName("id");
             entity.Property(e => e.CreatedByIp)
                 .HasColumnName("created_by_ip");
@@ -210,7 +210,7 @@ public class OpenShockContext : DbContext, IDataProtectionKeyContext
             entity.ToTable("api_token_reports");
             
             entity.Property(e => e.Id)
-                .ValueGeneratedNever()
+                .ValueGeneratedOnAdd()
                 .HasColumnName("id");
         });
         
@@ -221,7 +221,7 @@ public class OpenShockContext : DbContext, IDataProtectionKeyContext
             entity.ToTable("api_token_reports");
 
             entity.Property(e => e.Id)
-                .ValueGeneratedNever()
+                .ValueGeneratedOnAdd()
                 .HasColumnName("id");
             entity.Property(e => e.SubmittedCount)
                 .HasColumnName("submitted_count");
@@ -252,7 +252,7 @@ public class OpenShockContext : DbContext, IDataProtectionKeyContext
             entity.HasIndex(e => e.Token).IsUnique();
 
             entity.Property(e => e.Id)
-                .ValueGeneratedNever()
+                .ValueGeneratedOnAdd()
                 .HasColumnName("id");
             entity.Property(e => e.CreatedAt)
                 .HasDefaultValueSql("CURRENT_TIMESTAMP")
@@ -308,7 +308,7 @@ public class OpenShockContext : DbContext, IDataProtectionKeyContext
             entity.HasIndex(e => e.UserId);
 
             entity.Property(e => e.Id)
-                .ValueGeneratedNever()
+                .ValueGeneratedOnAdd()
                 .HasColumnName("id");
             entity.Property(e => e.CreatedAt)
                 .HasDefaultValueSql("CURRENT_TIMESTAMP")
@@ -337,7 +337,7 @@ public class OpenShockContext : DbContext, IDataProtectionKeyContext
             entity.HasIndex(e => e.OwnerId);
 
             entity.Property(e => e.Id)
-                .ValueGeneratedNever()
+                .ValueGeneratedOnAdd()
                 .HasColumnName("id");
             entity.Property(e => e.CreatedAt)
                 .HasDefaultValueSql("CURRENT_TIMESTAMP")
@@ -401,7 +401,7 @@ public class OpenShockContext : DbContext, IDataProtectionKeyContext
             entity.HasIndex(e => e.DeviceId);
 
             entity.Property(e => e.Id)
-                .ValueGeneratedNever()
+                .ValueGeneratedOnAdd()
                 .HasColumnName("id");
             entity.Property(e => e.CreatedAt)
                 .HasDefaultValueSql("CURRENT_TIMESTAMP")
@@ -430,7 +430,7 @@ public class OpenShockContext : DbContext, IDataProtectionKeyContext
             entity.HasIndex(e => e.ShockerId);
 
             entity.Property(e => e.Id)
-                .ValueGeneratedNever()
+                .ValueGeneratedOnAdd()
                 .HasColumnName("id");
             entity.Property(e => e.ControlledByUserId).HasColumnName("controlled_by_user_id");
             entity.Property(e => e.CreatedAt)
@@ -578,7 +578,7 @@ public class OpenShockContext : DbContext, IDataProtectionKeyContext
             entity.ToTable("shocker_share_codes");
 
             entity.Property(e => e.Id)
-                .ValueGeneratedNever()
+                .ValueGeneratedOnAdd()
                 .HasColumnName("id");
             entity.Property(e => e.CreatedAt)
                 .HasDefaultValueSql("CURRENT_TIMESTAMP")
@@ -618,7 +618,7 @@ public class OpenShockContext : DbContext, IDataProtectionKeyContext
             entity.HasIndex(e => e.OwnerId);
 
             entity.Property(e => e.Id)
-                .ValueGeneratedNever()
+                .ValueGeneratedOnAdd()
                 .HasColumnName("id");
             entity.Property(e => e.CreatedAt)
                 .HasDefaultValueSql("CURRENT_TIMESTAMP")
@@ -682,7 +682,7 @@ public class OpenShockContext : DbContext, IDataProtectionKeyContext
             entity.HasIndex(e => e.Name).UseCollation("ndcoll").IsUnique();
 
             entity.Property(e => e.Id)
-                .ValueGeneratedNever()
+                .ValueGeneratedOnAdd()
                 .HasColumnName("id");
             entity.Property(e => e.Name)
                 .UseCollation("ndcoll")
@@ -806,7 +806,7 @@ public class OpenShockContext : DbContext, IDataProtectionKeyContext
             entity.HasIndex(e => e.CreatedAt);
 
             entity.Property(e => e.Id)
-                .ValueGeneratedNever()
+                .ValueGeneratedOnAdd()
                 .HasColumnName("id");
             entity.Property(e => e.UserId)
                 .HasColumnName("user_id");
@@ -910,7 +910,7 @@ public class OpenShockContext : DbContext, IDataProtectionKeyContext
             entity.HasIndex(e => e.Value).UseCollation("ndcoll").IsUnique();
 
             entity.Property(e => e.Id)
-                .ValueGeneratedNever()
+                .ValueGeneratedOnAdd()
                 .HasColumnName("id");
             entity.Property(e => e.Value)
                 .UseCollation("ndcoll")
@@ -932,7 +932,7 @@ public class OpenShockContext : DbContext, IDataProtectionKeyContext
             entity.HasIndex(e => e.Domain).UseCollation("ndcoll").IsUnique();
 
             entity.Property(e => e.Id)
-                .ValueGeneratedNever()
+                .ValueGeneratedOnAdd()
                 .HasColumnName("id");
             entity.Property(e => e.Domain)
                 .UseCollation("ndcoll")
@@ -952,7 +952,7 @@ public class OpenShockContext : DbContext, IDataProtectionKeyContext
             entity.HasIndex(e => e.TokenHash).IsUnique();
 
             entity.Property(e => e.Id)
-                .ValueGeneratedNever()
+                .ValueGeneratedOnAdd()
                 .HasColumnName("id");
             entity.Property(e => e.Name)
                 .HasMaxLength(ApiHardLimits.ApiKeyNameMaxLength)
@@ -993,7 +993,7 @@ public class OpenShockContext : DbContext, IDataProtectionKeyContext
             entity.HasIndex(e => e.CoalesceKey);
 
             entity.Property(e => e.Id)
-                .ValueGeneratedNever()
+                .ValueGeneratedOnAdd()
                 .HasColumnName("id");
             entity.Property(e => e.Type)
                 .HasColumnName("type");
@@ -1097,7 +1097,7 @@ public class OpenShockContext : DbContext, IDataProtectionKeyContext
             entity.HasIndex(e => e.CreatedAt);
 
             entity.Property(e => e.Id)
-                .ValueGeneratedNever()
+                .ValueGeneratedOnAdd()
                 .HasColumnName("id");
             entity.Property(e => e.UserId).HasColumnName("user_id");
             entity.Property(e => e.ActorId).HasColumnName("actor_id");

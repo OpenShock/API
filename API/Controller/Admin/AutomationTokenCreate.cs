@@ -27,7 +27,6 @@ public sealed partial class AdminController
         var secret = IAutomationTokenService.GenerateSecret();
         var token = new AutomationToken
         {
-            Id = Guid.CreateVersion7(),
             Name = body.Name.Trim(),
             TokenHash = HashingUtils.HashToken(secret),
             Types = [.. body.Types.Distinct()],

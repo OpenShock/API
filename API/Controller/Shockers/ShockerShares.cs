@@ -126,7 +126,6 @@ public sealed partial class ShockerController
 
         var newCode = new ShockerShareCode
         {
-            Id = Guid.CreateVersion7(),
             ShockerId = shockerId,
             AllowShock = body.Permissions.Shock,
             AllowVibrate = body.Permissions.Vibrate,

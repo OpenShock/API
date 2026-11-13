@@ -117,7 +117,6 @@ public sealed class ApiTokenService : IApiTokenService
 
         var tokenDto = new ApiToken
         {
-            Id = Guid.CreateVersion7(),
             UserId = userId,
             Name = body.Name,
             TokenHash = HashingUtils.HashToken(secret),
@@ -160,7 +159,6 @@ public sealed class ApiTokenService : IApiTokenService
 
         var tokenDto = new ApiToken
         {
-            Id = Guid.CreateVersion7(),
             UserId = userId,
             Name = body.Name,
             TokenHash = HashingUtils.HashToken(secret),

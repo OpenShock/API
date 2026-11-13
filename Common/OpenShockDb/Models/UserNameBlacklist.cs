@@ -2,7 +2,7 @@ namespace OpenShock.Common.OpenShockDb;
 
 public sealed class UserNameBlacklist
 {
-    public required Guid Id { get; init; }
+    public Guid Id { get; init; }
 
     public required string Value { get; init; } = null!;
 

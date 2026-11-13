@@ -7,7 +7,7 @@ namespace OpenShock.Common.OpenShockDb;
 
 public sealed class ApiToken
 {
-    public required Guid Id { get; init; }
+    public Guid Id { get; init; }
 
     public required Guid UserId { get; init; }
 

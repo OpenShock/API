@@ -51,7 +51,7 @@ namespace OpenShock.Common.OpenShockDb;
 public sealed class EmailOutboxMessage
 {
     /// <summary>Primary key (UUIDv7, time-ordered so the queue drains roughly FIFO).</summary>
-    public required Guid Id { get; init; }
+    public Guid Id { get; init; }
 
     /// <summary>Which email this is; selects the template and the send logic.</summary>
     public required EmailType Type { get; init; }
@@ -120,7 +120,6 @@ public sealed class EmailOutboxMessage
     {
         return new EmailOutboxMessage
         {
-            Id = Guid.CreateVersion7(),
             Type = type,
             Recipient = recipient,
             RecipientName = recipientName,

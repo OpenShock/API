@@ -2,7 +2,7 @@
 
 public sealed class PublicShare
 {
-    public required Guid Id { get; init; }
+    public Guid Id { get; init; }
 
     public required Guid OwnerId { get; init; }
 

@@ -4,7 +4,7 @@ namespace OpenShock.Common.OpenShockDb;
 
 public class ApiTokenReport
 {
-    public required Guid Id { get; init; }
+    public Guid Id { get; init; }
     
     public required int SubmittedCount { get; init; }
     

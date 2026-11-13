@@ -54,8 +54,6 @@ public sealed partial class TokensController
 
         // Nothing below may be cancelled by the client disconnecting: once tokens start being deleted the
         // report row and the admin webhook must follow, or a deletion goes unrecorded.
-        var reportId = Guid.CreateVersion7();
-
         int nAffected = 0;
         try
         {
@@ -76,15 +74,15 @@ public sealed partial class TokensController
 
         var ipCountry = HttpContext.GetCFIPCountry();
         
-        _db.ApiTokenReports.Add(new ApiTokenReport {
-            Id = reportId,
+        var report = new ApiTokenReport {
             SubmittedCount = body.Secrets.Length,
             AffectedCount = nAffected,
             UserId = CurrentUser.Id,
             IpAddress = remoteIP,
             IpCountry = ipCountry,
             ReportedByUser = CurrentUser
-        });
+        };
+        _db.ApiTokenReports.Add(report);
         await _db.SaveChangesAsync();
 
         await webhookService.SendWebhookAsync(
@@ -97,7 +95,7 @@ public sealed partial class TokensController
                • 🧹 **Deleted Tokens**: {nAffected}
                • 🌍 **IP Address**: {remoteIP}
                • 📍 **Country**: {ipCountry}
-               • 🆔 **Report ID**: `{reportId}`
+               • 🆔 **Report ID**: `{report.Id}`
                
                Please investigate further if necessary.
                """,

@@ -2,7 +2,7 @@
 
 public sealed class ShockerControlLog
 {
-    public required Guid Id { get; init; }
+    public Guid Id { get; init; }
 
     public required Guid ShockerId { get; init; }
 

@@ -105,7 +105,6 @@ public sealed class AccountService : IAccountService
 
         var user = new User
         {
-            Id = Guid.CreateVersion7(),
             Name = username,
             Email = email,
             PasswordHash = HashingUtils.HashPassword(password),
@@ -203,7 +202,6 @@ public sealed class AccountService : IAccountService
             
             var user = new User
             {
-                Id = Guid.CreateVersion7(),
                 Name = username,
                 Email = email,
                 PasswordHash = null,
@@ -566,7 +564,6 @@ public sealed class AccountService : IAccountService
         // durably enqueue the email.
         var passwordReset = new UserPasswordReset
         {
-            Id = Guid.CreateVersion7(),
             UserId = user.User.Id,
             TokenHash = SeedTokenHash(),
             SecurityStampAtCreate = user.User.SecurityStamp
@@ -832,7 +829,6 @@ public sealed class AccountService : IAccountService
         // verification link is ever stored.
         var emailChange = new UserEmailChange
         {
-            Id = Guid.CreateVersion7(),
             UserId = data.User.Id,
             OldEmail = data.User.Email,
             NewEmail = lowerCaseEmail,

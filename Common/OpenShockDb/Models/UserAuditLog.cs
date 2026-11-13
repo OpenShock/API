@@ -4,7 +4,7 @@ namespace OpenShock.Common.OpenShockDb;
 
 public sealed class UserAuditLog
 {
-    public required Guid Id { get; init; }
+    public Guid Id { get; init; }
 
     /// <summary>The account being affected.</summary>
     public required Guid UserId { get; init; }

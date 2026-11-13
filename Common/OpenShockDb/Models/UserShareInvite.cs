@@ -2,7 +2,7 @@
 
 public sealed class UserShareInvite
 {
-    public required Guid Id { get; init; }
+    public Guid Id { get; init; }
 
     public required Guid OwnerId { get; init; }
 

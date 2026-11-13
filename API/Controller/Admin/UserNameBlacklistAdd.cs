@@ -16,7 +16,6 @@ public sealed partial class AdminController
 
         var entry = new UserNameBlacklist
         {
-            Id = Guid.CreateVersion7(),
             Value = body.Value,
             MatchType = body.MatchType
         };

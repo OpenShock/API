@@ -13,7 +13,7 @@ public sealed class UserEmailChange
     /// Internal identifier. Unlike password resets, the email-change link only carries the secret
     /// token — the id is not exposed in the URL.
     /// </summary>
-    public required Guid Id { get; init; }
+    public Guid Id { get; init; }
 
     /// <summary>
     /// User this email change belongs to.

@@ -183,7 +183,6 @@ public sealed partial class DevicesController
 
         var device = new Common.OpenShockDb.Device
         {
-            Id = Guid.CreateVersion7(),
             OwnerId = CurrentUser.Id,
             Name = body.Name,
             Token = CryptoUtils.RandomString(256)

@@ -165,7 +165,6 @@ public sealed class ControlSender : IControlSender
 
             _db.ShockerControlLogs.Add(new ShockerControlLog
             {
-                Id = Guid.CreateVersion7(),
                 ShockerId = shocker.ShockerId,
                 ControlledByUserId = controllerUserId,
                 Intensity = control.Intensity,

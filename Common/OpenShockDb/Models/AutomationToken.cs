@@ -2,7 +2,7 @@ namespace OpenShock.Common.OpenShockDb;
 
 public sealed class AutomationToken
 {
-    public required Guid Id { get; init; }
+    public Guid Id { get; init; }
 
     public required string Name { get; set; }
 

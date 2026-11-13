@@ -20,7 +20,6 @@ public sealed class EmailOutboxMessageTests
         await Assert.That(message.RecipientName).IsEqualTo("User");
         await Assert.That(message.SentAt).IsNull();
         await Assert.That(message.FailedAt).IsNull();
-        await Assert.That(message.Id).IsNotEqualTo(Guid.Empty);
         await Assert.That(message.Payload[EmailOutboxPayloadKeys.PasswordResetId])
             .IsEqualTo("11111111-1111-1111-1111-111111111111");
     }
