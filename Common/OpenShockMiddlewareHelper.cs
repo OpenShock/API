@@ -1,22 +1,23 @@
-﻿using Microsoft.AspNetCore.Diagnostics.HealthChecks;
+﻿using System.Net;
+using System.Text;
+using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.AspNetCore.HttpOverrides;
-using Microsoft.AspNetCore.OpenApi;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
+using Npgsql;
 using OpenShock.Common.HealthChecks;
 using OpenShock.Common.Middleware;
 using OpenShock.Common.OpenShockDb;
 using OpenShock.Common.Options;
 using OpenShock.Common.Redis;
-using OpenShock.Common.Utils;
+using OpenShock.Internal.Common.Utils;
 using Redis.OM;
 using Redis.OM.Contracts;
 using Scalar.AspNetCore;
 using Serilog;
 using Serilog.Events;
+using ILogger = Microsoft.Extensions.Logging.ILogger;
 using IPNetwork = System.Net.IPNetwork;
-
-using OpenShock.Internal.Common.Utils;
 
 namespace OpenShock.Common;
 
@@ -58,7 +59,7 @@ public static class OpenShockMiddlewareHelper
         // Health is operational data, gated by the same allow-list as /metrics. This runs after
         // UseForwardedHeaders, so a proxied request is judged on its real client IP, and before routing,
         // so a rejected caller cannot even tell the endpoints exist.
-        app.Use(async (HttpContext context, RequestDelegate next) =>
+        app.Use(async (context, next) =>
         {
             if (context.Request.Path.StartsWithSegments(HealthCheckPaths.Health)
                 && !IsAllowed(context.Connection.RemoteIpAddress, internalAllowedIpNetworks))
@@ -182,11 +183,11 @@ public static class OpenShockMiddlewareHelper
                 : new Uri($"https://{request.Host.Value}{SecurityTxtOptions.Path}");
 
             context.Response.Headers.CacheControl = "public, max-age=3600";
-            return Microsoft.AspNetCore.Http.Results.Text(options.Render(canonical), "text/plain", System.Text.Encoding.UTF8);
+            return Microsoft.AspNetCore.Http.Results.Text(options.Render(canonical), "text/plain", Encoding.UTF8);
         }).ExcludeFromDescription();
     }
 
-    private static bool IsAllowed(System.Net.IPAddress? remoteIp, IPNetwork[] allowedNetworks) =>
+    private static bool IsAllowed(IPAddress? remoteIp, IPNetwork[] allowedNetworks) =>
         remoteIp is not null && allowedNetworks.Any(network => network.Contains(remoteIp));
 
     /// <summary>
@@ -249,14 +250,14 @@ public static class OpenShockMiddlewareHelper
     /// type catalog. Called after migrations are applied so newly-added types (enums) are visible without a
     /// process restart. Best-effort: a failure here is logged but not fatal, since a restart also clears it.
     /// </summary>
-    private static async Task ReloadRuntimeTypeCatalogAsync(IServiceProvider services, Microsoft.Extensions.Logging.ILogger logger)
+    private static async Task ReloadRuntimeTypeCatalogAsync(IServiceProvider services, ILogger logger)
     {
         try
         {
             await using var context = services.GetRequiredService<OpenShockContext>();
             // The connection is owned by the DbContext and disposed with it; do not dispose it here.
 #pragma warning disable IDISP001
-            var connection = (Npgsql.NpgsqlConnection)context.Database.GetDbConnection();
+            var connection = (NpgsqlConnection)context.Database.GetDbConnection();
 #pragma warning restore IDISP001
             await connection.OpenAsync();
             await connection.ReloadTypesAsync();
