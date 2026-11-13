@@ -20,7 +20,9 @@ updates:
   
   # Check for Github Actions version updates (for CI/CD)
   - package-ecosystem: github-actions
-    directory: /
+    directories:
+      - /
+      - /.github/actions/* # composite actions are not covered by `/`
     schedule:
       interval: weekly
       day: monday
@@ -39,5 +41,19 @@ updates:
       time: '08:00'
     groups:
       docker:
+        patterns:
+          - '*' # Group all updates together
+
+  # Check for image updates in the compose files
+  - package-ecosystem: docker-compose
+    directories:
+      - /
+      - /Dev
+    schedule:
+      interval: weekly
+      day: monday
+      time: '08:00'
+    groups:
+      docker-compose:
         patterns:
           - '*' # Group all updates together
