@@ -270,7 +270,7 @@ public sealed class ConfigurationService : IConfigurationService
         var pair = await TryGetTypeValuePair(name, cancellationToken);
         if (pair is null) return ConfigGetResult<float>.NotFound();
         if (pair.Type != ConfigurationValueType.Float) return ConfigGetResult<float>.InvalidValueType();
-        if (!float.TryParse(pair.Value, out var value))
+        if (!float.TryParse(pair.Value, CultureInfo.InvariantCulture, out var value))
         {
             _logger.LogWarning("Failed to parse float for '{Name}': Value='{Value}'", name, pair.Value);
             return ConfigGetResult<float>.InvalidValueFormat();
@@ -279,7 +279,7 @@ public sealed class ConfigurationService : IConfigurationService
     }
 
     public Task<bool> TrySetFloatAsync(string name, float value, CancellationToken cancellationToken) =>
-        SetValueAsync(name, value.ToString("R"), ConfigurationValueType.Float, cancellationToken);
+        SetValueAsync(name, value.ToString("R", CultureInfo.InvariantCulture), ConfigurationValueType.Float, cancellationToken);
 
     public async Task<ConfigGetResult<T>> TryGetJsonAsync<T>(string name, CancellationToken cancellationToken)
     {
