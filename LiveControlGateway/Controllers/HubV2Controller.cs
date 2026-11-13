@@ -202,7 +202,7 @@ public sealed class HubV2Controller : HubControllerBase<HubToGatewayMessage, Gat
 
     /// <inheritdoc />
     public override ValueTask Control(IList<ShockerCommand> controlCommands)
-        => QueueMessage(ControlMessage(controlCommands));
+        => QueueMessage(ControlMessage(controlCommands), Duration.HubControlMaxQueueAge);
 
     /// <inheritdoc />
     public override Task<bool> SendControl(IList<ShockerCommand> controlCommands)
