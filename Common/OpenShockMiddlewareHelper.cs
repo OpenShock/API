@@ -131,7 +131,7 @@ public static class OpenShockMiddlewareHelper
             return IsAllowed(context.Connection.RemoteIpAddress, internalAllowedIpNetworks);
         });
         
-        app.MapOpenApi("/openapi/{documentName}.json").WithDocumentPerVersion();
+        app.MapOpenApi().WithDocumentPerVersion();
 
         app.MapScalarApiReference("/scalar/viewer", options =>
                 options
