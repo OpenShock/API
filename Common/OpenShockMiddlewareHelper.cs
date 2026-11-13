@@ -145,9 +145,43 @@ public static class OpenShockMiddlewareHelper
             ResponseWriter = WriteHealthReportAsync
         });
 
+        app.MapSecurityTxt();
+
         app.MapControllers();
 
         return app;
+    }
+
+    /// <summary>
+    /// Publishes <c>/.well-known/security.txt</c> (RFC 9116) when <see cref="SecurityTxtOptions"/> is
+    /// configured. Unconfigured hosts get no endpoint at all, and an expired file is withheld: the RFC
+    /// prefers no file over stale contact information.
+    /// </summary>
+    private static void MapSecurityTxt(this WebApplication app)
+    {
+        var options = SecurityTxtOptions.FromConfiguration(app.Configuration);
+        if (options is null) return;
+
+        if (options.IsExpired(DateTimeOffset.UtcNow))
+        {
+            Log.Warning("{Section}:Expires ({Expires}) is in the past, security.txt will not be served until it is renewed",
+                SecurityTxtOptions.SectionName, options.Expires);
+        }
+
+        app.MapGet(SecurityTxtOptions.Path, (HttpContext context) =>
+        {
+            if (options.IsExpired(DateTimeOffset.UtcNow)) return Microsoft.AspNetCore.Http.Results.NotFound();
+
+            // The file only speaks for the host root it is served from. Under a path base it is not at
+            // the well-known location, so it cannot truthfully name a canonical URL.
+            var request = context.Request;
+            var canonical = request.PathBase.HasValue || !request.IsHttps
+                ? null
+                : new Uri($"https://{request.Host.Value}{SecurityTxtOptions.Path}");
+
+            context.Response.Headers.CacheControl = "public, max-age=3600";
+            return Microsoft.AspNetCore.Http.Results.Text(options.Render(canonical), "text/plain", System.Text.Encoding.UTF8);
+        }).ExcludeFromDescription();
     }
 
     private static bool IsAllowed(System.Net.IPAddress? remoteIp, IPNetwork[] allowedNetworks) =>

@@ -73,7 +73,11 @@ public class WebApplicationFactory : WebApplicationFactory<Program>
             { "OPENSHOCK__TURNSTILE__SITEKEY", "turnstile-site-key" },
 
             { "OPENSHOCK__LCG__FQDN", "de1-gateway.my-openshock-instance.net" },
-            { "OPENSHOCK__LCG__COUNTRYCODE", "DE" }
+            { "OPENSHOCK__LCG__COUNTRYCODE", "DE" },
+
+            { "OPENSHOCK__SECURITYTXT__CONTACT", "mailto:security@example.org,https://example.org/report" },
+            { "OPENSHOCK__SECURITYTXT__EXPIRES", "2099-01-01T00:00:00Z" },
+            { "OPENSHOCK__SECURITYTXT__POLICY", "https://example.org/policy" }
         };
 
         foreach (var envVar in environmentVariables)
