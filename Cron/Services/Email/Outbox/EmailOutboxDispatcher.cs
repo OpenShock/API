@@ -169,7 +169,8 @@ public sealed class EmailOutboxDispatcher : IEmailOutboxDispatcher
     {
         EmailSendResult.Sent => EmailDispatchResult.Sent,
         EmailSendResult.TransientFailure => EmailDispatchResult.Transient("Provider reported a transient failure"),
-        _ => EmailDispatchResult.Permanent("Provider rejected the message")
+        EmailSendResult.PermanentFailure => EmailDispatchResult.Permanent("Provider rejected the message"),
+        _ => throw new ArgumentOutOfRangeException(nameof(result), result, null)
     };
 
     private static Contact ToContact(EmailOutboxMessage message) => new(message.Recipient, message.RecipientName ?? message.Recipient);

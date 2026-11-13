@@ -35,7 +35,8 @@ public sealed partial class OAuthController
             return error switch
             {
                 OAuthValidationError.FlowStateMissing => RedirectFrontendError("oauthFlowNotStarted"),
-                _ => RedirectFrontendError("internalError")
+                OAuthValidationError.FlowDataMissingOrInvalid => RedirectFrontendError("internalError"),
+                _ => throw new ArgumentOutOfRangeException(nameof(error), error, null)
             };
         }
 
