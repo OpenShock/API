@@ -10,6 +10,7 @@ using OpenShock.Common.Results;
 using OpenShock.Common.Services.RedisPubSub;
 using OpenShock.Common.Utils;
 using OpenShock.LiveControlGateway.Controllers;
+using OpenShock.LiveControlGateway.Metrics;
 using OpenShock.LiveControlGateway.Mappers;
 using OpenShock.Serialization.Gateway;
 using Redis.OM.Contracts;
@@ -50,6 +51,7 @@ public sealed class HubLifetime : IAsyncDisposable
     private readonly IDbContextFactory<OpenShockContext> _dbContextFactory;
     private readonly IRedisConnectionProvider _redisConnectionProvider;
     private readonly IRedisPubService _redisPubService;
+    private readonly GatewayMetrics _metrics;
 
     private readonly RedisChannel _deviceMsgChannel;
     private readonly ISubscriber _subscriber;
@@ -74,6 +76,15 @@ public sealed class HubLifetime : IAsyncDisposable
     /// </summary>
     private static readonly TimeSpan BehindWarningInterval = TimeSpan.FromSeconds(5);
 
+    private static readonly TimeSpan SevereLagThreshold = TimeSpan.FromSeconds(1);
+
+    /// <summary>
+    /// Severe lag is a gateway-wide stall, so the error is rate limited across all lifetimes, not per hub
+    /// </summary>
+    private static readonly TimeSpan SevereLagErrorInterval = TimeSpan.FromSeconds(30);
+
+    private static long _lastSevereLagError;
+
     /// <summary>
     /// DI Constructor
     /// </summary>
@@ -83,12 +94,14 @@ public sealed class HubLifetime : IAsyncDisposable
     /// <param name="connectionMultiplexer"></param>
     /// <param name="redisConnectionProvider"></param>
     /// <param name="redisPubService"></param>
+    /// <param name="metrics"></param>
     /// <param name="logger"></param>
     public HubLifetime([Range(1, 10)] byte tps, IHubController hubController,
         IDbContextFactory<OpenShockContext> dbContextFactory,
         IConnectionMultiplexer connectionMultiplexer,
         IRedisConnectionProvider redisConnectionProvider,
         IRedisPubService redisPubService,
+        GatewayMetrics metrics,
         ILogger<HubLifetime> logger)
     {
         HubController = hubController;
@@ -96,6 +109,7 @@ public sealed class HubLifetime : IAsyncDisposable
         _dbContextFactory = dbContextFactory;
         _redisConnectionProvider = redisConnectionProvider;
         _redisPubService = redisPubService;
+        _metrics = metrics;
         _logger = logger;
 
         _waitBetweenTicks = TimeSpan.FromMilliseconds(1000.0 / tps);
@@ -336,13 +350,26 @@ public sealed class HubLifetime : IAsyncDisposable
             // PeriodicTimer drops missed ticks, so a gap of two or more periods
             // means Update() couldn't keep up and tick(s) were skipped.
             var dropped = (int)(sinceLastTick.Ticks / _waitBetweenTicks.Ticks) - 1;
-            if (dropped >= 1 && (lastBehindWarning is null ||
-                                 Stopwatch.GetElapsedTime(lastBehindWarning.Value, now) >= BehindWarningInterval))
+            if (dropped >= 1)
             {
-                lastBehindWarning = now;
-                _logger.LogWarning(
-                    "Update loop behind for device [{DeviceId}]: ~{Dropped} tick(s) dropped, {LateMs:F1}ms late",
-                    HubController.Id, dropped, (sinceLastTick - _waitBetweenTicks).TotalMilliseconds);
+                _metrics.UpdateTicksDropped(dropped);
+
+                var late = sinceLastTick - _waitBetweenTicks;
+                if (late >= SevereLagThreshold && TryClaimSevereLagError(now))
+                {
+                    _logger.LogError(
+                        "Update loop severely behind, gateway likely stalled: device [{DeviceId}] {LateMs:F1}ms late, ~{Dropped} tick(s) dropped",
+                        HubController.Id, late.TotalMilliseconds, dropped);
+                }
+
+                if (lastBehindWarning is null ||
+                    Stopwatch.GetElapsedTime(lastBehindWarning.Value, now) >= BehindWarningInterval)
+                {
+                    lastBehindWarning = now;
+                    _logger.LogDebug(
+                        "Update loop behind for device [{DeviceId}]: ~{Dropped} tick(s) dropped, {LateMs:F1}ms late",
+                        HubController.Id, dropped, late.TotalMilliseconds);
+                }
             }
 
             try
@@ -354,6 +381,13 @@ public sealed class HubLifetime : IAsyncDisposable
                 _logger.LogError(e, "Error in Update()");
             }
         }
+    }
+
+    private static bool TryClaimSevereLagError(long now)
+    {
+        var last = Interlocked.Read(ref _lastSevereLagError);
+        if (last != 0 && Stopwatch.GetElapsedTime(last, now) < SevereLagErrorInterval) return false;
+        return Interlocked.CompareExchange(ref _lastSevereLagError, now, last) == last;
     }
 
     private async Task Update()
