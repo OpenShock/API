@@ -374,8 +374,8 @@ partial class OpenShockContextModelSnapshot : ModelSnapshot
 
                 b.Property<string>("Description")
                     .IsRequired()
-                    .HasMaxLength(256)
-                    .HasColumnType("character varying(256)")
+                    .HasMaxLength(255)
+                    .HasColumnType("character varying(255)")
                     .HasColumnName("description");
 
                 b.Property<ConfigurationValueType>("Type")
@@ -608,8 +608,8 @@ partial class OpenShockContextModelSnapshot : ModelSnapshot
 
                 b.Property<string>("WebhookToken")
                     .IsRequired()
-                    .HasMaxLength(128)
-                    .HasColumnType("character varying(128)")
+                    .HasMaxLength(255)
+                    .HasColumnType("character varying(255)")
                     .HasColumnName("webhook_token");
 
                 b.HasKey("Name")

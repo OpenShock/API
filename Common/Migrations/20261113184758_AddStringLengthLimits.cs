@@ -13,7 +13,7 @@ public partial class _20261113184758_AddStringLengthLimits : Migration
     {
         // The columns below were unbounded text. A truncated credential is useless, so abort with a clear
         // error if any existing webhook token exceeds the new limit.
-        migrationBuilder.Sql(MigrationQueries.FailIfLonger("discord_webhooks", "webhook_token", 128));
+        migrationBuilder.Sql(MigrationQueries.FailIfLonger("discord_webhooks", "webhook_token", 255));
 
         // Truncate anything else longer than the new limit first, otherwise the type change fails on existing rows.
         migrationBuilder.Sql("UPDATE user_oauth_connections SET display_name = left(display_name, 64) WHERE char_length(display_name) > 64;");
@@ -55,8 +55,8 @@ public partial class _20261113184758_AddStringLengthLimits : Migration
         migrationBuilder.AlterColumn<string>(
             name: "webhook_token",
             table: "discord_webhooks",
-            type: "character varying(128)",
-            maxLength: 128,
+            type: "character varying(255)",
+            maxLength: 255,
             nullable: false,
             oldClrType: typeof(string),
             oldType: "text");
@@ -83,13 +83,13 @@ public partial class _20261113184758_AddStringLengthLimits : Migration
             oldClrType: typeof(string),
             oldType: "text");
 
-        migrationBuilder.Sql("UPDATE configuration SET description = left(description, 256) WHERE char_length(description) > 256;");
+        migrationBuilder.Sql("UPDATE configuration SET description = left(description, 255) WHERE char_length(description) > 255;");
 
         migrationBuilder.AlterColumn<string>(
             name: "description",
             table: "configuration",
-            type: "character varying(256)",
-            maxLength: 256,
+            type: "character varying(255)",
+            maxLength: 255,
             nullable: false,
             oldClrType: typeof(string),
             oldType: "text");
@@ -159,8 +159,8 @@ public partial class _20261113184758_AddStringLengthLimits : Migration
             type: "text",
             nullable: false,
             oldClrType: typeof(string),
-            oldType: "character varying(128)",
-            oldMaxLength: 128);
+            oldType: "character varying(255)",
+            oldMaxLength: 255);
 
         migrationBuilder.AlterColumn<string>(
             name: "name",
@@ -186,8 +186,8 @@ public partial class _20261113184758_AddStringLengthLimits : Migration
             type: "text",
             nullable: false,
             oldClrType: typeof(string),
-            oldType: "character varying(256)",
-            oldMaxLength: 256);
+            oldType: "character varying(255)",
+            oldMaxLength: 255);
 
         migrationBuilder.AlterColumn<string>(
             name: "name",
