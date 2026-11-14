@@ -18,14 +18,14 @@ partial class OpenShockContextModelSnapshot : ModelSnapshot
     // If you encounter a merge conflict in the line below, it means you need to
     // discard one of the migration branches and recreate its migrations on top of
     // the other branch. See https://aka.ms/efcore-docs-migrations-conflicts for more info.
-    public override string LastMigrationId => "20261016142540_AddControlStats";
+    public override string LastMigrationId => "20261113184758_AddStringLengthLimits";
 
     protected override void BuildModel(ModelBuilder modelBuilder)
     {
 #pragma warning disable 612, 618
         modelBuilder
             .HasAnnotation("Npgsql:CollationDefinition:public.ndcoll", "und-u-ks-level2,und-u-ks-level2,icu,False")
-            .HasAnnotation("ProductVersion", "11.0.0-rc.1.26425.128")
+            .HasAnnotation("ProductVersion", "11.0.0")
             .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
         NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "audit_action", new[] { "login", "logout", "password_changed", "email_change_requested", "email_changed", "username_changed", "api_token_created", "api_token_deleted", "oauth_connected", "oauth_disconnected", "account_deactivated", "account_reactivated", "account_deleted", "automation_token_created", "automation_token_updated", "automation_token_rotated", "automation_token_deleted", "automation_token_used" });
@@ -151,6 +151,7 @@ partial class OpenShockContextModelSnapshot : ModelSnapshot
         modelBuilder.Entity("OpenShock.Common.OpenShockDb.ApiToken", b =>
             {
                 b.Property<Guid>("Id")
+                    .ValueGeneratedOnAdd()
                     .HasColumnType("uuid")
                     .HasColumnName("id");
 
@@ -253,6 +254,7 @@ partial class OpenShockContextModelSnapshot : ModelSnapshot
         modelBuilder.Entity("OpenShock.Common.OpenShockDb.ApiTokenReport", b =>
             {
                 b.Property<Guid>("Id")
+                    .ValueGeneratedOnAdd()
                     .HasColumnType("uuid")
                     .HasColumnName("id");
 
@@ -272,7 +274,8 @@ partial class OpenShockContextModelSnapshot : ModelSnapshot
                     .HasColumnName("ip_address");
 
                 b.Property<string>("IpCountry")
-                    .HasColumnType("text")
+                    .HasMaxLength(4)
+                    .HasColumnType("character varying(4)")
                     .HasColumnName("ip_country");
 
                 b.Property<int>("SubmittedCount")
@@ -294,6 +297,7 @@ partial class OpenShockContextModelSnapshot : ModelSnapshot
         modelBuilder.Entity("OpenShock.Common.OpenShockDb.AutomationToken", b =>
             {
                 b.Property<Guid>("Id")
+                    .ValueGeneratedOnAdd()
                     .HasColumnType("uuid")
                     .HasColumnName("id");
 
@@ -357,7 +361,8 @@ partial class OpenShockContextModelSnapshot : ModelSnapshot
         modelBuilder.Entity("OpenShock.Common.OpenShockDb.ConfigurationItem", b =>
             {
                 b.Property<string>("Name")
-                    .HasColumnType("text")
+                    .HasMaxLength(64)
+                    .HasColumnType("character varying(64)")
                     .HasColumnName("name")
                     .UseCollation("C");
 
@@ -369,7 +374,8 @@ partial class OpenShockContextModelSnapshot : ModelSnapshot
 
                 b.Property<string>("Description")
                     .IsRequired()
-                    .HasColumnType("text")
+                    .HasMaxLength(255)
+                    .HasColumnType("character varying(255)")
                     .HasColumnName("description");
 
                 b.Property<ConfigurationValueType>("Type")
@@ -382,7 +388,8 @@ partial class OpenShockContextModelSnapshot : ModelSnapshot
 
                 b.Property<string>("Value")
                     .IsRequired()
-                    .HasColumnType("text")
+                    .HasMaxLength(4096)
+                    .HasColumnType("character varying(4096)")
                     .HasColumnName("value");
 
                 b.HasKey("Name")
@@ -501,6 +508,7 @@ partial class OpenShockContextModelSnapshot : ModelSnapshot
         modelBuilder.Entity("OpenShock.Common.OpenShockDb.Device", b =>
             {
                 b.Property<Guid>("Id")
+                    .ValueGeneratedOnAdd()
                     .HasColumnType("uuid")
                     .HasColumnName("id");
 
@@ -580,7 +588,8 @@ partial class OpenShockContextModelSnapshot : ModelSnapshot
         modelBuilder.Entity("OpenShock.Common.OpenShockDb.DiscordWebhook", b =>
             {
                 b.Property<string>("Name")
-                    .HasColumnType("text")
+                    .HasMaxLength(64)
+                    .HasColumnType("character varying(64)")
                     .HasColumnName("name");
 
                 b.Property<DateTime>("CreatedAt")
@@ -599,7 +608,8 @@ partial class OpenShockContextModelSnapshot : ModelSnapshot
 
                 b.Property<string>("WebhookToken")
                     .IsRequired()
-                    .HasColumnType("text")
+                    .HasMaxLength(255)
+                    .HasColumnType("character varying(255)")
                     .HasColumnName("webhook_token");
 
                 b.HasKey("Name")
@@ -611,6 +621,7 @@ partial class OpenShockContextModelSnapshot : ModelSnapshot
         modelBuilder.Entity("OpenShock.Common.OpenShockDb.EmailOutboxMessage", b =>
             {
                 b.Property<Guid>("Id")
+                    .ValueGeneratedOnAdd()
                     .HasColumnType("uuid")
                     .HasColumnName("id");
 
@@ -690,6 +701,7 @@ partial class OpenShockContextModelSnapshot : ModelSnapshot
         modelBuilder.Entity("OpenShock.Common.OpenShockDb.EmailProviderBlacklist", b =>
             {
                 b.Property<Guid>("Id")
+                    .ValueGeneratedOnAdd()
                     .HasColumnType("uuid")
                     .HasColumnName("id");
 
@@ -720,6 +732,7 @@ partial class OpenShockContextModelSnapshot : ModelSnapshot
         modelBuilder.Entity("OpenShock.Common.OpenShockDb.PublicShare", b =>
             {
                 b.Property<Guid>("Id")
+                    .ValueGeneratedOnAdd()
                     .HasColumnType("uuid")
                     .HasColumnName("id");
 
@@ -814,6 +827,7 @@ partial class OpenShockContextModelSnapshot : ModelSnapshot
         modelBuilder.Entity("OpenShock.Common.OpenShockDb.Shocker", b =>
             {
                 b.Property<Guid>("Id")
+                    .ValueGeneratedOnAdd()
                     .HasColumnType("uuid")
                     .HasColumnName("id");
 
@@ -858,6 +872,7 @@ partial class OpenShockContextModelSnapshot : ModelSnapshot
         modelBuilder.Entity("OpenShock.Common.OpenShockDb.ShockerControlLog", b =>
             {
                 b.Property<Guid>("Id")
+                    .ValueGeneratedOnAdd()
                     .HasColumnType("uuid")
                     .HasColumnName("id");
 
@@ -911,6 +926,7 @@ partial class OpenShockContextModelSnapshot : ModelSnapshot
         modelBuilder.Entity("OpenShock.Common.OpenShockDb.ShockerShareCode", b =>
             {
                 b.Property<Guid>("Id")
+                    .ValueGeneratedOnAdd()
                     .HasColumnType("uuid")
                     .HasColumnName("id");
 
@@ -973,6 +989,7 @@ partial class OpenShockContextModelSnapshot : ModelSnapshot
         modelBuilder.Entity("OpenShock.Common.OpenShockDb.User", b =>
             {
                 b.Property<Guid>("Id")
+                    .ValueGeneratedOnAdd()
                     .HasColumnType("uuid")
                     .HasColumnName("id");
 
@@ -1071,6 +1088,7 @@ partial class OpenShockContextModelSnapshot : ModelSnapshot
         modelBuilder.Entity("OpenShock.Common.OpenShockDb.UserAuditLog", b =>
             {
                 b.Property<Guid>("Id")
+                    .ValueGeneratedOnAdd()
                     .HasColumnType("uuid")
                     .HasColumnName("id");
 
@@ -1158,6 +1176,7 @@ partial class OpenShockContextModelSnapshot : ModelSnapshot
         modelBuilder.Entity("OpenShock.Common.OpenShockDb.UserEmailChange", b =>
             {
                 b.Property<Guid>("Id")
+                    .ValueGeneratedOnAdd()
                     .HasColumnType("uuid")
                     .HasColumnName("id");
 
@@ -1213,6 +1232,7 @@ partial class OpenShockContextModelSnapshot : ModelSnapshot
         modelBuilder.Entity("OpenShock.Common.OpenShockDb.UserNameBlacklist", b =>
             {
                 b.Property<Guid>("Id")
+                    .ValueGeneratedOnAdd()
                     .HasColumnType("uuid")
                     .HasColumnName("id");
 
@@ -1284,12 +1304,14 @@ partial class OpenShockContextModelSnapshot : ModelSnapshot
         modelBuilder.Entity("OpenShock.Common.OpenShockDb.UserOAuthConnection", b =>
             {
                 b.Property<string>("ProviderKey")
-                    .HasColumnType("text")
+                    .HasMaxLength(16)
+                    .HasColumnType("character varying(16)")
                     .HasColumnName("provider_key")
                     .UseCollation("C");
 
                 b.Property<string>("ExternalId")
-                    .HasColumnType("text")
+                    .HasMaxLength(255)
+                    .HasColumnType("character varying(255)")
                     .HasColumnName("external_id");
 
                 b.Property<DateTime>("CreatedAt")
@@ -1299,7 +1321,8 @@ partial class OpenShockContextModelSnapshot : ModelSnapshot
                     .HasDefaultValueSql("CURRENT_TIMESTAMP");
 
                 b.Property<string>("DisplayName")
-                    .HasColumnType("text")
+                    .HasMaxLength(64)
+                    .HasColumnType("character varying(64)")
                     .HasColumnName("display_name");
 
                 b.Property<Guid>("UserId")
@@ -1317,6 +1340,7 @@ partial class OpenShockContextModelSnapshot : ModelSnapshot
         modelBuilder.Entity("OpenShock.Common.OpenShockDb.UserPasswordReset", b =>
             {
                 b.Property<Guid>("Id")
+                    .ValueGeneratedOnAdd()
                     .HasColumnType("uuid")
                     .HasColumnName("id");
 
@@ -1420,6 +1444,7 @@ partial class OpenShockContextModelSnapshot : ModelSnapshot
         modelBuilder.Entity("OpenShock.Common.OpenShockDb.UserShareInvite", b =>
             {
                 b.Property<Guid>("Id")
+                    .ValueGeneratedOnAdd()
                     .HasColumnType("uuid")
                     .HasColumnName("id");
 

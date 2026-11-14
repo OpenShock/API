@@ -1,8 +1,10 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Npgsql;
+using OpenShock.Common.Constants;
 using OpenShock.Common.Models;
 using OpenShock.Common.OpenShockDb;
 using OpenShock.Common.Services.Audit;
+using OpenShock.Common.Utils;
 
 namespace OpenShock.API.Services.OAuthConnection;
 
@@ -58,7 +60,7 @@ public sealed class OAuthConnectionService : IOAuthConnectionService
                 UserId = userId,
                 ProviderKey = provider.ToLowerInvariant(),
                 ExternalId = providerAccountId,
-                DisplayName = providerAccountName
+                DisplayName = providerAccountName?.Truncate(ApiHardLimits.OAuthDisplayNameMaxLength)
             });
             await _db.SaveChangesAsync();
         }

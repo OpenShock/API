@@ -3,7 +3,6 @@ using Microsoft.AspNetCore.DataProtection.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using OpenShock.Common.Constants;
 using OpenShock.Common.Models;
-
 using OpenShock.Internal.Common.Constants;
 
 namespace OpenShock.Common.OpenShockDb;
@@ -232,6 +231,7 @@ public class OpenShockContext : DbContext, IDataProtectionKeyContext
             entity.Property(e => e.IpAddress)
                 .HasColumnName("ip_address");
             entity.Property(e => e.IpCountry)
+                .HasMaxLength(4)
                 .HasColumnName("ip_country");
             entity.Property(e => e.CreatedAt)
                 .HasDefaultValueSql("CURRENT_TIMESTAMP")
@@ -729,10 +729,13 @@ public class OpenShockContext : DbContext, IDataProtectionKeyContext
                 .HasColumnName("user_id");
             entity.Property(e => e.ProviderKey)
                 .UseCollation("C")
+                .HasMaxLength(ApiHardLimits.OAuthProviderKeyMaxLength)
                 .HasColumnName("provider_key");
             entity.Property(e => e.ExternalId)
+                .HasMaxLength(ApiHardLimits.OAuthExternalIdMaxLength)
                 .HasColumnName("external_id");
             entity.Property(e => e.DisplayName)
+                .HasMaxLength(ApiHardLimits.OAuthDisplayNameMaxLength)
                 .HasColumnName("display_name");
             entity.Property(e => e.CreatedAt)
                 .HasDefaultValueSql("CURRENT_TIMESTAMP")
@@ -869,10 +872,12 @@ public class OpenShockContext : DbContext, IDataProtectionKeyContext
             entity.Property(e => e.Id)
                 .HasColumnName("id");
             entity.Property(e => e.Name)
+                .HasMaxLength(ApiHardLimits.DiscordWebhookNameMaxLength)
                 .HasColumnName("name");
             entity.Property(e => e.WebhookId)
                 .HasColumnName("webhook_id");
             entity.Property(e => e.WebhookToken)
+                .HasMaxLength(ApiHardLimits.DiscordWebhookTokenMaxLength)
                 .HasColumnName("webhook_token");
             entity.Property(e => e.CreatedAt)
                 .HasDefaultValueSql("CURRENT_TIMESTAMP")
@@ -887,12 +892,15 @@ public class OpenShockContext : DbContext, IDataProtectionKeyContext
 
             entity.Property(e => e.Name)
                 .UseCollation("C")
+                .HasMaxLength(ApiHardLimits.ConfigurationNameMaxLength)
                 .HasColumnName("name");
             entity.Property(e => e.Description)
+                .HasMaxLength(ApiHardLimits.ConfigurationDescriptionMaxLength)
                 .HasColumnName("description");
             entity.Property(e => e.Type)
                 .HasColumnName("type");
             entity.Property(e => e.Value)
+                .HasMaxLength(ApiHardLimits.ConfigurationValueMaxLength)
                 .HasColumnName("value");
             entity.Property(e => e.UpdatedAt)
                 .HasColumnName("updated_at");

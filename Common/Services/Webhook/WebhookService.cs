@@ -1,5 +1,6 @@
 ﻿using System.Drawing;
 using Microsoft.EntityFrameworkCore;
+using OpenShock.Common.Constants;
 using OpenShock.Common.Models;
 using OpenShock.Common.OpenShockDb;
 using OpenShock.Common.Results;
@@ -28,7 +29,8 @@ public sealed class WebhookService : IWebhookService
                 DnsSafeHost: "discord.com",
                 Segments: ["/", "api/", "webhooks/", {} webhookIdStr, {} webhookToken]
             } ||
-            !long.TryParse(webhookIdStr[..^1], out var webhookId)
+            !long.TryParse(webhookIdStr[..^1], out var webhookId) ||
+            webhookToken.Length > ApiHardLimits.DiscordWebhookTokenMaxLength
            )
         {
             return new UnsupportedWebhookUrl();
