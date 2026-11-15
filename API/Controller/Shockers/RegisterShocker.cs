@@ -1,5 +1,5 @@
 ﻿using System.Net.Mime;
-using Asp.Versioning;
+using OpenShock.Common.ApiVersioning;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using OpenShock.API.Models.Requests;
@@ -31,7 +31,7 @@ public sealed partial class ShockerController
     [Consumes(MediaTypeNames.Application.Json)]
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status404NotFound, MediaTypeNames.Application.ProblemJson)] // DeviceNotFound
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status400BadRequest, MediaTypeNames.Application.ProblemJson)] // TooManyShockers
-    [MapToApiVersion("1")]
+    [ApiVersion(1)]
     public async Task<IActionResult> RegisterShocker(
         [FromBody] NewShocker body,
         [FromServices] IDeviceUpdateService deviceUpdateService)

@@ -1,5 +1,4 @@
 ﻿using System.Net.Mime;
-using Asp.Versioning;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using OpenShock.API.Services.DeviceUpdate;
@@ -9,6 +8,8 @@ using OpenShock.Common.OpenShockDb;
 using OpenShock.Common.Problems;
 
 using OpenShock.Internal.Common.Problems;
+
+using OpenShock.Common.ApiVersioning;
 
 namespace OpenShock.API.Controller.Shares;
 
@@ -27,7 +28,7 @@ public sealed partial class SharesController
     [ProducesResponseType<LegacyEmptyResponse>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status404NotFound, MediaTypeNames.Application.ProblemJson)] // ShareCodeNotFound
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status400BadRequest, MediaTypeNames.Application.ProblemJson)] // CantLinkOwnShareCode, ShockerAlreadyLinked
-    [MapToApiVersion("1")]
+    [ApiVersion(1)]
     public async Task<IActionResult> LinkShareCode(
         [FromRoute] Guid shareCodeId,
         [FromServices] IDeviceUpdateService deviceUpdateService

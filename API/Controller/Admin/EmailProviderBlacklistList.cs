@@ -2,12 +2,14 @@ using System.Net.Mail;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using OpenShock.API.Controller.Admin.DTOs;
+using OpenShock.Common.ApiVersioning;
 
 namespace OpenShock.API.Controller.Admin;
 
 public sealed partial class AdminController
 {
     [HttpGet("blacklist/emailProviders")]
+    [ApiVersion(1)]
     public async IAsyncEnumerable<EmailProviderBlacklistDto> ListEmailProviderBlacklist([FromQuery(Name="match")] string? match)
     {
         PedanticallyEnsureAdmin();

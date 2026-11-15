@@ -1,5 +1,4 @@
 ﻿using System.Security.Claims;
-using Asp.Versioning;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Mvc;
 using OpenShock.API.OAuth;
@@ -14,7 +13,6 @@ namespace OpenShock.API.Controller.OAuth;
 /// </summary>
 [ApiController]
 [Tags("OAuth")]
-[ApiVersion("1")]
 [Route("/{version:apiVersion}/oauth")]
 public sealed partial class OAuthController : OpenShockControllerBase
 {

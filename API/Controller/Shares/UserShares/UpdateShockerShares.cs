@@ -1,5 +1,5 @@
 ﻿using System.Net.Mime;
-using Asp.Versioning;
+using OpenShock.Common.ApiVersioning;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using OpenShock.API.Models.Requests;
@@ -30,7 +30,7 @@ public sealed partial class UserSharesController
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status404NotFound,
         MediaTypeNames.Application.ProblemJson)] // ShockerNotFound
-    [MapToApiVersion("2")]
+    [ApiVersion(2)]
     public async Task<IActionResult> BulkUserShareShockersUpdate(
         [FromRoute] Guid userId,
         [FromBody] BulkUserShareShockersUpdateRequest body,

@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using OpenShock.API.Controller.Admin.DTOs;
 using OpenShock.Common.OpenShockDb;
 using OpenShock.Common.Services.RedisPubSub;
+using OpenShock.Common.ApiVersioning;
 
 namespace OpenShock.API.Controller.Admin;
 
@@ -20,6 +21,7 @@ public sealed partial class AdminController
     [Consumes(MediaTypeNames.Application.Json)]
     [ProducesResponseType<EmailOutboxMessageDto>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ApiVersion(1)]
     public async Task<IActionResult> SendTestEmail([FromBody] SendTestEmailDto body, [FromServices] IRedisPubService redisPubService, CancellationToken ct)
     {
         PedanticallyEnsureAdmin();

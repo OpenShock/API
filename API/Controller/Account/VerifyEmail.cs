@@ -2,7 +2,7 @@
 using System.Diagnostics;
 using System.Net.Mime;
 using Microsoft.AspNetCore.Mvc;
-using Asp.Versioning;
+using OpenShock.Common.ApiVersioning;
 using OpenShock.API.Services.Account;
 using OpenShock.Common.Errors;
 using OpenShock.Common.Problems;
@@ -24,7 +24,7 @@ public sealed partial class AccountController
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status400BadRequest, MediaTypeNames.Application.ProblemJson)]
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status409Conflict, MediaTypeNames.Application.ProblemJson)]
-    [MapToApiVersion("1")]
+    [ApiVersion(1)]
     public Task<IActionResult> EmailVerify([FromQuery(Name = "token")] string token, CancellationToken cancellationToken)
         => VerifyPendingEmailChange(token, cancellationToken);
 
@@ -39,7 +39,7 @@ public sealed partial class AccountController
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status400BadRequest, MediaTypeNames.Application.ProblemJson)]
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status409Conflict, MediaTypeNames.Application.ProblemJson)]
-    [MapToApiVersion("1")]
+    [ApiVersion(1)]
     public Task<IActionResult> EmailVerifyLegacy([FromQuery(Name = "token")] string token, CancellationToken cancellationToken)
         => VerifyPendingEmailChange(token, cancellationToken);
 

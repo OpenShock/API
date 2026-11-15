@@ -1,6 +1,6 @@
 ﻿using System.ComponentModel.DataAnnotations;
 using System.Net.Mime;
-using Asp.Versioning;
+using OpenShock.Common.ApiVersioning;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
@@ -44,7 +44,7 @@ public sealed partial class ShockerController
     [EnableRateLimiting("shocker-logs")]
     [ProducesResponseType<LegacyDataResponse<LogEntry[]>>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status404NotFound, MediaTypeNames.Application.ProblemJson)] // ShockerNotFound
-    [MapToApiVersion("1")]
+    [ApiVersion(1)]
     public async Task<IActionResult> GetShockerLogs([FromRoute] Guid shockerId, [FromQuery(Name = "offset")] uint offset = 0,
         [FromQuery, Range(1, 500)] uint limit = 100)
     {
@@ -95,7 +95,7 @@ public sealed partial class ShockerController
     [HttpGet("logs")]
     [EnableRateLimiting("shocker-logs")]
     [ProducesResponseType<PagedResult<LogEntryWithHub>>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
-    [MapToApiVersion("1")]
+    [ApiVersion(1)]
     public async Task<PagedResult<LogEntryWithHub>> GetAllShockerLogs(
         [FromQuery] PaginationQuery pagination,
         [FromQuery(Name = "shockerIds")] Guid[]? shockerIds,

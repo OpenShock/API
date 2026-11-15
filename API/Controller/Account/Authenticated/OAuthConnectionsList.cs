@@ -4,6 +4,8 @@ using Microsoft.EntityFrameworkCore;
 using OpenShock.API.Models.Response;
 using OpenShock.API.Services.OAuthConnection;
 
+using OpenShock.Common.ApiVersioning;
+
 namespace OpenShock.API.Controller.Account.Authenticated;
 
 public sealed partial class AuthenticatedAccountController
@@ -15,6 +17,7 @@ public sealed partial class AuthenticatedAccountController
     /// <response code="200">Returns the list of connections.</response>
     [HttpGet("connections")]
     [ProducesResponseType<OAuthConnectionResponse[]>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
+    [ApiVersion(1)]
     public IActionResult ListOAuthConnections([FromServices] IOAuthConnectionService connectionService, CancellationToken cancellationToken)
     {
         return Ok(connectionService

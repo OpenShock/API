@@ -12,6 +12,8 @@
   <!-- NuGet packages -->
   <ItemGroup>
     <PackageReference Include="AspNet.Security.OAuth.Discord" />
+    <!-- Referenced directly so its XML-comment source generator runs here, where AddOpenApi is called -->
+    <PackageReference Include="Microsoft.AspNetCore.OpenApi" />
     <PackageReference Include="Microsoft.AspNetCore.Authentication.Google" />
     <PackageReference Include="AspNet.Security.OAuth.Twitter" />
   </ItemGroup>

@@ -3,7 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using OpenShock.Common.Redis;
 using System.Net.Mime;
-using Asp.Versioning;
+using OpenShock.Common.ApiVersioning;
 using Microsoft.AspNetCore.RateLimiting;
 using OpenShock.Common.Errors;
 using OpenShock.Common.Problems;
@@ -22,7 +22,7 @@ public sealed partial class DeviceController
     /// <response code="200">Successfully assigned LCG node</response>
     /// <response code="404">No such pair code exists</response>
     [AllowAnonymous]
-    [MapToApiVersion("1")]
+    [ApiVersion(1)]
     [HttpGet("pair/{pairCode}", Name = "Pair")]
     [EndpointName("PairDeviceByCode")]
     [EnableRateLimiting("auth")]
@@ -37,7 +37,7 @@ public sealed partial class DeviceController
     /// Pair a device with a pair code, legacy endpoint kept for backwards compatibility
     /// </summary>
     [AllowAnonymous]
-    [MapToApiVersion("1")]
+    [ApiVersion(1)]
     [HttpGet("~/{version:apiVersion}/pair/{pairCode}")]
     [ApiExplorerSettings(IgnoreApi = true)]
     [EnableRateLimiting("auth")]

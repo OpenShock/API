@@ -1,5 +1,4 @@
-﻿using Asp.Versioning;
-using Microsoft.AspNetCore.Authorization;
+﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using OpenShock.Common.Authentication;
 using OpenShock.Common.Authentication.ControllerBase;
@@ -11,7 +10,6 @@ namespace OpenShock.API.Controller.Tokens;
 [Tags("API Tokens")]
 [Route("/{version:apiVersion}/tokens")]
 [Authorize(AuthenticationSchemes = OpenShockAuthSchemes.UserSessionCookie)]
-[ApiVersion("1"), ApiVersion("2")]
 public sealed partial class TokensController : AuthenticatedSessionControllerBase
 {
     private readonly OpenShockContext _db;

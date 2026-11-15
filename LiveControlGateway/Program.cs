@@ -30,6 +30,9 @@ builder.Services
     .AddOpenShockServices(configureMetrics: metricsBuilder => { metricsBuilder.AddMeter("OpenShock.Gateway"); })
     .AddOpenShockSignalR(redisOptions);
 
+// XML documentation comments are applied by a source generator that intercepts this call, so it has to be made here in the host
+builder.Services.AddOpenApi(OpenShockServiceHelper.OpenApiDocumentName, OpenShockServiceHelper.ConfigureOpenApi);
+
 builder.Services.AddScoped<IDeviceService, DeviceService>();
 builder.Services.AddScoped<IControlSender, ControlSender>();
 builder.Services.AddScoped<IOtaService, OtaService>();

@@ -1,5 +1,5 @@
 ﻿using System.Net.Mime;
-using Asp.Versioning;
+using OpenShock.Common.ApiVersioning;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using OpenShock.API.Models.Response;
@@ -22,7 +22,7 @@ public sealed partial class ShockerController
     [HttpGet("{shockerId}")]
     [ProducesResponseType<LegacyDataResponse<ShockerWithDevice>>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status404NotFound, MediaTypeNames.Application.ProblemJson)] // ShockerNotFound
-    [MapToApiVersion("1")]
+    [ApiVersion(1)]
     public async Task<IActionResult> GetShockerById([FromRoute] Guid shockerId)
     {
         var shocker = await _db.Shockers.Where(x => x.Device.OwnerId == CurrentUser.Id && x.Id == shockerId).Select(x => new ShockerWithDevice

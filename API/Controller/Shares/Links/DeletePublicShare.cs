@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using OpenShock.Common.ApiVersioning;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System.Net.Mime;
 using OpenShock.Common.Authentication.Attributes;
@@ -20,6 +21,7 @@ public sealed partial class ShareLinksController
     /// <param name="publicShareId"></param>
     /// <response code="200">Deleted public share</response>
     /// <response code="404">Public share not found or does not belong to you</response>
+    [ApiVersion(1)]
     [HttpDelete("{publicShareId}")]
     [TokenPermission(PermissionType.Publicshares_Edit)]
     [ProducesResponseType<LegacyEmptyResponse>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]

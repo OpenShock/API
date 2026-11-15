@@ -11,6 +11,8 @@ using Z.EntityFramework.Plus;
 
 using OpenShock.Internal.DynamicLinq.Extensions;
 
+using OpenShock.Common.ApiVersioning;
+
 namespace OpenShock.API.Controller.Admin;
 
 public sealed partial class AdminController
@@ -22,6 +24,7 @@ public sealed partial class AdminController
     /// <response code="401">Unauthorized</response>
     [HttpGet("users")]
     [ProducesResponseType<Paginated<AdminUsersView>>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
+    [ApiVersion(1)]
     public async Task<IActionResult> GetUsers(
         [FromQuery(Name = "$filter")] string filterQuery = "",
         [FromQuery(Name = "$orderby")] string orderbyQuery = "",

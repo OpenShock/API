@@ -1,5 +1,4 @@
-﻿using Asp.Versioning;
-using Microsoft.AspNetCore.Authorization;
+﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using OpenShock.Common.Authentication;
 using OpenShock.Common.Authentication.ControllerBase;
@@ -12,7 +11,6 @@ namespace OpenShock.API.Controller.Shares.UserShares;
 /// </summary>
 [ApiController]
 [Tags("User Shocker Shares")]
-[ApiVersion("2")]
 [Route("/{version:apiVersion}/shares/user")]
 [Authorize(AuthenticationSchemes = OpenShockAuthSchemes.UserSessionApiTokenCombo)]
 public sealed partial class UserSharesController : AuthenticatedSessionControllerBase

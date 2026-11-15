@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Authentication;
+﻿using OpenShock.Common.ApiVersioning;
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 using OpenShock.API.Models.Requests;
@@ -29,6 +30,7 @@ public sealed partial class OAuthController
     /// <param name="accountOptions"></param>
     /// <param name="cancellationToken"></param>
     [EnableRateLimiting("auth")]
+    [ApiVersion(1)]
     [HttpPost("{provider}/signup-finalize")]
     [ApiExplorerSettings(IgnoreApi = true)]
     public async Task<IActionResult> OAuthSignupFinalize(

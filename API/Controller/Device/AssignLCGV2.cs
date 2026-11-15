@@ -1,7 +1,7 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using OpenShock.API.Models.Response;
 using System.Net.Mime;
-using Asp.Versioning;
+using OpenShock.Common.ApiVersioning;
 using OpenShock.API.Services.LCGNodeProvisioner;
 using OpenShock.Common.Errors;
 using OpenShock.Common.Problems;
@@ -19,7 +19,7 @@ public sealed partial class DeviceController
     /// <response code="200">Successfully assigned LCG node</response>
     /// <response code="503">Unable to find suitable LCG node</response>
     [HttpGet("assignLCG")]
-    [MapToApiVersion("2")]
+    [ApiVersion(2)]
     [ProducesResponseType<LcgNodeResponseV2>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status400BadRequest, MediaTypeNames.Application.ProblemJson)] // BadSchemaVersion
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status503ServiceUnavailable, MediaTypeNames.Application.ProblemJson)] // NoLcgNodesAvailable

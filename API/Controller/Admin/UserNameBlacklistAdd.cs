@@ -2,6 +2,7 @@ using System.Net.Mime;
 using Microsoft.AspNetCore.Mvc;
 using OpenShock.API.Controller.Admin.DTOs;
 using OpenShock.Common.OpenShockDb;
+using OpenShock.Common.ApiVersioning;
 
 namespace OpenShock.API.Controller.Admin;
 
@@ -10,6 +11,7 @@ public sealed partial class AdminController
     [HttpPost("blacklist/usernames")]
     [Consumes(MediaTypeNames.Application.Json)]
     [ProducesResponseType(StatusCodes.Status200OK)]
+    [ApiVersion(1)]
     public async Task<IActionResult> AddUsernameBlacklist([FromBody] AddUsernameBlacklistDto body)
     {
         PedanticallyEnsureAdmin();

@@ -3,7 +3,7 @@ using OpenShock.API.Models.Requests;
 using OpenShock.API.Services.Account;
 using System.Diagnostics;
 using System.Net.Mime;
-using Asp.Versioning;
+using OpenShock.Common.ApiVersioning;
 using Microsoft.AspNetCore.RateLimiting;
 using OpenShock.API.Services.Turnstile;
 using OpenShock.Common.Errors;
@@ -33,7 +33,7 @@ public sealed partial class AccountController
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status409Conflict, MediaTypeNames.Application.ProblemJson)] // EmailOrUsernameAlreadyExists
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status403Forbidden, MediaTypeNames.Application.ProblemJson)] // RegistrationDisabled or InvalidTurnstileResponse
-    [MapToApiVersion("2")]
+    [ApiVersion(2)]
     public async Task<IActionResult> SignUpV2(
         [FromBody] SignUpV2 body,
         [FromServices] ICloudflareTurnstileService turnstileService,

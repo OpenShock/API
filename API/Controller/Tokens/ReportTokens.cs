@@ -16,6 +16,8 @@ using OpenShock.Internal.Common.Utils;
 
 using OpenShock.Internal.Common.Problems;
 
+using OpenShock.Common.ApiVersioning;
+
 namespace OpenShock.API.Controller.Tokens;
 
 public sealed partial class TokensController
@@ -32,6 +34,7 @@ public sealed partial class TokensController
     [EnableRateLimiting("token-reporting")]
     [Consumes(MediaTypeNames.Application.Json)]
     [ProducesResponseType(StatusCodes.Status200OK)]
+    [ApiVersion(1)]
     public async Task<IActionResult> ReportTokens(
         [FromBody] ReportTokensRequest body,
         [FromServices] ICloudflareTurnstileService turnstileService,

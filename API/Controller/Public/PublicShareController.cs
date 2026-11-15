@@ -1,4 +1,5 @@
-﻿using System.Net.Mime;
+﻿using OpenShock.Common.ApiVersioning;
+using System.Net.Mime;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using OpenShock.API.Models.Response;
@@ -20,6 +21,7 @@ public sealed partial class PublicController
     /// <param name="publicShareId"></param>
     /// <response code="200">The public share information was successfully retrieved.</response>
     /// <response code="404">The public share does not exist.</response>
+    [ApiVersion(1)]
     [HttpGet("shares/links/{publicShareId}")]
     [Tags("Public Shocker Shares")]
     [ProducesResponseType<LegacyDataResponse<PublicShareResponse>>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]

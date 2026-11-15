@@ -4,6 +4,8 @@ using OpenShock.API.Models.Response;
 using OpenShock.Common.Authentication.Services;
 using OpenShock.Common.Redis;
 
+using OpenShock.Common.ApiVersioning;
+
 namespace OpenShock.API.Controller.Sessions;
 
 public sealed partial class SessionsController
@@ -12,9 +14,9 @@ public sealed partial class SessionsController
     /// Gets information about the current token used to access this endpoint
     /// </summary>
     /// <param name="userReferenceService"></param>
-    /// <returns></returns>
     /// <exception cref="Exception"></exception>
     [HttpGet("self")]
+    [ApiVersion(1)]
     public LoginSessionResponse GetSelfSession([FromServices] IUserReferenceService userReferenceService)
     {
         if (userReferenceService.AuthReference is not LoginSession session)

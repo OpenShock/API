@@ -9,6 +9,7 @@ using OpenShock.Internal.DynamicLinq.Extensions;
 using OpenShock.Internal.DynamicLinq.Query;
 using System.ComponentModel.DataAnnotations;
 using System.Net.Mime;
+using OpenShock.Common.ApiVersioning;
 
 namespace OpenShock.API.Controller.Admin;
 
@@ -23,6 +24,7 @@ public sealed partial class AdminController
     /// <response code="401">Unauthorized</response>
     [HttpGet("email/outbox")]
     [ProducesResponseType<Paginated<EmailOutboxMessageDto>>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
+    [ApiVersion(1)]
     public async Task<IActionResult> GetEmailOutbox(
         [FromQuery(Name = "$filter")] string filterQuery = "",
         [FromQuery(Name = "$orderby")] string orderbyQuery = "",

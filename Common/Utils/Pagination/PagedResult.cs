@@ -27,7 +27,7 @@ public sealed class PagedResult<T>
     public required int TotalCount { get; set; }
 
     /// <summary>
-    /// Total number of pages. Always at least 1, even when <see cref="TotalCount"/> is zero.
+    /// Total number of pages. Always at least 1, even when <c>TotalCount</c> is zero.
     /// </summary>
     public uint TotalPages => TotalCount <= 0
         ? 1u

@@ -1,5 +1,5 @@
 ﻿using System.Net.Mime;
-using Asp.Versioning;
+using OpenShock.Common.ApiVersioning;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using OpenShock.API.Models.Requests;
@@ -29,7 +29,7 @@ public sealed partial class ShockerController
     [Consumes(MediaTypeNames.Application.Json)]
     [ProducesResponseType<LegacyDataResponse<bool>>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status404NotFound, MediaTypeNames.Application.ProblemJson)] // ShockerNotFound    
-    [MapToApiVersion("1")]
+    [ApiVersion(1)]
     public async Task<IActionResult> PauseShocker([FromRoute] Guid shockerId, [FromBody] PauseRequest body,
         [FromServices] IDeviceUpdateService deviceUpdateService)
     {

@@ -7,6 +7,7 @@ using OpenShock.Common.Errors;
 using OpenShock.Common.Problems;
 using OpenShock.Common.Utils;
 using Results = OpenShock.Common.Results;
+using OpenShock.Common.ApiVersioning;
 
 using OpenShock.Internal.Common.Utils;
 
@@ -30,6 +31,7 @@ public sealed partial class AuthenticatedAccountController
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status409Conflict, MediaTypeNames.Application.ProblemJson)] // EmailChangeAlreadyInUse
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status429TooManyRequests, MediaTypeNames.Application.ProblemJson)] // EmailChangeTooMany
     // notActivated / deactivated / notFound are blocked by UserSessionAuthentication before reaching this controller.
+    [ApiVersion(1)]
     public async Task<IActionResult> ChangeEmail([FromBody] ChangeEmailRequest body)
     {
         if (string.IsNullOrEmpty(CurrentUser.PasswordHash))

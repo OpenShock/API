@@ -1,4 +1,5 @@
-﻿using System.Net.Mime;
+﻿using OpenShock.Common.ApiVersioning;
+using System.Net.Mime;
 using Microsoft.AspNetCore.Mvc;
 using OpenShock.API.OAuth;
 using OpenShock.API.Options;
@@ -19,8 +20,8 @@ namespace OpenShock.API.Controller.Version;
 /// Version stuff
 /// </summary>
 [ApiController]
-[Tags("Meta")]
 [Route("/{version:apiVersion}")]
+[Tags("Meta")]
 public sealed partial class VersionController : OpenShockControllerBase
 {
     private static string GetBackendVersion()
@@ -40,6 +41,7 @@ public sealed partial class VersionController : OpenShockControllerBase
     /// Gets the version of the OpenShock backend.
     /// </summary>
     /// <response code="200">The version was successfully retrieved.</response>
+    [ApiVersion(1)]
     [HttpGet]
     [ProducesResponseType<LegacyDataResponse<BackendInfoResponse>>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
     public async Task<IActionResult> GetBackendInfo(

@@ -1,4 +1,5 @@
-﻿using System.Net.Mime;
+﻿using OpenShock.Common.ApiVersioning;
+using System.Net.Mime;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using OpenShock.API.Models.Response;
@@ -14,6 +15,7 @@ public sealed partial class ShareLinksController
     /// Get all public shares for the current user
     /// </summary>
     /// <response code="200">All public shares for the current user</response>
+    [ApiVersion(1)]
     [HttpGet]
     [TokenPermission(PermissionType.Publicshares_Edit)]
     [ProducesResponseType<LegacyDataResponse<OwnPublicShareResponse[]>>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]

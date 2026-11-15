@@ -2,7 +2,7 @@
 using Microsoft.EntityFrameworkCore;
 using OpenShock.API.Models.Response;
 using System.Net.Mime;
-using Asp.Versioning;
+using OpenShock.Common.ApiVersioning;
 using OpenShock.Common.Errors;
 using OpenShock.Common.Problems;
 using OpenShock.Common.Models;
@@ -22,7 +22,7 @@ public sealed partial class DevicesController
     [HttpGet("{deviceId}/shockers")]
     [ProducesResponseType<LegacyDataResponse<ShockerResponse[]>>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status404NotFound, MediaTypeNames.Application.ProblemJson)] // DeviceNotFound
-    [MapToApiVersion("1")]
+    [ApiVersion(1)]
     public async Task<IActionResult> GetShockers([FromRoute] Guid deviceId)
     {
         var deviceExists = await _db.Devices.AnyAsync(x => x.OwnerId == CurrentUser.Id && x.Id == deviceId);

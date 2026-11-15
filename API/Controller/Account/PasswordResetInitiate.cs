@@ -1,4 +1,4 @@
-using Asp.Versioning;
+using OpenShock.Common.ApiVersioning;
 using Microsoft.AspNetCore.Mvc;
 using OpenShock.Common.Errors;
 
@@ -12,6 +12,6 @@ public sealed partial class AccountController
     [HttpPost("reset")]
     [Obsolete("Retired. Use POST /2/account/password-reset instead.")]
     [ApiExplorerSettings(IgnoreApi = true)]
-    [MapToApiVersion("1")]
+    [ApiVersion(1)]
     public IActionResult PasswordResetInitiate() => Problem(GoneError.EndpointRetired("POST /2/account/password-reset"));
 }

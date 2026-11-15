@@ -11,6 +11,8 @@ using Results = OpenShock.Common.Results;
 
 using OpenShock.Internal.Common.Problems;
 
+using OpenShock.Common.ApiVersioning;
+
 namespace OpenShock.API.Controller.Account.Authenticated;
 
 public sealed partial class AuthenticatedAccountController
@@ -19,7 +21,6 @@ public sealed partial class AuthenticatedAccountController
     /// Change the username of the current user
     /// </summary>
     /// <param name="body"></param>
-    /// <returns></returns>
     /// <exception cref="Exception"></exception>
     [HttpPost("username")]
     [Consumes(MediaTypeNames.Application.Json)]
@@ -27,6 +28,7 @@ public sealed partial class AuthenticatedAccountController
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status409Conflict, MediaTypeNames.Application.ProblemJson)] // UsernameTaken
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status400BadRequest, MediaTypeNames.Application.ProblemJson)] // UsernameInvalid
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status403Forbidden, MediaTypeNames.Application.ProblemJson)] // UsernameRecentlyChanged
+    [ApiVersion(1)]
     public async Task<IActionResult> ChangeUsername([FromBody] ChangeUsernameRequest body)
     {
         var result = await _accountService.ChangeUsernameAsync(CurrentUser.Id, body.Username, actorId: CurrentUser.Id,

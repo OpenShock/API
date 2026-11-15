@@ -1,6 +1,6 @@
 ﻿using System.Net.Mime;
 using System.Security.Cryptography;
-using Asp.Versioning;
+using OpenShock.Common.ApiVersioning;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using OpenShock.API.Models.Requests;
@@ -33,7 +33,7 @@ public sealed partial class DevicesController
     /// </summary>
     /// <response code="200">All devices for the current user</response>
     [HttpGet]
-    [MapToApiVersion("1")]
+    [ApiVersion(1)]
     [ProducesResponseType<LegacyDataResponse<DeviceResponse[]>>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
     public IActionResult ListDevices()
     {
@@ -58,7 +58,7 @@ public sealed partial class DevicesController
     [HttpGet("{deviceId}")]
     [ProducesResponseType<LegacyDataResponse<DeviceWithTokenResponse>>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status404NotFound, MediaTypeNames.Application.ProblemJson)] // DeviceNotFound
-    [MapToApiVersion("1")]
+    [ApiVersion(1)]
     public async Task<IActionResult> GetDeviceById([FromRoute] Guid deviceId)
     {
         var hasAuthPerms = IsAllowed(PermissionType.Devices_Auth);
@@ -90,7 +90,7 @@ public sealed partial class DevicesController
     [Consumes(MediaTypeNames.Application.Json)]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status404NotFound, MediaTypeNames.Application.ProblemJson)] // DeviceNotFound
-    [MapToApiVersion("1")]
+    [ApiVersion(1)]
     public async Task<IActionResult> EditDevice([FromRoute] Guid deviceId, [FromBody] HubEditRequest body, [FromServices] IDeviceUpdateService updateService)
     {
         var device = await _db.Devices.FirstOrDefaultAsync(x => x.OwnerId == CurrentUser.Id && x.Id == deviceId);
@@ -115,7 +115,7 @@ public sealed partial class DevicesController
     [TokenPermission(PermissionType.Devices_Edit)]
     [ProducesResponseType<string>(StatusCodes.Status200OK, MediaTypeNames.Text.Plain)]
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status404NotFound, MediaTypeNames.Application.ProblemJson)] // DeviceNotFound
-    [MapToApiVersion("1")]
+    [ApiVersion(1)]
     public async Task<IActionResult> RegenerateDeviceToken([FromRoute] Guid deviceId)
     {
         var device = await _db.Devices.FirstOrDefaultAsync(x => x.OwnerId == CurrentUser.Id && x.Id == deviceId);
@@ -140,7 +140,7 @@ public sealed partial class DevicesController
     [TokenPermission(PermissionType.Devices_Edit)]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status404NotFound, MediaTypeNames.Application.ProblemJson)] // DeviceNotFound
-    [MapToApiVersion("1")]
+    [ApiVersion(1)]
     public async Task<IActionResult> RemoveDevice([FromRoute] Guid deviceId, [FromServices] IDeviceUpdateService updateService)
     {
         var affected = await _db.Devices.Where(x => x.Id == deviceId).WhereIsUserOrPrivileged(x => x.Owner, CurrentUser).ExecuteDeleteAsync();
@@ -158,7 +158,7 @@ public sealed partial class DevicesController
     [HttpPost]
     [TokenPermission(PermissionType.Devices_Edit)]
     [ProducesResponseType<Guid>(StatusCodes.Status201Created, MediaTypeNames.Text.Plain)]
-    [MapToApiVersion("1")]
+    [ApiVersion(1)]
     public Task<IActionResult> CreateDevice([FromServices] IDeviceUpdateService updateService)
     => CreateDeviceV2(new HubCreateRequest
         {
@@ -174,7 +174,7 @@ public sealed partial class DevicesController
     [TokenPermission(PermissionType.Devices_Edit)]
     [Consumes(MediaTypeNames.Application.Json)]
     [ProducesResponseType<Guid>(StatusCodes.Status201Created, MediaTypeNames.Text.Plain)]
-    [MapToApiVersion("2")]
+    [ApiVersion(2)]
     public async Task<IActionResult> CreateDeviceV2([FromBody] HubCreateRequest body, [FromServices] IDeviceUpdateService updateService)
     {
         int nDevices = await _db.Devices.CountAsync(d => d.OwnerId == CurrentUser.Id);
@@ -208,7 +208,7 @@ public sealed partial class DevicesController
     [TokenPermission(PermissionType.Devices_Edit)]
     [ProducesResponseType<LegacyDataResponse<string>>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status404NotFound, MediaTypeNames.Application.ProblemJson)] // DeviceNotFound
-    [MapToApiVersion("1")]
+    [ApiVersion(1)]
     public async Task<IActionResult> GetPairCode([FromRoute] Guid deviceId)
     {
         var devicePairs = _redis.RedisCollection<DevicePair>();
@@ -239,7 +239,7 @@ public sealed partial class DevicesController
     [HttpGet("{deviceId}/lcg")]
     [ProducesResponseType<LegacyDataResponse<LcgResponse>>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status404NotFound, MediaTypeNames.Application.ProblemJson)] // DeviceNotFound, DeviceIsNotOnline
-    [MapToApiVersion("1")]
+    [ApiVersion(1)]
     public async Task<IActionResult> GetLiveControlGatewayInfo([FromRoute] Guid deviceId)
     {
         var result = await ResolveDeviceGatewayAsync(deviceId);
@@ -261,7 +261,7 @@ public sealed partial class DevicesController
     [HttpGet("{deviceId}/lcg")]
     [ProducesResponseType<LcgResponseV2>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status404NotFound, MediaTypeNames.Application.ProblemJson)] // DeviceNotFound, DeviceIsNotOnline
-    [MapToApiVersion("2")]
+    [ApiVersion(2)]
     public async Task<IActionResult> GetLiveControlGatewayInfoV2([FromRoute] Guid deviceId)
     {
         var result = await ResolveDeviceGatewayAsync(deviceId);

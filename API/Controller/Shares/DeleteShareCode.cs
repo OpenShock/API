@@ -1,5 +1,4 @@
 ﻿using System.Net.Mime;
-using Asp.Versioning;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using OpenShock.Common.Errors;
@@ -8,6 +7,8 @@ using OpenShock.Common.Models;
 using OpenShock.Common.Problems;
 
 using OpenShock.Internal.Common.Problems;
+
+using OpenShock.Common.ApiVersioning;
 
 namespace OpenShock.API.Controller.Shares;
 
@@ -22,7 +23,7 @@ public sealed partial class SharesController
     [HttpDelete("code/{shareCodeId}")]
     [ProducesResponseType<LegacyEmptyResponse>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status404NotFound, MediaTypeNames.Application.ProblemJson)] // ShareCodeNotFound
-    [MapToApiVersion("1")]
+    [ApiVersion(1)]
     public async Task<IActionResult> DeleteShareCode([FromRoute] Guid shareCodeId)
     {
         var affected = await _db.ShockerShareCodes

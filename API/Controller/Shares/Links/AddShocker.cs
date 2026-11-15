@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using OpenShock.Common.ApiVersioning;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using OpenShock.Common.OpenShockDb;
 using System.Net.Mime;
@@ -21,6 +22,7 @@ public sealed partial class ShareLinksController
     /// <response code="200">Successfully added shocker</response>
     /// <response code="404">Public share or shocker does not exist</response>
     /// <response code="409">Shocker already exists in public share</response>
+    [ApiVersion(1)]
     [HttpPost("{publicShareId}/{shockerId}")]
     [TokenPermission(PermissionType.Publicshares_Edit)]
     [ProducesResponseType<LegacyEmptyResponse>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]

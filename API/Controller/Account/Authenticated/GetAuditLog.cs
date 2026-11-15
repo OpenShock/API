@@ -4,6 +4,7 @@ using OpenShock.API.Models.Response;
 using OpenShock.Common.OpenShockDb;
 using OpenShock.Common.Services.Audit;
 using OpenShock.Common.Utils.Pagination;
+using OpenShock.Common.ApiVersioning;
 
 namespace OpenShock.API.Controller.Account.Authenticated;
 
@@ -18,6 +19,7 @@ public sealed partial class AuthenticatedAccountController
     /// <response code="200">A page of audit log entries.</response>
     [HttpGet("audit-log")]
     [ProducesResponseType<PagedResult<AuditLogEntryResponse>>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
+    [ApiVersion(1)]
     public async Task<PagedResult<AuditLogEntryResponse>> GetAuditLog(
         [FromQuery] PaginationQuery pagination,
         [FromServices] IAuditService auditService,

@@ -1,5 +1,5 @@
 using System.Net.Mime;
-using Asp.Versioning;
+using OpenShock.Common.ApiVersioning;
 using Microsoft.AspNetCore.Mvc;
 using OpenShock.API.Models.Requests;
 using OpenShock.API.Models.Response;
@@ -20,7 +20,7 @@ public sealed partial class TokensController
     /// </summary>
     /// <response code="200">All tokens for the current user</response>
     [HttpGet]
-    [MapToApiVersion("1")]
+    [ApiVersion(1)]
     public IAsyncEnumerable<TokenResponse> ListTokens([FromServices] IApiTokenService tokenService)
     {
         return tokenService.ListTokensV1(ownerId: CurrentUser.Id);
@@ -31,7 +31,7 @@ public sealed partial class TokensController
     /// </summary>
     /// <response code="200">All tokens for the current user</response>
     [HttpGet]
-    [MapToApiVersion("2")]
+    [ApiVersion(2)]
     public IAsyncEnumerable<TokenResponseV2> ListTokensV2([FromServices] IApiTokenService tokenService)
     {
         return tokenService.ListTokensV2(ownerId: CurrentUser.Id);
@@ -47,7 +47,7 @@ public sealed partial class TokensController
     [HttpGet("{tokenId}")]
     [ProducesResponseType<TokenResponse>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status404NotFound, MediaTypeNames.Application.ProblemJson)] // ApiTokenNotFound
-    [MapToApiVersion("1")]
+    [ApiVersion(1)]
     public async Task<IActionResult> GetTokenById([FromRoute] Guid tokenId, [FromServices] IApiTokenService tokenService)
     {
         var apiToken = await tokenService.GetTokenV1(tokenId, CurrentUser.Id);
@@ -66,7 +66,7 @@ public sealed partial class TokensController
     [HttpGet("{tokenId}")]
     [ProducesResponseType<TokenResponseV2>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status404NotFound, MediaTypeNames.Application.ProblemJson)] // ApiTokenNotFound
-    [MapToApiVersion("2")]
+    [ApiVersion(2)]
     public async Task<IActionResult> GetTokenByIdV2([FromRoute] Guid tokenId, [FromServices] IApiTokenService tokenService)
     {
         var apiToken = await tokenService.GetTokenV2(tokenId, CurrentUser.Id);
@@ -84,7 +84,7 @@ public sealed partial class TokensController
     [HttpPost]
     [Consumes(MediaTypeNames.Application.Json)]
     [Produces(MediaTypeNames.Application.Json)]
-    [MapToApiVersion("1")]
+    [ApiVersion(1)]
     public Task<TokenCreatedResponse> CreateToken(
         [FromBody] CreateTokenRequest body,
         [FromServices] IApiTokenService tokenService)
@@ -104,7 +104,7 @@ public sealed partial class TokensController
     [Consumes(MediaTypeNames.Application.Json)]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status404NotFound, MediaTypeNames.Application.ProblemJson)] // ApiTokenNotFound
-    [MapToApiVersion("1")]
+    [ApiVersion(1)]
     public async Task<IActionResult> EditToken([FromRoute] Guid tokenId, [FromBody] EditTokenRequest body, [FromServices] IApiTokenService tokenService)
     {
         if (!await tokenService.EditTokenV1(tokenId, body, CurrentUser.Id)) return Problem(ApiTokenError.ApiTokenNotFound);
@@ -121,7 +121,7 @@ public sealed partial class TokensController
     [HttpPost]
     [Consumes(MediaTypeNames.Application.Json)]
     [Produces(MediaTypeNames.Application.Json)]
-    [MapToApiVersion("2")]
+    [ApiVersion(2)]
     public Task<TokenCreatedResponseV2> CreateTokenV2(
         [FromBody] CreateTokenRequestV2 body,
         [FromServices] IApiTokenService tokenService)
@@ -141,7 +141,7 @@ public sealed partial class TokensController
     [Consumes(MediaTypeNames.Application.Json)]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status404NotFound, MediaTypeNames.Application.ProblemJson)] // ApiTokenNotFound
-    [MapToApiVersion("2")]
+    [ApiVersion(2)]
     public async Task<IActionResult> EditTokenV2([FromRoute] Guid tokenId, [FromBody] EditTokenRequestV2 body, [FromServices] IApiTokenService tokenService)
     {
         if (!await tokenService.EditTokenV2(tokenId, body, CurrentUser.Id)) return Problem(ApiTokenError.ApiTokenNotFound);
@@ -161,7 +161,7 @@ public sealed partial class TokensController
     [Consumes(MediaTypeNames.Application.Json)]
     [ProducesResponseType<TokenPausedResponse>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status404NotFound, MediaTypeNames.Application.ProblemJson)] // ApiTokenNotFound
-    [MapToApiVersion("2")]
+    [ApiVersion(2)]
     public async Task<IActionResult> SetTokenPaused([FromRoute] Guid tokenId, [FromBody] SetTokenPausedRequest body, [FromServices] IApiTokenService tokenService)
     {
         var paused = await tokenService.SetTokenPaused(tokenId, body.Paused, CurrentUser.Id);

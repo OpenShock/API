@@ -1,4 +1,5 @@
-﻿using System.Net.Mime;
+﻿using OpenShock.Common.ApiVersioning;
+using System.Net.Mime;
 using Microsoft.AspNetCore.Mvc;
 using OpenShock.Common.Extensions;
 using OpenShock.Common.Models;
@@ -12,6 +13,7 @@ public sealed partial class UsersController
     /// Get the current user's information.
     /// </summary>
     /// <response code="200">The user's information was successfully retrieved.</response>
+    [ApiVersion(1)]
     [HttpGet("self")]
     [ProducesResponseType<LegacyDataResponse<UserSelfResponse>>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
     public IActionResult GetSelf()

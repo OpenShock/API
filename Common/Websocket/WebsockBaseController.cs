@@ -111,7 +111,7 @@ public abstract class WebsocketBaseController<T> : OpenShockControllerBase, IAsy
     /// </summary>
     [HttpGet]
     [ApiExplorerSettings(IgnoreApi = true)]
-    public async Task Get([FromServices] IHostApplicationLifetime lifetime, CancellationToken cancellationToken)
+    public virtual async Task Get([FromServices] IHostApplicationLifetime lifetime, CancellationToken cancellationToken)
     {
 #pragma warning disable IDISP003
         _linkedSource = CancellationTokenSource.CreateLinkedTokenSource(lifetime.ApplicationStopping, cancellationToken);

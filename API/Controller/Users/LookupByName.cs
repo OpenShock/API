@@ -1,4 +1,5 @@
-﻿using System.Net.Mime;
+﻿using OpenShock.Common.ApiVersioning;
+using System.Net.Mime;
 using Microsoft.AspNetCore.Mvc;
 using OpenShock.API.Services.UserService;
 using OpenShock.Common.Errors;
@@ -11,6 +12,7 @@ namespace OpenShock.API.Controller.Users;
 
 public sealed partial class UsersController
 {
+    [ApiVersion(1)]
     [HttpGet("by-name/{username}")]
     [ProducesResponseType<BasicUserInfo>(StatusCodes.Status200OK)]
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status404NotFound, MediaTypeNames.Application.ProblemJson)]

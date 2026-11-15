@@ -6,6 +6,8 @@ using OpenShock.Common.Models;
 using OpenShock.Common.Results;
 using OpenShock.Common.Services.Webhook;
 
+using OpenShock.Common.ApiVersioning;
+
 namespace OpenShock.API.Controller.Admin;
 
 public sealed partial class AdminController
@@ -19,6 +21,7 @@ public sealed partial class AdminController
     [Consumes(MediaTypeNames.Application.Json)]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ApiVersion(1)]
     public async Task<IActionResult> AddWebhook([FromBody] AddWebhookDto body, [FromServices] IWebhookService webhookService)
     {
         PedanticallyEnsureAdmin();

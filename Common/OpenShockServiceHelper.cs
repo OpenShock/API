@@ -1,17 +1,18 @@
 ﻿using System.Net;
 using System.Reflection;
 using System.Security.Claims;
-using Asp.Versioning;
-using Asp.Versioning.OpenApi.Transformers;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.ApiExplorer;
+using Microsoft.AspNetCore.OpenApi;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Hybrid;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Hosting;
 using Microsoft.OpenApi;
+using OpenShock.Common.ApiVersioning;
 using OpenShock.Common.Authentication;
 using OpenShock.Common.Authentication.AuthenticationHandlers;
 using OpenShock.Common.Authentication.Services;
@@ -43,6 +44,11 @@ namespace OpenShock.Common;
 
 public static class OpenShockServiceHelper
 {
+    /// <summary>
+    /// Name of the single OpenAPI document, served at <c>/openapi/{name}.json</c>.
+    /// </summary>
+    public const string OpenApiDocumentName = "openshock";
+
     /// <summary>
     /// Cap on a single dependency probe. Generous enough not to trip on a slow-but-alive dependency,
     /// short enough that the LCG's 15s keep alive tick is never blocked by a hung one.
@@ -130,6 +136,73 @@ public static class OpenShockServiceHelper
     }
 
     /// <summary>
+    /// Configures the OpenAPI document. Each host registers it itself with
+    /// <c>services.AddOpenApi(OpenApiDocumentName, ConfigureOpenApi)</c>: the XML documentation comments are applied by a source generator
+    /// that only sees the documentation of the project making that call and of the projects it references, so the call belongs in the host.
+    /// </summary>
+    public static void ConfigureOpenApi(OpenApiOptions options)
+    {
+        options.AddDocumentTransformer((document, context, _) =>
+        {
+            document.Info.Title = "OpenShock.API";
+            document.Info.Version = "1.0";
+            document.Info.Description = Assembly.GetEntryAssembly()?.GetCustomAttribute<AssemblyDescriptionAttribute>()?.Description;
+
+            var isDevelopment = context.ApplicationServices.GetRequiredService<IHostEnvironment>().IsDevelopment();
+            var servers = new List<OpenApiServer>
+            {
+                new() { Url = "https://api.openshock.app" },
+                new() { Url = "https://api.openshock.dev" }
+            };
+            if (isDevelopment)
+            {
+                servers.Add(new OpenApiServer { Url = "https://localhost" });
+            }
+            document.Servers = servers;
+
+            document.Components ??= new OpenApiComponents();
+            document.Components.SecuritySchemes = new Dictionary<string, IOpenApiSecurityScheme>
+            {
+                [OpenShockAuthSchemes.UserSessionCookie] = new OpenApiSecurityScheme
+                {
+                    Name = AuthConstants.UserSessionCookieName,
+                    Description = "Enter user session cookie",
+                    In = ParameterLocation.Cookie,
+                    Type = SecuritySchemeType.ApiKey,
+                    Scheme = OpenShockAuthSchemes.UserSessionCookie
+                },
+                [OpenShockAuthSchemes.ApiToken] = new OpenApiSecurityScheme
+                {
+                    Name = AuthConstants.ApiTokenHeaderName,
+                    Description = "Enter API Token",
+                    In = ParameterLocation.Header,
+                    Type = SecuritySchemeType.ApiKey,
+                    Scheme = OpenShockAuthSchemes.ApiToken
+                },
+                [OpenShockAuthSchemes.HubToken] = new OpenApiSecurityScheme
+                {
+                    Name = AuthConstants.HubTokenHeaderName,
+                    Description = "Enter hub token",
+                    In = ParameterLocation.Header,
+                    Type = SecuritySchemeType.ApiKey,
+                    Scheme = OpenShockAuthSchemes.HubToken
+                }
+            };
+
+            return Task.CompletedTask;
+        });
+
+        // .NET 10 defaults to OpenAPI 3.1; keep 3.0 so existing clients/tooling see the same dialect as with Swashbuckle.
+        options.OpenApiVersion = OpenApiSpecVersion.OpenApi3_0;
+        options.CreateSchemaReferenceId = OpenShockSchemaIds.Create;
+
+        options.AddOperationTransformer<OpenShockOperationTransformer>();
+        options.AddSchemaTransformer<OpenShockSchemaTransformer>();
+        options.AddDocumentTransformer<EnumSchemaTransformer>();
+        options.AddDocumentTransformer<NullableReferenceTransformer>();
+    }
+
+    /// <summary>
     /// Register all OpenShock services for PRODUCTION use
     /// </summary>
     /// <param name="services"></param>
@@ -181,101 +254,11 @@ public static class OpenShockServiceHelper
         services.AddSingleton<IAuthorizationMiddlewareResultHandler, OpenShockAuthorizationMiddlewareResultHandler>();
 
         services.ConfigureHttpJsonOptions(opt => JsonOptions.ConfigureDefault(opt.SerializerOptions));
-        services.AddControllers().AddJsonOptions(opt => JsonOptions.ConfigureDefault(opt.JsonSerializerOptions));
+        services.AddControllers(options => options.Conventions.Add(new ApiVersionRouteConvention())).AddJsonOptions(opt => JsonOptions.ConfigureDefault(opt.JsonSerializerOptions));
 
-        var apiVersioningBuilder = services.AddApiVersioning(options =>
-        {
-            options.DefaultApiVersion = new ApiVersion(1, 0);
-            options.AssumeDefaultVersionWhenUnspecified = true;
-            // All routes are versioned via the /{version:apiVersion}/ segment
-            options.ApiVersionReader = new UrlSegmentApiVersionReader();
-        }).AddMvc();
-
-        apiVersioningBuilder.AddApiExplorer(setup =>
-        {
-            setup.GroupNameFormat = "VVV";
-            setup.SubstituteApiVersionInUrl = true;
-            setup.DefaultApiVersion = new ApiVersion(1, 0);
-            setup.AssumeDefaultVersionWhenUnspecified = true;
-        });
-
-        apiVersioningBuilder.AddOpenApi(options =>
-        {
-            var version = options.Description.ApiVersion.ToString();
-            var isDeprecated = options.Description.IsDeprecated;
-
-            options.Document.AddDocumentTransformer((document, context, _) =>
-            {
-                document.Info.Title = "OpenShock.API";
-                document.Info.Version = version;
-                if (isDeprecated)
-                {
-                    document.Info.Description = (document.Info.Description ?? "") + " This API version has been deprecated.";
-                }
-
-                var isDevelopment = context.ApplicationServices.GetRequiredService<IHostEnvironment>().IsDevelopment();
-                var servers = new List<OpenApiServer>
-                {
-                    new() { Url = "https://api.openshock.app" },
-                    new() { Url = "https://api.openshock.dev" }
-                };
-                if (isDevelopment)
-                {
-                    servers.Add(new OpenApiServer { Url = "https://localhost" });
-                }
-                document.Servers = servers;
-
-                document.Components ??= new OpenApiComponents();
-                document.Components.SecuritySchemes = new Dictionary<string, IOpenApiSecurityScheme>
-                {
-                    [OpenShockAuthSchemes.UserSessionCookie] = new OpenApiSecurityScheme
-                    {
-                        Name = AuthConstants.UserSessionCookieName,
-                        Description = "Enter user session cookie",
-                        In = ParameterLocation.Cookie,
-                        Type = SecuritySchemeType.ApiKey,
-                        Scheme = OpenShockAuthSchemes.UserSessionCookie
-                    },
-                    [OpenShockAuthSchemes.ApiToken] = new OpenApiSecurityScheme
-                    {
-                        Name = AuthConstants.ApiTokenHeaderName,
-                        Description = "Enter API Token",
-                        In = ParameterLocation.Header,
-                        Type = SecuritySchemeType.ApiKey,
-                        Scheme = OpenShockAuthSchemes.ApiToken
-                    },
-                    [OpenShockAuthSchemes.HubToken] = new OpenApiSecurityScheme
-                    {
-                        Name = AuthConstants.HubTokenHeaderName,
-                        Description = "Enter hub token",
-                        In = ParameterLocation.Header,
-                        Type = SecuritySchemeType.ApiKey,
-                        Scheme = OpenShockAuthSchemes.HubToken
-                    }
-                };
-
-                return Task.CompletedTask;
-            });
-
-            // .NET 10 defaults to OpenAPI 3.1; keep 3.0 so existing clients/tooling see the same dialect as with Swashbuckle.
-            options.Document.OpenApiVersion = OpenApiSpecVersion.OpenApi3_0;
-            options.Document.CreateSchemaReferenceId = OpenShockSchemaIds.Create;
-
-            options.Document.AddOperationTransformer<OpenShockOperationTransformer>();
-            options.Document.AddSchemaTransformer<OpenShockSchemaTransformer>();
-            options.Document.AddDocumentTransformer<EnumSchemaTransformer>();
-            options.Document.AddDocumentTransformer<NullableReferenceTransformer>();
-
-            // Picks up XML doc comments (<summary>, <param>, ...), mirroring what Swashbuckle's IncludeXmlComments used to do.
-            if (OpenApiXmlDocumentation.Get() is { } documentation)
-            {
-                options.Document.AddDocumentTransformer(documentation.Transformer);
-                options.Document.AddDocumentTransformer(new ControllerTagDescriptionTransformer(documentation.Comments));
-                options.Document.AddOperationTransformer(new DocumentedResponsesTransformer(documentation.Comments));
-                options.Document.AddOperationTransformer(documentation.Transformer);
-                options.Document.AddSchemaTransformer(documentation.Transformer);
-            }
-        });
+        // Routes carry their version as a plain leading segment (/1/..., /2/...); there is a single document in which a newer
+        // version of an endpoint replaces the older one.
+        services.TryAddEnumerable(ServiceDescriptor.Transient<IApiDescriptionProvider, SupersededVersionApiDescriptionProvider>());
 
         // generic ASP.NET stuff
         services.AddMemoryCache();

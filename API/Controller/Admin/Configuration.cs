@@ -9,6 +9,8 @@ using Results = OpenShock.Common.Results;
 
 using OpenShock.Internal.Common.Problems;
 
+using OpenShock.Common.ApiVersioning;
+
 namespace OpenShock.API.Controller.Admin;
 
 public sealed partial class AdminController
@@ -16,10 +18,10 @@ public sealed partial class AdminController
     /// <summary>
     /// Gets all configuration items
     /// </summary>
-    /// <response code="200"></response>
     /// <response code="401">Unauthorized</response>
     [HttpGet("config")]
     [ProducesResponseType<ConfigurationItemDto[]>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)] // Ok
+    [ApiVersion(1)]
     public IAsyncEnumerable<ConfigurationItemDto> ConfigurationList([FromServices] IConfigurationService configurationService)
     {
         PedanticallyEnsureAdmin();
@@ -50,6 +52,7 @@ public sealed partial class AdminController
     [ProducesResponseType(StatusCodes.Status200OK)] // Ok
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status409Conflict, MediaTypeNames.Application.ProblemJson)] // AlreadyExists
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status400BadRequest, MediaTypeNames.Application.ProblemJson)] // InvalidNameFormat, InvalidValueFormat
+    [ApiVersion(1)]
     public async Task<IActionResult> ConfigurationAdd([FromBody] ConfigurationAddItemRequest body, [FromServices] IConfigurationService configurationService, CancellationToken cancellationToken)
     {
         PedanticallyEnsureAdmin();
@@ -83,6 +86,7 @@ public sealed partial class AdminController
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status409Conflict, MediaTypeNames.Application.ProblemJson)] // AlreadyExists
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status404NotFound, MediaTypeNames.Application.ProblemJson)] // Not found
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status400BadRequest, MediaTypeNames.Application.ProblemJson)] // InvalidNameFormat, InvalidValueFormat
+    [ApiVersion(1)]
     public async Task<IActionResult> ConfigurationUpdate([FromBody] ConfigurationUpdateItemRequest body, [FromServices] IConfigurationService configurationService, CancellationToken cancellationToken)
     {
         PedanticallyEnsureAdmin();
@@ -113,6 +117,7 @@ public sealed partial class AdminController
     [ProducesResponseType(StatusCodes.Status200OK)] // Deleted
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status404NotFound, MediaTypeNames.Application.ProblemJson)] // Not found
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status400BadRequest, MediaTypeNames.Application.ProblemJson)] // InvalidNameFormat
+    [ApiVersion(1)]
     public async Task<IActionResult> ConfigurationDelete([FromRoute] string name, [FromServices] IConfigurationService configurationService, CancellationToken cancellationToken)
     {
         PedanticallyEnsureAdmin();

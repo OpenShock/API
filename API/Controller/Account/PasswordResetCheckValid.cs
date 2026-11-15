@@ -2,7 +2,7 @@
 using System.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
 using System.Net.Mime;
-using Asp.Versioning;
+using OpenShock.Common.ApiVersioning;
 using Microsoft.AspNetCore.RateLimiting;
 using OpenShock.API.Services.Account;
 using OpenShock.Common.Errors;
@@ -24,7 +24,7 @@ public sealed partial class AccountController
     [Obsolete("Retired. Use GET /1/account/password-reset/{passwordResetId}/{secret} instead.")]
     [HttpHead("recover/{passwordResetId}/{secret}")]
     [ApiExplorerSettings(IgnoreApi = true)]
-    [MapToApiVersion("1")]
+    [ApiVersion(1)]
     public IActionResult PasswordResetCheckValidLegacy([FromRoute] Guid passwordResetId, [FromRoute] string secret)
         => Problem(GoneError.EndpointRetired("GET /1/account/password-reset/{passwordResetId}/{secret}"));
     
@@ -40,7 +40,7 @@ public sealed partial class AccountController
     [EnableRateLimiting("auth")]
     [ProducesResponseType<LegacyEmptyResponse>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status404NotFound, MediaTypeNames.Application.ProblemJson)] // PasswordResetNotFound
-    [MapToApiVersion("1")]
+    [ApiVersion(1)]
     public async Task<IActionResult> PasswordResetCheckValid([FromRoute] Guid passwordResetId, [FromRoute] string secret, CancellationToken cancellationToken)
     {
         var passwordResetExists = await _accountService.CheckPasswordResetExistsAsync(passwordResetId, secret, cancellationToken);

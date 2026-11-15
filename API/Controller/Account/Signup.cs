@@ -1,4 +1,4 @@
-using Asp.Versioning;
+using OpenShock.Common.ApiVersioning;
 using Microsoft.AspNetCore.Mvc;
 using OpenShock.Common.Errors;
 
@@ -14,6 +14,6 @@ public sealed partial class AccountController
     [HttpPost("signup")]
     [Obsolete("Retired. Use POST /2/account/signup instead.")]
     [ApiExplorerSettings(IgnoreApi = true)]
-    [MapToApiVersion("1")]
+    [ApiVersion(1)]
     public IActionResult SignUp() => Problem(GoneError.EndpointRetired("POST /2/account/signup"));
 }

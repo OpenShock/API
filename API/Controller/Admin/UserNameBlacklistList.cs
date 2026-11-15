@@ -1,12 +1,14 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using OpenShock.API.Controller.Admin.DTOs;
+using OpenShock.Common.ApiVersioning;
 
 namespace OpenShock.API.Controller.Admin;
 
 public sealed partial class AdminController
 {
     [HttpGet("blacklist/usernames")]
+    [ApiVersion(1)]
     public async IAsyncEnumerable<UserNameBlacklistDto> ListUsernameBlacklist([FromQuery(Name="match")] string? match)
     {
         PedanticallyEnsureAdmin();

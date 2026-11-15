@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using OpenShock.API.Controller.Admin.DTOs;
 using OpenShock.Common.OpenShockDb;
 using OpenShock.Common.Services.RedisPubSub;
+using OpenShock.Common.ApiVersioning;
 
 namespace OpenShock.API.Controller.Admin;
 
@@ -19,6 +20,7 @@ public sealed partial class AdminController
     [HttpPost("email/outbox/bulk/requeue")]
     [Consumes(MediaTypeNames.Application.Json)]
     [ProducesResponseType<EmailOutboxBulkResultDto>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
+    [ApiVersion(1)]
     public async Task<EmailOutboxBulkResultDto> BulkRequeueEmailOutbox([FromBody] EmailOutboxBulkRequest body, [FromServices] IRedisPubService redisPubService, CancellationToken ct)
     {
         PedanticallyEnsureAdmin();
@@ -53,6 +55,7 @@ public sealed partial class AdminController
     [HttpPost("email/outbox/bulk/cancel")]
     [Consumes(MediaTypeNames.Application.Json)]
     [ProducesResponseType<EmailOutboxBulkResultDto>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
+    [ApiVersion(1)]
     public async Task<EmailOutboxBulkResultDto> BulkCancelEmailOutbox([FromBody] EmailOutboxBulkRequest body, CancellationToken ct)
     {
         PedanticallyEnsureAdmin();
@@ -75,6 +78,7 @@ public sealed partial class AdminController
     [HttpPost("email/outbox/bulk/delete")]
     [Consumes(MediaTypeNames.Application.Json)]
     [ProducesResponseType<EmailOutboxBulkResultDto>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
+    [ApiVersion(1)]
     public async Task<EmailOutboxBulkResultDto> BulkDeleteEmailOutbox([FromBody] EmailOutboxBulkRequest body, CancellationToken ct)
     {
         PedanticallyEnsureAdmin();

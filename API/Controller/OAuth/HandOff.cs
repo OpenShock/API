@@ -1,4 +1,5 @@
-﻿using System.Security.Claims;
+﻿using OpenShock.Common.ApiVersioning;
+using System.Security.Claims;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
@@ -20,6 +21,7 @@ public sealed partial class OAuthController
     /// Otherwise -> redirects frontend to continue the chosen flow.
     /// </remarks>
     [EnableRateLimiting("auth")]
+    [ApiVersion(1)]
     [HttpGet("{provider}/handoff")]
     [ApiExplorerSettings(IgnoreApi = true)]
     public async Task<IActionResult> OAuthHandOff(

@@ -1,5 +1,5 @@
 ﻿using System.Net.Mime;
-using Asp.Versioning;
+using OpenShock.Common.ApiVersioning;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using OpenShock.API.Models.Response;
@@ -16,7 +16,7 @@ public sealed partial class DeviceController
     /// </summary>
     /// <response code="200">The device information was successfully retrieved.</response>
     [HttpGet("self")]
-    [MapToApiVersion("1")]
+    [ApiVersion(1)]
     [ProducesResponseType<LegacyDataResponse<DeviceSelfResponse>>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
     public async Task<IActionResult> GetSelf()
     {

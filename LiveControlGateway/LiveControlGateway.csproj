@@ -3,6 +3,11 @@
     <ProjectReference Include="..\Common\Common.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <!-- Referenced directly so its XML-comment source generator runs here, where AddOpenApi is called -->
+    <PackageReference Include="Microsoft.AspNetCore.OpenApi" />
+  </ItemGroup>
+
   <!-- Flatbuffers -->
   <ItemGroup>
     <FlatSharpSchema Include="Serialization\**\*.fbs" />

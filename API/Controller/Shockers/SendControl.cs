@@ -1,6 +1,6 @@
  ﻿using System.Diagnostics;
 using System.Net.Mime;
-using Asp.Versioning;
+using OpenShock.Common.ApiVersioning;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.SignalR;
 using OpenShock.Common.Authentication.Attributes;
@@ -24,7 +24,7 @@ public sealed partial class ShockerController
     /// Send a control message to shockers
     /// </summary>
     /// <response code="200">The control messages were successfully sent.</response>
-    [MapToApiVersion("2")]
+    [ApiVersion(2)]
     [HttpPost("control")]
     [TokenPermission(PermissionType.Shockers_Use)]
     [Consumes(MediaTypeNames.Application.Json)]
@@ -72,7 +72,7 @@ public sealed partial class ShockerController
     /// Send a control message to shockers (Deprecated in favor of the /2/shockers/control endpoint)
     /// </summary>
     /// <response code="200">The control messages were successfully sent.</response>
-    [MapToApiVersion("1")]
+    [ApiVersion(1)]
     [HttpPost("control")]
     [TokenPermission(PermissionType.Shockers_Use)]
     [Consumes(MediaTypeNames.Application.Json)]

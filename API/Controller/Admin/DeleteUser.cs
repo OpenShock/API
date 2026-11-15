@@ -7,6 +7,8 @@ using OpenShock.Common.Errors;
 using AccountSvc = OpenShock.API.Services.Account;
 using Results = OpenShock.Common.Results;
 
+using OpenShock.Common.ApiVersioning;
+
 namespace OpenShock.API.Controller.Admin;
 
 public sealed partial class AdminController
@@ -18,6 +20,7 @@ public sealed partial class AdminController
     /// <response code="401">Unauthorized</response>
     [HttpDelete("users/{userId}")]
     [ProducesResponseType(StatusCodes.Status200OK)]
+    [ApiVersion(1)]
     public async Task<IActionResult> DeleteUser(
         [FromRoute] Guid userId,
         [FromQuery][MaxLength(ApiHardLimits.AuditReasonMaxLength)] string? reason,

@@ -12,6 +12,8 @@ using OpenShock.Internal.Common.Utils;
 
 using OpenShock.Internal.Common.Problems;
 
+using OpenShock.Common.ApiVersioning;
+
 namespace OpenShock.API.Controller.Account.Authenticated;
 
 public sealed partial class AuthenticatedAccountController
@@ -20,7 +22,6 @@ public sealed partial class AuthenticatedAccountController
     /// Change the password of the current user
     /// </summary>
     /// <param name="body"></param>
-    /// <returns></returns>
     /// <exception cref="Exception"></exception>
     [HttpPost("password")]
     [Consumes(MediaTypeNames.Application.Json)]
@@ -28,6 +29,7 @@ public sealed partial class AuthenticatedAccountController
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status403Forbidden, MediaTypeNames.Application.ProblemJson)] // PasswordChangeInvalidPassword
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status409Conflict, MediaTypeNames.Application.ProblemJson)] // PasswordNotSet
     // notActivated / deactivated / notFound are blocked by UserSessionAuthentication before reaching this controller.
+    [ApiVersion(1)]
     public async Task<IActionResult> ChangePassword([FromBody] ChangePasswordRequest body)
     {
         // OAuth-only accounts that have never set a password must go through the email-confirmed

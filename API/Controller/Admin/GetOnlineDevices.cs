@@ -7,6 +7,8 @@ using OpenShock.Common.Redis;
 using System.Text.Json.Serialization;
 using OpenShock.Common.JsonSerialization;
 
+using OpenShock.Common.ApiVersioning;
+
 namespace OpenShock.API.Controller.Admin;
 
 public sealed partial class AdminController
@@ -18,6 +20,7 @@ public sealed partial class AdminController
     /// <response code="401">Unauthorized</response>
     [HttpGet("monitoring/onlineDevices")]
     [ProducesResponseType<LegacyDataResponse<AdminOnlineDeviceResponse[]>>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
+    [ApiVersion(1)]
     public async Task<IActionResult> GetOnlineDevices()
     {
         PedanticallyEnsureAdmin();

@@ -1,4 +1,5 @@
-﻿using System.Net.Mime;
+﻿using OpenShock.Common.ApiVersioning;
+using System.Net.Mime;
 using Microsoft.AspNetCore.Mvc;
 using OpenShock.API.Models.Requests;
 using OpenShock.Common.Authentication.Attributes;
@@ -14,6 +15,7 @@ public sealed partial class ShareLinksController
     /// Create a new public share
     /// </summary>
     /// <response code="200">The created public share</response>
+    [ApiVersion(1)]
     [HttpPost(Name = "CreatePublicShare")]
     [TokenPermission(PermissionType.Publicshares_Edit)]
     [Consumes(MediaTypeNames.Application.Json)]

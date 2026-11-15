@@ -3,6 +3,8 @@ using Microsoft.AspNetCore.Mvc;
 using OpenShock.API.Controller.Admin.DTOs;
 using OpenShock.API.Services.Account;
 
+using OpenShock.Common.ApiVersioning;
+
 namespace OpenShock.API.Controller.Admin;
 
 public sealed partial class AdminController
@@ -16,6 +18,7 @@ public sealed partial class AdminController
     [HttpPatch("users/{userId}")]
     [Consumes(MediaTypeNames.Application.Json)]
     [ProducesResponseType(StatusCodes.Status200OK)]
+    [ApiVersion(1)]
     public async Task<IActionResult> ModifyUser([FromRoute] Guid userId, [FromBody] UserPatchDto body, [FromServices] IAccountService accountService, CancellationToken ct)
     {
         PedanticallyEnsureAdmin();

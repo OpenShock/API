@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using OpenShock.Common.ApiVersioning;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 using OpenShock.API.Models.Response;
 using OpenShock.API.OAuth;
@@ -21,6 +22,7 @@ public sealed partial class OAuthController
     /// <param name="provider">The provider key (e.g. <c>discord</c>).</param>
     [ResponseCache(NoStore = true)]
     [EnableRateLimiting("auth")]
+    [ApiVersion(1)]
     [HttpGet("{provider}/signup-data")]
     [ApiExplorerSettings(IgnoreApi = true)]
     public async Task<IActionResult> OAuthSignupGetData([FromRoute] string provider)

@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using OpenShock.API.Controller.Admin.DTOs;
 using OpenShock.Common.OpenShockDb;
 using System.Net.Mime;
+using OpenShock.Common.ApiVersioning;
 
 namespace OpenShock.API.Controller.Admin;
 
@@ -15,6 +16,7 @@ public sealed partial class AdminController
     /// <response code="401">Unauthorized</response>
     [HttpGet("email/outbox/stats")]
     [ProducesResponseType<EmailOutboxStatsDto>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
+    [ApiVersion(1)]
     public async Task<EmailOutboxStatsDto> GetEmailOutboxStats()
     {
         PedanticallyEnsureAdmin();

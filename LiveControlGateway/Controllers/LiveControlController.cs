@@ -1,4 +1,5 @@
-﻿using System.Diagnostics;
+﻿using OpenShock.Common.ApiVersioning;
+using System.Diagnostics;
 using System.Net.WebSockets;
 using System.Text.Json;
 using Microsoft.AspNetCore.Authorization;
@@ -43,6 +44,11 @@ namespace OpenShock.LiveControlGateway.Controllers;
 public sealed class LiveControlController : WebsocketBaseController<LiveControlResponse<LiveResponseType>>,
     IActionFilter
 {
+    /// <inheritdoc />
+    [ApiVersion(1)]
+    public override Task Get([FromServices] IHostApplicationLifetime lifetime, CancellationToken cancellationToken) =>
+        base.Get(lifetime, cancellationToken);
+
     private readonly HubLifetimeManager _hubLifetimeManager;
     private readonly IDbContextFactory<OpenShockContext> _dbContextFactory;
     private readonly IUserReferenceService _userReferenceService;

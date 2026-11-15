@@ -1,4 +1,4 @@
-﻿using Asp.Versioning;
+﻿using OpenShock.Common.ApiVersioning;
 using Microsoft.AspNetCore.Mvc;
 using OpenShock.Common;
 using OpenShock.Common.Utils;
@@ -15,7 +15,6 @@ namespace OpenShock.LiveControlGateway.Controllers;
 /// </summary>
 [ApiController]
 [Route("/{version:apiVersion}")]
-[ApiVersion("1")]
 public sealed class InstanceDetailsController : OpenShockControllerBase
 {
     private static readonly AssemblyName AssemblyName = typeof(InstanceDetailsController).Assembly.GetName();
@@ -28,7 +27,7 @@ public sealed class InstanceDetailsController : OpenShockControllerBase
     /// <response code="200">Instance details was successfully retrieved.</response>
     [HttpGet]
     [ProducesResponseType<InstanceDetailsResponse>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
-    [MapToApiVersion("1")]
+    [ApiVersion(1)]
     public InstanceDetailsResponse GetNodeInfo([FromServices] LcgOptions options)
     {
         return new InstanceDetailsResponse

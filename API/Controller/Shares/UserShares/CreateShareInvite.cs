@@ -1,5 +1,5 @@
 ﻿using System.Net.Mime;
-using Asp.Versioning;
+using OpenShock.Common.ApiVersioning;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using OpenShock.API.Models.Requests;
@@ -21,7 +21,7 @@ public sealed partial class UserSharesController
     [TokenPermission(PermissionType.Usershares_Edit)]
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status404NotFound, MediaTypeNames.Application.ProblemJson)] // UserNotFound, ShareCreateShockerNotFound
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status400BadRequest, MediaTypeNames.Application.ProblemJson)] // ShareCreateCannotShareWithSelf
-    [MapToApiVersion("2")]
+    [ApiVersion(2)]
     public async Task<IActionResult> CreateShareInvite([FromBody] CreateShareRequest body)
     {
         if (body.User == CurrentUser.Id)

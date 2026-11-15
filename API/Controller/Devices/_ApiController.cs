@@ -1,5 +1,4 @@
-﻿using Asp.Versioning;
-using Microsoft.AspNetCore.Authorization;
+﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using OpenShock.Common.Authentication;
 using OpenShock.Common.Authentication.ControllerBase;
@@ -13,7 +12,6 @@ namespace OpenShock.API.Controller.Devices;
 /// </summary>
 [ApiController]
 [Tags("Hub Management")]
-[ApiVersion("1"), ApiVersion("2")]
 [Route("/{version:apiVersion}/devices")]
 [Authorize(AuthenticationSchemes = OpenShockAuthSchemes.UserSessionApiTokenCombo)]
 public sealed partial class DevicesController : AuthenticatedSessionControllerBase

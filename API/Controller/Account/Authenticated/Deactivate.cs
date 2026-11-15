@@ -9,6 +9,8 @@ using Results = OpenShock.Common.Results;
 
 using OpenShock.Internal.Common.Problems;
 
+using OpenShock.Common.ApiVersioning;
+
 namespace OpenShock.API.Controller.Account.Authenticated;
 
 public sealed partial class AuthenticatedAccountController
@@ -20,6 +22,7 @@ public sealed partial class AuthenticatedAccountController
     [HttpDelete]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status403Forbidden, MediaTypeNames.Application.ProblemJson)] // CannotDeactivatePrivledgedAccount
+    [ApiVersion(1)]
     public async Task<IActionResult> Deactivate()
     {
         var deactivationResult = await _accountService.DeactivateAccountAsync(CurrentUser.Id, CurrentUser.Id, deleteLater: true);

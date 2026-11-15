@@ -1,4 +1,4 @@
-﻿using Asp.Versioning;
+﻿using OpenShock.Common.ApiVersioning;
 using Microsoft.AspNetCore.Mvc;
 using OpenShock.Common.Extensions;
 using OpenShock.Common.Services.Session;
@@ -9,7 +9,7 @@ public sealed partial class AccountController
 {
     [HttpPost("logout")]
     [ProducesResponseType(StatusCodes.Status200OK)]
-    [MapToApiVersion("1")]
+    [ApiVersion(1)]
     public async Task<IActionResult> Logout([FromServices] ISessionService sessionService)
     {
         // Remove session if valid

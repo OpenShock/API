@@ -1,4 +1,5 @@
-﻿using System.Net.Mime;
+﻿using OpenShock.Common.ApiVersioning;
+using System.Net.Mime;
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -36,6 +37,7 @@ public sealed class TokenDeleteController : AuthenticatedSessionControllerBase
     /// <response code="200">Successfully deleted token</response>
     /// <response code="403">Api Token is not allowed to delete other Api Tokens</response>
     /// <response code="404">The token does not exist, or you do not have access to it</response>
+    [ApiVersion(1)]
     [HttpDelete("{tokenId}")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
