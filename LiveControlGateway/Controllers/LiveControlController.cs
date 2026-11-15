@@ -36,17 +36,13 @@ namespace OpenShock.LiveControlGateway.Controllers;
 /// Live control controller
 /// </summary>
 [ApiController]
+[ApiVersion(1)]
 [Route("/{version:apiVersion}/ws/live/{hubId:guid}")]
 [TokenPermission(PermissionType.Shockers_Use)]
 [Authorize(AuthenticationSchemes = OpenShockAuthSchemes.UserSessionApiTokenCombo)]
 public sealed class LiveControlController : WebsocketBaseController<LiveControlResponse<LiveResponseType>>,
     IActionFilter
 {
-    /// <inheritdoc />
-    [ApiVersion(1)]
-    public override Task Get([FromServices] IHostApplicationLifetime lifetime, CancellationToken cancellationToken) =>
-        base.Get(lifetime, cancellationToken);
-
     private readonly HubLifetimeManager _hubLifetimeManager;
     private readonly IDbContextFactory<OpenShockContext> _dbContextFactory;
     private readonly IUserReferenceService _userReferenceService;
