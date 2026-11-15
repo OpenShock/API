@@ -1,4 +1,4 @@
-using TUnit.Core;
+using OpenShock.API.IntegrationTests;
 using TUnit.Core.Interfaces;
 
 // Allow up to 5 minutes per test — integration tests can be slow in CI when Docker images
@@ -9,11 +9,11 @@ using TUnit.Core.Interfaces;
 // Limit parallel test execution to avoid thread pool starvation on CI runners.
 // BCrypt password hashing in login/signup endpoints is synchronous and CPU-bound;
 // too many concurrent tests exhaust the thread pool, causing request timeouts.
-[assembly: ParallelLimiter<OpenShock.API.IntegrationTests.CiSafeParallelLimit>]
+[assembly: ParallelLimiter<CiSafeParallelLimit>]
 
 namespace OpenShock.API.IntegrationTests;
 
-public record CiSafeParallelLimit : IParallelLimit
+public sealed record CiSafeParallelLimit : IParallelLimit
 {
     public int Limit => Math.Max(Environment.ProcessorCount * 2, 8);
 }

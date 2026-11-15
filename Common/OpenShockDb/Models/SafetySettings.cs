@@ -1,6 +1,6 @@
 ﻿namespace OpenShock.Common.OpenShockDb;
 
-public class SafetySettings
+public closed class SafetySettings
 {
     public required bool AllowShock { get; set; }
 

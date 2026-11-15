@@ -8,6 +8,6 @@ public static class UserShareUtils
     {
         true when shockerLevel => PauseReason.Shocker | PauseReason.Share,
         true => PauseReason.Share,
-        _ => shockerLevel ? PauseReason.Shocker : PauseReason.None
+        false => shockerLevel ? PauseReason.Shocker : PauseReason.None
     };
 }

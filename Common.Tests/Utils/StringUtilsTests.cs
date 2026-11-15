@@ -2,7 +2,7 @@ using OpenShock.Common.Utils;
 
 namespace OpenShock.Common.Tests.Utils;
 
-public class StringUtilsTests
+public sealed class StringUtilsTests
 {
     [Test]
     public async Task Truncate_ShorterThanMax_ReturnsOriginal()
@@ -44,5 +44,19 @@ public class StringUtilsTests
     {
         var result = "hello".Truncate(1);
         await Assert.That(result).IsEqualTo("h");
+    }
+
+    [Test]
+    public async Task Truncate_CutInsideSurrogatePair_DropsWholePair()
+    {
+        var result = "abc😀".Truncate(4);
+        await Assert.That(result).IsEqualTo("abc");
+    }
+
+    [Test]
+    public async Task Truncate_CutAfterSurrogatePair_KeepsPair()
+    {
+        var result = "abc😀def".Truncate(5);
+        await Assert.That(result).IsEqualTo("abc😀");
     }
 }

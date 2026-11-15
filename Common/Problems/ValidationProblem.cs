@@ -1,6 +1,5 @@
 ﻿using System.Net;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
-
 using OpenShock.Internal.Common.Problems;
 
 namespace OpenShock.Common.Problems;
@@ -13,18 +12,17 @@ public sealed class ValidationProblem : OpenShockProblem
         Errors = CreateErrorDictionary(state);
     }
 
-    public IDictionary<string, string[]> Errors { get; set; }
+    public IDictionary<string, string[]> Errors { get; init; }
 
-    private static IDictionary<string, string[]> CreateErrorDictionary(ModelStateDictionary modelState)
+    private static Dictionary<string, string[]> CreateErrorDictionary(ModelStateDictionary modelState)
     {
         ArgumentNullException.ThrowIfNull(modelState);
 
         var errorDictionary = new Dictionary<string, string[]>(modelState.Count, StringComparer.Ordinal);
 
-        foreach (var keyModelStatePair in modelState)
+        foreach (var (key, value) in modelState)
         {
-            var key = keyModelStatePair.Key;
-            var errors = keyModelStatePair.Value.Errors;
+            var errors = value.Errors;
             if (errors is not { Count: > 0 }) continue;
             if (errors.Count == 1)
             {

@@ -1,6 +1,7 @@
 ﻿using System.Diagnostics.CodeAnalysis;
 using System.Text;
 using MessagePack;
+using OpenShock.Serialization.Types;
 
 namespace OpenShock.Common.Models;
 
@@ -37,13 +38,13 @@ public sealed class SemVersion : IEquatable<SemVersion>
     /// <summary>
     /// Creates a <see cref="SemVersion"/> from a FlatBuffers <c>Serialization.Types.SemVer</c> instance.
     /// </summary>
-    public static SemVersion FromFbs(Serialization.Types.SemVer fbs) =>
+    public static SemVersion FromFbs(SemVer fbs) =>
         new(fbs.Major, fbs.Minor, fbs.Patch, fbs.Prerelease, fbs.Build);
 
     /// <summary>
     /// Converts this instance to a FlatBuffers <c>Serialization.Types.SemVer</c>.
     /// </summary>
-    public Serialization.Types.SemVer ToFbs() => new()
+    public SemVer ToFbs() => new()
     {
         Major = Major,
         Minor = Minor,

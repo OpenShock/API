@@ -1,0 +1,43 @@
+﻿using System.Diagnostics;
+using Microsoft.AspNetCore.Mvc;
+using OpenShock.API.Services.Account;
+using OpenShock.Common.ApiVersioning;
+using OpenShock.Common.DataAnnotations;
+using OpenShock.Common.Errors;
+using Results = OpenShock.Common.Results;
+
+namespace OpenShock.API.Controller.Admin;
+
+public sealed partial class AdminController
+{
+    /// <summary>
+    /// Sets a users email to the supplied value
+    /// </summary>
+    /// <response code="200">OK</response>
+    /// <response code="404">Not found</response>
+    /// <response code="401">Unauthorized</response>
+    [HttpPut("users/{userId}/email")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ApiVersion(1)]
+    public async Task<IActionResult> SetUserEmail([FromRoute(Name = "userId")] Guid userId, [FromBody] SetUserEmailRequestBody body, [FromServices] IAccountService accountService, CancellationToken cancellationToken)
+    {
+        PedanticallyEnsureAdmin();
+
+        var result = await accountService.ChangeEmail(userId, body.Email, actorId: CurrentUser.Id, cancellationToken);
+
+        return result switch
+        {
+            Results.Success => Ok(),
+            EmailTaken => Problem(AdminError.EmailTaken),
+            EmailInvalid => Problem(AdminError.EmailInvalid),
+            Results.NotFound => NotFound()
+        };
+    }
+
+    public sealed class SetUserEmailRequestBody
+    {
+        [EmailAddress(true)]
+        public required string Email { get; init; }
+    }
+}

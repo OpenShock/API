@@ -8,16 +8,15 @@ using Microsoft.EntityFrameworkCore;
 using OpenShock.Common.ApiVersioning;
 using OpenShock.Common.Authentication;
 using OpenShock.Common.Authentication.Attributes;
-using OpenShock.Common.Authentication.Services;
-using OpenShock.Common.Constants;
 using OpenShock.Common.Errors;
 using OpenShock.Common.Models;
 using OpenShock.Common.Models.WebSocket;
 using OpenShock.Common.Models.WebSocket.LCG;
 using OpenShock.Common.OpenShockDb;
-using OpenShock.Common.Problems;
 using OpenShock.Common.Utils;
 using OpenShock.Common.Websocket;
+using OpenShock.Internal.Common.Constants;
+using OpenShock.Internal.Common.Utils;
 using OpenShock.LiveControlGateway.LifetimeManager;
 using OpenShock.LiveControlGateway.Metrics;
 using OpenShock.LiveControlGateway.Models;
@@ -25,10 +24,6 @@ using OpenShock.LiveControlGateway.PubSub;
 using JsonOptions = OpenShock.Common.JsonSerialization.JsonOptions;
 using Results = OpenShock.Common.Results;
 using Timer = System.Timers.Timer;
-
-using OpenShock.Internal.Common.Constants;
-using OpenShock.Internal.Common.Problems;
-using OpenShock.Internal.Common.Utils;
 
 namespace OpenShock.LiveControlGateway.Controllers;
 
@@ -45,7 +40,6 @@ public sealed class LiveControlController : WebsocketBaseController<LiveControlR
 {
     private readonly HubLifetimeManager _hubLifetimeManager;
     private readonly IDbContextFactory<OpenShockContext> _dbContextFactory;
-    private readonly IUserReferenceService _userReferenceService;
     private readonly ApiTokenUpdateSubscriber _tokenUpdateSubscriber;
     private readonly ILogger<LiveControlController> _logger;
     private readonly GatewayMetrics _metrics;
@@ -107,15 +101,13 @@ public sealed class LiveControlController : WebsocketBaseController<LiveControlR
     /// </summary>
     /// <param name="logger"></param>
     /// <param name="dbContextFactory"></param>
-    /// <param name="userReferenceService"></param>
     /// <param name="tokenUpdateSubscriber"></param>
     /// <param name="hubLifetimeManager"></param>
     /// <param name="metrics"></param>
-    public LiveControlController(HubLifetimeManager hubLifetimeManager, IDbContextFactory<OpenShockContext> dbContextFactory, IUserReferenceService userReferenceService, ApiTokenUpdateSubscriber tokenUpdateSubscriber, GatewayMetrics metrics, ILogger<LiveControlController> logger) : base(logger)
+    public LiveControlController(HubLifetimeManager hubLifetimeManager, IDbContextFactory<OpenShockContext> dbContextFactory, ApiTokenUpdateSubscriber tokenUpdateSubscriber, GatewayMetrics metrics, ILogger<LiveControlController> logger) : base(logger)
     {
         _hubLifetimeManager = hubLifetimeManager;
         _dbContextFactory = dbContextFactory;
-        _userReferenceService = userReferenceService;
         _tokenUpdateSubscriber = tokenUpdateSubscriber;
         _metrics = metrics;
         _logger = logger;
@@ -154,7 +146,7 @@ public sealed class LiveControlController : WebsocketBaseController<LiveControlR
         {
             Logger.LogTrace("User is owner of hub");
             _sharedShockers = await db.Shockers.Where(x => x.DeviceId == Id).ToDictionaryAsync(x => x.Id, x =>
-                new LiveShockerPermission()
+                new LiveShockerPermission
                 {
                     Paused = x.IsPaused,
                     PermsAndLimits = OwnerPermsAndLimitsLive
@@ -231,11 +223,11 @@ public sealed class LiveControlController : WebsocketBaseController<LiveControlR
                 _logger.LogDebug("No such hub with id [{HubId}] connected", HubId);
                 _metrics.LiveControlAttempt(GatewayMetrics.LiveControlOutcome.HubNotFound);
                 return WebsocketError.WebsocketLiveControlHubNotConnected;
-            case LifetimeManager.HubLifetimeManager.Busy:
+            case HubLifetimeManager.Busy:
                 _logger.LogDebug("Hub is busy, cannot connect [{HubId}]", HubId);
                 _metrics.LiveControlAttempt(GatewayMetrics.LiveControlOutcome.HubBusy);
                 return WebsocketError.WebsocketLiveControlHubLifetimeBusy;
-            case LifetimeManager.HubLifetime hubLifetime:
+            case HubLifetime hubLifetime:
                 _hubLifetime = hubLifetime;
                 break;
             // A switch statement is not exhaustiveness-checked, so without this an unhandled case would
@@ -256,17 +248,18 @@ public sealed class LiveControlController : WebsocketBaseController<LiveControlR
     [NonAction]
     public void OnActionExecuting(ActionExecutingContext context)
     {
-        _currentUser = HttpContext.Items["User"] as User ?? throw new Exception("User not found");
+        _currentUser = GetRequiredItem<User>();
 
         // When authenticated via an API token, the token may scope/pause shocker control.
         // Session auth carries no such limits.
-        if (_userReferenceService.AuthReference is ApiToken apiToken)
+        if (GetOptionalItem<ApiToken>() is { } apiToken)
         {
             _tokenId = apiToken.Id;
             _tokenPaused = apiToken.ShockerControlPaused;
             _tokenLimits = ApiTokenControlLimits.FromToken(apiToken);
         }
     }
+
 
     /// <summary>
     /// Apply refreshed API token limits to this connection, pushed by the <see cref="ApiTokenUpdateSubscriber"/>
@@ -357,7 +350,7 @@ public sealed class LiveControlController : WebsocketBaseController<LiveControlR
             LiveRequestType.Pong => IntakePong(request.Data),
             LiveRequestType.Frame => IntakeFrame(request.Data),
             LiveRequestType.BulkFrame => IntakeBulkFrame(request.Data),
-            _ => QueueMessage(new LiveControlResponse<LiveResponseType>()
+            _ => QueueMessage(new LiveControlResponse<LiveResponseType>
             {
                 ResponseType = LiveResponseType.RequestTypeNotFound
             }).AsTask()
@@ -494,38 +487,33 @@ public sealed class LiveControlController : WebsocketBaseController<LiveControlR
         }
 
         var permCheck = CheckFramePermissions(frame.Shocker, frame.Type);
-        if (permCheck is not SharePermsAndLimits perms)
+        await (permCheck switch
         {
-            _metrics.Frame(permCheck switch
-            {
-                Results.NotFound => GatewayMetrics.FrameOutcome.ShockerNotFound,
-                LiveNotEnabled => GatewayMetrics.FrameOutcome.LiveNotEnabled,
-                NoPermission => GatewayMetrics.FrameOutcome.NoPermission,
-                ShockerPaused => GatewayMetrics.FrameOutcome.ShockerPaused,
-                _ => throw new UnreachableException()
-            }, frame.Type);
+            SharePermsAndLimits perms => ForwardFrame(frame, perms),
+            Results.NotFound => RejectFrame(frame, GatewayMetrics.FrameOutcome.ShockerNotFound, LiveResponseType.ShockerNotFound),
+            LiveNotEnabled => RejectFrame(frame, GatewayMetrics.FrameOutcome.LiveNotEnabled, LiveResponseType.ShockerMissingLivePermission),
+            NoPermission => RejectFrame(frame, GatewayMetrics.FrameOutcome.NoPermission, LiveResponseType.ShockerMissingPermission),
+            ShockerPaused => RejectFrame(frame, GatewayMetrics.FrameOutcome.ShockerPaused, LiveResponseType.ShockerPaused)
+        });
+    }
 
-            await QueueMessage(new LiveControlResponse<LiveResponseType>
-            {
-                ResponseType = permCheck switch
-                {
-                    Results.NotFound => LiveResponseType.ShockerNotFound,
-                    LiveNotEnabled => LiveResponseType.ShockerMissingLivePermission,
-                    NoPermission => LiveResponseType.ShockerMissingPermission,
-                    ShockerPaused => LiveResponseType.ShockerPaused,
-                    _ => throw new UnreachableException()
-                }
-            });
+    private async Task RejectFrame(ClientLiveFrame frame, string outcome, LiveResponseType responseType)
+    {
+        _metrics.Frame(outcome, frame.Type);
+        await QueueMessage(new LiveControlResponse<LiveResponseType>
+        {
+            ResponseType = responseType
+        });
+    }
 
-            return;
-        }
-
+    private async Task ForwardFrame(ClientLiveFrame frame, SharePermsAndLimits perms)
+    {
         // Apply the token's intensity scoping first (if any), then clamp to the share limits.
         var scopedIntensity = _tokenLimits?.ApplyIntensity(frame.Intensity) ?? frame.Intensity;
         var intensity = Math.Clamp(scopedIntensity, HardLimits.MinControlIntensity,
             perms.Intensity ?? HardLimits.MaxControlIntensity);
 
-        var result = HubLifetime.ReceiveFrame(frame.Shocker, frame.Type, intensity, _tps);
+        var result = HubLifetime.ReceiveFrame(frame.Shocker, _currentUser.Id, frame.Type, intensity, _tps);
 
         switch (result)
         {

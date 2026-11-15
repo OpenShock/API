@@ -1,15 +1,14 @@
-﻿using System.Net.WebSockets;
+﻿using System.Diagnostics;
+using System.Net.WebSockets;
 using System.Text.Json;
 using System.Threading.Channels;
 using Microsoft.AspNetCore.Mvc;
 using OpenShock.Common.Errors;
-using OpenShock.Common.Problems;
 using OpenShock.Common.Results;
 using OpenShock.Common.Utils;
-using JsonOptions = OpenShock.Common.JsonSerialization.JsonOptions;
-
 using OpenShock.Internal.Common.Problems;
 using OpenShock.Internal.Common.Utils;
+using JsonOptions = OpenShock.Common.JsonSerialization.JsonOptions;
 
 namespace OpenShock.Common.Websocket;
 
@@ -38,7 +37,17 @@ public abstract class WebsocketBaseController<T> : OpenShockControllerBase, IAsy
     /// <summary>
     /// Channel for multithreading thread safety of the websocket, MessageLoop is the only reader for this channel
     /// </summary>
-    protected readonly Channel<T> Channel = System.Threading.Channels.Channel.CreateUnbounded<T>();
+    protected readonly Channel<QueuedMessage> Channel = System.Threading.Channels.Channel.CreateUnbounded<QueuedMessage>();
+
+    /// <summary>
+    /// A message waiting to be sent, <paramref name="Sent"/> is completed with whether it was written to the websocket
+    /// </summary>
+    /// <param name="Data"></param>
+    /// <param name="Sent"></param>
+    /// <param name="ExpiresAt">
+    /// <see cref="Stopwatch.GetTimestamp"/> after which the message is dropped instead of written, 0 for never.
+    /// </param>
+    protected readonly record struct QueuedMessage(T Data, TaskCompletionSource<bool>? Sent, long ExpiresAt = 0);
 
 #pragma warning disable IDISP008
     protected WebSocket? WebSocket;
@@ -57,14 +66,57 @@ public abstract class WebsocketBaseController<T> : OpenShockControllerBase, IAsy
     [NonAction]
     public ValueTask QueueMessage(T data)
     {
-        if (WebSocket is null or { State: WebSocketState.Closed or WebSocketState.CloseSent or WebSocketState.Aborted })
+        if (!CanSend())
         {
             Logger.LogDebug("WebSocket is null, abort or closed, not sending message");
             return ValueTask.CompletedTask;
         }
         
-        return Channel.Writer.WriteAsync(data, LinkedToken);
+        return Channel.Writer.WriteAsync(new QueuedMessage(data, null), LinkedToken);
     }
+
+    /// <summary>
+    /// Queue a message that is only worth sending promptly. If the client is so far behind that it has
+    /// waited longer than <paramref name="maxQueueAge"/> when its turn comes, it is dropped.
+    /// </summary>
+    [NonAction]
+    public ValueTask QueueMessage(T data, TimeSpan maxQueueAge)
+    {
+        if (!CanSend())
+        {
+            Logger.LogDebug("WebSocket is null, abort or closed, not sending message");
+            return ValueTask.CompletedTask;
+        }
+
+        var expiresAt = Stopwatch.GetTimestamp() + (long)(maxQueueAge.TotalSeconds * Stopwatch.Frequency);
+        return Channel.Writer.WriteAsync(new QueuedMessage(data, null, expiresAt), LinkedToken);
+    }
+
+    /// <summary>
+    /// Queue a message and wait until it has been written to the websocket
+    /// </summary>
+    /// <param name="data"></param>
+    /// <returns>Whether the message was written, false if the websocket closed or failed before sending it</returns>
+    [NonAction]
+    public async Task<bool> SendMessage(T data)
+    {
+        if (!CanSend()) return false;
+
+        var sent = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+        try
+        {
+            await Channel.Writer.WriteAsync(new QueuedMessage(data, sent), LinkedToken);
+        }
+        catch (Exception e) when (e is ChannelClosedException or OperationCanceledException)
+        {
+            return false;
+        }
+
+        return await sent.Task;
+    }
+
+    private bool CanSend() =>
+        WebSocket is not (null or { State: WebSocketState.Closed or WebSocketState.CloseSent or WebSocketState.Aborted });
 
     private bool _disposed;
 
@@ -170,18 +222,36 @@ public abstract class WebsocketBaseController<T> : OpenShockControllerBase, IAsy
     [NonAction]
     private async Task MessageLoop()
     {
-        await foreach (var msg in Channel.Reader.ReadAllAsync(LinkedToken))
+        try
         {
-            try
+            await foreach (var msg in Channel.Reader.ReadAllAsync(LinkedToken))
             {
-                await SendWebSocketMessage(msg, WebSocket!, LinkedToken);
+                if (msg.ExpiresAt != 0 && Stopwatch.GetTimestamp() > msg.ExpiresAt)
+                {
+                    Logger.LogDebug("Dropping a message that waited too long in the send queue");
+                    msg.Sent?.TrySetResult(false);
+                    continue;
+                }
+
+                try
+                {
+                    await SendWebSocketMessage(msg.Data, WebSocket!, LinkedToken);
+                    msg.Sent?.TrySetResult(true);
+                }
+                catch (Exception e)
+                {
+                    msg.Sent?.TrySetResult(false);
+                    Logger.LogError(e, "Error while sending message to client - {Msg}", JsonSerializer.Serialize(msg.Data));
+                    await ForceClose(WebSocketCloseStatus.InternalServerError, "Internal server error, error sending message to websocket client");
+                    throw;
+                }
             }
-            catch (Exception e)
-            {
-                Logger.LogError(e, "Error while sending message to client - {Msg}", JsonSerializer.Serialize(msg));
-                await ForceClose(WebSocketCloseStatus.InternalServerError, "Internal server error, error sending message to websocket client");
-                throw;
-            }
+        }
+        finally
+        {
+            // Nothing is sent anymore, so close the channel to new writes and fail everyone still waiting on theirs
+            Channel.Writer.TryComplete();
+            while (Channel.Reader.TryRead(out var unsent)) unsent.Sent?.TrySetResult(false);
         }
     }
 

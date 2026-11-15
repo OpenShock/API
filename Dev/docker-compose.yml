@@ -1,8 +1,42 @@
 ﻿# THIS IS MEANT FOR DEVELOPMENT; NOT PRODUCTION; DATA SAVED BY THIS STACK IS NOT CONSIDERED SECRET AND SAFE
 
+# Explicit project name: the folder name (`dev`) collides with other projects' compose stacks.
+name: openshock-dev
+
+# Shared config for the backend services, which are built from this working tree.
+x-openshock-env: &openshock-env
+  OPENSHOCK__DB__CONN: Host=postgres;Port=5432;Database=openshock;Username=openshock;Password=openshock
+  OPENSHOCK__REDIS__HOST: dragonfly
+  OPENSHOCK__FRONTEND__BASEURL: http://localhost:8080
+  OPENSHOCK__FRONTEND__SHORTURL: http://localhost:8080
+  OPENSHOCK__FRONTEND__COOKIEDOMAIN: localhost
+  OPENSHOCK__TURNSTILE__ENABLE: "false"
+  # Mail goes to mailpit (http://localhost:8025)
+  OPENSHOCK__MAIL__TYPE: Smtp
+  OPENSHOCK__MAIL__SENDER__NAME: OpenShock Dev
+  OPENSHOCK__MAIL__SENDER__EMAIL: dev@openshock.dev
+  OPENSHOCK__MAIL__SMTP__HOST: mailpit
+  OPENSHOCK__MAIL__SMTP__PORT: 1025
+  OPENSHOCK__MAIL__SMTP__USERNAME: dev
+  OPENSHOCK__MAIL__SMTP__PASSWORD: dev
+  OPENSHOCK__MAIL__SMTP__ENABLESSL: "false"
+  OPENSHOCK__MAIL__SMTP__VERIFYCERTIFICATE: "false"
+
+x-openshock-svc: &openshock-svc
+  restart: unless-stopped
+  networks:
+    - openshock
+  depends_on:
+    postgres:
+      condition: service_healthy
+    dragonfly:
+      condition: service_started
+    mailpit:
+      condition: service_started
+
 services:
   postgres:
-    image: postgres:17
+    image: postgres:18
     container_name: openshock-postgres
     healthcheck:
       test: [ "CMD-SHELL", "pg_isready -d $${POSTGRES_DB} -U $${POSTGRES_USER}" ]
@@ -17,7 +51,8 @@ services:
       POSTGRES_USER: openshock
       POSTGRES_DB: openshock
     volumes:
-      - ./postgres:/var/lib/postgresql/data
+      # PG18+ mounts the parent dir (data lives in ./postgres-data/18/docker).
+      - ./postgres-data:/var/lib/postgresql
     ports:
       - 5432:5432
 
@@ -32,15 +67,58 @@ services:
     ports:
       - 6379:6379
         
-  webui:
-    image: ghcr.io/openshock/webui:latest
+  api:
+    <<: *openshock-svc
+    build:
+      context: ..
+      dockerfile: docker/API.Dockerfile
+    container_name: openshock-api
     environment:
-      OPENSHOCK_NAME: "OpenShock Local"
-      OPENSHOCK_URL: "http://localhost:8080"
-      OPENSHOCK_API_URL: "http://localhost:80"
-      OPENSHOCK_SHARE_URL: "http://localhost:8080"
+      <<: *openshock-env
     ports:
-        - 8080:80
+      - 443:443   # API (self-signed cert)       ->  https://localhost
+      - 8080:3000 # Frontend, see `frontend` below ->  http://localhost:8080
+
+  lcg:
+    <<: *openshock-svc
+    build:
+      context: ..
+      dockerfile: docker/LiveControlGateway.Dockerfile
+    container_name: openshock-lcg
+    environment:
+      <<: *openshock-env
+      OPENSHOCK__LCG__COUNTRYCODE: DE
+      OPENSHOCK__LCG__FQDN: localhost
+      OPENSHOCK__LCG__PUBLICPORT: 5443
+    ports:
+      - 5443:443
+
+  cron:
+    <<: *openshock-svc
+    build:
+      context: ..
+      dockerfile: docker/Cron.Dockerfile
+    container_name: openshock-cron
+    environment:
+      <<: *openshock-env
+
+  frontend:
+    image: ghcr.io/openshock/frontend:latest
+    container_name: openshock-frontend
+    restart: unless-stopped
+    # Shares the api container's network namespace, so `https://localhost` is the dev API both
+    # for the browser (published port 443) and for the frontend's server-side requests.
+    # Its own port (3000) is therefore published on the `api` service, as 8080.
+    network_mode: service:api
+    depends_on:
+      - api
+    environment:
+      PUBLIC_SITE_NAME: "OpenShock Local"
+      PUBLIC_SITE_URL: "http://localhost:8080"
+      PUBLIC_SITE_SHORT_URL: "http://localhost:8080"
+      PUBLIC_BACKEND_API_URL: "https://localhost" # the frontend only accepts an HTTPS backend
+      PUBLIC_GATEWAY_CSP_WILDCARD: "https://localhost:*"
+      PRIVATE_BACKEND_TLS_INSECURE: "true" # the api's cert is self-signed
 
   mailpit:
     image: axllent/mailpit:latest

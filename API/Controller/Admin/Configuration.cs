@@ -4,11 +4,9 @@ using Microsoft.EntityFrameworkCore;
 using OpenShock.API.Controller.Admin.DTOs;
 using OpenShock.Common.ApiVersioning;
 using OpenShock.Common.Errors;
-using OpenShock.Common.Problems;
 using OpenShock.Common.Services.Configuration;
-using Results = OpenShock.Common.Results;
-
 using OpenShock.Internal.Common.Problems;
+using Results = OpenShock.Common.Results;
 
 namespace OpenShock.API.Controller.Admin;
 
@@ -60,7 +58,8 @@ public sealed partial class AdminController
             body.Name,
             body.Description,
             body.Type,
-            body.Value
+            body.Value,
+            cancellationToken
         );
 
         return result switch
@@ -93,7 +92,8 @@ public sealed partial class AdminController
         var result = await configurationService.TryUpdateItemAsync(
             body.Name,
             body.Description,
-            body.Value
+            body.Value,
+            cancellationToken
         );
 
         return result switch
@@ -121,7 +121,7 @@ public sealed partial class AdminController
     {
         PedanticallyEnsureAdmin();
 
-        var result = await configurationService.TryDeleteItemAsync(name);
+        var result = await configurationService.TryDeleteItemAsync(name, cancellationToken);
 
         return result switch
         {

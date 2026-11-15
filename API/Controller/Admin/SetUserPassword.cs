@@ -1,0 +1,47 @@
+﻿using System.Diagnostics;
+using System.Net.Mime;
+using Microsoft.AspNetCore.Mvc;
+using OpenShock.API.Services.Account;
+using OpenShock.Common.ApiVersioning;
+using OpenShock.Common.DataAnnotations;
+using OpenShock.Common.Errors;
+using OpenShock.Internal.Common.Problems;
+using Results = OpenShock.Common.Results;
+
+namespace OpenShock.API.Controller.Admin;
+
+public sealed partial class AdminController
+{
+    /// <summary>
+    /// Sets a users password to the supplied value
+    /// </summary>
+    /// <response code="200">OK</response>
+    /// <response code="404">Not found</response>
+    /// <response code="401">Unauthorized</response>
+    /// <response code="409">The target account is deactivated or not yet activated</response>
+    [HttpPut("users/{userId}/password")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType<OpenShockProblem>(StatusCodes.Status409Conflict, MediaTypeNames.Application.ProblemJson)]
+    [ApiVersion(1)]
+    public async Task<IActionResult> SetUserPassword([FromRoute(Name = "userId")] Guid userId, [FromBody] SetUserPasswordRequestBody body, [FromServices] IAccountService accountService, CancellationToken cancellationToken)
+    {
+        PedanticallyEnsureAdmin();
+
+        var result = await accountService.ChangePasswordAsync(userId, body.Password, actorId: CurrentUser.Id, cancellationToken: cancellationToken);
+
+        return result switch
+        {
+            Results.Success => Ok(),
+            AccountNotActivated => Problem(AdminError.UserNotActivated),
+            AccountDeactivated => Problem(AdminError.UserDeactivated),
+            Results.NotFound => NotFound()
+        };
+    }
+
+    public sealed class SetUserPasswordRequestBody
+    {
+        [Password(true)]
+        public required string Password { get; init; }
+    }
+}

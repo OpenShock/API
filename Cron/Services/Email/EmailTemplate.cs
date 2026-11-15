@@ -1,4 +1,3 @@
-using System.Diagnostics;
 using System.Text.Encodings.Web;
 using Fluid;
 using OpenShock.Common.Results;
@@ -35,8 +34,7 @@ public sealed class EmailTemplate
         return result switch
         {
             EmailTemplate template => template,
-            TemplateParseError error => throw new InvalidDataException(error.Value),
-            _ => throw new UnreachableException()
+            TemplateParseError error => throw new InvalidDataException(error.Value)
         };
     }
 

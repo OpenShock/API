@@ -7,24 +7,24 @@ public interface IConfigurationService
 {
     IQueryable<ConfigurationItem> GetAllItemsQuery();
 
-    Task<Union4<Success, AlreadyExists, InvalidNameFormat, InvalidValueFormat>> TryAddItemAsync(string name, string description, ConfigurationValueType type, string value);
-    Task<Union4<Success, NotFound, InvalidNameFormat, InvalidValueFormat>> TryUpdateItemAsync(string name, string? description, string? value);
-    Task<Union3<Success, NotFound, InvalidNameFormat>> TryDeleteItemAsync(string name);
+    Task<Union4<Success, AlreadyExists, InvalidNameFormat, InvalidValueFormat>> TryAddItemAsync(string name, string description, ConfigurationValueType type, string value, CancellationToken cancellationToken = default);
+    Task<Union4<Success, NotFound, InvalidNameFormat, InvalidValueFormat>> TryUpdateItemAsync(string name, string? description, string? value, CancellationToken cancellationToken = default);
+    Task<Union3<Success, NotFound, InvalidNameFormat>> TryDeleteItemAsync(string name, CancellationToken cancellationToken = default);
 
-    Task<ConfigGetResult<string>> TryGetStringAsync(string name);
-    Task<bool> TrySetStringAsync(string name, string value);
+    Task<ConfigGetResult<string>> TryGetStringAsync(string name, CancellationToken cancellationToken = default);
+    Task<bool> TrySetStringAsync(string name, string value, CancellationToken cancellationToken = default);
 
-    Task<ConfigGetResult<bool>> TryGetBoolAsync(string name);
-    Task<bool> TrySetBoolAsync(string name, bool value);
+    Task<ConfigGetResult<bool>> TryGetBoolAsync(string name, CancellationToken cancellationToken = default);
+    Task<bool> TrySetBoolAsync(string name, bool value, CancellationToken cancellationToken = default);
 
-    Task<ConfigGetResult<int>> TryGetIntAsync(string name);
-    Task<bool> TrySetIntAsync(string name, int value);
+    Task<ConfigGetResult<int>> TryGetIntAsync(string name, CancellationToken cancellationToken = default);
+    Task<bool> TrySetIntAsync(string name, int value, CancellationToken cancellationToken = default);
 
-    Task<ConfigGetResult<float>> TryGetFloatAsync(string name);
-    Task<bool> TrySetFloatAsync(string name, float value);
+    Task<ConfigGetResult<float>> TryGetFloatAsync(string name, CancellationToken cancellationToken = default);
+    Task<bool> TrySetFloatAsync(string name, float value, CancellationToken cancellationToken = default);
 
-    Task<ConfigGetResult<T>> TryGetJsonAsync<T>(string name);
-    Task<bool> TrySetJsonAsync<T>(string name, T value);
+    Task<ConfigGetResult<T>> TryGetJsonAsync<T>(string name, CancellationToken cancellationToken = default);
+    Task<bool> TrySetJsonAsync<T>(string name, T value, CancellationToken cancellationToken = default);
 }
 
 public enum ConfigGetOutcome : byte

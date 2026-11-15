@@ -26,6 +26,7 @@ var redisOptions = builder.RegisterRedisOptions();
 var databaseOptions = builder.RegisterDatabaseOptions();
 builder.RegisterMetricsOptions();
 builder.RegisterFrontendOptions();
+builder.RegisterGeoOptions();
 builder.RegisterAccountOptions();
 // The API never sends mail, but it must know whether anything ever will: with mail disabled there is
 // no activation link, so accounts are activated on creation instead of waiting for one.
@@ -68,7 +69,11 @@ builder.Services
                 DefaultOptions(options, "google");
                 options.ClientId = googleOptions.ClientId;
                 options.ClientSecret = googleOptions.ClientSecret;
-                
+
+                // The default Google claim actions don't map email_verified (OIDC userinfo v3). Without it every
+                // Google signup is treated as an untrusted email and the account is left unactivated.
+                options.ClaimActions.MapJsonKey(OAuthConstants.ClaimEmailVerified, "email_verified");
+
                 options.Validate();
             });
         }

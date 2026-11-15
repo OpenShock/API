@@ -36,7 +36,6 @@ public sealed class AuditService : IAuditService
 
         _db.UserAuditLogs.Add(new UserAuditLog
         {
-            Id = Guid.CreateVersion7(),
             UserId = userId,
             ActorId = actorId,
             Action = action,

@@ -16,7 +16,7 @@ public static class FbsMapper
             Common.OpenShockDb.ShockerModelType.PetTrainer => ShockerModelType.Petrainer,
             Common.OpenShockDb.ShockerModelType.Petrainer998DR => ShockerModelType.Petrainer998DR,
             Common.OpenShockDb.ShockerModelType.WellturnT330 => ShockerModelType.WellturnT330,
-            _ => throw new NotImplementedException(),
+            _ => throw new ArgumentOutOfRangeException(nameof(type), type, null),
         };
     }
 
@@ -28,7 +28,7 @@ public static class FbsMapper
             ControlType.Shock => ShockerCommandType.Shock,
             ControlType.Vibrate => ShockerCommandType.Vibrate,
             ControlType.Sound => ShockerCommandType.Sound,
-            _ => throw new NotImplementedException(),
+            _ => throw new ArgumentOutOfRangeException(nameof(type), type, null),
         };
     }
 

@@ -7,7 +7,7 @@ namespace OpenShock.Cron.Services.Email;
 /// Consumers should properly handle when this service is used, so realistaically this should never be used.
 /// But we need it for DI satisfaction.
 /// </summary>
-public class NoneEmailService : IEmailService
+public sealed class NoneEmailService : IEmailService
 {
     private readonly ILogger<NoneEmailService> _logger;
 

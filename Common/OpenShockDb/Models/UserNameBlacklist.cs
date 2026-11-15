@@ -2,13 +2,13 @@ namespace OpenShock.Common.OpenShockDb;
 
 public sealed class UserNameBlacklist
 {
-    public required Guid Id { get; set; }
+    public Guid Id { get; init; }
 
-    public required string Value { get; set; } = null!;
+    public required string Value { get; init; } = null!;
 
-    public required MatchTypeEnum MatchType { get; set; }
+    public required MatchTypeEnum MatchType { get; init; }
     
-    public DateTime CreatedAt { get; set; }
+    public DateTime CreatedAt { get; init; }
     
     public bool IsMatch(string value) => MatchType switch
     {

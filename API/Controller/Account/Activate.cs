@@ -2,8 +2,6 @@
 using Microsoft.AspNetCore.Mvc;
 using OpenShock.Common.ApiVersioning;
 using OpenShock.Common.Errors;
-using OpenShock.Common.Problems;
-
 using OpenShock.Internal.Common.Problems;
 
 namespace OpenShock.API.Controller.Account;

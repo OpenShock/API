@@ -1,15 +1,11 @@
 using Microsoft.EntityFrameworkCore;
-using OpenShock.Common.Extensions;
 using OpenShock.Common.Models;
 using OpenShock.Common.OpenShockDb;
 using OpenShock.Common.Services.RedisPubSub;
-using OpenShock.Common.Utils;
+using OpenShock.Internal.Common.Extensions;
+using OpenShock.Internal.Common.Utils;
 using OpenShock.LiveControlGateway.Controllers;
 using StackExchange.Redis;
-
-using OpenShock.Internal.Common.Utils;
-
-using OpenShock.Internal.Common.Extensions;
 
 namespace OpenShock.LiveControlGateway.PubSub;
 

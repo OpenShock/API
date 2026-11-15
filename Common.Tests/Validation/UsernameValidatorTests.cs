@@ -1,11 +1,9 @@
 ﻿using OpenShock.Common.Results;
 using OpenShock.Common.Validation;
 
-using OpenShock.Internal.Common.Constants;
-
 namespace OpenShock.Common.Tests.Validation;
 
-internal class UsernameValidatorTests
+internal sealed class UsernameValidatorTests
 {
     [Test]
     public async Task Validate_ValidUsername_ReturnsSuccess()

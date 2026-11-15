@@ -8,7 +8,6 @@ using OpenShock.Common.Constants;
 using OpenShock.Common.OpenShockDb;
 using OpenShock.Common.Services.Session;
 using OpenShock.Common.Utils;
-
 using OpenShock.Internal.Common.Utils;
 
 namespace OpenShock.API.IntegrationTests.Helpers;
@@ -43,7 +42,7 @@ public static class TestHelper
         // 2. Create session via ISessionService (stored in Redis)
         await using var scope = factory.Services.CreateAsyncScope();
         var sessionService = scope.ServiceProvider.GetRequiredService<ISessionService>();
-        var session = await sessionService.CreateSessionAsync(userId, "IntegrationTest", "127.0.0.1", actorId: userId);
+        var session = await sessionService.CreateSessionAsync(userId, "IntegrationTest", IPAddress.Loopback, actorId: userId);
 
         return new AuthenticatedUser(userId, username, email, session.Token);
     }

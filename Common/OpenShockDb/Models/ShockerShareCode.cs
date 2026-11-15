@@ -2,11 +2,11 @@
 
 public sealed class ShockerShareCode : SafetySettings
 {
-    public Guid Id { get; set; }
+    public Guid Id { get; init; }
 
-    public Guid ShockerId { get; set; }
+    public Guid ShockerId { get; init; }
 
-    public DateTime CreatedAt { get; set; }
+    public DateTime CreatedAt { get; init; }
 
-    public Shocker Shocker { get; set; } = null!;
+    public Shocker Shocker { get; init; } = null!;
 }

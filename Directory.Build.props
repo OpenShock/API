@@ -2,7 +2,7 @@
   <PropertyGroup>
     <Company>OpenShock</Company>
     <Product>$(Company).$(MSBuildProjectName)</Product>
-    <Version>3.17.0</Version>
+    <Version>3.18.0</Version>
 
     <Title>$(Product)</Title>
     <Authors>OpenShock</Authors>
@@ -46,6 +46,11 @@
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+
+    <!-- NU1608: Npgsql.EntityFrameworkCore.PostgreSQL 11.0.0-rc.3 pins Microsoft.EntityFrameworkCore to the rc.3 build and
+         Z.EntityFramework.Plus.EFCore 10.x constrains it to < 11.0.0, while we resolve EF Core 11.0.0. Kept as a warning
+         rather than NoWarn'd so it stays visible; drop this once both ship releases built against EF Core 11.0.0. -->
+    <WarningsNotAsErrors>$(WarningsNotAsErrors);NU1608</WarningsNotAsErrors>
 
     <!-- Disable Prefer framework type warning -->
     <NoWarn>$(NoWarn);IDE0049</NoWarn>

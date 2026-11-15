@@ -1,5 +1,4 @@
 ﻿using System.Text.Json;
-
 using OpenShock.Internal.Common.JsonSerialization;
 
 namespace OpenShock.Common.JsonSerialization;
@@ -15,6 +14,7 @@ public static class JsonOptions
     {
         options.PropertyNameCaseInsensitive = true;
         options.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
+        options.Converters.Add(new IPAddressJsonConverter());
         options.Converters.Add(new PermissionTypeConverter());
         options.Converters.Add(new FlagGuardedJsonStringEnumConverter());
     }

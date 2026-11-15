@@ -1,9 +1,9 @@
-﻿using OpenShock.Cron.Options;
-using OpenShock.Cron.Services.Email.Mailjet.Mail;
-using System.Net.Mime;
+﻿using System.Net.Mime;
 using System.Text;
 using System.Text.Json;
 using OpenShock.Common.JsonSerialization;
+using OpenShock.Cron.Options;
+using OpenShock.Cron.Services.Email.Mailjet.Mail;
 
 namespace OpenShock.Cron.Services.Email.Mailjet;
 
@@ -63,7 +63,7 @@ public sealed class MailjetEmailService : IEmailService, IDisposable
 
     private async Task<EmailSendResult> SendMails(DirectMail[] mails, CancellationToken cancellationToken = default)
     {
-        if (_logger.IsEnabled(LogLevel.Debug)) _logger.LogDebug("Sending mails {@Mails}", mails);
+        if (_logger.IsEnabled(LogLevel.Debug)) _logger.LogDebug("Sending mails {@Mails}", (object)mails);
 
         var json = JsonSerializer.Serialize(new MailsWrap { Messages = mails }, JsonOptions.Default);
 
@@ -76,7 +76,7 @@ public sealed class MailjetEmailService : IEmailService, IDisposable
         catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException && !cancellationToken.IsCancellationRequested)
         {
             // Network failure or request timeout - worth retrying.
-            _logger.LogWarning(ex, "Transient failure sending mails {@Mails}", mails);
+            _logger.LogWarning(ex, "Transient failure sending mails {@Mails}", (object)mails);
             return EmailSendResult.TransientFailure;
         }
 

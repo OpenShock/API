@@ -1,4 +1,3 @@
-using OpenShock.Common.Models;
 using OpenShock.Common.OpenShockDb;
 using OpenShock.Cron.Services.Email.Outbox;
 

@@ -1,5 +1,5 @@
-﻿using Bogus.DataSets;
-using System.Net;
+﻿using System.Net;
+using Bogus.DataSets;
 
 namespace OpenShock.SeedE2E.Extensions;
 

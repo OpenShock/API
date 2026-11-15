@@ -13,7 +13,8 @@ public sealed class InMemoryRedis : IAsyncInitializer, IAsyncDisposable
     {
         get
         {
-            _container ??= new RedisBuilder(image: "redis/redis-stack-server:latest")
+            _container ??= new RedisBuilder(image: "ghcr.io/dragonflydb/dragonfly:latest") // Same store as the compose stacks
+                .WithCommand("--notify_keyspace_events=Ex")
                 .WithNetwork(DockerNetwork.Instance)
                 .WithName($"tunit-cron-redis-{Guid.CreateVersion7()}")
                 .Build();

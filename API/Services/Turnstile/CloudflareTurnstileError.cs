@@ -23,6 +23,7 @@ public static class CloudflareTurnstileErrorExtensions
         CloudflareTurnstileError.MissingResponse => true,
         CloudflareTurnstileError.InvalidResponse => true,
         CloudflareTurnstileError.TimeoutOrDuplicate => true,
-        _ => false,
+        CloudflareTurnstileError.MissingSecret or CloudflareTurnstileError.InvalidSecret or CloudflareTurnstileError.BadRequest or CloudflareTurnstileError.InternalServerError => false,
+        _ => throw new ArgumentOutOfRangeException(nameof(error), error, null),
     };
 }

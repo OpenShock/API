@@ -83,6 +83,26 @@ You need these environment variables to use SMTP:
 | `OPENSHOCK__MAIL__SMTP__ENABLESSL`         |          | `true`        | `true` or `false`                  |
 | `OPENSHOCK__MAIL__SMTP__VERIFYCERTIFICATE` |          | `true`        | `true` or `false`                  |
 
+## security.txt
+
+The API, gateway and cron containers can publish a [`security.txt`](https://securitytxt.org/) file (RFC 9116) at
+`/.well-known/security.txt`, telling security researchers where to report a vulnerability in **your** instance.
+It is disabled until a contact is configured. Do not put OpenShock's contact details here for an instance OpenShock
+does not operate.
+
+| Variable                                    | Required | Default value | Allowed / Example value                                                      |
+|---------------------------------------------|----------|---------------|------------------------------------------------------------------------------|
+| `OPENSHOCK__SECURITYTXT__CONTACT`           |          |               | Comma separated `mailto:` or `https:` URIs, e.g. `mailto:security@my-openshock-instance.net` |
+| `OPENSHOCK__SECURITYTXT__EXPIRES`           | x (if contact is set) |  | `2027-10-31T00:00:00Z` - should be less than a year ahead                    |
+| `OPENSHOCK__SECURITYTXT__POLICY`            |          |               | `https://my-openshock-instance.net/security-policy`                          |
+| `OPENSHOCK__SECURITYTXT__ACKNOWLEDGMENTS`   |          |               | `https://my-openshock-instance.net/security-thanks`                          |
+| `OPENSHOCK__SECURITYTXT__PREFERREDLANGUAGES`|          |               | `en, de`                                                                     |
+
+Once the `Expires` date has passed the file is no longer served (and a warning is logged at startup), so renew the
+date before it runs out. A `security.txt` only covers the exact host it is served from, and only from the root of
+that host: when the API is mounted under a path prefix, serve the file from whatever answers at the root instead
+(usually the frontend).
+
 ## (Live Control) Gateway
 These are the environment variables for the live control gateway.
 They are only required on the gateway container and are configuration local to the gateway.
@@ -127,6 +147,16 @@ Run with `docker compose up -d`
 
 You could also bring your own reverse proxy.  
 You would need to remove traefik from the `docker-compose.yml` and route the traffic in your reverse proxy.
+
+## Security
+
+Found a security vulnerability? **Please do not open a public issue.** Report it privately as described in
+[SECURITY.md](SECURITY.md).
+
+## Contributing
+
+See [CONTRIBUTING.md](CONTRIBUTING.md). Everyone taking part in the project is expected to follow our
+[Code of Conduct](CODE_OF_CONDUCT.md).
 
 ## Support development!
 

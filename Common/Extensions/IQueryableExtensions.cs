@@ -1,8 +1,5 @@
 ﻿using System.Linq.Expressions;
-using OpenShock.Common.Models;
 using OpenShock.Common.OpenShockDb;
-
-using OpenShock.Internal.DynamicLinq.Extensions;
 
 namespace OpenShock.Common.Extensions;
 
@@ -29,6 +26,6 @@ public static class IQueryableExtensions
             return source;
         }
 
-        return WhereUserIdMatches(source, userNavigation, user.Id);
+        return source.WhereUserIdMatches(userNavigation, user.Id);
     }
 }

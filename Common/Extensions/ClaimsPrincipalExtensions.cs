@@ -10,11 +10,25 @@ public static class ClaimsPrincipalExtensions
         { IsAuthenticated: true, AuthenticationType: OpenShockAuthSchemes.HubToken };
     private static readonly Func<ClaimsIdentity, bool> UserIdentityPredicate = x => x is
         { IsAuthenticated: true, AuthenticationType: OpenShockAuthSchemes.UserSessionCookie };
+    private static readonly Func<ClaimsIdentity, bool> ApiTokenIdentityPredicate = x => x is
+        { IsAuthenticated: true, AuthenticationType: OpenShockAuthSchemes.ApiToken };
     
     public static bool HasOpenShockUserIdentity(this ClaimsPrincipal principal) => principal.Identities.Any(UserIdentityPredicate);
     public static ClaimsIdentity GetOpenShockHubIdentity(this ClaimsPrincipal principal) => principal.Identities.Single(HubIdentityPredicate);
     public static ClaimsIdentity GetOpenShockUserIdentity(this ClaimsPrincipal principal) => principal.Identities.Single(UserIdentityPredicate);
     public static ClaimsIdentity? TryGetOpenShockUserIdentity(this ClaimsPrincipal principal) => principal.Identities.SingleOrDefault(UserIdentityPredicate);
+    public static bool HasOpenShockApiTokenIdentity(this ClaimsPrincipal principal) => principal.Identities.Any(ApiTokenIdentityPredicate);
+
+    /// <summary>
+    /// Permissions granted by the API token this request authenticated with. Empty for any other
+    /// scheme, so callers must check <see cref="HasOpenShockApiTokenIdentity"/> first where
+    /// "not a token request" and "a token with no permissions" need to be told apart.
+    /// </summary>
+    public static PermissionType[] GetApiTokenPermissions(this ClaimsPrincipal principal) => principal.Claims
+        .Where(x => x.Type == OpenShockAuthClaims.ApiTokenPermission)
+        .Select(x => Enum.Parse<PermissionType>(x.Value))
+        .ToArray();
+
     public static bool TryGetClaimValueAsGuid(this ClaimsPrincipal principal, string claimType, out Guid guid)
     {
         var claim = principal.Claims.FirstOrDefault(x => x.Type == claimType);
@@ -29,7 +43,7 @@ public static class ClaimsPrincipalExtensions
     }
     
     public static string GetClaimValue(this ClaimsIdentity identity, string claimType) => identity.Claims.Single(x => x.Type == claimType).Value;
-    public static Guid GetClaimValueAsGuid(this ClaimsIdentity identity, string claimType) => Guid.Parse(GetClaimValue(identity, claimType));
+    public static Guid GetClaimValueAsGuid(this ClaimsIdentity identity, string claimType) => Guid.Parse(identity.GetClaimValue(claimType));
 
     public static IEnumerable<RoleType> GetRoles(this ClaimsIdentity identity)
     {
@@ -38,6 +52,6 @@ public static class ClaimsPrincipalExtensions
 
     public static bool IsAdminOrSystem(this ClaimsIdentity identity)
     {
-        return GetRoles(identity).Any(x => x is RoleType.Admin or RoleType.System);
+        return identity.GetRoles().Any(x => x is RoleType.Admin or RoleType.System);
     }
 }

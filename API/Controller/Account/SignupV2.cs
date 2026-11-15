@@ -1,17 +1,14 @@
-﻿using System.Diagnostics;
-using System.Net.Mime;
+﻿using System.Net.Mime;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 using OpenShock.API.Models.Requests;
 using OpenShock.API.Services.Account;
 using OpenShock.API.Services.Turnstile;
 using OpenShock.Common.ApiVersioning;
+using OpenShock.Common.Authentication;
 using OpenShock.Common.Errors;
 using OpenShock.Common.OpenShockDb;
 using OpenShock.Common.Options;
-using OpenShock.Common.Problems;
-using OpenShock.Common.Results;
-
 using OpenShock.Internal.Common.Problems;
 
 namespace OpenShock.API.Controller.Account;
@@ -46,12 +43,24 @@ public sealed partial class AccountController
         var turnstileError = await VerifyTurnstileAsync(turnstileService, body.TurnstileResponse, cancellationToken);
         if (turnstileError is not null) return turnstileError;
 
-        var creationAction = await _accountService.CreateAccountWithActivationFlowAsync(body.Email, body.Username, body.Password);
+        // Created with an automation token, the account is linked to it and the use audited in the same transaction.
+        var creationAction = await _accountService.CreateAccountWithActivationFlowAsync(
+            body.Email, body.Username, body.Password, cancellationToken);
         return creationAction switch
         {
-            User _ => Ok(),
-            AccountWithEmailOrUsernameExists => Problem(SignupError.UsernameOrEmailExists),
-            _ => throw new UnreachableException()
+            User newUser => CompleteSignup(newUser),
+            AccountWithEmailOrUsernameExists => Problem(SignupError.UsernameOrEmailExists)
         };
+
+        IActionResult CompleteSignup(User newUser)
+        {
+            // Lets this browser ask for the activation email again without typing the address.
+            if (newUser.ActivatedAt is null && GetCurrentCookieDomain() is { } cookieDomain)
+            {
+                ActivationResendCookie.Set(HttpContext, newUser.Id, cookieDomain);
+            }
+
+            return Ok();
+        }
     }
 }

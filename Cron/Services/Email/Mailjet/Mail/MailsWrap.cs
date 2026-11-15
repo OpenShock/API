@@ -2,5 +2,5 @@
 
 public sealed class MailsWrap
 {
-    public required DirectMail[] Messages { get; set; }
+    public required DirectMail[] Messages { get; init; }
 }

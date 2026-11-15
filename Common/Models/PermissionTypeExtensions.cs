@@ -14,7 +14,7 @@ public static class PermissionTypeExtensions
     public static bool IsAllowed(this IReadOnlyList<PermissionType> permissions, PermissionType permissionType) =>
         IsAllowedInternal(permissions, permissionType);
     
-    public static bool IsAllowedAllowOnNull(this IReadOnlyList<PermissionType>? permissions,
+    public static bool IsAllowedAllowOrNull(this IReadOnlyList<PermissionType>? permissions,
         PermissionType permissionType) => permissions is null || IsAllowedInternal(permissions, permissionType);
     
     private static bool IsAllowedInternal(IReadOnlyList<PermissionType> permissions, PermissionType permissionType)
@@ -70,4 +70,4 @@ public static class PermissionTypeBindings
     }
 }
 
-public record PermissionTypeRecord(PermissionType PermissionType, string Name, IReadOnlyList<PermissionType> Parents);
+public sealed record PermissionTypeRecord(PermissionType PermissionType, string Name, IReadOnlyList<PermissionType> Parents);

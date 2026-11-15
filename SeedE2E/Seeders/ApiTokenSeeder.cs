@@ -2,14 +2,10 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using OpenShock.Common.Constants;
-using OpenShock.Common.Models;
 using OpenShock.Common.OpenShockDb;
 using OpenShock.Common.Utils;
-using OpenShock.SeedE2E.Extensions;
-
-using OpenShock.Internal.Common.Utils;
-
 using OpenShock.Internal.Common.Constants;
+using OpenShock.SeedE2E.Extensions;
 
 namespace OpenShock.SeedE2E.Seeders;
 

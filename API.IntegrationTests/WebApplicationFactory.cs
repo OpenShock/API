@@ -1,5 +1,6 @@
 ﻿using System.Threading.RateLimiting;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.AspNetCore.TestHost;
@@ -51,7 +52,10 @@ public class WebApplicationFactory : WebApplicationFactory<Program>
             { "ASPNETCORE_UNDER_INTEGRATION_TEST", "1" },
 
             { "OPENSHOCK__DB__CONN", PostgreSql.Container.GetConnectionString() },
-            { "OPENSHOCK__DB__SKIPMIGRATION", "false" },
+            // InMemoryDatabase migrates the shared database once per test session. Every factory
+            // variant boots its own host against that same database, and concurrent EF migrators
+            // corrupt each other, so no host migrates on boot here.
+            { "OPENSHOCK__DB__SKIPMIGRATION", "true" },
             { "OPENSHOCK__DB__DEBUG", "false" },
 
             { "OPENSHOCK__REDIS__CONN", Redis.Container.GetConnectionString() },
@@ -70,7 +74,11 @@ public class WebApplicationFactory : WebApplicationFactory<Program>
             { "OPENSHOCK__TURNSTILE__SITEKEY", "turnstile-site-key" },
 
             { "OPENSHOCK__LCG__FQDN", "de1-gateway.my-openshock-instance.net" },
-            { "OPENSHOCK__LCG__COUNTRYCODE", "DE" }
+            { "OPENSHOCK__LCG__COUNTRYCODE", "DE" },
+
+            { "OPENSHOCK__SECURITYTXT__CONTACT", "mailto:security@example.org,https://example.org/report" },
+            { "OPENSHOCK__SECURITYTXT__EXPIRES", "2099-01-01T00:00:00Z" },
+            { "OPENSHOCK__SECURITYTXT__POLICY", "https://example.org/policy" }
         };
 
         foreach (var envVar in environmentVariables)
@@ -105,7 +113,7 @@ public class WebApplicationFactory : WebApplicationFactory<Program>
 
             services.Configure<RateLimiterOptions>(options =>
             {
-                options.GlobalLimiter = PartitionedRateLimiter.Create<Microsoft.AspNetCore.Http.HttpContext, string>(
+                options.GlobalLimiter = PartitionedRateLimiter.Create<HttpContext, string>(
                     _ => RateLimitPartition.GetNoLimiter("test-no-limit"));
                 options.AddPolicy("auth", _ =>
                     RateLimitPartition.GetNoLimiter("test-auth-no-limit"));
@@ -113,6 +121,8 @@ public class WebApplicationFactory : WebApplicationFactory<Program>
                     RateLimitPartition.GetNoLimiter("test-token-reporting-no-limit"));
                 options.AddPolicy("shocker-logs", _ =>
                     RateLimitPartition.GetNoLimiter("test-shocker-logs-no-limit"));
+                options.AddPolicy("control-stats", _ =>
+                    RateLimitPartition.GetNoLimiter("test-control-stats-no-limit"));
             });
         });
     }

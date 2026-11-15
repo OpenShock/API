@@ -13,8 +13,8 @@ public sealed class UserActivationRequest
 
     public int EmailSendAttempts { get; set; }
 
-    public DateTime CreatedAt { get; set; }
+    public DateTime CreatedAt { get; init; }
 
     // Navigations
-    public User User { get; set; } = null!;
+    public User User { get; init; } = null!;
 }

@@ -17,11 +17,11 @@ public sealed class DeviceService : IDeviceService
     }
 
     /// <inheritdoc />
-    public async Task<IList<Guid>> GetSharedUserIdsAsync(Guid deviceId)
+    public async Task<IList<Guid>> GetSharedUserIdsAsync(Guid deviceId, CancellationToken cancellationToken)
     {
         var sharedUsers = await _db.UserShares.AsNoTracking().Where(x => x.Shocker.DeviceId == deviceId).GroupBy(x => x.SharedWithUserId)
             .Select(x => x.Key)
-            .ToListAsync();
+            .ToListAsync(cancellationToken);
         return sharedUsers;
     }
 }

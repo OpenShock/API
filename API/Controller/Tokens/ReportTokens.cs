@@ -8,11 +8,10 @@ using OpenShock.API.Errors;
 using OpenShock.API.Models.Requests;
 using OpenShock.API.Services.Turnstile;
 using OpenShock.Common.ApiVersioning;
-using OpenShock.Common.Problems;
-using OpenShock.Common.Results;
+using OpenShock.Common.OpenShockDb;
+using OpenShock.Common.Services.AutomationTokens;
 using OpenShock.Common.Services.Webhook;
 using OpenShock.Common.Utils;
-
 using OpenShock.Internal.Common.Problems;
 using OpenShock.Internal.Common.Utils;
 
@@ -25,6 +24,7 @@ public sealed partial class TokensController
     /// </summary>
     /// <param name="body"></param>
     /// <param name="turnstileService"></param>
+    /// <param name="automationTokens"></param>
     /// <param name="webhookService"></param>
     /// <param name="cancellationToken"></param>
     /// <response code="200">The tokens were deleted if found</response>
@@ -36,6 +36,7 @@ public sealed partial class TokensController
     public async Task<IActionResult> ReportTokens(
         [FromBody] ReportTokensRequest body,
         [FromServices] ICloudflareTurnstileService turnstileService,
+        [FromServices] IAutomationTokenService automationTokens,
         [FromServices] IWebhookService webhookService,
         CancellationToken cancellationToken)
     {
@@ -50,8 +51,12 @@ public sealed partial class TokensController
             return Problem(new OpenShockProblem("InternalServerError", "Internal Server Error", HttpStatusCode.InternalServerError));
         }
 
-        var reportId = Guid.CreateVersion7();
+        // The middleware already refused the token for a privileged session; this audits the use.
+        if (!await automationTokens.TryRecordUseAsync(CurrentUser.Id, AutomationTokenFlow.ReportTokens, cancellationToken))
+            return Problem(AutomationTokenError.NotAllowedForAccount);
 
+        // Nothing below may be cancelled by the client disconnecting: once tokens start being deleted the
+        // report row and the admin webhook must follow, or a deletion goes unrecorded.
         int nAffected = 0;
         try
         {
@@ -63,7 +68,7 @@ public sealed partial class TokensController
             
             nAffected = await _db.ApiTokens
                 .Where(x => hashes.Contains(x.TokenHash))
-                .ExecuteDeleteAsync(cancellationToken);
+                .ExecuteDeleteAsync();
         }
         catch (Exception e)
         {
@@ -72,16 +77,16 @@ public sealed partial class TokensController
 
         var ipCountry = HttpContext.GetCFIPCountry();
         
-        _db.ApiTokenReports.Add(new Common.OpenShockDb.ApiTokenReport {
-            Id = reportId,
+        var report = new ApiTokenReport {
             SubmittedCount = body.Secrets.Length,
             AffectedCount = nAffected,
             UserId = CurrentUser.Id,
             IpAddress = remoteIP,
             IpCountry = ipCountry,
             ReportedByUser = CurrentUser
-        });
-        await _db.SaveChangesAsync(cancellationToken);
+        };
+        _db.ApiTokenReports.Add(report);
+        await _db.SaveChangesAsync();
 
         await webhookService.SendWebhookAsync(
             "TokensReported",
@@ -93,7 +98,7 @@ public sealed partial class TokensController
                • 🧹 **Deleted Tokens**: {nAffected}
                • 🌍 **IP Address**: {remoteIP}
                • 📍 **Country**: {ipCountry}
-               • 🆔 **Report ID**: `{reportId}`
+               • 🆔 **Report ID**: `{report.Id}`
                
                Please investigate further if necessary.
                """,

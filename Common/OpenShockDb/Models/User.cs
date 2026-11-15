@@ -2,7 +2,7 @@
 
 public sealed class User
 {
-    public required Guid Id { get; set; }
+    public Guid Id { get; init; }
 
     public required string Name { get; set; }
 
@@ -21,8 +21,15 @@ public sealed class User
 
     public List<RoleType> Roles { get; set; } = [];
 
-    public DateTime CreatedAt { get; set; }
+    public DateTime CreatedAt { get; init; }
     public DateTime? ActivatedAt { get; set; }
+
+    /// <summary>
+    /// The admin-issued automation token that created this account, which makes it an automated (bot)
+    /// account rather than one a person signed up for; these are mainly used by automated tests.
+    /// The account is deleted together with the token.
+    /// </summary>
+    public Guid? CreatedByAutomationTokenId { get; init; }
 
     // Navigations
     public UserActivationRequest? UserActivationRequest { get; set; }
@@ -36,9 +43,11 @@ public sealed class User
     public ICollection<UserShareInvite> IncomingUserShareInvites { get; } = [];
     public ICollection<PublicShare> OwnedPublicShares { get; } = [];
     public ICollection<ShockerControlLog> ShockerControlLogs { get; } = [];
+    public ICollection<ControlStat> ControlStats { get; } = [];
     public ICollection<UserNameChange> NameChanges { get; } = [];
     public ICollection<UserEmailChange> EmailChanges { get; } = [];
     public ICollection<UserPasswordReset> PasswordResets { get; } = [];
     public ICollection<UserAuditLog> AuditLogs { get; } = [];
     public ICollection<UserAuditLog> ActorAuditLogs { get; } = [];
+    public AutomationToken? CreatedByAutomationToken { get; init; }
 }

@@ -2,13 +2,13 @@
 
 public sealed class PublicShareShocker : SafetySettings
 {
-    public required Guid PublicShareId { get; set; }
+    public required Guid PublicShareId { get; init; }
 
-    public required Guid ShockerId { get; set; }
+    public required Guid ShockerId { get; init; }
 
     public int? Cooldown { get; set; } // TODO: Should probably be UInt
 
     // Navigations
-    public PublicShare PublicShare { get; set; } = null!;
-    public Shocker Shocker { get; set; } = null!;
+    public PublicShare PublicShare { get; init; } = null!;
+    public Shocker Shocker { get; init; } = null!;
 }

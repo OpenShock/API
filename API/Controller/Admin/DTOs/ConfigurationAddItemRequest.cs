@@ -1,5 +1,6 @@
-﻿using OpenShock.Common.OpenShockDb;
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
+using OpenShock.Common.Constants;
+using OpenShock.Common.OpenShockDb;
 
 namespace OpenShock.API.Controller.Admin.DTOs;
 
@@ -13,12 +14,14 @@ public sealed class ConfigurationAddItemRequest
     /// Must consist of uppercase letters and underscores only.
     /// </summary>
     [Required(AllowEmptyStrings = false)]
+    [StringLength(ApiHardLimits.ConfigurationNameMaxLength)]
     public required string Name { get; init; }
 
     /// <summary>
     /// A human-readable description of the configuration item’s purpose.
     /// </summary>
     [Required(AllowEmptyStrings = true)]
+    [StringLength(ApiHardLimits.ConfigurationDescriptionMaxLength)]
     public required string Description { get; init; }
 
     /// <summary>
@@ -32,5 +35,6 @@ public sealed class ConfigurationAddItemRequest
     /// Must conform to the format required by <see cref="Type"/>.
     /// </summary>
     [Required(AllowEmptyStrings = true)]
+    [StringLength(ApiHardLimits.ConfigurationValueMaxLength)]
     public required string Value { get; init; }
 }

@@ -1,26 +1,24 @@
-﻿using MessagePack;
+﻿using System.Collections.Immutable;
+using System.ComponentModel.DataAnnotations;
+using System.Diagnostics;
+using System.Net;
+using MessagePack;
 using Microsoft.EntityFrameworkCore;
 using OpenShock.Common.Constants;
-using OpenShock.Common.Extensions;
 using OpenShock.Common.Models;
 using OpenShock.Common.OpenShockDb;
 using OpenShock.Common.Redis;
 using OpenShock.Common.Redis.PubSub;
 using OpenShock.Common.Results;
+using OpenShock.Common.Services.BatchUpdate;
 using OpenShock.Common.Services.RedisPubSub;
-using OpenShock.Common.Utils;
+using OpenShock.Internal.Common.Extensions;
+using OpenShock.Internal.Common.Utils;
 using OpenShock.LiveControlGateway.Controllers;
 using OpenShock.LiveControlGateway.Mappers;
 using OpenShock.Serialization.Gateway;
 using Redis.OM.Contracts;
 using StackExchange.Redis;
-using System.Collections.Immutable;
-using System.ComponentModel.DataAnnotations;
-using System.Diagnostics;
-using System.Net;
-using OpenShock.Internal.Common.Utils;
-
-using OpenShock.Internal.Common.Extensions;
 
 namespace OpenShock.LiveControlGateway.LifetimeManager;
 
@@ -50,6 +48,7 @@ public sealed class HubLifetime : IAsyncDisposable
     private readonly IDbContextFactory<OpenShockContext> _dbContextFactory;
     private readonly IRedisConnectionProvider _redisConnectionProvider;
     private readonly IRedisPubService _redisPubService;
+    private readonly IBatchUpdateService _batchUpdateService;
 
     private readonly RedisChannel _deviceMsgChannel;
     private readonly ISubscriber _subscriber;
@@ -83,12 +82,14 @@ public sealed class HubLifetime : IAsyncDisposable
     /// <param name="connectionMultiplexer"></param>
     /// <param name="redisConnectionProvider"></param>
     /// <param name="redisPubService"></param>
+    /// <param name="batchUpdateService"></param>
     /// <param name="logger"></param>
     public HubLifetime([Range(1, 10)] byte tps, IHubController hubController,
         IDbContextFactory<OpenShockContext> dbContextFactory,
         IConnectionMultiplexer connectionMultiplexer,
         IRedisConnectionProvider redisConnectionProvider,
         IRedisPubService redisPubService,
+        IBatchUpdateService batchUpdateService,
         ILogger<HubLifetime> logger)
     {
         HubController = hubController;
@@ -96,6 +97,7 @@ public sealed class HubLifetime : IAsyncDisposable
         _dbContextFactory = dbContextFactory;
         _redisConnectionProvider = redisConnectionProvider;
         _redisPubService = redisPubService;
+        _batchUpdateService = batchUpdateService;
         _logger = logger;
 
         _waitBetweenTicks = TimeSpan.FromMilliseconds(1000.0 / tps);
@@ -197,7 +199,8 @@ public sealed class HubLifetime : IAsyncDisposable
         DeviceMessage message;
         try
         {
-            message = MessagePackSerializer.Deserialize<DeviceMessage>((ReadOnlyMemory<byte>)value,
+            ReadOnlyMemory<byte> memView = value;
+            message = MessagePackSerializer.Deserialize<DeviceMessage>(memView,
                 cancellationToken: cancellationToken);
         }
         catch (Exception e)
@@ -211,25 +214,14 @@ public sealed class HubLifetime : IAsyncDisposable
 
     private async Task DeviceMessage(DeviceMessage message)
     {
-        switch (message.Payload)
+        // DeviceMessagePayload is closed, so a payload type added without a case here is a compile warning
+        await (message.Payload switch
         {
-            case DeviceTriggerPayload trigger:
-                await DeviceMessageTrigger(trigger);
-                break;
-            case DeviceTogglePayload toggle:
-                await DeviceMessageToggle(toggle);
-                break;
-            case DeviceControlPayload control:
-                await DeviceMessageControl(control);
-                break;
-            case DeviceOtaInstallPayload { Version: var version }:
-                await OtaInstall(version);
-                break;
-            default:
-                _logger.LogError("Got DeviceMessage with unknown payload type: {PayloadType}",
-                    message.Payload.GetType().Name);
-                break;
-        }
+            DeviceTriggerPayload trigger => new ValueTask(DeviceMessageTrigger(trigger)),
+            DeviceTogglePayload toggle => DeviceMessageToggle(toggle),
+            DeviceControlPayload control => DeviceMessageControl(control),
+            DeviceOtaInstallPayload { Version: var version } => OtaInstall(version),
+        });
     }
 
     private async Task DeviceMessageTrigger(DeviceTriggerPayload trigger)
@@ -359,25 +351,54 @@ public sealed class HubLifetime : IAsyncDisposable
     private async Task Update()
     {
         var now = DateTimeOffset.UtcNow;
-        var commandList = new List<ShockerCommand>(_shockerStates.Count);
+        List<ShockerCommand> commandList = [with(capacity: _shockerStates.Count)];
+        List<(ShockerState State, LiveFrame Frame)> emittingFrames = [with(capacity: _shockerStates.Count)];
 
         foreach (var state in _shockerStates.Values)
         {
-            if (state.ActiveUntil < now || state.ExclusiveUntil >= now) continue;
+            // Read once, the command and its stats are both built from this one frame even if another one arrives
+            var frame = state.LastFrame;
+            if (frame is null || frame.ActiveUntil < now || state.ExclusiveUntil >= now)
+            {
+                state.EmittingOnLastTick = null;
+                continue;
+            }
+
+            emittingFrames.Add((state, frame));
 
             commandList.Add(new ShockerCommand
             {
                 Model = FbsMapper.ToFbsModelType(state.Model),
                 Id = state.RfId,
-                Type = FbsMapper.ToFbsCommandType(state.LastType),
-                Intensity = state.LastIntensity,
+                Type = FbsMapper.ToFbsCommandType(frame.Type),
+                Intensity = frame.Intensity,
                 Duration = _commandDuration,
             });
         }
 
         if (commandList.Count == 0) return;
 
-        await HubController.Control(commandList);
+        // Only count what actually got written to the hub, a tick lost to a closing connection is not activity
+        if (!await HubController.SendControl(commandList)) return;
+
+        var tickMs = (long)_waitBetweenTicks.TotalMilliseconds;
+        foreach (var (state, frame) in emittingFrames)
+        {
+            // Each sent tick is one tick interval of activity, a new type or controller starts a new burst
+            var emitting = (frame.Type, frame.ControllerId);
+            _batchUpdateService.RecordControlStat(new ControlStatDelta(
+                OwnerUserId: state.OwnerId,
+                ShockerId: state.Id,
+                ControllerUserId: frame.ControllerId,
+                Bucket: now.UtcDateTime,
+                Type: frame.Type,
+                Live: true,
+                Count: state.EmittingOnLastTick == emitting ? 0 : 1,
+                DurationMs: tickMs,
+                IntensityMs: frame.Intensity * tickMs,
+                MaxIntensity: frame.Intensity));
+            state.EmittingOnLastTick = emitting;
+        }
     }
 
     /// <summary>
@@ -399,9 +420,10 @@ public sealed class HubLifetime : IAsyncDisposable
     {
         _logger.LogDebug("Updating shockers for device [{DeviceId}]", HubController.Id);
 
-        _shockerStates = await db.Shockers.Where(x => x.DeviceId == HubController.Id).Select(x => new ShockerState()
+        _shockerStates = await db.Shockers.Where(x => x.DeviceId == HubController.Id).Select(x => new ShockerState
         {
             Id = x.Id,
+            OwnerId = x.Device.OwnerId,
             Model = x.Model,
             RfId = x.RfId
         }).ToDictionaryAsync(x => x.Id, x => x, cancellationToken);
@@ -411,12 +433,13 @@ public sealed class HubLifetime : IAsyncDisposable
     /// Receive a control frame by a client, this implies that limits and permissions have been checked before
     /// </summary>
     /// <param name="shocker"></param>
+    /// <param name="controllerId">User sending the frame</param>
     /// <param name="type"></param>
     /// <param name="intensity"></param>
     /// <param name="tps"></param>
     /// <returns></returns>
-    public Union3<Success, NotFound, ShockerExclusive> ReceiveFrame(Guid shocker, ControlType type, byte intensity,
-        byte tps)
+    public Union3<Success, NotFound, ShockerExclusive> ReceiveFrame(Guid shocker, Guid controllerId, ControlType type,
+        byte intensity, byte tps)
     {
         if (!_shockerStates.TryGetValue(shocker, out var state)) return new NotFound();
         if (state.ExclusiveUntil > DateTimeOffset.UtcNow)
@@ -425,9 +448,7 @@ public sealed class HubLifetime : IAsyncDisposable
                 Until = state.ExclusiveUntil
             };
 
-        state.LastType = type;
-        state.LastIntensity = intensity;
-        state.ActiveUntil = CalculateActiveUntil(tps);
+        state.LastFrame = new LiveFrame(type, intensity, controllerId, CalculateActiveUntil(tps));
         return new Success();
     }
 
@@ -441,7 +462,7 @@ public sealed class HubLifetime : IAsyncDisposable
     /// <returns></returns>
     public ValueTask Control(IReadOnlyList<ShockerControlCommand> commands)
     {
-        var shocksTransformed = new List<ShockerCommand>(commands.Count);
+        List<ShockerCommand> shocksTransformed = [with(capacity: commands.Count)];
 
         foreach (var command in commands)
         {
@@ -504,9 +525,12 @@ public sealed class HubLifetime : IAsyncDisposable
         // as we don't want to send a device online status every time, we will do it here
         online.BootedAt = data.BootedAt;
         online.LatencyMs = data.LatencyMs;
+        
         online.Rssi = data.Rssi;
         online.Country = data.Country;
         online.Ip = data.Ip?.ToString();
+        online.Asn = data.Asn;
+        online.AsnOrg = data.AsnOrg;
 
         var sendOnlineStatusUpdate = false;
 
@@ -562,6 +586,8 @@ public sealed class HubLifetime : IAsyncDisposable
                 Rssi = data.Rssi,
                 Country = data.Country,
                 Ip = data.Ip?.ToString(),
+                Asn = data.Asn,
+                AsnOrg = data.AsnOrg,
             }, Duration.DeviceKeepAliveTimeout);
         }
     }
@@ -674,4 +700,14 @@ public readonly struct SelfOnlineData
     /// Remote ip address
     /// </summary>
     public IPAddress? Ip { get; init; } = null;
+
+    /// <summary>
+    /// Autonomous system number of the remote ip, if GeoIP is available
+    /// </summary>
+    public long? Asn { get; init; } = null;
+
+    /// <summary>
+    /// Organization owning <see cref="Asn"/>
+    /// </summary>
+    public string? AsnOrg { get; init; } = null;
 }

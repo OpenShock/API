@@ -1,9 +1,5 @@
 ﻿using System.Net;
-using OpenShock.Common.Constants;
-using OpenShock.Common.Problems;
-
 using OpenShock.Internal.Common.Constants;
-
 using OpenShock.Internal.Common.Problems;
 
 namespace OpenShock.Common.Errors;

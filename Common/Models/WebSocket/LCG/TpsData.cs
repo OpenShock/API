@@ -2,5 +2,5 @@
 
 public sealed class TpsData
 {
-    public required byte Client { get; set; }
+    public required byte Client { get; init; }
 }

@@ -6,6 +6,7 @@
   <ItemGroup>
     <!-- Referenced directly so its XML-comment source generator runs here, where AddOpenApi is called -->
     <PackageReference Include="Microsoft.AspNetCore.OpenApi" />
+    <PackageReference Include="Microsoft.Extensions.Diagnostics.ResourceMonitoring" />
   </ItemGroup>
 
   <!-- Flatbuffers -->

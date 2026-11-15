@@ -1,27 +1,25 @@
 ﻿using System.Net;
-using OpenShock.Common.Constants;
-
 using OpenShock.Internal.Common.Constants;
 
 namespace OpenShock.Common.OpenShockDb;
 
 public sealed class ApiToken
 {
-    public required Guid Id { get; set; }
+    public Guid Id { get; init; }
 
-    public required Guid UserId { get; set; }
+    public required Guid UserId { get; init; }
 
     public required string Name { get; set; }
 
-    public required string TokenHash { get; set; }
+    public required string TokenHash { get; init; }
 
-    public required IPAddress CreatedByIp { get; set; }
+    public required IPAddress CreatedByIp { get; init; }
 
     public required List<PermissionType> Permissions { get; set; }
 
     public DateTime? ValidUntil { get; set; }
 
-    public DateTime CreatedAt { get; set; }
+    public DateTime CreatedAt { get; init; }
 
     public DateTime? LastUsed { get; set; }
 
@@ -44,5 +42,5 @@ public sealed class ApiToken
     public ControlLimitMode ShockerControlDurationMode { get; set; } = ControlLimitMode.Clamp;
 
     // Navigations
-    public User User { get; set; } = null!;
+    public User User { get; init; } = null!;
 }

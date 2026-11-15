@@ -1,4 +1,3 @@
-﻿using System.Diagnostics;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using OpenShock.API.Models;
@@ -6,7 +5,6 @@ using OpenShock.API.Models.Response;
 using OpenShock.Common.ApiVersioning;
 using OpenShock.Common.Authentication;
 using OpenShock.Common.Authentication.ControllerBase;
-using OpenShock.Common.Authentication.Services;
 using OpenShock.Common.OpenShockDb;
 
 namespace OpenShock.API.Controller.Tokens;
@@ -20,25 +18,22 @@ public sealed partial class TokensSelfController : AuthenticatedSessionControlle
     /// <summary>
     /// Gets information about the current token used to access this endpoint
     /// </summary>
-    /// <param name="userReferenceService"></param>
     /// <exception cref="Exception"></exception>
     [HttpGet("self")]
     [ApiVersion(1)]
-    public TokenResponse GetSelfToken([FromServices] IUserReferenceService userReferenceService)
+    public TokenResponse GetSelfToken()
     {
-        return TokenResponse.MapFrom(GetSelfTokenV2(userReferenceService));
+        return TokenResponse.MapFrom(GetSelfTokenV2());
     }
 
     /// <summary>
     /// Gets information about the current token used to access this endpoint
     /// </summary>
-    /// <param name="userReferenceService"></param>
-    /// <exception cref="Exception"></exception>
     [HttpGet("self")]
     [ApiVersion(2)]
-    public TokenResponseV2 GetSelfTokenV2([FromServices] IUserReferenceService userReferenceService)
+    public TokenResponseV2 GetSelfTokenV2()
     {
-        var token = GetSelfTokenDto(userReferenceService);
+        var token = GetRequiredItem<ApiToken>();
 
         return new TokenResponseV2
         {
@@ -52,11 +47,4 @@ public sealed partial class TokensSelfController : AuthenticatedSessionControlle
         };
     }
 
-    private static ApiToken GetSelfTokenDto(IUserReferenceService userReferenceService)
-    {
-        if (userReferenceService.AuthReference is not ApiToken apiToken)
-            throw new UnreachableException("the [TokenOnly] attribute should have blocked caller");
-
-        return apiToken;
-    }
 }

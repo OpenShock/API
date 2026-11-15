@@ -1,4 +1,5 @@
-﻿using System.Net.Mime;
+﻿using System.Net;
+using System.Net.Mime;
 using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -7,6 +8,7 @@ using OpenShock.Common.Extensions;
 using OpenShock.Common.JsonSerialization;
 using OpenShock.Common.Models;
 using OpenShock.Common.Redis;
+using OpenShock.Common.Utils;
 
 namespace OpenShock.API.Controller.Admin;
 
@@ -20,7 +22,7 @@ public sealed partial class AdminController
     [HttpGet("monitoring/onlineDevices")]
     [ProducesResponseType<LegacyDataResponse<AdminOnlineDeviceResponse[]>>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
     [ApiVersion(1)]
-    public async Task<IActionResult> GetOnlineDevices()
+    public async Task<IActionResult> GetOnlineDevices(CancellationToken cancellationToken)
     {
         PedanticallyEnsureAdmin();
 
@@ -40,7 +42,7 @@ public sealed partial class AdminController
                     Name = x.Owner.Name
                 }
             })
-            .ToArrayAsync();
+            .ToArrayAsync(cancellationToken);
 
         return LegacyDataOk(
             allOnlineDevices
@@ -60,7 +62,9 @@ public sealed partial class AdminController
                         LatencyMs = x.LatencyMs,
                         Rssi = x.Rssi,
                         Country = x.Country,
-                        Ip = x.Ip
+                        Ip = IpAddressUtils.ParseStoredOrNull(x.Ip, _logger),
+                        Asn = x.Asn,
+                        AsnOrg = x.AsnOrg
                     };
                 })
         );
@@ -82,7 +86,9 @@ public sealed partial class AdminController
         public required DateTimeOffset BootedAt { get; init; }
         public required ushort? LatencyMs { get; init; }
         public required int? Rssi { get; init; }
-        public required string? Country { get; set; }
-        public required string? Ip { get; set; }
+        public required string? Country { get; init; }
+        public required IPAddress? Ip { get; init; }
+        public required long? Asn { get; init; }
+        public required string? AsnOrg { get; init; }
     }
 }

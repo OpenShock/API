@@ -6,6 +6,6 @@ namespace OpenShock.API.Controller.Admin.DTOs;
 /// </summary>
 public sealed class EmailOutboxBulkResultDto
 {
-    public required int Requested { get; set; }
-    public required int Affected { get; set; }
+    public required int Requested { get; init; }
+    public required int Affected { get; init; }
 }

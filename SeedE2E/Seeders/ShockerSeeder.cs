@@ -1,11 +1,8 @@
 ﻿using Bogus;
 using Microsoft.EntityFrameworkCore;
-using OpenShock.Common.Constants;
-using OpenShock.Common.Models;
+using Microsoft.Extensions.Logging;
 using OpenShock.Common.OpenShockDb;
 using OpenShock.Common.Utils;
-using Microsoft.Extensions.Logging;
-
 using OpenShock.Internal.Common.Constants;
 
 namespace OpenShock.SeedE2E.Seeders;

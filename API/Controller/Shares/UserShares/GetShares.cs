@@ -13,8 +13,8 @@ namespace OpenShock.API.Controller.Shares.UserShares;
 internal sealed class V2UserSharesListItemDto
 {
 
-    public required Guid Id { get; set; }
-    public required string Name { get; set; }
+    public required Guid Id { get; init; }
+    public required string Name { get; init; }
     public required string Email { get; init; }
     public required IEnumerable<UserShareInfo> Shares { get; init; }
     
@@ -107,7 +107,7 @@ public sealed partial class UserSharesController
 
     public sealed class V2UserShares
     {
-        public required IEnumerable<V2UserSharesListItem> Outgoing { get; set; }
-        public required IEnumerable<V2UserSharesListItem> Incoming { get; set; }
+        public required IEnumerable<V2UserSharesListItem> Outgoing { get; init; }
+        public required IEnumerable<V2UserSharesListItem> Incoming { get; init; }
     }
 }

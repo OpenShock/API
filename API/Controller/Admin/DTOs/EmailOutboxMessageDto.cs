@@ -8,19 +8,19 @@ namespace OpenShock.API.Controller.Admin.DTOs;
 /// </summary>
 public sealed class EmailOutboxMessageDto
 {
-    public required Guid Id { get; set; }
-    public required EmailType Type { get; set; }
-    public required string Recipient { get; set; }
-    public required string? RecipientName { get; set; }
-    public required Dictionary<string, string> Payload { get; set; }
-    public required string? CoalesceKey { get; set; }
-    public required EmailStatus Status { get; set; }
-    public required int AttemptCount { get; set; }
-    public required DateTimeOffset NextAttemptAt { get; set; }
-    public required string? LastError { get; set; }
-    public required DateTimeOffset CreatedAt { get; set; }
-    public required DateTimeOffset? SentAt { get; set; }
-    public required DateTimeOffset? FailedAt { get; set; }
+    public required Guid Id { get; init; }
+    public required EmailType Type { get; init; }
+    public required string Recipient { get; init; }
+    public required string? RecipientName { get; init; }
+    public required Dictionary<string, string> Payload { get; init; }
+    public required string? CoalesceKey { get; init; }
+    public required EmailStatus Status { get; init; }
+    public required int AttemptCount { get; init; }
+    public required DateTimeOffset NextAttemptAt { get; init; }
+    public required string? LastError { get; init; }
+    public required DateTimeOffset CreatedAt { get; init; }
+    public required DateTimeOffset? SentAt { get; init; }
+    public required DateTimeOffset? FailedAt { get; init; }
 
     public static EmailOutboxMessageDto FromModel(EmailOutboxMessage m) => new()
     {

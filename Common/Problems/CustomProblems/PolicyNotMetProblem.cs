@@ -1,10 +1,9 @@
 ﻿using System.Net;
-
 using OpenShock.Internal.Common.Problems;
 
 namespace OpenShock.Common.Problems.CustomProblems;
 
-public class PolicyNotMetProblem : OpenShockProblem
+public sealed class PolicyNotMetProblem : OpenShockProblem
 {
     public PolicyNotMetProblem(IEnumerable<string> failedRequirements) : base(
         "Authorization.Policy.NotMet",
@@ -13,5 +12,5 @@ public class PolicyNotMetProblem : OpenShockProblem
         FailedRequirements = failedRequirements;
     }
     
-    public IEnumerable<string> FailedRequirements { get; set; }
+    public IEnumerable<string> FailedRequirements { get; init; }
 }

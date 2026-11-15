@@ -10,7 +10,6 @@ using OpenShock.Common.OpenShockDb;
 using OpenShock.Common.Services.Audit;
 using OpenShock.Common.Services.RedisPubSub;
 using OpenShock.Common.Utils;
-
 using OpenShock.Internal.Common.Utils;
 
 namespace OpenShock.API.Services.Token;
@@ -88,37 +87,36 @@ public sealed class ApiTokenService : IApiTokenService
     }
 
     /// <inheritdoc />
-    public IAsyncEnumerable<TokenResponse> ListTokensV1(Guid ownerId) => Tokens(ownerId)
+    public IAsyncEnumerable<TokenResponse> ListTokensV1(Guid ownerId, CancellationToken cancellationToken) => Tokens(ownerId)
         .OrderBy(x => x.CreatedAt)
         .Select(ToTokenResponse)
         .AsAsyncEnumerable();
 
     /// <inheritdoc />
-    public IAsyncEnumerable<TokenResponseV2> ListTokensV2(Guid ownerId) => Tokens(ownerId)
+    public IAsyncEnumerable<TokenResponseV2> ListTokensV2(Guid ownerId, CancellationToken cancellationToken) => Tokens(ownerId)
         .OrderBy(x => x.CreatedAt)
         .Select(ToTokenResponseV2)
         .AsAsyncEnumerable();
 
     /// <inheritdoc />
-    public Task<TokenResponse?> GetTokenV1(Guid tokenId, Guid? ownerId = null) => Tokens(ownerId)
+    public Task<TokenResponse?> GetTokenV1(Guid tokenId, Guid? ownerId = null, CancellationToken cancellationToken = default) => Tokens(ownerId)
         .Where(x => x.Id == tokenId)
         .Select(ToTokenResponse)
-        .FirstOrDefaultAsync();
+        .FirstOrDefaultAsync(cancellationToken);
 
     /// <inheritdoc />
-    public Task<TokenResponseV2?> GetTokenV2(Guid tokenId, Guid? ownerId = null) => Tokens(ownerId)
+    public Task<TokenResponseV2?> GetTokenV2(Guid tokenId, Guid? ownerId = null, CancellationToken cancellationToken = default) => Tokens(ownerId)
         .Where(x => x.Id == tokenId)
         .Select(ToTokenResponseV2)
-        .FirstOrDefaultAsync();
+        .FirstOrDefaultAsync(cancellationToken);
 
     /// <inheritdoc />
-    public async Task<TokenCreatedResponse> CreateTokenV1(Guid userId, IPAddress createdByIp, CreateTokenRequest body)
+    public async Task<TokenCreatedResponse> CreateTokenV1(Guid userId, IPAddress createdByIp, CreateTokenRequest body, CancellationToken cancellationToken)
     {
         var secret = CryptoUtils.RandomString(AuthConstants.ApiTokenLength);
 
         var tokenDto = new ApiToken
         {
-            Id = Guid.CreateVersion7(),
             UserId = userId,
             Name = body.Name,
             TokenHash = HashingUtils.HashToken(secret),
@@ -155,13 +153,12 @@ public sealed class ApiTokenService : IApiTokenService
     }
 
     /// <inheritdoc />
-    public async Task<TokenCreatedResponseV2> CreateTokenV2(Guid userId, IPAddress createdByIp, CreateTokenRequestV2 body)
+    public async Task<TokenCreatedResponseV2> CreateTokenV2(Guid userId, IPAddress createdByIp, CreateTokenRequestV2 body, CancellationToken cancellationToken)
     {
         var secret = CryptoUtils.RandomString(AuthConstants.ApiTokenLength);
 
         var tokenDto = new ApiToken
         {
-            Id = Guid.CreateVersion7(),
             UserId = userId,
             Name = body.Name,
             TokenHash = HashingUtils.HashToken(secret),
@@ -200,9 +197,9 @@ public sealed class ApiTokenService : IApiTokenService
     }
 
     /// <inheritdoc />
-    public async Task<bool> EditTokenV1(Guid tokenId, EditTokenRequest body, Guid? ownerId = null)
+    public async Task<bool> EditTokenV1(Guid tokenId, EditTokenRequest body, Guid? ownerId = null, CancellationToken cancellationToken = default)
     {
-        var token = await Tokens(ownerId).FirstOrDefaultAsync(x => x.Id == tokenId);
+        var token = await Tokens(ownerId).FirstOrDefaultAsync(x => x.Id == tokenId, cancellationToken);
         if (token is null) return false;
 
         token.Name = body.Name;
@@ -215,9 +212,9 @@ public sealed class ApiTokenService : IApiTokenService
     }
 
     /// <inheritdoc />
-    public async Task<bool> EditTokenV2(Guid tokenId, EditTokenRequestV2 body, Guid? ownerId = null)
+    public async Task<bool> EditTokenV2(Guid tokenId, EditTokenRequestV2 body, Guid? ownerId = null, CancellationToken cancellationToken = default)
     {
-        var token = await Tokens(ownerId).FirstOrDefaultAsync(x => x.Id == tokenId);
+        var token = await Tokens(ownerId).FirstOrDefaultAsync(x => x.Id == tokenId, cancellationToken);
         if (token is null) return false;
 
         token.Name = body.Name;
@@ -231,7 +228,7 @@ public sealed class ApiTokenService : IApiTokenService
     }
 
     /// <inheritdoc />
-    public async Task<bool?> SetTokenPaused(Guid tokenId, bool paused, Guid? ownerId = null)
+    public async Task<bool?> SetTokenPaused(Guid tokenId, bool paused, Guid? ownerId = null, CancellationToken cancellationToken = default)
     {
         var nUpdated = await Tokens(ownerId)
             .Where(x => x.Id == tokenId)
@@ -253,9 +250,9 @@ public sealed class ApiTokenService : IApiTokenService
             .FirstOrDefaultAsync(cancellationToken);
         if (info is null) return false;
 
-        await using (var transaction = await _db.Database.BeginTransactionAsync(cancellationToken))
+        await using (var transaction = await _db.Database.BeginTransactionAsync())
         {
-            var nDeleted = await Tokens(ownerId).Where(x => x.Id == tokenId).ExecuteDeleteAsync(cancellationToken);
+            var nDeleted = await Tokens(ownerId).Where(x => x.Id == tokenId).ExecuteDeleteAsync();
             if (nDeleted <= 0) return false;
 
             await _auditService.LogAsync(
@@ -263,11 +260,10 @@ public sealed class ApiTokenService : IApiTokenService
                 action: AuditAction.ApiTokenDeleted,
                 actorId: actorId ?? info.UserId,
                 metadata: new ApiTokenDeletedMetadata(tokenId, info.Name),
-                reason: reason,
-                cancellationToken: cancellationToken
+                reason: reason
             );
 
-            await transaction.CommitAsync(cancellationToken);
+            await transaction.CommitAsync();
         }
 
         // Revoked tokens must stop controlling any open live control connection.

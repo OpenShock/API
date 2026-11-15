@@ -13,6 +13,13 @@ public static class OpenApiSchemas
         Examples = [JsonValue.Create("1.0.0-dev+a16f2")]
     };
 
+    public static OpenApiSchema IpAddressSchema => new OpenApiSchema {
+        Title = "IpAddress",
+        Type = JsonSchemaType.String,
+        Description = "An IPv4 or IPv6 address in its textual form.",
+        Examples = [JsonValue.Create("127.0.0.1")]
+    };
+
     public static OpenApiSchema PauseReasonEnumSchema => new OpenApiSchema {
         Title = nameof(PauseReason),
         Type = JsonSchemaType.Integer,

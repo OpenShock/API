@@ -7,7 +7,7 @@ namespace OpenShock.Common.Redis.PubSub;
 [MessagePackObject]
 public sealed class DeviceMessage
 {
-    [Key(0)] public required IDeviceMessagePayload Payload { get; init; }
+    [Key(0)] public required DeviceMessagePayload Payload { get; init; }
 
     public static DeviceMessage Create(DeviceTriggerType type) => new()
     {
@@ -34,7 +34,7 @@ public sealed class DeviceMessage
 [Union(1, typeof(DeviceTogglePayload))]
 [Union(2, typeof(DeviceControlPayload))]
 [Union(3, typeof(DeviceOtaInstallPayload))]
-public interface IDeviceMessagePayload;
+public closed class DeviceMessagePayload;
 
 public enum DeviceTriggerType : byte
 {
@@ -44,7 +44,7 @@ public enum DeviceTriggerType : byte
 }
 
 [MessagePackObject]
-public sealed class DeviceTriggerPayload : IDeviceMessagePayload
+public sealed class DeviceTriggerPayload : DeviceMessagePayload
 {
     [Key(0)] public required DeviceTriggerType Type { get; init; }
 }
@@ -55,14 +55,14 @@ public enum DeviceToggleTarget : byte
 }
 
 [MessagePackObject]
-public sealed class DeviceTogglePayload : IDeviceMessagePayload
+public sealed class DeviceTogglePayload : DeviceMessagePayload
 {
     [Key(0)] public required DeviceToggleTarget Target { get; init; }
     [Key(1)] public required bool State { get; init; }
 }
 
 [MessagePackObject]
-public sealed class DeviceControlPayload : IDeviceMessagePayload
+public sealed class DeviceControlPayload : DeviceMessagePayload
 {
     [Key(0)] public required List<ShockerControlCommand> Controls { get; init; }
 }
@@ -80,7 +80,7 @@ public sealed class ShockerControlCommand
 }
 
 [MessagePackObject]
-public sealed class DeviceOtaInstallPayload : IDeviceMessagePayload
+public sealed class DeviceOtaInstallPayload : DeviceMessagePayload
 {
     [Key(0)] public required SemVersion Version { get; init; }
 }

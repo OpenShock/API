@@ -1,4 +1,5 @@
 ﻿using OpenShock.Common.Models;
+using OpenShock.Common.Services.Geo;
 using OpenShock.Serialization.Gateway;
 
 namespace OpenShock.LiveControlGateway.Controllers;
@@ -14,11 +15,24 @@ public interface IHubController : IAsyncDisposable
     public Guid Id { get; }
 
     /// <summary>
+    /// GeoIP data for the address this connection came from, resolved once when it connected.
+    /// Null when no GeoIP database is configured.
+    /// </summary>
+    public IpEnrichmentData? IpInfo { get; }
+
+    /// <summary>
     /// Control shockers
     /// </summary>
     /// <param name="controlCommands"></param>
     /// <returns></returns>
     public ValueTask Control(IList<ShockerCommand> controlCommands);
+
+    /// <summary>
+    /// Control shockers and wait until the commands have been written to the hub's websocket
+    /// </summary>
+    /// <param name="controlCommands"></param>
+    /// <returns>Whether the commands were written, false if the connection closed or failed first</returns>
+    public Task<bool> SendControl(IList<ShockerCommand> controlCommands);
 
     /// <summary>
     /// Turn the captive portal on or off

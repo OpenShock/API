@@ -1,4 +1,5 @@
 ﻿using MessagePack;
+using MessagePack.Resolvers;
 using Serilog;
 
 namespace OpenShock.Common;
@@ -8,9 +9,9 @@ public static class OpenShockApplication
     public static WebApplicationBuilder CreateDefaultBuilder<TProgram>(string[] args) where TProgram : class
     {
         MessagePackSerializer.DefaultOptions = MessagePackSerializerOptions.Standard.WithResolver(
-            MessagePack.Resolvers.CompositeResolver.Create(
-                MessagePack.Resolvers.NativeGuidResolver.Instance,
-                MessagePack.Resolvers.StandardResolver.Instance
+            CompositeResolver.Create(
+                NativeGuidResolver.Instance,
+                StandardResolver.Instance
             ));
         
         var builder = WebApplication.CreateSlimBuilder(args);

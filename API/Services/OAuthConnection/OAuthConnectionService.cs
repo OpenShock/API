@@ -1,8 +1,10 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Npgsql;
+using OpenShock.Common.Constants;
 using OpenShock.Common.Models;
 using OpenShock.Common.OpenShockDb;
 using OpenShock.Common.Services.Audit;
+using OpenShock.Common.Utils;
 
 namespace OpenShock.API.Services.OAuthConnection;
 
@@ -30,6 +32,8 @@ public sealed class OAuthConnectionService : IOAuthConnectionService
     {
         var p = provider.ToLowerInvariant();
         return await _db.UserOAuthConnections
+            .Include(c => c.User)
+            .ThenInclude(u => u.UserDeactivation)
             .FirstOrDefaultAsync(c => c.ProviderKey == p && c.ExternalId == providerAccountId, cancellationToken);
     }
 
@@ -47,7 +51,7 @@ public sealed class OAuthConnectionService : IOAuthConnectionService
 
     public async Task<bool> TryAddConnectionAsync(Guid userId, string provider, string providerAccountId, string? providerAccountName, Guid? actorId, CancellationToken cancellationToken)
     {
-        await using var transaction = await _db.Database.BeginTransactionAsync(cancellationToken);
+        await using var transaction = await _db.Database.BeginTransactionAsync();
 
         try
         {
@@ -56,9 +60,9 @@ public sealed class OAuthConnectionService : IOAuthConnectionService
                 UserId = userId,
                 ProviderKey = provider.ToLowerInvariant(),
                 ExternalId = providerAccountId,
-                DisplayName = providerAccountName
+                DisplayName = providerAccountName?.Truncate(ApiHardLimits.OAuthDisplayNameMaxLength)
             });
-            await _db.SaveChangesAsync(cancellationToken);
+            await _db.SaveChangesAsync();
         }
         catch (DbUpdateException ex) when (ex.InnerException is PostgresException { SqlState: "23505" })
         {
@@ -71,11 +75,10 @@ public sealed class OAuthConnectionService : IOAuthConnectionService
             userId,
             action: AuditAction.OAuthConnected,
             actorId: actorId ?? userId,
-            metadata: new OAuthConnectedMetadata(provider),
-            cancellationToken: cancellationToken
+            metadata: new OAuthConnectedMetadata(provider)
         );
 
-        await transaction.CommitAsync(cancellationToken);
+        await transaction.CommitAsync();
 
         return true;
     }
@@ -84,11 +87,11 @@ public sealed class OAuthConnectionService : IOAuthConnectionService
     {
         var p = provider.ToLowerInvariant();
         
-        await using var transaction = await _db.Database.BeginTransactionAsync(cancellationToken);
+        await using var transaction = await _db.Database.BeginTransactionAsync();
         
         var nDeleted = await _db.UserOAuthConnections
             .Where(c => c.UserId == userId && c.ProviderKey == p)
-            .ExecuteDeleteAsync(cancellationToken);
+            .ExecuteDeleteAsync();
         
         // Nothing was linked, so don't record a disconnection that never happened.
         // Disposing the transaction without committing rolls back the (no-op) delete.
@@ -98,11 +101,10 @@ public sealed class OAuthConnectionService : IOAuthConnectionService
             userId,
             action: AuditAction.OAuthDisconnected,
             actorId: actorId ?? userId,
-            metadata: new OAuthDisconnectedMetadata(provider),
-            cancellationToken: cancellationToken
+            metadata: new OAuthDisconnectedMetadata(provider)
         );
         
-        await transaction.CommitAsync(cancellationToken);
+        await transaction.CommitAsync();
 
         return true;
     }

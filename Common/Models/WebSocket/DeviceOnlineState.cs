@@ -5,8 +5,8 @@ namespace OpenShock.Common.Models.WebSocket;
 
 public sealed class DeviceOnlineState
 {
-    public required Guid Device { get; set; }
-    public required bool Online { get; set; }
+    public required Guid Device { get; init; }
+    public required bool Online { get; init; }
     [JsonConverter(typeof(SemVersionJsonConverter))]
-    public required SemVersion? FirmwareVersion { get; set; }
+    public required SemVersion? FirmwareVersion { get; init; }
 }

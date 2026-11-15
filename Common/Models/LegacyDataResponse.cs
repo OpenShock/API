@@ -2,7 +2,7 @@
 
 namespace OpenShock.Common.Models;
 
-public sealed class LegacyDataResponse<T>
+public sealed class LegacyDataResponse<T> where T : notnull
 {
     [SetsRequiredMembers]
     public LegacyDataResponse(T data, string message = "")

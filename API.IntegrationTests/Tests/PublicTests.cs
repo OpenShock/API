@@ -1,4 +1,5 @@
 using System.Net;
+using System.Text;
 using System.Text.Json;
 
 namespace OpenShock.API.IntegrationTests.Tests;
@@ -58,7 +59,7 @@ public sealed class PublicTests
 
         using var content = new StringContent(
             JsonSerializer.Serialize(new { username = "totallyuniquename123" }),
-            System.Text.Encoding.UTF8,
+            Encoding.UTF8,
             "application/json");
 
         var response = await client.PostAsync("/1/account/username/check", content);

@@ -2,14 +2,14 @@
 
 public sealed class UserNameChange
 {
-    public int Id { get; set; } // TODO: Make this Guid
+    public int Id { get; init; } // TODO: Make this Guid
 
-    public required Guid UserId { get; set; }
+    public required Guid UserId { get; init; }
 
-    public required string OldName { get; set; }
+    public required string OldName { get; init; }
 
-    public DateTime CreatedAt { get; set; }
+    public DateTime CreatedAt { get; init; }
 
     // Navigations
-    public User User { get; set; } = null!;
+    public User User { get; init; } = null!;
 }

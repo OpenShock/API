@@ -2,16 +2,16 @@
 
 public sealed class UserOAuthConnection
 {
-    public required Guid UserId { get; set; }
+    public required Guid UserId { get; init; }
 
-    public required string ProviderKey { get; set; }
+    public required string ProviderKey { get; init; }
 
-    public required string ExternalId { get; set; }
+    public required string ExternalId { get; init; }
 
     public required string? DisplayName { get; set; }
 
-    public DateTime CreatedAt { get; set; }
+    public DateTime CreatedAt { get; init; }
 
     // Navigations
-    public User User { get; set; } = null!;
+    public User User { get; init; } = null!;
 }

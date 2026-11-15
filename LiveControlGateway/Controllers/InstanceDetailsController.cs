@@ -3,10 +3,8 @@ using System.Reflection;
 using Microsoft.AspNetCore.Mvc;
 using OpenShock.Common;
 using OpenShock.Common.ApiVersioning;
-using OpenShock.Common.Utils;
-using OpenShock.LiveControlGateway.Options;
-
 using OpenShock.Internal.Common.Utils;
+using OpenShock.LiveControlGateway.Options;
 
 namespace OpenShock.LiveControlGateway.Controllers;
 

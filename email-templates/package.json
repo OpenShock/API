@@ -4,7 +4,7 @@
   "private": true,
   "license": "AGPL-3.0",
   "type": "module",
-  "packageManager": "pnpm@11.3.0",
+  "packageManager": "pnpm@12.18.0",
   "engines": {
     "node": ">=20"
   },
@@ -16,19 +16,17 @@
     "lint": "prettier --check \"emails/**/*.{ts,tsx}\" \"scripts/**/*.ts\""
   },
   "dependencies": {
-    "@react-email/components": "1.0.12",
-    "@react-email/render": "2.0.8",
-    "react": "19.2.6",
-    "react-dom": "19.2.6",
-    "react-email": "6.3.2"
+    "react": "19.3.1",
+    "react-dom": "19.3.1",
+    "react-email": "6.11.11"
   },
   "devDependencies": {
-    "@react-email/ui": "6.3.2",
-    "@types/node": "^25.9.1",
-    "@types/react": "19.2.15",
-    "@types/react-dom": "19.2.3",
-    "prettier": "3.8.3",
-    "tsx": "4.21.0",
-    "typescript": "6.0.3"
+    "@react-email/ui": "6.11.11",
+    "@types/node": "^26.6.6",
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0",
+    "prettier": "3.10.1",
+    "tsx": "4.23.15",
+    "typescript": "7.0.2"
   }
 }

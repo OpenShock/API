@@ -1,8 +1,6 @@
 ﻿using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
-using OpenShock.Common.Constants;
 using OpenShock.Common.DeviceControl;
-using OpenShock.Common.Extensions;
 using OpenShock.Common.Hubs;
 using OpenShock.Common.Metrics;
 using OpenShock.Common.Models;
@@ -12,9 +10,7 @@ using OpenShock.Common.Redis.PubSub;
 using OpenShock.Common.Results;
 using OpenShock.Common.Services.RedisPubSub;
 using OpenShock.Common.Utils;
-
 using OpenShock.Internal.Common.Constants;
-
 using OpenShock.Internal.Common.Extensions;
 
 namespace OpenShock.Common.Services;
@@ -32,7 +28,7 @@ public sealed class ControlSender : IControlSender
         _metrics = metrics;
     }
 
-    public async Task<ShockerControlResult> ControlByUser(IReadOnlyList<Control> controls,ControlLogSender sender, IHubClients<IUserHub> hubClients, ApiTokenControlLimits? tokenLimits = null)
+    public async Task<ShockerControlResult> ControlByUser(IReadOnlyList<Control> controls,ControlLogSender sender, IHubClients<IUserHub> hubClients, ApiTokenControlLimits? tokenLimits = null, CancellationToken cancellationToken = default)
     {
         var shockers = await _db.Shockers
             .AsNoTracking()
@@ -62,12 +58,12 @@ public sealed class ControlSender : IControlSender
                     Live      = x.Share.AllowLiveControl
                 }
             })
-            .ToArrayAsync();
+            .ToArrayAsync(cancellationToken);
 
-        return await ControlInternal(controls, sender, hubClients, shockers, ControlMetrics.Source.User, tokenLimits);
+        return await ControlInternal(controls, sender, sender.Id, hubClients, shockers, ControlMetrics.Source.User, tokenLimits);
     }
 
-    public async Task<ShockerControlResult> ControlPublicShare(IReadOnlyList<Control> controls, ControlLogSender sender, IHubClients<IUserHub> hubClients, Guid publicShareId)
+    public async Task<ShockerControlResult> ControlPublicShare(IReadOnlyList<Control> controls, ControlLogSender sender, Guid? controllerUserId, IHubClients<IUserHub> hubClients, Guid publicShareId, CancellationToken cancellationToken)
     {
         var publicShareShockers = await _db.PublicShareShockerMappings
             .AsNoTracking()
@@ -91,9 +87,9 @@ public sealed class ControlSender : IControlSender
                     Live = x.AllowLiveControl
                 }
             })
-            .ToArrayAsync();
+            .ToArrayAsync(cancellationToken);
         
-        return await ControlInternal(controls, sender, hubClients, publicShareShockers, ControlMetrics.Source.PublicShare);
+        return await ControlInternal(controls, sender, controllerUserId, hubClients, publicShareShockers, ControlMetrics.Source.PublicShare);
     }
     
     private static void Clamp(Control control, SharePermsAndLimits? limits)
@@ -105,7 +101,7 @@ public sealed class ControlSender : IControlSender
         control.Duration = Math.Clamp(control.Duration, HardLimits.MinControlDuration, durationMax);
     }
 
-    private async Task<ShockerControlResult> ControlInternal(IReadOnlyList<Control> controls, ControlLogSender sender, IHubClients<IUserHub> hubClients, ControlShockerObj[] allowedShockers, string source, ApiTokenControlLimits? tokenLimits = null)
+    private async Task<ShockerControlResult> ControlInternal(IReadOnlyList<Control> controls, ControlLogSender sender, Guid? controllerUserId, IHubClients<IUserHub> hubClients, ControlShockerObj[] allowedShockers, string source, ApiTokenControlLimits? tokenLimits = null)
     {
         var shockersById = allowedShockers.ToDictionary(s => s.ShockerId, s => s);
 
@@ -113,6 +109,7 @@ public sealed class ControlSender : IControlSender
 
         var messagesByDevice = new Dictionary<Guid, List<ShockerControlCommand>>();
         var logsByOwner = new Dictionary<Guid, List<ControlLog>>();
+        List<ControlStatDelta> statDeltas = [with(capacity: controls.Count)];
 
         foreach (var control in controls.DistinctBy(x => x.Id))
         {
@@ -168,19 +165,35 @@ public sealed class ControlSender : IControlSender
 
             _db.ShockerControlLogs.Add(new ShockerControlLog
             {
-                Id = Guid.CreateVersion7(),
                 ShockerId = shocker.ShockerId,
-                ControlledByUserId = sender.Id == Guid.Empty ? null : sender.Id,
+                ControlledByUserId = controllerUserId,
                 Intensity = control.Intensity,
                 Duration = control.Duration,
                 Type = control.Type,
                 CustomName = sender.CustomName,
                 CreatedAt = now
             });
+
+            statDeltas.Add(new ControlStatDelta(
+                OwnerUserId: shocker.OwnerId,
+                ShockerId: shocker.ShockerId,
+                ControllerUserId: controllerUserId,
+                Bucket: now,
+                Type: control.Type,
+                Live: false,
+                Count: 1,
+                DurationMs: control.Duration,
+                IntensityMs: (long)control.Intensity * control.Duration,
+                MaxIntensity: control.Intensity));
         }
 
-        // Save all db changes before continuing
-        await _db.SaveChangesAsync();
+        // Save all db changes before continuing, logs and stats commit together
+        await using (var transaction = await _db.Database.BeginTransactionAsync())
+        {
+            await _db.SaveChangesAsync();
+            await _db.UpsertControlStatsAsync(statDeltas);
+            await transaction.CommitAsync();
+        }
 
         // Then send all network events
         await Task.WhenAll([

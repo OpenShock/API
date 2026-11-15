@@ -1,6 +1,6 @@
 ﻿namespace OpenShock.Common.Models;
 
-public class SharePermsAndLimits
+public sealed class SharePermsAndLimits
 {
     public required bool Sound { get; init; }
     public required bool Vibrate { get; init; }

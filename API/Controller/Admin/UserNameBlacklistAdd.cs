@@ -12,18 +12,17 @@ public sealed partial class AdminController
     [Consumes(MediaTypeNames.Application.Json)]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ApiVersion(1)]
-    public async Task<IActionResult> AddUsernameBlacklist([FromBody] AddUsernameBlacklistDto body)
+    public async Task<IActionResult> AddUsernameBlacklist([FromBody] AddUsernameBlacklistDto body, CancellationToken cancellationToken)
     {
         PedanticallyEnsureAdmin();
 
         var entry = new UserNameBlacklist
         {
-            Id = Guid.CreateVersion7(),
             Value = body.Value,
             MatchType = body.MatchType
         };
         _db.UserNameBlacklists.Add(entry);
-        await _db.SaveChangesAsync();
+        await _db.SaveChangesAsync(cancellationToken);
         return Ok();
     }
 }

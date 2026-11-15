@@ -6,9 +6,9 @@ public sealed class TurnstileOptions
 {
     public const string Turnstile = "OpenShock:Turnstile";
 
-    public required bool Enabled { get; set; }
-    public required string SiteKey { get; set; }
-    public required string SecretKey { get; set; }
+    public required bool Enabled { get; init; }
+    public required string SiteKey { get; init; }
+    public required string SecretKey { get; init; }
 }
 
 public sealed class TurnstileOptionsValidator : IValidateOptions<TurnstileOptions>

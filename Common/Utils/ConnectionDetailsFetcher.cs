@@ -1,5 +1,6 @@
-﻿using OpenShock.Internal.Common.Geo;
-using System.Net;
+﻿using System.Net;
+using OpenShock.Internal.Common.Geo;
+
 // ReSharper disable InconsistentNaming
 
 namespace OpenShock.Common.Utils;

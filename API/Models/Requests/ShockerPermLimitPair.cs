@@ -4,6 +4,6 @@ namespace OpenShock.API.Models.Requests;
 
 public class ShockerPermLimitPair
 {
-    public required ShockerPermissions Permissions { get; set; }
-    public required ShockerLimits Limits { get; set; }
+    public required ShockerPermissions Permissions { get; init; }
+    public required ShockerLimits Limits { get; init; }
 }

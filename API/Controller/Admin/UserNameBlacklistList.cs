@@ -1,3 +1,4 @@
+using System.Runtime.CompilerServices;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using OpenShock.API.Controller.Admin.DTOs;
@@ -9,13 +10,13 @@ public sealed partial class AdminController
 {
     [HttpGet("blacklist/usernames")]
     [ApiVersion(1)]
-    public async IAsyncEnumerable<UserNameBlacklistDto> ListUsernameBlacklist([FromQuery(Name="match")] string? match)
+    public async IAsyncEnumerable<UserNameBlacklistDto> ListUsernameBlacklist([FromQuery(Name="match")] string? match, [EnumeratorCancellation] CancellationToken cancellationToken)
     {
         PedanticallyEnsureAdmin();
 
         match = string.IsNullOrWhiteSpace(match) ? null : match.Trim().ToLowerInvariant();
 
-        await foreach (var item in _db.UserNameBlacklists.AsNoTracking().AsAsyncEnumerable())
+        await foreach (var item in _db.UserNameBlacklists.AsNoTracking().AsAsyncEnumerable().WithCancellation(cancellationToken))
         {
             if (match is not null && !item.IsMatch(match)) continue;
             

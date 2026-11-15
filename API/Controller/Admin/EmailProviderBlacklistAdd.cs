@@ -29,7 +29,6 @@ public sealed partial class AdminController
 
             _db.EmailProviderBlacklists.Add(new EmailProviderBlacklist
             {
-                Id = Guid.CreateVersion7(),
                 Domain = normalized,
             });
         }

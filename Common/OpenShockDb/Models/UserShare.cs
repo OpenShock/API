@@ -2,13 +2,13 @@
 
 public sealed class UserShare : SafetySettings
 {
-    public required Guid SharedWithUserId { get; set; }
+    public required Guid SharedWithUserId { get; init; }
 
     public required Guid ShockerId { get; set; }
     
-    public DateTime CreatedAt { get; set; }
+    public DateTime CreatedAt { get; init; }
 
     // Navigations
-    public User SharedWithUser { get; set; } = null!;
-    public Shocker Shocker { get; set; } = null!;
+    public User SharedWithUser { get; init; } = null!;
+    public Shocker Shocker { get; init; } = null!;
 }

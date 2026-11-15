@@ -9,8 +9,6 @@ using OpenShock.Common.ApiVersioning;
 using OpenShock.Common.Extensions;
 using OpenShock.Common.Models;
 using OpenShock.Common.Options;
-using OpenShock.Common.Utils;
-
 using OpenShock.Internal.Common.Utils;
 
 namespace OpenShock.API.Controller.Version;

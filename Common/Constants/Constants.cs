@@ -9,6 +9,9 @@ public static class Duration
 
     public static readonly TimeSpan EmailChangeRequestLifetime = TimeSpan.FromHours(1);
 
+    public static readonly TimeSpan ActivationResendCooldown = TimeSpan.FromMinutes(10);
+    public static readonly TimeSpan ActivationResendWindow = TimeSpan.FromHours(24);
+
     public static readonly TimeSpan NameChangeCooldown = TimeSpan.FromDays(7);
     
     public static readonly TimeSpan LoginSessionLifetime = TimeSpan.FromDays(30);
@@ -18,6 +21,8 @@ public static class Duration
     public static readonly TimeSpan DevicePingPeriod = TimeSpan.FromSeconds(15);
     public static readonly TimeSpan DeviceKeepAliveInitialTimeout = TimeSpan.FromSeconds(65);
     public static readonly TimeSpan DeviceKeepAliveTimeout = TimeSpan.FromSeconds(35);
+
+    public static readonly TimeSpan HubControlMaxQueueAge = TimeSpan.FromSeconds(5);
 
     public static readonly TimeSpan DeactivatedAccountRetentionTime = TimeSpan.FromDays(14);
 }

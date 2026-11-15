@@ -1,6 +1,6 @@
-﻿using Hangfire.Common;
+﻿using System.Reflection;
+using Hangfire.Common;
 using OpenShock.Cron.Attributes;
-using System.Reflection;
 
 namespace OpenShock.Cron.Utils;
 

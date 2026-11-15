@@ -1,8 +1,8 @@
-﻿using OpenShock.Common.Options;
+﻿using System.Net;
+using OpenShock.Common.Options;
 using OpenShock.Common.Utils;
-using StackExchange.Redis;
-
 using OpenShock.Internal.Common.Utils;
+using StackExchange.Redis;
 
 namespace OpenShock.Common.Extensions;
 
@@ -82,6 +82,13 @@ public static class ConfigurationExtensions
         return options;
     }
 
+    public static GeoOptions RegisterGeoOptions(this WebApplicationBuilder builder)
+    {
+        var options = builder.Configuration.GetSection(GeoOptions.SectionName).Get<GeoOptions>() ?? new GeoOptions();
+        builder.Services.AddSingleton(options);
+        return options;
+    }
+
     public static AccountOptions RegisterAccountOptions(this WebApplicationBuilder builder)
     {
         var options = builder.Configuration.GetSection("OpenShock:Account").Get<AccountOptions>()
@@ -114,8 +121,22 @@ public static class ConfigurationExtensions
         
         if (options.CookieDomains.Count == 0) throw new InvalidOperationException("At least one cookie domain must be configured (OpenShock:Frontend:CookieDomain).");
 
+        // A relative or exotic-scheme URL binds without complaint but makes CookieSecure false, so an
+        // unnoticed typo here would quietly downgrade auth cookies. Fail at startup instead.
+        RequireHttpUrl(options.BaseUrl, "BaseUrl");
+        RequireHttpUrl(options.ShortUrl, "ShortUrl");
+
         builder.Services.AddSingleton(options);
         return options;
+
+        static void RequireHttpUrl(Uri url, string name)
+        {
+            if (!url.IsAbsoluteUri)
+                throw new InvalidOperationException($"Frontend {name} must be an absolute URL (OpenShock:Frontend:{name}).");
+
+            if (url.Scheme != Uri.UriSchemeHttp && url.Scheme != Uri.UriSchemeHttps)
+                throw new InvalidOperationException($"Frontend {name} must use http or https, got '{url.Scheme}' (OpenShock:Frontend:{name}).");
+        }
 
         static string[] ParseDomainList(string csv)
         {
@@ -133,7 +154,7 @@ public static class ConfigurationExtensions
                 }
 
                 // leave IP addresses alone
-                if (System.Net.IPAddress.TryParse(domain, out _)) continue;
+                if (IPAddress.TryParse(domain, out _)) continue;
                 
                 if (!DomainUtils.IsValidDomain(domain))
                     throw new Exception($"Invalid domain: {domain}");

@@ -1,14 +1,12 @@
 ﻿using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
-using OpenShock.Common.Authentication.Services;
-using OpenShock.Common.Constants;
 using OpenShock.Common.Extensions;
 using OpenShock.Common.Models;
+using OpenShock.Common.Models.WebSocket.User;
 using OpenShock.Common.OpenShockDb;
 using OpenShock.Common.Services;
 using OpenShock.Common.Services.Session;
 using OpenShock.Common.Utils;
-
 using OpenShock.Internal.Common.Constants;
 
 namespace OpenShock.Common.Hubs;
@@ -19,17 +17,21 @@ public sealed class PublicShareHub : Hub<IPublicShareHub>
     private readonly IHubContext<UserHub, IUserHub> _userHub;
     private readonly ISessionService _sessionService;
     private readonly IControlSender _controlSender;
-    private readonly IUserReferenceService _userReferenceService;
     private readonly ILogger<PublicShareHub> _logger;
-    private IReadOnlyList<PermissionType>? _tokenPermissions;
+    /// <summary>
+    /// Permissions of the API token this connection authenticated with, or null for a session
+    /// connection. Derived per access, as SignalR creates a hub instance per invocation.
+    /// </summary>
+    private IReadOnlyList<PermissionType>? TokenPermissions => Context.User?.HasOpenShockApiTokenIdentity() == true
+        ? Context.User.GetApiTokenPermissions()
+        : null;
 
-    public PublicShareHub(OpenShockContext db, IHubContext<UserHub, IUserHub> userHub, ISessionService sessionService, IControlSender controlSender, IUserReferenceService userReferenceService, ILogger<PublicShareHub> logger)
+    public PublicShareHub(OpenShockContext db, IHubContext<UserHub, IUserHub> userHub, ISessionService sessionService, IControlSender controlSender, ILogger<PublicShareHub> logger)
     {
         _db = db;
         _userHub = userHub;
         _sessionService = sessionService;
         _controlSender = controlSender;
-        _userReferenceService = userReferenceService;
         _logger = logger;
     }
 
@@ -55,8 +57,6 @@ public sealed class PublicShareHub : Hub<IPublicShareHub>
                 return;
             }
         }
-
-        _tokenPermissions = _userReferenceService.AuthReference is ApiToken apiToken ? apiToken.Permissions : null;
 
         var exists = await _db.PublicShares.AnyAsync(x => x.Id == id && (x.ExpiresAt == null || x.ExpiresAt > DateTime.UtcNow));
         if (!exists)
@@ -118,12 +118,12 @@ public sealed class PublicShareHub : Hub<IPublicShareHub>
         await Clients.Caller.Welcome(user is null ? AuthType.Guest : AuthType.Authenticated);
     }
 
-    public Task Control(IReadOnlyList<Models.WebSocket.User.Control> shocks)
+    public Task Control(IReadOnlyList<Control> shocks)
     {
-        if (!_tokenPermissions.IsAllowedAllowOnNull(PermissionType.Shockers_Use)) return Task.CompletedTask;
+        if (!TokenPermissions.IsAllowedAllowOrNull(PermissionType.Shockers_Use)) return Task.CompletedTask;
         
-        return _controlSender.ControlPublicShare(shocks, CustomData.CachedControlLogSender, _userHub.Clients,
-            CustomData.PublicShareId);
+        return _controlSender.ControlPublicShare(shocks, CustomData.CachedControlLogSender, CustomData.User?.Id,
+            _userHub.Clients, CustomData.PublicShareId, Context.ConnectionAborted);
     }
 
     private CustomDataHolder CustomData => (CustomDataHolder)Context.Items[PublicShareCustomData]!;
@@ -145,9 +145,9 @@ public sealed class PublicShareHub : Hub<IPublicShareHub>
     private sealed class CustomDataHolder
     {
         public required Guid PublicShareId { get; init; }
-        public required BasicUserInfo? User { get; set; }
+        public required BasicUserInfo? User { get; init; }
         public required string? CustomName { get; init; }
-        public required ControlLogSender CachedControlLogSender { get; set; }
+        public required ControlLogSender CachedControlLogSender { get; init; }
     }
     
     public enum AuthType

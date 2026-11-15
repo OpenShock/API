@@ -2,9 +2,9 @@
 
 public sealed class EmailProviderBlacklistDto
 {
-    public required Guid Id { get; set; }
+    public required Guid Id { get; init; }
 
-    public required string Domain { get; set; }
+    public required string Domain { get; init; }
 
-    public required DateTimeOffset CreatedAt { get; set; }
+    public required DateTimeOffset CreatedAt { get; init; }
 }

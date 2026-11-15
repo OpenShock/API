@@ -4,7 +4,7 @@ using OpenShock.Common.Utils;
 
 namespace OpenShock.Common.Tests.Utils;
 
-public class PermissionUtilsTests
+public sealed class PermissionUtilsTests
 {
     [Test]
     public async Task NullPerms_AlwaysAllowed()

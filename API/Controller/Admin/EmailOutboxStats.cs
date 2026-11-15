@@ -17,7 +17,7 @@ public sealed partial class AdminController
     [HttpGet("email/outbox/stats")]
     [ProducesResponseType<EmailOutboxStatsDto>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
     [ApiVersion(1)]
-    public async Task<EmailOutboxStatsDto> GetEmailOutboxStats()
+    public async Task<EmailOutboxStatsDto> GetEmailOutboxStats(CancellationToken cancellationToken)
     {
         PedanticallyEnsureAdmin();
 
@@ -25,7 +25,7 @@ public sealed partial class AdminController
             .AsNoTracking()
             .GroupBy(m => m.Status)
             .Select(g => new { Status = g.Key, Count = g.LongCount() })
-            .ToDictionaryAsync(x => x.Status, x => x.Count);
+            .ToDictionaryAsync(x => x.Status, x => x.Count, cancellationToken);
 
         long Count(EmailStatus status) => counts.GetValueOrDefault(status);
 

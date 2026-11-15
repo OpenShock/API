@@ -5,11 +5,8 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using OpenShock.Common.Errors;
 using OpenShock.Common.Extensions;
-using OpenShock.Common.OpenShockDb;
-using OpenShock.Common.Problems;
-
 using OpenShock.Common.JsonSerialization;
-
+using OpenShock.Common.OpenShockDb;
 using OpenShock.Internal.Common.Problems;
 
 namespace OpenShock.Common.Authentication.AuthenticationHandlers;
@@ -51,7 +48,7 @@ public sealed class HubAuthentication : AuthenticationHandler<AuthenticationSche
                 x.OwnerId,
                 IsDeactivated = x.Owner.UserDeactivation != null
             })
-            .FirstOrDefaultAsync();
+            .FirstOrDefaultAsync(Context.RequestAborted);
         if (hub is null)
         {
             return Fail(AuthResultError.TokenInvalid);
