@@ -52,9 +52,9 @@ public sealed class OpenShockOperationTransformer : IOpenApiOperationTransformer
 
         if (attributes.Length != 0)
         {
-            if (attributes.Count(attr => !string.IsNullOrEmpty(attr.AuthenticationSchemes)) > 1) throw new Exception("Dunno what to apply to this method (multiple authentication attributes with schemes set)");
-
-            var scheme = attributes.Select(attr => attr.AuthenticationSchemes).SingleOrDefault(s => !string.IsNullOrEmpty(s));
+            // Stacked [Authorize] attributes combine into one policy that accepts the union of their schemes
+            var schemes = attributes.Select(attr => attr.AuthenticationSchemes).Where(s => !string.IsNullOrEmpty(s)).SelectMany(s => s!.Split(',')).Select(s => s.Trim()).Distinct().ToArray();
+            var scheme = schemes.Length > 0 ? string.Join(',', schemes) : null;
             var roles = attributes.Select(attr => attr.Roles).Where(r => !string.IsNullOrEmpty(r)).SelectMany(r => r!.Split(',')).Select(r => r.Trim()).ToArray();
             var policies = attributes.Select(attr => attr.Policy).Where(p => !string.IsNullOrEmpty(p)).SelectMany(p => p!.Split(',')).Select(p => p.Trim()).ToArray();
 
