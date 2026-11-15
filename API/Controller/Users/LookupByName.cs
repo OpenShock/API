@@ -10,8 +10,8 @@ namespace OpenShock.API.Controller.Users;
 
 public sealed partial class UsersController
 {
-    [ApiVersion(1)]
     [HttpGet("by-name/{username}")]
+    [ApiVersion(1)]
     [ProducesResponseType<BasicUserInfo>(StatusCodes.Status200OK)]
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status404NotFound, MediaTypeNames.Application.ProblemJson)]
     public async Task<IActionResult> GetByName([FromRoute] string username, [FromServices] IUserService userService, CancellationToken cancellationToken)

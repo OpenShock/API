@@ -238,9 +238,9 @@ public sealed partial class AdminController
     /// <response code="404">Not found</response>
     /// <response code="401">Unauthorized</response>
     [HttpGet("users/{userId}")]
+    [ApiVersion(1)]
     [ProducesResponseType<AdminUserView>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    [ApiVersion(1)]
     public async Task<IActionResult> GetUserById([FromRoute(Name = "userId")] Guid userId, CancellationToken cancellationToken)
     {
         PedanticallyEnsureAdmin();

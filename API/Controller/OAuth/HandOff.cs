@@ -20,9 +20,9 @@ public sealed partial class OAuthController
     /// If a matching connection exists -> signs in and redirects home.
     /// Otherwise -> redirects frontend to continue the chosen flow.
     /// </remarks>
-    [EnableRateLimiting("auth")]
-    [ApiVersion(1)]
     [HttpGet("{provider}/handoff")]
+    [ApiVersion(1)]
+    [EnableRateLimiting("auth")]
     [ApiExplorerSettings(IgnoreApi = true)]
     public async Task<IActionResult> OAuthHandOff(
         [FromRoute] string provider,

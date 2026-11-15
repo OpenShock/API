@@ -38,9 +38,9 @@ public sealed class DevicesOtaController : AuthenticatedSessionControllerBase
     /// <response code="200">OK</response>
     /// <response code="404">Could not find device or you do not have access to it</response>
     [HttpGet("{deviceId}/ota")]
+    [ApiVersion(1)]
     [ProducesResponseType<LegacyDataResponse<IReadOnlyCollection<OtaItem>>>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status404NotFound, MediaTypeNames.Application.ProblemJson)] // DeviceNotFound
-    [ApiVersion(1)]
     public async Task<IActionResult> GetOtaUpdateHistory([FromRoute] Guid deviceId, [FromServices] IOtaService otaService, CancellationToken cancellationToken)
     {
         // Check if user owns device or has a share

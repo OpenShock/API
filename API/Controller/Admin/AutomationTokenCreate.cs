@@ -16,9 +16,9 @@ public sealed partial class AdminController
     /// Creates an automation token. The secret is only returned once, in this response
     /// </summary>
     [HttpPost("automationTokens")]
+    [ApiVersion(1)]
     [Consumes(MediaTypeNames.Application.Json)]
     [ProducesResponseType<CreatedAutomationTokenDto>(StatusCodes.Status200OK)]
-    [ApiVersion(1)]
     public async Task<CreatedAutomationTokenDto> CreateAutomationToken(
         [FromBody] CreateAutomationTokenDto body,
         [FromServices] IAuditService auditService,

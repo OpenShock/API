@@ -16,9 +16,9 @@ public sealed partial class AuthenticatedAccountController
     /// </summary>
     /// <response code="200">The account information was successfully retrieved.</response>
     [HttpGet]
+    [ApiVersion(1)]
     [Authorize(AuthenticationSchemes = OpenShockAuthSchemes.UserSessionApiTokenCombo)]
     [ProducesResponseType<UserSelfResponse>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
-    [ApiVersion(1)]
     public UserSelfResponse GetSelf() => new()
     {
         Id = CurrentUser.Id,

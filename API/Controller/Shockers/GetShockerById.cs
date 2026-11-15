@@ -19,9 +19,9 @@ public sealed partial class ShockerController
     /// <response code="200">The shocker information was successfully retrieved.</response>
     /// <response code="404">The shocker does not exist or you do not have access to it.</response>
     [HttpGet("{shockerId}")]
+    [ApiVersion(1)]
     [ProducesResponseType<LegacyDataResponse<ShockerWithDevice>>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status404NotFound, MediaTypeNames.Application.ProblemJson)] // ShockerNotFound
-    [ApiVersion(1)]
     public async Task<IActionResult> GetShockerById([FromRoute] Guid shockerId, CancellationToken cancellationToken)
     {
         var shocker = await _db.Shockers.Where(x => x.Device.OwnerId == CurrentUser.Id && x.Id == shockerId).Select(x => new ShockerWithDevice

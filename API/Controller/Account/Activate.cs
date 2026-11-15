@@ -12,9 +12,9 @@ public sealed partial class AccountController
     /// Activate account
     /// </summary>
     [HttpPost("activate")]
+    [ApiVersion(1)]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status400BadRequest, MediaTypeNames.Application.ProblemJson)]
-    [ApiVersion(1)]
     public async Task<IActionResult> Activate([FromQuery(Name = "token")] string token, CancellationToken cancellationToken)
     {
         bool ok = await _accountService.TryActivateAccountAsync(token, cancellationToken);

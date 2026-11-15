@@ -17,10 +17,10 @@ public sealed partial class AdminController
     /// <response code="404">No such message</response>
     /// <response code="409">Message is pending or currently being sent</response>
     [HttpPost("email/outbox/{id}/requeue")]
+    [ApiVersion(1)]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status409Conflict)]
-    [ApiVersion(1)]
     public async Task<IActionResult> RequeueEmailOutbox([FromRoute] Guid id, [FromServices] IRedisPubService redisPubService, CancellationToken ct)
     {
         PedanticallyEnsureAdmin();

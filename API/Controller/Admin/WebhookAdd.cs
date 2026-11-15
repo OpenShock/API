@@ -17,10 +17,10 @@ public sealed partial class AdminController
     /// <response code="200">OK</response>
     /// <response code="401">Unauthorized</response>
     [HttpPost("webhooks")]
+    [ApiVersion(1)]
     [Consumes(MediaTypeNames.Application.Json)]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    [ApiVersion(1)]
     public async Task<IActionResult> AddWebhook([FromBody] AddWebhookDto body, [FromServices] IWebhookService webhookService, CancellationToken cancellationToken)
     {
         PedanticallyEnsureAdmin();

@@ -15,10 +15,10 @@ public sealed partial class AdminController
     /// accounts holds a privileged role
     /// </summary>
     [HttpDelete("automationTokens/{id}")]
+    [ApiVersion(1)]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status409Conflict)]
-    [ApiVersion(1)]
     public async Task<IActionResult> DeleteAutomationToken(
         [FromRoute] Guid id,
         [FromServices] IAuditService auditService,

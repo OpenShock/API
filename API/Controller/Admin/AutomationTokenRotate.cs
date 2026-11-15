@@ -16,9 +16,9 @@ public sealed partial class AdminController
     /// Rotates the secret of an automation token. The new secret is only returned once, in this response
     /// </summary>
     [HttpPost("automationTokens/{id}/rotate")]
+    [ApiVersion(1)]
     [ProducesResponseType<CreatedAutomationTokenDto>(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    [ApiVersion(1)]
     public async Task<IActionResult> RotateAutomationToken(
         [FromRoute] Guid id,
         [FromServices] IAuditService auditService,

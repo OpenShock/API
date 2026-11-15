@@ -29,10 +29,10 @@ public sealed partial class TokensController
     /// <param name="cancellationToken"></param>
     /// <response code="200">The tokens were deleted if found</response>
     [HttpPost("report")]
+    [ApiVersion(1)]
     [EnableRateLimiting("token-reporting")]
     [Consumes(MediaTypeNames.Application.Json)]
     [ProducesResponseType(StatusCodes.Status200OK)]
-    [ApiVersion(1)]
     public async Task<IActionResult> ReportTokens(
         [FromBody] ReportTokensRequest body,
         [FromServices] ICloudflareTurnstileService turnstileService,

@@ -25,12 +25,12 @@ public sealed partial class AccountController
     /// <response code="200">User successfully signed up</response>
     /// <response code="400">Username or email already exists</response>
     [HttpPost("signup")]
+    [ApiVersion(2)]
     [EnableRateLimiting("auth")]
     [Consumes(MediaTypeNames.Application.Json)]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status409Conflict, MediaTypeNames.Application.ProblemJson)] // EmailOrUsernameAlreadyExists
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status403Forbidden, MediaTypeNames.Application.ProblemJson)] // RegistrationDisabled or InvalidTurnstileResponse
-    [ApiVersion(2)]
     public async Task<IActionResult> SignUpV2(
         [FromBody] SignUpV2 body,
         [FromServices] ICloudflareTurnstileService turnstileService,

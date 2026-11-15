@@ -10,9 +10,9 @@ namespace OpenShock.API.Controller.Admin;
 public sealed partial class AdminController
 {
     [HttpPost("blacklist/emailProviders")]
+    [ApiVersion(1)]
     [Consumes(MediaTypeNames.Application.Json)]
     [ProducesResponseType(StatusCodes.Status200OK)]
-    [ApiVersion(1)]
     public async Task<IActionResult> AddEmailProviderBlacklist([FromBody] AddEmailProviderBlacklistDto body, CancellationToken ct)
     {
         PedanticallyEnsureAdmin();

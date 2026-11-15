@@ -15,8 +15,8 @@ public sealed partial class ShareLinksController
     /// Create a new public share
     /// </summary>
     /// <response code="200">The created public share</response>
-    [ApiVersion(1)]
     [HttpPost(Name = "CreatePublicShare")]
+    [ApiVersion(1)]
     [TokenPermission(PermissionType.Publicshares_Edit)]
     [Consumes(MediaTypeNames.Application.Json)]
     [ProducesResponseType<LegacyDataResponse<Guid>>(StatusCodes.Status200OK,  MediaTypeNames.Application.Json)]

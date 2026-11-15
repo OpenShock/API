@@ -60,8 +60,8 @@ file static class QueryHelper
 public sealed partial class UserSharesController
 {
     [HttpGet("invites/outgoing")]
-    [TokenPermission(PermissionType.Usershares_Edit)]
     [ApiVersion(2)]
+    [TokenPermission(PermissionType.Usershares_Edit)]
     public IAsyncEnumerable<ShareInviteBaseDetails> GetOutgoingInvitesList()
     {
         return _db.UserShareInvites
@@ -71,8 +71,8 @@ public sealed partial class UserSharesController
     }
     
     [HttpGet("invites/incoming")]
-    [TokenPermission(PermissionType.Usershares_Edit)]
     [ApiVersion(2)]
+    [TokenPermission(PermissionType.Usershares_Edit)]
     public IAsyncEnumerable<ShareInviteBaseDetails> GetIncomingInvitesList()
     {
         return _db.UserShareInvites
@@ -82,10 +82,10 @@ public sealed partial class UserSharesController
     }
     
     [HttpDelete("invites/outgoing/{inviteId}")]
+    [ApiVersion(2)]
+    [TokenPermission(PermissionType.Usershares_Edit)]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status404NotFound, MediaTypeNames.Application.ProblemJson)] // ShareRequestNotFound
-    [TokenPermission(PermissionType.Usershares_Edit)]
-    [ApiVersion(2)]
     public async Task<IActionResult> DeleteOutgoingInvite([FromRoute] Guid inviteId, CancellationToken cancellationToken)
     {
         var deletedShareRequest = await _db.UserShareInvites
@@ -97,10 +97,10 @@ public sealed partial class UserSharesController
     }
     
     [HttpDelete("invites/incoming/{inviteId}")]
+    [ApiVersion(2)]
+    [TokenPermission(PermissionType.Usershares_Edit)]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status404NotFound, MediaTypeNames.Application.ProblemJson)] // ShareRequestNotFound
-    [TokenPermission(PermissionType.Usershares_Edit)]
-    [ApiVersion(2)]
     public async Task<IActionResult> DenyIncomingInvite([FromRoute] Guid inviteId, CancellationToken cancellationToken)
     {
         var deletedShareRequest = await _db.UserShareInvites
@@ -118,10 +118,10 @@ public sealed partial class UserSharesController
     /// <param name="deviceUpdateService"></param>
     /// <param name="cancellationToken"></param>
     [HttpPost("invites/incoming/{inviteId}")]
+    [ApiVersion(2)]
+    [TokenPermission(PermissionType.Usershares_Edit)]
     [ProducesResponseType<V2UserSharesListItem>(StatusCodes.Status200OK)]
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status404NotFound, MediaTypeNames.Application.ProblemJson)] // ShareRequestNotFound
-    [TokenPermission(PermissionType.Usershares_Edit)]
-    [ApiVersion(2)]
     public async Task<IActionResult> RedeemInvite([FromRoute] Guid inviteId, [FromServices] IDeviceUpdateService deviceUpdateService, CancellationToken cancellationToken)
     {
         var shareRequest = await _db.UserShareInvites

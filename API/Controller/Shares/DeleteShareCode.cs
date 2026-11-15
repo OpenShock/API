@@ -19,9 +19,9 @@ public sealed partial class SharesController
     /// <response code="200">Deleted share code</response>
     /// <response code="404">Share code not found or does not belong to you</response>
     [HttpDelete("code/{shareCodeId}")]
+    [ApiVersion(1)]
     [ProducesResponseType<LegacyEmptyResponse>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status404NotFound, MediaTypeNames.Application.ProblemJson)] // ShareCodeNotFound
-    [ApiVersion(1)]
     public async Task<IActionResult> DeleteShareCode([FromRoute] Guid shareCodeId, CancellationToken cancellationToken)
     {
         var affected = await _db.ShockerShareCodes

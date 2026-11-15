@@ -13,9 +13,9 @@ public sealed partial class AdminController
     /// <response code="200">OK</response>
     /// <response code="401">Unauthorized</response>
     [HttpDelete("webhooks/{id}")]
+    [ApiVersion(1)]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    [ApiVersion(1)]
     public async Task<IActionResult> RemoveWebhook([FromRoute] Guid id, [FromServices] IWebhookService webhookService, CancellationToken cancellationToken)
     {
         PedanticallyEnsureAdmin();

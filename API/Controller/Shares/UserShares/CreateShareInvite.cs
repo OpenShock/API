@@ -14,12 +14,12 @@ namespace OpenShock.API.Controller.Shares.UserShares;
 public sealed partial class UserSharesController
 {
     [HttpPost("invites")]
+    [ApiVersion(2)]
+    [TokenPermission(PermissionType.Usershares_Edit)]
     [Consumes(MediaTypeNames.Application.Json)]
     [ProducesResponseType<Guid>(StatusCodes.Status200OK, MediaTypeNames.Text.Plain)]
-    [TokenPermission(PermissionType.Usershares_Edit)]
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status404NotFound, MediaTypeNames.Application.ProblemJson)] // UserNotFound, ShareCreateShockerNotFound
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status400BadRequest, MediaTypeNames.Application.ProblemJson)] // ShareCreateCannotShareWithSelf
-    [ApiVersion(2)]
     public async Task<IActionResult> CreateShareInvite([FromBody] CreateShareRequest body, CancellationToken cancellationToken)
     {
         if (body.User == CurrentUser.Id)

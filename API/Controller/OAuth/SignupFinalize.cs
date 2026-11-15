@@ -29,9 +29,9 @@ public sealed partial class OAuthController
     /// <param name="connectionService"></param>
     /// <param name="accountOptions"></param>
     /// <param name="cancellationToken"></param>
-    [EnableRateLimiting("auth")]
-    [ApiVersion(1)]
     [HttpPost("{provider}/signup-finalize")]
+    [ApiVersion(1)]
+    [EnableRateLimiting("auth")]
     [ApiExplorerSettings(IgnoreApi = true)]
     public async Task<IActionResult> OAuthSignupFinalize(
         [FromRoute] string provider,

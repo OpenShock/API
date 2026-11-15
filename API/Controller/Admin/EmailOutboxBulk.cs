@@ -18,9 +18,9 @@ public sealed partial class AdminController
     /// <response code="200">Bulk requeue applied</response>
     /// <response code="401">Unauthorized</response>
     [HttpPost("email/outbox/bulk/requeue")]
+    [ApiVersion(1)]
     [Consumes(MediaTypeNames.Application.Json)]
     [ProducesResponseType<EmailOutboxBulkResultDto>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
-    [ApiVersion(1)]
     public async Task<EmailOutboxBulkResultDto> BulkRequeueEmailOutbox([FromBody] EmailOutboxBulkRequest body, [FromServices] IRedisPubService redisPubService, CancellationToken ct)
     {
         PedanticallyEnsureAdmin();
@@ -53,9 +53,9 @@ public sealed partial class AdminController
     /// <response code="200">Bulk cancel applied</response>
     /// <response code="401">Unauthorized</response>
     [HttpPost("email/outbox/bulk/cancel")]
+    [ApiVersion(1)]
     [Consumes(MediaTypeNames.Application.Json)]
     [ProducesResponseType<EmailOutboxBulkResultDto>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
-    [ApiVersion(1)]
     public async Task<EmailOutboxBulkResultDto> BulkCancelEmailOutbox([FromBody] EmailOutboxBulkRequest body, CancellationToken ct)
     {
         PedanticallyEnsureAdmin();
@@ -76,9 +76,9 @@ public sealed partial class AdminController
     /// <response code="200">Bulk delete applied</response>
     /// <response code="401">Unauthorized</response>
     [HttpPost("email/outbox/bulk/delete")]
+    [ApiVersion(1)]
     [Consumes(MediaTypeNames.Application.Json)]
     [ProducesResponseType<EmailOutboxBulkResultDto>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
-    [ApiVersion(1)]
     public async Task<EmailOutboxBulkResultDto> BulkDeleteEmailOutbox([FromBody] EmailOutboxBulkRequest body, CancellationToken ct)
     {
         PedanticallyEnsureAdmin();

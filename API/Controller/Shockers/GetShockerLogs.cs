@@ -40,10 +40,10 @@ public sealed partial class ShockerController
     /// <response code="200">The logs</response>
     /// <response code="404">Shocker does not exist</response>
     [HttpGet("{shockerId}/logs")]
+    [ApiVersion(1)]
     [EnableRateLimiting("shocker-logs")]
     [ProducesResponseType<LegacyDataResponse<LogEntry[]>>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status404NotFound, MediaTypeNames.Application.ProblemJson)] // ShockerNotFound
-    [ApiVersion(1)]
     public async Task<IActionResult> GetShockerLogs([FromRoute] Guid shockerId, [FromQuery(Name = "offset")] uint offset = 0,
         [FromQuery, Range(1, 500)] uint limit = 100,
         CancellationToken cancellationToken = default)
@@ -93,9 +93,9 @@ public sealed partial class ShockerController
     /// <param name="cancellationToken"></param>
     /// <response code="200">A page of logs.</response>
     [HttpGet("logs")]
+    [ApiVersion(1)]
     [EnableRateLimiting("shocker-logs")]
     [ProducesResponseType<PagedResult<LogEntryWithHub>>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
-    [ApiVersion(1)]
     public async Task<PagedResult<LogEntryWithHub>> GetAllShockerLogs(
         [FromQuery] PaginationQuery pagination,
         [FromQuery(Name = "shockerIds")] Guid[]? shockerIds,

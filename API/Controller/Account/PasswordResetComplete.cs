@@ -20,8 +20,8 @@ public sealed partial class AccountController
     /// <param name="secret">The secret of the password reset</param>
     [Obsolete("Retired. Use POST /1/account/password-reset/{passwordResetId}/{secret}/complete instead.")]
     [HttpPost("recover/{passwordResetId}/{secret}")]
-    [ApiExplorerSettings(IgnoreApi = true)]
     [ApiVersion(1)]
+    [ApiExplorerSettings(IgnoreApi = true)]
     public IActionResult PasswordResetCompleteLegacy([FromRoute] Guid passwordResetId, [FromRoute] string secret)
         => Problem(GoneError.EndpointRetired("POST /1/account/password-reset/{passwordResetId}/{secret}/complete"));
 
@@ -35,11 +35,11 @@ public sealed partial class AccountController
     /// <response code="200">Password successfully changed</response>
     /// <response code="404">Password reset process not found</response>
     [HttpPost("password-reset/{passwordResetId}/{secret}/complete")]
+    [ApiVersion(1)]
     [EnableRateLimiting("auth")]
     [Consumes(MediaTypeNames.Application.Json)]
     [ProducesResponseType<LegacyEmptyResponse>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status404NotFound, MediaTypeNames.Application.ProblemJson)] // PasswordResetNotFound
-    [ApiVersion(1)]
     public async Task<IActionResult> PasswordResetComplete([FromRoute] Guid passwordResetId,
         [FromRoute] string secret, [FromBody] PasswordResetProcessData body,
         CancellationToken cancellationToken)

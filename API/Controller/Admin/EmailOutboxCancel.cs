@@ -16,10 +16,10 @@ public sealed partial class AdminController
     /// <response code="404">No such message</response>
     /// <response code="409">Message is not pending</response>
     [HttpPost("email/outbox/{id}/cancel")]
+    [ApiVersion(1)]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status409Conflict)]
-    [ApiVersion(1)]
     public async Task<IActionResult> CancelEmailOutbox([FromRoute] Guid id, CancellationToken ct)
     {
         PedanticallyEnsureAdmin();

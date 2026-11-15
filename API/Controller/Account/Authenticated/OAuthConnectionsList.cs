@@ -15,8 +15,8 @@ public sealed partial class AuthenticatedAccountController
     /// <returns>Array of connections with provider key, external id, display name and link time.</returns>
     /// <response code="200">Returns the list of connections.</response>
     [HttpGet("connections")]
-    [ProducesResponseType<OAuthConnectionResponse[]>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
     [ApiVersion(1)]
+    [ProducesResponseType<OAuthConnectionResponse[]>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
     public IActionResult ListOAuthConnections([FromServices] IOAuthConnectionService connectionService, CancellationToken cancellationToken)
     {
         return Ok(connectionService

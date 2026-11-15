@@ -20,10 +20,10 @@ public sealed partial class OAuthController
     /// who initiated the flow.
     /// </remarks>
     /// <param name="provider">The provider key (e.g. <c>discord</c>).</param>
-    [ResponseCache(NoStore = true)]
-    [EnableRateLimiting("auth")]
-    [ApiVersion(1)]
     [HttpGet("{provider}/signup-data")]
+    [ApiVersion(1)]
+    [EnableRateLimiting("auth")]
+    [ResponseCache(NoStore = true)]
     [ApiExplorerSettings(IgnoreApi = true)]
     public async Task<IActionResult> OAuthSignupGetData([FromRoute] string provider)
     {

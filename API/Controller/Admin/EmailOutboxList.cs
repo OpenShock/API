@@ -21,8 +21,8 @@ public sealed partial class AdminController
     /// <response code="200">Paginated email outbox messages</response>
     /// <response code="401">Unauthorized</response>
     [HttpGet("email/outbox")]
-    [ProducesResponseType<Paginated<EmailOutboxMessageDto>>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
     [ApiVersion(1)]
+    [ProducesResponseType<Paginated<EmailOutboxMessageDto>>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
     public async Task<IActionResult> GetEmailOutbox(
         [FromQuery(Name = "$filter")] string filterQuery = "",
         [FromQuery(Name = "$orderby")] string orderbyQuery = "",

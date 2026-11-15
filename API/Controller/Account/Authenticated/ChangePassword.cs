@@ -20,12 +20,12 @@ public sealed partial class AuthenticatedAccountController
     /// <param name="cancellationToken"></param>
     /// <exception cref="Exception"></exception>
     [HttpPost("password")]
+    [ApiVersion(1)]
     [Consumes(MediaTypeNames.Application.Json)]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status403Forbidden, MediaTypeNames.Application.ProblemJson)] // PasswordChangeInvalidPassword
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status409Conflict, MediaTypeNames.Application.ProblemJson)] // PasswordNotSet
     // notActivated / deactivated / notFound are blocked by UserSessionAuthentication before reaching this controller.
-    [ApiVersion(1)]
     public async Task<IActionResult> ChangePassword([FromBody] ChangePasswordRequest body, CancellationToken cancellationToken)
     {
         // OAuth-only accounts that have never set a password must go through the email-confirmed

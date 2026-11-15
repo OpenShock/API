@@ -9,9 +9,9 @@ public sealed partial class AccountController
     /// <summary>
     /// Authenticate a user. Retired: use POST /2/account/login instead.
     /// </summary>
-    [HttpPost("login")]
     [Obsolete("Retired. Use POST /2/account/login instead.")]
-    [ApiExplorerSettings(IgnoreApi = true)]
+    [HttpPost("login")]
     [ApiVersion(1)]
+    [ApiExplorerSettings(IgnoreApi = true)]
     public IActionResult Login() => Problem(GoneError.EndpointRetired("POST /2/account/login"));
 }

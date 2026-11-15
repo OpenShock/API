@@ -16,8 +16,8 @@ public sealed partial class AdminController
     /// <response code="200">OK</response>
     /// <response code="401">Unauthorized</response>
     [HttpDelete("users/{userId}")]
-    [ProducesResponseType(StatusCodes.Status200OK)]
     [ApiVersion(1)]
+    [ProducesResponseType(StatusCodes.Status200OK)]
     public async Task<IActionResult> DeleteUser(
         [FromRoute] Guid userId,
         [FromQuery][MaxLength(ApiHardLimits.AuditReasonMaxLength)] string? reason,

@@ -14,9 +14,9 @@ public sealed partial class AdminController
     /// <response code="401">Unauthorized</response>
     /// <response code="404">No such message</response>
     [HttpDelete("email/outbox/{id}")]
+    [ApiVersion(1)]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    [ApiVersion(1)]
     public async Task<IActionResult> DeleteEmailOutbox([FromRoute] Guid id, CancellationToken ct)
     {
         PedanticallyEnsureAdmin();

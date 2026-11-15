@@ -9,9 +9,9 @@ public sealed partial class AccountController
     /// <summary>
     /// Initiate a password reset. Retired: use POST /2/account/password-reset instead.
     /// </summary>
-    [HttpPost("reset")]
     [Obsolete("Retired. Use POST /2/account/password-reset instead.")]
-    [ApiExplorerSettings(IgnoreApi = true)]
+    [HttpPost("reset")]
     [ApiVersion(1)]
+    [ApiExplorerSettings(IgnoreApi = true)]
     public IActionResult PasswordResetInitiate() => Problem(GoneError.EndpointRetired("POST /2/account/password-reset"));
 }

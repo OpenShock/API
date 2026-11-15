@@ -16,8 +16,8 @@ public sealed partial class AdminController
     /// <response code="200">OK</response>
     /// <response code="401">Unauthorized</response>
     [HttpPut("users/{userId}/deactivate")]
-    [ProducesResponseType(StatusCodes.Status200OK)]
     [ApiVersion(1)]
+    [ProducesResponseType(StatusCodes.Status200OK)]
     public async Task<IActionResult> DeactivateUser(
         [FromRoute] Guid userId,
         [FromQuery(Name = "deleteLater")] bool deleteLater,

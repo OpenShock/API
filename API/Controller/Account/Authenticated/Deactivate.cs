@@ -16,9 +16,9 @@ public sealed partial class AuthenticatedAccountController
     /// </summary>
     /// <response code="204">Done.</response>
     [HttpDelete]
+    [ApiVersion(1)]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status403Forbidden, MediaTypeNames.Application.ProblemJson)] // CannotDeactivatePrivledgedAccount
-    [ApiVersion(1)]
     public async Task<IActionResult> Deactivate(CancellationToken cancellationToken)
     {
         var deactivationResult = await _accountService.DeactivateAccountAsync(CurrentUser.Id, CurrentUser.Id, deleteLater: true, cancellationToken: cancellationToken);

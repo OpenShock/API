@@ -8,8 +8,8 @@ namespace OpenShock.API.Controller.Sessions;
 public sealed partial class SessionsController
 {
     [HttpGet]
-    [ProducesResponseType<LoginSessionResponse[]>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
     [ApiVersion(1)]
+    [ProducesResponseType<LoginSessionResponse[]>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
     public IAsyncEnumerable<LoginSessionResponse> ListSessions()
     {
         return _sessionService.ListSessionsByUserIdAsync(CurrentUser.Id)

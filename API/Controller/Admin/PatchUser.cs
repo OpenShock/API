@@ -15,9 +15,9 @@ public sealed partial class AdminController
     /// <response code="404">Not found</response>
     /// <response code="401">Unauthorized</response>
     [HttpPatch("users/{userId}")]
+    [ApiVersion(1)]
     [Consumes(MediaTypeNames.Application.Json)]
     [ProducesResponseType(StatusCodes.Status200OK)]
-    [ApiVersion(1)]
     public async Task<IActionResult> ModifyUser([FromRoute] Guid userId, [FromBody] UserPatchDto body, [FromServices] IAccountService accountService, CancellationToken ct)
     {
         PedanticallyEnsureAdmin();

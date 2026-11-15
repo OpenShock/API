@@ -20,6 +20,7 @@ public sealed partial class AuthenticatedAccountController
     /// <param name="body"></param>
     /// <param name="cancellationToken"></param>
     [HttpPost("email-change")]
+    [ApiVersion(1)]
     [Consumes(MediaTypeNames.Application.Json)]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status400BadRequest, MediaTypeNames.Application.ProblemJson)] // EmailChangeUnchanged
@@ -28,7 +29,6 @@ public sealed partial class AuthenticatedAccountController
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status409Conflict, MediaTypeNames.Application.ProblemJson)] // EmailChangeAlreadyInUse
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status429TooManyRequests, MediaTypeNames.Application.ProblemJson)] // EmailChangeTooMany
     // notActivated / deactivated / notFound are blocked by UserSessionAuthentication before reaching this controller.
-    [ApiVersion(1)]
     public async Task<IActionResult> ChangeEmail([FromBody] ChangeEmailRequest body, CancellationToken cancellationToken)
     {
         if (string.IsNullOrEmpty(CurrentUser.PasswordHash))

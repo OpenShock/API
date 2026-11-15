@@ -13,8 +13,8 @@ public sealed partial class AdminController
     /// <response code="200">All online gateways</response>
     /// <response code="401">Unauthorized</response>
     [HttpGet("monitoring/gateways")]
-    [ProducesResponseType<AdminOnlineGatewayResponse[]>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
     [ApiVersion(1)]
+    [ProducesResponseType<AdminOnlineGatewayResponse[]>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
     public async Task<AdminOnlineGatewayResponse[]> GetOnlineGateways()
     {
         PedanticallyEnsureAdmin();

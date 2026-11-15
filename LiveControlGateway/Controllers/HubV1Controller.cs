@@ -22,8 +22,8 @@ namespace OpenShock.LiveControlGateway.Controllers;
 /// Communication with the hubs aka ESP-32 microcontrollers
 /// </summary>
 [ApiController]
-[ApiVersion(1)]
 [Route("/{version:apiVersion}/ws/device")]
+[ApiVersion(1)]
 [Authorize(AuthenticationSchemes = OpenShockAuthSchemes.HubToken)]
 public sealed class HubV1Controller : HubControllerBase<HubToGatewayMessage, GatewayToHubMessage>
 {

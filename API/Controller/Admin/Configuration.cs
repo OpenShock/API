@@ -17,8 +17,8 @@ public sealed partial class AdminController
     /// </summary>
     /// <response code="401">Unauthorized</response>
     [HttpGet("config")]
-    [ProducesResponseType<ConfigurationItemDto[]>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)] // Ok
     [ApiVersion(1)]
+    [ProducesResponseType<ConfigurationItemDto[]>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)] // Ok
     public IAsyncEnumerable<ConfigurationItemDto> ConfigurationList([FromServices] IConfigurationService configurationService)
     {
         PedanticallyEnsureAdmin();
@@ -45,11 +45,11 @@ public sealed partial class AdminController
     /// <response code="409">Already exists</response>
     /// <response code="401">Unauthorized</response>
     [HttpPost("config")]
+    [ApiVersion(1)]
     [Consumes(MediaTypeNames.Application.Json)]
     [ProducesResponseType(StatusCodes.Status200OK)] // Ok
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status409Conflict, MediaTypeNames.Application.ProblemJson)] // AlreadyExists
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status400BadRequest, MediaTypeNames.Application.ProblemJson)] // InvalidNameFormat, InvalidValueFormat
-    [ApiVersion(1)]
     public async Task<IActionResult> ConfigurationAdd([FromBody] ConfigurationAddItemRequest body, [FromServices] IConfigurationService configurationService, CancellationToken cancellationToken)
     {
         PedanticallyEnsureAdmin();
@@ -79,12 +79,12 @@ public sealed partial class AdminController
     /// <response code="400">Invalid name or value format or type mismatch</response>
     /// <response code="404">Not found</response>
     [HttpPut("config")]
+    [ApiVersion(1)]
     [Consumes(MediaTypeNames.Application.Json)]
     [ProducesResponseType(StatusCodes.Status200OK)] // Ok
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status409Conflict, MediaTypeNames.Application.ProblemJson)] // AlreadyExists
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status404NotFound, MediaTypeNames.Application.ProblemJson)] // Not found
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status400BadRequest, MediaTypeNames.Application.ProblemJson)] // InvalidNameFormat, InvalidValueFormat
-    [ApiVersion(1)]
     public async Task<IActionResult> ConfigurationUpdate([FromBody] ConfigurationUpdateItemRequest body, [FromServices] IConfigurationService configurationService, CancellationToken cancellationToken)
     {
         PedanticallyEnsureAdmin();
@@ -113,10 +113,10 @@ public sealed partial class AdminController
     /// <response code="400">Invalid name format</response>
     /// <response code="404">Not found</response>
     [HttpDelete("config/{name}")]
+    [ApiVersion(1)]
     [ProducesResponseType(StatusCodes.Status200OK)] // Deleted
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status404NotFound, MediaTypeNames.Application.ProblemJson)] // Not found
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status400BadRequest, MediaTypeNames.Application.ProblemJson)] // InvalidNameFormat
-    [ApiVersion(1)]
     public async Task<IActionResult> ConfigurationDelete([FromRoute] string name, [FromServices] IConfigurationService configurationService, CancellationToken cancellationToken)
     {
         PedanticallyEnsureAdmin();

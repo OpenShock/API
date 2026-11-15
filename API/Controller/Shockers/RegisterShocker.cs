@@ -22,12 +22,12 @@ public sealed partial class ShockerController
     /// <response code="400">You can have a maximum of 11 Shockers per Device.</response>
     /// <response code="404">Device does not exist</response>
     [HttpPost]
-    [ProducesResponseType<LegacyDataResponse<Guid>>(StatusCodes.Status201Created, MediaTypeNames.Application.Json)]
+    [ApiVersion(1)]
     [TokenPermission(PermissionType.Shockers_Edit)]
     [Consumes(MediaTypeNames.Application.Json)]
+    [ProducesResponseType<LegacyDataResponse<Guid>>(StatusCodes.Status201Created, MediaTypeNames.Application.Json)]
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status404NotFound, MediaTypeNames.Application.ProblemJson)] // DeviceNotFound
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status400BadRequest, MediaTypeNames.Application.ProblemJson)] // TooManyShockers
-    [ApiVersion(1)]
     public async Task<IActionResult> RegisterShocker(
         [FromBody] NewShocker body,
         [FromServices] IDeviceUpdateService deviceUpdateService,

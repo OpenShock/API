@@ -15,8 +15,8 @@ public sealed partial class ShareLinksController
     /// Get all public shares for the current user
     /// </summary>
     /// <response code="200">All public shares for the current user</response>
-    [ApiVersion(1)]
     [HttpGet]
+    [ApiVersion(1)]
     [TokenPermission(PermissionType.Publicshares_Edit)]
     [ProducesResponseType<LegacyDataResponse<OwnPublicShareResponse[]>>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
     public IActionResult List()

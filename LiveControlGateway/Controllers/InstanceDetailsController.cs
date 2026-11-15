@@ -24,8 +24,8 @@ public sealed class InstanceDetailsController : OpenShockControllerBase
     /// </summary>
     /// <response code="200">Instance details was successfully retrieved.</response>
     [HttpGet]
-    [ProducesResponseType<InstanceDetailsResponse>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
     [ApiVersion(1)]
+    [ProducesResponseType<InstanceDetailsResponse>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
     public InstanceDetailsResponse GetNodeInfo([FromServices] LcgOptions options)
     {
         return new InstanceDetailsResponse

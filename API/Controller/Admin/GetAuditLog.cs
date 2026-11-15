@@ -20,8 +20,8 @@ public sealed partial class AdminController
     /// <param name="cancellationToken"></param>
     /// <response code="200">A page of audit log entries.</response>
     [HttpGet("audit-log")]
-    [ProducesResponseType<PagedResult<AuditLogEntryResponse>>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
     [ApiVersion(1)]
+    [ProducesResponseType<PagedResult<AuditLogEntryResponse>>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
     public async Task<PagedResult<AuditLogEntryResponse>> GetAdminAuditLog(
         [FromQuery] PaginationQuery pagination,
         [FromQuery] Guid? userId,

@@ -26,10 +26,10 @@ public sealed partial class UsersController
     /// <response code="200">The statistics.</response>
     /// <response code="400">Unknown time zone or invalid range.</response>
     [HttpGet("self/control-stats")]
+    [ApiVersion(1)]
     [EnableRateLimiting("control-stats")]
     [ProducesResponseType<ControlStatsResponse>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status400BadRequest, MediaTypeNames.Application.ProblemJson)] // InvalidTimeZone, InvalidRange
-    [ApiVersion(1)]
     public async Task<IActionResult> GetSelfControlStats(
         [FromQuery, MaxLength(64)] string? tz,
         [FromQuery] DateOnly? from,

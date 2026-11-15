@@ -9,9 +9,9 @@ namespace OpenShock.API.Controller.Admin;
 public sealed partial class AdminController
 {
     [HttpPost("blacklist/usernames")]
+    [ApiVersion(1)]
     [Consumes(MediaTypeNames.Application.Json)]
     [ProducesResponseType(StatusCodes.Status200OK)]
-    [ApiVersion(1)]
     public async Task<IActionResult> AddUsernameBlacklist([FromBody] AddUsernameBlacklistDto body, CancellationToken cancellationToken)
     {
         PedanticallyEnsureAdmin();

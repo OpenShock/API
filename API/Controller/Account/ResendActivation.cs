@@ -23,8 +23,8 @@ public sealed partial class AccountController
     /// <response code="400">No pending activation for this browser (missing/expired cookie, or already activated)</response>
     /// <response code="429">An activation email was sent too recently</response>
     [HttpPost("activate/resend")]
-    [EnableRateLimiting("auth")]
     [ApiVersion(1)]
+    [EnableRateLimiting("auth")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status400BadRequest, MediaTypeNames.Application.ProblemJson)] // AccountActivationResendUnavailable
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status429TooManyRequests, MediaTypeNames.Application.ProblemJson)] // AccountActivationResendTooMany

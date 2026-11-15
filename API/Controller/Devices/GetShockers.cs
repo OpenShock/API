@@ -19,9 +19,9 @@ public sealed partial class DevicesController
     /// <response code="200">All shockers for the device</response>
     /// <response code="404">Device does not exists or you do not have access to it.</response>
     [HttpGet("{deviceId}/shockers")]
+    [ApiVersion(1)]
     [ProducesResponseType<LegacyDataResponse<ShockerResponse[]>>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status404NotFound, MediaTypeNames.Application.ProblemJson)] // DeviceNotFound
-    [ApiVersion(1)]
     public async Task<IActionResult> GetShockers([FromRoute] Guid deviceId, CancellationToken cancellationToken)
     {
         var deviceExists = await _db.Devices.AnyAsync(x => x.OwnerId == CurrentUser.Id && x.Id == deviceId, cancellationToken);

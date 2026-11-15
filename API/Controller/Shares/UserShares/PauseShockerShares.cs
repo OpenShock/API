@@ -14,8 +14,8 @@ namespace OpenShock.API.Controller.Shares.UserShares;
 public sealed partial class UserSharesController
 {
     [HttpPost("{userId:guid}/shockers/pause")]
-    [TokenPermission(PermissionType.Usershares_Pause)]
     [ApiVersion(2)]
+    [TokenPermission(PermissionType.Usershares_Pause)]
     [ProducesResponseType<PauseUserShareShockersResponse>(StatusCodes.Status200OK)]
     public async Task<IActionResult> BulkPauseUserShareShockers(
         [FromRoute] Guid userId,

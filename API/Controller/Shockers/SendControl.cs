@@ -21,8 +21,8 @@ public sealed partial class ShockerController
     /// Send a control message to shockers
     /// </summary>
     /// <response code="200">The control messages were successfully sent.</response>
-    [ApiVersion(2)]
     [HttpPost("control")]
+    [ApiVersion(2)]
     [TokenPermission(PermissionType.Shockers_Use)]
     [Consumes(MediaTypeNames.Application.Json)]
     [ProducesResponseType<LegacyEmptyResponse>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
@@ -68,8 +68,8 @@ public sealed partial class ShockerController
     /// Send a control message to shockers (Deprecated in favor of the /2/shockers/control endpoint)
     /// </summary>
     /// <response code="200">The control messages were successfully sent.</response>
-    [ApiVersion(1)]
     [HttpPost("control")]
+    [ApiVersion(1)]
     [TokenPermission(PermissionType.Shockers_Use)]
     [Consumes(MediaTypeNames.Application.Json)]
     [ProducesResponseType<LegacyEmptyResponse>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]

@@ -8,8 +8,8 @@ namespace OpenShock.API.Controller.Account;
 public sealed partial class AccountController
 {
     [HttpPost("logout")]
-    [ProducesResponseType(StatusCodes.Status200OK)]
     [ApiVersion(1)]
+    [ProducesResponseType(StatusCodes.Status200OK)]
     public async Task<IActionResult> Logout([FromServices] ISessionService sessionService)
     {
         // Remove session if valid

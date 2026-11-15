@@ -17,9 +17,9 @@ public sealed partial class AdminController
     /// <response code="404">Not found</response>
     /// <response code="401">Unauthorized</response>
     [HttpPut("users/{userId}/email")]
+    [ApiVersion(1)]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    [ApiVersion(1)]
     public async Task<IActionResult> SetUserEmail([FromRoute(Name = "userId")] Guid userId, [FromBody] SetUserEmailRequestBody body, [FromServices] IAccountService accountService, CancellationToken cancellationToken)
     {
         PedanticallyEnsureAdmin();

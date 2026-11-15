@@ -18,8 +18,8 @@ namespace OpenShock.API.Controller.Version;
 /// Version stuff
 /// </summary>
 [ApiController]
-[Route("/{version:apiVersion}")]
 [Tags("Meta")]
+[Route("/{version:apiVersion}")]
 public sealed partial class VersionController : OpenShockControllerBase
 {
     private static string GetBackendVersion()
@@ -39,8 +39,8 @@ public sealed partial class VersionController : OpenShockControllerBase
     /// Gets the version of the OpenShock backend.
     /// </summary>
     /// <response code="200">The version was successfully retrieved.</response>
-    [ApiVersion(1)]
     [HttpGet]
+    [ApiVersion(1)]
     [ProducesResponseType<LegacyDataResponse<BackendInfoResponse>>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
     public async Task<IActionResult> GetBackendInfo(
         [FromServices] IAuthenticationSchemeProvider schemeProvider,

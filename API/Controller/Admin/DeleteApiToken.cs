@@ -12,8 +12,8 @@ public sealed partial class AdminController
     /// <response code="200">OK</response>
     /// <response code="401">Unauthorized</response>
     [HttpDelete("apitokens/{tokenId}")]
-    [ProducesResponseType(StatusCodes.Status200OK)]
     [ApiVersion(1)]
+    [ProducesResponseType(StatusCodes.Status200OK)]
     public async Task<IActionResult> DeleteApiToken([FromRoute] Guid tokenId, [FromServices] IApiTokenService apiTokenService, CancellationToken cancellationToken)
     {
         PedanticallyEnsureAdmin();

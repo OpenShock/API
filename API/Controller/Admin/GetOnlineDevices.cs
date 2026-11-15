@@ -20,8 +20,8 @@ public sealed partial class AdminController
     /// <response code="200">All online devices</response>
     /// <response code="401">Unauthorized</response>
     [HttpGet("monitoring/onlineDevices")]
-    [ProducesResponseType<LegacyDataResponse<AdminOnlineDeviceResponse[]>>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
     [ApiVersion(1)]
+    [ProducesResponseType<LegacyDataResponse<AdminOnlineDeviceResponse[]>>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
     public async Task<IActionResult> GetOnlineDevices(CancellationToken cancellationToken)
     {
         PedanticallyEnsureAdmin();

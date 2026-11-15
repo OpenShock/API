@@ -15,10 +15,10 @@ public sealed partial class AdminController
     /// Updates an automation token
     /// </summary>
     [HttpPatch("automationTokens/{id}")]
+    [ApiVersion(1)]
     [Consumes(MediaTypeNames.Application.Json)]
     [ProducesResponseType<AutomationTokenDto>(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    [ApiVersion(1)]
     public async Task<IActionResult> PatchAutomationToken(
         [FromRoute] Guid id,
         [FromBody] PatchAutomationTokenDto body,

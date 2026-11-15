@@ -24,11 +24,11 @@ public sealed partial class ShockerController
     /// <response code="200">Successfully set pause state</response>
     /// <response code="404">Shocker not found or does not belong to you</response>
     [HttpPost("{shockerId}/pause")]
+    [ApiVersion(1)]
     [TokenPermission(PermissionType.Shockers_Pause)]
     [Consumes(MediaTypeNames.Application.Json)]
     [ProducesResponseType<LegacyDataResponse<bool>>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status404NotFound, MediaTypeNames.Application.ProblemJson)] // ShockerNotFound    
-    [ApiVersion(1)]
     public async Task<IActionResult> PauseShocker([FromRoute] Guid shockerId, [FromBody] PauseRequest body,
         [FromServices] IDeviceUpdateService deviceUpdateService,
         CancellationToken cancellationToken)

@@ -21,12 +21,12 @@ public sealed partial class AuthenticatedAccountController
     /// <param name="cancellationToken"></param>
     /// <exception cref="Exception"></exception>
     [HttpPost("username")]
+    [ApiVersion(1)]
     [Consumes(MediaTypeNames.Application.Json)]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status409Conflict, MediaTypeNames.Application.ProblemJson)] // UsernameTaken
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status400BadRequest, MediaTypeNames.Application.ProblemJson)] // UsernameInvalid
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status403Forbidden, MediaTypeNames.Application.ProblemJson)] // UsernameRecentlyChanged
-    [ApiVersion(1)]
     public async Task<IActionResult> ChangeUsername([FromBody] ChangeUsernameRequest body, CancellationToken cancellationToken)
     {
         var result = await _accountService.ChangeUsernameAsync(CurrentUser.Id, body.Username, actorId: CurrentUser.Id,

@@ -31,10 +31,10 @@ namespace OpenShock.LiveControlGateway.Controllers;
 /// Live control controller
 /// </summary>
 [ApiController]
-[ApiVersion(1)]
 [Route("/{version:apiVersion}/ws/live/{hubId:guid}")]
-[TokenPermission(PermissionType.Shockers_Use)]
+[ApiVersion(1)]
 [Authorize(AuthenticationSchemes = OpenShockAuthSchemes.UserSessionApiTokenCombo)]
+[TokenPermission(PermissionType.Shockers_Use)]
 public sealed class LiveControlController : WebsocketBaseController<LiveControlResponse<LiveResponseType>>,
     IActionFilter
 {

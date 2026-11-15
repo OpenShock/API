@@ -18,10 +18,10 @@ public sealed partial class AdminController
     /// <response code="400">Invalid recipient address</response>
     /// <response code="401">Unauthorized</response>
     [HttpPost("email/test")]
+    [ApiVersion(1)]
     [Consumes(MediaTypeNames.Application.Json)]
     [ProducesResponseType<EmailOutboxMessageDto>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    [ApiVersion(1)]
     public async Task<IActionResult> SendTestEmail([FromBody] SendTestEmailDto body, [FromServices] IRedisPubService redisPubService, CancellationToken ct)
     {
         PedanticallyEnsureAdmin();
