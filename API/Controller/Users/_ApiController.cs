@@ -6,6 +6,9 @@ using OpenShock.Common.OpenShockDb;
 
 namespace OpenShock.API.Controller.Users;
 
+/// <summary>
+/// User information
+/// </summary>
 [ApiController]
 [Tags("Users")]
 [Route("/{version:apiVersion}/users")]

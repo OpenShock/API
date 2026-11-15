@@ -7,6 +7,9 @@ using Redis.OM.Contracts;
 
 namespace OpenShock.API.Controller.Admin;
 
+/// <summary>
+/// Instance administration, for admins only
+/// </summary>
 [ApiController]
 [Tags("Admin")]
 [Route("/{version:apiVersion}/admin")]

@@ -205,6 +205,10 @@ public static class OpenShockServiceHelper
         options.AddOperationTransformer<OpenShockOperationTransformer>();
         options.AddSchemaTransformer<OpenShockSchemaTransformer>();
         options.AddDocumentTransformer<EnumSchemaTransformer>();
+
+        // Run after the built-in XML comment transformers (registered before this method), filling what they leave out
+        options.AddOperationTransformer<DocumentedResponsesTransformer>();
+        options.AddDocumentTransformer<ControllerTagDescriptionTransformer>();
     }
 
     /// <summary>

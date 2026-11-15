@@ -6,6 +6,9 @@ using OpenShock.Common.OpenShockDb;
 
 namespace OpenShock.API.Controller.Tokens;
 
+/// <summary>
+/// API token management
+/// </summary>
 [ApiController]
 [Tags("API Tokens")]
 [Route("/{version:apiVersion}/tokens")]
