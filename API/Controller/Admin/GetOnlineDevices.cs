@@ -1,13 +1,12 @@
 ﻿using System.Net.Mime;
+using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using OpenShock.Common.ApiVersioning;
 using OpenShock.Common.Extensions;
+using OpenShock.Common.JsonSerialization;
 using OpenShock.Common.Models;
 using OpenShock.Common.Redis;
-using System.Text.Json.Serialization;
-using OpenShock.Common.JsonSerialization;
-
-using OpenShock.Common.ApiVersioning;
 
 namespace OpenShock.API.Controller.Admin;
 

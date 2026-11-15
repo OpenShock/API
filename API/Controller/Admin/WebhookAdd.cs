@@ -1,12 +1,11 @@
 ﻿using System.Net.Mime;
 using Microsoft.AspNetCore.Mvc;
 using OpenShock.API.Controller.Admin.DTOs;
+using OpenShock.Common.ApiVersioning;
 using OpenShock.Common.Errors;
 using OpenShock.Common.Models;
 using OpenShock.Common.Results;
 using OpenShock.Common.Services.Webhook;
-
-using OpenShock.Common.ApiVersioning;
 
 namespace OpenShock.API.Controller.Admin;
 

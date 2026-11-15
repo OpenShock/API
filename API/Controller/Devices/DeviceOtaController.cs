@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using OpenShock.Common.ApiVersioning;
 using OpenShock.Common.Authentication;
 using OpenShock.Common.Authentication.ControllerBase;
 using OpenShock.Common.Errors;
@@ -12,8 +13,6 @@ using OpenShock.Common.Problems;
 using OpenShock.Common.Services.Ota;
 
 using OpenShock.Internal.Common.Problems;
-
-using OpenShock.Common.ApiVersioning;
 
 namespace OpenShock.API.Controller.Devices;
 

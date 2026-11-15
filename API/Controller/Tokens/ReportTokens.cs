@@ -1,22 +1,20 @@
 ﻿using System.Drawing;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using OpenShock.API.Models.Requests;
-using OpenShock.Common.Problems;
-using OpenShock.Common.Utils;
 using System.Net;
 using System.Net.Mime;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
+using Microsoft.EntityFrameworkCore;
 using OpenShock.API.Errors;
+using OpenShock.API.Models.Requests;
 using OpenShock.API.Services.Turnstile;
+using OpenShock.Common.ApiVersioning;
+using OpenShock.Common.Problems;
 using OpenShock.Common.Results;
 using OpenShock.Common.Services.Webhook;
-
-using OpenShock.Internal.Common.Utils;
+using OpenShock.Common.Utils;
 
 using OpenShock.Internal.Common.Problems;
-
-using OpenShock.Common.ApiVersioning;
+using OpenShock.Internal.Common.Utils;
 
 namespace OpenShock.API.Controller.Tokens;
 

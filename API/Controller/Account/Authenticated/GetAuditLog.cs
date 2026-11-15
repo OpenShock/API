@@ -1,10 +1,10 @@
 using System.Net.Mime;
 using Microsoft.AspNetCore.Mvc;
 using OpenShock.API.Models.Response;
+using OpenShock.Common.ApiVersioning;
 using OpenShock.Common.OpenShockDb;
 using OpenShock.Common.Services.Audit;
 using OpenShock.Common.Utils.Pagination;
-using OpenShock.Common.ApiVersioning;
 
 namespace OpenShock.API.Controller.Account.Authenticated;
 

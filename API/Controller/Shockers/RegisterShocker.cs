@@ -1,9 +1,9 @@
 ﻿using System.Net.Mime;
-using OpenShock.Common.ApiVersioning;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using OpenShock.API.Models.Requests;
 using OpenShock.API.Services.DeviceUpdate;
+using OpenShock.Common.ApiVersioning;
 using OpenShock.Common.Authentication.Attributes;
 using OpenShock.Common.Constants;
 using OpenShock.Common.Errors;
@@ -12,7 +12,6 @@ using OpenShock.Common.OpenShockDb;
 using OpenShock.Common.Problems;
 
 using OpenShock.Internal.Common.Constants;
-
 using OpenShock.Internal.Common.Problems;
 
 namespace OpenShock.API.Controller.Shockers;

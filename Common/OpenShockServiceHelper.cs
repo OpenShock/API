@@ -1,9 +1,10 @@
 ﻿using System.Net;
 using System.Reflection;
 using System.Security.Claims;
+using System.Threading.RateLimiting;
 using Microsoft.AspNetCore.Authentication;
-using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.ApiExplorer;
 using Microsoft.AspNetCore.OpenApi;
@@ -17,8 +18,10 @@ using OpenShock.Common.Authentication;
 using OpenShock.Common.Authentication.AuthenticationHandlers;
 using OpenShock.Common.Authentication.Services;
 using OpenShock.Common.Constants;
+using OpenShock.Common.Extensions;
 using OpenShock.Common.HealthChecks;
 using OpenShock.Common.JsonSerialization;
+using OpenShock.Common.Metrics;
 using OpenShock.Common.OpenApi;
 using OpenShock.Common.OpenShockDb;
 using OpenShock.Common.Options;
@@ -29,16 +32,14 @@ using OpenShock.Common.Services.Configuration;
 using OpenShock.Common.Services.RedisPubSub;
 using OpenShock.Common.Services.Session;
 using OpenShock.Common.Services.Webhook;
-using OpenShock.Common.Metrics;
+using OpenShock.Common.Utils;
 using OpenTelemetry.Metrics;
 using Redis.OM;
 using Redis.OM.Contracts;
 using StackExchange.Redis;
-using System.Threading.RateLimiting;
-using OpenShock.Common.Extensions;
-using OpenShock.Common.Utils;
-using OpenShock.Internal.Common.ExceptionHandling;
 using JsonOptions = OpenShock.Common.JsonSerialization.JsonOptions;
+
+using OpenShock.Internal.Common.ExceptionHandling;
 
 namespace OpenShock.Common;
 

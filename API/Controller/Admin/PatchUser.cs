@@ -2,7 +2,6 @@
 using Microsoft.AspNetCore.Mvc;
 using OpenShock.API.Controller.Admin.DTOs;
 using OpenShock.API.Services.Account;
-
 using OpenShock.Common.ApiVersioning;
 
 namespace OpenShock.API.Controller.Admin;

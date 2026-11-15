@@ -1,15 +1,14 @@
-﻿using Microsoft.AspNetCore.Mvc;
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using System.Net.Mime;
+using Microsoft.AspNetCore.Mvc;
 using OpenShock.API.Services.Account;
+using OpenShock.Common.ApiVersioning;
 using OpenShock.Common.Errors;
 using OpenShock.Common.Problems;
 using AccountSvc = OpenShock.API.Services.Account;
 using Results = OpenShock.Common.Results;
 
 using OpenShock.Internal.Common.Problems;
-
-using OpenShock.Common.ApiVersioning;
 
 namespace OpenShock.API.Controller.Account.Authenticated;
 

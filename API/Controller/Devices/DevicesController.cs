@@ -1,11 +1,11 @@
 ﻿using System.Net.Mime;
 using System.Security.Cryptography;
-using OpenShock.Common.ApiVersioning;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using OpenShock.API.Models.Requests;
 using OpenShock.API.Models.Response;
 using OpenShock.API.Services.DeviceUpdate;
+using OpenShock.Common.ApiVersioning;
 using OpenShock.Common.Authentication.Attributes;
 using OpenShock.Common.Constants;
 using OpenShock.Common.Errors;
@@ -18,11 +18,9 @@ using OpenShock.Common.Results;
 using OpenShock.Common.Utils;
 using Redis.OM;
 
-using OpenShock.Internal.Common.Utils;
-
 using OpenShock.Internal.Common.Constants;
-
 using OpenShock.Internal.Common.Problems;
+using OpenShock.Internal.Common.Utils;
 
 namespace OpenShock.API.Controller.Devices;
 

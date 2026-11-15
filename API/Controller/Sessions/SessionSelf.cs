@@ -1,10 +1,9 @@
 ﻿using System.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
 using OpenShock.API.Models.Response;
+using OpenShock.Common.ApiVersioning;
 using OpenShock.Common.Authentication.Services;
 using OpenShock.Common.Redis;
-
-using OpenShock.Common.ApiVersioning;
 
 namespace OpenShock.API.Controller.Sessions;
 

@@ -3,7 +3,6 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using OpenShock.API.Models.Response;
 using OpenShock.API.Services.OAuthConnection;
-
 using OpenShock.Common.ApiVersioning;
 
 namespace OpenShock.API.Controller.Account.Authenticated;

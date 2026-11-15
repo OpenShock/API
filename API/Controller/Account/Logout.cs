@@ -1,5 +1,5 @@
-﻿using OpenShock.Common.ApiVersioning;
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
+using OpenShock.Common.ApiVersioning;
 using OpenShock.Common.Extensions;
 using OpenShock.Common.Services.Session;
 

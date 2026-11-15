@@ -1,7 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using OpenShock.Common.OpenShockDb;
 using OpenShock.Common.ApiVersioning;
+using OpenShock.Common.OpenShockDb;
 
 namespace OpenShock.API.Controller.Admin;
 

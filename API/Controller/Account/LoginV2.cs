@@ -1,15 +1,15 @@
-﻿using Microsoft.AspNetCore.Mvc;
-using OpenShock.API.Models.Requests;
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using System.Net.Mime;
-using OpenShock.Common.ApiVersioning;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
+using OpenShock.API.Models.Requests;
+using OpenShock.API.Models.Response;
 using OpenShock.API.Services.Account;
+using OpenShock.API.Services.Turnstile;
+using OpenShock.Common.ApiVersioning;
 using OpenShock.Common.Errors;
 using OpenShock.Common.OpenShockDb;
 using OpenShock.Common.Problems;
-using OpenShock.API.Models.Response;
-using OpenShock.API.Services.Turnstile;
 using Results = OpenShock.Common.Results;
 
 using OpenShock.Internal.Common.Problems;

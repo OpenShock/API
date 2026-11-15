@@ -1,11 +1,11 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using System.Net.Mime;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using OpenShock.API.Models.Response;
-using System.Net.Mime;
 using OpenShock.Common.ApiVersioning;
 using OpenShock.Common.Errors;
-using OpenShock.Common.Problems;
 using OpenShock.Common.Models;
+using OpenShock.Common.Problems;
 
 using OpenShock.Internal.Common.Problems;
 

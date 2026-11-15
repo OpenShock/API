@@ -1,11 +1,11 @@
-﻿using OpenShock.Common.ApiVersioning;
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using System.Net.WebSockets;
 using System.Text.Json;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
 using Microsoft.EntityFrameworkCore;
+using OpenShock.Common.ApiVersioning;
 using OpenShock.Common.Authentication;
 using OpenShock.Common.Authentication.Attributes;
 using OpenShock.Common.Authentication.Services;
@@ -26,11 +26,9 @@ using JsonOptions = OpenShock.Common.JsonSerialization.JsonOptions;
 using Results = OpenShock.Common.Results;
 using Timer = System.Timers.Timer;
 
-using OpenShock.Internal.Common.Utils;
-
 using OpenShock.Internal.Common.Constants;
-
 using OpenShock.Internal.Common.Problems;
+using OpenShock.Internal.Common.Utils;
 
 namespace OpenShock.LiveControlGateway.Controllers;
 

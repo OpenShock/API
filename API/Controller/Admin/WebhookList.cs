@@ -1,8 +1,7 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using OpenShock.Common.ApiVersioning;
 using OpenShock.Common.Models;
 using OpenShock.Common.Services.Webhook;
-
-using OpenShock.Common.ApiVersioning;
 
 namespace OpenShock.API.Controller.Admin;
 

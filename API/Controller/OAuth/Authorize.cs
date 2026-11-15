@@ -1,8 +1,8 @@
-using OpenShock.Common.ApiVersioning;
 using System.ComponentModel.DataAnnotations;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 using OpenShock.API.OAuth;
+using OpenShock.Common.ApiVersioning;
 using OpenShock.Common.Extensions;
 
 namespace OpenShock.API.Controller.OAuth;

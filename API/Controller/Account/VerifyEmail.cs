@@ -2,8 +2,8 @@
 using System.Diagnostics;
 using System.Net.Mime;
 using Microsoft.AspNetCore.Mvc;
-using OpenShock.Common.ApiVersioning;
 using OpenShock.API.Services.Account;
+using OpenShock.Common.ApiVersioning;
 using OpenShock.Common.Errors;
 using OpenShock.Common.Problems;
 using Results = OpenShock.Common.Results;

@@ -1,7 +1,6 @@
 ﻿using System.Net.Mime;
 using Microsoft.AspNetCore.Mvc;
 using OpenShock.API.Models.Response;
-
 using OpenShock.Common.ApiVersioning;
 
 namespace OpenShock.API.Controller.Sessions;

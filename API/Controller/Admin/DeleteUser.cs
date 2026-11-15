@@ -2,12 +2,11 @@
 using System.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
 using OpenShock.API.Services.Account;
+using OpenShock.Common.ApiVersioning;
 using OpenShock.Common.Constants;
 using OpenShock.Common.Errors;
 using AccountSvc = OpenShock.API.Services.Account;
 using Results = OpenShock.Common.Results;
-
-using OpenShock.Common.ApiVersioning;
 
 namespace OpenShock.API.Controller.Admin;
 
