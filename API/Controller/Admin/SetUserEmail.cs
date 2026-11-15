@@ -1,6 +1,7 @@
 ﻿using System.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
 using OpenShock.API.Services.Account;
+using OpenShock.Common.ApiVersioning;
 using OpenShock.Common.DataAnnotations;
 using OpenShock.Common.Errors;
 using Results = OpenShock.Common.Results;
@@ -16,6 +17,7 @@ public sealed partial class AdminController
     /// <response code="404">Not found</response>
     /// <response code="401">Unauthorized</response>
     [HttpPut("users/{userId}/email")]
+    [ApiVersion(1)]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> SetUserEmail([FromRoute(Name = "userId")] Guid userId, [FromBody] SetUserEmailRequestBody body, [FromServices] IAccountService accountService, CancellationToken cancellationToken)

@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using OpenShock.API.Models.Response;
 using OpenShock.API.Utils;
+using OpenShock.Common.ApiVersioning;
 using OpenShock.Common.Errors;
 using OpenShock.Common.Extensions;
 using OpenShock.Common.Models;
@@ -19,8 +20,9 @@ public sealed partial class PublicController
     /// <param name="cancellationToken"></param>
     /// <response code="200">The public share information was successfully retrieved.</response>
     /// <response code="404">The public share does not exist.</response>
-    [HttpGet("shares/links/{publicShareId}")]
     [Tags("Public Shocker Shares")]
+    [HttpGet("shares/links/{publicShareId}")]
+    [ApiVersion(1)]
     [ProducesResponseType<LegacyDataResponse<PublicShareResponse>>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status404NotFound, MediaTypeNames.Application.ProblemJson)] // PublicShareNotFound
     public async Task<IActionResult> GetPublicShare([FromRoute] Guid publicShareId, CancellationToken cancellationToken)

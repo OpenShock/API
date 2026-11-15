@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using OpenShock.API.Controller.Admin.DTOs;
+using OpenShock.Common.ApiVersioning;
 using OpenShock.Common.Models;
 using OpenShock.Common.OpenShockDb;
 using OpenShock.Common.Services.Audit;
@@ -15,6 +16,7 @@ public sealed partial class AdminController
     /// Rotates the secret of an automation token. The new secret is only returned once, in this response
     /// </summary>
     [HttpPost("automationTokens/{id}/rotate")]
+    [ApiVersion(1)]
     [ProducesResponseType<CreatedAutomationTokenDto>(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> RotateAutomationToken(

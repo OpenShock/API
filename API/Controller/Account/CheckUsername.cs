@@ -4,6 +4,7 @@ using System.Net.Mime;
 using Microsoft.AspNetCore.Mvc;
 using OpenShock.API.Models.Requests;
 using OpenShock.API.Services.Account;
+using OpenShock.Common.ApiVersioning;
 using OpenShock.Common.Results;
 using OpenShock.Common.Validation;
 
@@ -16,8 +17,8 @@ public sealed partial class AccountController
     /// </summary>
     /// <param name="body"></param>
     /// <param name="cancellationToken"></param>
-    /// <returns></returns>
     [HttpPost("username/check")] // High-volume endpoint, we don't want to rate limit this
+    [ApiVersion(1)]
     [Consumes(MediaTypeNames.Application.Json)]
     public async Task<UsernameCheckResponse> CheckUsername([FromBody] ChangeUsernameRequest body, CancellationToken cancellationToken)
     {

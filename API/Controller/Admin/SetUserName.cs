@@ -2,6 +2,7 @@
 using System.Net.Mime;
 using Microsoft.AspNetCore.Mvc;
 using OpenShock.API.Services.Account;
+using OpenShock.Common.ApiVersioning;
 using OpenShock.Common.DataAnnotations;
 using OpenShock.Common.Errors;
 using OpenShock.Common.Validation;
@@ -20,6 +21,7 @@ public sealed partial class AdminController
     /// <response code="401">Unauthorized</response>
     /// <response code="409">The target account is deactivated or not yet activated</response>
     [HttpPut("users/{userId}/name")]
+    [ApiVersion(1)]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status409Conflict, MediaTypeNames.Application.ProblemJson)]

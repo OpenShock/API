@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using OpenShock.API.Models.Requests;
 using OpenShock.API.Utils;
+using OpenShock.Common.ApiVersioning;
 using OpenShock.Common.Authentication.Attributes;
 using OpenShock.Common.Errors;
 using OpenShock.Common.Models;
@@ -24,8 +25,9 @@ public sealed partial class ShareLinksController
     /// <response code="404">Public share or shocker does not exist</response>
     /// <response code="400">Shocker does not exist in public share</response>
     [HttpPost("{publicShareId}/{shockerId}/pause")]
-    [Consumes(MediaTypeNames.Application.Json)]
+    [ApiVersion(1)]
     [TokenPermission(PermissionType.Publicshares_Pause)]
+    [Consumes(MediaTypeNames.Application.Json)]
     [ProducesResponseType<LegacyDataResponse<PauseReason>>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status404NotFound, MediaTypeNames.Application.ProblemJson)] // PublicShareNotFound, ShockerNotInPublicShare
     public async Task<IActionResult> PauseShocker([FromRoute] Guid publicShareId, [FromRoute] Guid shockerId, [FromBody] PauseRequest body, CancellationToken cancellationToken)

@@ -1,6 +1,7 @@
 ﻿using System.Net.Mime;
 using Microsoft.AspNetCore.Mvc;
 using OpenShock.API.Models.Response;
+using OpenShock.Common.ApiVersioning;
 using OpenShock.Common.Extensions;
 using OpenShock.Common.Models;
 
@@ -14,6 +15,7 @@ public sealed partial class UsersController
     /// <response code="200">The user's information was successfully retrieved.</response>
     [Obsolete("Use GET /1/account instead.")]
     [HttpGet("self")]
+    [ApiVersion(1)]
     [ProducesResponseType<LegacyDataResponse<LegacyUserSelfResponse>>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
     public IActionResult GetSelf()
     {

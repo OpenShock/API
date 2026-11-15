@@ -6,6 +6,7 @@ using OpenShock.API.Models.Requests;
 using OpenShock.API.Models.Response;
 using OpenShock.API.OAuth;
 using OpenShock.API.Services.OAuthConnection;
+using OpenShock.Common.ApiVersioning;
 using OpenShock.Common.Authentication;
 using OpenShock.Common.Errors;
 using OpenShock.Common.Extensions;
@@ -28,8 +29,9 @@ public sealed partial class OAuthController
     /// <param name="connectionService"></param>
     /// <param name="accountOptions"></param>
     /// <param name="cancellationToken"></param>
-    [EnableRateLimiting("auth")]
     [HttpPost("{provider}/signup-finalize")]
+    [ApiVersion(1)]
+    [EnableRateLimiting("auth")]
     [ApiExplorerSettings(IgnoreApi = true)]
     public async Task<IActionResult> OAuthSignupFinalize(
         [FromRoute] string provider,

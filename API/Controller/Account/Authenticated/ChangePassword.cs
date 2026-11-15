@@ -3,6 +3,7 @@ using System.Net.Mime;
 using Microsoft.AspNetCore.Mvc;
 using OpenShock.API.Models.Requests;
 using OpenShock.API.Services.Account;
+using OpenShock.Common.ApiVersioning;
 using OpenShock.Common.Errors;
 using OpenShock.Common.Utils;
 using OpenShock.Internal.Common.Problems;
@@ -17,9 +18,9 @@ public sealed partial class AuthenticatedAccountController
     /// </summary>
     /// <param name="body"></param>
     /// <param name="cancellationToken"></param>
-    /// <returns></returns>
     /// <exception cref="Exception"></exception>
     [HttpPost("password")]
+    [ApiVersion(1)]
     [Consumes(MediaTypeNames.Application.Json)]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status403Forbidden, MediaTypeNames.Application.ProblemJson)] // PasswordChangeInvalidPassword

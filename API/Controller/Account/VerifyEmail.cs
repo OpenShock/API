@@ -1,8 +1,8 @@
 ﻿using System.Diagnostics;
 using System.Net.Mime;
-using Asp.Versioning;
 using Microsoft.AspNetCore.Mvc;
 using OpenShock.API.Services.Account;
+using OpenShock.Common.ApiVersioning;
 using OpenShock.Common.Errors;
 using OpenShock.Internal.Common.Problems;
 using Results = OpenShock.Common.Results;
@@ -18,10 +18,10 @@ public sealed partial class AccountController
     /// <response code="400">Token is invalid, already used, or the request has expired</response>
     /// <response code="409">The new email address was claimed by another account before verification completed</response>
     [HttpPost("email-change/verify")]
+    [ApiVersion(1)]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status400BadRequest, MediaTypeNames.Application.ProblemJson)]
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status409Conflict, MediaTypeNames.Application.ProblemJson)]
-    [MapToApiVersion("1")]
     public Task<IActionResult> EmailVerify([FromQuery(Name = "token")] string token, CancellationToken cancellationToken)
         => VerifyPendingEmailChange(token, cancellationToken);
 
@@ -33,10 +33,10 @@ public sealed partial class AccountController
     /// <response code="409">The new email address was claimed by another account before verification completed</response>
     [Obsolete("Use POST /email-change/verify instead.")]
     [HttpPost("verify-email")]
+    [ApiVersion(1)]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status400BadRequest, MediaTypeNames.Application.ProblemJson)]
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status409Conflict, MediaTypeNames.Application.ProblemJson)]
-    [MapToApiVersion("1")]
     public Task<IActionResult> EmailVerifyLegacy([FromQuery(Name = "token")] string token, CancellationToken cancellationToken)
         => VerifyPendingEmailChange(token, cancellationToken);
 

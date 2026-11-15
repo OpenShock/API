@@ -1,5 +1,6 @@
 ﻿using System.Net.Mime;
 using Microsoft.AspNetCore.Mvc;
+using OpenShock.Common.ApiVersioning;
 using OpenShock.Common.Errors;
 using OpenShock.Common.Extensions;
 using OpenShock.Common.OpenShockDb;
@@ -10,6 +11,7 @@ namespace OpenShock.API.Controller.Sessions;
 public sealed partial class SessionsController
 {
     [HttpDelete("{sessionId}")]
+    [ApiVersion(1)]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status404NotFound, MediaTypeNames.Application.ProblemJson)] // SessionNotFound
     public async Task<IActionResult> DeleteSession([FromRoute] Guid sessionId)

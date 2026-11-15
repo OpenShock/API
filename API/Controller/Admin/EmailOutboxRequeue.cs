@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using OpenShock.Common.ApiVersioning;
 using OpenShock.Common.OpenShockDb;
 using OpenShock.Common.Services.RedisPubSub;
 
@@ -16,6 +17,7 @@ public sealed partial class AdminController
     /// <response code="404">No such message</response>
     /// <response code="409">Message is pending or currently being sent</response>
     [HttpPost("email/outbox/{id}/requeue")]
+    [ApiVersion(1)]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status409Conflict)]

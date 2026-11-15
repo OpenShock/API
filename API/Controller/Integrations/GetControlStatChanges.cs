@@ -5,6 +5,7 @@ using Microsoft.EntityFrameworkCore;
 using OpenShock.API.Errors;
 using OpenShock.API.Models.Requests;
 using OpenShock.API.Models.Response;
+using OpenShock.Common.ApiVersioning;
 using OpenShock.Common.Extensions;
 using OpenShock.Common.OpenShockDb;
 using OpenShock.Internal.Common.Problems;
@@ -28,6 +29,7 @@ public sealed partial class IntegrationsController
     /// <response code="200">The changed users' totals and the cursor to pass next time.</response>
     /// <response code="403">No automation token granting ControlStatsRead was presented.</response>
     [HttpPost("control-stats/changes")]
+    [ApiVersion(1)]
     [EnableRateLimiting("control-stats")]
     [ProducesResponseType<ControlStatChangesResponse>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status403Forbidden, MediaTypeNames.Application.ProblemJson)] // MissingCapability

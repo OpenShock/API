@@ -1,6 +1,7 @@
 ﻿using System.Net.Mime;
 using Microsoft.AspNetCore.Mvc;
 using NRedisStack.RedisStackCommands;
+using OpenShock.Common.ApiVersioning;
 using OpenShock.Common.Models;
 using OpenShock.Common.Redis;
 using StackExchange.Redis;
@@ -15,6 +16,7 @@ public sealed partial class PublicController
     /// <response code="200">The statistics were successfully retrieved.</response>
     [Tags("Meta")]
     [HttpGet("stats")]
+    [ApiVersion(1)]
     [ProducesResponseType<LegacyDataResponse<StatsResponse>>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
     public async Task<IActionResult> GetOnlineDevicesStatistics([FromServices] IConnectionMultiplexer redisConnectionMultiplexer)
     {

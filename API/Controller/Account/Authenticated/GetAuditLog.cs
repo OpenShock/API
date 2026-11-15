@@ -1,6 +1,7 @@
 using System.Net.Mime;
 using Microsoft.AspNetCore.Mvc;
 using OpenShock.API.Models.Response;
+using OpenShock.Common.ApiVersioning;
 using OpenShock.Common.OpenShockDb;
 using OpenShock.Common.Services.Audit;
 using OpenShock.Common.Utils;
@@ -18,6 +19,7 @@ public sealed partial class AuthenticatedAccountController
     /// <param name="cancellationToken"></param>
     /// <response code="200">A page of audit log entries.</response>
     [HttpGet("audit-log")]
+    [ApiVersion(1)]
     [ProducesResponseType<PagedResult<AuditLogEntryResponse>>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
     public async Task<PagedResult<AuditLogEntryResponse>> GetAuditLog(
         [FromQuery] PaginationQuery pagination,

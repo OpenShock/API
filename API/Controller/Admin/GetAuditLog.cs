@@ -2,6 +2,7 @@ using System.Net.Mime;
 using Microsoft.AspNetCore.Mvc;
 using OpenShock.API.Controller.Account.Authenticated;
 using OpenShock.API.Models.Response;
+using OpenShock.Common.ApiVersioning;
 using OpenShock.Common.Services.Audit;
 using OpenShock.Common.Utils.Pagination;
 
@@ -19,6 +20,7 @@ public sealed partial class AdminController
     /// <param name="cancellationToken"></param>
     /// <response code="200">A page of audit log entries.</response>
     [HttpGet("audit-log")]
+    [ApiVersion(1)]
     [ProducesResponseType<PagedResult<AuditLogEntryResponse>>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
     public async Task<PagedResult<AuditLogEntryResponse>> GetAdminAuditLog(
         [FromQuery] PaginationQuery pagination,

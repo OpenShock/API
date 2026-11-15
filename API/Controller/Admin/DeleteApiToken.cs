@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using OpenShock.API.Services.Token;
+using OpenShock.Common.ApiVersioning;
 
 namespace OpenShock.API.Controller.Admin;
 
@@ -11,6 +12,7 @@ public sealed partial class AdminController
     /// <response code="200">OK</response>
     /// <response code="401">Unauthorized</response>
     [HttpDelete("apitokens/{tokenId}")]
+    [ApiVersion(1)]
     [ProducesResponseType(StatusCodes.Status200OK)]
     public async Task<IActionResult> DeleteApiToken([FromRoute] Guid tokenId, [FromServices] IApiTokenService apiTokenService, CancellationToken cancellationToken)
     {

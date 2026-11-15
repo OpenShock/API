@@ -2,6 +2,7 @@ using System.Net.Mime;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using OpenShock.API.Controller.Admin.DTOs;
+using OpenShock.Common.ApiVersioning;
 using OpenShock.Common.OpenShockDb;
 
 namespace OpenShock.API.Controller.Admin;
@@ -14,6 +15,7 @@ public sealed partial class AdminController
     /// <response code="200">Per-status counts</response>
     /// <response code="401">Unauthorized</response>
     [HttpGet("email/outbox/stats")]
+    [ApiVersion(1)]
     [ProducesResponseType<EmailOutboxStatsDto>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
     public async Task<EmailOutboxStatsDto> GetEmailOutboxStats(CancellationToken cancellationToken)
     {

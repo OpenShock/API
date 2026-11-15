@@ -1,9 +1,9 @@
 ﻿using System.Net.Mime;
-using Asp.Versioning;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 using OpenShock.API.Models.Requests;
 using OpenShock.API.Services.Turnstile;
+using OpenShock.Common.ApiVersioning;
 using OpenShock.Common.Errors;
 using OpenShock.Common.OpenShockDb;
 using OpenShock.Common.Services.AutomationTokens;
@@ -18,8 +18,8 @@ public sealed partial class AccountController
     /// </summary>
     [Obsolete("Retired. Use POST /2/account/password-reset instead.")]
     [HttpPost("reset-password")]
+    [ApiVersion(2)]
     [ApiExplorerSettings(IgnoreApi = true)]
-    [MapToApiVersion("2")]
     public IActionResult PasswordResetInitiateV2Legacy() => Problem(GoneError.EndpointRetired("POST /2/account/password-reset"));
     
     /// <summary>
@@ -27,11 +27,11 @@ public sealed partial class AccountController
     /// </summary>
     /// <response code="200">Password reset email sent if the email is associated to an registered account</response>
     [HttpPost("password-reset")]
+    [ApiVersion(2)]
     [EnableRateLimiting("auth")]
     [Consumes(MediaTypeNames.Application.Json)]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status403Forbidden, MediaTypeNames.Application.ProblemJson)]
-    [MapToApiVersion("2")]
     public async Task<IActionResult> PasswordResetInitiateV2([FromBody] PasswordResetRequestV2 body, [FromServices] ICloudflareTurnstileService turnstileService, [FromServices] IAutomationTokenService automationTokens, CancellationToken cancellationToken)
     {
         var turnstileError = await VerifyTurnstileAsync(turnstileService, body.TurnstileResponse, cancellationToken);

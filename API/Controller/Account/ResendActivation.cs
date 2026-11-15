@@ -1,8 +1,8 @@
 using System.Net.Mime;
-using Asp.Versioning;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 using OpenShock.API.Services.Account;
+using OpenShock.Common.ApiVersioning;
 using OpenShock.Common.Authentication;
 using OpenShock.Common.Errors;
 using OpenShock.Internal.Common.Problems;
@@ -23,8 +23,8 @@ public sealed partial class AccountController
     /// <response code="400">No pending activation for this browser (missing/expired cookie, or already activated)</response>
     /// <response code="429">An activation email was sent too recently</response>
     [HttpPost("activate/resend")]
+    [ApiVersion(1)]
     [EnableRateLimiting("auth")]
-    [MapToApiVersion("1")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status400BadRequest, MediaTypeNames.Application.ProblemJson)] // AccountActivationResendUnavailable
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status429TooManyRequests, MediaTypeNames.Application.ProblemJson)] // AccountActivationResendTooMany

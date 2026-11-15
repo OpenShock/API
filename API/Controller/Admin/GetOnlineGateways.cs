@@ -1,5 +1,6 @@
 using System.Net.Mime;
 using Microsoft.AspNetCore.Mvc;
+using OpenShock.Common.ApiVersioning;
 using OpenShock.Common.Redis;
 
 namespace OpenShock.API.Controller.Admin;
@@ -12,6 +13,7 @@ public sealed partial class AdminController
     /// <response code="200">All online gateways</response>
     /// <response code="401">Unauthorized</response>
     [HttpGet("monitoring/gateways")]
+    [ApiVersion(1)]
     [ProducesResponseType<AdminOnlineGatewayResponse[]>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
     public async Task<AdminOnlineGatewayResponse[]> GetOnlineGateways()
     {

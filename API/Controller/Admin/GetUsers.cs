@@ -2,6 +2,7 @@
 using System.Net.Mime;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using OpenShock.Common.ApiVersioning;
 using OpenShock.Common.Errors;
 using OpenShock.Common.Models;
 using OpenShock.Common.OpenShockDb;
@@ -19,6 +20,7 @@ public sealed partial class AdminController
     /// <response code="200">Paginated users</response>
     /// <response code="401">Unauthorized</response>
     [HttpGet("users")]
+    [ApiVersion(1)]
     [ProducesResponseType<Paginated<AdminUsersView>>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
     public async Task<IActionResult> GetUsers(
         [FromQuery(Name = "$filter")] string filterQuery = "",

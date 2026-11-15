@@ -1,5 +1,4 @@
 ﻿using System.Net.Mime;
-using Asp.Versioning;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 using OpenShock.API.Errors;
@@ -7,6 +6,7 @@ using OpenShock.API.Models.Requests;
 using OpenShock.API.Models.Response;
 using OpenShock.API.Services.Account;
 using OpenShock.API.Services.Turnstile;
+using OpenShock.Common.ApiVersioning;
 using OpenShock.Common.Errors;
 using OpenShock.Common.OpenShockDb;
 using OpenShock.Common.Services.AutomationTokens;
@@ -23,12 +23,12 @@ public sealed partial class AccountController
     /// <response code="200">User successfully logged in</response>
     /// <response code="401">Invalid username or password</response>
     [HttpPost("login")]
+    [ApiVersion(2)]
     [EnableRateLimiting("auth")]
     [Consumes(MediaTypeNames.Application.Json)]
     [ProducesResponseType<LoginV2OkResponse>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status401Unauthorized, MediaTypeNames.Application.ProblemJson)] // InvalidCredentials
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status403Forbidden, MediaTypeNames.Application.ProblemJson)] // InvalidDomain, AutomationTokenNotAllowedForAccount
-    [MapToApiVersion("2")]
     public async Task<IActionResult> LoginV2(
         [FromBody] LoginV2 body,
         [FromServices] ICloudflareTurnstileService turnstileService,

@@ -131,13 +131,12 @@ public static class OpenShockMiddlewareHelper
             return IsAllowed(context.Connection.RemoteIpAddress, internalAllowedIpNetworks);
         });
         
-        app.MapOpenApi().WithDocumentPerVersion();
+        app.MapOpenApi(OpenShockServiceHelper.OpenApiDocumentPath);
 
         app.MapScalarApiReference("/scalar/viewer", options =>
                 options
-                    .WithOpenApiRoutePattern("/openapi/{documentName}.json")
-                    .AddDocument("1", "Version 1")
-                    .AddDocument("2", "Version 2")
+                    .WithOpenApiRoutePattern(OpenShockServiceHelper.OpenApiDocumentPath)
+                    .AddDocument(OpenShockServiceHelper.OpenApiDocumentName, "OpenShock API")
                 );
         
         // Reports whether every dependency this host needs to serve is reachable. The LCG gates its

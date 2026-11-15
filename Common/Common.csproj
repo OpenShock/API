@@ -39,8 +39,6 @@
     <PackageReference Include="Scalar.AspNetCore" />
     <PackageReference Include="Scrutor" />
     <PackageReference Include="Serilog.Sinks.Grafana.Loki" />
-    <PackageReference Include="Asp.Versioning.Mvc.ApiExplorer" />
-    <PackageReference Include="Asp.Versioning.OpenApi" />
     <PackageReference Include="Microsoft.AspNetCore.SignalR.StackExchangeRedis" />
     <PackageReference Include="Serilog.AspNetCore" />
     <PackageReference Include="Serilog.Sinks.OpenTelemetry" />

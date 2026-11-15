@@ -7,11 +7,13 @@ using Microsoft.EntityFrameworkCore;
 using OpenShock.API.Errors;
 using OpenShock.API.Models.Requests;
 using OpenShock.API.Services.Turnstile;
+using OpenShock.Common.ApiVersioning;
 using OpenShock.Common.OpenShockDb;
 using OpenShock.Common.Services.AutomationTokens;
 using OpenShock.Common.Services.Webhook;
 using OpenShock.Common.Utils;
 using OpenShock.Internal.Common.Problems;
+using OpenShock.Internal.Common.Utils;
 
 namespace OpenShock.API.Controller.Tokens;
 
@@ -27,6 +29,7 @@ public sealed partial class TokensController
     /// <param name="cancellationToken"></param>
     /// <response code="200">The tokens were deleted if found</response>
     [HttpPost("report")]
+    [ApiVersion(1)]
     [EnableRateLimiting("token-reporting")]
     [Consumes(MediaTypeNames.Application.Json)]
     [ProducesResponseType(StatusCodes.Status200OK)]

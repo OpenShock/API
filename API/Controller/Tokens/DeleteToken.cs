@@ -3,6 +3,7 @@ using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using OpenShock.API.Services.Token;
+using OpenShock.Common.ApiVersioning;
 using OpenShock.Common.Authentication;
 using OpenShock.Common.Authentication.ControllerBase;
 using OpenShock.Common.Errors;
@@ -35,6 +36,7 @@ public sealed class TokenDeleteController : AuthenticatedSessionControllerBase
     /// <response code="403">Api Token is not allowed to delete other Api Tokens</response>
     /// <response code="404">The token does not exist, or you do not have access to it</response>
     [HttpDelete("{tokenId}")]
+    [ApiVersion(1)]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status404NotFound, MediaTypeNames.Application.ProblemJson)] // ApiTokenNotFound

@@ -1,6 +1,7 @@
 using System.Net.Mime;
 using Microsoft.AspNetCore.Mvc;
 using OpenShock.API.Controller.Admin.DTOs;
+using OpenShock.Common.ApiVersioning;
 using OpenShock.Common.OpenShockDb;
 using OpenShock.Common.Services.RedisPubSub;
 
@@ -17,6 +18,7 @@ public sealed partial class AdminController
     /// <response code="400">Invalid recipient address</response>
     /// <response code="401">Unauthorized</response>
     [HttpPost("email/test")]
+    [ApiVersion(1)]
     [Consumes(MediaTypeNames.Application.Json)]
     [ProducesResponseType<EmailOutboxMessageDto>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]

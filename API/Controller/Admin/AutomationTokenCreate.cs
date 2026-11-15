@@ -1,6 +1,7 @@
 using System.Net.Mime;
 using Microsoft.AspNetCore.Mvc;
 using OpenShock.API.Controller.Admin.DTOs;
+using OpenShock.Common.ApiVersioning;
 using OpenShock.Common.Models;
 using OpenShock.Common.OpenShockDb;
 using OpenShock.Common.Services.Audit;
@@ -15,6 +16,7 @@ public sealed partial class AdminController
     /// Creates an automation token. The secret is only returned once, in this response
     /// </summary>
     [HttpPost("automationTokens")]
+    [ApiVersion(1)]
     [Consumes(MediaTypeNames.Application.Json)]
     [ProducesResponseType<CreatedAutomationTokenDto>(StatusCodes.Status200OK)]
     public async Task<CreatedAutomationTokenDto> CreateAutomationToken(

@@ -1,8 +1,8 @@
-﻿using Asp.Versioning;
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using OpenShock.API.Models.Response;
 using OpenShock.API.Utils;
+using OpenShock.Common.ApiVersioning;
 using OpenShock.Common.Authentication.Attributes;
 using OpenShock.Common.OpenShockDb;
 using OpenShock.Common.Utils;
@@ -30,7 +30,7 @@ internal sealed class V2UserSharesListItemDto
 public sealed partial class UserSharesController
 {
     [HttpGet]
-    [MapToApiVersion("2")]
+    [ApiVersion(2)]
     [TokenPermission(PermissionType.Usershares_Edit)]
     public async Task<V2UserShares> GetSharesByUsers(CancellationToken cancellationToken)
     {

@@ -2,6 +2,7 @@ using System.Net.Mime;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using OpenShock.API.Controller.Admin.DTOs;
+using OpenShock.Common.ApiVersioning;
 using OpenShock.Common.OpenShockDb;
 using OpenShock.Common.Services.RedisPubSub;
 
@@ -17,6 +18,7 @@ public sealed partial class AdminController
     /// <response code="200">Bulk requeue applied</response>
     /// <response code="401">Unauthorized</response>
     [HttpPost("email/outbox/bulk/requeue")]
+    [ApiVersion(1)]
     [Consumes(MediaTypeNames.Application.Json)]
     [ProducesResponseType<EmailOutboxBulkResultDto>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
     public async Task<EmailOutboxBulkResultDto> BulkRequeueEmailOutbox([FromBody] EmailOutboxBulkRequest body, [FromServices] IRedisPubService redisPubService, CancellationToken ct)
@@ -51,6 +53,7 @@ public sealed partial class AdminController
     /// <response code="200">Bulk cancel applied</response>
     /// <response code="401">Unauthorized</response>
     [HttpPost("email/outbox/bulk/cancel")]
+    [ApiVersion(1)]
     [Consumes(MediaTypeNames.Application.Json)]
     [ProducesResponseType<EmailOutboxBulkResultDto>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
     public async Task<EmailOutboxBulkResultDto> BulkCancelEmailOutbox([FromBody] EmailOutboxBulkRequest body, CancellationToken ct)
@@ -73,6 +76,7 @@ public sealed partial class AdminController
     /// <response code="200">Bulk delete applied</response>
     /// <response code="401">Unauthorized</response>
     [HttpPost("email/outbox/bulk/delete")]
+    [ApiVersion(1)]
     [Consumes(MediaTypeNames.Application.Json)]
     [ProducesResponseType<EmailOutboxBulkResultDto>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
     public async Task<EmailOutboxBulkResultDto> BulkDeleteEmailOutbox([FromBody] EmailOutboxBulkRequest body, CancellationToken ct)

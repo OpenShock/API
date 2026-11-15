@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 using OpenShock.API.OAuth;
 using OpenShock.API.Services.OAuthConnection;
+using OpenShock.Common.ApiVersioning;
 using OpenShock.Common.Extensions;
 using OpenShock.Common.Options;
 
@@ -19,8 +20,9 @@ public sealed partial class OAuthController
     /// If a matching connection exists -> signs in and redirects home.
     /// Otherwise -> redirects frontend to continue the chosen flow.
     /// </remarks>
-    [EnableRateLimiting("auth")]
     [HttpGet("{provider}/handoff")]
+    [ApiVersion(1)]
+    [EnableRateLimiting("auth")]
     [ApiExplorerSettings(IgnoreApi = true)]
     public async Task<IActionResult> OAuthHandOff(
         [FromRoute] string provider,

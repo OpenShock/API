@@ -1,8 +1,8 @@
 ﻿using System.Net.Mime;
-using Asp.Versioning;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using OpenShock.Common.ApiVersioning;
 using OpenShock.Common.Authentication;
 using OpenShock.Common.Authentication.ControllerBase;
 using OpenShock.Common.Errors;
@@ -16,7 +16,6 @@ namespace OpenShock.API.Controller.Devices;
 
 [ApiController]
 [Tags("Hub Management")]
-[ApiVersion("1")]
 [Route("/{version:apiVersion}/devices")]
 [Authorize(AuthenticationSchemes = OpenShockAuthSchemes.UserSessionCookie)]
 public sealed class DevicesOtaController : AuthenticatedSessionControllerBase
@@ -39,7 +38,7 @@ public sealed class DevicesOtaController : AuthenticatedSessionControllerBase
     /// <response code="200">OK</response>
     /// <response code="404">Could not find device or you do not have access to it</response>
     [HttpGet("{deviceId}/ota")]
-    [MapToApiVersion("1")]
+    [ApiVersion(1)]
     [ProducesResponseType<LegacyDataResponse<IReadOnlyCollection<OtaItem>>>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status404NotFound, MediaTypeNames.Application.ProblemJson)] // DeviceNotFound
     public async Task<IActionResult> GetOtaUpdateHistory([FromRoute] Guid deviceId, [FromServices] IOtaService otaService, CancellationToken cancellationToken)

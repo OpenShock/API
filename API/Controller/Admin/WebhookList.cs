@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using OpenShock.Common.ApiVersioning;
 using OpenShock.Common.Models;
 using OpenShock.Common.Services.Webhook;
 
@@ -12,6 +13,7 @@ public sealed partial class AdminController
     /// <response code="200">OK</response>
     /// <response code="401">Unauthorized</response>
     [HttpGet("webhooks")]
+    [ApiVersion(1)]
     public async Task<WebhookDto[]> ListWebhooks([FromServices] IWebhookService webhookService, CancellationToken cancellationToken)
     {
         PedanticallyEnsureAdmin();

@@ -1,9 +1,9 @@
 ﻿using System.Net.Mime;
-using Asp.Versioning;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using OpenShock.API.Models.Requests;
 using OpenShock.API.Services.DeviceUpdate;
+using OpenShock.Common.ApiVersioning;
 using OpenShock.Common.Authentication.Attributes;
 using OpenShock.Common.Errors;
 using OpenShock.Common.Models;
@@ -24,12 +24,12 @@ public sealed partial class UserSharesController
     /// <response code="200">Successfully updated share code</response>
     /// <response code="404">The share code does not exist or you do not have access to it.</response>
     [HttpPatch("{userId:guid}/shockers")]
+    [ApiVersion(2)]
     [TokenPermission(PermissionType.Shockers_Edit)]
     [Consumes(MediaTypeNames.Application.Json)]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status404NotFound,
         MediaTypeNames.Application.ProblemJson)] // ShockerNotFound
-    [MapToApiVersion("2")]
     public async Task<IActionResult> BulkUserShareShockersUpdate(
         [FromRoute] Guid userId,
         [FromBody] BulkUserShareShockersUpdateRequest body,

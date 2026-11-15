@@ -6,6 +6,8 @@
   <!-- NuGet packages -->
   <ItemGroup>
     <PackageReference Include="Fluid.Core" />
+    <!-- Referenced directly so its XML-comment source generator runs here, where AddOpenApi is called -->
+    <PackageReference Include="Microsoft.AspNetCore.OpenApi" />
     <PackageReference Include="MailKit" />
     <PackageReference Include="Hangfire.AspNetCore" />
     <PackageReference Include="Hangfire.PostgreSql" />

@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Mvc;
 using OpenShock.API.OAuth;
 using OpenShock.API.Options;
 using OpenShock.Common;
+using OpenShock.Common.ApiVersioning;
 using OpenShock.Common.Extensions;
 using OpenShock.Common.Models;
 using OpenShock.Common.Options;
@@ -39,6 +40,7 @@ public sealed partial class VersionController : OpenShockControllerBase
     /// </summary>
     /// <response code="200">The version was successfully retrieved.</response>
     [HttpGet]
+    [ApiVersion(1)]
     [ProducesResponseType<LegacyDataResponse<BackendInfoResponse>>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
     public async Task<IActionResult> GetBackendInfo(
         [FromServices] IAuthenticationSchemeProvider schemeProvider,

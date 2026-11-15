@@ -1,5 +1,4 @@
-﻿using Asp.Versioning;
-using Microsoft.AspNetCore.Authorization;
+﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using OpenShock.API.Services.DeviceUpdate;
 using OpenShock.Common;
@@ -13,8 +12,6 @@ namespace OpenShock.API.Controller.Device;
 /// For devices (ESP's)
 /// </summary>
 [ApiController]
-[ApiVersion("1")]
-[ApiVersion("2")]
 [Tags("Hub Endpoints")]
 [Route("/{version:apiVersion}/device")]
 [Authorize(AuthenticationSchemes = OpenShockAuthSchemes.HubToken)]

@@ -17,6 +17,8 @@ builder.RegisterFrontendOptions();
 builder.Services.AddOpenShockMemDB(redisOptions);
 builder.Services.AddOpenShockDB(databaseOptions);
 builder.Services.AddOpenShockServices();
+// XML documentation comments are applied by a source generator that intercepts this call, so it has to be made here in the host
+builder.Services.AddOpenApi(OpenShockServiceHelper.OpenApiDocumentName, OpenShockServiceHelper.ConfigureOpenApi);
 
 // Hangfire workers fetch enqueued jobs by polling the queue table. The default interval (15s) is
 // left as-is in production - email delivery within that window is fine and it adds no DB load. Only

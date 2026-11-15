@@ -1,6 +1,7 @@
 ﻿using System.Diagnostics;
 using System.Net.Mime;
 using Microsoft.AspNetCore.Mvc;
+using OpenShock.Common.ApiVersioning;
 using OpenShock.Common.Errors;
 using OpenShock.Internal.Common.Problems;
 using AccountSvc = OpenShock.API.Services.Account;
@@ -15,6 +16,7 @@ public sealed partial class AuthenticatedAccountController
     /// </summary>
     /// <response code="204">Done.</response>
     [HttpDelete]
+    [ApiVersion(1)]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status403Forbidden, MediaTypeNames.Application.ProblemJson)] // CannotDeactivatePrivledgedAccount
     public async Task<IActionResult> Deactivate(CancellationToken cancellationToken)

@@ -3,6 +3,7 @@ using System.Net;
 using System.Net.Mime;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using OpenShock.Common.ApiVersioning;
 using OpenShock.Common.Constants;
 using OpenShock.Common.OpenShockDb;
 using OpenShock.Common.Utils;
@@ -237,6 +238,7 @@ public sealed partial class AdminController
     /// <response code="404">Not found</response>
     /// <response code="401">Unauthorized</response>
     [HttpGet("users/{userId}")]
+    [ApiVersion(1)]
     [ProducesResponseType<AdminUserView>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetUserById([FromRoute(Name = "userId")] Guid userId, CancellationToken cancellationToken)

@@ -1,8 +1,8 @@
 ﻿using System.Diagnostics;
-using Asp.Versioning;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.SignalR;
+using OpenShock.Common.ApiVersioning;
 using OpenShock.Common.Authentication;
 using OpenShock.Common.Constants;
 using OpenShock.Common.Hubs;
@@ -21,8 +21,8 @@ namespace OpenShock.LiveControlGateway.Controllers;
 /// Communication with the hubs aka ESP-32 microcontrollers
 /// </summary>
 [ApiController]
-[ApiVersion("2")]
 [Route("/{version:apiVersion}/ws/hub")]
+[ApiVersion(2)]
 [Authorize(AuthenticationSchemes = OpenShockAuthSchemes.HubToken)]
 public sealed class HubV2Controller : HubControllerBase<HubToGatewayMessage, GatewayToHubMessage>
 {

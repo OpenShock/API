@@ -1,9 +1,9 @@
 ﻿using System.ComponentModel.DataAnnotations;
-using Asp.Versioning;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using OpenShock.API.Services.DeviceUpdate;
 using OpenShock.API.Utils;
+using OpenShock.Common.ApiVersioning;
 using OpenShock.Common.Authentication.Attributes;
 using OpenShock.Common.Errors;
 using OpenShock.Common.Models;
@@ -14,8 +14,8 @@ namespace OpenShock.API.Controller.Shares.UserShares;
 public sealed partial class UserSharesController
 {
     [HttpPost("{userId:guid}/shockers/pause")]
+    [ApiVersion(2)]
     [TokenPermission(PermissionType.Usershares_Pause)]
-    [MapToApiVersion("2")]
     [ProducesResponseType<PauseUserShareShockersResponse>(StatusCodes.Status200OK)]
     public async Task<IActionResult> BulkPauseUserShareShockers(
         [FromRoute] Guid userId,

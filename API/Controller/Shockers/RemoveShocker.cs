@@ -1,8 +1,8 @@
 ﻿using System.Net.Mime;
-using Asp.Versioning;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using OpenShock.API.Services.DeviceUpdate;
+using OpenShock.Common.ApiVersioning;
 using OpenShock.Common.Authentication.Attributes;
 using OpenShock.Common.Errors;
 using OpenShock.Common.Extensions;
@@ -23,10 +23,10 @@ public sealed partial class ShockerController
     /// <response code="200">Successfully deleted shocker</response>
     /// <response code="404">Shocker does not exist</response>
     [HttpDelete("{shockerId}")]
+    [ApiVersion(1)]
     [TokenPermission(PermissionType.Shockers_Edit)]
     [ProducesResponseType<LegacyEmptyResponse>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status404NotFound, MediaTypeNames.Application.ProblemJson)] // ShockerNotFound
-    [MapToApiVersion("1")]
     public async Task<IActionResult> RemoveShocker(
         [FromRoute] Guid shockerId,
         [FromServices] IDeviceUpdateService deviceUpdateService,

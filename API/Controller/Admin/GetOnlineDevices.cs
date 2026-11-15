@@ -3,6 +3,7 @@ using System.Net.Mime;
 using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using OpenShock.Common.ApiVersioning;
 using OpenShock.Common.Extensions;
 using OpenShock.Common.JsonSerialization;
 using OpenShock.Common.Models;
@@ -19,6 +20,7 @@ public sealed partial class AdminController
     /// <response code="200">All online devices</response>
     /// <response code="401">Unauthorized</response>
     [HttpGet("monitoring/onlineDevices")]
+    [ApiVersion(1)]
     [ProducesResponseType<LegacyDataResponse<AdminOnlineDeviceResponse[]>>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
     public async Task<IActionResult> GetOnlineDevices(CancellationToken cancellationToken)
     {

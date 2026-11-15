@@ -1,5 +1,4 @@
-﻿using Asp.Versioning;
-using Microsoft.AspNetCore.Authorization;
+﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using OpenShock.API.Services.Account;
 using OpenShock.Common.Authentication;
@@ -12,7 +11,6 @@ namespace OpenShock.API.Controller.Account.Authenticated;
 /// </summary>
 [ApiController]
 [Tags("Account")]
-[ApiVersion("1")]
 [Route("/{version:apiVersion}/account")]
 [Authorize(AuthenticationSchemes = OpenShockAuthSchemes.UserSessionCookie)]
 public sealed partial class AuthenticatedAccountController : AuthenticatedSessionControllerBase

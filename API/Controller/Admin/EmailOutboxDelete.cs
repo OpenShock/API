@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using OpenShock.Common.ApiVersioning;
 
 namespace OpenShock.API.Controller.Admin;
 
@@ -13,6 +14,7 @@ public sealed partial class AdminController
     /// <response code="401">Unauthorized</response>
     /// <response code="404">No such message</response>
     [HttpDelete("email/outbox/{id}")]
+    [ApiVersion(1)]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> DeleteEmailOutbox([FromRoute] Guid id, CancellationToken ct)

@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 using OpenShock.API.Models.Response;
 using OpenShock.API.OAuth;
+using OpenShock.Common.ApiVersioning;
 using OpenShock.Common.Extensions;
 
 namespace OpenShock.API.Controller.OAuth;
@@ -19,9 +20,10 @@ public sealed partial class OAuthController
     /// who initiated the flow.
     /// </remarks>
     /// <param name="provider">The provider key (e.g. <c>discord</c>).</param>
-    [ResponseCache(NoStore = true)]
-    [EnableRateLimiting("auth")]
     [HttpGet("{provider}/signup-data")]
+    [ApiVersion(1)]
+    [EnableRateLimiting("auth")]
+    [ResponseCache(NoStore = true)]
     [ApiExplorerSettings(IgnoreApi = true)]
     public async Task<IActionResult> OAuthSignupGetData([FromRoute] string provider)
     {

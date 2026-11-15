@@ -2,6 +2,7 @@ using System.ComponentModel.DataAnnotations;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 using OpenShock.API.OAuth;
+using OpenShock.Common.ApiVersioning;
 using OpenShock.Common.Extensions;
 
 namespace OpenShock.API.Controller.OAuth;
@@ -18,8 +19,9 @@ public sealed partial class OAuthController
     /// <param name="flow">Flow to run</param>
     /// <response code="302">Redirect to the provider authorization page.</response>
     /// <response code="400">Unsupported or misconfigured provider.</response>
-    [EnableRateLimiting("auth")]
     [HttpPost("{provider}/authorize")]
+    [ApiVersion(1)]
+    [EnableRateLimiting("auth")]
     [ApiExplorerSettings(IgnoreApi = true)]
     public async Task<IActionResult> OAuthAuthorize([FromRoute] string provider, [FromQuery(Name="flow"), Required] OAuthFlow flow)
     {

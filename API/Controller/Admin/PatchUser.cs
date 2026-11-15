@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Mvc;
 using OpenShock.API.Controller.Admin.DTOs;
 using OpenShock.API.Services.Account;
+using OpenShock.Common.ApiVersioning;
 
 namespace OpenShock.API.Controller.Admin;
 
@@ -14,6 +15,7 @@ public sealed partial class AdminController
     /// <response code="404">Not found</response>
     /// <response code="401">Unauthorized</response>
     [HttpPatch("users/{userId}")]
+    [ApiVersion(1)]
     [Consumes(MediaTypeNames.Application.Json)]
     [ProducesResponseType(StatusCodes.Status200OK)]
     public async Task<IActionResult> ModifyUser([FromRoute] Guid userId, [FromBody] UserPatchDto body, [FromServices] IAccountService accountService, CancellationToken ct)

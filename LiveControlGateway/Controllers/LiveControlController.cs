@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
 using Microsoft.EntityFrameworkCore;
+using OpenShock.Common.ApiVersioning;
 using OpenShock.Common.Authentication;
 using OpenShock.Common.Authentication.Attributes;
 using OpenShock.Common.Errors;
@@ -31,8 +32,9 @@ namespace OpenShock.LiveControlGateway.Controllers;
 /// </summary>
 [ApiController]
 [Route("/{version:apiVersion}/ws/live/{hubId:guid}")]
-[TokenPermission(PermissionType.Shockers_Use)]
+[ApiVersion(1)]
 [Authorize(AuthenticationSchemes = OpenShockAuthSchemes.UserSessionApiTokenCombo)]
+[TokenPermission(PermissionType.Shockers_Use)]
 public sealed class LiveControlController : WebsocketBaseController<LiveControlResponse<LiveResponseType>>,
     IActionFilter
 {

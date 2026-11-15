@@ -2,6 +2,7 @@ using System.Net.Mime;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using OpenShock.API.Models.Response;
+using OpenShock.Common.ApiVersioning;
 using OpenShock.Common.Authentication;
 using OpenShock.Common.Extensions;
 using OpenShock.Common.OpenShockDb;
@@ -15,6 +16,7 @@ public sealed partial class AuthenticatedAccountController
     /// </summary>
     /// <response code="200">The account information was successfully retrieved.</response>
     [HttpGet]
+    [ApiVersion(1)]
     [Authorize(AuthenticationSchemes = OpenShockAuthSchemes.UserSessionApiTokenCombo)]
     [ProducesResponseType<UserSelfResponse>(StatusCodes.Status200OK, MediaTypeNames.Application.Json)]
     public UserSelfResponse GetSelf() => new()
