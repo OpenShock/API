@@ -131,11 +131,11 @@ public static class OpenShockMiddlewareHelper
             return IsAllowed(context.Connection.RemoteIpAddress, internalAllowedIpNetworks);
         });
         
-        app.MapOpenApi();
+        app.MapOpenApi(OpenShockServiceHelper.OpenApiDocumentPath);
 
         app.MapScalarApiReference("/scalar/viewer", options =>
                 options
-                    .WithOpenApiRoutePattern("/openapi/{documentName}.json")
+                    .WithOpenApiRoutePattern(OpenShockServiceHelper.OpenApiDocumentPath)
                     .AddDocument(OpenShockServiceHelper.OpenApiDocumentName, "OpenShock API")
                 );
         

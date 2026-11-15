@@ -46,9 +46,15 @@ namespace OpenShock.Common;
 public static class OpenShockServiceHelper
 {
     /// <summary>
-    /// Name of the single OpenAPI document, served at <c>/openapi/{name}.json</c>.
+    /// Name of the single OpenAPI document. It must be the framework's default ("v1"): <see cref="OpenApiDocumentPath"/> has no
+    /// <c>{documentName}</c> segment, so MapOpenApi serves the default document there. It never appears in a URL.
     /// </summary>
-    public const string OpenApiDocumentName = "openshock";
+    public const string OpenApiDocumentName = "v1";
+
+    /// <summary>
+    /// Path the OpenAPI document is served at.
+    /// </summary>
+    public const string OpenApiDocumentPath = "/openapi.json";
 
     /// <summary>
     /// Cap on a single dependency probe. Generous enough not to trip on a slow-but-alive dependency,
