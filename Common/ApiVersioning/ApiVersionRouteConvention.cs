@@ -5,7 +5,7 @@ namespace OpenShock.Common.ApiVersioning;
 
 /// <summary>
 /// Fills the <c>{version:apiVersion}</c> placeholder in the full route (controller route included) of every action with
-/// <see cref="ApiVersionAttribute"/>: <c>/{version:apiVersion}/account</c> + <c>login</c> with <c>[ApiVersion(1)]</c> becomes <c>/1/account/login</c>.
+/// <see cref="ApiVersionAttribute"/>, taken from the action method or else its controller: <c>/{version:apiVersion}/account</c> + <c>login</c> with <c>[ApiVersion(1)]</c> becomes <c>/1/account/login</c>.
 /// </summary>
 /// <remarks>
 /// The placeholder and the attribute go together: a versioned action whose route has no placeholder, or a placeholder on an action
@@ -23,7 +23,8 @@ public sealed class ApiVersionRouteConvention : IApplicationModelConvention
 
             foreach (var action in controller.Actions)
             {
-                var version = action.ActionMethod.GetCustomAttribute<ApiVersionAttribute>(inherit: true)?.Version;
+                var version = (action.ActionMethod.GetCustomAttribute<ApiVersionAttribute>(inherit: true)
+                               ?? controller.ControllerType.GetCustomAttribute<ApiVersionAttribute>(inherit: true))?.Version;
 
                 var selectors = action.Selectors.SelectMany(selector => Version(action, selector, controllerRoutes, version)).ToArray();
 

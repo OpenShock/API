@@ -21,15 +21,11 @@ namespace OpenShock.LiveControlGateway.Controllers;
 /// Communication with the hubs aka ESP-32 microcontrollers
 /// </summary>
 [ApiController]
+[ApiVersion(1)]
 [Route("/{version:apiVersion}/ws/device")]
 [Authorize(AuthenticationSchemes = OpenShockAuthSchemes.HubToken)]
 public sealed class HubV1Controller : HubControllerBase<HubToGatewayMessage, GatewayToHubMessage>
 {
-    /// <inheritdoc />
-    [ApiVersion(1)]
-    public override Task Get([FromServices] IHostApplicationLifetime lifetime, CancellationToken cancellationToken) =>
-        base.Get(lifetime, cancellationToken);
-
     private readonly IHubContext<UserHub, IUserHub> _userHubContext;
 
     /// <summary>
