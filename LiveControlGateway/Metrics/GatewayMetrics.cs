@@ -91,6 +91,7 @@ public sealed class GatewayMetrics
     private readonly Histogram<int> _liveControlLatency;
     private readonly Histogram<int> _hubLatency;
     private readonly Counter<long> _frames;
+    private readonly Counter<long> _updateTicksDropped;
 
     /// <summary>
     /// DI constructor
@@ -132,6 +133,10 @@ public sealed class GatewayMetrics
         // these count ticks of a held control, not discrete presses.
         _frames = meter.CreateCounter<long>("openshock_live_frames", "frames",
             "Live control frames processed by outcome and control type, counted per frame (a bulk frame counts once per frame it carries).");
+
+        // Not tagged per hub: when the loop falls behind it is the gateway stalling, so every hub drops at once.
+        _updateTicksDropped = meter.CreateCounter<long>("openshock_hub_update_ticks_dropped", "ticks",
+            "Hub update loop ticks skipped because the loop fell behind.");
     }
 
     /// <summary>
@@ -158,6 +163,12 @@ public sealed class GatewayMetrics
     public void HubLatency(int latencyMs, IHubController hub) =>
         _hubLatency.Record(latencyMs, _gatewayFqdn, AsnTag(hub.IpInfo), AsnOrgTag(hub.IpInfo),
             CountryTag(hub.IpInfo));
+
+    /// <summary>
+    /// Record hub update loop ticks that were skipped.
+    /// </summary>
+    /// <param name="dropped"></param>
+    public void UpdateTicksDropped(int dropped) => _updateTicksDropped.Add(dropped, _gatewayFqdn);
 
     /// <summary>
     /// The <c>asn</c> tag for a hub's network.
