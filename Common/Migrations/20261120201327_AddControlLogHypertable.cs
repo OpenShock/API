@@ -158,11 +158,6 @@ public partial class _20261120201327_AddControlLogHypertable : Migration
             WHERE type <> 'stop'
             GROUP BY bucket, owner_user_id, shocker_id, controlled_by_user_id, type, live_control
             WITH NO DATA;
-
-            SELECT add_continuous_aggregate_policy('control_stats',
-                start_offset => INTERVAL '3 days',
-                end_offset => INTERVAL '1 hour',
-                schedule_interval => INTERVAL '5 minutes');
             """);
     }
 
