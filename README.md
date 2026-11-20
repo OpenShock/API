@@ -119,8 +119,9 @@ The OpenShock stack consists of the following components:
 
 - Postgres 18+ as database, with the [TimescaleDB](https://github.com/timescale/timescaledb) extension in its
   Community edition (the Apache-2 only `-oss` builds lack features the schema needs). It has to be in
-  `shared_preload_libraries`. The `db` service in `docker-compose.yml` builds such an image on top of `postgres:18`,
-  so an existing `postgres:18` data directory can be reused as is.
+  `shared_preload_libraries`, the API refuses to start otherwise. The `db` service in `docker-compose.yml` uses such an
+  image built on top of `postgres:18` (`ghcr.io/openshock/postgres-timescaledb`), so an existing `postgres:18` data directory can
+  be reused as is.
 - Redis-Stack (with keyspace events KEA) (preferably [DragonflyDB](https://github.com/dragonflydb/dragonfly))
 - One or multiple APIs (container, API)
 - One or multiple gateways (container, LCG)
@@ -150,6 +151,26 @@ Run with `docker compose up -d`
 
 You could also bring your own reverse proxy.  
 You would need to remove traefik from the `docker-compose.yml` and route the traffic in your reverse proxy.
+
+## Upgrading to TimescaleDB
+
+Control logs are stored in a TimescaleDB hypertable. When upgrading an existing instance:
+
+**With the provided `docker-compose.yml`:** pull the new compose file and run `docker compose up -d`. The `db` service
+now uses `ghcr.io/openshock/postgres-timescaledb`, which is `postgres:18` with TimescaleDB on top, so your existing
+`postgres-data` directory is reused and the API migrates it on startup.
+
+**With your own Postgres:** before upgrading OpenShock
+
+1. Install the TimescaleDB Community edition for your Postgres version (e.g. the `timescaledb-2-postgresql-18` package
+   from Timescale's repository). The `-oss` builds and managed offerings that only ship the Apache-2 edition do not
+   work.
+2. Add `timescaledb` to `shared_preload_libraries` in `postgresql.conf` and restart Postgres.
+3. Make sure the database user OpenShock connects with may run `CREATE EXTENSION timescaledb` (usually a superuser),
+   or create the extension in the OpenShock database yourself.
+
+The API checks this on startup and refuses to migrate otherwise. Existing control logs are converted in place, from
+then on they are kept for a year by a retention policy.
 
 ## Security
 
