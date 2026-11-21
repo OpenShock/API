@@ -1,10 +1,8 @@
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Logging.Abstractions;
 using Npgsql;
 using OpenShock.Common;
 using OpenShock.Common.Options;
-using OpenShock.Common.Services.ControlStats;
 using Testcontainers.PostgreSql;
 
 namespace OpenShock.API.IntegrationTests.Tests;
@@ -65,43 +63,9 @@ public sealed class TimescaleDbRequirementTests
         await container.StartAsync();
 
         await ApplyMigrations(WithDatabase(container, "created_on_startup"));
-        await ControlStatsBackfillService.EnsureMaterializedAsync(WithDatabase(container, "created_on_startup"), NullLogger.Instance);
 
         await Assert.That(await HasExtension(container, "created_on_startup")).IsTrue();
         await Assert.That(await HasControlStatsPolicy(container, "created_on_startup")).IsTrue();
-    }
-
-    [Test]
-    public async Task Backfill_MaterializesHistoryThenAddsPolicy()
-    {
-        await using var container = CreateContainer(Community);
-        await container.StartAsync();
-        var connectionString = WithDatabase(container, "backfill");
-
-        await ApplyMigrations(connectionString);
-        await Assert.That(await HasControlStatsPolicy(container, "backfill")).IsFalse();
-
-        // Logs spanning several backfill windows, the owner foreign key is skipped instead of creating a user
-        await Psql(container, "backfill",
-            """
-            SET session_replication_role = replica;
-            INSERT INTO shocker_control_logs (id, owner_user_id, shocker_id, controlled_by_user_id, intensity, max_intensity, duration, type, custom_name, live_control, created_at)
-            SELECT gen_random_uuid(), gen_random_uuid(), gen_random_uuid(), NULL, 50, 50, 1000, 'shock', NULL, false, now() - age
-            FROM unnest(ARRAY[INTERVAL '200 days', INTERVAL '40 days', INTERVAL '2 days']) AS age;
-            """);
-
-        await Assert.That(await ControlStatsBackfillService.EnsureMaterializedAsync(connectionString, NullLogger.Instance)).IsTrue();
-        // A second run finds the policy and does nothing
-        await Assert.That(await ControlStatsBackfillService.EnsureMaterializedAsync(connectionString, NullLogger.Instance)).IsTrue();
-
-        await Assert.That(await HasControlStatsPolicy(container, "backfill")).IsTrue();
-
-        // Only what is materialized, real-time aggregation would show the logs either way
-        await Psql(container, "backfill", "ALTER MATERIALIZED VIEW control_stats SET (timescaledb.materialized_only = true)");
-        await using var connection = new NpgsqlConnection(connectionString);
-        await connection.OpenAsync();
-        await using var command = new NpgsqlCommand("SELECT coalesce(sum(count), 0) FROM control_stats", connection);
-        await Assert.That(Convert.ToInt64(await command.ExecuteScalarAsync())).IsEqualTo(3);
     }
 
     [Test]

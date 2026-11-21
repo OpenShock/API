@@ -2,6 +2,7 @@
 set -e
 
 DLL_NAME="$1"
+shift
 
 CERT_PATH="/defaultcert.pfx"
 
@@ -19,4 +20,4 @@ if [ ! -f "$CERT_PATH" ]; then
   rm key.pem cert.pem
 fi
 
-exec dotnet "$DLL_NAME"
+exec dotnet "$DLL_NAME" "$@"

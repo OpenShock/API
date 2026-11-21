@@ -359,7 +359,8 @@ public static class OpenShockMiddlewareHelper
 
         logger.LogInformation("Waiting for database schema to be up to date (migrations owned by another host)...");
 
-        var deadline = DateTime.UtcNow + (timeout ?? TimeSpan.FromMinutes(5));
+        // No deadline by default, a migration may legitimately take long, e.g. when run as a separate step
+        DateTime? deadline = timeout is { } t ? DateTime.UtcNow + t : null;
         var delay = TimeSpan.FromSeconds(1);
         var maxDelay = TimeSpan.FromSeconds(15);
 
@@ -384,7 +385,7 @@ public static class OpenShockMiddlewareHelper
                 logger.LogWarning(ex, "Could not determine migration state; will retry");
             }
 
-            if (DateTime.UtcNow >= deadline)
+            if (deadline is { } d && DateTime.UtcNow >= d)
                 throw new TimeoutException(
                     "Timed out waiting for the database schema to be brought up to date by the migrator. " +
                     "Ensure the API host (the sole migrator) is running and reachable.");
