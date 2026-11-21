@@ -222,6 +222,9 @@ public static class OpenShockMiddlewareHelper
 
         await using var migrationContext = new MigrationOpenShockContext(options.Conn, options.Debug, loggerFactory);
 
+        // Migrations can rewrite whole tables, e.g. building control_stats from every control log
+        migrationContext.Database.SetCommandTimeout(0); // no timeout
+
         var databaseCreator = migrationContext.GetService<IRelationalDatabaseCreator>();
         if (!await databaseCreator.ExistsAsync())
         {
