@@ -3,6 +3,8 @@ using System.Text;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Storage;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Npgsql;
 using OpenShock.Common.HealthChecks;
@@ -220,6 +222,14 @@ public static class OpenShockMiddlewareHelper
 
         await using var migrationContext = new MigrationOpenShockContext(options.Conn, options.Debug, loggerFactory);
 
+        var databaseCreator = migrationContext.GetService<IRelationalDatabaseCreator>();
+        if (!await databaseCreator.ExistsAsync())
+        {
+            await databaseCreator.CreateAsync();
+        }
+
+        await EnsureTimescaleDbAsync(options.Conn);
+
         var pendingMigrations = (await migrationContext.Database.GetPendingMigrationsAsync()).ToArray();
 
         if (pendingMigrations.Length > 0)
@@ -242,6 +252,41 @@ public static class OpenShockMiddlewareHelper
         }
 
         return app;
+    }
+
+    /// <summary>
+    /// Creates the extension in a transaction that is rolled back: <c>shared_preload_libraries</c> is only readable
+    /// by privileged roles, and the extension only reports its license once created.
+    /// </summary>
+    public static async Task EnsureTimescaleDbAsync(string connectionString)
+    {
+        const string requirement = "The database requires the TimescaleDB Community edition, installed and listed in shared_preload_libraries.";
+
+        var builder = new NpgsqlConnectionStringBuilder(connectionString) { Pooling = false };
+        await using var connection = new NpgsqlConnection(builder.ConnectionString);
+        await connection.OpenAsync();
+        await using var transaction = await connection.BeginTransactionAsync();
+
+        object? license;
+        try
+        {
+            await using var create = new NpgsqlCommand("CREATE EXTENSION IF NOT EXISTS timescaledb", connection, transaction);
+            await create.ExecuteNonQueryAsync();
+
+            await using var read = new NpgsqlCommand("SELECT current_setting('timescaledb.license', true)", connection, transaction);
+            license = await read.ExecuteScalarAsync();
+        }
+        catch (PostgresException ex)
+        {
+            throw new InvalidOperationException($"{requirement} {ex.MessageText}", ex);
+        }
+
+        if (license is not "timescale")
+        {
+            throw new InvalidOperationException(license is string edition
+                ? $"{requirement} Found the {edition} edition."
+                : $"{requirement} It is not preloaded.");
+        }
     }
 
     /// <summary>

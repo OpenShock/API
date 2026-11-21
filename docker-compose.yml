@@ -77,8 +77,8 @@ x-openshock-svc: &openshock-svc
 
 services:
 
-  db: # We need a postgres database, preferably version 18+
-    image: postgres:18
+  db: # We need a postgres database, version 18+, with the TimescaleDB extension (Community edition)
+    image: ghcr.io/openshock/postgres-timescaledb:2.32.1-18.7-trixie # postgres:18 + TimescaleDB Community, built in OpenShock/infra
     restart: unless-stopped
     container_name: openshock-postgres
     healthcheck:

@@ -42,8 +42,6 @@ public sealed class User
     public ICollection<UserShareInvite> OutgoingUserShareInvites { get; } = [];
     public ICollection<UserShareInvite> IncomingUserShareInvites { get; } = [];
     public ICollection<PublicShare> OwnedPublicShares { get; } = [];
-    public ICollection<ShockerControlLog> ShockerControlLogs { get; } = [];
-    public ICollection<ControlStat> ControlStats { get; } = [];
     public ICollection<UserNameChange> NameChanges { get; } = [];
     public ICollection<UserEmailChange> EmailChanges { get; } = [];
     public ICollection<UserPasswordReset> PasswordResets { get; } = [];

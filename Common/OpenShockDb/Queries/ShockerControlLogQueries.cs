@@ -2,39 +2,36 @@ using Microsoft.EntityFrameworkCore;
 
 namespace OpenShock.Common.OpenShockDb;
 
-/// <summary>
-/// Reusable commands over the <c>shocker_control_logs</c> table. Kept here (rather than inline in the
-/// Cron cleanup job) so the raw SQL is a single source of truth that integration tests can execute
-/// directly - a table or column rename then breaks the test rather than surfacing only in production.
-/// </summary>
 public static class ShockerControlLogQueries
 {
     /// <summary>
-    /// Retention trim: per owning user, keeps the newest <paramref name="maxPerUser"/> control logs (by
-    /// <c>created_at</c>) and deletes the rest. Ownership is resolved through
-    /// <c>shocker -&gt; device -&gt; owner</c>, so the cap is per user, not per shocker or device. Runs as a
-    /// single set-based statement (a window function ranks each user's logs newest-first; anything past the
-    /// cap is deleted). Returns the number of rows deleted.
+    /// Skips logs whose id was already written, so retrying a batch can't count it twice, and logs of deleted owners.
     /// </summary>
-    public static Task<int> DeleteControlLogsBeyondPerUserLimitAsync(this OpenShockContext db, int maxPerUser,
+    public static Task<int> InsertControlLogsAsync(this OpenShockContext db, IReadOnlyCollection<ShockerControlLog> logs,
         CancellationToken cancellationToken = default)
     {
-        if (maxPerUser < 0) throw new ArgumentOutOfRangeException(nameof(maxPerUser));
+        if (logs.Count == 0) return Task.FromResult(0);
+
+        var ids = logs.Select(x => x.Id).ToArray();
+        var ownerIds = logs.Select(x => x.OwnerUserId).ToArray();
+        var shockerIds = logs.Select(x => x.ShockerId).ToArray();
+        var controllerIds = logs.Select(x => x.ControlledByUserId).ToArray();
+        var intensities = logs.Select(x => (short)x.Intensity).ToArray();
+        var maxIntensities = logs.Select(x => (short)x.MaxIntensity).ToArray();
+        var durations = logs.Select(x => (long)x.Duration).ToArray();
+        var types = logs.Select(x => x.Type).ToArray();
+        var customNames = logs.Select(x => x.CustomName).ToArray();
+        var live = logs.Select(x => x.LiveControl).ToArray();
+        var createdAts = logs.Select(x => x.CreatedAt).ToArray();
 
         return db.Database.ExecuteSqlAsync(
             $"""
-             WITH ranked_logs AS (
-               SELECT
-                 l.id,
-                 ROW_NUMBER() OVER (PARTITION BY d.owner_id ORDER BY l.created_at DESC) AS rn
-               FROM shocker_control_logs l
-               JOIN shockers s ON s.id = l.shocker_id
-               JOIN devices d ON d.id = s.device_id
-             )
-             DELETE FROM shocker_control_logs l
-             USING ranked_logs rl
-             WHERE l.id = rl.id
-               AND rl.rn > {maxPerUser}
+             INSERT INTO shocker_control_logs (id, owner_user_id, shocker_id, controlled_by_user_id, intensity, max_intensity, duration, type, custom_name, live_control, created_at)
+             SELECT v.*
+             FROM unnest({ids}, {ownerIds}, {shockerIds}, {controllerIds}, {intensities}, {maxIntensities}, {durations}, {types}, {customNames}, {live}, {createdAts})
+               AS v(id, owner_user_id, shocker_id, controlled_by_user_id, intensity, max_intensity, duration, type, custom_name, live_control, created_at)
+             WHERE EXISTS (SELECT 1 FROM users u WHERE u.id = v.owner_user_id)
+             ON CONFLICT DO NOTHING
              """, cancellationToken);
     }
 }

@@ -1,4 +1,5 @@
-﻿using Microsoft.Extensions.Configuration;
+﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -63,6 +64,9 @@ using (var scope = app.Services.CreateScope())
     await DiscordWebhookSeeder.SeedAsync(db, logger);
 
     await transaction.CommitAsync();
+
+    // The refresh policy only covers recent days, the seeded logs go back further
+    await db.Database.ExecuteSqlRawAsync("CALL refresh_continuous_aggregate('control_stats', NULL, NULL)");
 }
 
 Console.WriteLine("Database seeding complete.");

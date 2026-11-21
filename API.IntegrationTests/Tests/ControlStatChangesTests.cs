@@ -7,6 +7,7 @@ using OpenShock.Common.Constants;
 using OpenShock.Common.OpenShockDb;
 using OpenShock.Common.Services.AutomationTokens;
 using OpenShock.Common.Utils;
+using static OpenShock.API.IntegrationTests.Helpers.ControlLogHelper;
 
 namespace OpenShock.API.IntegrationTests.Tests;
 
@@ -37,12 +38,16 @@ public sealed class ControlStatChangesTests
         var controller = await CreateUser("chgctrl");
         var idle = await CreateUser("chgidle");
         var notRequested = await CreateUser("chgother");
-        var shockerId = await CreateShocker(owner, "Changes");
+        var shockerId = await CreateShocker(WebApplicationFactory, owner, "Changes");
         var at = new DateTime(2026, 3, 1, 12, 0, 0, DateTimeKind.Utc);
 
-        await Upsert(
-            Delta(owner, shockerId, controller, at, count: 2, intensity: 40),
-            Delta(owner, shockerId, notRequested, at, count: 7));
+        await Insert(WebApplicationFactory,
+        [
+            Log(owner, shockerId, controller, at, intensity: 40),
+            Log(owner, shockerId, controller, at, intensity: 40),
+            .. Enumerable.Range(0, 7).Select(_ => Log(owner, shockerId, notRequested, at))
+        ]);
+        await RefreshControlStats(WebApplicationFactory);
 
         using var client = await CreateTokenClient([AutomationTokenType.ControlStatsRead]);
         using var doc = await Post(client, new { userIds = new[] { owner, controller, idle } });
@@ -69,13 +74,16 @@ public sealed class ControlStatChangesTests
     {
         var owner = await CreateUser("chgsince");
         var quiet = await CreateUser("chgquiet");
-        var shockerId = await CreateShocker(owner, "Since");
-        var quietShockerId = await CreateShocker(quiet, "Quiet");
+        var shockerId = await CreateShocker(WebApplicationFactory, owner, "Since");
+        var quietShockerId = await CreateShocker(WebApplicationFactory, quiet, "Quiet");
 
         // Old activity only, outside of any lookback
         var old = new DateTime(2026, 1, 1, 12, 0, 0, DateTimeKind.Utc);
-        await Upsert(Delta(owner, shockerId, owner, old, count: 3), Delta(quiet, quietShockerId, quiet, old, count: 1));
+        await Insert(WebApplicationFactory,
+            Log(owner, shockerId, owner, old), Log(owner, shockerId, owner, old), Log(owner, shockerId, owner, old),
+            Log(quiet, quietShockerId, quiet, old));
         await Backdate(owner, quiet);
+        await RefreshControlStats(WebApplicationFactory);
 
         using var client = await CreateTokenClient([AutomationTokenType.ControlStatsRead]);
         var userIds = new[] { owner, quiet };
@@ -87,7 +95,7 @@ public sealed class ControlStatChangesTests
         using (var unchanged = await Post(client, new { since = cursor, userIds }))
             await Assert.That(unchanged.RootElement.GetProperty("users").GetArrayLength()).IsEqualTo(0);
 
-        await Upsert(Delta(owner, shockerId, owner, DateTime.UtcNow, count: 1));
+        await Insert(WebApplicationFactory, Log(owner, shockerId, owner, DateTime.UtcNow));
 
         using var changed = await Post(client, new { since = cursor, userIds });
         var user = changed.RootElement.GetProperty("users").EnumerateArray().Single();
@@ -101,8 +109,10 @@ public sealed class ControlStatChangesTests
     {
         var owner = await CreateUser("chgmin");
         var idle = await CreateUser("chgminidle");
-        var shockerId = await CreateShocker(owner, "MinValue");
-        await Upsert(Delta(owner, shockerId, owner, new DateTime(2026, 1, 1, 12, 0, 0, DateTimeKind.Utc), count: 2));
+        var shockerId = await CreateShocker(WebApplicationFactory, owner, "MinValue");
+        var at = new DateTime(2026, 1, 1, 12, 0, 0, DateTimeKind.Utc);
+        await Insert(WebApplicationFactory, Log(owner, shockerId, owner, at), Log(owner, shockerId, owner, at));
+        await RefreshControlStats(WebApplicationFactory);
 
         using var client = await CreateTokenClient([AutomationTokenType.ControlStatsRead]);
 
@@ -118,10 +128,10 @@ public sealed class ControlStatChangesTests
     }
 
     [Test]
-    public async Task Since_ReportsLateWritesIntoOldBuckets()
+    public async Task Since_ReportsLateWrites()
     {
         var owner = await CreateUser("chglate");
-        var shockerId = await CreateShocker(owner, "Late");
+        var shockerId = await CreateShocker(WebApplicationFactory, owner, "Late");
 
         using var client = await CreateTokenClient([AutomationTokenType.ControlStatsRead]);
         var userIds = new[] { owner };
@@ -131,7 +141,7 @@ public sealed class ControlStatChangesTests
             cursor = initial.RootElement.GetProperty("cursor").GetDateTime();
 
         // Live control from hours ago that only reached the database now, e.g. after an outage
-        await Upsert(Delta(owner, shockerId, owner, DateTime.UtcNow.AddHours(-3), count: 1));
+        await Insert(WebApplicationFactory, Log(owner, shockerId, owner, DateTime.UtcNow.AddHours(-3), live: true));
 
         using var changed = await Post(client, new { since = cursor, userIds });
         var user = changed.RootElement.GetProperty("users").EnumerateArray().Single();
@@ -139,56 +149,41 @@ public sealed class ControlStatChangesTests
     }
 
     [Test]
-    public async Task Since_ReportsControllersWhoseStatsWereDeleted()
+    public async Task DeletedOwners_AreLeftOutOfGivenTotals()
     {
         var owner = await CreateUser("chgdelown");
         var controller = await CreateUser("chgdelctl");
-        var shockerId = await CreateShocker(owner, "Deleted");
-        await Upsert(Delta(owner, shockerId, controller, new DateTime(2026, 1, 1, 12, 0, 0, DateTimeKind.Utc), count: 4));
-        await Backdate(owner);
+        var shockerId = await CreateShocker(WebApplicationFactory, owner, "Deleted");
+        await Insert(WebApplicationFactory,
+            Log(owner, shockerId, controller, new DateTime(2026, 1, 1, 12, 0, 0, DateTimeKind.Utc)));
+        await RefreshControlStats(WebApplicationFactory);
 
-        using var client = await CreateTokenClient([AutomationTokenType.ControlStatsRead]);
-        var userIds = new[] { controller };
-
-        DateTime cursor;
-        using (var initial = await Post(client, new { userIds }))
-            cursor = initial.RootElement.GetProperty("cursor").GetDateTime();
-
-        // As when the owner's account is deleted, which cascades onto their stats
         await using (var scope = WebApplicationFactory.Services.CreateAsyncScope())
         {
             var db = scope.ServiceProvider.GetRequiredService<OpenShockContext>();
-            await db.ControlStats.Where(x => x.OwnerUserId == owner).ExecuteDeleteAsync();
+            await db.Users.Where(x => x.Id == owner).ExecuteDeleteAsync();
         }
 
-        using var changed = await Post(client, new { since = cursor, userIds });
-        var user = changed.RootElement.GetProperty("users").EnumerateArray().Single();
+        using var client = await CreateTokenClient([AutomationTokenType.ControlStatsRead]);
+        using var doc = await Post(client, new { userIds = new[] { controller } });
+
+        var user = doc.RootElement.GetProperty("users").EnumerateArray().Single();
         await Assert.That(user.GetProperty("userId").GetGuid()).IsEqualTo(controller);
         await Assert.That(user.GetProperty("given").GetArrayLength()).IsEqualTo(0);
     }
 
-    /// <summary>Moves the users' rows out of the change lookback, as if written long ago.</summary>
+    /// <summary>Moves the users' logs out of the change lookback, as if written long ago.</summary>
     private async Task Backdate(params Guid[] ownerIds)
     {
         await using var scope = WebApplicationFactory.Services.CreateAsyncScope();
         var db = scope.ServiceProvider.GetRequiredService<OpenShockContext>();
         var longAgo = DateTime.UtcNow.AddDays(-1);
-        await db.ControlStats.Where(x => ownerIds.Contains(x.OwnerUserId))
-            .ExecuteUpdateAsync(x => x.SetProperty(y => y.UpdatedAt, longAgo));
+        await db.ShockerControlLogs.Where(x => ownerIds.Contains(x.OwnerUserId))
+            .ExecuteUpdateAsync(x => x.SetProperty(y => y.InsertedAt, longAgo));
     }
-
-    private static ControlStatDelta Delta(Guid ownerId, Guid shockerId, Guid? controllerId, DateTime at, long count, byte intensity = 50) =>
-        new(ownerId, shockerId, controllerId, at, ControlType.Shock, Live: false, count, DurationMs: count * 1000,
-            IntensityMs: count * 1000 * intensity, intensity);
 
     private static JsonElement SingleShock(JsonElement totals) => totals.EnumerateArray()
         .Single(x => x.GetProperty("type").GetString() == "Shock" && !x.GetProperty("live").GetBoolean());
-
-    private async Task Upsert(params ControlStatDelta[] deltas)
-    {
-        await using var scope = WebApplicationFactory.Services.CreateAsyncScope();
-        await scope.ServiceProvider.GetRequiredService<OpenShockContext>().UpsertControlStatsAsync(deltas);
-    }
 
     private static async Task<JsonDocument> Post(HttpClient client, object body)
     {
@@ -218,25 +213,5 @@ public sealed class ControlStatChangesTests
         var client = WebApplicationFactory.CreateClient();
         client.DefaultRequestHeaders.Add(AuthConstants.AutomationTokenHeaderName, secret);
         return client;
-    }
-
-    private async Task<Guid> CreateShocker(Guid ownerId, string name)
-    {
-        var (deviceId, _) = await TestHelper.CreateDeviceInDb(WebApplicationFactory, ownerId);
-
-        await using var scope = WebApplicationFactory.Services.CreateAsyncScope();
-        var db = scope.ServiceProvider.GetRequiredService<OpenShockContext>();
-
-        var shockerId = Guid.CreateVersion7();
-        db.Shockers.Add(new Shocker
-        {
-            Id = shockerId,
-            Name = name,
-            Model = ShockerModelType.CaiXianlin,
-            RfId = 1234,
-            DeviceId = deviceId
-        });
-        await db.SaveChangesAsync();
-        return shockerId;
     }
 }
