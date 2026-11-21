@@ -15,6 +15,7 @@ using OpenShock.Common;
 using OpenShock.Common.Extensions;
 using OpenShock.Common.Hubs;
 using OpenShock.Common.Services;
+using OpenShock.Common.Services.ControlStats;
 using OpenShock.Common.Services.Device;
 using OpenShock.Common.Services.Ota;
 using Serilog;
@@ -139,6 +140,8 @@ builder.Services.AddScoped<ILCGNodeProvisioner, LCGNodeProvisioner>();
 builder.AddCloudflareTurnstileService();
 
 builder.Services.AddHostedService<RedisSubscriberService>();
+builder.Services.AddHostedService(provider => new ControlStatsBackfillService(databaseOptions.Conn,
+    provider.GetRequiredService<ILogger<ControlStatsBackfillService>>()));
 
 var app = builder.Build();
 

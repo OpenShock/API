@@ -1,9 +1,11 @@
-﻿using System.Net;
+﻿using System.Diagnostics;
+using System.Net;
 using System.Text;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Npgsql;
@@ -238,7 +240,17 @@ public static class OpenShockMiddlewareHelper
         if (pendingMigrations.Length > 0)
         {
             logger.LogInformation("Found pending migrations, applying [{@Migrations}]", string.Join(", ", pendingMigrations));
-            await migrationContext.Database.MigrateAsync();
+
+            // One at a time, so a slow migration shows up in the logs
+            var migrator = migrationContext.GetService<IMigrator>();
+            foreach (var migration in pendingMigrations)
+            {
+                logger.LogInformation("Applying migration {Migration}", migration);
+                var stopwatch = Stopwatch.StartNew();
+                await migrator.MigrateAsync(migration);
+                logger.LogInformation("Applied migration {Migration} in {Elapsed}", migration, stopwatch.Elapsed);
+            }
+
             logger.LogInformation("Applied database migrations... proceeding with startup");
 
             // A migration may have introduced new Postgres types (e.g. a new enum, or a new value on an
