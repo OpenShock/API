@@ -41,7 +41,7 @@ public sealed class SmtpEmailService : IEmailService
     public Task<EmailSendResult> EmailChangeNotice(Contact to, string newEmail, CancellationToken cancellationToken = default)
         => SendMail(to, _templates.EmailChangeNotice, new { To = to, NewEmail = newEmail }, cancellationToken);
 
-    private async Task<EmailSendResult> SendMail<T>(Contact to, EmailTemplate template, T data, CancellationToken cancellationToken = default)
+    private async Task<EmailSendResult> SendMail(Contact to, EmailTemplate template, object data, CancellationToken cancellationToken = default)
     {
         _logger.LogDebug("Sending email");
         var (subject, htmlBody) = await template.RenderAsync(data);

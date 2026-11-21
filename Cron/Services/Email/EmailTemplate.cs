@@ -1,26 +1,21 @@
+using System.Diagnostics;
 using System.Text.Encodings.Web;
 using Fluid;
 using OpenShock.Common.Results;
-using OpenShock.Cron.Services.Email.Mailjet.Mail;
 
 namespace OpenShock.Cron.Services.Email;
 
 public sealed class EmailTemplate
 {
     private static readonly FluidParser Parser = new();
-    private static readonly TemplateOptions Options = CreateOptions();
 
-    private static TemplateOptions CreateOptions()
-    {
-        var options = new TemplateOptions();
-        options.MemberAccessStrategy.Register<Contact>();
-        return options;
-    }
+    // Models expose their public members, including nested ones like Contact
+    private static readonly TemplateOptions Options = new TemplateOptionsBuilder().Build();
 
     public required IFluidTemplate Subject { get; init; }
     public required IFluidTemplate Body { get; init; }
 
-    public async Task<(string Subject, string HtmlBody)> RenderAsync<T>(T data)
+    public async Task<(string Subject, string HtmlBody)> RenderAsync(object data)
     {
         var context = new TemplateContext(data, Options);
         var subject = await Subject.RenderAsync(context);
