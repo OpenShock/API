@@ -1578,6 +1578,16 @@ partial class OpenShockContextModelSnapshot : ModelSnapshot
                 b.Navigation("Device");
             });
 
+        modelBuilder.Entity("OpenShock.Common.OpenShockDb.ShockerControlLog", b =>
+            {
+                b.HasOne("OpenShock.Common.OpenShockDb.User", null)
+                    .WithMany()
+                    .HasForeignKey("OwnerUserId")
+                    .OnDelete(DeleteBehavior.Cascade)
+                    .IsRequired()
+                    .HasConstraintName("fk_shocker_control_logs_owner_user_id");
+            });
+
         modelBuilder.Entity("OpenShock.Common.OpenShockDb.ShockerShareCode", b =>
             {
                 b.HasOne("OpenShock.Common.OpenShockDb.Shocker", "Shocker")

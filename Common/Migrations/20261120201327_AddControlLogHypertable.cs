@@ -122,21 +122,14 @@ public partial class _20261120201327_AddControlLogHypertable : Migration
             SELECT add_retention_policy('shocker_control_logs', drop_after => INTERVAL '1 year');
             """);
 
-        // Logs have no foreign keys, but the owner's logs go with their account
-        migrationBuilder.Sql(
-            """
-            CREATE FUNCTION users_delete_shocker_control_logs() RETURNS trigger LANGUAGE plpgsql AS $$
-            BEGIN
-                DELETE FROM shocker_control_logs l USING removed r WHERE l.owner_user_id = r.id;
-                RETURN NULL;
-            END
-            $$;
-
-            CREATE TRIGGER users_delete_shocker_control_logs
-                AFTER DELETE ON users
-                REFERENCING OLD TABLE AS removed
-                FOR EACH STATEMENT EXECUTE FUNCTION users_delete_shocker_control_logs();
-            """);
+        // Only the owner, the logs outlive their shocker and controller
+        migrationBuilder.AddForeignKey(
+            name: "fk_shocker_control_logs_owner_user_id",
+            table: "shocker_control_logs",
+            column: "owner_user_id",
+            principalTable: "users",
+            principalColumn: "id",
+            onDelete: ReferentialAction.Cascade);
 
         // 15 minute buckets, every time zone's UTC offset is a multiple of that. The refresh window must stay well
         // within the logs' retention, refreshing a bucket whose logs were dropped would wipe its stats.

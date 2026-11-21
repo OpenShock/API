@@ -1,7 +1,7 @@
 ﻿namespace OpenShock.Common.OpenShockDb;
 
 /// <summary>
-/// No foreign keys to shockers and controllers, so their stats survive them being deleted.
+/// No foreign keys to shockers and controllers, so their stats survive them being deleted. The owner's logs go with their account.
 /// </summary>
 public sealed class ShockerControlLog
 {

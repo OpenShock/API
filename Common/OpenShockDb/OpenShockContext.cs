@@ -451,6 +451,12 @@ public class OpenShockContext : DbContext, IDataProtectionKeyContext
             entity.Property(e => e.InsertedAt)
                 .HasDefaultValueSql("now()")
                 .HasColumnName("inserted_at");
+
+            // Only the owner, the logs outlive their shocker and controller
+            entity.HasOne<User>().WithMany()
+                .HasForeignKey(e => e.OwnerUserId)
+                .OnDelete(DeleteBehavior.Cascade)
+                .HasConstraintName("fk_shocker_control_logs_owner_user_id");
         });
 
         modelBuilder.Entity<ControlStat>(entity =>
