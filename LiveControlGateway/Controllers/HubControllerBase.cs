@@ -14,6 +14,7 @@ using OpenShock.Common.Services.Geo;
 using OpenShock.Common.Utils;
 using OpenShock.Internal.Common.Errors;
 using OpenShock.LiveControlGateway.LifetimeManager;
+using OpenShock.LiveControlGateway.Metrics;
 using OpenShock.LiveControlGateway.Options;
 using OpenShock.LiveControlGateway.Websocket;
 using OpenShock.Serialization.Gateway;
@@ -54,6 +55,8 @@ public abstract class HubControllerBase<TIn, TOut> : FlatbuffersWebsocketBaseCon
     private readonly LcgOptions _options;
 
     private readonly HubLifetimeManager _hubLifetimeManager;
+
+    private readonly GatewayMetrics _metrics;
 
     private readonly Timer _keepAliveTimeoutTimer = new(Duration.DeviceKeepAliveInitialTimeout);
     private DateTimeOffset _connected = DateTimeOffset.UtcNow;
@@ -107,6 +110,7 @@ public abstract class HubControllerBase<TIn, TOut> : FlatbuffersWebsocketBaseCon
         _hubLifetimeManager = hubLifetimeManager;
         ServiceProvider = serviceProvider;
         _options = options;
+        _metrics = serviceProvider.GetRequiredService<GatewayMetrics>();
         _keepAliveTimeoutTimer.Elapsed += async (_, _) =>
         {
             try
@@ -245,6 +249,8 @@ public abstract class HubControllerBase<TIn, TOut> : FlatbuffersWebsocketBaseCon
 
         // Reset the keep alive timeout
         _keepAliveTimeoutTimer.Interval = Duration.DeviceKeepAliveTimeout.TotalMilliseconds;
+
+        if (latency.HasValue) _metrics.HubLatency(latency.Value, this);
         
         await HubLifetime.Online(CurrentHubId, new SelfOnlineData
         {

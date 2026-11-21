@@ -205,6 +205,7 @@ public sealed class HubLifetimeManager
             _redisConnectionProvider,
             _redisPubService,
             _batchUpdateService,
+            _metrics,
             _loggerFactory.CreateLogger<HubLifetime>());
 
         return deviceLifetime;
