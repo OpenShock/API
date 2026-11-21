@@ -1,5 +1,4 @@
-﻿using System.Text.Json;
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using NRedisStack.RedisStackCommands;
 using OpenShock.Common.Constants;
 using OpenShock.Common.OpenShockDb;
@@ -169,14 +168,12 @@ public sealed class BatchUpdateService : BackgroundService, IBatchUpdateService
         }
         catch (Exception e)
         {
-            _logger.LogWarning(e, "Failed to insert control logs on shutdown");
-        }
-
-        lock (_controlLogsLock)
-        {
-            _logger.LogCritical("Lost {Count} control logs on shutdown, the database didn't take them: {Logs}",
-                _controlLogs.Count, JsonSerializer.Serialize(_controlLogs));
-            _controlLogs = [];
+            lock (_controlLogsLock)
+            {
+                _logger.LogCritical(e, "Lost {Count} control logs on shutdown, the database didn't take them",
+                    _controlLogs.Count);
+                _controlLogs = [];
+            }
         }
     }
 

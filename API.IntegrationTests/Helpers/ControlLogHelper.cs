@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using Npgsql;
 using OpenShock.Common.OpenShockDb;
 
 namespace OpenShock.API.IntegrationTests.Helpers;
@@ -61,8 +62,22 @@ public static class ControlLogHelper
         try
         {
             await using var scope = factory.Services.CreateAsyncScope();
-            await scope.ServiceProvider.GetRequiredService<OpenShockContext>().Database.ExecuteSqlRawAsync(
-                "CALL refresh_continuous_aggregate('control_stats', NULL, now() - INTERVAL '1 hour')");
+            var db = scope.ServiceProvider.GetRequiredService<OpenShockContext>();
+
+            // The refresh policy job may hold the same range, TimescaleDB fails instead of waiting
+            for (var attempt = 1;; attempt++)
+            {
+                try
+                {
+                    await db.Database.ExecuteSqlRawAsync(
+                        "CALL refresh_continuous_aggregate('control_stats', NULL, now() - INTERVAL '1 hour')");
+                    return;
+                }
+                catch (PostgresException e) when (e.SqlState == PostgresErrorCodes.LockNotAvailable && attempt < 10)
+                {
+                    await Task.Delay(TimeSpan.FromMilliseconds(200 * attempt));
+                }
+            }
         }
         finally
         {
