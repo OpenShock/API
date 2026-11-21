@@ -34,8 +34,8 @@ public sealed class ControlStatsBackfillService : BackgroundService
         {
             try
             {
-                await EnsureMaterializedAsync(_connectionString, _logger, stoppingToken);
-                return;
+                // Another instance holding the lock may stop before it's done, so keep checking until the policy exists
+                if (await EnsureMaterializedAsync(_connectionString, _logger, stoppingToken)) return;
             }
             catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
             {
@@ -54,23 +54,24 @@ public sealed class ControlStatsBackfillService : BackgroundService
     /// Materializes the history and adds the refresh policy, unless the policy already exists. Safe to run from
     /// several instances and to interrupt, a later run continues from what is already materialized.
     /// </summary>
-    public static async Task EnsureMaterializedAsync(string connectionString, ILogger logger, CancellationToken cancellationToken = default)
+    /// <returns>Whether the policy exists now, false while another instance is still materializing.</returns>
+    public static async Task<bool> EnsureMaterializedAsync(string connectionString, ILogger logger, CancellationToken cancellationToken = default)
     {
         await using var connection = new NpgsqlConnection(connectionString);
         await connection.OpenAsync(cancellationToken);
 
-        if (await HasPolicyAsync(connection, cancellationToken)) return;
+        if (await HasPolicyAsync(connection, cancellationToken)) return true;
 
         if (!await ScalarAsync<bool>(connection, $"SELECT pg_try_advisory_lock({LockKey})", cancellationToken))
         {
             logger.LogInformation("control_stats is being materialized by another instance");
-            return;
+            return false;
         }
 
         try
         {
             // Checked again, another instance may have finished between the check and taking the lock
-            if (await HasPolicyAsync(connection, cancellationToken)) return;
+            if (await HasPolicyAsync(connection, cancellationToken)) return true;
 
             var stopwatch = Stopwatch.StartNew();
             await MaterializeHistoryAsync(connection, logger, cancellationToken);
@@ -86,6 +87,7 @@ public sealed class ControlStatsBackfillService : BackgroundService
                 """, cancellationToken);
 
             logger.LogInformation("Materialized control_stats in {Elapsed}", stopwatch.Elapsed);
+            return true;
         }
         finally
         {

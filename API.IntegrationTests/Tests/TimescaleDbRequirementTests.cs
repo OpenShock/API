@@ -90,9 +90,9 @@ public sealed class TimescaleDbRequirementTests
             FROM unnest(ARRAY[INTERVAL '200 days', INTERVAL '40 days', INTERVAL '2 days']) AS age;
             """);
 
-        await ControlStatsBackfillService.EnsureMaterializedAsync(connectionString, NullLogger.Instance);
+        await Assert.That(await ControlStatsBackfillService.EnsureMaterializedAsync(connectionString, NullLogger.Instance)).IsTrue();
         // A second run finds the policy and does nothing
-        await ControlStatsBackfillService.EnsureMaterializedAsync(connectionString, NullLogger.Instance);
+        await Assert.That(await ControlStatsBackfillService.EnsureMaterializedAsync(connectionString, NullLogger.Instance)).IsTrue();
 
         await Assert.That(await HasControlStatsPolicy(container, "backfill")).IsTrue();
 
