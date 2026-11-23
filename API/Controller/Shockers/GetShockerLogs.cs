@@ -74,6 +74,7 @@ public sealed partial class ShockerController
                     Duration = x.Duration,
                     Intensity = x.Intensity,
                     Type = x.Type,
+                    LiveControl = x.LiveControl,
                     CreatedOn = x.CreatedAt,
                     ControlledBy = u != null
                         ? new ControlLogSenderLight
@@ -147,6 +148,7 @@ public sealed partial class ShockerController
                 Duration = x.Log.Duration,
                 Intensity = x.Log.Intensity,
                 Type = x.Log.Type,
+                LiveControl = x.Log.LiveControl,
                 CreatedOn = x.Log.CreatedAt,
                 ControlledBy = x.Controller != null
                     ? new ControlLogSenderLight

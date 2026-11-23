@@ -18,4 +18,6 @@ public sealed class ControlLog
     public required uint Duration { get; init; }
 
     public required DateTime ExecutedAt { get; init; }
+
+    public bool LiveControl { get; init; }
 }

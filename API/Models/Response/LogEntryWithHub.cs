@@ -22,4 +22,6 @@ public sealed class LogEntryWithHub
     public required byte Intensity { get; init; }
 
     public required uint Duration { get; init; }
+
+    public required bool LiveControl { get; init; }
 }

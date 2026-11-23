@@ -9,6 +9,7 @@ using OpenShock.Common.ApiVersioning;
 using OpenShock.Common.Authentication;
 using OpenShock.Common.Authentication.Attributes;
 using OpenShock.Common.Errors;
+using OpenShock.Common.Extensions;
 using OpenShock.Common.Models;
 using OpenShock.Common.Models.WebSocket;
 using OpenShock.Common.Models.WebSocket.LCG;
@@ -57,6 +58,7 @@ public sealed class LiveControlController : WebsocketBaseController<LiveControlR
     };
 
     private User _currentUser = null!;
+    private ControlLogSender _logSender = null!;
 
     /// <summary>
     /// Id of the API token used to authenticate, if any. Null when authenticated via a user session.
@@ -249,6 +251,15 @@ public sealed class LiveControlController : WebsocketBaseController<LiveControlR
     public void OnActionExecuting(ActionExecutingContext context)
     {
         _currentUser = GetRequiredItem<User>();
+        _logSender = new ControlLogSender
+        {
+            Id = _currentUser.Id,
+            Name = _currentUser.Name,
+            Image = _currentUser.GetImageUrl(),
+            CustomName = null,
+            ConnectionId = HttpContext.Connection.Id,
+            AdditionalItems = []
+        };
 
         // When authenticated via an API token, the token may scope/pause shocker control.
         // Session auth carries no such limits.
@@ -513,7 +524,7 @@ public sealed class LiveControlController : WebsocketBaseController<LiveControlR
         var intensity = Math.Clamp(scopedIntensity, HardLimits.MinControlIntensity,
             perms.Intensity ?? HardLimits.MaxControlIntensity);
 
-        var result = HubLifetime.ReceiveFrame(frame.Shocker, _currentUser.Id, frame.Type, intensity, _tps);
+        var result = HubLifetime.ReceiveFrame(frame.Shocker, _logSender, frame.Type, intensity, _tps);
 
         switch (result)
         {
