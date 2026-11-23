@@ -1007,8 +1007,7 @@ public class OpenShockContext : DbContext, IDataProtectionKeyContext
                 .HasColumnName("password_hash_type");
             entity.Property(e => e.Roles)
                 .HasColumnType("role_type[]")
-                .HasColumnName("roles")
-                .HasConversion(x => x.ToArray(), x => x.ToList());
+                .HasColumnName("roles");
             entity.Property(e => e.CreatedAt)
                 .HasColumnName("created_at");
             entity.Property(e => e.ActivatedAt)

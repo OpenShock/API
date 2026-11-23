@@ -53,4 +53,59 @@ public sealed class AdminUsersViewTests
         var view = await db.AdminUsersViews.AsNoTracking().FirstAsync(v => v.Id == userId);
         await Assert.That(view.PasswordHashType).IsNull();
     }
+
+    [Test]
+    public async Task Roles_ForUserWithoutRoles_MaterializesAsEmptyList()
+    {
+        var userId = Guid.CreateVersion7();
+
+        await using (var writeScope = WebApplicationFactory.Services.CreateAsyncScope())
+        {
+            var writeDb = writeScope.ServiceProvider.GetRequiredService<OpenShockContext>();
+            writeDb.Users.Add(new User
+            {
+                Id = userId,
+                Name = TestHelper.UniqueUsername("adminviewnoroles"),
+                Email = TestHelper.UniqueEmail("adminviewnoroles"),
+                PasswordHash = null,
+                ActivatedAt = DateTime.UtcNow,
+                Roles = []
+            });
+            await writeDb.SaveChangesAsync();
+        }
+
+        await using var readScope = WebApplicationFactory.Services.CreateAsyncScope();
+        var readDb = readScope.ServiceProvider.GetRequiredService<OpenShockContext>();
+
+        var view = await readDb.AdminUsersViews.AsNoTracking().FirstAsync(v => v.Id == userId);
+        await Assert.That(view.Roles).IsEmpty();
+    }
+
+    [Test]
+    public async Task Roles_ForUserWithRoles_MaterializesRoles()
+    {
+        var userId = Guid.CreateVersion7();
+        List<RoleType> expectedRoles = [RoleType.Support, RoleType.Staff, RoleType.Admin];
+
+        await using (var writeScope = WebApplicationFactory.Services.CreateAsyncScope())
+        {
+            var writeDb = writeScope.ServiceProvider.GetRequiredService<OpenShockContext>();
+            writeDb.Users.Add(new User
+            {
+                Id = userId,
+                Name = TestHelper.UniqueUsername("adminviewroles"),
+                Email = TestHelper.UniqueEmail("adminviewroles"),
+                PasswordHash = null,
+                ActivatedAt = DateTime.UtcNow,
+                Roles = expectedRoles
+            });
+            await writeDb.SaveChangesAsync();
+        }
+
+        await using var readScope = WebApplicationFactory.Services.CreateAsyncScope();
+        var readDb = readScope.ServiceProvider.GetRequiredService<OpenShockContext>();
+
+        var view = await readDb.AdminUsersViews.AsNoTracking().FirstAsync(v => v.Id == userId);
+        await Assert.That(view.Roles).IsEquivalentTo(expectedRoles);
+    }
 }
