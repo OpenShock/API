@@ -29,12 +29,23 @@ public static class AccountError
     public static OpenShockProblem AccountActivationResendUnavailable => new OpenShockProblem("Account.Activation.ResendUnavailable", "No activation email can be resent from this browser", HttpStatusCode.BadRequest);
     public static OpenShockProblem AccountActivationResendTooMany => new OpenShockProblem("Account.Activation.ResendTooMany", "Too many activation emails have been requested. Please try again later", HttpStatusCode.TooManyRequests);
     public static OpenShockProblem AccountActivationNotFound => new OpenShockProblem("Account.Activation.NotFound", "There is no account activation request matching the supplied token", HttpStatusCode.BadRequest);
+    public static OpenShockProblem AccountActivationCredentialRequired(bool hasPassword, IReadOnlyList<string> oauthProviders, bool passwordInvalid) => new OpenShockProblem(
+        "Account.Activation.CredentialRequired",
+        "Activating this account from this browser also requires its password or a sign-in with its linked provider", HttpStatusCode.Forbidden)
+    {
+        Extensions = new Dictionary<string, object?>
+        {
+            { "hasPassword", hasPassword },
+            { "oauthProviders", oauthProviders },
+            { "passwordInvalid", passwordInvalid }
+        }
+    };
     public static OpenShockProblem AccountDeactivated => new OpenShockProblem("Account.Deactivated", "Your account has been deactivated", HttpStatusCode.Unauthorized);
 
     public static OpenShockProblem AccountOAuthOnly => new OpenShockProblem("Account.OAuthOnly", "This account is only accessible via OAuth", HttpStatusCode.Unauthorized);
 
     public static OpenShockProblem PasswordNotSet => new OpenShockProblem("Account.Password.NotSet",
-        "This account has no password set. Initiate a password set flow via POST /password/set instead.", HttpStatusCode.Conflict);
+        "This account has no password set. Set one through the password reset flow (POST /2/account/password-reset) instead.", HttpStatusCode.Conflict);
 
     public static OpenShockProblem EmailChangeAlreadyInUse => new OpenShockProblem("Account.Email.AlreadyInUse",
         "This email address is already in use", HttpStatusCode.Conflict);

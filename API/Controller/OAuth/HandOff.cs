@@ -67,8 +67,11 @@ public sealed partial class OAuthController
                     // If the provider returned an email that already belongs to an existing OpenShock
                     // user, do not allow creating a second account with the same email. The user must
                     // log in to that account and link the provider from the connections settings.
+                    // Only for an address the provider verified: an unverified one is whatever the caller typed
+                    // at the provider, and answering for it would tell anyone which emails are registered.
                     var externalEmail = auth.Principal.FindFirst(ClaimTypes.Email)?.Value;
                     if (!string.IsNullOrWhiteSpace(externalEmail) &&
+                        IsTruthy(auth.Principal.FindFirst(OAuthConstants.ClaimEmailVerified)?.Value) &&
                         await _accountService.IsEmailRegisteredAsync(externalEmail, cancellationToken))
                     {
                         await HttpContext.SignOutAsync(OAuthConstants.FlowScheme);
@@ -87,22 +90,33 @@ public sealed partial class OAuthController
                     return RedirectFrontendError("accountDeactivated");
                 }
 
-                if (connection.User.ActivatedAt is null)
+                // A flow started from the account's emailed activation link that comes back with the linked
+                // identity shows inbox and credential are held by the same party, so the account is theirs:
+                // activate it and carry on to the sign-in below.
+                var isActivated = connection.User.ActivatedAt is not null ||
+                    (auth.Properties.Items.TryGetValue(OAuthConstants.ItemKeyActivationToken, out var activationToken) &&
+                     !string.IsNullOrEmpty(activationToken) &&
+                     await _accountService.TryActivateAccountAsync(connection.UserId, activationToken, cancellationToken));
+
+                if (!isActivated)
                 {
-                    // The provider vouched for the identity, so the caller owns this account: (re)send the
-                    // activation link (rate limited inside the service).
+                    // The provider vouched for the identity, so the caller holds the account's credential: (re)send
+                    // the activation link (rate limited inside the service). Opening it is still required, the
+                    // address on the account was typed in at signup and is not known to be theirs.
                     try
                     {
                         await _accountService.ResendActivationEmailAsync(connection.UserId, cancellationToken);
                     }
                     catch (Exception ex) when (ex is not OperationCanceledException)
                     {
-                        // Best effort: still clear the flow cookie and redirect with the real reason.
+                        // Best effort: the redirect below still tells the user what is going on.
                         _logger.LogError(ex, "Failed to resend activation email on OAuth login");
                     }
 
-                    await HttpContext.SignOutAsync(OAuthConstants.FlowScheme);
-                    return RedirectFrontendError("accountNotActivated");
+                    // Back to the signup form with the flow cookie kept: it explains that activation is
+                    // pending, and lets someone who mistyped their email correct it instead of being stuck
+                    // with an account they can never activate (see OAuthSignupFinalize).
+                    return RedirectFrontendPath($"/oauth/{Uri.EscapeDataString(provider)}/create?pending=1");
                 }
 
                 // Direct sign-in

@@ -88,12 +88,38 @@ public sealed partial class OAuthController
         var isVerifiedString = auth.Principal.FindFirst(OAuthConstants.ClaimEmailVerified)?.Value;
         var isEmailTrusted = IsTruthy(isVerifiedString) && string.Equals(externalAccountEmail, email, StringComparison.InvariantCultureIgnoreCase);
 
-        // Do not allow creation if this external is already linked anywhere.
+        // Do not allow creation if this external is already linked to a real account.
         var existing = await connectionService.GetByProviderExternalIdAsync(provider, auth.ExternalAccountId, cancellationToken);
         if (existing is not null)
         {
-            await HttpContext.SignOutAsync(OAuthConstants.FlowScheme);
-            return Problem(OAuthError.ExternalAlreadyLinked);
+            if (existing.User.ActivatedAt is not null || existing.User.UserDeactivation is not null)
+            {
+                await HttpContext.SignOutAsync(OAuthConstants.FlowScheme);
+                return Problem(OAuthError.ExternalAlreadyLinked);
+            }
+
+            // Linked to a signup this identity started but never activated, most likely because the email
+            // was mistyped and the link never arrived. The caller just proved they hold the identity, and a
+            // pending account has nothing in it, so let them start over instead of being stuck with it.
+            if (isEmailTrusted)
+            {
+                // The provider vouches for the new address: replace the pending account with a real one below.
+                await _accountService.DiscardPendingAccountAsync(existing.UserId, cancellationToken);
+            }
+            else
+            {
+                var restarted = await _accountService.RestartPendingSignupAsync(existing.UserId, email, username, cancellationToken);
+                if (restarted.Value is not User pendingUser)
+                {
+                    // Username or email already exists: keep the flow cookie so the frontend can retry.
+                    return Problem(SignupError.UsernameOrEmailExists);
+                }
+
+                ActivationResendCookie.Set(HttpContext, pendingUser.Id, domain);
+                await HttpContext.SignOutAsync(OAuthConstants.FlowScheme);
+
+                return Ok(LoginV2OkResponse.FromUser(pendingUser));
+            }
         }
 
         var created = await _accountService.CreateOAuthOnlyAccountAsync(
@@ -128,16 +154,5 @@ public sealed partial class OAuthController
         await HttpContext.SignOutAsync(OAuthConstants.FlowScheme);
 
         return Ok(LoginV2OkResponse.FromUser(newUser));
-
-        static bool IsTruthy(string? value)
-        {
-            if (string.IsNullOrWhiteSpace(value)) return false;
-            return value.Trim().ToLowerInvariant() switch
-            {
-                "0" or "no" or "false" => false,
-                "1" or "yes" or "true" => true,
-                _ => false
-            };
-        }
     }
 }

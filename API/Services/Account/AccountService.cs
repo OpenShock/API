@@ -100,6 +100,8 @@ public sealed class AccountService : IAccountService
         if (await IsUserNameBlacklisted(username, cancellationToken) || await IsEmailProviderBlacklisted(email, cancellationToken))
             return new AccountWithEmailOrUsernameExists();
         
+        await ReleaseEmailFromPendingAccountAsync(email, claimantOwnsEmail: false, exceptUserId: null, cancellationToken);
+
         if (await _db.Users.AnyAsync(x => x.Email == email || x.Name == username, cancellationToken))
             return new AccountWithEmailOrUsernameExists();
 
@@ -167,7 +169,89 @@ public sealed class AccountService : IAccountService
     public Task<bool> IsEmailRegisteredAsync(string email, CancellationToken cancellationToken = default)
     {
         email = email.ToLowerInvariant();
-        return _db.Users.AnyAsync(u => u.Email == email, cancellationToken);
+        return _db.Users.AnyAsync(u => u.Email == email && u.ActivatedAt != null, cancellationToken);
+    }
+
+    /// <summary>
+    /// A never activated account is only a pending signup: nobody has shown the address is theirs, so it
+    /// must not keep the real owner (or anyone else) from signing up with that address. This deletes the
+    /// pending account holding <paramref name="email"/>, if there is one and it may be released.
+    /// </summary>
+    /// <param name="email">Lowercased address.</param>
+    /// <param name="claimantOwnsEmail">
+    /// The caller proved the address is theirs (an OAuth provider verified it). Otherwise the pending account
+    /// is left alone while it is younger than the activation resend cooldown: that gives its creator time to
+    /// open the link, and keeps repeated signups from mailing the address more often than a resend could.
+    /// </param>
+    /// <param name="exceptUserId">A pending account that is the caller's own and must be kept.</param>
+    /// <param name="cancellationToken"></param>
+    private async Task ReleaseEmailFromPendingAccountAsync(string email, bool claimantOwnsEmail, Guid? exceptUserId, CancellationToken cancellationToken)
+    {
+        var pending = await _db.Users
+            .Include(u => u.UserDeactivation)
+            .FirstOrDefaultAsync(u => u.Email == email && u.ActivatedAt == null, cancellationToken);
+        if (pending is null || pending.Id == exceptUserId) return;
+        if (pending.UserDeactivation is not null || PrivilegedRoles.Any(pending.Roles)) return;
+        if (!claimantOwnsEmail && pending.CreatedAt > DateTime.UtcNow - Duration.ActivationResendCooldown) return;
+
+        _db.Users.Remove(pending);
+        await _db.SaveChangesAsync();
+    }
+
+    /// <inheritdoc />
+    public async Task<bool> DiscardPendingAccountAsync(Guid userId, CancellationToken cancellationToken = default)
+    {
+        var user = await _db.Users
+            .Include(u => u.UserDeactivation)
+            .FirstOrDefaultAsync(u => u.Id == userId, cancellationToken);
+        if (user is null || user.ActivatedAt is not null || user.UserDeactivation is not null || PrivilegedRoles.Any(user.Roles)) return false;
+
+        _db.Users.Remove(user);
+        await _db.SaveChangesAsync();
+
+        return true;
+    }
+
+    /// <inheritdoc />
+    public async Task<Union3<User, AccountWithEmailOrUsernameExists, NotFound>> RestartPendingSignupAsync(Guid userId, string email, string username, CancellationToken cancellationToken = default)
+    {
+        email = email.ToLowerInvariant();
+
+        var user = await _db.Users
+            .Include(u => u.UserDeactivation)
+            .FirstOrDefaultAsync(u => u.Id == userId, cancellationToken);
+        if (user is null || user.ActivatedAt is not null || user.UserDeactivation is not null) return new NotFound();
+
+        var emailChanged = user.Email != email;
+        if (emailChanged || user.Name != username)
+        {
+            if (await IsUserNameBlacklisted(username, cancellationToken) || await IsEmailProviderBlacklisted(email, cancellationToken))
+                return new AccountWithEmailOrUsernameExists();
+
+            await ReleaseEmailFromPendingAccountAsync(email, claimantOwnsEmail: false, exceptUserId: userId, cancellationToken);
+
+            if (await _db.Users.AnyAsync(u => u.Id != userId && (u.Email == email || u.Name == username), cancellationToken))
+                return new AccountWithEmailOrUsernameExists();
+
+            user.Email = email;
+            user.Name = username;
+
+            try
+            {
+                await _db.SaveChangesAsync();
+            }
+            catch (DbUpdateException ex) when (ex.InnerException is PostgresException { SqlState: "23505" })
+            {
+                return new AccountWithEmailOrUsernameExists();
+            }
+        }
+
+        // A corrected address has not been mailed yet, so the cooldown (which protects an inbox from repeats)
+        // does not apply to it; the daily cap per account still does. A throttled result just means no new
+        // mail went out, and the resend button gets it later.
+        await ResendActivationEmailCoreAsync(userId, ignoreCooldown: emailChanged, cancellationToken);
+
+        return user;
     }
 
     public async Task<AccountCreationResult> CreateOAuthOnlyAccountAsync(
@@ -189,6 +273,9 @@ public sealed class AccountService : IAccountService
         // Reuse your existing guards
         if (await IsUserNameBlacklisted(username, cancellationToken) || await IsEmailProviderBlacklisted(email, cancellationToken))
             return new AccountWithEmailOrUsernameExists();
+
+        // A provider-verified address belongs to this caller, so a pending account someone parked on it goes.
+        await ReleaseEmailFromPendingAccountAsync(email, claimantOwnsEmail: isEmailTrusted, exceptUserId: null, cancellationToken);
 
         // Fast uniqueness check (optimistic; race handled by unique constraints below)
         var exists = await _db.Users.AnyAsync(u => u.Email == email || u.Name == username, cancellationToken);
@@ -258,13 +345,55 @@ public sealed class AccountService : IAccountService
     }
 
 
-    public async Task<bool> TryActivateAccountAsync(string secret, CancellationToken cancellationToken = default)
+    /// <inheritdoc />
+    public async Task<Union3<Success, ActivationCredentialRequired, NotFound>> ActivateAccountAsync(string activationToken, Guid? signupBrowserUserId, string? password, CancellationToken cancellationToken = default)
     {
-        var hash = HashingUtils.HashToken(secret);
+        var hash = HashingUtils.HashToken(activationToken);
 
         var user = await _db.Users
             .Include(u => u.UserActivationRequest)
-            .FirstOrDefaultAsync(x => x.UserDeactivation == null && x.UserActivationRequest != null && x.UserActivationRequest.TokenHash == hash, cancellationToken);
+            .FirstOrDefaultAsync(x => x.ActivatedAt == null && x.UserDeactivation == null && x.UserActivationRequest != null && x.UserActivationRequest.TokenHash == hash, cancellationToken);
+        if (user?.UserActivationRequest is null) return new NotFound();
+
+        // The token proves the caller reads this inbox, nothing more: the account, and the password or OAuth
+        // identity on it, may have been set up by someone else using this address. So the caller must also
+        // be the one who signed up: the browser that did, or someone who knows the password.
+        var hasPassword = !string.IsNullOrEmpty(user.PasswordHash);
+        var credentialProven = signupBrowserUserId == user.Id;
+        var passwordInvalid = false;
+        if (!credentialProven && hasPassword && !string.IsNullOrEmpty(password))
+        {
+            credentialProven = HashingUtils.VerifyPassword(password, user.PasswordHash!).Verified;
+            passwordInvalid = !credentialProven;
+        }
+
+        if (!credentialProven)
+        {
+            var providers = await _db.UserOAuthConnections
+                .Where(c => c.UserId == user.Id)
+                .Select(c => c.ProviderKey)
+                .ToListAsync(cancellationToken);
+
+            return new ActivationCredentialRequired(hasPassword, providers, passwordInvalid);
+        }
+
+        user.ActivatedAt = DateTime.UtcNow;
+
+        _db.UserActivationRequests.Remove(user.UserActivationRequest);
+
+        await _db.SaveChangesAsync();
+
+        return new Success();
+    }
+
+    /// <inheritdoc />
+    public async Task<bool> TryActivateAccountAsync(Guid userId, string activationToken, CancellationToken cancellationToken = default)
+    {
+        var hash = HashingUtils.HashToken(activationToken);
+
+        var user = await _db.Users
+            .Include(u => u.UserActivationRequest)
+            .FirstOrDefaultAsync(x => x.Id == userId && x.ActivatedAt == null && x.UserDeactivation == null && x.UserActivationRequest != null && x.UserActivationRequest.TokenHash == hash, cancellationToken);
         if (user?.UserActivationRequest is null) return false;
 
         user.ActivatedAt = DateTime.UtcNow;
@@ -291,7 +420,10 @@ public sealed class AccountService : IAccountService
     }
 
     /// <inheritdoc />
-    public async Task<Union4<Success, TooManyActivationResends, AccountDeactivated, NotFound>> ResendActivationEmailAsync(Guid userId, CancellationToken cancellationToken = default)
+    public Task<Union4<Success, TooManyActivationResends, AccountDeactivated, NotFound>> ResendActivationEmailAsync(Guid userId, CancellationToken cancellationToken = default)
+        => ResendActivationEmailCoreAsync(userId, ignoreCooldown: false, cancellationToken);
+
+    private async Task<Union4<Success, TooManyActivationResends, AccountDeactivated, NotFound>> ResendActivationEmailCoreAsync(Guid userId, bool ignoreCooldown, CancellationToken cancellationToken)
     {
         // Without mail no link can be delivered (and such accounts are activated on creation anyway).
         if (!_mailOptions.IsEnabled) return new NotFound();
@@ -317,7 +449,7 @@ public sealed class AccountService : IAccountService
             .Select(m => m.CreatedAt)
             .ToListAsync(cancellationToken);
 
-        if (recent.Count >= 5 || recent.Any(createdAt => createdAt >= DateTime.UtcNow - Duration.ActivationResendCooldown))
+        if (recent.Count >= 5 || (!ignoreCooldown && recent.Any(createdAt => createdAt >= DateTime.UtcNow - Duration.ActivationResendCooldown)))
             return new TooManyActivationResends();
 
         user.UserActivationRequest ??= new UserActivationRequest
@@ -588,6 +720,7 @@ public sealed class AccountService : IAccountService
             {
                 Reset = x,
                 IsDeactivated = x.User.UserDeactivation != null,
+                WasActivated = x.User.ActivatedAt != null,
                 UserSecurityStamp = x.User.SecurityStamp
             })
             .FirstOrDefaultAsync(x => x.Reset.Id == passwordResetId && x.Reset.UsedAt == null && x.Reset.CreatedAt >= validSince
@@ -625,6 +758,24 @@ public sealed class AccountService : IAccountService
             .Where(r => r.Id == reset.Reset.Id && r.UsedAt == null)
             .ExecuteUpdateAsync(s => s.SetProperty(r => r.UsedAt, now));
 
+        // This reset is what activates a not yet activated account. Such an account may have been created
+        // by someone else on this address through an OAuth signup, and its linked identity is then theirs:
+        // left in place it would let them sign in to the account the inbox owner just took over. Nobody
+        // has proven that link and this inbox belong together, so it goes. (An unactivated account cannot
+        // sign in, so it has no sessions or API tokens to worry about.)
+        // On an activated account the links are kept, like API tokens: activating required proving both
+        // the inbox and the credential, so every link on it was added by its owner.
+        List<string> removedProviders = [];
+        if (!reset.WasActivated)
+        {
+            var connections = _db.UserOAuthConnections.Where(c => c.UserId == reset.Reset.UserId);
+            removedProviders = await connections.Select(c => c.ProviderKey).ToListAsync();
+            if (removedProviders.Count > 0)
+            {
+                await connections.ExecuteDeleteAsync();
+            }
+        }
+
         // Unauthenticated email-token flow proving control of the account, so the actor is the account itself.
         await _auditService.LogAsync(
             reset.Reset.UserId,
@@ -632,7 +783,21 @@ public sealed class AccountService : IAccountService
             actorId: reset.Reset.UserId
         );
 
+        foreach (var provider in removedProviders)
+        {
+            await _auditService.LogAsync(
+                reset.Reset.UserId,
+                action: AuditAction.OAuthDisconnected,
+                actorId: reset.Reset.UserId,
+                metadata: new OAuthDisconnectedMetadata(provider),
+                reason: "Password reset"
+            );
+        }
+
         await transaction.CommitAsync();
+
+        // Whoever was signed in with the old password is signed out.
+        await _sessionService.DeleteSessionsByUserIdAsync(reset.Reset.UserId);
 
         return new Success();
     }
@@ -865,13 +1030,15 @@ public sealed class AccountService : IAccountService
         return new Success();
     }
 
-    public async Task<Union3<VerifyEmailSuccess, NotFound, EmailAlreadyInUse>> TryVerifyEmailAsync(string token, CancellationToken cancellationToken = default)
+    public async Task<Union3<VerifyEmailSuccess, NotFound, EmailAlreadyInUse>> TryVerifyEmailAsync(string token, Guid userId, CancellationToken cancellationToken = default)
     {
         var hash = HashingUtils.HashToken(token);
         var validSince = DateTime.UtcNow - Duration.EmailChangeRequestLifetime;
 
+        // Scoped to the signed-in user: the link goes to an address that is not the account's yet, so
+        // whoever opens it may be a stranger being asked to vouch for someone else's account.
         var change = await _db.UserEmailChanges
-            .Where(x => x.TokenHash == hash && x.UsedAt == null && x.CreatedAt >= validSince
+            .Where(x => x.UserId == userId && x.TokenHash == hash && x.UsedAt == null && x.CreatedAt >= validSince
                 && x.SecurityStampAtCreate == x.User.SecurityStamp
                 && x.User.UserDeactivation == null && x.User.ActivatedAt != null)
             .Select(x => new

@@ -11,6 +11,7 @@ public static class OAuthConstants
     public static readonly string[] OAuth2Schemes = [DiscordScheme, GoogleScheme, TwitterScheme];
     
     public const string ItemKeyFlowType = ".FlowType";
+    public const string ItemKeyActivationToken = ".ActivationToken";
     
     public const string ClaimEmailVerified = "openshock.oauth.email_verified";
     public const string ClaimDisplayName = "openshock.oauth.display_name";

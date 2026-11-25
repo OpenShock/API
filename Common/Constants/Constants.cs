@@ -11,6 +11,7 @@ public static class Duration
 
     public static readonly TimeSpan ActivationResendCooldown = TimeSpan.FromMinutes(10);
     public static readonly TimeSpan ActivationResendWindow = TimeSpan.FromHours(24);
+    public static readonly TimeSpan UnactivatedAccountRetentionTime = TimeSpan.FromDays(7);
 
     public static readonly TimeSpan NameChangeCooldown = TimeSpan.FromDays(7);
     
