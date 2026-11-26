@@ -30,22 +30,20 @@ public interface IAccountService
     /// <param name="providerAccountId">external subject/id from provider</param>
     /// <param name="providerAccountName">display name from provider</param>
     /// <param name="isEmailTrusted"></param>
+    /// <param name="replacePendingUserId">
+    /// A never activated account this same external identity signed up earlier, to be replaced by the new
+    /// one. Only pass this for a caller who just signed in with that identity. It is deleted in the same
+    /// transaction that creates the new account, so a conflict leaves it as it was.
+    /// </param>
     /// <param name="cancellationToken"></param>
     /// <returns>Success with the created user, or AccountWithEmailOrUsernameExists when taken/blocked.</returns>
-    Task<AccountCreationResult> CreateOAuthOnlyAccountAsync(string email, string username, string provider, string providerAccountId, string? providerAccountName, bool isEmailTrusted, CancellationToken cancellationToken = default);
+    Task<AccountCreationResult> CreateOAuthOnlyAccountAsync(string email, string username, string provider, string providerAccountId, string? providerAccountName, bool isEmailTrusted, Guid? replacePendingUserId = null, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Returns true if the given email belongs to an activated account. A never activated account is only
     /// a pending signup and does not reserve its address.
     /// </summary>
     Task<bool> IsEmailRegisteredAsync(string email, CancellationToken cancellationToken = default);
-
-    /// <summary>
-    /// Deletes a never activated account. Only call this for a caller who proved they hold its credential
-    /// (signed in with its linked OAuth identity) and is replacing it.
-    /// </summary>
-    /// <returns>False when there is no such pending account.</returns>
-    Task<bool> DiscardPendingAccountAsync(Guid userId, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Lets the creator of a never activated account correct what they signed up with (typically a mistyped

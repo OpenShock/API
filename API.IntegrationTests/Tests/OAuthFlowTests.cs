@@ -208,6 +208,27 @@ public sealed class OAuthFlowTests
     }
 
     [Test]
+    public async Task SignupFinalize_PendingAccount_EmailTheProviderVerified_UsernameTaken_KeepsThePendingAccount()
+    {
+        var externalId = NewExternalId();
+        var (pendingUserId, _) = await CreatePendingOAuthAccountAsync("oauth-finalize-keep", externalId);
+        var takenUsername = TestHelper.UniqueUsername("oauthfintaken");
+        await TestHelper.CreateUserInDb(WebApplicationFactory, takenUsername, TestHelper.UniqueEmail("oauth-finalize-taken"), "TakenPassword123#");
+        var email = TestHelper.UniqueEmail("oauth-finalize-keep-verified");
+
+        using var client = CreateClient();
+        var response = await FinalizeAsync(client, MintFlowCookie(externalId, email: email, emailVerified: true), email, takenUsername);
+
+        await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.Conflict);
+        await Assert.That(await UserExistsAsync(pendingUserId)).IsTrue();
+
+        // The identity is still linked to it, so the signup can be retried with another username.
+        var retry = await FinalizeAsync(client, MintFlowCookie(externalId, email: email, emailVerified: true), email, TestHelper.UniqueUsername("oauthfinretry"));
+        await Assert.That(retry.StatusCode).IsEqualTo(HttpStatusCode.OK);
+        await Assert.That(await UserExistsAsync(pendingUserId)).IsFalse();
+    }
+
+    [Test]
     public async Task SignupFinalize_IdentityOfAnActivatedAccount_Returns409()
     {
         var externalId = NewExternalId();

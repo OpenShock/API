@@ -89,6 +89,7 @@ public sealed partial class OAuthController
         var isEmailTrusted = IsTruthy(isVerifiedString) && string.Equals(externalAccountEmail, email, StringComparison.InvariantCultureIgnoreCase);
 
         // Do not allow creation if this external is already linked to a real account.
+        Guid? replacePendingUserId = null;
         var existing = await connectionService.GetByProviderExternalIdAsync(provider, auth.ExternalAccountId, cancellationToken);
         if (existing is not null)
         {
@@ -104,7 +105,8 @@ public sealed partial class OAuthController
             if (isEmailTrusted)
             {
                 // The provider vouches for the new address: replace the pending account with a real one below.
-                await _accountService.DiscardPendingAccountAsync(existing.UserId, cancellationToken);
+                // It is only removed if that succeeds, so a taken username leaves the signup to retry with.
+                replacePendingUserId = existing.UserId;
             }
             else
             {
@@ -129,6 +131,7 @@ public sealed partial class OAuthController
             auth.ExternalAccountId,
             auth.ExternalAccountDisplayName ?? auth.ExternalAccountName,
             isEmailTrusted,
+            replacePendingUserId,
             cancellationToken
         );
 

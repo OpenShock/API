@@ -7,9 +7,10 @@ using OpenShock.Common.Options;
 namespace OpenShock.Common.Authentication;
 
 /// <summary>
-/// Cookie set on signup when the new account still needs activation. It lets the browser that created the account
-/// ask for the activation email again ("didn't get the email?") without typing an address, so the resend endpoint
-/// can't be aimed at arbitrary inboxes or used to probe which emails are registered.
+/// Cookie set while this browser has a signup waiting for activation: when it creates the account, and again when
+/// an OAuth signup is restarted with corrected details. It lets that browser ask for the activation email again
+/// ("didn't get the email?") without typing an address, so the resend endpoint can't be aimed at arbitrary inboxes
+/// or used to probe which emails are registered. The cookie alone is enough for a (rate limited) resend.
 /// </summary>
 /// <remarks>
 /// The value is a time-limited data protection payload holding the user id (keys are persisted to the database,

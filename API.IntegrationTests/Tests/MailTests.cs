@@ -482,6 +482,30 @@ public sealed class MailTests
         await Assert.That(holder.Id).IsNotEqualTo(pendingId);
     }
 
+    // The cooldown runs from the last activation mail, not only from signup: replacing the account would
+    // mail the same inbox again straight after a resend did.
+    [Test]
+    public async Task Signup_EmailHeldByStalePendingAccount_ThatWasJustMailedAgain_Returns409()
+    {
+        var email = TestHelper.UniqueEmail("mail-pending-resent");
+        var pendingId = await TestHelper.CreateUserInDb(WebApplicationFactory, TestHelper.UniqueUsername("mailpendingresent"), email, "FirstPassword123#", activated: false);
+        await BackdateUserAsync(pendingId, TimeSpan.FromMinutes(11));
+        await using (var seedScope = WebApplicationFactory.Services.CreateAsyncScope())
+        {
+            var seedDb = seedScope.ServiceProvider.GetRequiredService<OpenShockContext>();
+            seedDb.EmailOutbox.Add(EmailOutboxMessage.ForAccountActivation(pendingId, email, "pending"));
+            await seedDb.SaveChangesAsync();
+        }
+
+        using var client = CreateCookielessClient();
+        var response = await SignUpAsync(client, email, TestHelper.UniqueUsername("mailpendingthird"));
+        await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.Conflict);
+
+        await using var scope = WebApplicationFactory.Services.CreateAsyncScope();
+        var db = scope.ServiceProvider.GetRequiredService<OpenShockContext>();
+        await Assert.That(await db.Users.AsNoTracking().AnyAsync(u => u.Id == pendingId)).IsTrue();
+    }
+
     // Inside the resend cooldown the pending account keeps the address, so its creator has time to open the
     // link and repeated signups cannot mail the inbox more often than a resend could.
     [Test]
@@ -534,6 +558,49 @@ public sealed class MailTests
         using var client = TestHelper.CreateAuthenticatedClient(WebApplicationFactory, user.SessionToken);
         var response = await client.DeleteAsync("/1/account/connections/discord");
         await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.Conflict);
+
+        await using var scope = WebApplicationFactory.Services.CreateAsyncScope();
+        var db = scope.ServiceProvider.GetRequiredService<OpenShockContext>();
+        await Assert.That(await db.UserOAuthConnections.AsNoTracking().CountAsync(c => c.UserId == user.Id)).IsEqualTo(1);
+    }
+
+    [Test]
+    public async Task RemoveOAuthConnection_PasswordlessAccountWithTwo_RemovesOne_ThenKeepsTheLast()
+    {
+        var user = await TestHelper.CreateAndLoginUser(WebApplicationFactory, TestHelper.UniqueUsername("mailoauthtwo"), TestHelper.UniqueEmail("mail-oauth-two"), "Placeholder123#");
+        await AddOAuthConnectionAsync(user.Id, "discord");
+        await AddOAuthConnectionAsync(user.Id, "google");
+        await using (var seedScope = WebApplicationFactory.Services.CreateAsyncScope())
+        {
+            var seedDb = seedScope.ServiceProvider.GetRequiredService<OpenShockContext>();
+            await seedDb.Users.Where(u => u.Id == user.Id).ExecuteUpdateAsync(s => s.SetProperty(u => u.PasswordHash, (string?)null));
+        }
+
+        using var client = TestHelper.CreateAuthenticatedClient(WebApplicationFactory, user.SessionToken);
+        await Assert.That((await client.DeleteAsync("/1/account/connections/discord")).StatusCode).IsEqualTo(HttpStatusCode.NoContent);
+        await Assert.That((await client.DeleteAsync("/1/account/connections/google")).StatusCode).IsEqualTo(HttpStatusCode.Conflict);
+        await Assert.That((await client.DeleteAsync("/1/account/connections/discord")).StatusCode).IsEqualTo(HttpStatusCode.NotFound);
+    }
+
+    [Test]
+    public async Task RemoveOAuthConnection_PasswordlessAccountWithTwo_RemovedAtTheSameTime_KeepsOne()
+    {
+        var user = await TestHelper.CreateAndLoginUser(WebApplicationFactory, TestHelper.UniqueUsername("mailoauthrace"), TestHelper.UniqueEmail("mail-oauth-race"), "Placeholder123#");
+        await AddOAuthConnectionAsync(user.Id, "discord");
+        await AddOAuthConnectionAsync(user.Id, "google");
+        await using (var seedScope = WebApplicationFactory.Services.CreateAsyncScope())
+        {
+            var seedDb = seedScope.ServiceProvider.GetRequiredService<OpenShockContext>();
+            await seedDb.Users.Where(u => u.Id == user.Id).ExecuteUpdateAsync(s => s.SetProperty(u => u.PasswordHash, (string?)null));
+        }
+
+        using var client = TestHelper.CreateAuthenticatedClient(WebApplicationFactory, user.SessionToken);
+        var responses = await Task.WhenAll(
+            client.DeleteAsync("/1/account/connections/discord"),
+            client.DeleteAsync("/1/account/connections/google"));
+
+        await Assert.That(responses.Count(r => r.StatusCode == HttpStatusCode.NoContent)).IsEqualTo(1);
+        await Assert.That(responses.Count(r => r.StatusCode == HttpStatusCode.Conflict)).IsEqualTo(1);
 
         await using var scope = WebApplicationFactory.Services.CreateAsyncScope();
         var db = scope.ServiceProvider.GetRequiredService<OpenShockContext>();
@@ -702,6 +769,51 @@ public sealed class MailTests
     }
 
     [Test]
+    public async Task RestartPendingSignup_ChangedEmail_InvalidatesAPasswordResetRequestedForTheOldAddress()
+    {
+        // The other link an inbox of your own can give you: a reset sets a password and activates.
+        var (userId, _) = await CreateUnactivatedUserWithTokenAsync("mail-restart-oldreset", password: null);
+        await AddOAuthConnectionAsync(userId, "discord");
+        var (resetId, secret) = await SeedPasswordResetAsync(userId);
+
+        await using (var scope = WebApplicationFactory.Services.CreateAsyncScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<OpenShockContext>();
+            var username = await db.Users.AsNoTracking().Where(u => u.Id == userId).Select(u => u.Name).SingleAsync();
+
+            var accountService = scope.ServiceProvider.GetRequiredService<IAccountService>();
+            var restarted = await accountService.RestartPendingSignupAsync(userId, TestHelper.UniqueEmail("mail-restart-victim2"), username);
+            await Assert.That(restarted.Value is User).IsTrue();
+        }
+
+        using var client = CreateCookielessClient();
+        var response = await client.PostAsync($"/1/account/password-reset/{resetId}/{secret}/complete",
+            TestHelper.JsonContent(new { password = "NewPassword123#" }));
+
+        await Assert.That(response.StatusCode).IsNotEqualTo(HttpStatusCode.OK);
+        await Assert.That(await IsActivatedAsync(userId)).IsFalse();
+    }
+
+    [Test]
+    public async Task RestartPendingSignup_Conflict_LeavesThePendingAccountHoldingTheRequestedAddress()
+    {
+        var (userId, _) = await CreateUnactivatedUserWithTokenAsync("mail-restart-conflict", password: null);
+        var heldEmail = TestHelper.UniqueEmail("mail-restart-held");
+        var holderId = await TestHelper.CreateUserInDb(WebApplicationFactory, TestHelper.UniqueUsername("mailrestartholder"), heldEmail, "HolderPassword123#", activated: false);
+        await BackdateUserAsync(holderId, TimeSpan.FromMinutes(11));
+        var takenUsername = TestHelper.UniqueUsername("mailrestarttaken");
+        await TestHelper.CreateUserInDb(WebApplicationFactory, takenUsername, TestHelper.UniqueEmail("mail-restart-taken"), "TakenPassword123#");
+
+        await using var scope = WebApplicationFactory.Services.CreateAsyncScope();
+        var accountService = scope.ServiceProvider.GetRequiredService<IAccountService>();
+        var restarted = await accountService.RestartPendingSignupAsync(userId, heldEmail, takenUsername);
+        await Assert.That(restarted.Value is AccountWithEmailOrUsernameExists).IsTrue();
+
+        var db = scope.ServiceProvider.GetRequiredService<OpenShockContext>();
+        await Assert.That(await db.Users.AsNoTracking().AnyAsync(u => u.Id == holderId)).IsTrue();
+    }
+
+    [Test]
     public async Task RestartPendingSignup_SameEmail_KeepsTheMailedLinkWorking()
     {
         var (userId, token) = await CreateUnactivatedUserWithTokenAsync("mail-restart-sameemail", password: null);
@@ -742,7 +854,7 @@ public sealed class MailTests
     public async Task EmailChangeVerify_FromAnotherAccountsSession_Returns400_AndLeavesEmail()
     {
         var (user, token, _) = await CreateUserWithPendingEmailChangeAsync("mail-verify-other");
-        var other = await TestHelper.CreateAndLoginUser(WebApplicationFactory, TestHelper.UniqueUsername("mailverifyother"), TestHelper.UniqueEmail("mail-verify-otheracct"), "SecurePassword123#");
+        var other = await TestHelper.CreateAndLoginUser(WebApplicationFactory, TestHelper.UniqueUsername("mailverifysecond"), TestHelper.UniqueEmail("mail-verify-second"), "SecurePassword123#");
 
         using var client = TestHelper.CreateAuthenticatedClient(WebApplicationFactory, other.SessionToken);
         var response = await client.PostAsync($"/1/account/email-change/verify?token={token}", null);
@@ -841,23 +953,28 @@ public sealed class MailTests
     }
 
     // Stands in for the Cron delivery job (which mints the real token), then completes the reset.
-    private async Task<HttpResponseMessage> CompleteSeededPasswordResetAsync(Guid userId)
+    private async Task<(Guid ResetId, string Secret)> SeedPasswordResetAsync(Guid userId)
     {
         const string secret = "test-password-reset-secret";
         var resetId = Guid.CreateVersion7();
-        await using (var scope = WebApplicationFactory.Services.CreateAsyncScope())
+        await using var scope = WebApplicationFactory.Services.CreateAsyncScope();
+        var db = scope.ServiceProvider.GetRequiredService<OpenShockContext>();
+        var stamp = await db.Users.AsNoTracking().Where(u => u.Id == userId).Select(u => u.SecurityStamp).SingleAsync();
+        db.UserPasswordResets.Add(new UserPasswordReset
         {
-            var db = scope.ServiceProvider.GetRequiredService<OpenShockContext>();
-            var stamp = await db.Users.AsNoTracking().Where(u => u.Id == userId).Select(u => u.SecurityStamp).SingleAsync();
-            db.UserPasswordResets.Add(new UserPasswordReset
-            {
-                Id = resetId,
-                UserId = userId,
-                TokenHash = HashingUtils.HashToken(secret),
-                SecurityStampAtCreate = stamp
-            });
-            await db.SaveChangesAsync();
-        }
+            Id = resetId,
+            UserId = userId,
+            TokenHash = HashingUtils.HashToken(secret),
+            SecurityStampAtCreate = stamp
+        });
+        await db.SaveChangesAsync();
+
+        return (resetId, secret);
+    }
+
+    private async Task<HttpResponseMessage> CompleteSeededPasswordResetAsync(Guid userId)
+    {
+        var (resetId, secret) = await SeedPasswordResetAsync(userId);
 
         using var client = WebApplicationFactory.CreateClient();
         return await client.PostAsync($"/1/account/password-reset/{resetId}/{secret}/complete",

@@ -136,6 +136,29 @@ public sealed class SignalRUserHubTests
     }
 
     [Test]
+    public async Task Invoke_AfterAccountDeactivated_WithTheSessionLeftBehind_FailsAndClosesConnection()
+    {
+        // Deactivation removes sessions after its database commit; if that step fails the session survives.
+        var user = await TestHelper.CreateAndLoginUser(WebApplicationFactory, TestHelper.UniqueUsername("hubrevaldeact"), TestHelper.UniqueEmail("hubrevaldeact"), "SecurePassword123#");
+        await using var connection = await ConnectAsync("Cookie", $"{AuthConstants.UserSessionCookieName}={user.SessionToken}");
+        await connection.InvokeAsync("Reboot", Guid.CreateVersion7());
+
+        await using (var scope = WebApplicationFactory.Services.CreateAsyncScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<OpenShockContext>();
+            db.UserDeactivations.Add(new UserDeactivation
+            {
+                DeactivatedUserId = user.Id,
+                DeactivatedByUserId = user.Id,
+                DeleteLater = false
+            });
+            await db.SaveChangesAsync();
+        }
+
+        await AssertInvokeFailsAndConnectionClosesAsync(connection);
+    }
+
+    [Test]
     public async Task Invoke_WithValidApiToken_KeepsWorking()
     {
         var user = await TestHelper.CreateAndLoginUser(WebApplicationFactory, TestHelper.UniqueUsername("hubrevaltokok"), TestHelper.UniqueEmail("hubrevaltokok"), "SecurePassword123#");

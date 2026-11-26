@@ -1,6 +1,5 @@
 ﻿using System.Net.Mime;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 using OpenShock.API.OAuth;
 using OpenShock.API.Services.OAuthConnection;
 using OpenShock.Common.ApiVersioning;
@@ -27,23 +26,13 @@ public sealed partial class AuthenticatedAccountController
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status409Conflict, MediaTypeNames.Application.ProblemJson)] // LastLoginMethod
     public async Task<IActionResult> RemoveOAuthConnection([FromRoute] string provider, [FromServices] IOAuthConnectionService connectionService, CancellationToken cancellationToken)
     {
-        // An account without a password signs in through its connections only. Removing the last one would
-        // lock its owner out until they notice and go through a password reset.
-        if (string.IsNullOrEmpty(CurrentUser.PasswordHash))
+        var result = await connectionService.RemoveConnectionAsync(CurrentUser.Id, provider, actorId: CurrentUser.Id, cancellationToken);
+
+        return result switch
         {
-            var providers = await connectionService.GetConnectionsAsNonTrackingQuery(CurrentUser.Id, cancellationToken)
-                .Select(c => c.ProviderKey)
-                .ToListAsync(cancellationToken);
-
-            if (providers.Count == 1 && string.Equals(providers[0], provider, StringComparison.OrdinalIgnoreCase))
-                return Problem(OAuthError.LastLoginMethod);
-        }
-
-        var deleted = await connectionService.TryRemoveConnectionAsync(CurrentUser.Id, provider, actorId: CurrentUser.Id, cancellationToken);
-
-        if (!deleted)
-            return NotFound();
-
-        return NoContent();
+            RemoveConnectionResult.Removed => NoContent(),
+            RemoveConnectionResult.LastLoginMethod => Problem(OAuthError.LastLoginMethod),
+            _ => NotFound()
+        };
     }
 }

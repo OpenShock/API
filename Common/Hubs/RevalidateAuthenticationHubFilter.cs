@@ -66,11 +66,15 @@ public sealed class RevalidateAuthenticationHubFilter : IHubFilter
         {
             if (context.GetHttpContext() is not { } httpContext || !httpContext.TryGetUserSessionToken(out var sessionToken)) return false;
 
-            // Sessions are deleted on logout, on deactivation and on a password reset, so existence is the check.
+            // Sessions are deleted on logout, on deactivation and on a password reset.
             var sessionService = invocationContext.ServiceProvider.GetRequiredService<ISessionService>();
             var session = await sessionService.GetSessionByTokenAsync(sessionToken);
+            if (session is null || session.UserId != identity.GetClaimValueAsGuid(ClaimTypes.NameIdentifier)) return false;
 
-            return session is not null && session.UserId == identity.GetClaimValueAsGuid(ClaimTypes.NameIdentifier);
+            // That deletion happens in Redis after the database commit and can fail, leaving the session
+            // behind. The account itself is the authority, as it is when a session authenticates a request.
+            var db = invocationContext.ServiceProvider.GetRequiredService<OpenShockContext>();
+            return await db.Users.AnyAsync(u => u.Id == session.UserId && u.ActivatedAt != null && u.UserDeactivation == null, context.ConnectionAborted);
         }
 
         return true;
