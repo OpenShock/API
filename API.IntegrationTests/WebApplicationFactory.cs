@@ -9,6 +9,7 @@ using Microsoft.Extensions.Http;
 using Microsoft.Extensions.Options;
 using OpenShock.API.IntegrationTests.Docker;
 using OpenShock.API.IntegrationTests.HttpMessageHandlers;
+using OpenShock.Common.Hubs;
 using Serilog;
 using Serilog.Events;
 
@@ -25,6 +26,9 @@ public class WebApplicationFactory : WebApplicationFactory<Program>
 
     [ClassDataSource<InMemoryRedis>(Shared = SharedType.PerTestSession)]
     public required InMemoryRedis Redis { get; init; }
+
+    /// <summary>How long an open hub connection can go on after its session or API token was revoked, in tests.</summary>
+    public static readonly TimeSpan HubRevalidationInterval = TimeSpan.FromSeconds(1);
 
     protected override void ConfigureClient(HttpClient client)
     {
@@ -102,6 +106,10 @@ public class WebApplicationFactory : WebApplicationFactory<Program>
         builder.ConfigureTestServices(services =>
         {
             services.AddTransient<HttpMessageHandlerBuilder, InterceptedHttpMessageHandlerBuilder>();
+
+            // Hub connections re-check their session or API token at most once per interval. Kept short so
+            // the tests that revoke one do not have to wait out the production interval.
+            services.Configure<HubRevalidationOptions>(options => options.Interval = HubRevalidationInterval);
 
             // Disable rate limiting for integration tests so auth-endpoint tests
             // don't interfere with each other (10 req/min is too restrictive for test suites).

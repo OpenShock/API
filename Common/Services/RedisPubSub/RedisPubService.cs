@@ -28,6 +28,16 @@ public sealed class RedisPubService : IRedisPubService
         return _subscriber.PublishAsync(RedisChannels.ApiTokenUpdate(tokenId), RedisValue.EmptyString);
     }
 
+    public Task SendSessionRevoked(string sessionId)
+    {
+        return _subscriber.PublishAsync(RedisChannels.SessionRevoked, sessionId);
+    }
+
+    public Task SendUserAuthRevoked(Guid userId)
+    {
+        return _subscriber.PublishAsync(RedisChannels.UserAuthRevoked, userId.ToString());
+    }
+
     public Task SendEmailOutboxPending()
     {
         // Payload-less wake-up nudge; the consumer reads the actual rows from the database.

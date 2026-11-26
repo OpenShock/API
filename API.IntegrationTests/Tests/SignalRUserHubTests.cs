@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.SignalR.Client;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using OpenShock.API.IntegrationTests.Helpers;
+using OpenShock.API.Services.Account;
 using OpenShock.Common.Constants;
 using OpenShock.Common.OpenShockDb;
 using OpenShock.Common.Services.Session;
@@ -106,7 +107,88 @@ public sealed class SignalRUserHubTests
         await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.OK);
     }
 
-    // --- An open connection stops working once its session or API token is no longer valid ---
+    // --- A revocation closes the open connections it concerns right away, without them calling anything ---
+
+    [Test]
+    public async Task Logout_ClosesTheSessionsOpenConnection()
+    {
+        var user = await TestHelper.CreateAndLoginUser(WebApplicationFactory, TestHelper.UniqueUsername("hubkicklogout"), TestHelper.UniqueEmail("hubkicklogout"), "SecurePassword123#");
+        var other = await TestHelper.CreateAndLoginUser(WebApplicationFactory, TestHelper.UniqueUsername("hubkickother"), TestHelper.UniqueEmail("hubkickother"), "SecurePassword123#");
+        await using var connection = await ConnectAsync("Cookie", $"{AuthConstants.UserSessionCookieName}={user.SessionToken}");
+        await using var otherConnection = await ConnectAsync("Cookie", $"{AuthConstants.UserSessionCookieName}={other.SessionToken}");
+
+        await using (var scope = WebApplicationFactory.Services.CreateAsyncScope())
+        {
+            await scope.ServiceProvider.GetRequiredService<ISessionService>().DeleteSessionByTokenAsync(user.SessionToken);
+        }
+
+        await AssertConnectionClosesAsync(connection);
+
+        // Nobody else is affected.
+        await otherConnection.InvokeAsync("Reboot", Guid.CreateVersion7());
+        await Assert.That(otherConnection.State).IsEqualTo(HubConnectionState.Connected);
+    }
+
+    [Test]
+    public async Task DeletingAnApiToken_ClosesItsOpenConnection()
+    {
+        var user = await TestHelper.CreateAndLoginUser(WebApplicationFactory, TestHelper.UniqueUsername("hubkicktoken"), TestHelper.UniqueEmail("hubkicktoken"), "SecurePassword123#");
+        var (tokenId, rawToken) = await TestHelper.CreateApiTokenInDb(WebApplicationFactory, user.Id, "hub-kick-deleted");
+        var (_, otherRawToken) = await TestHelper.CreateApiTokenInDb(WebApplicationFactory, user.Id, "hub-kick-kept");
+        await using var connection = await ConnectAsync(AuthConstants.ApiTokenHeaderName, rawToken);
+        await using var otherConnection = await ConnectAsync(AuthConstants.ApiTokenHeaderName, otherRawToken);
+
+        using var client = TestHelper.CreateAuthenticatedClient(WebApplicationFactory, user.SessionToken);
+        var response = await client.DeleteAsync($"/1/tokens/{tokenId}");
+        await Assert.That(response.IsSuccessStatusCode).IsTrue();
+
+        await AssertConnectionClosesAsync(connection);
+
+        await otherConnection.InvokeAsync("Reboot", Guid.CreateVersion7());
+        await Assert.That(otherConnection.State).IsEqualTo(HubConnectionState.Connected);
+    }
+
+    [Test]
+    public async Task DeactivatingAnAccount_ClosesItsSessionAndApiTokenConnections()
+    {
+        var user = await TestHelper.CreateAndLoginUser(WebApplicationFactory, TestHelper.UniqueUsername("hubkickdeact"), TestHelper.UniqueEmail("hubkickdeact"), "SecurePassword123#");
+        var (_, rawToken) = await TestHelper.CreateApiTokenInDb(WebApplicationFactory, user.Id, "hub-kick-deactivated");
+        await using var sessionConnection = await ConnectAsync("Cookie", $"{AuthConstants.UserSessionCookieName}={user.SessionToken}");
+        await using var tokenConnection = await ConnectAsync(AuthConstants.ApiTokenHeaderName, rawToken);
+
+        await using (var scope = WebApplicationFactory.Services.CreateAsyncScope())
+        {
+            var accountService = scope.ServiceProvider.GetRequiredService<IAccountService>();
+            await accountService.DeactivateAccountAsync(user.Id, user.Id, deleteLater: false);
+        }
+
+        await AssertConnectionClosesAsync(sessionConnection);
+        await AssertConnectionClosesAsync(tokenConnection);
+    }
+
+    // --- The fallback: a connection whose revocation was never announced stops at its next periodic check ---
+
+    [Test]
+    public async Task Invoke_ManyCallsInARow_ChecksTheApiTokenOncePerInterval()
+    {
+        var user = await TestHelper.CreateAndLoginUser(WebApplicationFactory, TestHelper.UniqueUsername("hubrevalcache"), TestHelper.UniqueEmail("hubrevalcache"), "SecurePassword123#");
+        var (tokenId, rawToken) = await TestHelper.CreateApiTokenInDb(WebApplicationFactory, user.Id, "hub-revalidate-cached");
+        await using var connection = await ConnectAsync(AuthConstants.ApiTokenHeaderName, rawToken);
+        await connection.InvokeAsync("Reboot", Guid.CreateVersion7());
+
+        await using (var scope = WebApplicationFactory.Services.CreateAsyncScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<OpenShockContext>();
+            await db.ApiTokens.Where(t => t.Id == tokenId).ExecuteDeleteAsync();
+        }
+
+        // Straight after the check above, the deleted token is not looked up again: the call goes through.
+        // (It would be rejected, and the connection closed, if every call queried the database.)
+        await connection.InvokeAsync("Reboot", Guid.CreateVersion7());
+        await Assert.That(connection.State).IsEqualTo(HubConnectionState.Connected);
+
+        await AssertInvokeFailsAndConnectionClosesAsync(connection);
+    }
 
     [Test]
     public async Task Invoke_WithValidSession_KeepsWorking()
@@ -257,12 +339,9 @@ public sealed class SignalRUserHubTests
 
     private static async Task AssertInvokeFailsAndConnectionClosesAsync(HubConnection connection)
     {
-        var closed = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-        connection.Closed += _ =>
-        {
-            closed.TrySetResult();
-            return Task.CompletedTask;
-        };
+        // The connection was checked moments ago and that result is kept for the interval, so the
+        // revocation only reaches it on the first call after that.
+        await Task.Delay(WebApplicationFactory.HubRevalidationInterval + TimeSpan.FromMilliseconds(500));
 
         // The server answers with an error and aborts; which of the two the client sees first is a race.
         Exception? failure = null;
@@ -277,7 +356,18 @@ public sealed class SignalRUserHubTests
 
         await Assert.That(failure).IsNotNull();
 
-        await closed.Task.WaitAsync(TimeSpan.FromSeconds(30));
+        await AssertConnectionClosesAsync(connection);
+    }
+
+    /// <summary>Waits for the server to close the connection, without calling anything on it.</summary>
+    private static async Task AssertConnectionClosesAsync(HubConnection connection)
+    {
+        var deadline = DateTime.UtcNow.AddSeconds(30);
+        while (connection.State != HubConnectionState.Disconnected && DateTime.UtcNow < deadline)
+        {
+            await Task.Delay(50);
+        }
+
         await Assert.That(connection.State).IsEqualTo(HubConnectionState.Disconnected);
     }
 }
