@@ -46,7 +46,8 @@ public sealed class OAuthFlowTests
         var response = await client.PostAsync($"/1/oauth/{Provider}/authorize?flow=LoginOrCreate&activationToken=the-mailed-token", null);
 
         await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.Redirect);
-        await Assert.That(ReadState(response).ActivationToken).IsEqualTo("the-mailed-token");
+        await Assert.That(OAuthUtil.TryGetActivationToken(ReadState(response), out var carried)).IsTrue();
+        await Assert.That(carried).IsEqualTo("the-mailed-token");
     }
 
     [Test]
@@ -58,7 +59,7 @@ public sealed class OAuthFlowTests
         var response = await client.PostAsync($"/1/oauth/{Provider}/authorize?flow=Link&activationToken=the-mailed-token", null);
 
         await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.Redirect);
-        await Assert.That(ReadState(response).ActivationToken).IsNull();
+        await Assert.That(OAuthUtil.TryGetActivationToken(ReadState(response), out _)).IsFalse();
     }
 
     // --- handoff: activating a pending account ---
@@ -301,8 +302,8 @@ public sealed class OAuthFlowTests
             ExpiresUtc = DateTimeOffset.UtcNow.AddMinutes(10)
         };
         properties.Items[".AuthScheme"] = Provider;
-        properties.Flow = flow;
-        properties.ActivationToken = activationToken;
+        OAuthUtil.SetOAuthFlow(properties, flow);
+        OAuthUtil.SetActivationToken(properties, activationToken);
 
         var ticket = new AuthenticationTicket(new ClaimsPrincipal(new ClaimsIdentity(claims, Provider)), properties, OAuthConstants.FlowScheme);
 

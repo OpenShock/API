@@ -95,7 +95,7 @@ public sealed partial class OAuthController
                 // identity shows inbox and credential are held by the same party, so the account is theirs:
                 // activate it and carry on to the sign-in below.
                 var isActivated = connection.User.ActivatedAt is not null;
-                if (!isActivated && auth.Properties.ActivationToken is { } activationToken)
+                if (!isActivated && OAuthUtil.TryGetActivationToken(auth.Properties, out var activationToken))
                 {
                     isActivated = await _accountService.TryActivateAccountAsync(connection.UserId, activationToken, cancellationToken);
                 }

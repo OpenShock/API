@@ -56,7 +56,7 @@ public sealed partial class OAuthController : OpenShockControllerBase
         }
 
         // 3) parse flow from properties
-        if (auth.Properties.Flow is not { } flow)
+        if (!OAuthUtil.TryGetOAuthFlow(auth.Properties, out var flow))
         {
             _logger.LogError("Invalid OAuth scheme");
             await HttpContext.SignOutAsync(OAuthConstants.FlowScheme);
