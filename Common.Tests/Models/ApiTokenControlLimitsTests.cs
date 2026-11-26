@@ -83,4 +83,15 @@ public sealed class ApiTokenControlLimitsTests
         var midInput = (ushort)((300 + 65535) / 2);
         await Assert.That(limits.ApplyDuration(midInput)).IsEqualTo((ushort)3000);
     }
+
+    // --- A minimum above its maximum (not storable, the database rejects it) narrows to the maximum ---
+
+    [Test]
+    [Arguments(ControlLimitMode.Clamp)]
+    [Arguments(ControlLimitMode.Lerp)]
+    public async Task InvertedRange_UsesMaximum(ControlLimitMode mode)
+    {
+        await Assert.That(DurationLimits(5000, 1000, mode).ApplyDuration(3000)).IsEqualTo((ushort)1000);
+        await Assert.That(IntensityLimits(80, 20, mode).ApplyIntensity(50)).IsEqualTo((byte)20);
+    }
 }

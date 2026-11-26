@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using OpenShock.Common.Constants;
 using OpenShock.Common.Models;
+using OpenShock.Common.OpenShockDb.Converters;
 using OpenShock.Internal.Common.Constants;
 
 namespace OpenShock.Common.OpenShockDb;
@@ -130,6 +131,13 @@ public class OpenShockContext : DbContext, IDataProtectionKeyContext
         {
             optionsBuilder.UseNpgsql("Host=localhost;Database=openshock;Username=openshock;Password=openshock");
         }
+    }
+
+    protected override void ConfigureConventions(ModelConfigurationBuilder configurationBuilder)
+    {
+        // An out of range stored value clamps on read, it never wraps. See SaturatingConverters.
+        configurationBuilder.Properties<ushort>().HaveConversion<SaturatingUInt16Converter>();
+        configurationBuilder.Properties<uint>().HaveConversion<SaturatingUInt32Converter>();
     }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)

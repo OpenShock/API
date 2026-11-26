@@ -521,8 +521,7 @@ public sealed class LiveControlController : WebsocketBaseController<LiveControlR
     {
         // Apply the token's intensity scoping first (if any), then clamp to the share limits.
         var scopedIntensity = _tokenLimits?.ApplyIntensity(frame.Intensity) ?? frame.Intensity;
-        var intensity = Math.Clamp(scopedIntensity, HardLimits.MinControlIntensity,
-            perms.Intensity ?? HardLimits.MaxControlIntensity);
+        var intensity = ControlLimitUtils.ClampIntensity(scopedIntensity, perms.Intensity);
 
         var result = HubLifetime.ReceiveFrame(frame.Shocker, _logSender, frame.Type, intensity, _tps);
 

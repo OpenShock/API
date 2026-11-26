@@ -58,23 +58,52 @@ public partial class _20261126000339_PostgresNativeCleanup : Migration
         """;
 
     /// <summary>
-    /// Brings limits written before they were validated into range, so the check constraints can be added.
-    /// Intensity caps above 100 and duration caps above 65535 were already clamped to the hard limits when sent,
-    /// so lowering them changes nothing. A duration cap below the 300 ms hard minimum was never usable: the
-    /// clamp's minimum exceeded its maximum, so Math.Clamp threw and every control on that share failed. 300 is
-    /// the shortest duration any control can have, so it is the closest cap to what the owner set that works.
+    /// Brings share limits written before they were validated into range, so the check constraints can be added.
+    /// <para>
+    /// Duration caps are stored as integer but read as a ushort through an unchecked cast, so a cap outside the
+    /// 16-bit range has only ever been enforced, and shown to its owner, as its low 16 bits (100000 acted as
+    /// 34464). Keeping those bits keeps every share at the cap it already had instead of silently raising it.
+    /// This is the last time such a value wraps, from here on the constraints reject it and the code clamps.
+    /// </para>
+    /// <para>
+    /// A cap that ends up below the 300 ms hard minimum was never usable: the clamp's minimum exceeded its
+    /// maximum, so Math.Clamp threw and every control on that share failed. 300 is the shortest duration any
+    /// control can have, so it is the closest working cap.
+    /// </para>
+    /// <para>
+    /// Intensity caps are a smallint read as a byte. Anything above 100 was clamped to the hard limit when sent,
+    /// so lowering it to 100 changes nothing.
+    /// </para>
     /// </summary>
-    private const string Query_ClampLimits =
+    private const string Query_NormalizeShareLimits =
         """
         UPDATE user_shares SET max_intensity = LEAST(GREATEST(max_intensity, 0), 100) WHERE max_intensity NOT BETWEEN 0 AND 100;
-        UPDATE user_shares SET max_duration = LEAST(GREATEST(max_duration, 300), 65535) WHERE max_duration NOT BETWEEN 300 AND 65535;
+        UPDATE user_shares SET max_duration = GREATEST(max_duration & 65535, 300) WHERE max_duration NOT BETWEEN 300 AND 65535;
         UPDATE user_share_invite_shockers SET max_intensity = LEAST(GREATEST(max_intensity, 0), 100) WHERE max_intensity NOT BETWEEN 0 AND 100;
-        UPDATE user_share_invite_shockers SET max_duration = LEAST(GREATEST(max_duration, 300), 65535) WHERE max_duration NOT BETWEEN 300 AND 65535;
+        UPDATE user_share_invite_shockers SET max_duration = GREATEST(max_duration & 65535, 300) WHERE max_duration NOT BETWEEN 300 AND 65535;
         UPDATE shocker_share_codes SET max_intensity = LEAST(GREATEST(max_intensity, 0), 100) WHERE max_intensity NOT BETWEEN 0 AND 100;
-        UPDATE shocker_share_codes SET max_duration = LEAST(GREATEST(max_duration, 300), 65535) WHERE max_duration NOT BETWEEN 300 AND 65535;
+        UPDATE shocker_share_codes SET max_duration = GREATEST(max_duration & 65535, 300) WHERE max_duration NOT BETWEEN 300 AND 65535;
         UPDATE public_share_shockers SET max_intensity = LEAST(GREATEST(max_intensity, 0), 100) WHERE max_intensity NOT BETWEEN 0 AND 100;
-        UPDATE public_share_shockers SET max_duration = LEAST(GREATEST(max_duration, 300), 65535) WHERE max_duration NOT BETWEEN 300 AND 65535;
+        UPDATE public_share_shockers SET max_duration = GREATEST(max_duration & 65535, 300) WHERE max_duration NOT BETWEEN 300 AND 65535;
         UPDATE public_share_shockers SET cooldown = 0 WHERE cooldown < 0;
+        """;
+
+    /// <summary>
+    /// The same for the control limits on API tokens, which follow the same read path. A minimum left above its
+    /// maximum is lowered to it, the token then allows exactly that one value, which is the tighter of the two.
+    /// </summary>
+    private const string Query_NormalizeApiTokenLimits =
+        """
+        UPDATE api_tokens SET
+            shocker_control_intensity_min = LEAST(GREATEST(shocker_control_intensity_min, 0), 100),
+            shocker_control_intensity_max = LEAST(GREATEST(shocker_control_intensity_max, 0), 100)
+        WHERE shocker_control_intensity_min NOT BETWEEN 0 AND 100 OR shocker_control_intensity_max NOT BETWEEN 0 AND 100;
+        UPDATE api_tokens SET
+            shocker_control_duration_min = GREATEST(shocker_control_duration_min & 65535, 300),
+            shocker_control_duration_max = GREATEST(shocker_control_duration_max & 65535, 300)
+        WHERE shocker_control_duration_min NOT BETWEEN 300 AND 65535 OR shocker_control_duration_max NOT BETWEEN 300 AND 65535;
+        UPDATE api_tokens SET shocker_control_intensity_min = shocker_control_intensity_max WHERE shocker_control_intensity_min > shocker_control_intensity_max;
+        UPDATE api_tokens SET shocker_control_duration_min = shocker_control_duration_max WHERE shocker_control_duration_min > shocker_control_duration_max;
         """;
 
     /// <summary>
@@ -93,7 +122,8 @@ public partial class _20261126000339_PostgresNativeCleanup : Migration
         // The view selects users.email, whose collation can't change while the view depends on it
         migrationBuilder.Sql(AddAdminUsersView.Query_Drop_AdminUsersView);
 
-        migrationBuilder.Sql(Query_ClampLimits);
+        migrationBuilder.Sql(Query_NormalizeShareLimits);
+        migrationBuilder.Sql(Query_NormalizeApiTokenLimits);
         migrationBuilder.Sql(Query_WrapRfIds);
 
         migrationBuilder.DropIndex(
