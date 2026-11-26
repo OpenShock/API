@@ -305,6 +305,7 @@ public static class OpenShockServiceHelper
                     .AddAspNetCoreInstrumentation()
                     .AddHttpClientInstrumentation()
                     .AddMeter(ControlMetrics.MeterName)
+                    .AddMeter("Npgsql") // Database driver: connection pool, command duration and failures
                     .AddPrometheusExporter();
 
                 configureMetrics?.Invoke(metrics);

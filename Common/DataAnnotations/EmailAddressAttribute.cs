@@ -1,14 +1,14 @@
 ﻿using System.ComponentModel.DataAnnotations;
-using System.Net.Mail;
 using System.Text.Json.Nodes;
 using Microsoft.OpenApi;
 using OpenShock.Common.DataAnnotations.Interfaces;
+using OpenShock.Common.Validation;
 using OpenShock.Internal.Common.Constants;
 
 namespace OpenShock.Common.DataAnnotations;
 
 /// <summary>
-/// An attribute used to validate whether an email is valid.
+/// An attribute used to validate whether an email is valid, as defined by <see cref="EmailValidator"/>.
 /// </summary>
 /// <remarks>
 /// Inherits from <see cref="ValidationAttribute"/>.
@@ -51,7 +51,7 @@ public sealed class EmailAddressAttribute : ValidationAttribute, IParameterAttri
         
         if (email.Length > HardLimits.EmailAddressMaxLength) return new ValidationResult(ErrMsgTooLong);
 
-        if (!MailAddress.TryCreate(email, out _)) return new ValidationResult(ErrMsgMustBeEmail);
+        if (!EmailValidator.IsValidAddress(email)) return new ValidationResult(ErrMsgMustBeEmail);
         
         return ValidationResult.Success;
     }

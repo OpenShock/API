@@ -42,6 +42,9 @@ public readonly struct ApiTokenControlLimits
 
     private static int Apply(int value, int min, int max, ControlLimitMode mode, int inputMin, int inputMax)
     {
+        // A minimum above its maximum would make Math.Clamp throw, the maximum is the tighter bound
+        if (min > max) min = max;
+
         switch (mode)
         {
             case ControlLimitMode.Lerp:

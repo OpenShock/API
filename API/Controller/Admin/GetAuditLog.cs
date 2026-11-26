@@ -30,6 +30,6 @@ public sealed partial class AdminController
         CancellationToken cancellationToken)
     {
         var paged = await auditService.GetPagedAsync(userId, actorId, pagination, cancellationToken);
-        return AuthenticatedAccountController.MapPaged(paged, _logger, tolerateMalformedIpAddresses: true);
+        return AuthenticatedAccountController.MapPaged(paged);
     }
 }
