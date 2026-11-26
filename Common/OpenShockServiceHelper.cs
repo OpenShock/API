@@ -479,11 +479,7 @@ public static class OpenShockServiceHelper
     public static IServiceCollection AddOpenShockSignalR(this IServiceCollection services,
         ConfigurationOptions redisConfig)
     {
-        services.AddOptions<OpenShock.Common.Hubs.HubRevalidationOptions>();
-        services.AddSingleton<OpenShock.Common.Hubs.HubConnectionTracker>();
-        services.AddSingleton<OpenShock.Common.Hubs.RevalidateAuthenticationHubFilter>();
-
-        services.AddSignalR(options => Microsoft.AspNetCore.SignalR.HubOptionsExtensions.AddFilter<OpenShock.Common.Hubs.RevalidateAuthenticationHubFilter>(options))
+        services.AddSignalR()
             .AddOpenShockStackExchangeRedis(options => { options.Configuration = redisConfig; })
             .AddJsonProtocol(options =>
             {

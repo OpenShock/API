@@ -5,7 +5,6 @@ using OpenShock.Common.OpenShockDb;
 using OpenShock.Common.Redis;
 using OpenShock.Common.Services.Audit;
 using OpenShock.Common.Services.Geo;
-using OpenShock.Common.Services.RedisPubSub;
 using OpenShock.Common.Utils;
 using OpenShock.Internal.Common.Utils;
 using Redis.OM;
@@ -21,38 +20,16 @@ public sealed class SessionService : ISessionService
 {
     private readonly IRedisCollection<LoginSession> _loginSessions;
     private readonly IAuditService _auditService;
-    private readonly IRedisPubService _redisPubService;
-    private readonly ILogger<SessionService> _logger;
 
     /// <summary>
     /// DI constructor
     /// </summary>
     /// <param name="redisConnectionProvider"></param>
     /// <param name="auditService"></param>
-    /// <param name="redisPubService">Announces deleted sessions so open connections using them are closed.</param>
-    /// <param name="logger"></param>
-    public SessionService(IRedisConnectionProvider redisConnectionProvider, IAuditService auditService, IRedisPubService redisPubService, ILogger<SessionService> logger)
+    public SessionService(IRedisConnectionProvider redisConnectionProvider, IAuditService auditService)
     {
         _loginSessions = redisConnectionProvider.RedisCollection<LoginSession>(false);
         _auditService = auditService;
-        _redisPubService = redisPubService;
-        _logger = logger;
-    }
-
-    /// <summary>
-    /// Tells every instance the session is gone. Deliberately swallows failures: the session is already
-    /// deleted, and a connection that misses the message is caught by its next periodic check.
-    /// </summary>
-    private async Task NotifyRevokedAsync(LoginSession session)
-    {
-        try
-        {
-            await _redisPubService.SendSessionRevoked(session.Id);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogWarning(ex, "Failed to announce a deleted session; open connections using it close on their next check");
-        }
     }
 
     public async Task<CreateSessionResult> CreateSessionAsync(Guid userId, string userAgent, IPAddress ipAddress, Guid? actorId, IpEnrichmentData? enrichment = null)
@@ -123,7 +100,6 @@ public sealed class SessionService : ISessionService
         if (session is null) return false;
 
         await _loginSessions.DeleteAsync(session);
-        await NotifyRevokedAsync(session);
         return true;
     }
 
@@ -133,7 +109,6 @@ public sealed class SessionService : ISessionService
         if (session is null) return false;
 
         await _loginSessions.DeleteAsync(session);
-        await NotifyRevokedAsync(session);
         return true;
     }
 
@@ -143,18 +118,12 @@ public sealed class SessionService : ISessionService
 
         await _loginSessions.DeleteAsync(sessions);
 
-        foreach (var session in sessions)
-        {
-            await NotifyRevokedAsync(session);
-        }
-
         return sessions.Count;
     }
 
     public async Task DeleteSessionAsync(LoginSession loginSession)
     {
         await _loginSessions.DeleteAsync(loginSession);
-        await NotifyRevokedAsync(loginSession);
     }
 
     public async Task LogoutSessionAsync(LoginSession loginSession)
@@ -169,6 +138,5 @@ public sealed class SessionService : ISessionService
         );
 
         await _loginSessions.DeleteAsync(loginSession);
-        await NotifyRevokedAsync(loginSession);
     }
 }

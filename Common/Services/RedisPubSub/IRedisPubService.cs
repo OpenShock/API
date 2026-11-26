@@ -21,19 +21,6 @@ public interface IRedisPubService
     Task SendApiTokenUpdate(Guid tokenId);
 
     /// <summary>
-    /// A login session was deleted. Notifies every instance so open connections that authenticated with it
-    /// are closed. Best-effort: a connection that misses it is caught by its next periodic check.
-    /// </summary>
-    /// <param name="sessionId">The id the session was stored under.</param>
-    Task SendSessionRevoked(string sessionId);
-
-    /// <summary>
-    /// The account was deactivated or deleted. Notifies every instance so all open connections of the user
-    /// are closed, including ones that authenticated with an API token.
-    /// </summary>
-    Task SendUserAuthRevoked(Guid userId);
-
-    /// <summary>
     /// Notifies the email outbox consumer that one or more messages were just enqueued, so it drains
     /// them without waiting for its next safety-net poll. Best-effort: a lost notification only delays
     /// delivery until the next poll, it cannot lose the email (the row is already durably committed).
