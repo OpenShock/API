@@ -61,7 +61,9 @@ public sealed class DatabaseConstraintTests
         var percent = new UserNameBlacklist { Value = "Zqx%Pct", MatchType = MatchTypeEnum.Contains };
         // Ends in a sigma, which lower() would turn into a final ς that no longer matches the mid-word σ below
         var sigma = new UserNameBlacklist { Value = "ΖΚΞΟΣ", MatchType = MatchTypeEnum.Contains };
-        db.UserNameBlacklists.AddRange(exact, contains, percent, sigma);
+        // Precomposed é, matched below against e followed by a combining acute accent
+        var accent = new UserNameBlacklist { Value = "ZqxCaf\u00E9", MatchType = MatchTypeEnum.Contains };
+        db.UserNameBlacklists.AddRange(exact, contains, percent, sigma, accent);
         await db.SaveChangesAsync();
 
         try
@@ -81,10 +83,12 @@ public sealed class DatabaseConstraintTests
             // Case folding is context independent, so the entry still matches as a prefix of a longer name
             await Assert.That(await Matching("ΖΚΞΟΣΑ")).IsEquivalentTo([sigma.Id]);
             await Assert.That(await Matching("ζκξοσα")).IsEquivalentTo([sigma.Id]);
+            // Canonically equivalent accents match whichever way they are written
+            await Assert.That(await Matching("xxZQXCAFE\u0301yy")).IsEquivalentTo([accent.Id]);
         }
         finally
         {
-            Guid[] ids = [exact.Id, contains.Id, percent.Id, sigma.Id];
+            Guid[] ids = [exact.Id, contains.Id, percent.Id, sigma.Id, accent.Id];
             await db.UserNameBlacklists.Where(x => ids.Contains(x.Id)).ExecuteDeleteAsync();
         }
     }
