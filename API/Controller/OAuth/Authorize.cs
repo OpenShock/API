@@ -41,6 +41,6 @@ public sealed partial class OAuthController
                 return Problem(OAuthError.UnsupportedFlow);
         }
 
-        return OAuthUtil.StartOAuth(provider, flow, flow == OAuthFlow.LoginOrCreate ? activationToken : null);
+        return OAuthUtil.StartOAuth(provider, flow, activationToken);
     }
 }

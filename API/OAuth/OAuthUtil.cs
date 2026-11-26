@@ -9,7 +9,8 @@ public static class OAuthUtil
     /// <param name="flow"></param>
     /// <param name="activationToken">
     /// Token from the activation email, carried through the provider round trip so the handoff can
-    /// activate the account the returned identity is linked to.
+    /// activate the account the returned identity is linked to. Only a <see cref="OAuthFlow.LoginOrCreate"/>
+    /// flow carries it: linking is for an account that is already signed in and never activates anything.
     /// </param>
     public static ChallengeResult StartOAuth(string provider, OAuthFlow flow, string? activationToken = null)
     {
@@ -19,7 +20,7 @@ public static class OAuthUtil
             Items = { { OAuthConstants.ItemKeyFlowType, flow.ToString() } }
         };
 
-        if (!string.IsNullOrEmpty(activationToken))
+        if (flow == OAuthFlow.LoginOrCreate && !string.IsNullOrEmpty(activationToken))
         {
             properties.Items[OAuthConstants.ItemKeyActivationToken] = activationToken;
         }
