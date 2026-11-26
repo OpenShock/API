@@ -56,11 +56,14 @@ internal sealed class EmailValidatorTests
     [Test]
     public async Task TrySplitAddress_ReturnsParts()
     {
-        var ok = EmailValidator.TrySplitAddress("Some.One@Mail.Example.com", out var local, out var domain);
+        // Spans can't live across an await, so take the strings out first
+        var ok = EmailValidator.TrySplitAddress("Some.One@Mail.Example.com", out var localSpan, out var domainSpan);
+        var local = localSpan.ToString();
+        var domain = domainSpan.ToString();
 
         await Assert.That(ok).IsTrue();
-        await Assert.That(local.ToString()).IsEqualTo("Some.One");
-        await Assert.That(domain.ToString()).IsEqualTo("Mail.Example.com");
+        await Assert.That(local).IsEqualTo("Some.One");
+        await Assert.That(domain).IsEqualTo("Mail.Example.com");
     }
 
     [Test]
