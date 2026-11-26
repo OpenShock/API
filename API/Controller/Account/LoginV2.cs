@@ -63,8 +63,8 @@ public sealed partial class AccountController
 
             // The password was checked against the account as it was read; if it was replaced since, this
             // sign-in used the old one.
-            if (!await CreateSession(account.Id, domain, account.SecurityStamp))
-                return Problem(LoginError.InvalidCredentials);
+            var signedIn = await CreateSession(account.Id, domain, account.SecurityStamp);
+            if (!signedIn) return Problem(LoginError.InvalidCredentials);
 
             return Ok(LoginV2OkResponse.FromUser(account));
         }

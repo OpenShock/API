@@ -94,10 +94,13 @@ public sealed partial class OAuthController
                 // A flow started from the account's emailed activation link that comes back with the linked
                 // identity shows inbox and credential are held by the same party, so the account is theirs:
                 // activate it and carry on to the sign-in below.
-                var isActivated = connection.User.ActivatedAt is not null ||
-                    (auth.Properties.Items.TryGetValue(OAuthConstants.ItemKeyActivationToken, out var activationToken) &&
-                     !string.IsNullOrEmpty(activationToken) &&
-                     await _accountService.TryActivateAccountAsync(connection.UserId, activationToken, cancellationToken));
+                var isActivated = connection.User.ActivatedAt is not null;
+                if (!isActivated &&
+                    auth.Properties.Items.TryGetValue(OAuthConstants.ItemKeyActivationToken, out var activationToken) &&
+                    !string.IsNullOrEmpty(activationToken))
+                {
+                    isActivated = await _accountService.TryActivateAccountAsync(connection.UserId, activationToken, cancellationToken);
+                }
 
                 if (!isActivated)
                 {

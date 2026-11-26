@@ -492,7 +492,8 @@ public sealed class AccountService : IAccountService
             return new ActivationCredentialRequired(hasPassword, providers, passwordInvalid);
         }
 
-        if (!await ConsumeActivationTokenAsync(user.Id, hash, cancellationToken)) return new NotFound();
+        var activated = await ConsumeActivationTokenAsync(user.Id, hash, cancellationToken);
+        if (!activated) return new NotFound();
 
         return new Success();
     }
