@@ -77,6 +77,16 @@ public partial class _20261126000339_PostgresNativeCleanup : Migration
         UPDATE public_share_shockers SET cooldown = 0 WHERE cooldown < 0;
         """;
 
+    /// <summary>
+    /// Brings RF ids written before they were validated into the 16-bit range, so the check constraint can be added.
+    /// The model and the hub protocol carry the id as a ushort, so a shocker can only ever have been addressed with
+    /// the low 16 bits. Keeping those bits keeps the shocker, its shares and its logs, and the owner can correct the id.
+    /// </summary>
+    private const string Query_WrapRfIds =
+        """
+        UPDATE shockers SET rf_id = rf_id & 65535 WHERE rf_id NOT BETWEEN 0 AND 65535;
+        """;
+
     /// <inheritdoc />
     protected override void Up(MigrationBuilder migrationBuilder)
     {
@@ -84,6 +94,7 @@ public partial class _20261126000339_PostgresNativeCleanup : Migration
         migrationBuilder.Sql(AddAdminUsersView.Query_Drop_AdminUsersView);
 
         migrationBuilder.Sql(Query_ClampLimits);
+        migrationBuilder.Sql(Query_WrapRfIds);
 
         migrationBuilder.DropIndex(
             name: "IX_users_email",
