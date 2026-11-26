@@ -162,7 +162,7 @@ public sealed class LiveControlController : WebsocketBaseController<LiveControlR
                 x.ShockerId,
                 Lsp = new LiveShockerPermission
                 {
-                    Paused = x.IsPaused,
+                    Paused = x.Shocker.IsPaused || x.IsPaused,
                     PermsAndLimits = new SharePermsAndLimits
                     {
                         Sound = x.AllowSound,
