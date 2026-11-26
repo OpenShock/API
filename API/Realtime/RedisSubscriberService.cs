@@ -21,6 +21,7 @@ public sealed class RedisSubscriberService : IHostedService, IAsyncDisposable
     private readonly IHubContext<UserHub, IUserHub> _hubContext;
     private readonly IDbContextFactory<OpenShockContext> _dbContextFactory;
     private readonly IRedisConnectionProvider _redisConnectionProvider;
+    private readonly HubConnectionTracker _hubConnections;
     private readonly ISubscriber _subscriber;
     private readonly ILogger<RedisSubscriberService> _logger;
 
@@ -31,18 +32,21 @@ public sealed class RedisSubscriberService : IHostedService, IAsyncDisposable
     /// <param name="hubContext"></param>
     /// <param name="dbContextFactory"></param>
     /// <param name="redisConnectionProvider"></param>
+    /// <param name="hubConnections">The hub connections open on this instance, closed here when what they authenticated with is revoked.</param>
     /// <param name="logger"></param>
     public RedisSubscriberService(
         IConnectionMultiplexer connectionMultiplexer,
         IHubContext<UserHub, IUserHub> hubContext,
         IDbContextFactory<OpenShockContext> dbContextFactory,
         IRedisConnectionProvider redisConnectionProvider,
+        HubConnectionTracker hubConnections,
         ILogger<RedisSubscriberService> logger
         )
     {
         _hubContext = hubContext;
         _dbContextFactory = dbContextFactory;
         _redisConnectionProvider = redisConnectionProvider;
+        _hubConnections = hubConnections;
         _subscriber = connectionMultiplexer.GetSubscriber();
         _logger = logger;
     }
@@ -52,6 +56,61 @@ public sealed class RedisSubscriberService : IHostedService, IAsyncDisposable
     {
         await _subscriber.SubscribeAsync(RedisChannels.KeyEventExpired, HandleKeyExpired);
         await _subscriber.SubscribeAsync(RedisChannels.DeviceStatus, HandleDeviceStatus);
+        await _subscriber.SubscribeAsync(RedisChannels.SessionRevoked, HandleSessionRevoked);
+        await _subscriber.SubscribeAsync(RedisChannels.UserAuthRevoked, HandleUserAuthRevoked);
+        await _subscriber.SubscribeAsync(RedisChannels.ApiTokenUpdateAll, HandleApiTokenUpdate);
+    }
+
+    private void HandleSessionRevoked(RedisChannel _, RedisValue message)
+    {
+        var sessionId = (string?)message;
+        if (string.IsNullOrEmpty(sessionId)) return;
+
+        var closed = _hubConnections.AbortSession(sessionId);
+        if (closed > 0) _logger.LogDebug("Closed {Count} hub connection(s) of a deleted session", closed);
+    }
+
+    private void HandleUserAuthRevoked(RedisChannel _, RedisValue message)
+    {
+        if (!Guid.TryParse((string?)message, out var userId)) return;
+
+        var closed = _hubConnections.AbortUser(userId);
+        if (closed > 0) _logger.LogDebug("Closed {Count} hub connection(s) of user [{UserId}]", closed, userId);
+    }
+
+    private void HandleApiTokenUpdate(RedisChannel channel, RedisValue _)
+    {
+        var channelName = (string?)channel;
+        if (channelName is null || !channelName.StartsWith(RedisChannels.ApiTokenUpdatePrefix, StringComparison.Ordinal)) return;
+        if (!Guid.TryParse(channelName.AsSpan(RedisChannels.ApiTokenUpdatePrefix.Length), out var tokenId)) return;
+
+        // Most token changes concern no connection on this instance: no database round trip for those.
+        if (!_hubConnections.HasApiTokenConnections(tokenId)) return;
+
+        OsTask.Run(() => ApplyApiTokenUpdate(tokenId));
+    }
+
+    /// <summary>
+    /// The same channel announces an edit and a deletion, so look: a token that is gone closes its
+    /// connections, one that changed makes them read it again on their next call.
+    /// </summary>
+    private async Task ApplyApiTokenUpdate(Guid tokenId)
+    {
+        await using var db = await _dbContextFactory.CreateDbContextAsync();
+
+        var stillValid = await db.ApiTokens.AnyAsync(x =>
+            x.Id == tokenId &&
+            (x.ValidUntil == null || x.ValidUntil >= DateTime.UtcNow) &&
+            x.User.UserDeactivation == null);
+
+        if (stillValid)
+        {
+            _hubConnections.InvalidateApiToken(tokenId);
+            return;
+        }
+
+        var closed = _hubConnections.AbortApiToken(tokenId);
+        _logger.LogDebug("Closed {Count} hub connection(s) of revoked API token [{TokenId}]", closed, tokenId);
     }
 
     private void HandleKeyExpired(RedisChannel _, RedisValue message)
@@ -93,6 +152,11 @@ public sealed class RedisSubscriberService : IHostedService, IAsyncDisposable
             }
             
             OsTask.Run(() => LogicDeviceOnlineStatus(id));
+        }
+        else if (typeNameSpan.SequenceEqual(typeof(LoginSession).FullName))
+        {
+            // A session that reached its lifetime: same as a deleted one for the connections using it.
+            _hubConnections.AbortSession(guidSpan.ToString());
         }
     }
 
