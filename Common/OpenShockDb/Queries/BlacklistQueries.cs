@@ -11,7 +11,9 @@ public static class BlacklistQueries
     /// <remarks>
     /// The value column's own collation makes the exact comparison ignore case. The substring search folds case
     /// itself under a deterministic collation instead of using LIKE, so an underscore or percent sign in an
-    /// entry is matched literally.
+    /// entry is matched literally. It uses casefold rather than lower, since lower is context sensitive (a final
+    /// sigma lowercases to ς but to σ mid-word), which would make a folded entry miss the same text inside a
+    /// longer name.
     /// </remarks>
     public static IQueryable<UserNameBlacklist> Matching(this DbSet<UserNameBlacklist> blacklist, string username)
     {
@@ -19,7 +21,7 @@ public static class BlacklistQueries
             $"""
              SELECT * FROM user_name_blacklist
              WHERE (match_type = 'exact' AND value = {username})
-                OR (match_type = 'contains' AND strpos(lower({username} COLLATE "und-x-icu"), lower(value COLLATE "und-x-icu")) > 0)
+                OR (match_type = 'contains' AND strpos(casefold({username} COLLATE "und-x-icu"), casefold(value COLLATE "und-x-icu")) > 0)
              """);
     }
 }

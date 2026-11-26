@@ -58,7 +58,10 @@ public sealed class DatabaseConstraintTests
 
         var exact = new UserNameBlacklist { Value = "ZqxExactEntry", MatchType = MatchTypeEnum.Exact };
         var contains = new UserNameBlacklist { Value = "Zqx_Part", MatchType = MatchTypeEnum.Contains };
-        db.UserNameBlacklists.AddRange(exact, contains);
+        var percent = new UserNameBlacklist { Value = "Zqx%Pct", MatchType = MatchTypeEnum.Contains };
+        // Ends in a sigma, which lower() would turn into a final ς that no longer matches the mid-word σ below
+        var sigma = new UserNameBlacklist { Value = "ΖΚΞΟΣ", MatchType = MatchTypeEnum.Contains };
+        db.UserNameBlacklists.AddRange(exact, contains, percent, sigma);
         await db.SaveChangesAsync();
 
         try
@@ -72,10 +75,17 @@ public sealed class DatabaseConstraintTests
             await Assert.That(await Matching("some_ZQX_PART_name")).IsEquivalentTo([contains.Id]);
             // The underscore in the entry is literal, not a single character wildcard
             await Assert.That(await Matching("somezqxxpartname")).IsEmpty();
+            // The percent sign is literal too, not a wildcard
+            await Assert.That(await Matching("a_zqx%pct_b")).IsEquivalentTo([percent.Id]);
+            await Assert.That(await Matching("zqxanythingpct")).IsEmpty();
+            // Case folding is context independent, so the entry still matches as a prefix of a longer name
+            await Assert.That(await Matching("ΖΚΞΟΣΑ")).IsEquivalentTo([sigma.Id]);
+            await Assert.That(await Matching("ζκξοσα")).IsEquivalentTo([sigma.Id]);
         }
         finally
         {
-            await db.UserNameBlacklists.Where(x => x.Id == exact.Id || x.Id == contains.Id).ExecuteDeleteAsync();
+            Guid[] ids = [exact.Id, contains.Id, percent.Id, sigma.Id];
+            await db.UserNameBlacklists.Where(x => ids.Contains(x.Id)).ExecuteDeleteAsync();
         }
     }
 

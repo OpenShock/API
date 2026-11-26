@@ -59,7 +59,10 @@ public partial class _20261126000339_PostgresNativeCleanup : Migration
 
     /// <summary>
     /// Brings limits written before they were validated into range, so the check constraints can be added.
-    /// Controls were already clamped to these bounds when sent, the stored value just says so now.
+    /// Intensity caps above 100 and duration caps above 65535 were already clamped to the hard limits when sent,
+    /// so lowering them changes nothing. A duration cap below the 300 ms hard minimum was never usable: the
+    /// clamp's minimum exceeded its maximum, so Math.Clamp threw and every control on that share failed. 300 is
+    /// the shortest duration any control can have, so it is the closest cap to what the owner set that works.
     /// </summary>
     private const string Query_ClampLimits =
         """
