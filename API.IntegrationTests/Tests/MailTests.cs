@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using OpenShock.API.IntegrationTests.Helpers;
+using OpenShock.API.Services.Account;
 using OpenShock.Common.Authentication;
 using OpenShock.Common.Constants;
 using OpenShock.Common.OpenShockDb;
@@ -622,6 +623,57 @@ public sealed class MailTests
         using var client = CreateCookielessClient();
         var response = await PostActivateAsync(client, "no-such-activation-token");
         await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.BadRequest);
+    }
+
+    [Test]
+    public async Task RestartPendingSignup_ChangedEmail_InvalidatesTheLinkMailedToTheOldAddress()
+    {
+        // Sign up with an inbox you control, then move the pending account onto somebody else's address:
+        // the link from the first inbox must not activate it there.
+        var (userId, token) = await CreateUnactivatedUserWithTokenAsync("mail-restart-oldtoken", password: null);
+        await AddOAuthConnectionAsync(userId, "discord");
+        var victimEmail = TestHelper.UniqueEmail("mail-restart-victim");
+
+        await using (var scope = WebApplicationFactory.Services.CreateAsyncScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<OpenShockContext>();
+            var username = await db.Users.AsNoTracking().Where(u => u.Id == userId).Select(u => u.Name).SingleAsync();
+
+            var accountService = scope.ServiceProvider.GetRequiredService<IAccountService>();
+            var restarted = await accountService.RestartPendingSignupAsync(userId, victimEmail, username);
+            await Assert.That(restarted.Value is User).IsTrue();
+        }
+
+        await Assert.That(await GetEmailAsync(userId)).IsEqualTo(victimEmail);
+
+        using var client = CreateCookielessClient();
+        var response = await PostActivateAsync(client, token, cookie: MintResendCookie(userId));
+
+        await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.BadRequest);
+        await Assert.That(await IsActivatedAsync(userId)).IsFalse();
+    }
+
+    [Test]
+    public async Task RestartPendingSignup_SameEmail_KeepsTheMailedLinkWorking()
+    {
+        var (userId, token) = await CreateUnactivatedUserWithTokenAsync("mail-restart-sameemail", password: null);
+        await AddOAuthConnectionAsync(userId, "discord");
+
+        await using (var scope = WebApplicationFactory.Services.CreateAsyncScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<OpenShockContext>();
+            var current = await db.Users.AsNoTracking().Where(u => u.Id == userId).Select(u => new { u.Name, u.Email }).SingleAsync();
+
+            var accountService = scope.ServiceProvider.GetRequiredService<IAccountService>();
+            var restarted = await accountService.RestartPendingSignupAsync(userId, current.Email, current.Name);
+            await Assert.That(restarted.Value is User).IsTrue();
+        }
+
+        using var client = CreateCookielessClient();
+        var response = await PostActivateAsync(client, token, cookie: MintResendCookie(userId));
+
+        await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.OK);
+        await Assert.That(await IsActivatedAsync(userId)).IsTrue();
     }
 
     // --- An email change is only confirmed from a session of the account that asked for it ---

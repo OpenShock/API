@@ -69,7 +69,21 @@ public sealed class EmailOutboxDispatcher : IEmailOutboxDispatcher
         if (request is null) return EmailDispatchResult.Skip("Activation request no longer exists");
         if (request.User.ActivatedAt is not null) return EmailDispatchResult.Skip("Account already activated");
 
-        var token = await MintTokenAsync(db, h => request.TokenHash = h, ct);
+        // A pending signup can have its address corrected after this message was queued. The link activates
+        // the account as it is now, so it may only go to the address the account has now.
+        if (!string.Equals(message.Recipient, request.User.Email, StringComparison.OrdinalIgnoreCase))
+            return EmailDispatchResult.Skip("Account email changed since this message was queued");
+
+        // Changing the address also replaces the token hash, in the same commit. Writing the new hash only
+        // over the one read above therefore means the address cannot have changed in between.
+        var token = CryptoUtils.RandomString(AuthConstants.GeneratedTokenLength);
+        var newHash = HashingUtils.HashToken(token);
+        var previousHash = request.TokenHash;
+        var minted = await db.UserActivationRequests
+            .Where(r => r.UserId == userId && r.TokenHash == previousHash)
+            .ExecuteUpdateAsync(s => s.SetProperty(r => r.TokenHash, newHash), ct);
+        if (minted == 0) return EmailDispatchResult.Skip("Activation request changed since this message was queued");
+
         var link = new Uri(_frontendOptions.BaseUrl, $"/activate?token={token}");
         return FromSend(await _emailService.ActivateAccount(ToContact(message), link, ct));
     }

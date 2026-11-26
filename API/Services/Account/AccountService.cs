@@ -211,10 +211,11 @@ public sealed class AccountService : IAccountService
 
         var user = await _db.Users
             .Include(u => u.UserDeactivation)
+            .Include(u => u.UserActivationRequest)
             .FirstOrDefaultAsync(u => u.Id == userId, cancellationToken);
         if (user is null || user.ActivatedAt is not null || user.UserDeactivation is not null) return new NotFound();
 
-        var emailChanged = user.Email != email;
+        var emailChanged = !string.Equals(user.Email, email, StringComparison.OrdinalIgnoreCase);
         if (emailChanged || user.Name != username)
         {
             if (await IsUserNameBlacklisted(username, cancellationToken) || await IsEmailProviderBlacklisted(email, cancellationToken))
@@ -228,9 +229,25 @@ public sealed class AccountService : IAccountService
             user.Email = email;
             user.Name = username;
 
+            // A link already mailed was mailed to the previous address, so it says nothing about the new
+            // one: it must stop working in the same commit that changes the address. Otherwise the caller
+            // could sign up with an inbox of their own, move the account to somebody else's address and
+            // activate it with the link they already hold. The delivery job mints the new token when it
+            // sends to the new address.
+            if (emailChanged && user.UserActivationRequest is not null)
+            {
+                user.UserActivationRequest.TokenHash = SeedTokenHash();
+            }
+
             try
             {
                 await _db.SaveChangesAsync();
+            }
+            catch (DbUpdateConcurrencyException)
+            {
+                // The old link was redeemed while this ran: the account is activated on the address it was
+                // mailed to, and nothing was changed here.
+                return new NotFound();
             }
             catch (DbUpdateException ex) when (ex.InnerException is PostgresException { SqlState: "23505" })
             {
@@ -369,13 +386,34 @@ public sealed class AccountService : IAccountService
             return new ActivationCredentialRequired(hasPassword, providers, passwordInvalid);
         }
 
-        user.ActivatedAt = DateTime.UtcNow;
-
-        _db.UserActivationRequests.Remove(user.UserActivationRequest);
-
-        await _db.SaveChangesAsync();
+        if (!await ConsumeActivationTokenAsync(user.Id, hash, cancellationToken)) return new NotFound();
 
         return new Success();
+    }
+
+    /// <summary>
+    /// Activates the account by consuming its activation request, but only if the request still carries
+    /// <paramref name="tokenHash"/>. The check and the delete are one statement, so a token that was
+    /// replaced since the caller looked it up (the signup's address was changed, see
+    /// <see cref="RestartPendingSignupAsync"/>) cannot activate the account on its new address.
+    /// </summary>
+    private async Task<bool> ConsumeActivationTokenAsync(Guid userId, string tokenHash, CancellationToken cancellationToken)
+    {
+        await using var transaction = await _db.Database.BeginTransactionAsync(cancellationToken);
+
+        var consumed = await _db.UserActivationRequests
+            .Where(r => r.UserId == userId && r.TokenHash == tokenHash)
+            .ExecuteDeleteAsync(cancellationToken);
+        if (consumed == 0) return false;
+
+        var now = DateTime.UtcNow;
+        await _db.Users
+            .Where(u => u.Id == userId && u.ActivatedAt == null)
+            .ExecuteUpdateAsync(s => s.SetProperty(u => u.ActivatedAt, now), cancellationToken);
+
+        await transaction.CommitAsync(cancellationToken);
+
+        return true;
     }
 
     /// <inheritdoc />
@@ -383,18 +421,11 @@ public sealed class AccountService : IAccountService
     {
         var hash = HashingUtils.HashToken(activationToken);
 
-        var user = await _db.Users
-            .Include(u => u.UserActivationRequest)
-            .FirstOrDefaultAsync(x => x.Id == userId && x.ActivatedAt == null && x.UserDeactivation == null && x.UserActivationRequest != null && x.UserActivationRequest.TokenHash == hash, cancellationToken);
-        if (user?.UserActivationRequest is null) return false;
+        var matches = await _db.Users
+            .AnyAsync(x => x.Id == userId && x.ActivatedAt == null && x.UserDeactivation == null && x.UserActivationRequest != null && x.UserActivationRequest.TokenHash == hash, cancellationToken);
+        if (!matches) return false;
 
-        user.ActivatedAt = DateTime.UtcNow;
-
-        _db.UserActivationRequests.Remove(user.UserActivationRequest);
-
-        await _db.SaveChangesAsync();
-
-        return true;
+        return await ConsumeActivationTokenAsync(userId, hash, cancellationToken);
     }
 
     /// <inheritdoc />
