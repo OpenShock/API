@@ -3,6 +3,8 @@ using System.Security.Cryptography;
 using Microsoft.AspNetCore.DataProtection;
 using OpenShock.Common.Constants;
 using OpenShock.Common.Options;
+using OpenShock.Common.Services.Geo;
+using OpenShock.Common.Utils;
 
 namespace OpenShock.Common.Authentication;
 
@@ -18,24 +20,35 @@ namespace OpenShock.Common.Authentication;
 /// emailed link activate the account. So this cookie is bound to the API host alone: no <c>Domain</c>,
 /// <c>HttpOnly</c>, and over HTTPS the <c>__Host-</c> name prefix, which browsers refuse to accept from
 /// anything but this exact host.
+/// <para>
+/// It also carries the country the signup came from, when that could be resolved. Presented from a
+/// different country it is ignored, which only means the caller is asked for the password or provider
+/// sign-in like any other browser. Country and not address: addresses change too often on mobile networks
+/// for an exact match to be worth the false alarms. A request whose country cannot be resolved is let
+/// through, so a missing GeoIP database does not disable the cookie.
+/// </para>
 /// </remarks>
 public static class SignupBrowserCookie
 {
     private const string ProtectorPurpose = "OpenShock.SignupBrowserCookie";
+    private const char PayloadSeparator = '|';
 
     /// <summary>The cookie name used for a request: <c>__Host-</c> prefixed whenever cookies are secure.</summary>
     public static string GetName(HttpContext context) => IsSecure(context)
         ? AuthConstants.SignupBrowserSecureCookieName
         : AuthConstants.SignupBrowserCookieName;
 
-    public static string CreateToken(IDataProtectionProvider provider, Guid userId)
-        => GetProtector(provider).Protect(userId.ToString(), Duration.ActivationResendWindow);
+    /// <param name="provider"></param>
+    /// <param name="userId"></param>
+    /// <param name="countryCode">Country the signup came from, or null when it is not known.</param>
+    public static string CreateToken(IDataProtectionProvider provider, Guid userId, string? countryCode = null)
+        => GetProtector(provider).Protect($"{userId}{PayloadSeparator}{countryCode}", Duration.ActivationResendWindow);
 
     public static void Set(HttpContext context, Guid userId)
     {
         var provider = context.RequestServices.GetRequiredService<IDataProtectionProvider>();
 
-        context.Response.Cookies.Append(GetName(context), CreateToken(provider, userId), new CookieOptions
+        context.Response.Cookies.Append(GetName(context), CreateToken(provider, userId, GetCountryCode(context)), new CookieOptions
         {
             Expires = DateTimeOffset.UtcNow.Add(Duration.ActivationResendWindow),
             Secure = IsSecure(context),
@@ -57,7 +70,19 @@ public static class SignupBrowserCookie
         var provider = context.RequestServices.GetRequiredService<IDataProtectionProvider>();
         try
         {
-            if (!Guid.TryParse(GetProtector(provider).Unprotect(token), out var id)) return false;
+            var payload = GetProtector(provider).Unprotect(token).AsSpan();
+            var separator = payload.IndexOf(PayloadSeparator);
+            if (separator < 0 || !Guid.TryParse(payload[..separator], out var id)) return false;
+
+            // Only a known mismatch counts: unknown on either side says nothing.
+            var signupCountry = payload[(separator + 1)..];
+            if (!signupCountry.IsEmpty
+                && GetCountryCode(context) is { } currentCountry
+                && !signupCountry.Equals(currentCountry, StringComparison.OrdinalIgnoreCase))
+            {
+                return false;
+            }
+
             userId = id;
             return true;
         }
@@ -81,6 +106,12 @@ public static class SignupBrowserCookie
             SameSite = SameSiteMode.Lax,
             Path = "/"
         });
+    }
+
+    private static string? GetCountryCode(HttpContext context)
+    {
+        var countryCode = context.RequestServices.GetRequiredService<IIpEnrichmentService>().Enrich(context.GetRemoteIP())?.CountryCode;
+        return string.IsNullOrEmpty(countryCode) ? null : countryCode;
     }
 
     private static bool IsSecure(HttpContext context)
