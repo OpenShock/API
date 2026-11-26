@@ -73,6 +73,11 @@ public class WebApplicationFactory : WebApplicationFactory<Program>
             { "OPENSHOCK__TURNSTILE__SECRETKEY", "turnstile-secret-key" },
             { "OPENSHOCK__TURNSTILE__SITEKEY", "turnstile-site-key" },
 
+            // Never contacted: enough for the provider to be offered and for the authorize endpoint to
+            // build its redirect. OAuthFlowTests stands in for the provider's answer.
+            { "OPENSHOCK__OAUTH2__DISCORD__CLIENTID", "test-discord-client-id" },
+            { "OPENSHOCK__OAUTH2__DISCORD__CLIENTSECRET", "test-discord-client-secret" },
+
             { "OPENSHOCK__LCG__FQDN", "de1-gateway.my-openshock-instance.net" },
             { "OPENSHOCK__LCG__COUNTRYCODE", "DE" },
 

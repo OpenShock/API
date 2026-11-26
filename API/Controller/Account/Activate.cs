@@ -36,7 +36,7 @@ public sealed partial class AccountController
         [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Allow)] ActivateRequest? body,
         CancellationToken cancellationToken)
     {
-        ActivationResendCookie.TryGetUserId(HttpContext, out var signupBrowserUserId);
+        SignupBrowserCookie.TryGetUserId(HttpContext, out var signupBrowserUserId);
 
         var result = await _accountService.ActivateAccountAsync(token, signupBrowserUserId, body?.Password, cancellationToken);
 

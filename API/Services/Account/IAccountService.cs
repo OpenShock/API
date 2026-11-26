@@ -57,12 +57,12 @@ public interface IAccountService
     /// <summary>
     /// Activates the account an emailed activation token belongs to. The token only proves control of the
     /// inbox, and anyone can sign up with somebody else's address, so the caller must also show they are
-    /// the one who signed up: the signup browser's resend cookie (<paramref name="signupBrowserUserId"/>)
+    /// the one who signed up: the signup browser's cookie (<paramref name="signupBrowserUserId"/>)
     /// or the account's password. An account created through OAuth is activated by signing in with the
     /// linked provider instead, see <see cref="TryActivateAccountAsync"/>.
     /// </summary>
     /// <param name="activationToken">Token from the activation email.</param>
-    /// <param name="signupBrowserUserId">User id from the activation resend cookie, if the request carries a valid one.</param>
+    /// <param name="signupBrowserUserId">User id from <see cref="OpenShock.Common.Authentication.SignupBrowserCookie"/>, if the request carries a valid one.</param>
     /// <param name="password">Password supplied alongside the token, if any.</param>
     /// <param name="cancellationToken"></param>
     /// <returns>

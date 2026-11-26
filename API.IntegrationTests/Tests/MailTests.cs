@@ -279,6 +279,12 @@ public sealed class MailTests
         return $"{AuthConstants.ActivationResendCookieName}={ActivationResendCookie.CreateToken(provider, userId)}";
     }
 
+    private string MintSignupBrowserCookie(Guid userId)
+    {
+        var provider = WebApplicationFactory.Services.GetRequiredService<IDataProtectionProvider>();
+        return $"{AuthConstants.SignupBrowserSecureCookieName}={SignupBrowserCookie.CreateToken(provider, userId)}";
+    }
+
     private static Task<HttpResponseMessage> PostResendAsync(HttpClient client, string? cookie)
     {
         var request = new HttpRequestMessage(HttpMethod.Post, "/1/account/activate/resend");
@@ -553,7 +559,7 @@ public sealed class MailTests
         var (userId, token) = await CreateUnactivatedUserWithTokenAsync("mail-activate-cookie", "OwnerPassword123#");
 
         using var client = CreateCookielessClient();
-        var response = await PostActivateAsync(client, token, cookie: MintResendCookie(userId));
+        var response = await PostActivateAsync(client, token, cookie: MintSignupBrowserCookie(userId));
 
         await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.OK);
         await Assert.That(await IsActivatedAsync(userId)).IsTrue();
@@ -591,13 +597,55 @@ public sealed class MailTests
     }
 
     [Test]
+    public async Task Signup_SetsSignupBrowserCookie_BoundToTheApiHost()
+    {
+        using var client = CreateCookielessClient();
+        var response = await SignUpAsync(client, TestHelper.UniqueEmail("mail-signup-browsercookie"), TestHelper.UniqueUsername("mailsignupbrowser"));
+        await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.OK);
+
+        // __Host- prefix, no Domain, HttpOnly: a sibling subdomain cannot plant one in someone else's browser.
+        var cookie = response.Headers.GetValues("Set-Cookie").Single(c => c.StartsWith(AuthConstants.SignupBrowserSecureCookieName + "="));
+        await Assert.That(cookie.Contains("httponly", StringComparison.OrdinalIgnoreCase)).IsTrue();
+        await Assert.That(cookie.Contains("secure", StringComparison.OrdinalIgnoreCase)).IsTrue();
+        await Assert.That(cookie.Contains("path=/", StringComparison.OrdinalIgnoreCase)).IsTrue();
+        await Assert.That(cookie.Contains("domain=", StringComparison.OrdinalIgnoreCase)).IsFalse();
+    }
+
+    [Test]
+    public async Task Activate_ResendCookieAlone_Returns403()
+    {
+        // The resend cookie is shared across the cookie domain and readable by script, so it proves nothing.
+        var (userId, token) = await CreateUnactivatedUserWithTokenAsync("mail-activate-resendcookie", "OwnerPassword123#");
+
+        using var client = CreateCookielessClient();
+        var response = await PostActivateAsync(client, token, cookie: MintResendCookie(userId));
+
+        await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.Forbidden);
+        await Assert.That(await IsActivatedAsync(userId)).IsFalse();
+    }
+
+    [Test]
+    public async Task Activate_SignupBrowserCookieWithoutHostPrefix_Returns403()
+    {
+        // The unprefixed name is the one a sibling subdomain could set.
+        var (userId, token) = await CreateUnactivatedUserWithTokenAsync("mail-activate-noprefix", "OwnerPassword123#");
+        var value = MintSignupBrowserCookie(userId)[(AuthConstants.SignupBrowserSecureCookieName.Length + 1)..];
+
+        using var client = CreateCookielessClient();
+        var response = await PostActivateAsync(client, token, cookie: $"{AuthConstants.SignupBrowserCookieName}={value}");
+
+        await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.Forbidden);
+        await Assert.That(await IsActivatedAsync(userId)).IsFalse();
+    }
+
+    [Test]
     public async Task Activate_SignupCookieOfAnotherAccount_Returns403()
     {
         var (userId, token) = await CreateUnactivatedUserWithTokenAsync("mail-activate-othercookie", "OwnerPassword123#");
         var otherUserId = await TestHelper.CreateUserInDb(WebApplicationFactory, TestHelper.UniqueUsername("mailactother"), TestHelper.UniqueEmail("mail-activate-other"), "OtherPassword123#", activated: false);
 
         using var client = CreateCookielessClient();
-        var response = await PostActivateAsync(client, token, cookie: MintResendCookie(otherUserId));
+        var response = await PostActivateAsync(client, token, cookie: MintSignupBrowserCookie(otherUserId));
 
         await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.Forbidden);
         await Assert.That(await IsActivatedAsync(userId)).IsFalse();
@@ -647,7 +695,7 @@ public sealed class MailTests
         await Assert.That(await GetEmailAsync(userId)).IsEqualTo(victimEmail);
 
         using var client = CreateCookielessClient();
-        var response = await PostActivateAsync(client, token, cookie: MintResendCookie(userId));
+        var response = await PostActivateAsync(client, token, cookie: MintSignupBrowserCookie(userId));
 
         await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.BadRequest);
         await Assert.That(await IsActivatedAsync(userId)).IsFalse();
@@ -670,7 +718,7 @@ public sealed class MailTests
         }
 
         using var client = CreateCookielessClient();
-        var response = await PostActivateAsync(client, token, cookie: MintResendCookie(userId));
+        var response = await PostActivateAsync(client, token, cookie: MintSignupBrowserCookie(userId));
 
         await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.OK);
         await Assert.That(await IsActivatedAsync(userId)).IsTrue();

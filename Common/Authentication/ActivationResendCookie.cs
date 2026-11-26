@@ -16,13 +16,13 @@ namespace OpenShock.Common.Authentication;
 /// so it is valid across API instances). It is removed on any successful session authentication, and by the
 /// resend endpoint once there is nothing left to resend.
 /// <para>
-/// It also marks this browser as the one that signed up: it is only ever issued in the response that creates
-/// the account, and the activation endpoint accepts it in place of re-entering the password.
-/// </para>
-/// <para>
 /// Deliberately <em>not</em> HttpOnly: the frontend reads its presence to decide whether to offer the resend
 /// button. HttpOnly would buy little anyway - script on the page could call the endpoint with the cookie attached
-/// regardless - and a leaked token is useless without the activation link mailed to that account's own inbox.
+/// regardless - and a leaked token can only resend (rate limited) activation emails to that account's own inbox.
+/// </para>
+/// <para>
+/// It is not proof of anything else. What marks this browser as the one that signed up, for activation, is
+/// <see cref="SignupBrowserCookie"/>, which is set and removed together with this one.
 /// </para>
 /// </remarks>
 public static class ActivationResendCookie
@@ -45,6 +45,8 @@ public static class ActivationResendCookie
             SameSite = SameSiteMode.Lax,
             Domain = domain
         });
+
+        SignupBrowserCookie.Set(context, userId);
     }
 
     public static bool TryGetUserId(HttpContext context, [NotNullWhen(true)] out Guid? userId)
@@ -70,6 +72,8 @@ public static class ActivationResendCookie
     /// <summary>Deletes the cookie, if the request carries one, on every configured cookie domain.</summary>
     public static void Remove(HttpContext context)
     {
+        SignupBrowserCookie.Remove(context);
+
         if (!context.Request.Cookies.ContainsKey(AuthConstants.ActivationResendCookieName)) return;
 
         var cookieDomains = context.RequestServices.GetRequiredService<FrontendOptions>().CookieDomains;
