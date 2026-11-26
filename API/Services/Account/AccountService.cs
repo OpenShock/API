@@ -81,8 +81,9 @@ public sealed class AccountService : IAccountService
 
     private async Task<bool> IsEmailProviderBlacklisted(string email, CancellationToken cancellationToken)
     {
-        if (!MailAddress.TryCreate(email, out var address)) return false;
-        return await _db.EmailProviderBlacklists.AnyAsync(e => e.Domain == address.Host, cancellationToken);
+        if (!EmailValidator.TrySplitAddress(email, out _, out var domainSpan)) return false;
+        var domain = domainSpan.ToString();
+        return await _db.EmailProviderBlacklists.AnyAsync(e => e.Domain == domain, cancellationToken);
     }
 
     private async Task<AccountCreationResult> CreateAccount(string email, string username, string password, bool verifyOnCreation, Guid? createdByAutomationTokenId, CancellationToken cancellationToken)
@@ -706,12 +707,11 @@ public sealed class AccountService : IAccountService
     public async Task<Union4<Success, EmailTaken, EmailInvalid, NotFound>>
         ChangeEmail(Guid userId, string email, Guid? actorId, CancellationToken cancellationToken = default)
     {
-        if (!MailAddress.TryCreate(email, out _))
-            return new EmailInvalid();
-
         // Lookups and uniqueness ignore case in the database. Addresses are still stored lowercased so
         // every account has one canonical form, which the Gravatar hash depends on.
-        email = email.ToLowerInvariant();
+        if (!EmailValidator.TryNormalizeAddress(email, out var normalized))
+            return new EmailInvalid();
+        email = normalized;
 
         var availability = await CheckEmailAvailability(email, cancellationToken);
         if (availability is EmailTaken)

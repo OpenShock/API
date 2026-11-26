@@ -63,7 +63,7 @@ public sealed class EmailProviderBlacklistTests
     {
         var suffix = Guid.NewGuid().ToString("N")[..12];
         using var client = await CreateAdminClient("blacklistinvalid");
-        string[] invalid = ["localhost", "127.0.0.1", "not a domain", "@", new string('a', 250) + ".example", "under_score.example", "-leading.example", "trailing-.example", "double..dot.example"];
+        string[] invalid = ["localhost", "127.0.0.1", "not a domain", "@", new string('a', 250) + ".example", "under_score.example", "-leading.example", "trailing-.example", "double..dot.example", "two-dots.example..", "user@", "1.2.3.4", "münchen.example"];
 
         try
         {
