@@ -58,7 +58,7 @@ public sealed class PublicShareHub : Hub<IPublicShareHub>
             }
         }
 
-        var exists = await _db.PublicShares.AnyAsync(x => x.Id == id && (x.ExpiresAt == null || x.ExpiresAt > DateTime.UtcNow));
+        var exists = await _db.PublicShares.AnyAsync(x => x.Id == id && (x.ExpiresAt == null || x.ExpiresAt > DateTime.UtcNow) && x.Owner.UserDeactivation == null);
         if (!exists)
         {
             _logger.LogDebug("Aborting connection... public share not found");

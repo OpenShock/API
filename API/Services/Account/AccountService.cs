@@ -670,6 +670,8 @@ public sealed class AccountService : IAccountService
         // Remove all login sessions
         await _sessionService.DeleteSessionsByUserIdAsync(userId);
 
+        await RefreshOwnedDevicesAsync(userId, cancellationToken);
+
         return new Success();
     }
 
@@ -714,7 +716,15 @@ public sealed class AccountService : IAccountService
 
         await transaction.CommitAsync();
 
+        await RefreshOwnedDevicesAsync(userId, cancellationToken);
+
         return new Success();
+    }
+
+    private async Task RefreshOwnedDevicesAsync(Guid userId, CancellationToken cancellationToken)
+    {
+        var deviceIds = await _db.Devices.Where(x => x.OwnerId == userId).Select(x => x.Id).ToArrayAsync(cancellationToken);
+        await Task.WhenAll(deviceIds.Select(_redisPubService.SendDeviceUpdate));
     }
 
     /// <inheritdoc />
