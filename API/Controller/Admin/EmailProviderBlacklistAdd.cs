@@ -3,7 +3,6 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using OpenShock.API.Controller.Admin.DTOs;
 using OpenShock.Common.ApiVersioning;
-using OpenShock.Common.OpenShockDb;
 
 namespace OpenShock.API.Controller.Admin;
 
@@ -17,24 +16,20 @@ public sealed partial class AdminController
     {
         PedanticallyEnsureAdmin();
 
-        var existingDomains = await _db.EmailProviderBlacklists.Select(x => x.Domain.ToLowerInvariant()).ToHashSetAsync(ct);
+        var domains = body.Domains
+            .Where(domain => !string.IsNullOrWhiteSpace(domain))
+            .Select(domain => domain.Trim().ToLowerInvariant())
+            .Distinct()
+            .ToArray();
 
-        foreach (var domain in body.Domains)
-        {
-            if (string.IsNullOrWhiteSpace(domain)) continue;
-            
-            var normalized = domain.Trim().ToLowerInvariant();
-            
-            if (!existingDomains.Add(normalized)) continue;
+        // The unique index ignores case, so domains that are already listed are skipped by the database
+        await _db.Database.ExecuteSqlAsync(
+            $"""
+             INSERT INTO email_provider_blacklist (id, domain)
+             SELECT gen_random_uuid(), domain FROM unnest({domains}) AS domain
+             ON CONFLICT DO NOTHING
+             """, ct);
 
-            _db.EmailProviderBlacklists.Add(new EmailProviderBlacklist
-            {
-                Domain = normalized,
-            });
-        }
-        
-        await _db.SaveChangesAsync(ct);
-        
         return Ok();
     }
 }
