@@ -121,7 +121,7 @@ partial class _20261126000339_PostgresNativeCleanup
                     .HasColumnType("integer")
                     .HasColumnName("password_reset_count");
 
-                b.Property<List<RoleType>>("Roles")
+                b.Property<RoleType[]>("Roles")
                     .IsRequired()
                     .HasColumnType("role_type[]")
                     .HasColumnName("roles");
