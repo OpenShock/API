@@ -482,6 +482,36 @@ public sealed class MailTests
         await Assert.That(holder.Id).IsNotEqualTo(pendingId);
     }
 
+    // An address is only mailed so often, however many signups it takes: each replaced pending account
+    // would otherwise start its own count.
+    [Test]
+    public async Task Signup_AddressAlreadySentTheDailyCapOfActivationEmails_Returns409_AndMailsNothing()
+    {
+        var email = TestHelper.UniqueEmail("mail-address-cap");
+
+        using var client = CreateCookielessClient();
+        for (var i = 0; i < 5; i++)
+        {
+            var response = await SignUpAsync(client, email, TestHelper.UniqueUsername("mailaddresscap"));
+            await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.OK);
+
+            // Step the pending account and its mail past the cooldown, so the next signup replaces it.
+            await BackdateOutboxAsync(email, TimeSpan.FromMinutes(11));
+            await BackdatePendingAccountAsync(email, TimeSpan.FromMinutes(11));
+        }
+
+        var sixth = await SignUpAsync(client, email, TestHelper.UniqueUsername("mailaddresscap"));
+        await Assert.That(sixth.StatusCode).IsEqualTo(HttpStatusCode.Conflict);
+        await Assert.That(await CountOutboxAsync(email)).IsEqualTo(5);
+    }
+
+    private async Task BackdatePendingAccountAsync(string email, TimeSpan by)
+    {
+        await using var scope = WebApplicationFactory.Services.CreateAsyncScope();
+        var db = scope.ServiceProvider.GetRequiredService<OpenShockContext>();
+        await db.Users.Where(u => u.Email == email).ExecuteUpdateAsync(s => s.SetProperty(u => u.CreatedAt, u => u.CreatedAt - by));
+    }
+
     // The cooldown runs from the last activation mail, not only from signup: replacing the account would
     // mail the same inbox again straight after a resend did.
     [Test]

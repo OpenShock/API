@@ -93,6 +93,27 @@ public sealed class AccountService : IAccountService
         }
     }
 
+    /// <summary>Most activation emails one account, and one address, is sent per <see cref="Duration.ActivationResendWindow"/>.</summary>
+    private const int MaxActivationEmailsPerWindow = 5;
+
+    /// <summary>
+    /// Whether <paramref name="email"/> has already been sent as many activation emails as an address gets
+    /// per window, whichever accounts they were for. The cap per account alone does not protect an inbox:
+    /// a pending account can be replaced by a new signup, and every new account starts counting from zero.
+    /// Counted on the outbox, which is never pruned, so it holds across instances and deleted accounts.
+    /// </summary>
+    /// <param name="email">Lowercased address.</param>
+    /// <param name="cancellationToken"></param>
+    private async Task<bool> IsActivationEmailCapReachedAsync(string email, CancellationToken cancellationToken)
+    {
+        var windowStart = DateTime.UtcNow - Duration.ActivationResendWindow;
+        var sent = await _db.EmailOutbox.CountAsync(
+            m => m.Recipient == email && m.Type == EmailType.AccountActivation && m.CreatedAt >= windowStart,
+            cancellationToken);
+
+        return sent >= MaxActivationEmailsPerWindow;
+    }
+
     private Task<bool> IsUserNameBlacklisted(string username, CancellationToken cancellationToken)
         => _db.UserNameBlacklists.Matching(username).AnyAsync(cancellationToken);
 
@@ -110,6 +131,11 @@ public sealed class AccountService : IAccountService
         if (await IsUserNameBlacklisted(username, cancellationToken) || await IsEmailProviderBlacklisted(email, cancellationToken))
             return new AccountWithEmailOrUsernameExists();
         
+        // This signup would mail the address (unless accounts are activated on creation). Past the cap it is
+        // turned away like a taken address, before it can replace whoever holds the address now.
+        if (!verifyOnCreation && await IsActivationEmailCapReachedAsync(email, cancellationToken))
+            return new AccountWithEmailOrUsernameExists();
+
         await ReleaseEmailFromPendingAccountAsync(email, claimantOwnsEmail: false, exceptUserId: null, cancellationToken);
 
         if (await _db.Users.AnyAsync(x => x.Email == email || x.Name == username, cancellationToken))
@@ -253,6 +279,10 @@ public sealed class AccountService : IAccountService
             if (await IsUserNameBlacklisted(username, cancellationToken) || await IsEmailProviderBlacklisted(email, cancellationToken))
                 return new AccountWithEmailOrUsernameExists();
 
+            // Moving the signup to another address mails that address.
+            if (emailChanged && await IsActivationEmailCapReachedAsync(email, cancellationToken))
+                return new AccountWithEmailOrUsernameExists();
+
             // Releasing another pending account's hold on the address only stands if this correction goes
             // through: every return below that does not commit rolls the release back.
             await using var transaction = await _db.Database.BeginTransactionAsync(cancellationToken);
@@ -331,6 +361,10 @@ public sealed class AccountService : IAccountService
 
         // Reuse your existing guards
         if (await IsUserNameBlacklisted(username, cancellationToken) || await IsEmailProviderBlacklisted(email, cancellationToken))
+            return new AccountWithEmailOrUsernameExists();
+
+        // An unverified address gets an activation email.
+        if (!isEmailTrusted && await IsActivationEmailCapReachedAsync(email, cancellationToken))
             return new AccountWithEmailOrUsernameExists();
 
         // Pending accounts removed to make room only stay removed if the new account is created: every
@@ -531,7 +565,10 @@ public sealed class AccountService : IAccountService
             .Select(m => m.CreatedAt)
             .ToListAsync(cancellationToken);
 
-        if (recent.Count >= 5 || (!ignoreCooldown && recent.Any(createdAt => createdAt >= DateTime.UtcNow - Duration.ActivationResendCooldown)))
+        if (recent.Count >= MaxActivationEmailsPerWindow || (!ignoreCooldown && recent.Any(createdAt => createdAt >= DateTime.UtcNow - Duration.ActivationResendCooldown)))
+            return new TooManyActivationResends();
+
+        if (await IsActivationEmailCapReachedAsync(user.Email, cancellationToken))
             return new TooManyActivationResends();
 
         user.UserActivationRequest ??= new UserActivationRequest
