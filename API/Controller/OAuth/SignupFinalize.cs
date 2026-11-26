@@ -12,6 +12,7 @@ using OpenShock.Common.Errors;
 using OpenShock.Common.Extensions;
 using OpenShock.Common.OpenShockDb;
 using OpenShock.Common.Options;
+using OpenShock.Common.Utils;
 
 namespace OpenShock.API.Controller.OAuth;
 
@@ -86,7 +87,7 @@ public sealed partial class OAuthController
         }
 
         var isVerifiedString = auth.Principal.FindFirst(OAuthConstants.ClaimEmailVerified)?.Value;
-        var isEmailTrusted = IsTruthy(isVerifiedString) && string.Equals(externalAccountEmail, email, StringComparison.InvariantCultureIgnoreCase);
+        var isEmailTrusted = StringUtils.IsTruthy(isVerifiedString) && string.Equals(externalAccountEmail, email, StringComparison.InvariantCultureIgnoreCase);
 
         // Do not allow creation if this external is already linked to a real account.
         Guid? replacePendingUserId = null;

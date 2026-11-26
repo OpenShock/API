@@ -27,13 +27,6 @@ public sealed partial class OAuthController : OpenShockControllerBase
         _logger = logger;
     }
 
-    /// <summary>Reads a provider's "email verified" claim, which arrives as a loosely typed string.</summary>
-    private static bool IsTruthy(string? value)
-    {
-        if (string.IsNullOrWhiteSpace(value)) return false;
-        return value.Trim().ToLowerInvariant() is "1" or "yes" or "true";
-    }
-
     private enum OAuthValidationError
     {
         FlowStateMissing,

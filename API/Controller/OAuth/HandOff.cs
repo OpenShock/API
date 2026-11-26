@@ -7,6 +7,7 @@ using OpenShock.API.Services.OAuthConnection;
 using OpenShock.Common.ApiVersioning;
 using OpenShock.Common.Extensions;
 using OpenShock.Common.Options;
+using OpenShock.Common.Utils;
 
 namespace OpenShock.API.Controller.OAuth;
 
@@ -71,7 +72,7 @@ public sealed partial class OAuthController
                     // at the provider, and answering for it would tell anyone which emails are registered.
                     var externalEmail = auth.Principal.FindFirst(ClaimTypes.Email)?.Value;
                     if (!string.IsNullOrWhiteSpace(externalEmail) &&
-                        IsTruthy(auth.Principal.FindFirst(OAuthConstants.ClaimEmailVerified)?.Value) &&
+                        StringUtils.IsTruthy(auth.Principal.FindFirst(OAuthConstants.ClaimEmailVerified)?.Value) &&
                         await _accountService.IsEmailRegisteredAsync(externalEmail, cancellationToken))
                     {
                         await HttpContext.SignOutAsync(OAuthConstants.FlowScheme);
