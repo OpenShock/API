@@ -17,12 +17,12 @@ public static class OAuthUtil
         var properties = new AuthenticationProperties
         {
             RedirectUri = $"/1/oauth/{provider}/handoff",
-            Items = { { OAuthConstants.ItemKeyFlowType, flow.ToString() } }
+            Flow = flow
         };
 
-        if (flow == OAuthFlow.LoginOrCreate && !string.IsNullOrEmpty(activationToken))
+        if (flow == OAuthFlow.LoginOrCreate)
         {
-            properties.Items[OAuthConstants.ItemKeyActivationToken] = activationToken;
+            properties.ActivationToken = activationToken;
         }
 
         return new ChallengeResult(provider, properties);

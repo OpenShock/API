@@ -46,8 +46,7 @@ public sealed class OAuthFlowTests
         var response = await client.PostAsync($"/1/oauth/{Provider}/authorize?flow=LoginOrCreate&activationToken=the-mailed-token", null);
 
         await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.Redirect);
-        var items = ReadStateItems(response);
-        await Assert.That(items[OAuthConstants.ItemKeyActivationToken]).IsEqualTo("the-mailed-token");
+        await Assert.That(ReadState(response).ActivationToken).IsEqualTo("the-mailed-token");
     }
 
     [Test]
@@ -59,7 +58,7 @@ public sealed class OAuthFlowTests
         var response = await client.PostAsync($"/1/oauth/{Provider}/authorize?flow=Link&activationToken=the-mailed-token", null);
 
         await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.Redirect);
-        await Assert.That(ReadStateItems(response).ContainsKey(OAuthConstants.ItemKeyActivationToken)).IsFalse();
+        await Assert.That(ReadState(response).ActivationToken).IsNull();
     }
 
     // --- handoff: activating a pending account ---
@@ -302,8 +301,8 @@ public sealed class OAuthFlowTests
             ExpiresUtc = DateTimeOffset.UtcNow.AddMinutes(10)
         };
         properties.Items[".AuthScheme"] = Provider;
-        properties.Items[OAuthConstants.ItemKeyFlowType] = flow.ToString();
-        if (activationToken is not null) properties.Items[OAuthConstants.ItemKeyActivationToken] = activationToken;
+        properties.Flow = flow;
+        properties.ActivationToken = activationToken;
 
         var ticket = new AuthenticationTicket(new ClaimsPrincipal(new ClaimsIdentity(claims, Provider)), properties, OAuthConstants.FlowScheme);
 
@@ -317,11 +316,11 @@ public sealed class OAuthFlowTests
     }
 
     /// <summary>The properties the authorize endpoint handed to the provider, read back from the state parameter.</summary>
-    private IDictionary<string, string?> ReadStateItems(HttpResponseMessage response)
+    private AuthenticationProperties ReadState(HttpResponseMessage response)
     {
         var state = HttpUtility.ParseQueryString(response.Headers.Location!.Query)["state"]!;
         var options = WebApplicationFactory.Services.GetRequiredService<IOptionsMonitor<DiscordAuthenticationOptions>>().Get(Provider);
-        return options.StateDataFormat.Unprotect(state)!.Items;
+        return options.StateDataFormat.Unprotect(state)!;
     }
 
     private static Task<HttpResponseMessage> HandoffAsync(HttpClient client, string flowCookie)
