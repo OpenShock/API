@@ -159,7 +159,7 @@ public sealed partial class EmailOutboxDeliveryTests
         return outbox.Id;
     }
 
-    private static string UniqueEmail(string prefix) => $"{prefix}-{Guid.CreateVersion7().ToString("N")[..8]}@test.org";
+    private static string UniqueEmail(string prefix) => $"{prefix}-{Guid.NewGuid().ToString("N")[..8]}@test.org";
 
     private static string? ExtractResetToken(string html)
     {
