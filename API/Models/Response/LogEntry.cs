@@ -16,4 +16,6 @@ public sealed class LogEntry
     public required byte Intensity { get; init; }
 
     public required uint Duration { get; init; }
+
+    public required bool LiveControl { get; init; }
 }

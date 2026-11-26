@@ -1,6 +1,8 @@
 ﻿using System.Collections.Immutable;
 using System.Diagnostics.Metrics;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
+using OpenShock.Common.Hubs;
 using OpenShock.Common.Models;
 using OpenShock.Common.OpenShockDb;
 using OpenShock.Common.Redis.PubSub;
@@ -28,6 +30,7 @@ public sealed class HubLifetimeManager
     private readonly ILoggerFactory _loggerFactory;
     private readonly GatewayMetrics _metrics;
     private readonly IBatchUpdateService _batchUpdateService;
+    private readonly IHubContext<UserHub, IUserHub> _userHub;
     private readonly ILogger<HubLifetimeManager> _logger;
     
     /// <summary>
@@ -50,6 +53,7 @@ public sealed class HubLifetimeManager
     /// <param name="lcgOptions"></param>
     /// <param name="metrics"></param>
     /// <param name="batchUpdateService"></param>
+    /// <param name="userHub"></param>
     /// <param name="meter"></param>
     public HubLifetimeManager(
         IDbContextFactory<OpenShockContext> dbContextFactory,
@@ -60,6 +64,7 @@ public sealed class HubLifetimeManager
         LcgOptions lcgOptions,
         GatewayMetrics metrics,
         IBatchUpdateService batchUpdateService,
+        IHubContext<UserHub, IUserHub> userHub,
         [FromKeyedServices("OpenShock.Gateway.Meter")] Meter meter
     )
     {
@@ -70,6 +75,7 @@ public sealed class HubLifetimeManager
         _loggerFactory = loggerFactory;
         _metrics = metrics;
         _batchUpdateService = batchUpdateService;
+        _userHub = userHub;
 
         _logger = _loggerFactory.CreateLogger<HubLifetimeManager>();
         
@@ -205,6 +211,7 @@ public sealed class HubLifetimeManager
             _redisConnectionProvider,
             _redisPubService,
             _batchUpdateService,
+            _userHub,
             _metrics,
             _loggerFactory.CreateLogger<HubLifetime>());
 

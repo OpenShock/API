@@ -3,8 +3,10 @@ using System.ComponentModel.DataAnnotations;
 using System.Diagnostics;
 using System.Net;
 using MessagePack;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using OpenShock.Common.Constants;
+using OpenShock.Common.Hubs;
 using OpenShock.Common.Models;
 using OpenShock.Common.OpenShockDb;
 using OpenShock.Common.Redis;
@@ -50,6 +52,7 @@ public sealed class HubLifetime : IAsyncDisposable
     private readonly IRedisConnectionProvider _redisConnectionProvider;
     private readonly IRedisPubService _redisPubService;
     private readonly IBatchUpdateService _batchUpdateService;
+    private readonly IHubContext<UserHub, IUserHub> _userHub;
     private readonly GatewayMetrics _metrics;
 
     private readonly RedisChannel _deviceMsgChannel;
@@ -94,6 +97,7 @@ public sealed class HubLifetime : IAsyncDisposable
     /// <param name="redisConnectionProvider"></param>
     /// <param name="redisPubService"></param>
     /// <param name="batchUpdateService"></param>
+    /// <param name="userHub"></param>
     /// <param name="metrics"></param>
     /// <param name="logger"></param>
     public HubLifetime([Range(1, 10)] byte tps, IHubController hubController,
@@ -102,6 +106,7 @@ public sealed class HubLifetime : IAsyncDisposable
         IRedisConnectionProvider redisConnectionProvider,
         IRedisPubService redisPubService,
         IBatchUpdateService batchUpdateService,
+        IHubContext<UserHub, IUserHub> userHub,
         GatewayMetrics metrics,
         ILogger<HubLifetime> logger)
     {
@@ -111,6 +116,7 @@ public sealed class HubLifetime : IAsyncDisposable
         _redisConnectionProvider = redisConnectionProvider;
         _redisPubService = redisPubService;
         _batchUpdateService = batchUpdateService;
+        _userHub = userHub;
         _metrics = metrics;
         _logger = logger;
 
@@ -419,10 +425,10 @@ public sealed class HubLifetime : IAsyncDisposable
         foreach (var (state, frame) in emittingFrames)
         {
             // Each sent tick is one tick interval of activity, a new type or controller starts a new burst
-            if (state.Burst is not { } burst || burst.Type != frame.Type || burst.ControllerId != frame.ControllerId)
+            if (state.Burst is not { } burst || burst.Type != frame.Type || burst.Controller.Id != frame.Controller.Id)
             {
                 EndBurst(state);
-                burst = state.Burst = new LiveBurst(frame.Type, frame.ControllerId, now.UtcDateTime);
+                burst = state.Burst = new LiveBurst(frame.Type, frame.Controller, now.UtcDateTime);
             }
 
             burst.AddTick(frame.Intensity, tickMs);
@@ -434,7 +440,11 @@ public sealed class HubLifetime : IAsyncDisposable
         if (state.Burst is not { } burst) return;
         state.Burst = null;
 
-        if (burst.Type != ControlType.Stop) _batchUpdateService.InsertControlLog(burst.ToLog(state));
+        if (burst.Type == ControlType.Stop) return;
+
+        var log = burst.ToLog(state);
+        _batchUpdateService.InsertControlLog(log);
+        OsTask.Run(() => _userHub.Clients.User(state.OwnerId.ToString()).Log(burst.Controller, [LiveBurst.ToHubLog(state, log)]));
     }
 
     /// <summary>
@@ -460,6 +470,7 @@ public sealed class HubLifetime : IAsyncDisposable
         {
             Id = x.Id,
             OwnerId = x.Device.OwnerId,
+            Name = x.Name,
             Model = x.Model,
             RfId = x.RfId
         }).ToDictionaryAsync(x => x.Id, x => x, cancellationToken);
@@ -477,12 +488,12 @@ public sealed class HubLifetime : IAsyncDisposable
     /// Receive a control frame by a client, this implies that limits and permissions have been checked before
     /// </summary>
     /// <param name="shocker"></param>
-    /// <param name="controllerId">User sending the frame</param>
+    /// <param name="controller">User sending the frame</param>
     /// <param name="type"></param>
     /// <param name="intensity"></param>
     /// <param name="tps"></param>
     /// <returns></returns>
-    public Union3<Success, NotFound, ShockerExclusive> ReceiveFrame(Guid shocker, Guid controllerId, ControlType type,
+    public Union3<Success, NotFound, ShockerExclusive> ReceiveFrame(Guid shocker, ControlLogSender controller, ControlType type,
         byte intensity, byte tps)
     {
         if (!_shockerStates.TryGetValue(shocker, out var state)) return new NotFound();
@@ -492,7 +503,7 @@ public sealed class HubLifetime : IAsyncDisposable
                 Until = state.ExclusiveUntil
             };
 
-        state.LastFrame = new LiveFrame(type, intensity, controllerId, CalculateActiveUntil(tps));
+        state.LastFrame = new LiveFrame(type, intensity, controller, CalculateActiveUntil(tps));
         return new Success();
     }
 

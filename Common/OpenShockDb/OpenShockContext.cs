@@ -1,8 +1,10 @@
 ﻿using System.Text.Json;
 using Microsoft.AspNetCore.DataProtection.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using OpenShock.Common.Constants;
 using OpenShock.Common.Models;
+using OpenShock.Common.OpenShockDb.Converters;
 using OpenShock.Internal.Common.Constants;
 
 namespace OpenShock.Common.OpenShockDb;
@@ -131,6 +133,13 @@ public class OpenShockContext : DbContext, IDataProtectionKeyContext
         }
     }
 
+    protected override void ConfigureConventions(ModelConfigurationBuilder configurationBuilder)
+    {
+        // An out of range stored value clamps on read, it never wraps. See SaturatingConverters.
+        configurationBuilder.Properties<ushort>().HaveConversion<SaturatingUInt16Converter>();
+        configurationBuilder.Properties<uint>().HaveConversion<SaturatingUInt32Converter>();
+    }
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder
@@ -142,7 +151,13 @@ public class OpenShockContext : DbContext, IDataProtectionKeyContext
         {
             entity.HasKey(e => e.Id).HasName("api_tokens_pkey");
 
-            entity.ToTable("api_tokens");
+            entity.ToTable("api_tokens", t =>
+            {
+                t.HasCheckConstraint("ck_api_tokens_shocker_control_intensity",
+                    $"shocker_control_intensity_min >= {HardLimits.MinControlIntensity} AND shocker_control_intensity_max <= {HardLimits.MaxControlIntensity} AND shocker_control_intensity_min <= shocker_control_intensity_max");
+                t.HasCheckConstraint("ck_api_tokens_shocker_control_duration",
+                    $"shocker_control_duration_min >= {HardLimits.MinControlDuration} AND shocker_control_duration_max <= {HardLimits.MaxControlDuration} AND shocker_control_duration_min <= shocker_control_duration_max");
+            });
 
             entity.HasIndex(e => e.UserId);
             entity.HasIndex(e => e.ValidUntil);
@@ -199,17 +214,6 @@ public class OpenShockContext : DbContext, IDataProtectionKeyContext
                 .HasConstraintName("fk_api_tokens_user_id");
         });
 
-        modelBuilder.Entity<ApiTokenReport>(entity =>
-        {
-            entity.HasKey(e => e.Id).HasName("api_token_reports_pkey");
-            
-            entity.ToTable("api_token_reports");
-            
-            entity.Property(e => e.Id)
-                .ValueGeneratedOnAdd()
-                .HasColumnName("id");
-        });
-        
         modelBuilder.Entity<ApiTokenReport>(entity =>
         {
             entity.HasKey(e => e.Id).HasName("api_token_reports_pkey");
@@ -360,25 +364,7 @@ public class OpenShockContext : DbContext, IDataProtectionKeyContext
 
             entity.Property(e => e.InviteId).HasColumnName("invite_id");
             entity.Property(e => e.ShockerId).HasColumnName("shocker_id");
-            entity.Property(e => e.AllowShock)
-                .HasDefaultValue(true)
-                .HasColumnName("allow_shock");
-            entity.Property(e => e.AllowVibrate)
-                .HasDefaultValue(true)
-                .HasColumnName("allow_vibrate");
-            entity.Property(e => e.AllowSound)
-                .HasDefaultValue(true)
-                .HasColumnName("allow_sound");
-            entity.Property(e => e.AllowLiveControl)
-                .HasDefaultValue(true)
-                .HasColumnName("allow_livecontrol");
-            entity.Property(e => e.MaxIntensity)
-                .HasColumnName("max_intensity");
-            entity.Property(e => e.MaxDuration)
-                .HasColumnName("max_duration");
-            entity.Property(e => e.IsPaused)
-                .HasDefaultValue(false)
-                .HasColumnName("is_paused");
+            ConfigureSafetySettings(entity);
 
             entity.HasOne(d => d.Invite).WithMany(p => p.ShockerMappings)
                 .HasForeignKey(d => d.InviteId)
@@ -393,7 +379,8 @@ public class OpenShockContext : DbContext, IDataProtectionKeyContext
         {
             entity.HasKey(e => e.Id).HasName("shockers_pkey");
 
-            entity.ToTable("shockers");
+            entity.ToTable("shockers", t =>
+                t.HasCheckConstraint("ck_shockers_rf_id", $"rf_id BETWEEN {ushort.MinValue} AND {ushort.MaxValue}"));
 
             entity.HasIndex(e => e.DeviceId);
 
@@ -481,28 +468,9 @@ public class OpenShockContext : DbContext, IDataProtectionKeyContext
 
             entity.ToTable("user_shares");
 
-            entity.HasIndex(e => e.SharedWithUserId);
             entity.Property(e => e.SharedWithUserId).HasColumnName("shared_with_user_id");
             entity.Property(e => e.ShockerId).HasColumnName("shocker_id");
-            entity.Property(e => e.AllowShock)
-                .HasDefaultValue(true)
-                .HasColumnName("allow_shock");
-            entity.Property(e => e.AllowVibrate)
-                .HasDefaultValue(true)
-                .HasColumnName("allow_vibrate");
-            entity.Property(e => e.AllowSound)
-                .HasDefaultValue(true)
-                .HasColumnName("allow_sound");
-            entity.Property(e => e.AllowLiveControl)
-                .HasDefaultValue(true)
-                .HasColumnName("allow_livecontrol");
-            entity.Property(e => e.MaxIntensity)
-                .HasColumnName("max_intensity");
-            entity.Property(e => e.MaxDuration)
-                .HasColumnName("max_duration");
-            entity.Property(e => e.IsPaused)
-                .HasDefaultValue(false)
-                .HasColumnName("is_paused");
+            ConfigureSafetySettings(entity);
             entity.Property(e => e.CreatedAt)
                 .HasDefaultValueSql("CURRENT_TIMESTAMP")
                 .HasColumnName("created_at");
@@ -528,25 +496,7 @@ public class OpenShockContext : DbContext, IDataProtectionKeyContext
             entity.Property(e => e.CreatedAt)
                 .HasDefaultValueSql("CURRENT_TIMESTAMP")
                 .HasColumnName("created_at");
-            entity.Property(e => e.AllowShock)
-                .HasDefaultValue(true)
-                .HasColumnName("allow_shock");
-            entity.Property(e => e.AllowVibrate)
-                .HasDefaultValue(true)
-                .HasColumnName("allow_vibrate");
-            entity.Property(e => e.AllowSound)
-                .HasDefaultValue(true)
-                .HasColumnName("allow_sound");
-            entity.Property(e => e.AllowLiveControl)
-                .HasDefaultValue(true)
-                .HasColumnName("allow_livecontrol");
-            entity.Property(e => e.MaxIntensity)
-                .HasColumnName("max_intensity");
-            entity.Property(e => e.MaxDuration)
-                .HasColumnName("max_duration");
-            entity.Property(e => e.IsPaused)
-                .HasDefaultValue(false)
-                .HasColumnName("is_paused");
+            ConfigureSafetySettings(entity);
             entity.Property(e => e.ShockerId).HasColumnName("shocker_id");
 
             entity.HasOne(d => d.Shocker).WithMany(p => p.ShockerShareCodes)
@@ -583,30 +533,13 @@ public class OpenShockContext : DbContext, IDataProtectionKeyContext
         {
             entity.HasKey(e => new { e.PublicShareId, e.ShockerId }).HasName("public_share_shockers_pkey");
 
-            entity.ToTable("public_share_shockers");
+            entity.ToTable("public_share_shockers", t =>
+                t.HasCheckConstraint("ck_public_share_shockers_cooldown", "cooldown >= 0"));
 
             entity.Property(e => e.PublicShareId).HasColumnName("public_share_id");
             entity.Property(e => e.ShockerId).HasColumnName("shocker_id");
             entity.Property(e => e.Cooldown).HasColumnName("cooldown");
-            entity.Property(e => e.AllowShock)
-                .HasDefaultValue(true)
-                .HasColumnName("allow_shock");
-            entity.Property(e => e.AllowVibrate)
-                .HasDefaultValue(true)
-                .HasColumnName("allow_vibrate");
-            entity.Property(e => e.AllowSound)
-                .HasDefaultValue(true)
-                .HasColumnName("allow_sound");
-            entity.Property(e => e.AllowLiveControl)
-                .HasDefaultValue(false)
-                .HasColumnName("allow_livecontrol");
-            entity.Property(e => e.MaxIntensity)
-                .HasColumnName("max_intensity");
-            entity.Property(e => e.MaxDuration)
-                .HasColumnName("max_duration");
-            entity.Property(e => e.IsPaused)
-                .HasDefaultValue(false)
-                .HasColumnName("is_paused");
+            ConfigureSafetySettings(entity, allowLiveControlByDefault: false);
 
             entity.HasOne(d => d.PublicShare).WithMany(p => p.ShockerMappings)
                 .HasForeignKey(d => d.PublicShareId)
@@ -623,7 +556,7 @@ public class OpenShockContext : DbContext, IDataProtectionKeyContext
 
             entity.ToTable("users");
 
-            entity.HasIndex(e => e.Email).IsUnique();
+            entity.HasIndex(e => e.Email).UseCollation("ndcoll").IsUnique();
             entity.HasIndex(e => e.Name).UseCollation("ndcoll").IsUnique();
 
             entity.Property(e => e.Id)
@@ -634,6 +567,7 @@ public class OpenShockContext : DbContext, IDataProtectionKeyContext
                 .HasMaxLength(HardLimits.UsernameMaxLength)
                 .HasColumnName("name");
             entity.Property(e => e.Email)
+                .UseCollation("ndcoll")
                 .HasMaxLength(HardLimits.EmailAddressMaxLength)
                 .HasColumnName("email");
             entity.Property(e => e.PasswordHash)
@@ -783,13 +717,12 @@ public class OpenShockContext : DbContext, IDataProtectionKeyContext
 
         modelBuilder.Entity<UserNameChange>(entity =>
         {
-            entity.HasKey(e => new { e.Id, e.UserId }).HasName("user_name_changes_pkey");
+            entity.HasKey(e => e.Id).HasName("user_name_changes_pkey");
 
             entity.ToTable("user_name_changes");
 
-            entity.HasIndex(e => e.CreatedAt);
-            entity.HasIndex(e => e.OldName);
-            entity.HasIndex(e => e.UserId);
+            // Serves both the foreign key and the name change cooldown lookup
+            entity.HasIndex(e => new { e.UserId, e.CreatedAt });
 
             entity.Property(e => e.Id)
                 .ValueGeneratedOnAdd()
@@ -937,13 +870,16 @@ public class OpenShockContext : DbContext, IDataProtectionKeyContext
 
             entity.ToTable("email_outbox");
 
-            // The consumer claims due rows ordered by next_attempt_at; (status, next_attempt_at) serves
-            // both the status filter and the ordering for the FOR UPDATE SKIP LOCKED claim query.
-            entity.HasIndex(e => new { e.Status, e.NextAttemptAt });
+            // The consumer claims due rows ordered by next_attempt_at. Rows are never deleted, so the index
+            // only covers the claimable ones and stays the size of the backlog. The claim query repeats
+            // this predicate, which is what lets the planner use the index.
+            entity.HasIndex(e => e.NextAttemptAt)
+                .HasFilter(EmailOutboxQueries.ClaimableFilter);
             entity.HasIndex(e => e.Recipient);
             // The delivery job resolves newest-wins coalescing by looking up siblings that share a
-            // coalesce key, so index it.
-            entity.HasIndex(e => e.CoalesceKey);
+            // coalesce key, so index it. Rows that never coalesce have none.
+            entity.HasIndex(e => e.CoalesceKey)
+                .HasFilter("coalesce_key IS NOT NULL");
 
             entity.Property(e => e.Id)
                 .ValueGeneratedOnAdd()
@@ -1061,7 +997,6 @@ public class OpenShockContext : DbContext, IDataProtectionKeyContext
                 .HasMaxLength(ApiHardLimits.AuditReasonMaxLength)
                 .HasColumnName("reason");
             entity.Property(e => e.IpAddress)
-                .HasMaxLength(HardLimits.IpAddressMaxLength)
                 .HasColumnName("ip_address");
             entity.Property(e => e.UserAgent)
                 .HasMaxLength(HardLimits.UserAgentMaxLength)
@@ -1069,6 +1004,8 @@ public class OpenShockContext : DbContext, IDataProtectionKeyContext
             entity.Property(e => e.Metadata)
                 .HasColumnType("jsonb")
                 .HasColumnName("metadata")
+                // Serialized as the declared base type, which is what writes the type discriminator. Left to
+                // Npgsql's own JSON mapping the runtime type is serialized and the discriminator is lost.
                 .HasConversion(
                     v => JsonSerializer.Serialize(v, (JsonSerializerOptions?)null),
                     v => JsonSerializer.Deserialize<AuditMetadata>(v, (JsonSerializerOptions?)null));
@@ -1086,5 +1023,43 @@ public class OpenShockContext : DbContext, IDataProtectionKeyContext
                 .OnDelete(DeleteBehavior.SetNull)
                 .HasConstraintName("fk_user_audit_logs_actor_id");
         });
+    }
+
+    /// <summary>
+    /// Columns and limits shared by every table that carries <see cref="SafetySettings"/>. Call it after
+    /// <c>ToTable</c>, the check constraints are named after the table.
+    /// </summary>
+    private static void ConfigureSafetySettings<T>(EntityTypeBuilder<T> entity, bool allowLiveControlByDefault = true)
+        where T : SafetySettings
+    {
+        var table = entity.Metadata.GetTableName();
+
+        entity.ToTable(t =>
+        {
+            t.HasCheckConstraint($"ck_{table}_max_intensity",
+                $"max_intensity BETWEEN {HardLimits.MinControlIntensity} AND {HardLimits.MaxControlIntensity}");
+            t.HasCheckConstraint($"ck_{table}_max_duration",
+                $"max_duration BETWEEN {HardLimits.MinControlDuration} AND {HardLimits.MaxControlDuration}");
+        });
+
+        entity.Property(e => e.AllowShock)
+            .HasDefaultValue(true)
+            .HasColumnName("allow_shock");
+        entity.Property(e => e.AllowVibrate)
+            .HasDefaultValue(true)
+            .HasColumnName("allow_vibrate");
+        entity.Property(e => e.AllowSound)
+            .HasDefaultValue(true)
+            .HasColumnName("allow_sound");
+        entity.Property(e => e.AllowLiveControl)
+            .HasDefaultValue(allowLiveControlByDefault)
+            .HasColumnName("allow_livecontrol");
+        entity.Property(e => e.MaxIntensity)
+            .HasColumnName("max_intensity");
+        entity.Property(e => e.MaxDuration)
+            .HasColumnName("max_duration");
+        entity.Property(e => e.IsPaused)
+            .HasDefaultValue(false)
+            .HasColumnName("is_paused");
     }
 }

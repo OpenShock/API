@@ -27,27 +27,25 @@ public sealed partial class AuthenticatedAccountController
         CancellationToken cancellationToken)
     {
         var paged = await auditService.GetPagedForUserAsync(CurrentUser.Id, pagination, cancellationToken);
-        return MapPaged(paged, _logger);
+        return MapPaged(paged);
     }
 
-    internal static PagedResult<AuditLogEntryResponse> MapPaged(PagedResult<UserAuditLog> paged, ILogger logger, bool tolerateMalformedIpAddresses = false) => new()
+    internal static PagedResult<AuditLogEntryResponse> MapPaged(PagedResult<UserAuditLog> paged) => new()
     {
-        Items = paged.Items.Select(x => MapEntry(x, logger, tolerateMalformedIpAddresses)).ToArray(),
+        Items = paged.Items.Select(MapEntry).ToArray(),
         Page = paged.Page,
         PageSize = paged.PageSize,
         TotalCount = paged.TotalCount,
     };
 
-    private static AuditLogEntryResponse MapEntry(UserAuditLog x, ILogger logger, bool tolerateMalformedIpAddresses) => new()
+    private static AuditLogEntryResponse MapEntry(UserAuditLog x) => new()
     {
         Id = x.Id,
         UserId = x.UserId,
         ActorId = x.ActorId,
         Action = x.Action,
         Reason = x.Reason,
-        IpAddress = tolerateMalformedIpAddresses
-            ? IpAddressUtils.ParseStoredOrNull(x.IpAddress, logger)
-            : IpAddressUtils.ParseStoredOrThrow(x.IpAddress, logger),
+        IpAddress = x.IpAddress,
         UserAgent = x.UserAgent,
         Metadata = x.Metadata,
         CreatedAt = x.CreatedAt,

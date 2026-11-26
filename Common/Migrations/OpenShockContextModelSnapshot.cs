@@ -18,7 +18,7 @@ partial class OpenShockContextModelSnapshot : ModelSnapshot
     // If you encounter a merge conflict in the line below, it means you need to
     // discard one of the migration branches and recreate its migrations on top of
     // the other branch. See https://aka.ms/efcore-docs-migrations-conflicts for more info.
-    public override string LastMigrationId => "20261120201415_MaterializeControlStats";
+    public override string LastMigrationId => "20261126000339_PostgresNativeCleanup";
 
     protected override void BuildModel(ModelBuilder modelBuilder)
     {
@@ -249,7 +249,12 @@ partial class OpenShockContextModelSnapshot : ModelSnapshot
 
                 b.HasIndex("ValidUntil");
 
-                b.ToTable("api_tokens");
+                b.ToTable("api_tokens", t =>
+                    {
+                        t.HasCheckConstraint("ck_api_tokens_shocker_control_duration", "shocker_control_duration_min >= 300 AND shocker_control_duration_max <= 65535 AND shocker_control_duration_min <= shocker_control_duration_max");
+
+                        t.HasCheckConstraint("ck_api_tokens_shocker_control_intensity", "shocker_control_intensity_min >= 0 AND shocker_control_intensity_max <= 100 AND shocker_control_intensity_min <= shocker_control_intensity_max");
+                    });
             });
 
         modelBuilder.Entity("OpenShock.Common.OpenShockDb.ApiTokenReport", b =>
@@ -630,11 +635,13 @@ partial class OpenShockContextModelSnapshot : ModelSnapshot
                 b.HasKey("Id")
                     .HasName("email_outbox_pkey");
 
-                b.HasIndex("CoalesceKey");
+                b.HasIndex("CoalesceKey")
+                    .HasFilter("coalesce_key IS NOT NULL");
+
+                b.HasIndex("NextAttemptAt")
+                    .HasFilter("status IN ('pending', 'sending')");
 
                 b.HasIndex("Recipient");
-
-                b.HasIndex("Status", "NextAttemptAt");
 
                 b.ToTable("email_outbox");
             });
@@ -762,7 +769,14 @@ partial class OpenShockContextModelSnapshot : ModelSnapshot
 
                 b.HasIndex("ShockerId");
 
-                b.ToTable("public_share_shockers");
+                b.ToTable("public_share_shockers", t =>
+                    {
+                        t.HasCheckConstraint("ck_public_share_shockers_cooldown", "cooldown >= 0");
+
+                        t.HasCheckConstraint("ck_public_share_shockers_max_duration", "max_duration BETWEEN 300 AND 65535");
+
+                        t.HasCheckConstraint("ck_public_share_shockers_max_intensity", "max_intensity BETWEEN 0 AND 100");
+                    });
             });
 
         modelBuilder.Entity("OpenShock.Common.OpenShockDb.Shocker", b =>
@@ -807,7 +821,10 @@ partial class OpenShockContextModelSnapshot : ModelSnapshot
 
                 b.HasIndex("DeviceId");
 
-                b.ToTable("shockers");
+                b.ToTable("shockers", t =>
+                    {
+                        t.HasCheckConstraint("ck_shockers_rf_id", "rf_id BETWEEN 0 AND 65535");
+                    });
             });
 
         modelBuilder.Entity("OpenShock.Common.OpenShockDb.ShockerControlLog", b =>
@@ -940,7 +957,12 @@ partial class OpenShockContextModelSnapshot : ModelSnapshot
 
                 b.HasIndex("ShockerId");
 
-                b.ToTable("shocker_share_codes");
+                b.ToTable("shocker_share_codes", t =>
+                    {
+                        t.HasCheckConstraint("ck_shocker_share_codes_max_duration", "max_duration BETWEEN 300 AND 65535");
+
+                        t.HasCheckConstraint("ck_shocker_share_codes_max_intensity", "max_intensity BETWEEN 0 AND 100");
+                    });
             });
 
         modelBuilder.Entity("OpenShock.Common.OpenShockDb.User", b =>
@@ -968,7 +990,8 @@ partial class OpenShockContextModelSnapshot : ModelSnapshot
                     .IsRequired()
                     .HasMaxLength(320)
                     .HasColumnType("character varying(320)")
-                    .HasColumnName("email");
+                    .HasColumnName("email")
+                    .UseCollation("ndcoll");
 
                 b.Property<string>("Name")
                     .IsRequired()
@@ -999,13 +1022,15 @@ partial class OpenShockContextModelSnapshot : ModelSnapshot
 
                 b.HasIndex("CreatedByAutomationTokenId");
 
-                b.HasIndex("Email")
-                    .IsUnique();
-
-                var index = b.HasIndex("Name")
+                var index = b.HasIndex("Email")
                     .IsUnique();
 
                 NpgsqlIndexBuilderExtensions.UseCollation(index, new[] { "ndcoll" });
+
+                var index0 = b.HasIndex("Name")
+                    .IsUnique();
+
+                NpgsqlIndexBuilderExtensions.UseCollation(index0, new[] { "ndcoll" });
 
                 b.ToTable("users");
             });
@@ -1063,9 +1088,8 @@ partial class OpenShockContextModelSnapshot : ModelSnapshot
                     .HasColumnName("created_at")
                     .HasDefaultValueSql("CURRENT_TIMESTAMP");
 
-                b.Property<string>("IpAddress")
-                    .HasMaxLength(40)
-                    .HasColumnType("character varying(40)")
+                b.Property<IPAddress>("IpAddress")
+                    .HasColumnType("inet")
                     .HasColumnName("ip_address");
 
                 b.Property<string>("Metadata")
@@ -1230,10 +1254,6 @@ partial class OpenShockContextModelSnapshot : ModelSnapshot
 
                 NpgsqlPropertyBuilderExtensions.UseIdentityAlwaysColumn(id);
 
-                b.Property<Guid>("UserId")
-                    .HasColumnType("uuid")
-                    .HasColumnName("user_id");
-
                 b.Property<DateTime>("CreatedAt")
                     .ValueGeneratedOnAdd()
                     .HasColumnType("timestamp with time zone")
@@ -1246,14 +1266,14 @@ partial class OpenShockContextModelSnapshot : ModelSnapshot
                     .HasColumnType("character varying(32)")
                     .HasColumnName("old_name");
 
-                b.HasKey("Id", "UserId")
+                b.Property<Guid>("UserId")
+                    .HasColumnType("uuid")
+                    .HasColumnName("user_id");
+
+                b.HasKey("Id")
                     .HasName("user_name_changes_pkey");
 
-                b.HasIndex("CreatedAt");
-
-                b.HasIndex("OldName");
-
-                b.HasIndex("UserId");
+                b.HasIndex("UserId", "CreatedAt");
 
                 b.ToTable("user_name_changes");
             });
@@ -1391,11 +1411,14 @@ partial class OpenShockContextModelSnapshot : ModelSnapshot
                 b.HasKey("SharedWithUserId", "ShockerId")
                     .HasName("user_shares_pkey");
 
-                b.HasIndex("SharedWithUserId");
-
                 b.HasIndex("ShockerId");
 
-                b.ToTable("user_shares");
+                b.ToTable("user_shares", t =>
+                    {
+                        t.HasCheckConstraint("ck_user_shares_max_duration", "max_duration BETWEEN 300 AND 65535");
+
+                        t.HasCheckConstraint("ck_user_shares_max_intensity", "max_intensity BETWEEN 0 AND 100");
+                    });
             });
 
         modelBuilder.Entity("OpenShock.Common.OpenShockDb.UserShareInvite", b =>
@@ -1482,7 +1505,12 @@ partial class OpenShockContextModelSnapshot : ModelSnapshot
 
                 b.HasIndex("ShockerId");
 
-                b.ToTable("user_share_invite_shockers");
+                b.ToTable("user_share_invite_shockers", t =>
+                    {
+                        t.HasCheckConstraint("ck_user_share_invite_shockers_max_duration", "max_duration BETWEEN 300 AND 65535");
+
+                        t.HasCheckConstraint("ck_user_share_invite_shockers_max_intensity", "max_intensity BETWEEN 0 AND 100");
+                    });
             });
 
         modelBuilder.Entity("OpenShock.Common.OpenShockDb.ApiToken", b =>

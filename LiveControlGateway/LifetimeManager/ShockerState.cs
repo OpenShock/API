@@ -1,4 +1,5 @@
 ﻿using System.ComponentModel.DataAnnotations;
+using OpenShock.Common.Models;
 using OpenShock.Common.OpenShockDb;
 using OpenShock.Internal.Common.Constants;
 
@@ -20,6 +21,11 @@ public sealed class ShockerState
     /// User owning the shocker
     /// </summary>
     public required Guid OwnerId { get; init; }
+
+    /// <summary>
+    /// Name of the shocker
+    /// </summary>
+    public required string Name { get; init; }
 
     /// <summary>
     /// RfId of the shocker
@@ -55,10 +61,10 @@ public sealed class ShockerState
 /// </summary>
 /// <param name="Type">Control type</param>
 /// <param name="Intensity">Intensity, already clamped to the controller's permissions</param>
-/// <param name="ControllerId">User who sent the frame</param>
+/// <param name="Controller">User who sent the frame</param>
 /// <param name="ActiveUntil">Until when the frame keeps the shocker going, determined by client TPS interval + receive time</param>
 public sealed record LiveFrame(
     ControlType Type,
     [property: Range(HardLimits.MinControlIntensity, HardLimits.MaxControlIntensity)] byte Intensity,
-    Guid ControllerId,
+    ControlLogSender Controller,
     DateTimeOffset ActiveUntil);
