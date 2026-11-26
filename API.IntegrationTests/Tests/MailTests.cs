@@ -844,6 +844,31 @@ public sealed class MailTests
     }
 
     [Test]
+    public async Task RestartPendingSignup_AccountActivatedAfterTheCallerLookedItUp_ChangesNothing()
+    {
+        var (userId, token) = await CreateUnactivatedUserWithTokenAsync("mail-restart-stale", "OwnerPassword123#");
+        var originalEmail = await GetEmailAsync(userId);
+
+        await using var scope = WebApplicationFactory.Services.CreateAsyncScope();
+        var db = scope.ServiceProvider.GetRequiredService<OpenShockContext>();
+
+        // The request looks the account up while it is pending, as the OAuth connection lookup does...
+        var tracked = await db.Users.SingleAsync(u => u.Id == userId);
+        await Assert.That(tracked.ActivatedAt).IsNull();
+
+        // ...and it is activated before the restart runs.
+        using var client = CreateCookielessClient();
+        var activated = await PostActivateAsync(client, token, cookie: MintSignupBrowserCookie(userId));
+        await Assert.That(activated.StatusCode).IsEqualTo(HttpStatusCode.OK);
+
+        var accountService = scope.ServiceProvider.GetRequiredService<IAccountService>();
+        var restarted = await accountService.RestartPendingSignupAsync(userId, TestHelper.UniqueEmail("mail-restart-stale-new"), tracked.Name);
+
+        await Assert.That(restarted.Value is User).IsFalse();
+        await Assert.That(await GetEmailAsync(userId)).IsEqualTo(originalEmail);
+    }
+
+    [Test]
     public async Task RestartPendingSignup_SameEmail_KeepsTheMailedLinkWorking()
     {
         var (userId, token) = await CreateUnactivatedUserWithTokenAsync("mail-restart-sameemail", password: null);

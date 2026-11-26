@@ -1,8 +1,10 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using OpenShock.Common.Authentication;
 using OpenShock.Common.Constants;
 using OpenShock.Common.Extensions;
 using OpenShock.Common.Models;
+using OpenShock.Common.OpenShockDb;
 using OpenShock.Common.Options;
 using OpenShock.Common.Services.Geo;
 using OpenShock.Common.Services.Session;
@@ -51,8 +53,16 @@ public abstract class OpenShockControllerBase : Internal.Common.OpenShockControl
         return DomainUtils.GetBestMatchingCookieDomain(HttpContext.Request.Host.Host, cookieDomains);
     }
 
+    /// <param name="accountId"></param>
+    /// <param name="domain"></param>
+    /// <param name="securityStamp">
+    /// The account's security stamp as it was when the caller checked the credential it is signing in with.
+    /// If the stamp has changed by the time the session exists (a password reset completed in between, and
+    /// its sign-out of all sessions ran before this one was created), the session is dropped again.
+    /// </param>
+    /// <returns>False when the session was dropped; nothing was set on the response.</returns>
     [NonAction]
-    protected async Task CreateSession(Guid accountId, string domain)
+    protected async Task<bool> CreateSession(Guid accountId, string domain, Guid? securityStamp = null)
     {
         var frontendOptions = HttpContext.RequestServices.GetRequiredService<FrontendOptions>();
         var sessionService = HttpContext.RequestServices.GetRequiredService<ISessionService>();
@@ -64,6 +74,18 @@ public abstract class OpenShockControllerBase : Internal.Common.OpenShockControl
 
         var session = await sessionService.CreateSessionAsync(accountId, userAgent, remoteIp, actorId: accountId, enrichment: enrichment);
 
+        if (securityStamp is not null)
+        {
+            // Checked after the session exists: a reset that commits later than this still finds the
+            // session and deletes it, one that committed earlier shows up here.
+            var db = HttpContext.RequestServices.GetRequiredService<OpenShockContext>();
+            var currentStamp = await db.Users.Where(u => u.Id == accountId).Select(u => (Guid?)u.SecurityStamp).FirstOrDefaultAsync();
+            if (currentStamp != securityStamp)
+            {
+                await sessionService.DeleteSessionByIdAsync(session.Id);
+                return false;
+            }
+        }
 
         HttpContext.Response.Cookies.Append(AuthConstants.UserSessionCookieName, session.Token, new CookieOptions
         {
@@ -80,6 +102,8 @@ public abstract class OpenShockControllerBase : Internal.Common.OpenShockControl
 
         // Signed in, so the post-signup "didn't get the email?" cookie has served its purpose.
         ActivationResendCookie.Remove(HttpContext);
+
+        return true;
     }
 
     [NonAction]
