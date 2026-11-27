@@ -76,20 +76,13 @@ public sealed class AccountService : IAccountService
         }
     }
 
-    private async Task<bool> IsUserNameBlacklisted(string username, CancellationToken cancellationToken)
-    {
-        await foreach (var entry in _db.UserNameBlacklists.AsNoTracking().AsAsyncEnumerable().WithCancellation(cancellationToken))
-        {
-            if (entry.IsMatch(username)) return true;
-        }
-
-        return false;
-    }
+    private Task<bool> IsUserNameBlacklisted(string username, CancellationToken cancellationToken)
+        => _db.UserNameBlacklists.Matching(username).AnyAsync(cancellationToken);
 
     private async Task<bool> IsEmailProviderBlacklisted(string email, CancellationToken cancellationToken)
     {
-        if (!MailAddress.TryCreate(email, out var address)) return false;
-        var domain = address.Host.ToLowerInvariant();
+        if (!EmailValidator.TrySplitAddress(email, out _, out var domainSpan)) return false;
+        var domain = domainSpan.ToString();
         return await _db.EmailProviderBlacklists.AnyAsync(e => e.Domain == domain, cancellationToken);
     }
 
@@ -166,7 +159,6 @@ public sealed class AccountService : IAccountService
 
     public Task<bool> IsEmailRegisteredAsync(string email, CancellationToken cancellationToken = default)
     {
-        email = email.ToLowerInvariant();
         return _db.Users.AnyAsync(u => u.Email == email, cancellationToken);
     }
 
@@ -279,10 +271,8 @@ public sealed class AccountService : IAccountService
     /// <inheritdoc />
     public async Task<Union4<Success, TooManyActivationResends, AccountDeactivated, NotFound>> ResendActivationEmailAsync(string usernameOrEmail, CancellationToken cancellationToken = default)
     {
-        var lowercaseUsernameOrEmail = usernameOrEmail.ToLowerInvariant();
-
         var userId = await _db.Users
-            .Where(u => u.Email == lowercaseUsernameOrEmail || u.Name == lowercaseUsernameOrEmail)
+            .Where(u => u.Email == usernameOrEmail || u.Name == usernameOrEmail)
             .Select(u => (Guid?)u.Id)
             .FirstOrDefaultAsync(cancellationToken);
         if (userId is null) return new NotFound();
@@ -393,6 +383,8 @@ public sealed class AccountService : IAccountService
         // Remove all login sessions
         await _sessionService.DeleteSessionsByUserIdAsync(userId);
 
+        await RefreshOwnedDevicesAsync(userId, cancellationToken);
+
         return new Success();
     }
 
@@ -437,7 +429,15 @@ public sealed class AccountService : IAccountService
 
         await transaction.CommitAsync();
 
+        await RefreshOwnedDevicesAsync(userId, cancellationToken);
+
         return new Success();
+    }
+
+    private async Task RefreshOwnedDevicesAsync(Guid userId, CancellationToken cancellationToken)
+    {
+        var deviceIds = await _db.Devices.Where(x => x.OwnerId == userId).Select(x => x.Id).ToArrayAsync(cancellationToken);
+        await Task.WhenAll(deviceIds.Select(_redisPubService.SendDeviceUpdate));
     }
 
     /// <inheritdoc />
@@ -486,11 +486,10 @@ public sealed class AccountService : IAccountService
     /// <inheritdoc/>
     public async Task<Union5<User, NotFound, AccountDeactivated, AccountNotActivated, AccountIsOAuthOnly>> GetAccountByCredentialsAsync(string usernameOrEmail, string password,  CancellationToken cancellationToken)
     {
-        var lowercaseUsernameOrEmail = usernameOrEmail.ToLowerInvariant();
         var user = await _db.Users
             .AsNoTracking()
             .Include(u => u.UserDeactivation)
-            .FirstOrDefaultAsync(x => x.Email == lowercaseUsernameOrEmail || x.Name == lowercaseUsernameOrEmail, cancellationToken);
+            .FirstOrDefaultAsync(x => x.Email == usernameOrEmail || x.Name == usernameOrEmail, cancellationToken);
         if (user is null)
         {
             await HashingUtils.VerifyPasswordFake();
@@ -543,9 +542,8 @@ public sealed class AccountService : IAccountService
     public async Task<Union4<Success, TooManyPasswordResets, AccountDeactivated, NotFound>> CreatePasswordResetFlowAsync(string email, CancellationToken cancellationToken)
     {
         var validSince = DateTime.UtcNow - Duration.PasswordResetRequestLifetime;
-        var lowerCaseEmail = email.ToLowerInvariant();
         var user = await _db.Users
-            .Where(x => x.Email == lowerCaseEmail)
+            .Where(x => x.Email == email)
             .Select(x => new
             {
                 User = x,
@@ -719,13 +717,11 @@ public sealed class AccountService : IAccountService
     public async Task<Union4<Success, EmailTaken, EmailInvalid, NotFound>>
         ChangeEmail(Guid userId, string email, Guid? actorId, CancellationToken cancellationToken = default)
     {
-        if (!MailAddress.TryCreate(email, out _))
+        // Lookups and uniqueness ignore case in the database. Addresses are still stored lowercased so
+        // every account has one canonical form, which the Gravatar hash depends on.
+        if (!EmailValidator.TryNormalizeAddress(email, out var normalized))
             return new EmailInvalid();
-
-        // Account creation and email verification both store addresses lowercased, and login compares
-        // exactly, so storing the caller's casing verbatim would hide the account at login and let the
-        // availability check below miss an existing row for the same address.
-        email = email.ToLowerInvariant();
+        email = normalized;
 
         var availability = await CheckEmailAvailability(email, cancellationToken);
         if (availability is EmailTaken)

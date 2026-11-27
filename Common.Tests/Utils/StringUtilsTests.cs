@@ -59,4 +59,33 @@ public sealed class StringUtilsTests
         var result = "abc😀def".Truncate(5);
         await Assert.That(result).IsEqualTo("abc😀");
     }
+
+    [Test]
+    [Arguments("1")]
+    [Arguments("true")]
+    [Arguments("True")]
+    [Arguments("TRUE")]
+    [Arguments("yes")]
+    [Arguments("Yes")]
+    [Arguments("  true \t")]
+    public async Task IsTruthy_TruthyValues_ReturnsTrue(string value)
+    {
+        await Assert.That(StringUtils.IsTruthy(value)).IsTrue();
+    }
+
+    [Test]
+    [Arguments(null)]
+    [Arguments("")]
+    [Arguments("   ")]
+    [Arguments("0")]
+    [Arguments("false")]
+    [Arguments("no")]
+    [Arguments("on")]
+    [Arguments("2")]
+    [Arguments("11")]
+    [Arguments("truthy")]
+    public async Task IsTruthy_AnythingElse_ReturnsFalse(string? value)
+    {
+        await Assert.That(StringUtils.IsTruthy(value)).IsFalse();
+    }
 }

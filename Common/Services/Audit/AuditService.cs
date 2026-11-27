@@ -40,7 +40,7 @@ public sealed class AuditService : IAuditService
             ActorId = actorId,
             Action = action,
             Reason = reason,
-            IpAddress = httpContext?.Connection.RemoteIpAddress?.ToString(),
+            IpAddress = httpContext?.Connection.RemoteIpAddress,
             UserAgent = httpContext?.Request.Headers.UserAgent,
             Metadata = metadata,
             CreatedAt = DateTime.UtcNow,

@@ -1,35 +1,35 @@
-using System.Net.Mail;
 using System.Runtime.CompilerServices;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using OpenShock.API.Controller.Admin.DTOs;
 using OpenShock.Common.ApiVersioning;
+using OpenShock.Common.Validation;
 
 namespace OpenShock.API.Controller.Admin;
 
 public sealed partial class AdminController
 {
+    /// <summary>
+    /// Lists the email provider blacklist. With <paramref name="match"/> (a domain or an email address), returns only
+    /// the entry that would block signups on that domain, using the same comparison signup does.
+    /// </summary>
     [HttpGet("blacklist/emailProviders")]
     [ApiVersion(1)]
     public async IAsyncEnumerable<EmailProviderBlacklistDto> ListEmailProviderBlacklist([FromQuery(Name="match")] string? match, [EnumeratorCancellation] CancellationToken cancellationToken)
     {
         PedanticallyEnsureAdmin();
 
-        if (string.IsNullOrWhiteSpace(match))
+        var query = _db.EmailProviderBlacklists.AsNoTracking();
+
+        if (!string.IsNullOrWhiteSpace(match))
         {
-            match = null;
+            if (!EmailValidator.TryNormalizeDomain(match, out var domain)) yield break;
+
+            query = query.Where(x => x.Domain == domain);
         }
-        else
+
+        await foreach (var item in query.AsAsyncEnumerable().WithCancellation(cancellationToken))
         {
-            if (!MailAddress.TryCreate(match, out var parsed)) yield break;
-            
-            match = parsed.Host.ToLowerInvariant();
-        }
-        
-        await foreach (var item in _db.EmailProviderBlacklists.AsNoTracking().AsAsyncEnumerable().WithCancellation(cancellationToken))
-        {
-            if (match is not null && !match.EndsWith(item.Domain)) continue;
-            
             yield return new EmailProviderBlacklistDto
             {
                 Id = item.Id,

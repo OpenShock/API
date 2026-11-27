@@ -13,6 +13,12 @@ public static class EmailOutboxQueries
     public const int ClaimBatchSize = 50;
 
     /// <summary>
+    /// Predicate of the partial index the claim query runs on: the rows a delivery run may still pick up.
+    /// <see cref="DueForDelivery"/> has to spell out the same condition for Postgres to use the index.
+    /// </summary>
+    public const string ClaimableFilter = "status IN ('pending', 'sending')";
+
+    /// <summary>
     /// The delivery job's claim query: due rows - <see cref="EmailStatus.Pending"/> past their
     /// next-attempt time, or <see cref="EmailStatus.Sending"/> whose lease has lapsed - oldest first,
     /// capped at <paramref name="batchSize"/>, locked with <c>FOR UPDATE SKIP LOCKED</c> so concurrent
@@ -26,7 +32,7 @@ public static class EmailOutboxQueries
             $"""
              SELECT * FROM email_outbox
              WHERE next_attempt_at <= now()
-               AND (status = {EmailStatus.Pending} OR status = {EmailStatus.Sending})
+               AND status IN ('pending', 'sending')
              ORDER BY next_attempt_at
              LIMIT {batchSize}
              FOR UPDATE SKIP LOCKED

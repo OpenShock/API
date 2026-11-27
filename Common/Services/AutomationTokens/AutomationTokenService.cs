@@ -69,9 +69,8 @@ public sealed class AutomationTokenService : IAutomationTokenService
         if (Current is null) return true;
 
         // Same lookup as AccountService.GetAccountByCredentialsAsync
-        var lowercaseUsernameOrEmail = usernameOrEmail.ToLowerInvariant();
         var roles = await _db.Users
-            .Where(u => u.Email == lowercaseUsernameOrEmail || u.Name == lowercaseUsernameOrEmail)
+            .Where(u => u.Email == usernameOrEmail || u.Name == usernameOrEmail)
             .Select(u => u.Roles)
             .FirstOrDefaultAsync(ct);
 
@@ -93,7 +92,6 @@ public sealed class AutomationTokenService : IAutomationTokenService
     {
         if (Current is null) return true;
 
-        email = email.ToLowerInvariant();
         var userId = await _db.Users
             .Where(u => u.Email == email)
             .Select(u => (Guid?)u.Id)

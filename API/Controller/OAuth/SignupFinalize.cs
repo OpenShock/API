@@ -12,6 +12,7 @@ using OpenShock.Common.Errors;
 using OpenShock.Common.Extensions;
 using OpenShock.Common.OpenShockDb;
 using OpenShock.Common.Options;
+using OpenShock.Common.Utils;
 
 namespace OpenShock.API.Controller.OAuth;
 
@@ -86,7 +87,7 @@ public sealed partial class OAuthController
         }
 
         var isVerifiedString = auth.Principal.FindFirst(OAuthConstants.ClaimEmailVerified)?.Value;
-        var isEmailTrusted = IsTruthy(isVerifiedString) && string.Equals(externalAccountEmail, email, StringComparison.InvariantCultureIgnoreCase);
+        var isEmailTrusted = StringUtils.IsTruthy(isVerifiedString) && string.Equals(externalAccountEmail, email, StringComparison.InvariantCultureIgnoreCase);
 
         // Do not allow creation if this external is already linked anywhere.
         var existing = await connectionService.GetByProviderExternalIdAsync(provider, auth.ExternalAccountId, cancellationToken);
@@ -128,16 +129,5 @@ public sealed partial class OAuthController
         await HttpContext.SignOutAsync(OAuthConstants.FlowScheme);
 
         return Ok(LoginV2OkResponse.FromUser(newUser));
-
-        static bool IsTruthy(string? value)
-        {
-            if (string.IsNullOrWhiteSpace(value)) return false;
-            return value.Trim().ToLowerInvariant() switch
-            {
-                "0" or "no" or "false" => false,
-                "1" or "yes" or "true" => true,
-                _ => false
-            };
-        }
     }
 }

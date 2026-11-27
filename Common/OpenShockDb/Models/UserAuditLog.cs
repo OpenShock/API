@@ -1,3 +1,4 @@
+using System.Net;
 using OpenShock.Common.Models;
 
 namespace OpenShock.Common.OpenShockDb;
@@ -20,7 +21,7 @@ public sealed class UserAuditLog
     /// <summary>Optional free-text justification, primarily for moderator actions.</summary>
     public string? Reason { get; init; }
 
-    public string? IpAddress { get; init; }
+    public IPAddress? IpAddress { get; init; }
 
     public string? UserAgent { get; init; }
 

@@ -305,6 +305,7 @@ public static class OpenShockServiceHelper
                     .AddAspNetCoreInstrumentation()
                     .AddHttpClientInstrumentation()
                     .AddMeter(ControlMetrics.MeterName)
+                    .AddMeter("Npgsql") // Database driver: connection pool, command duration and failures
                     .AddPrometheusExporter();
 
                 configureMetrics?.Invoke(metrics);
@@ -337,8 +338,8 @@ public static class OpenShockServiceHelper
         // - ASPNETCORE_UNDER_INTEGRATION_TEST=1 (.NET WebApplicationFactory tests, in-process)
         // - OPENSHOCK_DISABLE_RATE_LIMITING=1  (external Playwright tests against a real server)
         var underIntegrationTest =
-            Environment.GetEnvironmentVariable("ASPNETCORE_UNDER_INTEGRATION_TEST") == "1" ||
-            Environment.GetEnvironmentVariable("OPENSHOCK_DISABLE_RATE_LIMITING") == "1";
+            Environment.IsFlagSet("ASPNETCORE_UNDER_INTEGRATION_TEST") ||
+            Environment.IsFlagSet("OPENSHOCK_DISABLE_RATE_LIMITING");
 
         services.AddRateLimiter(options =>
         {

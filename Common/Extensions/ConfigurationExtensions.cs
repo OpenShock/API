@@ -1,4 +1,5 @@
 ﻿using System.Net;
+using Npgsql;
 using OpenShock.Common.Options;
 using OpenShock.Common.Utils;
 using OpenShock.Internal.Common.Utils;
@@ -24,6 +25,21 @@ public static class ConfigurationExtensions
             throw new InvalidOperationException("Missing or invalid configuration for OpenShock:DB.");
         
         if (string.IsNullOrEmpty(options.Conn)) throw new InvalidOperationException("Missing or invalid connection string (OpenShock:DB:Conn).");
+
+        // Npgsql names its connection pool after the Application Name, falling back to the connection string
+        // with only Password stripped. That name is exported as a metric label, so make sure it is never the
+        // connection string (which may hold an SSL Password). It also labels our sessions in pg_stat_activity.
+        var connBuilder = new NpgsqlConnectionStringBuilder(options.Conn);
+        if (string.IsNullOrEmpty(connBuilder.ApplicationName))
+        {
+            connBuilder.ApplicationName = builder.Environment.ApplicationName;
+            options = new DatabaseOptions
+            {
+                Conn = connBuilder.ConnectionString,
+                SkipMigration = options.SkipMigration,
+                Debug = options.Debug
+            };
+        }
 
         builder.Services.AddSingleton(options);
         return options;

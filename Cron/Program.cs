@@ -51,7 +51,7 @@ await app.UseCommonOpenShockMiddleware();
 await app.WaitForOpenShockSchemaReady(databaseOptions);
 
 var hangfireOptions = new DashboardOptions();
-if (app.Environment.IsProduction() || Environment.GetEnvironmentVariable("DOTNET_RUNNING_IN_CONTAINER") == "true")
+if (app.Environment.IsProduction() || Environment.IsFlagSet("DOTNET_RUNNING_IN_CONTAINER"))
 {
     hangfireOptions.Authorization = [ ];
     hangfireOptions.AsyncAuthorization = [ new DashboardAdminAuth() ];

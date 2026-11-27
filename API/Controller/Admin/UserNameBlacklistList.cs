@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using OpenShock.API.Controller.Admin.DTOs;
 using OpenShock.Common.ApiVersioning;
+using OpenShock.Common.OpenShockDb;
 
 namespace OpenShock.API.Controller.Admin;
 
@@ -14,12 +15,12 @@ public sealed partial class AdminController
     {
         PedanticallyEnsureAdmin();
 
-        match = string.IsNullOrWhiteSpace(match) ? null : match.Trim().ToLowerInvariant();
+        var entries = string.IsNullOrWhiteSpace(match)
+            ? _db.UserNameBlacklists
+            : _db.UserNameBlacklists.Matching(match.Trim());
 
-        await foreach (var item in _db.UserNameBlacklists.AsNoTracking().AsAsyncEnumerable().WithCancellation(cancellationToken))
+        await foreach (var item in entries.AsNoTracking().AsAsyncEnumerable().WithCancellation(cancellationToken))
         {
-            if (match is not null && !item.IsMatch(match)) continue;
-            
             yield return new UserNameBlacklistDto {
                 Id = item.Id,
                 Value = item.Value,

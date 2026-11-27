@@ -32,6 +32,7 @@ public sealed class ControlSender : IControlSender
     {
         var shockers = await _db.Shockers
             .AsNoTracking()
+            .Where(shocker => shocker.Device.Owner.UserDeactivation == null)
             .Select(shocker => new
             {
                 shocker,
@@ -67,7 +68,7 @@ public sealed class ControlSender : IControlSender
     {
         var publicShareShockers = await _db.PublicShareShockerMappings
             .AsNoTracking()
-            .Where(x => x.PublicShareId == publicShareId && (x.PublicShare.ExpiresAt > DateTime.UtcNow || x.PublicShare.ExpiresAt == null))
+            .Where(x => x.PublicShareId == publicShareId && (x.PublicShare.ExpiresAt > DateTime.UtcNow || x.PublicShare.ExpiresAt == null) && x.PublicShare.Owner.UserDeactivation == null)
             .Select(x => new ControlShockerObj
             {
                 ShockerId = x.Shocker.Id,
@@ -94,11 +95,8 @@ public sealed class ControlSender : IControlSender
     
     private static void Clamp(Control control, SharePermsAndLimits? limits)
     {
-        var durationMax = limits?.Duration ?? HardLimits.MaxControlDuration;
-        var intensityMax = limits?.Intensity ?? HardLimits.MaxControlIntensity;
-
-        control.Intensity = Math.Clamp(control.Intensity, HardLimits.MinControlIntensity, intensityMax);
-        control.Duration = Math.Clamp(control.Duration, HardLimits.MinControlDuration, durationMax);
+        control.Intensity = ControlLimitUtils.ClampIntensity(control.Intensity, limits?.Intensity);
+        control.Duration = ControlLimitUtils.ClampDuration(control.Duration, limits?.Duration);
     }
 
     private async Task<ShockerControlResult> ControlInternal(IReadOnlyList<Control> controls, ControlLogSender sender, Guid? controllerUserId, IHubClients<IUserHub> hubClients, ControlShockerObj[] allowedShockers, string source, ApiTokenControlLimits? tokenLimits = null)

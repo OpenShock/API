@@ -1,5 +1,6 @@
 ﻿using MessagePack;
 using MessagePack.Resolvers;
+using OpenShock.Common.Extensions;
 using Serilog;
 
 namespace OpenShock.Common;
@@ -17,7 +18,7 @@ public static class OpenShockApplication
         var builder = WebApplication.CreateSlimBuilder(args);
         
         builder.Configuration.Sources.Clear();
-        if (Environment.GetEnvironmentVariable("ASPNETCORE_UNDER_INTEGRATION_TEST") == "1")
+        if (Environment.IsFlagSet("ASPNETCORE_UNDER_INTEGRATION_TEST"))
         {
             builder.Configuration
                 .AddEnvironmentVariables();
