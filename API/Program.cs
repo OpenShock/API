@@ -142,6 +142,13 @@ builder.Services.AddHostedService<RedisSubscriberService>();
 
 var app = builder.Build();
 
+// `migrate` applies pending migrations and exits, for running them as a separate step before a rollout
+if (args.Contains("migrate"))
+{
+    await app.ApplyPendingOpenShockMigrations(databaseOptions);
+    return;
+}
+
 // Optional path prefix the API is served under (e.g. "/api" when reverse-proxied on a
 // shared host). Empty by default -> served at root, unchanged behavior.
 var apiPathBase = builder.Configuration.GetValue<string>("OpenShock:Api:PathBase");

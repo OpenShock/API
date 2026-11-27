@@ -1,9 +1,11 @@
-﻿using System.Net;
+﻿using System.Diagnostics;
+using System.Net;
 using System.Text;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Npgsql;
@@ -238,7 +240,17 @@ public static class OpenShockMiddlewareHelper
         if (pendingMigrations.Length > 0)
         {
             logger.LogInformation("Found pending migrations, applying [{@Migrations}]", string.Join(", ", pendingMigrations));
-            await migrationContext.Database.MigrateAsync();
+
+            // One at a time, so a slow migration shows up in the logs
+            var migrator = migrationContext.GetService<IMigrator>();
+            foreach (var migration in pendingMigrations)
+            {
+                logger.LogInformation("Applying migration {Migration}", migration);
+                var stopwatch = Stopwatch.StartNew();
+                await migrator.MigrateAsync(migration);
+                logger.LogInformation("Applied migration {Migration} in {Elapsed}", migration, stopwatch.Elapsed);
+            }
+
             logger.LogInformation("Applied database migrations... proceeding with startup");
 
             // A migration may have introduced new Postgres types (e.g. a new enum, or a new value on an
@@ -347,7 +359,8 @@ public static class OpenShockMiddlewareHelper
 
         logger.LogInformation("Waiting for database schema to be up to date (migrations owned by another host)...");
 
-        var deadline = DateTime.UtcNow + (timeout ?? TimeSpan.FromMinutes(5));
+        // No deadline by default, a migration may legitimately take long, e.g. when run as a separate step
+        DateTime? deadline = timeout is { } t ? DateTime.UtcNow + t : null;
         var delay = TimeSpan.FromSeconds(1);
         var maxDelay = TimeSpan.FromSeconds(15);
 
@@ -372,7 +385,7 @@ public static class OpenShockMiddlewareHelper
                 logger.LogWarning(ex, "Could not determine migration state; will retry");
             }
 
-            if (DateTime.UtcNow >= deadline)
+            if (deadline is { } d && DateTime.UtcNow >= d)
                 throw new TimeoutException(
                     "Timed out waiting for the database schema to be brought up to date by the migrator. " +
                     "Ensure the API host (the sole migrator) is running and reachable.");
