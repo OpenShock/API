@@ -21,6 +21,9 @@ namespace OpenShock.API.IntegrationTests.Tests;
 /// </summary>
 public sealed class MailTests
 {
+    /// <summary>Just longer than a pending signup keeps its address from an unproven new signup.</summary>
+    private static readonly TimeSpan PastPendingSignupHold = Duration.PendingSignupHoldTime + TimeSpan.FromMinutes(1);
+
     [ClassDataSource<WebApplicationFactory>(Shared = SharedType.PerTestSession)]
     public required WebApplicationFactory WebApplicationFactory { get; init; }
 
@@ -470,7 +473,7 @@ public sealed class MailTests
     {
         var email = TestHelper.UniqueEmail("mail-pending-stale");
         var pendingId = await TestHelper.CreateUserInDb(WebApplicationFactory, TestHelper.UniqueUsername("mailpendingstale"), email, "SquatterPassword123#", activated: false);
-        await BackdateUserAsync(pendingId, TimeSpan.FromMinutes(11));
+        await BackdateUserAsync(pendingId, PastPendingSignupHold);
 
         using var client = CreateCookielessClient();
         var response = await SignUpAsync(client, email, TestHelper.UniqueUsername("mailpendingowner"));
@@ -495,9 +498,9 @@ public sealed class MailTests
             var response = await SignUpAsync(client, email, TestHelper.UniqueUsername("mailaddresscap"));
             await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.OK);
 
-            // Step the pending account and its mail past the cooldown, so the next signup replaces it.
-            await BackdateOutboxAsync(email, TimeSpan.FromMinutes(11));
-            await BackdatePendingAccountAsync(email, TimeSpan.FromMinutes(11));
+            // Step the pending account and its mail past the hold, so the next signup replaces it.
+            await BackdateOutboxAsync(email, PastPendingSignupHold);
+            await BackdatePendingAccountAsync(email, PastPendingSignupHold);
         }
 
         var sixth = await SignUpAsync(client, email, TestHelper.UniqueUsername("mailaddresscap"));
@@ -512,14 +515,14 @@ public sealed class MailTests
         await db.Users.Where(u => u.Email == email).ExecuteUpdateAsync(s => s.SetProperty(u => u.CreatedAt, u => u.CreatedAt - by));
     }
 
-    // The cooldown runs from the last activation mail, not only from signup: replacing the account would
+    // The hold runs from the last activation mail, not only from signup: replacing the account would
     // mail the same inbox again straight after a resend did.
     [Test]
     public async Task Signup_EmailHeldByStalePendingAccount_ThatWasJustMailedAgain_Returns409()
     {
         var email = TestHelper.UniqueEmail("mail-pending-resent");
         var pendingId = await TestHelper.CreateUserInDb(WebApplicationFactory, TestHelper.UniqueUsername("mailpendingresent"), email, "FirstPassword123#", activated: false);
-        await BackdateUserAsync(pendingId, TimeSpan.FromMinutes(11));
+        await BackdateUserAsync(pendingId, PastPendingSignupHold);
         await using (var seedScope = WebApplicationFactory.Services.CreateAsyncScope())
         {
             var seedDb = seedScope.ServiceProvider.GetRequiredService<OpenShockContext>();
@@ -536,7 +539,7 @@ public sealed class MailTests
         await Assert.That(await db.Users.AsNoTracking().AnyAsync(u => u.Id == pendingId)).IsTrue();
     }
 
-    // Inside the resend cooldown the pending account keeps the address, so its creator has time to open the
+    // While its hold lasts the pending account keeps the address, so its creator has time to open the
     // link and repeated signups cannot mail the inbox more often than a resend could.
     [Test]
     public async Task Signup_EmailHeldByFreshPendingAccount_Returns409()
@@ -830,7 +833,7 @@ public sealed class MailTests
         var (userId, _) = await CreateUnactivatedUserWithTokenAsync("mail-restart-conflict", password: null);
         var heldEmail = TestHelper.UniqueEmail("mail-restart-held");
         var holderId = await TestHelper.CreateUserInDb(WebApplicationFactory, TestHelper.UniqueUsername("mailrestartholder"), heldEmail, "HolderPassword123#", activated: false);
-        await BackdateUserAsync(holderId, TimeSpan.FromMinutes(11));
+        await BackdateUserAsync(holderId, PastPendingSignupHold);
         var takenUsername = TestHelper.UniqueUsername("mailrestarttaken");
         await TestHelper.CreateUserInDb(WebApplicationFactory, takenUsername, TestHelper.UniqueEmail("mail-restart-taken"), "TakenPassword123#");
 
@@ -891,6 +894,68 @@ public sealed class MailTests
         await Assert.That(await IsActivatedAsync(userId)).IsTrue();
     }
 
+    // Past the account's daily cap no mail could go to the corrected address, and the correction kills the
+    // link already mailed: it has to be refused whole, not leave an account with no working link.
+    [Test]
+    public async Task RestartPendingSignup_ChangedEmail_AccountAtTheDailyCap_ChangesNothing_AndKeepsTheMailedLinkWorking()
+    {
+        var (userId, token) = await CreateUnactivatedUserWithTokenAsync("mail-restart-cap", password: null);
+        await AddOAuthConnectionAsync(userId, "discord");
+        var originalEmail = await GetEmailAsync(userId);
+        var newEmail = TestHelper.UniqueEmail("mail-restart-cap-new");
+
+        await using (var scope = WebApplicationFactory.Services.CreateAsyncScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<OpenShockContext>();
+            var username = await db.Users.AsNoTracking().Where(u => u.Id == userId).Select(u => u.Name).SingleAsync();
+
+            // Mailed to a few addresses, as earlier corrections would have: the cap counted is the account's.
+            for (var i = 0; i < 5; i++)
+            {
+                db.EmailOutbox.Add(EmailOutboxMessage.ForAccountActivation(userId, TestHelper.UniqueEmail("mail-restart-cap-earlier"), username));
+            }
+            await db.SaveChangesAsync();
+
+            var accountService = scope.ServiceProvider.GetRequiredService<IAccountService>();
+            var restarted = await accountService.RestartPendingSignupAsync(userId, newEmail, username);
+            await Assert.That(restarted.Value is TooManyActivationResends).IsTrue();
+        }
+
+        await Assert.That(await GetEmailAsync(userId)).IsEqualTo(originalEmail);
+        await Assert.That(await CountOutboxAsync(newEmail)).IsEqualTo(0);
+
+        using var client = CreateCookielessClient();
+        var response = await PostActivateAsync(client, token, cookie: MintSignupBrowserCookie(userId));
+        await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.OK);
+    }
+
+    // Each moves onto the address the other holds, so each needs both rows locked: taken in the same order
+    // one waits for the other, taken in opposite orders the database would abort one as a deadlock.
+    [Test]
+    public async Task RestartPendingSignup_TwoSignupsMovingOntoEachOthersAddress_DoNotDeadlock()
+    {
+        var (firstId, _) = await CreateUnactivatedUserWithTokenAsync("mail-restart-swap-a", password: null);
+        var (secondId, _) = await CreateUnactivatedUserWithTokenAsync("mail-restart-swap-b", password: null);
+        await BackdateUserAsync(firstId, PastPendingSignupHold);
+        await BackdateUserAsync(secondId, PastPendingSignupHold);
+        var firstEmail = await GetEmailAsync(firstId);
+        var secondEmail = await GetEmailAsync(secondId);
+
+        async Task<object> RestartAsync(Guid userId, string email)
+        {
+            await using var scope = WebApplicationFactory.Services.CreateAsyncScope();
+            var db = scope.ServiceProvider.GetRequiredService<OpenShockContext>();
+            var username = await db.Users.AsNoTracking().Where(u => u.Id == userId).Select(u => u.Name).SingleAsync();
+            var accountService = scope.ServiceProvider.GetRequiredService<IAccountService>();
+            return (await accountService.RestartPendingSignupAsync(userId, email, username)).Value!;
+        }
+
+        // Neither call throws. The one that gets there first takes the other's address and removes it.
+        var results = await Task.WhenAll(RestartAsync(firstId, secondEmail), RestartAsync(secondId, firstEmail));
+
+        await Assert.That(results.Count(r => r is User)).IsEqualTo(1);
+    }
+
     // --- An email change is only confirmed from a session of the account that asked for it ---
 
     [Test]
@@ -928,6 +993,74 @@ public sealed class MailTests
 
         await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.OK);
         await Assert.That(await GetEmailAsync(user.Id)).IsEqualTo(newEmail);
+    }
+
+    // The route the verification link used before email-change/verify existed still works, under the same rule.
+    [Test]
+    public async Task EmailChangeVerify_LegacyRoute_FromOwnSession_AppliesChange()
+    {
+        var (user, token, newEmail) = await CreateUserWithPendingEmailChangeAsync("mail-verify-legacy");
+
+        using var anonymous = CreateCookielessClient();
+        var rejected = await anonymous.PostAsync($"/1/account/verify-email?token={token}", null);
+        await Assert.That(rejected.StatusCode).IsEqualTo(HttpStatusCode.Unauthorized);
+
+        using var client = TestHelper.CreateAuthenticatedClient(WebApplicationFactory, user.SessionToken);
+        var response = await client.PostAsync($"/1/account/verify-email?token={token}", null);
+
+        await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.OK);
+        await Assert.That(await GetEmailAsync(user.Id)).IsEqualTo(newEmail);
+    }
+
+    // --- A never activated account does not keep an existing user from moving to its address ---
+
+    [Test]
+    public async Task ChangeEmail_AddressHeldByPendingSignup_IsAccepted()
+    {
+        const string password = "SecurePassword123#";
+        var heldEmail = TestHelper.UniqueEmail("mail-chgemail-pending-held");
+        await TestHelper.CreateUserInDb(WebApplicationFactory, TestHelper.UniqueUsername("mailchgemailpending1"), heldEmail, password, activated: false);
+        var user = await TestHelper.CreateAndLoginUser(WebApplicationFactory, TestHelper.UniqueUsername("mailchgemailpending2"), TestHelper.UniqueEmail("mail-chgemail-pending-own"), password);
+        using var client = TestHelper.CreateAuthenticatedClient(WebApplicationFactory, user.SessionToken);
+
+        var response = await client.PostAsync("/1/account/email-change", TestHelper.JsonContent(new
+        {
+            currentPassword = password,
+            email = heldEmail
+        }));
+
+        await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.OK);
+    }
+
+    [Test]
+    public async Task EmailChangeVerify_AddressHeldByPendingSignup_ReleasesIt_AndAppliesChange()
+    {
+        var (user, token, newEmail) = await CreateUserWithPendingEmailChangeAsync("mail-verify-pending");
+        // Fresh, so a plain signup could not replace it yet: opening the mailed link is proof a signup lacks.
+        var pendingId = await TestHelper.CreateUserInDb(WebApplicationFactory, TestHelper.UniqueUsername("mailverifypending"), newEmail, "SquatterPassword123#", activated: false);
+
+        using var client = TestHelper.CreateAuthenticatedClient(WebApplicationFactory, user.SessionToken);
+        var response = await client.PostAsync($"/1/account/email-change/verify?token={token}", null);
+
+        await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.OK);
+        await Assert.That(await GetEmailAsync(user.Id)).IsEqualTo(newEmail);
+
+        await using var scope = WebApplicationFactory.Services.CreateAsyncScope();
+        var db = scope.ServiceProvider.GetRequiredService<OpenShockContext>();
+        await Assert.That(await db.Users.AsNoTracking().AnyAsync(u => u.Id == pendingId)).IsFalse();
+    }
+
+    [Test]
+    public async Task EmailChangeVerify_AddressHeldByActivatedAccount_Returns409_AndLeavesEmail()
+    {
+        var (user, token, newEmail) = await CreateUserWithPendingEmailChangeAsync("mail-verify-taken");
+        await TestHelper.CreateUserInDb(WebApplicationFactory, TestHelper.UniqueUsername("mailverifytaken"), newEmail, "HolderPassword123#");
+
+        using var client = TestHelper.CreateAuthenticatedClient(WebApplicationFactory, user.SessionToken);
+        var response = await client.PostAsync($"/1/account/email-change/verify?token={token}", null);
+
+        await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.Conflict);
+        await Assert.That(await GetEmailAsync(user.Id)).IsEqualTo(user.Email);
     }
 
     // Stands in for the Cron delivery job, which mints the real activation token at send time.

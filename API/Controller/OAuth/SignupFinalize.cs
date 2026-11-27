@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.RateLimiting;
 using OpenShock.API.Models.Requests;
 using OpenShock.API.Models.Response;
 using OpenShock.API.OAuth;
+using OpenShock.API.Services.Account;
 using OpenShock.API.Services.OAuthConnection;
 using OpenShock.Common.ApiVersioning;
 using OpenShock.Common.Authentication;
@@ -112,10 +113,26 @@ public sealed partial class OAuthController
             else
             {
                 var restarted = await _accountService.RestartPendingSignupAsync(existing.UserId, email, username, cancellationToken);
-                if (restarted.Value is not User pendingUser)
+                User pendingUser;
+                switch (restarted.Value)
                 {
-                    // Username or email already exists: keep the flow cookie so the frontend can retry.
-                    return Problem(SignupError.UsernameOrEmailExists);
+                    case User restartedUser:
+                        pendingUser = restartedUser;
+                        break;
+                    case AccountWithEmailOrUsernameExists:
+                        // Keep the flow cookie so the frontend can retry with other details.
+                        return Problem(SignupError.UsernameOrEmailExists);
+                    case TooManyActivationResends:
+                        // Nothing was changed and the link already mailed still works. Other details would
+                        // be refused the same way until the window rolls over, so the flow ends here.
+                        await HttpContext.SignOutAsync(OAuthConstants.FlowScheme);
+                        return Problem(AccountError.AccountActivationResendTooMany);
+                    default:
+                        // No longer a pending signup: it was activated, deactivated or cleaned up since the
+                        // lookup above. Nothing is wrong with the details, so do not ask for different
+                        // ones: signing in with the provider again takes the path that fits what it is now.
+                        await HttpContext.SignOutAsync(OAuthConstants.FlowScheme);
+                        return Problem(OAuthError.FlowNotFound);
                 }
 
                 ActivationResendCookie.Set(HttpContext, pendingUser.Id, domain);

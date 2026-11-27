@@ -15,8 +15,9 @@ namespace OpenShock.API.IntegrationTests.Tests;
 /// The signup browser cookie only stands in for the account's credential when it comes back from the
 /// country the signup was made in.
 /// </summary>
-// One at a time: every test moves the single fake location all requests of this host resolve to.
-[NotInParallel("signup-browser-country")]
+// One at a time: every test moves the single fake location all requests of this host resolve to. The key is
+// the one the LCG assignment suites use, because they share this host and read the same fake location.
+[NotInParallel("gateway_assignment")]
 public sealed class SignupBrowserCookieCountryTests
 {
     [ClassDataSource<GeoLocatedWebApplicationFactory>(Shared = SharedType.PerTestSession)]

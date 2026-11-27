@@ -93,15 +93,27 @@ public static class SignupBrowserCookie
         }
     }
 
-    /// <summary>Deletes the cookie, if the request carries one.</summary>
+    /// <summary>Deletes the cookie, if the request carries one, under either of its names.</summary>
+    /// <remarks>
+    /// Goes by what the request carries instead of <see cref="GetName"/>: this runs on every request a
+    /// session authenticates, also in services that never issue the cookie and have no
+    /// <see cref="FrontendOptions"/> registered (the LiveControlGateway).
+    /// </remarks>
     public static void Remove(HttpContext context)
     {
-        var name = GetName(context);
-        if (!context.Request.Cookies.ContainsKey(name)) return;
+        // A __Host- cookie only exists as a secure one, and browsers ignore its removal unless that is secure too.
+        if (context.Request.Cookies.ContainsKey(AuthConstants.SignupBrowserSecureCookieName))
+            Delete(context, AuthConstants.SignupBrowserSecureCookieName, secure: true);
 
+        if (context.Request.Cookies.ContainsKey(AuthConstants.SignupBrowserCookieName))
+            Delete(context, AuthConstants.SignupBrowserCookieName, secure: context.Request.IsHttps);
+    }
+
+    private static void Delete(HttpContext context, string name, bool secure)
+    {
         context.Response.Cookies.Delete(name, new CookieOptions
         {
-            Secure = IsSecure(context),
+            Secure = secure,
             HttpOnly = true,
             SameSite = SameSiteMode.Lax,
             Path = "/"

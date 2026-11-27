@@ -29,7 +29,25 @@ public sealed partial class AuthenticatedAccountController
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status400BadRequest, MediaTypeNames.Application.ProblemJson)] // EmailChangeNotFound
     [ProducesResponseType<OpenShockProblem>(StatusCodes.Status409Conflict, MediaTypeNames.Application.ProblemJson)] // EmailChangeAlreadyInUse
-    public async Task<IActionResult> EmailVerify([FromQuery(Name = "token")] string token, CancellationToken cancellationToken)
+    public Task<IActionResult> EmailVerify([FromQuery(Name = "token")] string token, CancellationToken cancellationToken)
+        => VerifyPendingEmailChange(token, cancellationToken);
+
+    /// <summary>
+    /// Verify a pending email change of the current user. Deprecated: use POST /email-change/verify instead.
+    /// </summary>
+    /// <response code="200">Email change verified and applied</response>
+    /// <response code="400">Token is invalid, already used, expired, or belongs to another account</response>
+    /// <response code="409">The new email address was claimed by another account before verification completed</response>
+    [Obsolete("Use POST /email-change/verify instead.")]
+    [HttpPost("verify-email")]
+    [ApiVersion(1)]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType<OpenShockProblem>(StatusCodes.Status400BadRequest, MediaTypeNames.Application.ProblemJson)] // EmailChangeNotFound
+    [ProducesResponseType<OpenShockProblem>(StatusCodes.Status409Conflict, MediaTypeNames.Application.ProblemJson)] // EmailChangeAlreadyInUse
+    public Task<IActionResult> EmailVerifyLegacy([FromQuery(Name = "token")] string token, CancellationToken cancellationToken)
+        => VerifyPendingEmailChange(token, cancellationToken);
+
+    private async Task<IActionResult> VerifyPendingEmailChange(string token, CancellationToken cancellationToken)
     {
         var result = await _accountService.TryVerifyEmailAsync(token, CurrentUser.Id, cancellationToken);
 

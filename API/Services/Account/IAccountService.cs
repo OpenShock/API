@@ -48,9 +48,14 @@ public interface IAccountService
     /// <summary>
     /// Lets the creator of a never activated account correct what they signed up with (typically a mistyped
     /// email) and sends the activation email to the new address. Only call this for a caller who proved they
-    /// hold the account's credential. Sends are capped per account like any activation resend.
+    /// hold the account's credential. Sends are capped per account like any activation resend: an address
+    /// change past that cap is refused with <see cref="TooManyActivationResends"/> and changes nothing,
+    /// because the link already mailed would stop working with no new one to replace it.
     /// </summary>
-    Task<Union3<User, AccountWithEmailOrUsernameExists, NotFound>> RestartPendingSignupAsync(Guid userId, string email, string username, CancellationToken cancellationToken = default);
+    /// <returns>
+    /// <see cref="NotFound"/> when the account is not a pending signup (any more): activated, deactivated or deleted.
+    /// </returns>
+    Task<Union4<User, AccountWithEmailOrUsernameExists, TooManyActivationResends, NotFound>> RestartPendingSignupAsync(Guid userId, string email, string username, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Activates the account an emailed activation token belongs to. The token only proves control of the

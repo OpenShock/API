@@ -77,8 +77,12 @@ public static class ActivationResendCookie
 
         if (!context.Request.Cookies.ContainsKey(AuthConstants.ActivationResendCookieName)) return;
 
-        var cookieDomains = context.RequestServices.GetRequiredService<FrontendOptions>().CookieDomains;
-        foreach (var domain in cookieDomains)
+        // A service without frontend options (the LiveControlGateway) never issues this cookie and does not
+        // know the domains to remove it from: leave it for the API, rather than fail the request over it.
+        var frontendOptions = context.RequestServices.GetService<FrontendOptions>();
+        if (frontendOptions is null) return;
+
+        foreach (var domain in frontendOptions.CookieDomains)
         {
             context.Response.Cookies.Delete(AuthConstants.ActivationResendCookieName, new CookieOptions { Domain = domain });
         }
