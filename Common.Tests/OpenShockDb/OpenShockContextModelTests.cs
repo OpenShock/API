@@ -76,7 +76,9 @@ public sealed class OpenShockContextModelTests
         var rolesProperty = adminUsersView?.FindProperty(nameof(AdminUsersView.Roles));
 
         await Assert.That(rolesProperty).IsNotNull();
-        await Assert.That(rolesProperty!.GetValueConverter()).IsNull();
+        await Assert.That(rolesProperty!.GetValueConverter()).IsNotNull();
+        var comparer = rolesProperty.GetValueComparer();
+        await Assert.That(comparer).IsNotNull();
         await Assert.That(rolesProperty.GetColumnType()).IsEqualTo("role_type[]");
         await Assert.That(loggerProvider.Logs.Any(log => log.EventId.Id == CoreEventId.ContextInitialized.Id)).IsTrue();
 
@@ -85,5 +87,14 @@ public sealed class OpenShockContextModelTests
             .ToArray();
 
         await Assert.That(collectionWithoutComparerWarnings).IsEmpty();
+
+        List<RoleType> original = [RoleType.Support, RoleType.Admin];
+        List<RoleType> equivalent = [RoleType.Support, RoleType.Admin];
+        List<RoleType> different = [RoleType.Staff];
+        await Assert.That(comparer!.Equals(original, equivalent)).IsTrue();
+        await Assert.That(comparer.Equals(original, different)).IsFalse();
+        var snapshot = (List<RoleType>)comparer.Snapshot(original)!;
+        await Assert.That(snapshot).IsEquivalentTo(original);
+        await Assert.That(ReferenceEquals(original, snapshot)).IsFalse();
     }
 }
