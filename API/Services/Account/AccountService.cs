@@ -76,6 +76,23 @@ public sealed class AccountService : IAccountService
         }
     }
 
+    /// <summary>
+    /// Tells every instance the account may no longer be used, so its open connections are closed, the ones
+    /// that authenticated with an API token included. Deliberately swallows failures: the change is already
+    /// committed, and a connection that misses the message is caught by its next periodic check.
+    /// </summary>
+    private async Task NotifyUserAuthRevokedAsync(Guid userId)
+    {
+        try
+        {
+            await _redisPubService.SendUserAuthRevoked(userId);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to announce revoked access for user ID: [{Id}]; open connections close on their next check", userId);
+        }
+    }
+
     private Task<bool> IsUserNameBlacklisted(string username, CancellationToken cancellationToken)
         => _db.UserNameBlacklists.Matching(username).AnyAsync(cancellationToken);
 
@@ -380,6 +397,8 @@ public sealed class AccountService : IAccountService
             await transaction.CommitAsync();
         }
 
+        await NotifyUserAuthRevokedAsync(userId);
+
         // Remove all login sessions
         await _sessionService.DeleteSessionsByUserIdAsync(userId);
 
@@ -479,6 +498,8 @@ public sealed class AccountService : IAccountService
         );
 
         await transaction.CommitAsync();
+
+        await NotifyUserAuthRevokedAsync(userId);
 
         return new Success();
     }

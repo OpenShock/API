@@ -28,9 +28,11 @@ public sealed class UserHub : Hub<IUserHub>
     /// connection. Derived per access: SignalR creates a hub instance per invocation, so a field
     /// set in <see cref="OnConnectedAsync"/> would be null everywhere else.
     /// </summary>
-    private IReadOnlyList<PermissionType>? TokenPermissions => Context.User?.HasOpenShockApiTokenIdentity() == true
-        ? Context.User.GetApiTokenPermissions()
-        : null;
+    private IReadOnlyList<PermissionType>? TokenPermissions => Context.GetCurrentApiToken() is { } apiToken
+        ? apiToken.Permissions
+        : Context.User?.HasOpenShockApiTokenIdentity() == true
+            ? Context.User.GetApiTokenPermissions()
+            : null;
 
     public UserHub(ILogger<UserHub> logger, OpenShockContext db, IRedisConnectionProvider provider,
         IRedisPubService redisPubService, IControlSender controlSender)
@@ -96,7 +98,8 @@ public sealed class UserHub : Hub<IUserHub>
         }).FirstAsync(Context.ConnectionAborted);
 
         ApiTokenControlLimits? tokenLimits = null;
-        if (Context.GetHttpContext()?.GetItemByType<ApiToken>() is { } apiToken)
+        // The token as it is now, not as it was when the connection opened (see RevalidateAuthenticationHubFilter).
+        if (Context.GetCurrentApiToken() is { } apiToken)
         {
             // A paused token may not control shockers.
             if (apiToken.ShockerControlPaused) return;
