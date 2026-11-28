@@ -83,19 +83,35 @@ public sealed class OAuthConnectionService : IOAuthConnectionService
         return true;
     }
 
-    public async Task<bool> TryRemoveConnectionAsync(Guid userId, string provider, Guid? actorId, CancellationToken cancellationToken)
+    public async Task<RemoveConnectionResult> RemoveConnectionAsync(Guid userId, string provider, Guid? actorId, CancellationToken cancellationToken)
     {
         var p = provider.ToLowerInvariant();
-        
-        await using var transaction = await _db.Database.BeginTransactionAsync();
-        
+
+        await using var transaction = await _db.Database.BeginTransactionAsync(cancellationToken);
+
+        // Lock the user row until commit: the check below and the delete are then one step per user.
+        await _db.Database.ExecuteSqlAsync($"SELECT 1 FROM users WHERE id = {userId} FOR UPDATE", cancellationToken);
+
+        // An account without a password signs in through its connections only. Removing the last one would
+        // lock its owner out until they notice and go through a password reset.
+        var hasPassword = await _db.Users.AnyAsync(u => u.Id == userId && u.PasswordHash != null && u.PasswordHash != "", cancellationToken);
+        if (!hasPassword)
+        {
+            var hasOtherConnection = await _db.UserOAuthConnections.AnyAsync(c => c.UserId == userId && c.ProviderKey != p, cancellationToken);
+            if (!hasOtherConnection)
+            {
+                var hasThisConnection = await _db.UserOAuthConnections.AnyAsync(c => c.UserId == userId && c.ProviderKey == p, cancellationToken);
+                return hasThisConnection ? RemoveConnectionResult.LastLoginMethod : RemoveConnectionResult.NotFound;
+            }
+        }
+
         var nDeleted = await _db.UserOAuthConnections
             .Where(c => c.UserId == userId && c.ProviderKey == p)
-            .ExecuteDeleteAsync();
-        
+            .ExecuteDeleteAsync(cancellationToken);
+
         // Nothing was linked, so don't record a disconnection that never happened.
         // Disposing the transaction without committing rolls back the (no-op) delete.
-        if (nDeleted <= 0) return false;
+        if (nDeleted <= 0) return RemoveConnectionResult.NotFound;
 
         await _auditService.LogAsync(
             userId,
@@ -103,9 +119,9 @@ public sealed class OAuthConnectionService : IOAuthConnectionService
             actorId: actorId ?? userId,
             metadata: new OAuthDisconnectedMetadata(provider)
         );
-        
-        await transaction.CommitAsync();
 
-        return true;
+        await transaction.CommitAsync(cancellationToken);
+
+        return RemoveConnectionResult.Removed;
     }
 }

@@ -105,6 +105,93 @@ public sealed partial class EmailOutboxDeliveryTests
         }
     }
 
+    [Test]
+    public async Task AccountActivation_QueuedForAPreviousAddress_IsSkipped_AndMintsNoToken()
+    {
+        // The pending signup's address was corrected after this message was queued: the link would activate
+        // the account on its new address, so it must not go to the old one.
+        var oldEmail = UniqueEmail("cron-activation-old");
+        var newEmail = UniqueEmail("cron-activation-new");
+        using var mailpit = Factory.CreateMailpitHelper();
+
+        var userId = Guid.CreateVersion7();
+        var seededHash = HashingUtils.HashToken(CryptoUtils.RandomString(AuthConstants.GeneratedTokenLength));
+        Guid outboxId;
+        await using (var db = await Factory.DbContextFactory.CreateDbContextAsync())
+        {
+            db.Users.Add(new User
+            {
+                Id = userId,
+                Name = "Activation User " + Guid.NewGuid().ToString("N")[..8],
+                Email = newEmail,
+                PasswordHash = null,
+                CreatedAt = DateTime.UtcNow,
+                ActivatedAt = null
+            });
+            db.UserActivationRequests.Add(new UserActivationRequest { UserId = userId, TokenHash = seededHash });
+            var outbox = EmailOutboxMessage.ForAccountActivation(userId, oldEmail, "Activation User");
+            db.EmailOutbox.Add(outbox);
+            await db.SaveChangesAsync();
+            outboxId = outbox.Id;
+        }
+
+        await Factory.RunDeliveryAsync();
+
+        await using (var db = await Factory.DbContextFactory.CreateDbContextAsync())
+        {
+            var row = await db.EmailOutbox.AsNoTracking().SingleAsync(m => m.Id == outboxId);
+            await Assert.That(row.Status).IsEqualTo(EmailStatus.Skipped);
+
+            var request = await db.UserActivationRequests.AsNoTracking().SingleAsync(r => r.UserId == userId);
+            await Assert.That(request.TokenHash).IsEqualTo(seededHash);
+        }
+
+        await Assert.That((await mailpit.SearchByRecipientAsync(oldEmail)).Count).IsEqualTo(0);
+    }
+
+    [Test]
+    public async Task AccountActivation_IsDelivered_AndEmailedTokenMatchesStoredHash()
+    {
+        var email = UniqueEmail("cron-activation");
+        using var mailpit = Factory.CreateMailpitHelper();
+
+        var userId = Guid.CreateVersion7();
+        await using (var db = await Factory.DbContextFactory.CreateDbContextAsync())
+        {
+            db.Users.Add(new User
+            {
+                Id = userId,
+                Name = "Activation User " + Guid.NewGuid().ToString("N")[..8],
+                Email = email,
+                PasswordHash = null,
+                CreatedAt = DateTime.UtcNow,
+                ActivatedAt = null
+            });
+            db.UserActivationRequests.Add(new UserActivationRequest
+            {
+                UserId = userId,
+                TokenHash = HashingUtils.HashToken(CryptoUtils.RandomString(AuthConstants.GeneratedTokenLength))
+            });
+            db.EmailOutbox.Add(EmailOutboxMessage.ForAccountActivation(userId, email, "Activation User"));
+            await db.SaveChangesAsync();
+        }
+
+        await Factory.RunDeliveryAsync();
+
+        var message = await mailpit.WaitForMessageAsync(email);
+        await Assert.That(message).IsNotNull();
+
+        var full = await mailpit.GetMessageAsync(message!.Id);
+        var token = Regex.Match(full!.Html, @"activate\?token=([A-Za-z0-9_\-]+)").Groups[1].Value;
+        await Assert.That(token).IsNotEmpty();
+
+        await using (var db = await Factory.DbContextFactory.CreateDbContextAsync())
+        {
+            var request = await db.UserActivationRequests.AsNoTracking().SingleAsync(r => r.UserId == userId);
+            await Assert.That(request.TokenHash).IsEqualTo(HashingUtils.HashToken(token));
+        }
+    }
+
     // --- Helpers ---
 
     private async Task<(Guid UserId, Guid Stamp)> AddUserAsync(string email, string name)
@@ -159,7 +246,7 @@ public sealed partial class EmailOutboxDeliveryTests
         return outbox.Id;
     }
 
-    private static string UniqueEmail(string prefix) => $"{prefix}-{Guid.CreateVersion7().ToString("N")[..8]}@test.org";
+    private static string UniqueEmail(string prefix) => $"{prefix}-{Guid.NewGuid().ToString("N")[..8]}@test.org";
 
     private static string? ExtractResetToken(string html)
     {

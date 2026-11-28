@@ -76,6 +76,38 @@ public sealed class AccountService : IAccountService
         }
     }
 
+    /// <summary>Most activation emails one account, and one address, is sent per <see cref="Duration.ActivationResendWindow"/>.</summary>
+    private const int MaxActivationEmailsPerWindow = 5;
+
+    /// <summary>
+    /// Whether <paramref name="email"/> has already been sent as many activation emails as an address gets
+    /// per window, whichever accounts they were for. The cap per account alone does not protect an inbox:
+    /// a pending account can be replaced by a new signup, and every new account starts counting from zero.
+    /// Counted on the outbox, which is never pruned, so it holds across instances and deleted accounts.
+    /// </summary>
+    /// <param name="email">Lowercased address.</param>
+    /// <param name="cancellationToken"></param>
+    private async Task<bool> IsActivationEmailCapReachedAsync(string email, CancellationToken cancellationToken)
+    {
+        var windowStart = DateTime.UtcNow - Duration.ActivationResendWindow;
+        var sent = await _db.EmailOutbox.CountAsync(
+            m => m.Recipient == email && m.Type == EmailType.AccountActivation && m.CreatedAt >= windowStart,
+            cancellationToken);
+
+        return sent >= MaxActivationEmailsPerWindow;
+    }
+
+    /// <summary>The activation emails queued for one account within <see cref="Duration.ActivationResendWindow"/>.</summary>
+    private IQueryable<EmailOutboxMessage> RecentActivationEmails(Guid userId)
+    {
+        var coalesceKey = EmailOutboxCoalesceKeys.AccountActivation(userId);
+        var windowStart = DateTime.UtcNow - Duration.ActivationResendWindow;
+        return _db.EmailOutbox.Where(m => m.CoalesceKey == coalesceKey && m.CreatedAt >= windowStart);
+    }
+
+    private Task<int> CountRecentActivationEmailsAsync(Guid userId, CancellationToken cancellationToken)
+        => RecentActivationEmails(userId).CountAsync(cancellationToken);
+
     private Task<bool> IsUserNameBlacklisted(string username, CancellationToken cancellationToken)
         => _db.UserNameBlacklists.Matching(username).AnyAsync(cancellationToken);
 
@@ -93,6 +125,13 @@ public sealed class AccountService : IAccountService
         if (await IsUserNameBlacklisted(username, cancellationToken) || await IsEmailProviderBlacklisted(email, cancellationToken))
             return new AccountWithEmailOrUsernameExists();
         
+        // This signup would mail the address (unless accounts are activated on creation). Past the cap it is
+        // turned away like a taken address, before it can replace whoever holds the address now.
+        if (!verifyOnCreation && await IsActivationEmailCapReachedAsync(email, cancellationToken))
+            return new AccountWithEmailOrUsernameExists();
+
+        await ReleaseEmailFromPendingAccountAsync(email, claimantOwnsEmail: false, exceptUserId: null, cancellationToken);
+
         if (await _db.Users.AnyAsync(x => x.Email == email || x.Name == username, cancellationToken))
             return new AccountWithEmailOrUsernameExists();
 
@@ -143,7 +182,7 @@ public sealed class AccountService : IAccountService
                 TokenHash = SeedTokenHash()
             };
 
-            _db.EmailOutbox.Add(EmailOutboxMessage.ForAccountActivation(user.Id, email, username));
+            _db.EmailOutbox.Add(EmailOutboxMessage.ForAccountActivation(user.Id, user.Email, username));
 
             await _db.SaveChangesAsync();
         }
@@ -159,7 +198,204 @@ public sealed class AccountService : IAccountService
 
     public Task<bool> IsEmailRegisteredAsync(string email, CancellationToken cancellationToken = default)
     {
-        return _db.Users.AnyAsync(u => u.Email == email, cancellationToken);
+        return _db.Users.AnyAsync(u => u.Email == email && u.ActivatedAt != null, cancellationToken);
+    }
+
+    /// <summary>
+    /// A never activated account is only a pending signup: nobody has shown the address is theirs, so it
+    /// must not keep the real owner (or anyone else) from signing up with that address. This deletes the
+    /// pending account holding <paramref name="email"/>, if there is one and it may be released.
+    /// </summary>
+    /// <param name="email">Lowercased address.</param>
+    /// <param name="claimantOwnsEmail">
+    /// The caller proved the address is theirs (an OAuth provider verified it, or they opened a link mailed
+    /// to it). Otherwise the pending account is left alone for <see cref="Duration.PendingSignupHoldTime"/>
+    /// after it was created or last mailed: that gives its creator time to receive and open the link before
+    /// someone who merely knows the address can take the signup away, and keeps repeated signups from
+    /// mailing the address more often than a resend could.
+    /// </param>
+    /// <param name="exceptUserId">A pending account that is the caller's own and must be kept.</param>
+    /// <param name="cancellationToken"></param>
+    private async Task ReleaseEmailFromPendingAccountAsync(string email, bool claimantOwnsEmail, Guid? exceptUserId, CancellationToken cancellationToken)
+    {
+        var pending = await _db.Users
+            .AsNoTracking()
+            .Where(u => u.Email == email && u.ActivatedAt == null)
+            .Select(u => new { u.Id, u.CreatedAt })
+            .FirstOrDefaultAsync(cancellationToken);
+        if (pending is null || pending.Id == exceptUserId) return;
+
+        if (!claimantOwnsEmail)
+        {
+            // A resend takes this same lock before it queues mail, so one cannot slip in between the look at
+            // the outbox below and the delete. Held until the caller's transaction ends.
+            await _db.Database.ExecuteSqlAsync($"SELECT 1 FROM users WHERE id = {pending.Id} FOR UPDATE", cancellationToken);
+
+            // Counted from the last activation mail, not only from signup: a pending account that just had
+            // its mail resent would otherwise be replaced by one that mails the same inbox again right away.
+            var holdStart = DateTime.UtcNow - Duration.PendingSignupHoldTime;
+            if (pending.CreatedAt > holdStart) return;
+
+            var coalesceKey = EmailOutboxCoalesceKeys.AccountActivation(pending.Id);
+            if (await _db.EmailOutbox.AnyAsync(m => m.CoalesceKey == coalesceKey && m.CreatedAt >= holdStart, cancellationToken)) return;
+        }
+
+        // Only while it still holds this address: its creator may have moved it to another one since the
+        // lookup above, and then it is not in the way any more.
+        await DeletePendingAccountAsync(pending.Id, email, cancellationToken);
+    }
+
+    /// <summary>
+    /// Deletes an account only if it is still pending when the delete runs. The condition is part of the
+    /// statement, so an account that gets activated after the caller looked at it is left alone.
+    /// Deactivated and privileged accounts are never deleted this way.
+    /// </summary>
+    /// <param name="userId"></param>
+    /// <param name="heldEmail">When given, the account is only deleted while this is still its address.</param>
+    /// <param name="cancellationToken"></param>
+    /// <returns>False when nothing was deleted.</returns>
+    private async Task<bool> DeletePendingAccountAsync(Guid userId, string? heldEmail, CancellationToken cancellationToken)
+    {
+        var deleted = heldEmail is null
+            ? await _db.Database.ExecuteSqlAsync($"""
+                DELETE FROM users AS u
+                WHERE u.id = {userId}
+                  AND u.activated_at IS NULL
+                  AND NOT (u.roles && {PrivilegedRoles.All})
+                  AND NOT EXISTS (SELECT 1 FROM user_deactivations AS d WHERE d.deactivated_user_id = u.id)
+                """, cancellationToken)
+            : await _db.Database.ExecuteSqlAsync($"""
+                DELETE FROM users AS u
+                WHERE u.id = {userId}
+                  AND u.email = {heldEmail}
+                  AND u.activated_at IS NULL
+                  AND NOT (u.roles && {PrivilegedRoles.All})
+                  AND NOT EXISTS (SELECT 1 FROM user_deactivations AS d WHERE d.deactivated_user_id = u.id)
+                """, cancellationToken);
+
+        return deleted > 0;
+    }
+
+    /// <inheritdoc />
+    public async Task<Union4<User, AccountWithEmailOrUsernameExists, TooManyActivationResends, NotFound>> RestartPendingSignupAsync(Guid userId, string email, string username, CancellationToken cancellationToken = default)
+    {
+        email = email.ToLowerInvariant();
+
+        // Everything below, the "still pending" check included, runs with the account's row locked. An
+        // activation that commits first is seen here; one that comes later waits and then finds its token
+        // replaced. Releasing another pending account's hold on the address is part of the same
+        // transaction, so every return that does not commit rolls it back.
+        await using var transaction = await _db.Database.BeginTransactionAsync(cancellationToken);
+
+        // Releasing the address locks the pending account that holds it as well. Both rows are taken here,
+        // in id order: two signups each moving onto the other's address would otherwise lock them in
+        // opposite order and deadlock.
+        var holderId = await _db.Users
+            .Where(u => u.Email == email && u.ActivatedAt == null && u.Id != userId)
+            .Select(u => (Guid?)u.Id)
+            .FirstOrDefaultAsync(cancellationToken);
+        Guid[] lockIds = holderId is null ? [userId] : [userId, holderId.Value];
+        await _db.Database.ExecuteSqlAsync($"SELECT 1 FROM users WHERE id = ANY({lockIds}) ORDER BY id FOR UPDATE", cancellationToken);
+
+        var user = await _db.Users
+            .Include(u => u.UserDeactivation)
+            .Include(u => u.UserActivationRequest)
+            .FirstOrDefaultAsync(u => u.Id == userId, cancellationToken);
+        if (user is null) return new NotFound();
+
+        // The caller usually looked this account up through this same context already, and a query hands
+        // back that tracked instance as it was read then. Read the row as it is now.
+        await _db.Entry(user).ReloadAsync(cancellationToken);
+        if (user.ActivatedAt is not null || user.UserDeactivation is not null) return new NotFound();
+
+        var emailChanged = !string.Equals(user.Email, email, StringComparison.OrdinalIgnoreCase);
+        if (emailChanged || user.Name != username)
+        {
+            if (await IsUserNameBlacklisted(username, cancellationToken) || await IsEmailProviderBlacklisted(email, cancellationToken))
+                return new AccountWithEmailOrUsernameExists();
+
+            if (emailChanged)
+            {
+                // Moving the signup to another address kills the link already mailed, so the new address
+                // has to get one. Checked before anything changes: past the account's cap no mail would be
+                // queued below, leaving an account that reports success and has no working link at all.
+                if (await CountRecentActivationEmailsAsync(userId, cancellationToken) >= MaxActivationEmailsPerWindow)
+                    return new TooManyActivationResends();
+
+                // Moving the signup to another address mails that address.
+                if (await IsActivationEmailCapReachedAsync(email, cancellationToken))
+                    return new AccountWithEmailOrUsernameExists();
+            }
+
+            await ReleaseEmailFromPendingAccountAsync(email, claimantOwnsEmail: false, exceptUserId: userId, cancellationToken);
+
+            if (await _db.Users.AnyAsync(u => u.Id != userId && (u.Email == email || u.Name == username), cancellationToken))
+                return new AccountWithEmailOrUsernameExists();
+
+            user.Email = email;
+            user.Name = username;
+
+            // A link already mailed was mailed to the previous address, so it says nothing about the new
+            // one: it must stop working in the same commit that changes the address. Otherwise the caller
+            // could sign up with an inbox of their own, move the account to somebody else's address and
+            // activate it with the link they already hold. The delivery job mints the new token when it
+            // sends to the new address.
+            if (emailChanged)
+            {
+                if (user.UserActivationRequest is not null)
+                {
+                    user.UserActivationRequest.TokenHash = SeedTokenHash();
+                }
+                else
+                {
+                    // The delivery job skips an activation mail that has no request to mint a token on.
+                    user.UserActivationRequest = new UserActivationRequest
+                    {
+                        UserId = user.Id,
+                        TokenHash = SeedTokenHash(),
+                        CreatedAt = DateTime.UtcNow
+                    };
+                }
+
+                // The same goes for a password reset link requested for the previous address: completing it
+                // would set a password and activate the account on the new one. Reset rows carry the stamp
+                // they were created under, so rotating it invalidates them.
+                user.SecurityStamp = Guid.CreateVersion7();
+
+                _db.EmailOutbox.Add(EmailOutboxMessage.ForAccountActivation(user.Id, user.Email, user.Name));
+            }
+
+            try
+            {
+                await _db.SaveChangesAsync();
+            }
+            catch (DbUpdateConcurrencyException)
+            {
+                // The old link was redeemed while this ran: the account is activated on the address it was
+                // mailed to, and nothing was changed here.
+                return new NotFound();
+            }
+            catch (DbUpdateException ex) when (ex.InnerException is PostgresException { SqlState: "23505" })
+            {
+                return new AccountWithEmailOrUsernameExists();
+            }
+        }
+
+        await transaction.CommitAsync(cancellationToken);
+
+        if (emailChanged)
+        {
+            // The replacement mail is part of the same transaction as the address and token change.
+            await NotifyEmailOutboxAsync();
+        }
+        else
+        {
+            // For unchanged details a throttled result just means no new mail went out: the link already
+            // mailed still works, and the resend button gets a new one later.
+            await ResendActivationEmailCoreAsync(userId, ignoreCooldown: false, onlyIfEmailIs: null, reserveCorrectionCapacity: false, cancellationToken);
+        }
+
+        return user;
     }
 
     public async Task<AccountCreationResult> CreateOAuthOnlyAccountAsync(
@@ -169,10 +405,15 @@ public sealed class AccountService : IAccountService
         string providerAccountId,
         string? providerAccountName,
         bool isEmailTrusted,
+        Guid? replacePendingUserId,
         CancellationToken cancellationToken)
     {
         email = email.ToLowerInvariant();
         provider = provider.ToLowerInvariant();
+
+        // Only a provider that verified the address shows it is the caller's. Mail being disabled (below)
+        // makes the new account usable without a link, it proves nothing about who owns the address.
+        var providerVerifiedEmail = isEmailTrusted;
 
         // With mail disabled no activation link can reach the user, so an untrusted email cannot be
         // verified by any means; activate on creation rather than create a dead account.
@@ -182,14 +423,32 @@ public sealed class AccountService : IAccountService
         if (await IsUserNameBlacklisted(username, cancellationToken) || await IsEmailProviderBlacklisted(email, cancellationToken))
             return new AccountWithEmailOrUsernameExists();
 
-        // Fast uniqueness check (optimistic; race handled by unique constraints below)
-        var exists = await _db.Users.AnyAsync(u => u.Email == email || u.Name == username, cancellationToken);
-        if (exists) return new AccountWithEmailOrUsernameExists();
+        // An unverified address gets an activation email.
+        if (!isEmailTrusted && await IsActivationEmailCapReachedAsync(email, cancellationToken))
+            return new AccountWithEmailOrUsernameExists();
 
-        await using var tx = await _db.Database.BeginTransactionAsync();
+        // Pending accounts removed to make room only stay removed if the new account is created: every
+        // return below that does not commit rolls them back.
+        await using var tx = await _db.Database.BeginTransactionAsync(cancellationToken);
 
         try
         {
+            if (replacePendingUserId is not null)
+            {
+                await DeletePendingAccountAsync(replacePendingUserId.Value, heldEmail: null, cancellationToken);
+
+                // The caller looked that account up through this context, and its OAuth connection has the
+                // key the new one is about to get. Nothing is tracked yet that this method needs.
+                _db.ChangeTracker.Clear();
+            }
+
+            // A provider-verified address belongs to this caller, so a pending account someone parked on it goes.
+            await ReleaseEmailFromPendingAccountAsync(email, claimantOwnsEmail: providerVerifiedEmail, exceptUserId: null, cancellationToken);
+
+            // Fast uniqueness check (optimistic; race handled by unique constraints below)
+            var exists = await _db.Users.AnyAsync(u => u.Email == email || u.Name == username, cancellationToken);
+            if (exists) return new AccountWithEmailOrUsernameExists();
+
             var creationTime = DateTime.UtcNow;
             
             var user = new User
@@ -250,22 +509,87 @@ public sealed class AccountService : IAccountService
     }
 
 
-    public async Task<bool> TryActivateAccountAsync(string secret, CancellationToken cancellationToken = default)
+    /// <inheritdoc />
+    public async Task<Union3<Success, ActivationCredentialRequired, NotFound>> ActivateAccountAsync(string activationToken, Guid? signupBrowserUserId, string? password, CancellationToken cancellationToken = default)
     {
-        var hash = HashingUtils.HashToken(secret);
+        var hash = HashingUtils.HashToken(activationToken);
 
         var user = await _db.Users
             .Include(u => u.UserActivationRequest)
-            .FirstOrDefaultAsync(x => x.UserDeactivation == null && x.UserActivationRequest != null && x.UserActivationRequest.TokenHash == hash, cancellationToken);
-        if (user?.UserActivationRequest is null) return false;
+            .FirstOrDefaultAsync(x => x.ActivatedAt == null && x.UserDeactivation == null && x.UserActivationRequest != null && x.UserActivationRequest.TokenHash == hash, cancellationToken);
+        if (user?.UserActivationRequest is null) return new NotFound();
 
-        user.ActivatedAt = DateTime.UtcNow;
+        // The token proves the caller reads this inbox, nothing more: the account, and the password or OAuth
+        // identity on it, may have been set up by someone else using this address. So the caller must also
+        // be the one who signed up: the browser that did, or someone who knows the password.
+        var hasPassword = !string.IsNullOrEmpty(user.PasswordHash);
+        var credentialProven = signupBrowserUserId == user.Id;
+        var passwordInvalid = false;
+        if (!credentialProven && hasPassword && !string.IsNullOrEmpty(password))
+        {
+            credentialProven = HashingUtils.VerifyPassword(password, user.PasswordHash!).Verified;
+            passwordInvalid = !credentialProven;
+        }
 
-        _db.UserActivationRequests.Remove(user.UserActivationRequest);
+        if (!credentialProven)
+        {
+            var providers = await _db.UserOAuthConnections
+                .Where(c => c.UserId == user.Id)
+                .Select(c => c.ProviderKey)
+                .ToListAsync(cancellationToken);
 
-        await _db.SaveChangesAsync();
+            return new ActivationCredentialRequired(hasPassword, providers, passwordInvalid);
+        }
+
+        var activated = await ConsumeActivationTokenAsync(user.Id, hash, cancellationToken);
+        if (!activated) return new NotFound();
+
+        return new Success();
+    }
+
+    /// <summary>
+    /// Activates the account by consuming its activation request, but only if the request still carries
+    /// <paramref name="tokenHash"/>. The check and the delete are one statement, so a token that was
+    /// replaced since the caller looked it up (the signup's address was changed, see
+    /// <see cref="RestartPendingSignupAsync"/>) cannot activate the account on its new address.
+    /// </summary>
+    private async Task<bool> ConsumeActivationTokenAsync(Guid userId, string tokenHash, CancellationToken cancellationToken)
+    {
+        await using var transaction = await _db.Database.BeginTransactionAsync(cancellationToken);
+
+        // User row first, then the activation request: the order password reset, resend and signup
+        // correction take them in. Taking the request first could deadlock against any of those.
+        await _db.Database.ExecuteSqlAsync($"SELECT 1 FROM users WHERE id = {userId} FOR UPDATE", cancellationToken);
+
+        var canActivate = await _db.Users
+            .AnyAsync(u => u.Id == userId && u.ActivatedAt == null && u.UserDeactivation == null, cancellationToken);
+        if (!canActivate) return false;
+
+        var consumed = await _db.UserActivationRequests
+            .Where(r => r.UserId == userId && r.TokenHash == tokenHash)
+            .ExecuteDeleteAsync(cancellationToken);
+        if (consumed == 0) return false;
+
+        var now = DateTime.UtcNow;
+        await _db.Users
+            .Where(u => u.Id == userId && u.ActivatedAt == null)
+            .ExecuteUpdateAsync(s => s.SetProperty(u => u.ActivatedAt, now), cancellationToken);
+
+        await transaction.CommitAsync(cancellationToken);
 
         return true;
+    }
+
+    /// <inheritdoc />
+    public async Task<bool> TryActivateAccountAsync(Guid userId, string activationToken, CancellationToken cancellationToken = default)
+    {
+        var hash = HashingUtils.HashToken(activationToken);
+
+        var matches = await _db.Users
+            .AnyAsync(x => x.Id == userId && x.ActivatedAt == null && x.UserDeactivation == null && x.UserActivationRequest != null && x.UserActivationRequest.TokenHash == hash, cancellationToken);
+        if (!matches) return false;
+
+        return await ConsumeActivationTokenAsync(userId, hash, cancellationToken);
     }
 
     /// <inheritdoc />
@@ -281,7 +605,22 @@ public sealed class AccountService : IAccountService
     }
 
     /// <inheritdoc />
-    public async Task<Union4<Success, TooManyActivationResends, AccountDeactivated, NotFound>> ResendActivationEmailAsync(Guid userId, CancellationToken cancellationToken = default)
+    public Task<Union4<Success, TooManyActivationResends, AccountDeactivated, NotFound>> ResendActivationEmailAsync(Guid userId, CancellationToken cancellationToken = default)
+        => ResendActivationEmailCoreAsync(userId, ignoreCooldown: false, onlyIfEmailIs: null, reserveCorrectionCapacity: false, cancellationToken);
+
+    /// <inheritdoc />
+    public Task<Union4<Success, TooManyActivationResends, AccountDeactivated, NotFound>> ResendActivationEmailForOAuthAsync(Guid userId, CancellationToken cancellationToken = default)
+        => ResendActivationEmailCoreAsync(userId, ignoreCooldown: false, onlyIfEmailIs: null, reserveCorrectionCapacity: true, cancellationToken);
+
+    /// <param name="userId"></param>
+    /// <param name="ignoreCooldown"></param>
+    /// <param name="onlyIfEmailIs">When given, nothing is queued unless this is still the account's address.</param>
+    /// <param name="reserveCorrectionCapacity">
+    /// Stop one short of the account's cap, so a resend nobody asked for cannot use up the send that
+    /// correcting the signup's address needs.
+    /// </param>
+    /// <param name="cancellationToken"></param>
+    private async Task<Union4<Success, TooManyActivationResends, AccountDeactivated, NotFound>> ResendActivationEmailCoreAsync(Guid userId, bool ignoreCooldown, string? onlyIfEmailIs, bool reserveCorrectionCapacity, CancellationToken cancellationToken)
     {
         // Without mail no link can be delivered (and such accounts are activated on creation anyway).
         if (!_mailOptions.IsEnabled) return new NotFound();
@@ -295,19 +634,26 @@ public sealed class AccountService : IAccountService
             .Include(u => u.UserActivationRequest)
             .Include(u => u.UserDeactivation)
             .FirstOrDefaultAsync(u => u.Id == userId, cancellationToken);
-        if (user is null || user.ActivatedAt is not null) return new NotFound();
+        if (user is null) return new NotFound();
+
+        // An instance this context already tracks comes back as it was first read, so read the locked row
+        // as it is now: the address below is the one that gets mailed and counted.
+        await _db.Entry(user).ReloadAsync(cancellationToken);
+        if (user.ActivatedAt is not null) return new NotFound();
         if (user.UserDeactivation is not null) return new AccountDeactivated();
+        if (onlyIfEmailIs is not null && !string.Equals(user.Email, onlyIfEmailIs, StringComparison.OrdinalIgnoreCase)) return new Success();
 
         // Throttle on the outbox itself (it is never auto-pruned), so the limit holds across API instances
         // and restarts. The signup email counts towards it.
-        var coalesceKey = EmailOutboxCoalesceKeys.AccountActivation(userId);
-        var windowStart = DateTime.UtcNow - Duration.ActivationResendWindow;
-        var recent = await _db.EmailOutbox
-            .Where(m => m.CoalesceKey == coalesceKey && m.CreatedAt >= windowStart)
+        var recent = await RecentActivationEmails(userId)
             .Select(m => m.CreatedAt)
             .ToListAsync(cancellationToken);
 
-        if (recent.Count >= 5 || recent.Any(createdAt => createdAt >= DateTime.UtcNow - Duration.ActivationResendCooldown))
+        var maxRecent = reserveCorrectionCapacity ? MaxActivationEmailsPerWindow - 1 : MaxActivationEmailsPerWindow;
+        if (recent.Count >= maxRecent || (!ignoreCooldown && recent.Any(createdAt => createdAt >= DateTime.UtcNow - Duration.ActivationResendCooldown)))
+            return new TooManyActivationResends();
+
+        if (await IsActivationEmailCapReachedAsync(user.Email, cancellationToken))
             return new TooManyActivationResends();
 
         user.UserActivationRequest ??= new UserActivationRequest
@@ -598,6 +944,15 @@ public sealed class AccountService : IAccountService
 
         await using var transaction = await _db.Database.BeginTransactionAsync();
 
+        // Whether this reset is what activates the account decides below if its OAuth links are dropped.
+        // Activating does not rotate the security stamp, so the stamp check in the update cannot tell that
+        // the account was activated since the read above: lock the row, as activation does, and look now.
+        await _db.Database.ExecuteSqlAsync($"SELECT 1 FROM users WHERE id = {reset.Reset.UserId} FOR UPDATE", cancellationToken);
+        var wasActivated = await _db.Users
+            .Where(u => u.Id == reset.Reset.UserId)
+            .Select(u => u.ActivatedAt != null)
+            .FirstOrDefaultAsync(cancellationToken);
+
         // Race-safe consume + apply: only updates if SecurityStamp still matches the snapshot.
         // If a sibling reset (or a separate password/email change) completed since the read above,
         // the stamp has rotated and the predicate matches zero rows.
@@ -623,6 +978,24 @@ public sealed class AccountService : IAccountService
             .Where(r => r.Id == reset.Reset.Id && r.UsedAt == null)
             .ExecuteUpdateAsync(s => s.SetProperty(r => r.UsedAt, now));
 
+        // This reset is what activates a not yet activated account. Such an account may have been created
+        // by someone else on this address through an OAuth signup, and its linked identity is then theirs:
+        // left in place it would let them sign in to the account the inbox owner just took over. Nobody
+        // has proven that link and this inbox belong together, so it goes. (An unactivated account cannot
+        // sign in, so it has no sessions or API tokens to worry about.)
+        // On an activated account the links are kept, like API tokens: activating required proving both
+        // the inbox and the credential, so every link on it was added by its owner.
+        List<string> removedProviders = [];
+        if (!wasActivated)
+        {
+            var connections = _db.UserOAuthConnections.Where(c => c.UserId == reset.Reset.UserId);
+            removedProviders = await connections.Select(c => c.ProviderKey).ToListAsync();
+            if (removedProviders.Count > 0)
+            {
+                await connections.ExecuteDeleteAsync();
+            }
+        }
+
         // Unauthenticated email-token flow proving control of the account, so the actor is the account itself.
         await _auditService.LogAsync(
             reset.Reset.UserId,
@@ -630,7 +1003,45 @@ public sealed class AccountService : IAccountService
             actorId: reset.Reset.UserId
         );
 
+        foreach (var provider in removedProviders)
+        {
+            await _auditService.LogAsync(
+                reset.Reset.UserId,
+                action: AuditAction.OAuthDisconnected,
+                actorId: reset.Reset.UserId,
+                metadata: new OAuthDisconnectedMetadata(provider),
+                reason: "Password reset"
+            );
+        }
+
+        // Whoever was signed in with the old password is signed out. Sessions live in Redis, outside this
+        // transaction, so they go first: if that fails nothing is committed and the link can be used again,
+        // rather than the reset succeeding with the old sessions left alive and no way to retry.
+        await _sessionService.DeleteSessionsByUserIdAsync(reset.Reset.UserId);
+
         await transaction.CommitAsync();
+
+        // A sign-in with the old password may have slipped in between the two steps above. The reset is
+        // committed and its link used up, so failing the request here would report an error for a password
+        // that did change, with nothing left to retry: try the sign-out again instead, and give up loudly.
+        const int signOutAttempts = 3;
+        for (var attempt = 1; attempt <= signOutAttempts; attempt++)
+        {
+            try
+            {
+                await _sessionService.DeleteSessionsByUserIdAsync(reset.Reset.UserId);
+                break;
+            }
+            catch (Exception ex) when (attempt < signOutAttempts)
+            {
+                _logger.LogWarning(ex, "Failed to re-check sessions after password reset for user ID: [{Id}], retrying", reset.Reset.UserId);
+                await Task.Delay(TimeSpan.FromMilliseconds(100 * attempt), CancellationToken.None);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to re-check sessions after password reset for user ID: [{Id}]; a session created during the reset may still be alive", reset.Reset.UserId);
+            }
+        }
 
         return new Success();
     }
@@ -639,7 +1050,8 @@ public sealed class AccountService : IAccountService
     public async Task<Union2<Success, EmailTaken>> CheckEmailAvailability(string email,
         CancellationToken cancellationToken = default)
     {
-        var isTaken = await _db.Users.AnyAsync(x => x.Email == email, cancellationToken: cancellationToken);
+        // A never activated account is only a pending signup and does not reserve its address.
+        var isTaken = await _db.Users.AnyAsync(x => x.Email == email && x.ActivatedAt != null, cancellationToken: cancellationToken);
         if (isTaken) return new EmailTaken();
 
         return new Success();
@@ -737,6 +1149,10 @@ public sealed class AccountService : IAccountService
 
         await using var transaction = await _db.Database.BeginTransactionAsync();
 
+        // An administrator decided whose address this is, so a pending signup parked on it goes. Part of
+        // this transaction: it only stays removed if the change is committed.
+        await ReleaseEmailFromPendingAccountAsync(email, claimantOwnsEmail: true, exceptUserId: userId, cancellationToken);
+
         user.Email = email;
         // Outstanding reset and email-change rows carry the stamp they were created under, so rotating
         // it invalidates them here. Without this a pending email-change verification could later
@@ -817,8 +1233,10 @@ public sealed class AccountService : IAccountService
         if (await IsEmailProviderBlacklisted(newEmail, cancellationToken))
             return new EmailAlreadyInUse(); // Don't reveal blacklist hits
 
+        // A never activated account is only a pending signup and does not reserve its address. One that
+        // still holds it when the change is verified is released then, see TryVerifyEmailAsync.
         var lowerCaseEmail = newEmail.ToLowerInvariant();
-        if (await _db.Users.AnyAsync(x => x.Email == lowerCaseEmail, cancellationToken))
+        if (await _db.Users.AnyAsync(x => x.Email == lowerCaseEmail && x.ActivatedAt != null, cancellationToken))
             return new EmailAlreadyInUse();
 
         // The verification token is minted lazily by the outbox delivery job at send time, so no usable
@@ -861,13 +1279,15 @@ public sealed class AccountService : IAccountService
         return new Success();
     }
 
-    public async Task<Union3<VerifyEmailSuccess, NotFound, EmailAlreadyInUse>> TryVerifyEmailAsync(string token, CancellationToken cancellationToken = default)
+    public async Task<Union3<VerifyEmailSuccess, NotFound, EmailAlreadyInUse>> TryVerifyEmailAsync(string token, Guid userId, CancellationToken cancellationToken = default)
     {
         var hash = HashingUtils.HashToken(token);
         var validSince = DateTime.UtcNow - Duration.EmailChangeRequestLifetime;
 
+        // Scoped to the signed-in user: the link goes to an address that is not the account's yet, so
+        // whoever opens it may be a stranger being asked to vouch for someone else's account.
         var change = await _db.UserEmailChanges
-            .Where(x => x.TokenHash == hash && x.UsedAt == null && x.CreatedAt >= validSince
+            .Where(x => x.UserId == userId && x.TokenHash == hash && x.UsedAt == null && x.CreatedAt >= validSince
                 && x.SecurityStampAtCreate == x.User.SecurityStamp
                 && x.User.UserDeactivation == null && x.User.ActivatedAt != null)
             .Select(x => new
@@ -891,6 +1311,11 @@ public sealed class AccountService : IAccountService
         var newStamp = Guid.CreateVersion7();
         try
         {
+            // The caller opened the link mailed to the new address while signed in, which proves it is
+            // theirs: a pending signup someone parked on it goes. Rolled back with the transaction on every
+            // return below that does not commit.
+            await ReleaseEmailFromPendingAccountAsync(change.NewEmail, claimantOwnsEmail: true, exceptUserId: change.UserId, cancellationToken);
+
             var userRows = await _db.Users
                 .Where(u => u.Id == change.UserId && u.SecurityStamp == change.SecurityStampAtCreate)
                 .ExecuteUpdateAsync(s => s
@@ -898,8 +1323,9 @@ public sealed class AccountService : IAccountService
                     .SetProperty(u => u.SecurityStamp, newStamp));
             if (userRows == 0) return new NotFound();
         }
-        catch (DbUpdateException ex) when (ex.InnerException is PostgresException { SqlState: "23505" })
+        catch (PostgresException ex) when (ex.SqlState == PostgresErrorCodes.UniqueViolation)
         {
+            // A bulk update is not wrapped in a DbUpdateException the way SaveChanges wraps it.
             // Another account claimed this email between request creation and verification.
             // The pending row stays as-is (not marked used) so it can expire naturally.
             return new EmailAlreadyInUse();

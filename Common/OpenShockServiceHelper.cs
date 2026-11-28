@@ -422,8 +422,10 @@ public static class OpenShockServiceHelper
                         PermitLimit = 120,
                         Window = TimeSpan.FromMinutes(1),
                         SegmentsPerWindow = 6,
-                        QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
-                        QueueLimit = 10
+                        // No queue: this limiter runs after authentication, so a queued request would
+                        // still execute, seconds later, with a session or API token that may have been
+                        // revoked while it waited. Over the limit means 429, now.
+                        QueueLimit = 0
                     });
             });
 

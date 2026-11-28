@@ -4,6 +4,8 @@ public static class AuthConstants
 {
     public const string UserSessionCookieName = "openShockSession";
     public const string ActivationResendCookieName = "openShockActivationResend";
+    public const string SignupBrowserCookieName = "openShockSignupBrowser";
+    public const string SignupBrowserSecureCookieName = "__Host-openShockSignupBrowser";
     public const string UserSessionHeaderName = "OpenShockSession";
     public const string ApiTokenHeaderName = "OpenShockToken";
     public const string HubTokenHeaderName = "DeviceToken";

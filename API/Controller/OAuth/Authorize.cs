@@ -17,13 +17,14 @@ public sealed partial class OAuthController
     /// </remarks>
     /// <param name="provider">Provider key (e.g. <c>discord</c>).</param>
     /// <param name="flow">Flow to run</param>
+    /// <param name="activationToken">Token from the activation email; signing in with the account's linked provider then activates it.</param>
     /// <response code="302">Redirect to the provider authorization page.</response>
     /// <response code="400">Unsupported or misconfigured provider.</response>
     [HttpPost("{provider}/authorize")]
     [ApiVersion(1)]
     [EnableRateLimiting("auth")]
     [ApiExplorerSettings(IgnoreApi = true)]
-    public async Task<IActionResult> OAuthAuthorize([FromRoute] string provider, [FromQuery(Name="flow"), Required] OAuthFlow flow)
+    public async Task<IActionResult> OAuthAuthorize([FromRoute] string provider, [FromQuery(Name="flow"), Required] OAuthFlow flow, [FromQuery(Name = "activationToken"), StringLength(128)] string? activationToken = null)
     {
         if (!await _schemeProvider.IsSupportedOAuthScheme(provider))
             return Problem(OAuthError.UnsupportedProvider);
@@ -40,6 +41,6 @@ public sealed partial class OAuthController
                 return Problem(OAuthError.UnsupportedFlow);
         }
 
-        return OAuthUtil.StartOAuth(provider, flow);
+        return OAuthUtil.StartOAuth(provider, flow, activationToken);
     }
 }

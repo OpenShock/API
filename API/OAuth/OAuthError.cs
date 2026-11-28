@@ -53,6 +53,11 @@ public static class OAuthError
         "Your account already has an OAuth connection for this provider",
         HttpStatusCode.Conflict);
 
+    public static OpenShockProblem LastLoginMethod => new(
+        "OAuth.Connection.LastLoginMethod",
+        "This is the only way to sign in to this account. Set a password before disconnecting it",
+        HttpStatusCode.Conflict);
+
     public static OpenShockProblem ExternalAlreadyLinked => new(
         "OAuth.Connection.AlreadyLinked",
         "This external account is already linked to another user",

@@ -29,7 +29,7 @@ public sealed partial class AuthenticatedAccountController
     public async Task<IActionResult> ChangePassword([FromBody] ChangePasswordRequest body, CancellationToken cancellationToken)
     {
         // OAuth-only accounts that have never set a password must go through the email-confirmed
-        // /password/set flow rather than silently setting one through this endpoint.
+        // password reset flow rather than silently setting one through this endpoint.
         if (string.IsNullOrEmpty(CurrentUser.PasswordHash))
         {
             return Problem(AccountError.PasswordNotSet);

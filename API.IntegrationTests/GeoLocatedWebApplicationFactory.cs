@@ -21,6 +21,13 @@ public sealed class GeoLocatedWebApplicationFactory : WebApplicationFactory
         set => _enrichment.Location = value;
     }
 
+    /// <summary>Country every request resolves to, or null for "unknown".</summary>
+    public string? ClientCountryCode
+    {
+        get => _enrichment.CountryCode;
+        set => _enrichment.CountryCode = value;
+    }
+
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
         base.ConfigureWebHost(builder);
@@ -35,8 +42,11 @@ public sealed class GeoLocatedWebApplicationFactory : WebApplicationFactory
     private sealed class FakeIpEnrichmentService : IIpEnrichmentService
     {
         public GeoPoint? Location { get; set; }
+        public string? CountryCode { get; set; }
 
         public IpEnrichmentData? Enrich(IPAddress ip) =>
-            Location is { } location ? new IpEnrichmentData(null, null, null, null, null, location, 20) : null;
+            Location is null && CountryCode is null
+                ? null
+                : new IpEnrichmentData(null, null, null, CountryCode, null, Location, Location is null ? null : 20);
     }
 }

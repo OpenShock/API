@@ -7,9 +7,10 @@ using OpenShock.Common.Options;
 namespace OpenShock.Common.Authentication;
 
 /// <summary>
-/// Cookie set on signup when the new account still needs activation. It lets the browser that created the account
-/// ask for the activation email again ("didn't get the email?") without typing an address, so the resend endpoint
-/// can't be aimed at arbitrary inboxes or used to probe which emails are registered.
+/// Cookie set while this browser has a signup waiting for activation: when it creates the account, and again when
+/// an OAuth signup is restarted with corrected details. It lets that browser ask for the activation email again
+/// ("didn't get the email?") without typing an address, so the resend endpoint can't be aimed at arbitrary inboxes
+/// or used to probe which emails are registered. The cookie alone is enough for a (rate limited) resend.
 /// </summary>
 /// <remarks>
 /// The value is a time-limited data protection payload holding the user id (keys are persisted to the database,
@@ -19,6 +20,10 @@ namespace OpenShock.Common.Authentication;
 /// Deliberately <em>not</em> HttpOnly: the frontend reads its presence to decide whether to offer the resend
 /// button. HttpOnly would buy little anyway - script on the page could call the endpoint with the cookie attached
 /// regardless - and a leaked token can only resend (rate limited) activation emails to that account's own inbox.
+/// </para>
+/// <para>
+/// It is not proof of anything else. What marks this browser as the one that signed up, for activation, is
+/// <see cref="SignupBrowserCookie"/>, which is set and removed together with this one.
 /// </para>
 /// </remarks>
 public static class ActivationResendCookie
@@ -41,6 +46,8 @@ public static class ActivationResendCookie
             SameSite = SameSiteMode.Lax,
             Domain = domain
         });
+
+        SignupBrowserCookie.Set(context, userId);
     }
 
     public static bool TryGetUserId(HttpContext context, [NotNullWhen(true)] out Guid? userId)
@@ -66,10 +73,16 @@ public static class ActivationResendCookie
     /// <summary>Deletes the cookie, if the request carries one, on every configured cookie domain.</summary>
     public static void Remove(HttpContext context)
     {
+        SignupBrowserCookie.Remove(context);
+
         if (!context.Request.Cookies.ContainsKey(AuthConstants.ActivationResendCookieName)) return;
 
-        var cookieDomains = context.RequestServices.GetRequiredService<FrontendOptions>().CookieDomains;
-        foreach (var domain in cookieDomains)
+        // A service without frontend options (the LiveControlGateway) never issues this cookie and does not
+        // know the domains to remove it from: leave it for the API, rather than fail the request over it.
+        var frontendOptions = context.RequestServices.GetService<FrontendOptions>();
+        if (frontendOptions is null) return;
+
+        foreach (var domain in frontendOptions.CookieDomains)
         {
             context.Response.Cookies.Delete(AuthConstants.ActivationResendCookieName, new CookieOptions { Domain = domain });
         }

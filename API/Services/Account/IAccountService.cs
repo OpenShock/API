@@ -21,8 +21,10 @@ public interface IAccountService
 
     /// <summary>
     /// Creates an OAuth-only (passwordless) account and links the external identity in a single transaction.
-    /// The new user is activated immediately (no activation flow). Returns a conflict-style result if the
-    /// username/email is taken or the external identity is already linked.
+    /// The new user is activated immediately for a trusted provider address (or when mail is disabled).
+    /// With mail enabled and an unverified provider address, the user remains pending and an activation
+    /// email is queued; SignupFinalize does not create a session until that flow is completed. Returns a
+    /// conflict-style result if the username/email is taken or the external identity is already linked.
     /// </summary>
     /// <param name="email">Email to set on the user.</param>
     /// <param name="username">Desired unique username.</param>
@@ -30,22 +32,57 @@ public interface IAccountService
     /// <param name="providerAccountId">external subject/id from provider</param>
     /// <param name="providerAccountName">display name from provider</param>
     /// <param name="isEmailTrusted"></param>
+    /// <param name="replacePendingUserId">
+    /// A never activated account this same external identity signed up earlier, to be replaced by the new
+    /// one. Only pass this for a caller who just signed in with that identity. It is deleted in the same
+    /// transaction that creates the new account, so a conflict leaves it as it was.
+    /// </param>
     /// <param name="cancellationToken"></param>
     /// <returns>Success with the created user, or AccountWithEmailOrUsernameExists when taken/blocked.</returns>
-    Task<AccountCreationResult> CreateOAuthOnlyAccountAsync(string email, string username, string provider, string providerAccountId, string? providerAccountName, bool isEmailTrusted, CancellationToken cancellationToken = default);
+    Task<AccountCreationResult> CreateOAuthOnlyAccountAsync(string email, string username, string provider, string providerAccountId, string? providerAccountName, bool isEmailTrusted, Guid? replacePendingUserId = null, CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Returns true if the given email is already associated with an existing user account.
+    /// Returns true if the given email belongs to an activated account. A never activated account is only
+    /// a pending signup and does not reserve its address.
     /// </summary>
     Task<bool> IsEmailRegisteredAsync(string email, CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// 
+    /// Lets the creator of a never activated account correct what they signed up with (typically a mistyped
+    /// email) and sends the activation email to the new address. Only call this for a caller who proved they
+    /// hold the account's credential. Sends are capped per account like any activation resend: an address
+    /// change past that cap is refused with <see cref="TooManyActivationResends"/> and changes nothing,
+    /// because the link already mailed would stop working with no new one to replace it.
     /// </summary>
-    /// <param name="token"></param>
+    /// <returns>
+    /// <see cref="NotFound"/> when the account is not a pending signup (any more): activated, deactivated or deleted.
+    /// </returns>
+    Task<Union4<User, AccountWithEmailOrUsernameExists, TooManyActivationResends, NotFound>> RestartPendingSignupAsync(Guid userId, string email, string username, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Activates the account an emailed activation token belongs to. The token only proves control of the
+    /// inbox, and anyone can sign up with somebody else's address, so the caller must also show they are
+    /// the one who signed up: the signup browser's cookie (<paramref name="signupBrowserUserId"/>)
+    /// or the account's password. An account created through OAuth is activated by signing in with the
+    /// linked provider instead, see <see cref="TryActivateAccountAsync"/>.
+    /// </summary>
+    /// <param name="activationToken">Token from the activation email.</param>
+    /// <param name="signupBrowserUserId">User id from <see cref="OpenShock.Common.Authentication.SignupBrowserCookie"/>, if the request carries a valid one.</param>
+    /// <param name="password">Password supplied alongside the token, if any.</param>
     /// <param name="cancellationToken"></param>
-    /// <returns></returns>
-    Task<bool> TryActivateAccountAsync(string token, CancellationToken cancellationToken = default);
+    /// <returns>
+    /// <see cref="ActivationCredentialRequired"/> when the token is valid but that proof is missing or wrong;
+    /// the account stays unactivated and the token stays usable.
+    /// </returns>
+    Task<Union3<Success, ActivationCredentialRequired, NotFound>> ActivateAccountAsync(string activationToken, Guid? signupBrowserUserId, string? password, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Activates <paramref name="userId"/> if <paramref name="activationToken"/> is the token mailed to that
+    /// account. Only call this once the caller has proven they hold a credential of that account (a sign-in
+    /// with its linked OAuth identity).
+    /// </summary>
+    /// <returns>False when the token does not belong to this account or there is nothing to activate.</returns>
+    Task<bool> TryActivateAccountAsync(Guid userId, string activationToken, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Looks up the account by username or email and re-enqueues its activation email, see the overload below.
@@ -65,6 +102,12 @@ public interface IAccountService
     /// <param name="cancellationToken"></param>
     /// <returns>NotFound when there is nothing to resend (unknown user, already activated, or mail disabled).</returns>
     Task<Union4<Success, TooManyActivationResends, AccountDeactivated, NotFound>> ResendActivationEmailAsync(Guid userId, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Re-enqueues an activation email after an OAuth login while preserving one account-level send slot
+    /// for a pending-signup email correction.
+    /// </summary>
+    Task<Union4<Success, TooManyActivationResends, AccountDeactivated, NotFound>> ResendActivationEmailForOAuthAsync(Guid userId, CancellationToken cancellationToken = default);
 
     public Task<Union5<Success, CannotDeactivatePrivilegedAccount, AccountDeactivationAlreadyInProgress, Unauthorized, NotFound>> DeactivateAccountAsync(Guid executingUserId, Guid userId, bool deleteLater = true, string? reason = null, CancellationToken cancellationToken = default);
 
@@ -100,7 +143,9 @@ public interface IAccountService
     
     /// <summary>
     /// Completes a password reset process, sets a new password. Since the reset link proves control of the
-    /// account's email, this also activates an unactivated account.
+    /// account's email, this also activates an unactivated account. All sessions are signed out; OAuth links
+    /// and API tokens are kept, except that an account activated by this reset loses the OAuth identity it
+    /// was signed up with (it may be someone else's).
     /// </summary>
     /// <param name="passwordResetId"></param>
     /// <param name="secret"></param>
@@ -174,14 +219,23 @@ public interface IAccountService
     /// request creation and verification (race condition).
     /// </summary>
     /// <param name="token"></param>
+    /// <param name="userId">
+    /// The signed-in user confirming the change. The token is mailed to an address the account does not
+    /// control yet, so it only counts when presented from a session of the account that requested it.
+    /// </param>
     /// <param name="cancellationToken"></param>
     /// <returns></returns>
-    Task<Union3<VerifyEmailSuccess, NotFound, EmailAlreadyInUse>> TryVerifyEmailAsync(string token, CancellationToken cancellationToken = default);
+    Task<Union3<VerifyEmailSuccess, NotFound, EmailAlreadyInUse>> TryVerifyEmailAsync(string token, Guid userId, CancellationToken cancellationToken = default);
 }
 
 public union AccountCreationResult(User, AccountWithEmailOrUsernameExists);
 
 public sealed record VerifyEmailSuccess(Guid UserId, string OldEmail, string NewEmail);
+
+/// <param name="HasPassword">Whether the account can be activated by supplying its password.</param>
+/// <param name="OAuthProviders">Providers linked to the account; signing in with one activates it.</param>
+/// <param name="PasswordInvalid">A password was supplied but did not match.</param>
+public sealed record ActivationCredentialRequired(bool HasPassword, IReadOnlyList<string> OAuthProviders, bool PasswordInvalid);
 
 public sealed class AccountIsOAuthOnly;
 public sealed class AccountNotActivated;
