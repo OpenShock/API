@@ -823,7 +823,7 @@ public sealed class MailTests
         var response = await client.PostAsync($"/1/account/password-reset/{resetId}/{secret}/complete",
             TestHelper.JsonContent(new { password = "NewPassword123#" }));
 
-        await Assert.That(response.StatusCode).IsNotEqualTo(HttpStatusCode.OK);
+        await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.NotFound);
         await Assert.That(await IsActivatedAsync(userId)).IsFalse();
     }
 
@@ -929,6 +929,75 @@ public sealed class MailTests
         await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.OK);
     }
 
+    // The mail to the corrected address is queued by the correction itself, in its transaction: there is
+    // no moment where the old link is dead and nothing is on its way to the new address.
+    [Test]
+    public async Task RestartPendingSignup_ChangedEmail_QueuesTheMailToTheNewAddress()
+    {
+        var (userId, _) = await CreateUnactivatedUserWithTokenAsync("mail-restart-queued", password: null);
+        var newEmail = TestHelper.UniqueEmail("mail-restart-queued-new");
+
+        await using var scope = WebApplicationFactory.Services.CreateAsyncScope();
+        var db = scope.ServiceProvider.GetRequiredService<OpenShockContext>();
+        var username = await db.Users.AsNoTracking().Where(u => u.Id == userId).Select(u => u.Name).SingleAsync();
+
+        var accountService = scope.ServiceProvider.GetRequiredService<IAccountService>();
+        var restarted = await accountService.RestartPendingSignupAsync(userId, newEmail, username);
+
+        await Assert.That(restarted.Value is User).IsTrue();
+        await Assert.That(await CountOutboxAsync(newEmail)).IsEqualTo(1);
+    }
+
+    // The delivery job skips an activation mail whose account has no activation request to mint a token on,
+    // so a correction has to leave one behind even where none existed.
+    [Test]
+    public async Task RestartPendingSignup_ChangedEmail_AccountWithoutActivationRequest_CreatesOne()
+    {
+        var (userId, _) = await CreateUnactivatedUserWithTokenAsync("mail-restart-norequest", password: null);
+        var newEmail = TestHelper.UniqueEmail("mail-restart-norequest-new");
+
+        await using var scope = WebApplicationFactory.Services.CreateAsyncScope();
+        var db = scope.ServiceProvider.GetRequiredService<OpenShockContext>();
+        await db.UserActivationRequests.Where(r => r.UserId == userId).ExecuteDeleteAsync();
+        var username = await db.Users.AsNoTracking().Where(u => u.Id == userId).Select(u => u.Name).SingleAsync();
+
+        var accountService = scope.ServiceProvider.GetRequiredService<IAccountService>();
+        var restarted = await accountService.RestartPendingSignupAsync(userId, newEmail, username);
+
+        await Assert.That(restarted.Value is User).IsTrue();
+        await Assert.That(await db.UserActivationRequests.AsNoTracking().CountAsync(r => r.UserId == userId)).IsEqualTo(1);
+        await Assert.That(await CountOutboxAsync(newEmail)).IsEqualTo(1);
+    }
+
+    // The resend an OAuth sign-in triggers on its own stops one short of the account's cap: the last send
+    // is kept for correcting the address, which a resend the user asks for may still use.
+    [Test]
+    public async Task ResendActivationForOAuth_OneSendLeftInTheWindow_LeavesItForACorrection()
+    {
+        var (userId, _) = await CreateUnactivatedUserWithTokenAsync("mail-oauth-reserve", password: null);
+        var email = await GetEmailAsync(userId);
+
+        await using var scope = WebApplicationFactory.Services.CreateAsyncScope();
+        var db = scope.ServiceProvider.GetRequiredService<OpenShockContext>();
+        for (var i = 0; i < 4; i++)
+        {
+            db.EmailOutbox.Add(EmailOutboxMessage.ForAccountActivation(userId, email, "pending"));
+        }
+        await db.SaveChangesAsync();
+        // Past the cooldown, so only the cap is left to refuse a resend.
+        await BackdateOutboxAsync(email, TimeSpan.FromMinutes(11));
+
+        var accountService = scope.ServiceProvider.GetRequiredService<IAccountService>();
+
+        var automatic = await accountService.ResendActivationEmailForOAuthAsync(userId);
+        await Assert.That(automatic.Value is TooManyActivationResends).IsTrue();
+        await Assert.That(await CountOutboxAsync(email)).IsEqualTo(4);
+
+        var requested = await accountService.ResendActivationEmailAsync(userId);
+        await Assert.That(requested.Value is OpenShock.Common.Results.Success).IsTrue();
+        await Assert.That(await CountOutboxAsync(email)).IsEqualTo(5);
+    }
+
     // Each moves onto the address the other holds, so each needs both rows locked: taken in the same order
     // one waits for the other, taken in opposite orders the database would abort one as a deadlock.
     [Test]
@@ -940,18 +1009,25 @@ public sealed class MailTests
         await BackdateUserAsync(secondId, PastPendingSignupHold);
         var firstEmail = await GetEmailAsync(firstId);
         var secondEmail = await GetEmailAsync(secondId);
+        await using var usernameScope = WebApplicationFactory.Services.CreateAsyncScope();
+        var usernameDb = usernameScope.ServiceProvider.GetRequiredService<OpenShockContext>();
+        var usernames = await usernameDb.Users.AsNoTracking()
+            .Where(u => u.Id == firstId || u.Id == secondId)
+            .ToDictionaryAsync(u => u.Id, u => u.Name);
+        var firstUsername = usernames[firstId];
+        var secondUsername = usernames[secondId];
 
-        async Task<object> RestartAsync(Guid userId, string email)
+        async Task<object> RestartAsync(Guid userId, string email, string username)
         {
             await using var scope = WebApplicationFactory.Services.CreateAsyncScope();
-            var db = scope.ServiceProvider.GetRequiredService<OpenShockContext>();
-            var username = await db.Users.AsNoTracking().Where(u => u.Id == userId).Select(u => u.Name).SingleAsync();
             var accountService = scope.ServiceProvider.GetRequiredService<IAccountService>();
             return (await accountService.RestartPendingSignupAsync(userId, email, username)).Value!;
         }
 
         // Neither call throws. The one that gets there first takes the other's address and removes it.
-        var results = await Task.WhenAll(RestartAsync(firstId, secondEmail), RestartAsync(secondId, firstEmail));
+        var results = await Task.WhenAll(
+            RestartAsync(firstId, secondEmail, firstUsername),
+            RestartAsync(secondId, firstEmail, secondUsername));
 
         await Assert.That(results.Count(r => r is User)).IsEqualTo(1);
     }

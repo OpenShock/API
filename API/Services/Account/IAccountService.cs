@@ -21,8 +21,10 @@ public interface IAccountService
 
     /// <summary>
     /// Creates an OAuth-only (passwordless) account and links the external identity in a single transaction.
-    /// The new user is activated immediately (no activation flow). Returns a conflict-style result if the
-    /// username/email is taken or the external identity is already linked.
+    /// The new user is activated immediately for a trusted provider address (or when mail is disabled).
+    /// With mail enabled and an unverified provider address, the user remains pending and an activation
+    /// email is queued; SignupFinalize does not create a session until that flow is completed. Returns a
+    /// conflict-style result if the username/email is taken or the external identity is already linked.
     /// </summary>
     /// <param name="email">Email to set on the user.</param>
     /// <param name="username">Desired unique username.</param>
@@ -100,6 +102,12 @@ public interface IAccountService
     /// <param name="cancellationToken"></param>
     /// <returns>NotFound when there is nothing to resend (unknown user, already activated, or mail disabled).</returns>
     Task<Union4<Success, TooManyActivationResends, AccountDeactivated, NotFound>> ResendActivationEmailAsync(Guid userId, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Re-enqueues an activation email after an OAuth login while preserving one account-level send slot
+    /// for a pending-signup email correction.
+    /// </summary>
+    Task<Union4<Success, TooManyActivationResends, AccountDeactivated, NotFound>> ResendActivationEmailForOAuthAsync(Guid userId, CancellationToken cancellationToken = default);
 
     public Task<Union5<Success, CannotDeactivatePrivilegedAccount, AccountDeactivationAlreadyInProgress, Unauthorized, NotFound>> DeactivateAccountAsync(Guid executingUserId, Guid userId, bool deleteLater = true, string? reason = null, CancellationToken cancellationToken = default);
 

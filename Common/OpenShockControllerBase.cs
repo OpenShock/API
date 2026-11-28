@@ -79,7 +79,25 @@ public abstract class OpenShockControllerBase : Internal.Common.OpenShockControl
             // Checked after the session exists: a reset that commits later than this still finds the
             // session and deletes it, one that committed earlier shows up here.
             var db = HttpContext.RequestServices.GetRequiredService<OpenShockContext>();
-            var currentStamp = await db.Users.Where(u => u.Id == accountId).Select(u => (Guid?)u.SecurityStamp).FirstOrDefaultAsync();
+            Guid? currentStamp;
+            try
+            {
+                currentStamp = await db.Users.Where(u => u.Id == accountId).Select(u => (Guid?)u.SecurityStamp).FirstOrDefaultAsync();
+            }
+            catch
+            {
+                try
+                {
+                    await sessionService.DeleteSessionByIdAsync(session.Id);
+                }
+                catch (Exception cleanupException)
+                {
+                    HttpContext.RequestServices.GetRequiredService<ILogger<OpenShockControllerBase>>()
+                        .LogError(cleanupException, "Failed to clean up session {SessionId} after the security-stamp check failed", session.Id);
+                }
+
+                throw;
+            }
             if (currentStamp != securityStamp)
             {
                 await sessionService.DeleteSessionByIdAsync(session.Id);

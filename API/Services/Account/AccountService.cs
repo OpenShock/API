@@ -182,7 +182,7 @@ public sealed class AccountService : IAccountService
                 TokenHash = SeedTokenHash()
             };
 
-            _db.EmailOutbox.Add(EmailOutboxMessage.ForAccountActivation(user.Id, email, username));
+            _db.EmailOutbox.Add(EmailOutboxMessage.ForAccountActivation(user.Id, user.Email, username));
 
             await _db.SaveChangesAsync();
         }
@@ -346,11 +346,23 @@ public sealed class AccountService : IAccountService
                 {
                     user.UserActivationRequest.TokenHash = SeedTokenHash();
                 }
+                else
+                {
+                    // The delivery job skips an activation mail that has no request to mint a token on.
+                    user.UserActivationRequest = new UserActivationRequest
+                    {
+                        UserId = user.Id,
+                        TokenHash = SeedTokenHash(),
+                        CreatedAt = DateTime.UtcNow
+                    };
+                }
 
                 // The same goes for a password reset link requested for the previous address: completing it
                 // would set a password and activate the account on the new one. Reset rows carry the stamp
                 // they were created under, so rotating it invalidates them.
                 user.SecurityStamp = Guid.CreateVersion7();
+
+                _db.EmailOutbox.Add(EmailOutboxMessage.ForAccountActivation(user.Id, user.Email, user.Name));
             }
 
             try
@@ -371,12 +383,17 @@ public sealed class AccountService : IAccountService
 
         await transaction.CommitAsync(cancellationToken);
 
-        // A corrected address has not been mailed yet, so the cooldown (which protects an inbox from repeats)
-        // does not apply to it; the daily cap per account was checked above, before the old link was killed.
-        // For unchanged details a throttled result just means no new mail went out: the link already mailed
-        // still works, and the resend button gets a new one later. If another correction got in since the
-        // commit above, the mail for this one is dropped: that correction queues its own.
-        await ResendActivationEmailCoreAsync(userId, ignoreCooldown: emailChanged, onlyIfEmailIs: emailChanged ? email : null, cancellationToken);
+        if (emailChanged)
+        {
+            // The replacement mail is part of the same transaction as the address and token change.
+            await NotifyEmailOutboxAsync();
+        }
+        else
+        {
+            // For unchanged details a throttled result just means no new mail went out: the link already
+            // mailed still works, and the resend button gets a new one later.
+            await ResendActivationEmailCoreAsync(userId, ignoreCooldown: false, onlyIfEmailIs: null, reserveCorrectionCapacity: false, cancellationToken);
+        }
 
         return user;
     }
@@ -544,6 +561,10 @@ public sealed class AccountService : IAccountService
         // correction take them in. Taking the request first could deadlock against any of those.
         await _db.Database.ExecuteSqlAsync($"SELECT 1 FROM users WHERE id = {userId} FOR UPDATE", cancellationToken);
 
+        var canActivate = await _db.Users
+            .AnyAsync(u => u.Id == userId && u.ActivatedAt == null && u.UserDeactivation == null, cancellationToken);
+        if (!canActivate) return false;
+
         var consumed = await _db.UserActivationRequests
             .Where(r => r.UserId == userId && r.TokenHash == tokenHash)
             .ExecuteDeleteAsync(cancellationToken);
@@ -585,13 +606,21 @@ public sealed class AccountService : IAccountService
 
     /// <inheritdoc />
     public Task<Union4<Success, TooManyActivationResends, AccountDeactivated, NotFound>> ResendActivationEmailAsync(Guid userId, CancellationToken cancellationToken = default)
-        => ResendActivationEmailCoreAsync(userId, ignoreCooldown: false, onlyIfEmailIs: null, cancellationToken);
+        => ResendActivationEmailCoreAsync(userId, ignoreCooldown: false, onlyIfEmailIs: null, reserveCorrectionCapacity: false, cancellationToken);
+
+    /// <inheritdoc />
+    public Task<Union4<Success, TooManyActivationResends, AccountDeactivated, NotFound>> ResendActivationEmailForOAuthAsync(Guid userId, CancellationToken cancellationToken = default)
+        => ResendActivationEmailCoreAsync(userId, ignoreCooldown: false, onlyIfEmailIs: null, reserveCorrectionCapacity: true, cancellationToken);
 
     /// <param name="userId"></param>
     /// <param name="ignoreCooldown"></param>
     /// <param name="onlyIfEmailIs">When given, nothing is queued unless this is still the account's address.</param>
+    /// <param name="reserveCorrectionCapacity">
+    /// Stop one short of the account's cap, so a resend nobody asked for cannot use up the send that
+    /// correcting the signup's address needs.
+    /// </param>
     /// <param name="cancellationToken"></param>
-    private async Task<Union4<Success, TooManyActivationResends, AccountDeactivated, NotFound>> ResendActivationEmailCoreAsync(Guid userId, bool ignoreCooldown, string? onlyIfEmailIs, CancellationToken cancellationToken)
+    private async Task<Union4<Success, TooManyActivationResends, AccountDeactivated, NotFound>> ResendActivationEmailCoreAsync(Guid userId, bool ignoreCooldown, string? onlyIfEmailIs, bool reserveCorrectionCapacity, CancellationToken cancellationToken)
     {
         // Without mail no link can be delivered (and such accounts are activated on creation anyway).
         if (!_mailOptions.IsEnabled) return new NotFound();
@@ -620,7 +649,8 @@ public sealed class AccountService : IAccountService
             .Select(m => m.CreatedAt)
             .ToListAsync(cancellationToken);
 
-        if (recent.Count >= MaxActivationEmailsPerWindow || (!ignoreCooldown && recent.Any(createdAt => createdAt >= DateTime.UtcNow - Duration.ActivationResendCooldown)))
+        var maxRecent = reserveCorrectionCapacity ? MaxActivationEmailsPerWindow - 1 : MaxActivationEmailsPerWindow;
+        if (recent.Count >= maxRecent || (!ignoreCooldown && recent.Any(createdAt => createdAt >= DateTime.UtcNow - Duration.ActivationResendCooldown)))
             return new TooManyActivationResends();
 
         if (await IsActivationEmailCapReachedAsync(user.Email, cancellationToken))
@@ -991,14 +1021,26 @@ public sealed class AccountService : IAccountService
 
         await transaction.CommitAsync();
 
-        // A sign-in with the old password may have slipped in between the two steps above.
-        try
+        // A sign-in with the old password may have slipped in between the two steps above. The reset is
+        // committed and its link used up, so failing the request here would report an error for a password
+        // that did change, with nothing left to retry: try the sign-out again instead, and give up loudly.
+        const int signOutAttempts = 3;
+        for (var attempt = 1; attempt <= signOutAttempts; attempt++)
         {
-            await _sessionService.DeleteSessionsByUserIdAsync(reset.Reset.UserId);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogWarning(ex, "Failed to re-check sessions after password reset for user ID: [{Id}]", reset.Reset.UserId);
+            try
+            {
+                await _sessionService.DeleteSessionsByUserIdAsync(reset.Reset.UserId);
+                break;
+            }
+            catch (Exception ex) when (attempt < signOutAttempts)
+            {
+                _logger.LogWarning(ex, "Failed to re-check sessions after password reset for user ID: [{Id}], retrying", reset.Reset.UserId);
+                await Task.Delay(TimeSpan.FromMilliseconds(100 * attempt), CancellationToken.None);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to re-check sessions after password reset for user ID: [{Id}]; a session created during the reset may still be alive", reset.Reset.UserId);
+            }
         }
 
         return new Success();

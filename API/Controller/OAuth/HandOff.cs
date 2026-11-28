@@ -107,7 +107,7 @@ public sealed partial class OAuthController
                     // address on the account was typed in at signup and is not known to be theirs.
                     try
                     {
-                        await _accountService.ResendActivationEmailAsync(connection.UserId, cancellationToken);
+                        await _accountService.ResendActivationEmailForOAuthAsync(connection.UserId, cancellationToken);
                     }
                     catch (Exception ex) when (ex is not OperationCanceledException)
                     {
