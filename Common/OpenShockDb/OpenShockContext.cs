@@ -1,6 +1,7 @@
-﻿using System.Text.Json;
+using System.Text.Json;
 using Microsoft.AspNetCore.DataProtection.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.ChangeTracking;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using OpenShock.Common.Constants;
 using OpenShock.Common.Models;
@@ -941,10 +942,20 @@ public class OpenShockContext : DbContext, IDataProtectionKeyContext
             entity.Property(e => e.PasswordHashType)
                 .HasColumnType("character varying")
                 .HasColumnName("password_hash_type");
+            // Keep the List<RoleType> <-> RoleType[] converter: AdminUsersView is queried via
+            // Z.EntityFramework.Plus .Future() in AdminController.GetUsers, whose CreateEntityDataReader
+            // bypasses Npgsql's GetFieldValue<List<RoleType>>() and casts NpgsqlDataReader.GetValue()
+            // (which returns RoleType[]) directly to T, throwing InvalidCastException without it.
             entity.Property(e => e.Roles)
                 .HasColumnType("role_type[]")
                 .HasColumnName("roles")
-                .HasConversion(x => x.ToArray(), x => x.ToList());
+                .HasConversion(
+                    x => x.ToArray(),
+                    x => x.ToList(),
+                    new ValueComparer<List<RoleType>>(
+                        (a, b) => a != null && b != null ? a.SequenceEqual(b) : ReferenceEquals(a, b),
+                        v => v.Aggregate(0, (hash, item) => HashCode.Combine(hash, item.GetHashCode())),
+                        v => v.ToList()));
             entity.Property(e => e.CreatedAt)
                 .HasColumnName("created_at");
             entity.Property(e => e.ActivatedAt)
